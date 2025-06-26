@@ -56,10 +56,6 @@ src/
     Grille.vue    # Vue principale
 ```
 
-## 📄 Licence
-
-MIT
-
 
 ### License
 
