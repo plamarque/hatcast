@@ -59,3 +59,9 @@ src/
 ## 📄 Licence
 
 MIT
+
+
+### License
+
+The code is licensed under the [MIT License](./LICENSE).  
+Visual elements and written content (e.g., emojis, headers) are licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
