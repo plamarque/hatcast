@@ -10,17 +10,21 @@
           <col style="width: 5%;" />
         </colgroup>
         <thead>
-          <tr class="bg-gray-100 text-gray-800 text-sm">
+          <tr class="bg-gray-100 text-gray-800 text-4xl sm:text-base">
             <th class="p-3 text-left">
-              <div class="flex flex-col items-center justify-center gap-2">
-                <span class="text-sm">Joueur</span>
-                <button @click="newPlayerForm = true" class="text-sm text-blue-500 hover:text-blue-700 cursor-pointer" title="Ajoutez un joueur">
+              <div class="flex items-center justify-center space-x-2">
+                <span class="font-semibold text-4xl sm:text-base relative group">
+                  <span class="border-b border-dashed border-gray-400">
+                    Joueur
+                  </span>
+                </span>
+                <button @click="newPlayerForm = true" class="text-4xl sm:text-base text-blue-500 hover:text-blue-700 cursor-pointer" title="Ajoutez un joueur">
                   ➕
                 </button>
               </div>
             </th>
             <th class="p-3 text-center">
-              <span class="text-sm">📊 Stats</span>
+              <span class="text-4xl sm:text-base">📊 Stats</span>
             </th>
             <th
               v-for="event in events"
@@ -32,8 +36,10 @@
             >
               <div class="flex flex-col gap-2">
                 <div class="flex flex-col items-center space-y-1 relative">
-                  <div v-if="editingEvent !== event.id" class="font-semibold text-base text-center whitespace-pre-wrap">
-                    {{ event.title }}
+                  <div v-if="editingEvent !== event.id" class="font-semibold text-4xl sm:text-base text-center whitespace-pre-wrap relative group">
+                    <span class="hover:border-b hover:border-dashed hover:border-gray-400 cursor-help transition-colors duration-200" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
+                      {{ event.title }}
+                    </span>
                   </div>
                   <div v-else class="w-full">
                     <input
@@ -45,7 +51,7 @@
                       ref="editTitleInput"
                     >
                   </div>
-                  <div v-if="editingEvent !== event.id" class="text-xs text-gray-500">
+                  <div v-if="editingEvent !== event.id" class="text-xs text-gray-500 cursor-help hover:border-b hover:border-dashed hover:border-gray-400 transition-colors duration-200 inline-block" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
                     {{ formatDate(event.date) }}
                   </div>
                   <div v-else class="w-full">
@@ -75,7 +81,7 @@
           </tr>
           <tr class="bg-gray-50">
             <th class="p-3 text-left w-[100px]"></th>
-            <th class="p-3 text-center text-sm text-gray-700 w-[100px]"></th>
+            <th class="p-3 text-center text-4xl sm:text-base w-[100px]"></th>
             <th
               v-for="event in events"
               :key="event.id"
@@ -83,7 +89,7 @@
             >
               <button
                 @click="tirer(event.id, 6)" 
-                class="px-2 py-1 rounded-md text-sm bg-white hover:bg-gray-50 hover:border-gray-200 border shadow text-gray-800"
+                class="px-2 py-1 rounded-md text-4xl sm:text-base bg-white hover:bg-gray-50 hover:border-gray-200 border shadow text-gray-800"
               >
                 🎭 Sélectionner
               </button>
@@ -111,9 +117,15 @@
             :data-player-id="player.id"
             :class="{ 'highlighted-player': player.id === highlightedPlayer }"
           >
-            <td class="p-3 font-medium text-gray-900 w-[100px] relative group">
-              <div v-if="editingPlayer !== player.id" class="font-semibold text-base whitespace-pre-wrap flex items-center justify-between">
-                <span @dblclick="startEditPlayer(player)">{{ player.name }}</span>
+            <td class="p-4 sm:p-3 font-medium text-gray-900 w-[100px] relative group text-4xl sm:text-base">
+              <div v-if="editingPlayer !== player.id" class="font-semibold text-4xl sm:text-base whitespace-pre-wrap flex items-center justify-between">
+                <span 
+                  @dblclick="startEditPlayer(player)" 
+                  class="hover:border-b hover:border-dashed hover:border-gray-400 edit-cursor transition-colors duration-200"
+                  :title="'Double-clic pour modifier : ' + player.name"
+                >
+                  {{ player.name }}
+                </span>
                 <button @click="handlePlayerDelete(player.id)" class="hidden group-hover:block text-red-500" title="Supprimer le joueur">
                   🗑️
                 </button>
@@ -129,7 +141,7 @@
                 >
               </div>
             </td>
-            <td class="p-3 text-center text-gray-700 text-sm w-[100px]">
+            <td class="p-4 sm:p-3 text-center text-gray-700 text-4xl sm:text-base w-[100px]">
               <span :title="`${countSelections(player.name)} sélection${countSelections(player.name) > 1 ? 's' : ''}, ${countAvailability(player.name)} dispo${countAvailability(player.name) > 1 ? 's' : ''}`">
                 {{ countSelections(player.name) }}/{{ countAvailability(player.name) }}
               </span>
@@ -137,7 +149,7 @@
             <td
               v-for="event in events"
               :key="event.id"
-              class="p-3 text-center cursor-pointer hover:bg-blue-100"
+              class="p-4 sm:p-3 text-center cursor-pointer hover:bg-blue-100"
               @click="toggleAvailability(player.name, event.id)"
             >
               <span
@@ -667,21 +679,67 @@ onMounted(async () => {
   console.log('players (deduplicated):', players.value.map(p => ({ id: p.id, name: p.name })))
 })
 
-function toggleAvailability(player, eventId) {
-  availability.value[player] = availability.value[player] || {}
-
-  const current = availability.value[player][eventId]
-  let next
-
-  if (current === undefined) next = true
-  else if (current === true) next = false
-  else next = undefined
-
-  availability.value[player][eventId] = next
-
-  saveAvailability(player, availability.value[player])
-  updateStatsForPlayer(player)
-  updateAllChances()
+function toggleAvailability(playerName, eventId) {
+  const player = players.value.find(p => p.name === playerName);
+  if (!player) {
+    console.error('Joueur non trouvé:', playerName);
+    return;
+  }
+  const eventItem = events.value.find(e => e.id === eventId);
+  if (!eventItem) {
+    console.error('Événement non trouvé:', eventId);
+    return;
+  }
+  // Utiliser directement l'ID de l'événement comme clé
+  if (!player.availabilities) {
+    player.availabilities = {};
+  }
+  
+  // Récupérer l'état actuel (peut être undefined)
+  const current = player.availabilities[eventId];
+  let newValue;
+  
+  // Logique de basculement : indéfini -> oui -> non -> indéfini
+  if (current === 'oui') {
+    newValue = 'non';
+    player.availabilities[eventId] = newValue;
+  } else if (current === 'non') {
+    // Supprimer la clé pour revenir à l'état indéfini
+    delete player.availabilities[eventId];
+    newValue = undefined;
+  } else {
+    // État indéfini -> passe à 'oui'
+    newValue = 'oui';
+    player.availabilities[eventId] = newValue;
+  }
+  
+  // Mettre à jour availability.value pour refléter les changements
+  if (newValue === undefined) {
+    // Si on revient à l'état indéfini, supprimer la clé
+    if (availability.value[player.name]) {
+      delete availability.value[player.name][eventId];
+    }
+  } else {
+    // Sinon, mettre à jour la valeur
+    if (!availability.value[player.name]) {
+      availability.value[player.name] = {};
+    }
+    availability.value[player.name][eventId] = newValue === 'oui';
+  }
+  
+  // Mettre à jour les disponibilités pour ce joueur
+  saveAvailability(player.name, { ...player.availabilities })
+    .then(() => {
+      showSuccessMessage.value = true;
+      successMessage.value = 'Disponibilité mise à jour avec succès !';
+      setTimeout(() => {
+        showSuccessMessage.value = false;
+      }, 3000);
+    })
+    .catch((error) => {
+      console.error('Erreur lors de la mise à jour de la disponibilité:', error);
+      alert('Erreur lors de la mise à jour de la disponibilité. Veuillez réessayer.');
+    });
 }
 
 function isAvailable(player, eventId) {

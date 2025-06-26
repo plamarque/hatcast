@@ -30,6 +30,9 @@
 .hidden {
   display: none;
 }
+.inline-block {
+  display: inline-block;
+}
 .max-h-\[calc\(100vh-100px\)\] {
   max-height: calc(100vh - 100px);
 }
@@ -65,6 +68,9 @@
 }
 .border-collapse {
   border-collapse: collapse;
+}
+.cursor-help {
+  cursor: help;
 }
 .cursor-pointer {
   cursor: pointer;
@@ -108,6 +114,10 @@
   border-bottom-style: var(--tw-border-style);
   border-bottom-width: 1px;
 }
+.border-dashed {
+  --tw-border-style: dashed;
+  border-style: dashed;
+}
 .text-center {
   text-align: center;
 }
@@ -129,15 +139,40 @@
 .opacity-100 {
   opacity: 100%;
 }
+.transition-colors {
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+  transition-timing-function: var(--tw-ease, ease);
+  transition-duration: var(--tw-duration, 0s);
+}
 .transition-opacity {
   transition-property: opacity;
   transition-timing-function: var(--tw-ease, ease);
   transition-duration: var(--tw-duration, 0s);
 }
+.duration-200 {
+  --tw-duration: 200ms;
+  transition-duration: 200ms;
+}
 .group-hover\:block {
   &:is(:where(.group):hover *) {
     @media (hover: hover) {
       display: block;
+    }
+  }
+}
+.hover\:border-b {
+  &:hover {
+    @media (hover: hover) {
+      border-bottom-style: var(--tw-border-style);
+      border-bottom-width: 1px;
+    }
+  }
+}
+.hover\:border-dashed {
+  &:hover {
+    @media (hover: hover) {
+      --tw-border-style: dashed;
+      border-style: dashed;
     }
   }
 }
@@ -158,6 +193,10 @@
   syntax: "*";
   inherits: false;
   initial-value: solid;
+}
+@property --tw-duration {
+  syntax: "*";
+  inherits: false;
 }
 @property --tw-shadow {
   syntax: "*";
@@ -228,6 +267,7 @@
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     *, ::before, ::after, ::backdrop {
       --tw-border-style: solid;
+      --tw-duration: initial;
       --tw-shadow: 0 0 #0000;
       --tw-shadow-color: initial;
       --tw-shadow-alpha: 100%;
