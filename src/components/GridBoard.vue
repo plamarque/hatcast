@@ -113,7 +113,7 @@
           >
             <td class="p-3 font-medium text-gray-900 w-[100px] relative group">
               <div v-if="editingPlayer !== player.id" class="font-semibold text-base whitespace-pre-wrap flex items-center justify-between">
-                <span>{{ player.name }}</span>
+                <span @dblclick="startEditPlayer(player)">{{ player.name }}</span>
                 <button @click="handlePlayerDelete(player.id)" class="hidden group-hover:block text-red-500" title="Supprimer le joueur">
                   🗑️
                 </button>
@@ -313,11 +313,7 @@
 </style>
 
 <script setup>
-defineOptions({
-  name: 'GridBoard'
-})
-
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import {
   setStorageMode,
   loadEvents,
@@ -447,9 +443,14 @@ async function saveEdit() {
   }
 }
 
-function startEditingPlayer(player) {
+function startEditPlayer(player) {
   editingPlayer.value = player.id
   editingPlayerName.value = player.name
+  nextTick(() => {
+    if (editPlayerInput.value) {
+      editPlayerInput.value.focus()
+    }
+  })
 }
 
 async function saveEditPlayer() {
