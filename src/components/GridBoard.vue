@@ -111,9 +111,12 @@
             :data-player-id="player.id"
             :class="{ 'highlighted-player': player.id === highlightedPlayer }"
           >
-            <td class="p-3 font-medium text-gray-900 w-[100px]">
-              <div v-if="editingPlayer !== player.id" class="font-semibold text-base whitespace-pre-wrap">
-                {{ player.name }}
+            <td class="p-3 font-medium text-gray-900 w-[100px] relative group">
+              <div v-if="editingPlayer !== player.id" class="font-semibold text-base whitespace-pre-wrap flex items-center justify-between">
+                <span>{{ player.name }}</span>
+                <button @click="handlePlayerDelete(player.id)" class="hidden group-hover:block text-red-500" title="Supprimer le joueur">
+                  🗑️
+                </button>
               </div>
               <div v-else class="w-full">
                 <input
@@ -125,13 +128,6 @@
                   ref="editPlayerInput"
                 >
               </div>
-              <button
-                @click="confirmDeletePlayer(player.id)"
-                class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                :class="{ 'opacity-100': isHovered === player.id }"
-              >
-                ❌
-              </button>
             </td>
             <td class="p-3 text-center text-gray-700 text-sm w-[100px]">
               <span :title="`${countSelections(player.name)} sélection${countSelections(player.name) > 1 ? 's' : ''}, ${countAvailability(player.name)} dispo${countAvailability(player.name) > 1 ? 's' : ''}`">
@@ -267,6 +263,17 @@
         >
           Supprimer
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale de confirmation de suppression de joueur -->
+  <div v-if="confirmPlayerDelete" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-4 rounded shadow">
+      <p class="mb-4">Êtes-vous sûr de vouloir supprimer ce joueur ?</p>
+      <div class="flex justify-end space-x-2">
+        <button @click="cancelPlayerDelete" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Annuler</button>
+        <button @click="deletePlayerConfirmed" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded">Supprimer</button>
       </div>
     </div>
   </div>
@@ -823,4 +830,33 @@ function getTooltipText(player, eventId) {
   return 'Cliquez pour indiquer votre disponibilité'
 }
 
+const playerToDelete = ref(null)
+const confirmPlayerDelete = ref(false)
+
+async function deletePlayerConfirmed() {
+  confirmPlayerDelete.value = false
+  try {
+    await deletePlayer(playerToDelete.value)
+    players.value = players.value.filter(p => p.id !== playerToDelete.value)
+    playerToDelete.value = null
+    showSuccessMessage.value = true
+    successMessage.value = 'Joueur supprimé avec succès !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  } catch (error) {
+    console.error("Erreur lors de la suppression du joueur :", error)
+    alert("Erreur lors de la suppression du joueur. Veuillez réessayer.")
+  }
+}
+
+function cancelPlayerDelete() {
+  confirmPlayerDelete.value = false
+  playerToDelete.value = null
+}
+
+function handlePlayerDelete(playerId) {
+  playerToDelete.value = playerId
+  confirmPlayerDelete.value = true
+}
 </script>

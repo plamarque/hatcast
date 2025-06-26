@@ -27,6 +27,9 @@
 .grid {
   display: grid;
 }
+.hidden {
+  display: none;
+}
 .max-h-\[calc\(100vh-100px\)\] {
   max-height: calc(100vh - 100px);
 }
@@ -130,6 +133,13 @@
   transition-property: opacity;
   transition-timing-function: var(--tw-ease, ease);
   transition-duration: var(--tw-duration, 0s);
+}
+.group-hover\:block {
+  &:is(:where(.group):hover *) {
+    @media (hover: hover) {
+      display: block;
+    }
+  }
 }
 .hover\:opacity-100 {
   &:hover {
