@@ -8,27 +8,75 @@
           v-for="event in events"
           :key="event.id"
           class="p-3 text-center w-48 align-top"
+          @mouseenter="isHovered = event.id"
+          @mouseleave="isHovered = null"
+          @dblclick="startEditing(event)"
         >
-          <div class="flex flex-col items-center space-y-1">
-            <div class="font-semibold text-base text-center whitespace-pre-wrap">
+          <div class="flex flex-col items-center space-y-1 relative">
+            <div v-if="editingEvent !== event.id" class="font-semibold text-base text-center whitespace-pre-wrap">
               {{ event.title }}
             </div>
-            <div class="text-xs text-gray-500">
+            <div v-else class="w-full">
+              <input
+                v-model="editingTitle"
+                type="text"
+                class="w-full p-1 border rounded"
+                @keydown.esc="cancelEdit"
+                @keydown.enter="saveEdit"
+                ref="editTitleInput"
+              >
+            </div>
+            <div v-if="editingEvent !== event.id" class="text-xs text-gray-500">
               {{ formatDate(event.date) }}
             </div>
+            <div v-else class="w-full">
+              <input
+                v-model="editingDate"
+                type="date"
+                class="w-full p-1 border rounded"
+                @keydown.esc="cancelEdit"
+                @keydown.enter="saveEdit"
+              >
+            </div>
             <button
-              @click="tirer(event.id, 6)" 
-              class="mt-1 px-2 py-1 rounded-md text-sm bg-white hover:bg-gray-50 border shadow text-gray-800"
+              @click="confirmDeleteEvent(event.id)"
+              class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+              :class="{ 'opacity-100': isHovered === event.id }"
             >
-              🎭 Sélectionner
+              ❌
             </button>
           </div>
         </th>
-        <th class="p-3 text-center text-gray-500">➕</th>
+        <th class="p-3 text-center text-gray-500">
+          <button
+            @click="newEventForm = true"
+            class="text-gray-500 hover:text-blue-500"
+            title="Ajouter un nouvel événement"
+          >
+            ➕
+          </button>
+        </th>
+      </tr>
+      <tr class="bg-gray-50">
+        <th class="p-3 text-left"></th>
+        <th class="p-3 text-center"></th>
+        <th
+          v-for="event in events"
+          :key="event.id"
+          class="p-3 text-center w-48"
+        >
+          <button
+            @click="tirer(event.id, 6)" 
+            class="px-2 py-1 rounded-md text-sm bg-white hover:bg-gray-50 hover:border-gray-200 border shadow text-gray-800"
+          >
+            🎭 Sélectionner
+          </button>
+        </th>
+        <th class="p-3 text-center"></th>
       </tr>
     </thead>
 
-    <tbody>
+    <tbody class="border-t">
       <tr
         v-for="player in players"
         :key="player.id"
@@ -77,6 +125,38 @@
       </tr>
     </tbody>
   </table>
+
+  <div v-if="newEventForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-4 w-96">
+      <h2 class="text-lg font-bold mb-2">Créer un nouvel événement</h2>
+      <form @submit.prevent="createEvent">
+        <div class="mb-4">
+          <label for="title" class="block text-sm font-medium mb-1">Titre de l'événement</label>
+          <input id="title" v-model="newEventTitle" type="text" class="block w-full p-2 border border-gray-300 rounded-lg">
+        </div>
+        <div class="mb-4">
+          <label for="date" class="block text-sm font-medium mb-1">Date de l'événement</label>
+          <input id="date" v-model="newEventDate" type="date" class="block w-full p-2 border border-gray-300 rounded-lg">
+        </div>
+        <div class="flex justify-between">
+          <button @click="cancelNewEvent" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-blue-500 rounded-lg text-sm text-white">Créer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div v-if="deleteConfirmation" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-4 w-96">
+      <h2 class="text-lg font-bold mb-2">Supprimer l'événement</h2>
+      <p>Êtes-vous sûr de vouloir supprimer l'événement ?</p>
+      <div class="flex justify-between">
+        <button @click="cancelDelete" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Annuler</button>
+        <button @click="deleteEventConfirmed" class="px-4 py-2 bg-red-500 rounded-lg text-sm text-white">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 <script setup>
@@ -91,8 +171,141 @@ import {
   loadAvailability,
   loadSelections,
   saveAvailability,
-  saveSelection
+  saveSelection,
+  saveEvent,
+  deleteEvent,
+  updateEvent
 } from '../services/storage.js'
+
+const deleteConfirmation = ref(false)
+const eventToDelete = ref(null)
+const editingEvent = ref(null)
+const editingTitle = ref('')
+const editingDate = ref('')
+
+async function confirmDeleteEvent(eventId) {
+  eventToDelete.value = eventId
+  deleteConfirmation.value = true
+}
+
+async function deleteEventConfirmed() {
+  if (!eventToDelete.value) return
+
+  try {
+    await deleteEvent(eventToDelete.value)
+    events.value = events.value.filter(event => event.id !== eventToDelete.value)
+    // Recharger les données pour s'assurer que tout est à jour
+    await Promise.all([
+      loadEvents(),
+      loadAvailability(players.value, events.value),
+      loadSelections()
+    ]).then(([newEvents, newAvailability, newSelections]) => {
+      events.value = newEvents
+      availability.value = newAvailability
+      selections.value = newSelections
+    })
+    deleteConfirmation.value = false
+    eventToDelete.value = null
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'événement:', error)
+    alert('Erreur lors de la suppression de l\'événement. Veuillez réessayer.')
+  }
+}
+
+function cancelDelete() {
+  deleteConfirmation.value = false
+  eventToDelete.value = null
+}
+
+function startEditing(event) {
+  editingEvent.value = event.id
+  editingTitle.value = event.title
+  editingDate.value = event.date
+}
+
+async function saveEdit() {
+  if (!editingEvent.value || !editingTitle.value.trim() || !editingDate.value) return
+
+  try {
+    const eventData = {
+      title: editingTitle.value.trim(),
+      date: editingDate.value
+    }
+    await updateEvent(editingEvent.value, eventData)
+    
+    // Trouver et mettre à jour l'événement dans la liste
+    const index = events.value.findIndex(e => e.id === editingEvent.value)
+    if (index !== -1) {
+      events.value[index] = { ...events.value[index], ...eventData }
+    }
+    
+    editingEvent.value = null
+    editingTitle.value = ''
+    editingDate.value = ''
+  } catch (error) {
+    console.error('Erreur lors de l\'édition de l\'événement:', error)
+    alert('Erreur lors de l\'édition de l\'événement. Veuillez réessayer.')
+  }
+}
+
+function cancelEdit() {
+  editingEvent.value = null
+  editingTitle.value = ''
+  editingDate.value = ''
+}
+
+const isHovered = ref(null)
+
+const newEventForm = ref(false)
+const newEventTitle = ref('')
+const newEventDate = ref('')
+
+async function createEvent() {
+  if (!newEventTitle.value.trim() || !newEventDate.value) {
+    alert('Veuillez remplir le titre et la date de l\'événement')
+    return
+  }
+
+  const newEvent = {
+    title: newEventTitle.value.trim(),
+    date: newEventDate.value
+  }
+
+  try {
+    // D'abord sauvegarder l'événement
+    const eventId = await saveEvent(newEvent)
+    
+    // Mettre à jour la liste des événements
+    events.value = [...events.value, { id: eventId, ...newEvent }]
+    
+    // Mettre à jour la disponibilité pour le nouvel événement
+    const newAvailability = {}
+    // Utiliser une boucle for...of pour gérer les promesses
+    for (const player of players.value) {
+      newAvailability[player.name] = availability.value[player.name] || {}
+      newAvailability[player.name][eventId] = null // Utiliser null au lieu de undefined
+      // Sauvegarder la disponibilité pour chaque joueur
+      await saveAvailability(player.name, newAvailability[player.name])
+    }
+    
+    // Réinitialiser le formulaire
+    newEventTitle.value = ''
+    newEventDate.value = ''
+    newEventForm.value = false
+    
+    // Forcer la mise à jour de l'interface
+    await Promise.resolve()
+  } catch (error) {
+    console.error('Erreur lors de la création de l\'événement:', error)
+    alert('Erreur lors de la création de l\'événement. Veuillez réessayer.')
+  }
+}
+
+function cancelNewEvent() {
+  newEventTitle.value = ''
+  newEventDate.value = ''
+  newEventForm.value = false
+}
 
 const events = ref([])
 const players = ref([])

@@ -1,7 +1,22 @@
 /*! tailwindcss v4.1.10 | MIT License | https://tailwindcss.com */
 @layer properties;
+.absolute {
+  position: absolute;
+}
+.fixed {
+  position: fixed;
+}
+.relative {
+  position: relative;
+}
+.block {
+  display: block;
+}
 .flex {
   display: flex;
+}
+.grid {
+  display: grid;
 }
 .w-full {
   width: 100%;
@@ -15,15 +30,31 @@
 .cursor-pointer {
   cursor: pointer;
 }
+.grid-rows-\[auto_1fr_auto\] {
+  grid-template-rows: auto 1fr auto;
+}
 .flex-col {
   flex-direction: column;
 }
 .items-center {
   align-items: center;
 }
+.justify-between {
+  justify-content: space-between;
+}
+.justify-center {
+  justify-content: center;
+}
+.rounded-full {
+  border-radius: calc(infinity * 1px);
+}
 .border {
   border-style: var(--tw-border-style);
   border-width: 1px;
+}
+.border-t {
+  border-top-style: var(--tw-border-style);
+  border-top-width: 1px;
 }
 .border-b {
   border-bottom-style: var(--tw-border-style);
@@ -43,6 +74,24 @@
 }
 .uppercase {
   text-transform: uppercase;
+}
+.opacity-0 {
+  opacity: 0%;
+}
+.opacity-100 {
+  opacity: 100%;
+}
+.transition-opacity {
+  transition-property: opacity;
+  transition-timing-function: var(--tw-ease, ease);
+  transition-duration: var(--tw-duration, 0s);
+}
+.hover\:opacity-100 {
+  &:hover {
+    @media (hover: hover) {
+      opacity: 100%;
+    }
+  }
 }
 @property --tw-border-style {
   syntax: "*";
