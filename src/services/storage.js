@@ -5,9 +5,21 @@ import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch } from 'firebas
 let mode = 'mock' // or 'firebase'
 
 const playersList = [
-  'Alice', 'Bob', 'Charlie', 'David', 'Eva',
-  'Fanny', 'Georges', 'Hélène', 'Ismaël', 'Jade',
-  'Karim', 'Léa', 'Marc', 'Nina', 'Oscar'
+  { id: 'p1', name: 'Alice' },
+  { id: 'p2', name: 'Bob' },
+  { id: 'p3', name: 'Charlie' },
+  { id: 'p4', name: 'David' },
+  { id: 'p5', name: 'Eva' },
+  { id: 'p6', name: 'Fanny' },
+  { id: 'p7', name: 'Georges' },
+  { id: 'p8', name: 'Hélène' },
+  { id: 'p9', name: 'Ismaël' },
+  { id: 'p10', name: 'Jade' },
+  { id: 'p11', name: 'Karim' },
+  { id: 'p12', name: 'Léa' },
+  { id: 'p13', name: 'Marc' },
+  { id: 'p14', name: 'Nina' },
+  { id: 'p15', name: 'Oscar' }
 ]
 
 const eventList = [
@@ -41,11 +53,81 @@ export async function loadEvents() {
 }
 
 export async function loadPlayers() {
+  const players = mode === 'firebase' 
+    ? (await getDocs(collection(db, 'players'))).docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    : playersList
+
+  // Tri par order puis par nom
+  return players.sort((a, b) => {
+    if (a.order < b.order) return -1
+    if (a.order > b.order) return 1
+    return a.name.localeCompare(b.name)
+  })
+}
+
+export async function reorderPlayersAlphabetically() {
   if (mode === 'firebase') {
     const playersSnap = await getDocs(collection(db, 'players'))
-    return playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    
+    // Trier par nom
+    const sortedPlayers = players.sort((a, b) => a.name.localeCompare(b.name))
+    
+    // Mettre à jour les ordres
+    const batch = writeBatch(db)
+    sortedPlayers.forEach((player, index) => {
+      batch.update(doc(db, 'players', player.id), { order: index })
+    })
+    await batch.commit()
   } else {
-    return playersList.map((name, i) => ({ id: `p${i + 1}`, name }))
+    // Pour le mode mock, trier simplement le tableau
+    playersList.sort((a, b) => a.name.localeCompare(b.name))
+    playersList.forEach((player, index) => {
+      player.order = index
+    })
+  }
+}
+
+export async function addPlayer(name) {
+  if (mode === 'firebase') {
+    const newDocRef = doc(collection(db, 'players'))
+    await setDoc(newDocRef, { name })
+    return newDocRef.id
+  } else {
+    const newId = `p${playersList.length + 1}`
+    playersList.push({ id: newId, name })
+    return newId
+  }
+}
+
+export async function deletePlayer(playerId) {
+  if (mode === 'firebase') {
+    await deleteDoc(doc(db, 'players', playerId))
+    // Supprimer les disponibilités pour ce joueur
+    const availabilitySnap = await getDocs(collection(db, 'availability'))
+    const batch = writeBatch(db)
+    availabilitySnap.forEach(doc => {
+      const availabilityData = doc.data()
+      if (availabilityData[playerId] !== undefined) {
+        const updatedData = { ...availabilityData }
+        delete updatedData[playerId]
+        batch.update(doc.ref, updatedData)
+      }
+    })
+    await batch.commit()
+  } else {
+    playersList = playersList.filter(player => player.id !== playerId)
+  }
+}
+
+export async function updatePlayer(playerId, newName) {
+  if (mode === 'firebase') {
+    await setDoc(doc(db, 'players', playerId), { name: newName })
+  } else {
+    const index = playersList.findIndex(player => player.id === playerId)
+    if (index !== -1) {
+      playersList[index] = newName
+    }
   }
 }
 
