@@ -86,7 +86,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { updatePassword } from 'firebase/auth'
+import { confirmPasswordReset } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import { getPlayerProtectionData, updatePlayerPasswordInFirestore } from '../services/playerProtection.js'
 import { getSeasonBySlug } from '../services/seasons.js'
@@ -115,43 +115,17 @@ const canResetPassword = computed(() => {
 onMounted(async () => {
   try {
     // Récupérer les paramètres de l'URL
-    const { player, season, token } = route.query
+    const { player, season, token, mode, oobCode } = route.query
+    
+    console.log('🔍 [DEBUG] Paramètres reçus:', { player, season, token, mode, oobCode })
     
     // Si on a un token Firebase (oobCode), on doit d'abord le vérifier
-    if (token && !player && !season) {
-      console.log('🔍 [DEBUG] Token Firebase détecté:', token)
+    if ((token || oobCode) && !player && !season) {
+      const firebaseToken = token || oobCode
+      console.log('🔍 [DEBUG] Token Firebase détecté:', firebaseToken)
       
-      // Vérifier le token Firebase
-      const { confirmPasswordReset } = await import('firebase/auth')
-      const { auth } = await import('../services/firebase.js')
-      
+      // Vérifier le token Firebase et récupérer l'email
       try {
-        // Le token est valide, on peut maintenant chercher le joueur
-        // Pour cela, on va chercher dans toutes les saisons
-        const { collection, getDocs } = await import('firebase/firestore')
-        const { db } = await import('../services/firebase.js')
-        
-        // Chercher dans toutes les saisons
-        const seasonsRef = collection(db, 'seasons')
-        const seasonsSnapshot = await getDocs(seasonsRef)
-        
-        let foundPlayer = null
-        let foundSeason = null
-        
-        for (const seasonDoc of seasonsSnapshot.docs) {
-          const protectionRef = collection(db, 'seasons', seasonDoc.id, 'playerProtection')
-          const protectionSnapshot = await getDocs(protectionRef)
-          
-          for (const protectionDoc of protectionSnapshot.docs) {
-            const protectionData = protectionDoc.data()
-            if (protectionData.firebaseUid) {
-              // Vérifier si ce compte correspond au token
-              // Pour l'instant, on va chercher par email dans les logs Firebase
-              console.log('🔍 [DEBUG] Vérification protection:', protectionData)
-            }
-          }
-        }
-        
         // Pour l'instant, on va utiliser une approche simplifiée
         // En production, il faudrait stocker le mapping token -> player
         error.value = 'Token Firebase reçu. Veuillez utiliser le lien direct avec player et season.'
@@ -229,9 +203,6 @@ async function resetPassword() {
   resetSuccess.value = ''
   
   try {
-    // Mettre à jour le mot de passe dans Firebase Auth
-    await updatePassword(auth.currentUser, newPassword.value)
-    
     // Mettre à jour le hash dans Firestore
     await updatePlayerPasswordInFirestore(playerData.value.id, newPassword.value, seasonId.value)
     
@@ -243,14 +214,7 @@ async function resetPassword() {
     }, 3000)
   } catch (err) {
     console.error('Erreur lors de la réinitialisation:', err)
-    
-    if (err.code === 'auth/weak-password') {
-      resetError.value = 'Le mot de passe doit contenir au moins 6 caractères'
-    } else if (err.code === 'auth/requires-recent-login') {
-      resetError.value = 'Session expirée. Veuillez cliquer sur le lien dans votre email à nouveau'
-    } else {
-      resetError.value = 'Erreur lors de la réinitialisation. Veuillez réessayer'
-    }
+    resetError.value = 'Erreur lors de la réinitialisation. Veuillez réessayer.'
   } finally {
     resetLoading.value = false
   }
