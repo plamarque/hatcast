@@ -23,11 +23,11 @@ const playersList = [
 ]
 
 const eventList = [
-  { id: 'event1', title: 'Apérock Septembre', date: '2025-09-08' },
-  { id: 'event2', title: 'Match à Cambo', date: '2025-11-25' },
-  { id: 'event3', title: 'Impro des Familles', date: '2025-12-02' },
-  { id: 'event4', title: 'Cabaret Surprise', date: '2026-01-20' },
-  { id: 'event5', title: 'Impro Plage', date: '2026-03-10' }
+  { id: 'event1', title: 'Apérock Septembre', date: '2025-09-08', description: 'Soirée apéro-rock avec ambiance festive' },
+  { id: 'event2', title: 'Match à Cambo', date: '2025-11-25', description: 'Match d\'improvisation compétitif à Cambo-les-Bains' },
+  { id: 'event3', title: 'Impro des Familles', date: '2025-12-02', description: 'Spectacle d\'improvisation pour toute la famille' },
+  { id: 'event4', title: 'Cabaret Surprise', date: '2026-01-20', description: 'Cabaret avec des surprises et des performances uniques' },
+  { id: 'event5', title: 'Impro Plage', date: '2026-03-10', description: 'Improvisation en plein air avec vue sur la plage' }
 ]
 
 export function setStorageMode(value) {

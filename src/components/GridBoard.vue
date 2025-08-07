@@ -50,46 +50,15 @@
                 v-for="event in events"
                 :key="event.id"
                 class="p-4 text-center"
-                @mouseenter="isHovered = event.id"
-                @mouseleave="isHovered = null"
-                @dblclick="startEditing(event)"
+                @click="showEventDetails(event)"
               >
                 <div class="flex flex-col gap-3">
                   <div class="flex flex-col items-center space-y-2 relative">
-                    <div v-if="editingEvent !== event.id" class="font-bold text-lg text-center whitespace-pre-wrap relative group">
-                      <span class="hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-help transition-colors duration-200 text-white" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
-                        {{ event.title }}
+                    <div class="font-bold text-lg text-center whitespace-pre-wrap relative group cursor-pointer">
+                      <span class="hover:border-b-2 hover:border-dashed hover:border-purple-400 transition-colors duration-200 text-white" :title="'Cliquez pour voir les détails : ' + event.title">
+                        {{ formatDate(event.date) }}
                       </span>
                     </div>
-                    <div v-else class="w-full">
-                      <input
-                        v-model="editingTitle"
-                        type="text"
-                        class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-                        @keydown.esc="cancelEdit"
-                        @keydown.enter="saveEdit"
-                        ref="editTitleInput"
-                      >
-                    </div>
-                    <div v-if="editingEvent !== event.id" class="text-sm text-gray-300 cursor-help hover:border-b hover:border-dashed hover:border-purple-400 transition-colors duration-200 inline-block" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
-                      {{ formatDate(event.date) }}
-                    </div>
-                    <div v-else class="w-full">
-                      <input
-                        v-model="editingDate"
-                        type="date"
-                        class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-                        @keydown.esc="cancelEdit"
-                        @keydown.enter="saveEdit"
-                      >
-                    </div>
-                    <button
-                      @click="confirmDeleteEvent(event.id)"
-                      class="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg"
-                      :class="{ 'opacity-100': isHovered === event.id }"
-                    >
-                      ✕
-                    </button>
                   </div>
                 </div>
               </th>
@@ -107,13 +76,6 @@
                 :key="event.id"
                 class="p-4 text-center w-40"
               >
-                <button
-                  @click="handleTirage(event.id, 6)"
-                  class="rounded-full text-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-pink-500/25 p-3 w-12 h-12 flex items-center justify-center mx-auto transition-all duration-300 transform hover:scale-110"
-                  :title="(selections[event.id] && selections[event.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
-                >
-                  🎭
-                </button>
               </th>
               <th class="p-4"></th>
             </tr>
@@ -243,6 +205,15 @@
           class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
         >
       </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+        <textarea
+          v-model="newEventDescription"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          rows="3"
+          placeholder="Description de l'événement (optionnel)"
+        ></textarea>
+      </div>
       <div class="flex justify-end space-x-3">
         <button
           @click="cancelNewEvent"
@@ -354,6 +325,176 @@
     </div>
   </div>
 
+  <!-- Popin de confirmation de sélection -->
+  <div v-if="showSelectionResultModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-2xl">
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-3xl">🎉</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Sélection effectuée !</h2>
+        <p class="text-gray-300">{{ selectionResultMessage }}</p>
+      </div>
+      
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-white mb-3">Message à envoyer :</h3>
+        <div class="relative">
+          <textarea
+            v-model="selectionMessage"
+            class="w-full p-4 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
+            rows="4"
+            readonly
+          ></textarea>
+          <button
+            @click="copyToClipboard"
+            class="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg p-2 hover:from-purple-600 hover:to-pink-700 transition-all duration-300"
+            :title="copyButtonText"
+          >
+            <svg v-if="!copied" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-white mb-3">Joueurs sélectionnés :</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div
+            v-for="player in selectedPlayersList"
+            :key="player"
+            class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 rounded-lg border border-purple-500/30 text-center"
+          >
+            <span class="text-white font-medium">{{ player }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex justify-center">
+        <button 
+          @click="closeSelectionResult"
+          class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300"
+        >
+          Parfait ! 👍
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popin de détails du spectacle -->
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click="closeEventDetails">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-2xl" @click.stop>
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-3xl">🎭</span>
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-2">{{ selectedEvent?.title }}</h2>
+        <p class="text-xl text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
+      </div>
+      
+      <div v-if="selectedEvent?.description" class="mb-6">
+        <h3 class="text-lg font-semibold text-white mb-3">Description</h3>
+        <p class="text-gray-300 bg-gray-800/50 p-4 rounded-lg border border-gray-600/50">
+          {{ selectedEvent.description }}
+        </p>
+      </div>
+      
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-white mb-3">Statistiques</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-purple-500/30">
+            <div class="text-2xl font-bold text-white">{{ countAvailablePlayers(selectedEvent?.id) }}</div>
+            <div class="text-sm text-gray-300">Disponibles</div>
+          </div>
+          <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-500/30">
+            <div class="text-2xl font-bold text-white">{{ countSelectedPlayers(selectedEvent?.id) }}</div>
+            <div class="text-sm text-gray-300">Sélectionnés</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex justify-center space-x-3">
+        <button 
+          @click="startEditingFromDetails"
+          class="px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center space-x-2"
+        >
+          <span>✏️</span>
+          <span>Modifier</span>
+        </button>
+        <button 
+          @click="handleTirage(selectedEvent?.id, 6)"
+          class="px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center space-x-2"
+          :title="(selections[selectedEvent?.id] && selections[selectedEvent?.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
+        >
+          <span>🎭</span>
+          <span>{{ (selections[selectedEvent?.id] && selections[selectedEvent?.id].length > 0) ? 'Relancer' : 'Lancer' }}</span>
+        </button>
+        <button 
+          @click="confirmDeleteEvent(selectedEvent?.id)"
+          class="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center space-x-2"
+        >
+          <span>🗑️</span>
+          <span>Supprimer</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal d'édition d'événement -->
+  <div v-if="editingEvent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier l'événement</h2>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
+        <input
+          v-model="editingTitle"
+          type="text"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          @keydown.esc="cancelEdit"
+          @keydown.enter="saveEdit"
+          ref="editTitleInput"
+        >
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
+        <input
+          v-model="editingDate"
+          type="date"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+          @keydown.esc="cancelEdit"
+          @keydown.enter="saveEdit"
+        >
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+        <textarea
+          v-model="editingDescription"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          rows="3"
+          placeholder="Description de l'événement (optionnel)"
+          @keydown.esc="cancelEdit"
+        ></textarea>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="cancelEdit"
+          class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
+        >
+          Annuler
+        </button>
+        <button
+          @click="saveEdit"
+          class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300"
+        >
+          Sauvegarder
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de saisie du PIN -->
   <PinModal
     :show="showPinModal"
@@ -455,6 +596,19 @@ const showPinModal = ref(false)
 const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
 
+// Variables pour les détails du spectacle
+const showEventDetailsModal = ref(false)
+const selectedEvent = ref(null)
+const editingDescription = ref('')
+
+// Variables pour la confirmation de sélection
+const showSelectionResultModal = ref(false)
+const selectionResultMessage = ref('')
+const selectedPlayersList = ref([])
+const selectionMessage = ref('')
+const copied = ref(false)
+const copyButtonText = ref('Copier le message')
+
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
   highlightedPlayer.value = playerId
@@ -544,7 +698,8 @@ async function saveEdit() {
   try {
     const eventData = {
       title: editingTitle.value.trim(),
-      date: editingDate.value
+      date: editingDate.value,
+      description: editingDescription.value.trim() || ''
     }
     await updateEvent(editingEvent.value, eventData, seasonId.value)
     
@@ -562,6 +717,7 @@ async function saveEdit() {
     editingEvent.value = null
     editingTitle.value = ''
     editingDate.value = ''
+    editingDescription.value = ''
     showSuccessMessage.value = true
     successMessage.value = 'Événement mis à jour avec succès !'
     setTimeout(() => {
@@ -696,6 +852,7 @@ function cancelEdit() {
   editingEvent.value = null
   editingTitle.value = ''
   editingDate.value = ''
+  editingDescription.value = ''
 }
 
 const isHovered = ref(null)
@@ -703,6 +860,7 @@ const isHovered = ref(null)
 const newEventForm = ref(false)
 const newEventTitle = ref('')
 const newEventDate = ref('')
+const newEventDescription = ref('')
 
 // Fonction pour annuler la création d'événement
 
@@ -715,7 +873,8 @@ async function createEvent() {
 
   const newEvent = {
     title: newEventTitle.value.trim(),
-    date: newEventDate.value
+    date: newEventDate.value,
+    description: newEventDescription.value.trim() || ''
   }
 
   // Créer l'événement directement après validation du PIN
@@ -743,6 +902,7 @@ async function createEventProtected(eventData) {
     // Réinitialiser le formulaire
     newEventTitle.value = ''
     newEventDate.value = ''
+    newEventDescription.value = ''
     newEventForm.value = false
     
     // Forcer la mise à jour de l'interface
@@ -762,6 +922,7 @@ async function createEventProtected(eventData) {
 function cancelNewEvent() {
   newEventTitle.value = ''
   newEventDate.value = ''
+  newEventDescription.value = ''
   newEventForm.value = false
 }
 
@@ -938,11 +1099,28 @@ async function tirer(eventId, count = 6) {
 
 async function tirerProtected(eventId, count = 6) {
   await tirer(eventId, count)
-  showSuccessMessage.value = true
-  successMessage.value = 'Sélection effectuée avec succès !'
-  setTimeout(() => {
-    showSuccessMessage.value = false
-  }, 3000)
+  
+  // Préparer les données pour la popin de confirmation
+  const event = events.value.find(e => e.id === eventId)
+  const selectedPlayers = selections.value[eventId] || []
+  const isReselection = selectedPlayers.length > 0
+  
+  // Créer le message
+  const eventDate = formatDateFull(event.date)
+  const playersList = selectedPlayers.join(', ')
+  
+  if (isReselection) {
+    selectionResultMessage.value = `Attention, nouvelle sélection effectuée !`
+    selectionMessage.value = `Attention, nouvelle sélection pour ${event.title} du ${eventDate} : ${playersList}`
+  } else {
+    selectionResultMessage.value = `Sélection effectuée avec succès !`
+    selectionMessage.value = `Sélection pour ${event.title} du ${eventDate} : ${playersList}`
+  }
+  
+  selectedPlayersList.value = selectedPlayers
+  
+  // Afficher la popin de confirmation
+  showSelectionResultModal.value = true
 }
 
 function formatDate(dateValue) {
@@ -953,6 +1131,19 @@ function formatDate(dateValue) {
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 }
 
+function formatDateFull(dateValue) {
+  if (!dateValue) return ''
+  const date = typeof dateValue === 'string'
+    ? new Date(dateValue)
+    : dateValue.toDate?.() || dateValue
+  return date.toLocaleDateString('fr-FR', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+}
+
 function countSelections(player) {
   return Object.values(selections.value).filter(sel => sel.includes(player)).length
 }
@@ -960,6 +1151,19 @@ function countSelections(player) {
 function countAvailability(player) {
   const eventsMap = availability.value[player] || {}
   return Object.values(eventsMap).filter(v => v === true).length
+}
+
+function countAvailablePlayers(eventId) {
+  if (!eventId) return 0;
+  return Object.values(availability.value).filter(playerAvail => 
+    playerAvail[eventId] === true
+  ).length;
+}
+
+function countSelectedPlayers(eventId) {
+  if (!eventId) return 0;
+  const eventSelections = selections.value[eventId] || [];
+  return eventSelections.length;
 }
 
 function ratioSelection(player) {
@@ -1193,9 +1397,13 @@ async function executePendingOperation(operation) {
           // Afficher la modal de confirmation de relance
           eventIdToReselect.value = data.eventId
           confirmReselect.value = true
+          // Fermer la popin de détails
+          showEventDetailsModal.value = false
         } else {
           // Lancer directement la sélection
           await tirerProtected(data.eventId, data.count)
+          // Fermer la popin de détails
+          showEventDetailsModal.value = false
         }
         break
     }
@@ -1211,6 +1419,50 @@ async function executePendingOperation(operation) {
 
 function goBack() {
   router.push('/')
+}
+
+function showEventDetails(event) {
+  selectedEvent.value = event;
+  editingDescription.value = event.description || '';
+  showEventDetailsModal.value = true;
+}
+
+function closeEventDetails() {
+  showEventDetailsModal.value = false;
+  selectedEvent.value = null;
+  editingDescription.value = '';
+}
+
+function startEditingFromDetails() {
+  editingEvent.value = selectedEvent.value.id;
+  editingTitle.value = selectedEvent.value.title;
+  editingDate.value = selectedEvent.value.date;
+  editingDescription.value = selectedEvent.value.description || '';
+  showEventDetailsModal.value = false; // Fermer le popin
+}
+
+function copyToClipboard() {
+  const textToCopy = selectionMessage.value;
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    copied.value = true;
+    copyButtonText.value = 'Copié !';
+    setTimeout(() => {
+      copied.value = false;
+      copyButtonText.value = 'Copier le message';
+    }, 2000);
+  }).catch(err => {
+    console.error('Erreur lors de la copie du texte:', err);
+    alert('Impossible de copier le message.');
+  });
+}
+
+function closeSelectionResult() {
+  showSelectionResultModal.value = false;
+  selectionResultMessage.value = '';
+  selectedPlayersList.value = [];
+  selectionMessage.value = '';
+  copied.value = false;
+  copyButtonText.value = 'Copier le message';
 }
 
 </script>
