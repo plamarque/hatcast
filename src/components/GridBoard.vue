@@ -949,7 +949,22 @@ onMounted(async () => {
     // Disponibilités
     const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
     const availObj = {}
-    availSnap.docs.forEach(doc => { availObj[doc.id] = doc.data() })
+    availSnap.docs.forEach(doc => { 
+      const data = doc.data()
+      // Nettoyer les données pour convertir les anciennes chaînes en booléens
+      const cleanedData = {}
+      Object.keys(data).forEach(eventId => {
+        const value = data[eventId]
+        if (value === 'oui') {
+          cleanedData[eventId] = true
+        } else if (value === 'non') {
+          cleanedData[eventId] = false
+        } else {
+          cleanedData[eventId] = value // Garder true, false, ou undefined
+        }
+      })
+      availObj[doc.id] = cleanedData
+    })
     availability.value = availObj
     // Sélections
     const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
@@ -963,6 +978,7 @@ onMounted(async () => {
   updateAllChances()
   
   console.log('players (deduplicated):', players.value.map(p => ({ id: p.id, name: p.name })))
+  console.log('availability loaded:', availability.value)
 })
 
 function toggleAvailability(playerName, eventId) {
@@ -976,30 +992,23 @@ function toggleAvailability(playerName, eventId) {
     console.error('Événement non trouvé:', eventId);
     return;
   }
-  // Utiliser directement l'ID de l'événement comme clé
-  if (!player.availabilities) {
-    player.availabilities = {};
-  }
   
-  // Récupérer l'état actuel (peut être undefined)
-  const current = player.availabilities[eventId];
+  // Récupérer l'état actuel depuis availability.value
+  const current = availability.value[player.name]?.[eventId];
+  console.log(`toggleAvailability - ${player.name} pour ${eventId}:`, current)
   let newValue;
   
-  // Logique de basculement : indéfini -> oui -> non -> indéfini
-  if (current === 'oui') {
-    newValue = 'non';
-    player.availabilities[eventId] = newValue;
-  } else if (current === 'non') {
-    // Supprimer la clé pour revenir à l'état indéfini
-    delete player.availabilities[eventId];
+  // Logique de basculement : undefined -> true -> false -> undefined
+  if (current === true) {
+    newValue = false;
+  } else if (current === false) {
     newValue = undefined;
   } else {
-    // État indéfini -> passe à 'oui'
-    newValue = 'oui';
-    player.availabilities[eventId] = newValue;
+    // État undefined -> passe à true
+    newValue = true;
   }
   
-  // Mettre à jour availability.value pour refléter les changements
+  // Mettre à jour availability.value
   if (newValue === undefined) {
     // Si on revient à l'état indéfini, supprimer la clé
     if (availability.value[player.name]) {
@@ -1010,11 +1019,11 @@ function toggleAvailability(playerName, eventId) {
     if (!availability.value[player.name]) {
       availability.value[player.name] = {};
     }
-    availability.value[player.name][eventId] = newValue === 'oui';
+    availability.value[player.name][eventId] = newValue;
   }
   
-  // Mettre à jour les disponibilités pour ce joueur
-  saveAvailability(player.name, { ...player.availabilities }, seasonId.value)
+  // Sauvegarder les disponibilités pour ce joueur
+  saveAvailability(player.name, availability.value[player.name], seasonId.value)
     .then(() => {
       showSuccessMessage.value = true;
       successMessage.value = 'Disponibilité mise à jour avec succès !';
