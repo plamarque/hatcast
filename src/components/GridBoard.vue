@@ -83,7 +83,7 @@
                 </div>
               </th>
               <th class="p-4 text-center">
-                <button @click="newEventForm = true" class="text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200" title="Ajouter un nouvel événement">
+                <button @click="openNewEventForm" class="text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200" title="Ajouter un nouvel événement">
                   ✨
                 </button>
               </th>
@@ -297,7 +297,7 @@
           Annuler
         </button>
         <button
-          @click="deleteEventConfirmed"
+          @click="() => deleteEventConfirmed()"
           class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
         >
           Supprimer
@@ -318,7 +318,7 @@
       </div>
       <div class="flex justify-end space-x-3">
         <button @click="cancelPlayerDelete" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
-        <button @click="deletePlayerConfirmed" class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300">Supprimer</button>
+        <button @click="() => deletePlayerConfirmed()" class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300">Supprimer</button>
       </div>
     </div>
   </div>
@@ -342,6 +342,15 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de saisie du PIN -->
+  <PinModal
+    :show="showPinModal"
+    :message="getPinModalMessage()"
+    :error="pinErrorMessage"
+    @submit="handlePinSubmit"
+    @cancel="handlePinCancel"
+  />
 </template>
 
 <style>
@@ -399,6 +408,8 @@ import {
 } from '../services/storage.js'
 import { collection, getDocs, query, where, doc } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
+import { verifySeasonPin } from '../services/seasons.js'
+import PinModal from './PinModal.vue'
 
 // Déclarer la prop slug
 const props = defineProps({
@@ -425,6 +436,11 @@ const highlightedPlayer = ref(null)
 const confirmReselect = ref(false)
 const eventIdToReselect = ref(null)
 
+// Variables pour la protection par PIN
+const showPinModal = ref(false)
+const pendingOperation = ref(null)
+const pinErrorMessage = ref('')
+
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
   highlightedPlayer.value = playerId
@@ -449,15 +465,28 @@ const showSuccessMessage = ref(false)
 const successMessage = ref('')
 
 async function confirmDeleteEvent(eventId) {
-  eventToDelete.value = eventId
-  confirmDelete.value = true
+  // Demander le PIN code avant d'afficher la confirmation
+  await requirePin({
+    type: 'deleteEvent',
+    data: { eventId }
+  })
 }
 
-async function deleteEventConfirmed() {
-  confirmDelete.value = false
+async function deleteEventConfirmed(eventId = null) {
+  const eventIdToDelete = eventId || eventToDelete.value
+  console.log('deleteEventConfirmed - eventId param:', eventId)
+  console.log('deleteEventConfirmed - eventToDelete.value:', eventToDelete.value)
+  console.log('deleteEventConfirmed - eventIdToDelete:', eventIdToDelete)
+  console.log('deleteEventConfirmed - type de eventIdToDelete:', typeof eventIdToDelete)
+  
+  if (!eventIdToDelete) {
+    console.error('Aucun événement à supprimer')
+    return
+  }
+
   try {
-    await deleteEvent(eventToDelete.value, seasonId.value)
-    events.value = events.value.filter(event => event.id !== eventToDelete.value)
+    await deleteEvent(eventIdToDelete, seasonId.value)
+    events.value = events.value.filter(event => event.id !== eventIdToDelete)
     // Recharger les données pour s'assurer que tout est à jour
     await Promise.all([
       loadEvents(seasonId.value),
@@ -468,7 +497,11 @@ async function deleteEventConfirmed() {
       availability.value = newAvailability
       selections.value = newSelections
     })
+    
+    // Fermer la modal de confirmation
+    confirmDelete.value = false
     eventToDelete.value = null
+    
     showSuccessMessage.value = true
     successMessage.value = 'Événement supprimé avec succès !'
     setTimeout(() => {
@@ -671,12 +704,17 @@ async function createEvent() {
     date: newEventDate.value
   }
 
+  // Créer l'événement directement après validation du PIN
+  await createEventProtected(newEvent)
+}
+
+async function createEventProtected(eventData) {
   try {
     // D'abord sauvegarder l'événement
-    const eventId = await saveEvent(newEvent, seasonId.value)
+    const eventId = await saveEvent(eventData, seasonId.value)
     
     // Mettre à jour la liste des événements
-    events.value = [...events.value, { id: eventId, ...newEvent }]
+    events.value = [...events.value, { id: eventId, ...eventData }]
     
     // Mettre à jour la disponibilité pour le nouvel événement
     const newAvailability = {}
@@ -695,6 +733,12 @@ async function createEvent() {
     
     // Forcer la mise à jour de l'interface
     await Promise.resolve()
+    
+    showSuccessMessage.value = true
+    successMessage.value = 'Événement créé avec succès !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
   } catch (error) {
     console.error('Erreur lors de la création de l\'événement:', error)
     alert('Erreur lors de la création de l\'événement. Veuillez réessayer.')
@@ -705,6 +749,15 @@ function cancelNewEvent() {
   newEventTitle.value = ''
   newEventDate.value = ''
   newEventForm.value = false
+}
+
+// Nouvelle fonction pour demander le PIN avant d'ouvrir la modal
+async function openNewEventForm() {
+  // Demander le PIN code avant d'ouvrir la modal de création
+  await requirePin({
+    type: 'addEvent',
+    data: {}
+  })
 }
 
 const events = ref([])
@@ -869,6 +922,15 @@ async function tirer(eventId, count = 6) {
   updateAllChances()
 }
 
+async function tirerProtected(eventId, count = 6) {
+  await tirer(eventId, count)
+  showSuccessMessage.value = true
+  successMessage.value = 'Sélection effectuée avec succès !'
+  setTimeout(() => {
+    showSuccessMessage.value = false
+  }, 3000)
+}
+
 function formatDate(dateValue) {
   if (!dateValue) return ''
   const date = typeof dateValue === 'string'
@@ -972,12 +1034,21 @@ function getTooltipText(player, eventId) {
 const playerToDelete = ref(null)
 const confirmPlayerDelete = ref(false)
 
-async function deletePlayerConfirmed() {
-  confirmPlayerDelete.value = false
+async function deletePlayerConfirmed(playerId = null) {
+  const playerIdToDelete = playerId || playerToDelete.value
+  if (!playerIdToDelete) {
+    console.error('Aucun joueur à supprimer')
+    return
+  }
+
   try {
-    await deletePlayer(playerToDelete.value, seasonId.value)
-    players.value = players.value.filter(p => p.id !== playerToDelete.value)
+    await deletePlayer(playerIdToDelete, seasonId.value)
+    players.value = players.value.filter(p => p.id !== playerIdToDelete)
+    
+    // Fermer la modal de confirmation
+    confirmPlayerDelete.value = false
     playerToDelete.value = null
+    
     showSuccessMessage.value = true
     successMessage.value = 'Joueur supprimé avec succès !'
     setTimeout(() => {
@@ -994,22 +1065,33 @@ function cancelPlayerDelete() {
   playerToDelete.value = null
 }
 
-function handlePlayerDelete(playerId) {
-  playerToDelete.value = playerId
-  confirmPlayerDelete.value = true
+async function handlePlayerDelete(playerId) {
+  // Demander le PIN code avant d'afficher la confirmation
+  await requirePin({
+    type: 'deletePlayer',
+    data: { playerId }
+  })
 }
 
-function handleTirage(eventId, count = 6) {
+async function handleTirage(eventId, count = 6) {
   if (selections.value[eventId] && selections.value[eventId].length > 0) {
-    confirmReselect.value = true
-    eventIdToReselect.value = eventId
+    // Demander le PIN code avant d'afficher la confirmation de relance
+    await requirePin({
+      type: 'launchSelection',
+      data: { eventId, count }
+    })
   } else {
-    tirer(eventId, count)
+    // Demander le PIN code avant de lancer la sélection
+    await requirePin({
+      type: 'launchSelection',
+      data: { eventId, count }
+    })
   }
 }
-function confirmTirage() {
+async function confirmTirage() {
   if (eventIdToReselect.value) {
-    tirer(eventIdToReselect.value, 6)
+    // Lancer directement la sélection (le PIN a déjà été validé)
+    await tirerProtected(eventIdToReselect.value, 6)
     confirmReselect.value = false
     eventIdToReselect.value = null
   }
@@ -1017,5 +1099,99 @@ function confirmTirage() {
 function cancelTirage() {
   confirmReselect.value = false
   eventIdToReselect.value = null
+}
+
+// Fonctions pour la protection par PIN
+function getPinModalMessage() {
+  if (!pendingOperation.value) return 'Veuillez saisir le code PIN à 4 chiffres'
+  
+  const messages = {
+    deleteEvent: 'Suppression d\'événement - Code PIN requis',
+    addEvent: 'Ajout d\'événement - Code PIN requis',
+    deletePlayer: 'Suppression de joueur - Code PIN requis',
+    launchSelection: 'Lancement de sélection - Code PIN requis'
+  }
+  
+  return messages[pendingOperation.value.type] || 'Code PIN requis'
+}
+
+async function requirePin(operation) {
+  pendingOperation.value = operation
+  showPinModal.value = true
+}
+
+async function handlePinSubmit(pinCode) {
+  try {
+    const isValid = await verifySeasonPin(seasonId.value, pinCode)
+    
+    if (isValid) {
+      showPinModal.value = false
+      const operationToExecute = pendingOperation.value
+      pendingOperation.value = null
+      
+      // Exécuter l'opération en attente
+      await executePendingOperation(operationToExecute)
+    } else {
+      pinErrorMessage.value = 'Code PIN incorrect'
+      // Réinitialiser le message d'erreur après 3 secondes
+      setTimeout(() => {
+        pinErrorMessage.value = ''
+      }, 3000)
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification du PIN:', error)
+    pinErrorMessage.value = 'Erreur lors de la vérification du code PIN'
+  }
+}
+
+function handlePinCancel() {
+  showPinModal.value = false
+  pendingOperation.value = null
+  pinErrorMessage.value = ''
+}
+
+async function executePendingOperation(operation) {
+  if (!operation) return
+  
+  const { type, data } = operation
+  
+  try {
+    switch (type) {
+      case 'deleteEvent':
+        // Afficher la modal de confirmation après validation du PIN
+        console.log('executePendingOperation - data.eventId:', data.eventId)
+        console.log('executePendingOperation - type de data.eventId:', typeof data.eventId)
+        eventToDelete.value = data.eventId
+        confirmDelete.value = true
+        break
+      case 'addEvent':
+        // Ouvrir la modal de création d'événement après validation du PIN
+        newEventForm.value = true
+        break
+      case 'deletePlayer':
+        // Afficher la modal de confirmation après validation du PIN
+        playerToDelete.value = data.playerId
+        confirmPlayerDelete.value = true
+        break
+      case 'launchSelection':
+        // Vérifier si une sélection existe déjà pour afficher la confirmation
+        if (selections.value[data.eventId] && selections.value[data.eventId].length > 0) {
+          // Afficher la modal de confirmation de relance
+          eventIdToReselect.value = data.eventId
+          confirmReselect.value = true
+        } else {
+          // Lancer directement la sélection
+          await tirerProtected(data.eventId, data.count)
+        }
+        break
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'exécution de l\'opération:', error)
+    showSuccessMessage.value = true
+    successMessage.value = 'Erreur lors de l\'opération. Veuillez réessayer.'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
 }
 </script>
