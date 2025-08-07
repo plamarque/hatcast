@@ -1,7 +1,18 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
     <!-- Header avec titre de la saison -->
-    <div class="text-center py-8 px-4">
+    <div class="text-center py-8 px-4 relative">
+      <!-- Flèche de retour -->
+      <button 
+        @click="goBack"
+        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+        title="Retour à l'accueil"
+      >
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+      
       <h1 class="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
         {{ seasonName ? seasonName : 'Chargement...' }}
       </h1>
@@ -389,6 +400,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   setStorageMode,
   loadEvents,
@@ -418,6 +430,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const router = useRouter()
 
 const seasonSlug = props.slug
 const seasonName = ref('')
@@ -1194,4 +1208,9 @@ async function executePendingOperation(operation) {
     }, 3000)
   }
 }
+
+function goBack() {
+  router.push('/')
+}
+
 </script>
