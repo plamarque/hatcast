@@ -24,27 +24,28 @@
       <div class="sticky top-0 z-50 backdrop-blur-sm bg-black/20 border border-white/20 rounded-t-2xl overflow-hidden">
         <table class="border-collapse w-full table-fixed">
           <colgroup>
-            <col style="width: 10%;" />
-            <col style="width: 10%;" />
-            <col v-for="(event, index) in events" :key="index" :style="'width: calc(70% / ' + events.length + ');'" />
+            <col style="width: 15%;" />
+            <col v-for="(event, index) in events" :key="index" :style="'width: calc(80% / ' + events.length + ');'" />
             <col style="width: 5%;" />
           </colgroup>
           <thead>
             <tr class="text-white">
               <th class="p-4 text-left">
-                <div class="flex items-center justify-center space-x-3">
+                <div class="flex flex-col items-center space-y-2">
                   <span class="font-bold text-lg relative group">
                     <span class="border-b-2 border-dashed border-purple-400">
-                      Joueur
+                      Joueurs
                     </span>
                   </span>
-                  <button @click="newPlayerForm = true" class="text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200 cursor-pointer" title="Ajoutez un joueur">
-                    ✨
+                  <button 
+                    @click="newPlayerForm = true" 
+                    class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer text-sm font-medium" 
+                    title="Ajouter un nouveau joueur"
+                  >
+                    <span class="text-lg">➕</span>
+                    <span>S'ajouter</span>
                   </button>
                 </div>
-              </th>
-              <th class="p-4 text-center">
-                <span class="text-lg font-bold">📊 Stats</span>
               </th>
               <th
                 v-for="event in events"
@@ -70,7 +71,6 @@
             </tr>
             <tr class="bg-black/10">
               <th class="p-4 text-left w-[100px]"></th>
-              <th class="p-4 text-center text-lg w-[100px]"></th>
               <th
                 v-for="event in events"
                 :key="event.id"
@@ -87,9 +87,8 @@
       <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-200px)] bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-b-2xl">
         <table class="table-auto border-collapse w-full table-fixed">
           <colgroup>
-            <col style="width: 10%;" />
-            <col style="width: 10%;" />
-            <col v-for="(event, index) in events" :key="index" :style="'width: calc(70% / ' + events.length + ');'" />
+            <col style="width: 15%;" />
+            <col v-for="(event, index) in events" :key="index" :style="'width: calc(80% / ' + events.length + ');'" />
             <col style="width: 5%;" />
           </colgroup>
           <tbody>
@@ -101,36 +100,17 @@
               :class="{ 'highlighted-player': player.id === highlightedPlayer }"
             >
               <td class="p-4 font-medium text-white w-[100px] relative group text-lg">
-                <div v-if="editingPlayer !== player.id" class="font-bold text-lg whitespace-pre-wrap flex items-center justify-between">
+                <div class="font-bold text-lg whitespace-pre-wrap flex items-center justify-between">
                   <span 
-                    @dblclick="startEditPlayer(player)" 
-                    class="hover:border-b-2 hover:border-dashed hover:border-purple-400 edit-cursor transition-colors duration-200"
-                    :title="'Double-clic pour modifier : ' + player.name"
+                    @click="showPlayerDetails(player)" 
+                    class="hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200"
+                    :title="'Cliquez pour voir les détails : ' + player.name"
                   >
                     {{ player.name }}
                   </span>
-                  <button @click="handlePlayerDelete(player.id)" class="hidden group-hover:block text-red-400 hover:text-red-300 hover:scale-110 transition-all duration-200" title="Supprimer le joueur">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                  </button>
-                </div>
-                <div v-else class="w-full">
-                  <input
-                    v-model="editingPlayerName"
-                    type="text"
-                    class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-                    @keydown.esc="cancelEditPlayer"
-                    @keydown.enter="saveEditPlayer"
-                    ref="editPlayerInput"
-                  >
                 </div>
               </td>
-              <td class="p-4 text-center text-gray-300 text-lg w-[100px]">
-                <span class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-3 py-1 rounded-full border border-purple-500/30" :title="`${countSelections(player.name)} sélection${countSelections(player.name) > 1 ? 's' : ''}, ${countAvailability(player.name)} dispo${countAvailability(player.name) > 1 ? 's' : ''}`">
-                  {{ countSelections(player.name) }}/{{ countAvailability(player.name) }}
-                </span>
-              </td>
+
               <td
                 v-for="event in events"
                 :key="event.id"
@@ -503,6 +483,16 @@
     @submit="handlePinSubmit"
     @cancel="handlePinCancel"
   />
+
+  <!-- Modal de détails du joueur -->
+  <PlayerModal
+    :show="showPlayerModal"
+    :player="selectedPlayer"
+    :stats="getPlayerStats(selectedPlayer)"
+    @close="closePlayerModal"
+    @update="handlePlayerUpdate"
+    @delete="handlePlayerDelete"
+  />
 </template>
 
 <style>
@@ -563,6 +553,7 @@ import { collection, getDocs, query, where, doc } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
 import { verifySeasonPin } from '../services/seasons.js'
 import PinModal from './PinModal.vue'
+import PlayerModal from './PlayerModal.vue'
 
 // Déclarer la prop slug
 const props = defineProps({
@@ -583,13 +574,16 @@ const eventToDelete = ref(null)
 const editingEvent = ref(null)
 const editingTitle = ref('')
 const editingDate = ref('')
-const editingPlayer = ref(null)
-const editingPlayerName = ref('')
+
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
 const highlightedPlayer = ref(null)
 const confirmReselect = ref(false)
 const eventIdToReselect = ref(null)
+
+// Variables pour le modal joueur
+const showPlayerModal = ref(false)
+const selectedPlayer = ref(null)
 
 // Variables pour la protection par PIN
 const showPinModal = ref(false)
@@ -729,50 +723,7 @@ async function saveEdit() {
   }
 }
 
-function startEditPlayer(player) {
-  editingPlayer.value = player.id
-  editingPlayerName.value = player.name
-  nextTick(() => {
-    if (editPlayerInput.value) {
-      editPlayerInput.value.focus()
-    }
-  })
-}
 
-async function saveEditPlayer() {
-  if (!editingPlayer.value || !editingPlayerName.value.trim()) return
-
-  try {
-    await updatePlayer(editingPlayer.value, editingPlayerName.value.trim(), seasonId.value)
-    
-    // Recharger les données pour s'assurer que le tri est appliqué
-    await Promise.all([
-      loadPlayers(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
-    ]).then(([newPlayers, newAvailability, newSelections]) => {
-      players.value = newPlayers
-      availability.value = newAvailability
-      selections.value = newSelections
-    })
-    
-    editingPlayer.value = null
-    editingPlayerName.value = ''
-    showSuccessMessage.value = true
-    successMessage.value = 'Joueur mis à jour avec succès !'
-    setTimeout(() => {
-      showSuccessMessage.value = false
-    }, 3000)
-  } catch (error) {
-    console.error('Erreur lors de l\'édition du joueur:', error)
-    alert('Erreur lors de l\'édition du joueur. Veuillez réessayer.')
-  }
-}
-
-function cancelEditPlayer() {
-  editingPlayer.value = null
-  editingPlayerName.value = ''
-}
 
 async function confirmDeletePlayer(playerId) {
   if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return
@@ -1284,6 +1235,9 @@ function cancelPlayerDelete() {
 }
 
 async function handlePlayerDelete(playerId) {
+  // Fermer la popup du joueur d'abord
+  closePlayerModal();
+  
   // Demander le PIN code avant d'afficher la confirmation
   await requirePin({
     type: 'deletePlayer',
@@ -1463,6 +1417,61 @@ function closeSelectionResult() {
   selectionMessage.value = '';
   copied.value = false;
   copyButtonText.value = 'Copier le message';
+}
+
+// Fonctions pour le modal joueur
+function showPlayerDetails(player) {
+  selectedPlayer.value = player;
+  showPlayerModal.value = true;
+}
+
+function closePlayerModal() {
+  showPlayerModal.value = false;
+  selectedPlayer.value = null;
+}
+
+async function handlePlayerUpdate({ playerId, newName }) {
+  try {
+    await updatePlayer(playerId, newName, seasonId.value);
+    
+    // Recharger les données
+    await Promise.all([
+      loadPlayers(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
+    ]).then(([newPlayers, newAvailability, newSelections]) => {
+      players.value = newPlayers;
+      availability.value = newAvailability;
+      selections.value = newSelections;
+      
+      // Mettre à jour le selectedPlayer dans le modal
+      if (selectedPlayer.value && selectedPlayer.value.id === playerId) {
+        const updatedPlayer = newPlayers.find(p => p.id === playerId);
+        if (updatedPlayer) {
+          selectedPlayer.value = updatedPlayer;
+        }
+      }
+    });
+    
+    showSuccessMessage.value = true;
+    successMessage.value = 'Joueur mis à jour avec succès !';
+    setTimeout(() => {
+      showSuccessMessage.value = false;
+    }, 3000);
+  } catch (error) {
+    console.error('Erreur lors de l\'édition du joueur:', error);
+    alert('Erreur lors de l\'édition du joueur. Veuillez réessayer.');
+  }
+}
+
+function getPlayerStats(player) {
+  if (!player) return { availability: 0, selection: 0, ratio: 0 };
+  
+  const availability = countAvailability(player.name);
+  const selection = countSelections(player.name);
+  const ratio = availability === 0 ? 0 : Math.round((selection / availability) * 100);
+  
+  return { availability, selection, ratio };
 }
 
 </script>
