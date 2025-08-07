@@ -796,6 +796,7 @@ import { collection, getDocs, query, where, doc } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
+  import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail } from '../services/playerProtection.js'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
@@ -1872,6 +1873,10 @@ async function handlePlayerPasswordSubmit(password) {
     const seasonPin = await getSeasonPin(seasonId.value)
     if (password === seasonPin) {
       // PIN de saison accepté
+      // Mémoriser la session mot de passe pour ce joueur afin d'éviter de redemander pendant 10 minutes
+      try {
+        playerPasswordSessionManager.saveSession(pendingPlayerOperation.value.data.playerId, password)
+      } catch {}
       showPlayerPasswordModal.value = false
       const operationToExecute = pendingPlayerOperation.value
       pendingPlayerOperation.value = null
@@ -1929,6 +1934,10 @@ async function handleAvailabilityPasswordSubmit(password) {
     const seasonPin = await getSeasonPin(seasonId.value)
     if (password === seasonPin) {
       // PIN de saison accepté
+      // Mémoriser la session mot de passe pour ce joueur afin d'éviter de redemander pendant 10 minutes
+      try {
+        playerPasswordSessionManager.saveSession(pendingAvailabilityOperation.value.data.player.id, password)
+      } catch {}
       showAvailabilityPasswordModal.value = false
       const operationToExecute = pendingAvailabilityOperation.value
       pendingAvailabilityOperation.value = null
