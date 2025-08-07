@@ -416,13 +416,13 @@ async function confirmDeleteEvent(eventId) {
 async function deleteEventConfirmed() {
   confirmDelete.value = false
   try {
-    await deleteEvent(eventToDelete.value)
+    await deleteEvent(eventToDelete.value, seasonId.value)
     events.value = events.value.filter(event => event.id !== eventToDelete.value)
     // Recharger les données pour s'assurer que tout est à jour
     await Promise.all([
-      loadEvents(),
-      loadAvailability(players.value, events.value),
-      loadSelections()
+      loadEvents(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
@@ -459,13 +459,13 @@ async function saveEdit() {
       title: editingTitle.value.trim(),
       date: editingDate.value
     }
-    await updateEvent(editingEvent.value, eventData)
+    await updateEvent(editingEvent.value, eventData, seasonId.value)
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
-      loadEvents(),
-      loadAvailability(players.value, events.value),
-      loadSelections()
+      loadEvents(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
@@ -500,13 +500,13 @@ async function saveEditPlayer() {
   if (!editingPlayer.value || !editingPlayerName.value.trim()) return
 
   try {
-    await updatePlayer(editingPlayer.value, editingPlayerName.value.trim())
+    await updatePlayer(editingPlayer.value, editingPlayerName.value.trim(), seasonId.value)
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
-      loadPlayers(),
-      loadAvailability(players.value, events.value),
-      loadSelections()
+      loadPlayers(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
       availability.value = newAvailability
@@ -535,13 +535,13 @@ async function confirmDeletePlayer(playerId) {
   if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return
 
   try {
-    await deletePlayer(playerId)
+    await deletePlayer(playerId, seasonId.value)
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
-      loadPlayers(),
-      loadAvailability(players.value, events.value),
-      loadSelections()
+      loadPlayers(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
       availability.value = newAvailability
@@ -563,13 +563,13 @@ async function addNewPlayer() {
 
   try {
     const newName = newPlayerName.value.trim()
-    const newId = await addPlayer(newName)
+    const newId = await addPlayer(newName, seasonId.value)
     
     // Recharger les données
     await Promise.all([
-      loadPlayers(),
-      loadAvailability(players.value, events.value),
-      loadSelections()
+      loadPlayers(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
       availability.value = newAvailability
@@ -633,7 +633,7 @@ async function createEvent() {
 
   try {
     // D'abord sauvegarder l'événement
-    const eventId = await saveEvent(newEvent)
+    const eventId = await saveEvent(newEvent, seasonId.value)
     
     // Mettre à jour la liste des événements
     events.value = [...events.value, { id: eventId, ...newEvent }]
@@ -645,7 +645,7 @@ async function createEvent() {
       newAvailability[player.name] = availability.value[player.name] || {}
       newAvailability[player.name][eventId] = null // Utiliser null au lieu de undefined
       // Sauvegarder la disponibilité pour chaque joueur
-      await saveAvailability(player.name, newAvailability[player.name])
+      await saveAvailability(player.name, newAvailability[player.name], seasonId.value)
     }
     
     // Réinitialiser le formulaire
@@ -683,7 +683,7 @@ onMounted(async () => {
   await initializeStorage()
 
   // Charger la saison par slug
-  const q = query(collection(db, 'seasons'), where('slug', '==', seasonSlug))
+  const q = query(collection(db, 'seasons'), where('slug', '==', props.slug))
   const snap = await getDocs(q)
   if (!snap.empty) {
     const seasonDoc = snap.docs[0]
@@ -768,7 +768,7 @@ function toggleAvailability(playerName, eventId) {
   }
   
   // Mettre à jour les disponibilités pour ce joueur
-  saveAvailability(player.name, { ...player.availabilities })
+  saveAvailability(player.name, { ...player.availabilities }, seasonId.value)
     .then(() => {
       showSuccessMessage.value = true;
       successMessage.value = 'Disponibilité mise à jour avec succès !';
@@ -824,7 +824,7 @@ async function tirer(eventId, count = 6) {
 
   selections.value[eventId] = tirage
 
-  await saveSelection(eventId, tirage)
+  await saveSelection(eventId, tirage, seasonId.value)
   updateAllStats()
   updateAllChances()
 }
@@ -935,7 +935,7 @@ const confirmPlayerDelete = ref(false)
 async function deletePlayerConfirmed() {
   confirmPlayerDelete.value = false
   try {
-    await deletePlayer(playerToDelete.value)
+    await deletePlayer(playerToDelete.value, seasonId.value)
     players.value = players.value.filter(p => p.id !== playerToDelete.value)
     playerToDelete.value = null
     showSuccessMessage.value = true
