@@ -1,227 +1,247 @@
 <template>
-  <div class="relative">
-    <h1 class="text-3xl font-bold text-center my-4">{{ seasonName ? `Saison : ${seasonName}` : '' }}</h1>
-    <!-- En-têtes fixes -->
-    <div class="sticky top-0 bg-white z-50 shadow overflow-x-auto">
-      <table class="border-collapse border border-gray-400 w-full table-fixed">
-        <colgroup>
-          <col style="width: 10%;" />
-          <col style="width: 10%;" />
-          <col v-for="(event, index) in events" :key="index" :style="'width: calc(70% / ' + events.length + ');'" />
-          <col style="width: 5%;" />
-        </colgroup>
-        <thead>
-          <tr class="bg-gray-100 text-gray-800 text-4xl sm:text-base">
-            <th class="p-3 text-left">
-              <div class="flex items-center justify-center space-x-2">
-                <span class="font-semibold text-4xl sm:text-base relative group">
-                  <span class="border-b border-dashed border-gray-400">
-                    Joueur
-                  </span>
-                </span>
-                <button @click="newPlayerForm = true" class="text-4xl sm:text-base text-blue-500 hover:text-blue-700 cursor-pointer" title="Ajoutez un joueur">
-                  ➕
-                </button>
-              </div>
-            </th>
-            <th class="p-3 text-center">
-              <span class="text-4xl sm:text-base">📊 Stats</span>
-            </th>
-            <th
-              v-for="event in events"
-              :key="event.id"
-              class="p-3 text-center"
-              @mouseenter="isHovered = event.id"
-              @mouseleave="isHovered = null"
-              @dblclick="startEditing(event)"
-            >
-              <div class="flex flex-col gap-2">
-                <div class="flex flex-col items-center space-y-1 relative">
-                  <div v-if="editingEvent !== event.id" class="font-semibold text-4xl sm:text-base text-center whitespace-pre-wrap relative group">
-                    <span class="hover:border-b hover:border-dashed hover:border-gray-400 cursor-help transition-colors duration-200" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
-                      {{ event.title }}
-                    </span>
-                  </div>
-                  <div v-else class="w-full">
-                    <input
-                      v-model="editingTitle"
-                      type="text"
-                      class="w-full p-1 border rounded"
-                      @keydown.esc="cancelEdit"
-                      @keydown.enter="saveEdit"
-                      ref="editTitleInput"
-                    >
-                  </div>
-                  <div v-if="editingEvent !== event.id" class="text-xs text-gray-500 cursor-help hover:border-b hover:border-dashed hover:border-gray-400 transition-colors duration-200 inline-block" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
-                    {{ formatDate(event.date) }}
-                  </div>
-                  <div v-else class="w-full">
-                    <input
-                      v-model="editingDate"
-                      type="date"
-                      class="w-full p-1 border rounded"
-                      @keydown.esc="cancelEdit"
-                      @keydown.enter="saveEdit"
-                    >
-                  </div>
-                  <button
-                    @click="confirmDeleteEvent(event.id)"
-                    class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                    :class="{ 'opacity-100': isHovered === event.id }"
-                  >
-                    ❌
-                  </button>
-                </div>
-              </div>
-            </th>
-            <th class="p-3 text-center">
-              <button @click="newEventForm = true" class="text-gray-500 hover:text-blue-500" title="Ajouter un nouvel événement">
-                ➕
-              </button>
-            </th>
-          </tr>
-          <tr class="bg-gray-50">
-            <th class="p-3 text-left w-[100px]"></th>
-            <th class="p-3 text-center text-4xl sm:text-base w-[100px]"></th>
-            <th
-              v-for="event in events"
-              :key="event.id"
-              class="p-3 text-center w-40"
-            >
-              <button
-                @click="handleTirage(event.id, 6)"
-                class="rounded-md text-2xl sm:text-base bg-white hover:bg-gray-50 hover:border-gray-200 border shadow text-gray-800 p-1 w-8 h-8 flex items-center justify-center mx-auto"
-                :title="(selections[event.id] && selections[event.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
-              >
-                🎭
-              </button>
-            </th>
-            <th class="p-3"></th>
-          </tr>
-        </thead>
-      </table>
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <!-- Header avec titre de la saison -->
+    <div class="text-center py-8 px-4">
+      <h1 class="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+        {{ seasonName ? seasonName : 'Chargement...' }}
+      </h1>
+      <p class="text-gray-300">Gestion des sélections et disponibilités</p>
     </div>
 
-    <!-- Corps scrollable -->
-    <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-100px)]">
-      <table class="table-auto border-collapse border border-gray-400 w-full table-fixed">
-        <colgroup>
-          <col style="width: 10%;" />
-          <col style="width: 10%;" />
-          <col v-for="(event, index) in events" :key="index" :style="'width: calc(70% / ' + events.length + ');'" />
-          <col style="width: 5%;" />
-        </colgroup>
-        <tbody class="border-t">
-          <tr
-            v-for="player in players"
-            :key="player.id"
-            class="odd:bg-white even:bg-gray-50 border-b"
-            :data-player-id="player.id"
-            :class="{ 'highlighted-player': player.id === highlightedPlayer }"
-          >
-            <td class="p-4 sm:p-3 font-medium text-gray-900 w-[100px] relative group text-4xl sm:text-base">
-              <div v-if="editingPlayer !== player.id" class="font-semibold text-4xl sm:text-base whitespace-pre-wrap flex items-center justify-between">
-                <span 
-                  @dblclick="startEditPlayer(player)" 
-                  class="hover:border-b hover:border-dashed hover:border-gray-400 edit-cursor transition-colors duration-200"
-                  :title="'Double-clic pour modifier : ' + player.name"
-                >
-                  {{ player.name }}
-                </span>
-                <button @click="handlePlayerDelete(player.id)" class="hidden group-hover:block text-red-500" title="Supprimer le joueur">
-                  🗑️
+    <div class="container mx-auto px-4 pb-16">
+      <!-- En-têtes fixes -->
+      <div class="sticky top-0 z-50 backdrop-blur-sm bg-black/20 border border-white/20 rounded-t-2xl overflow-hidden">
+        <table class="border-collapse w-full table-fixed">
+          <colgroup>
+            <col style="width: 10%;" />
+            <col style="width: 10%;" />
+            <col v-for="(event, index) in events" :key="index" :style="'width: calc(70% / ' + events.length + ');'" />
+            <col style="width: 5%;" />
+          </colgroup>
+          <thead>
+            <tr class="text-white">
+              <th class="p-4 text-left">
+                <div class="flex items-center justify-center space-x-3">
+                  <span class="font-bold text-lg relative group">
+                    <span class="border-b-2 border-dashed border-purple-400">
+                      Joueur
+                    </span>
+                  </span>
+                  <button @click="newPlayerForm = true" class="text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200 cursor-pointer" title="Ajoutez un joueur">
+                    ✨
+                  </button>
+                </div>
+              </th>
+              <th class="p-4 text-center">
+                <span class="text-lg font-bold">📊 Stats</span>
+              </th>
+              <th
+                v-for="event in events"
+                :key="event.id"
+                class="p-4 text-center"
+                @mouseenter="isHovered = event.id"
+                @mouseleave="isHovered = null"
+                @dblclick="startEditing(event)"
+              >
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-col items-center space-y-2 relative">
+                    <div v-if="editingEvent !== event.id" class="font-bold text-lg text-center whitespace-pre-wrap relative group">
+                      <span class="hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-help transition-colors duration-200 text-white" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
+                        {{ event.title }}
+                      </span>
+                    </div>
+                    <div v-else class="w-full">
+                      <input
+                        v-model="editingTitle"
+                        type="text"
+                        class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+                        @keydown.esc="cancelEdit"
+                        @keydown.enter="saveEdit"
+                        ref="editTitleInput"
+                      >
+                    </div>
+                    <div v-if="editingEvent !== event.id" class="text-sm text-gray-300 cursor-help hover:border-b hover:border-dashed hover:border-purple-400 transition-colors duration-200 inline-block" :title="'Double-clic pour modifier : ' + event.title + ' - ' + formatDate(event.date)">
+                      {{ formatDate(event.date) }}
+                    </div>
+                    <div v-else class="w-full">
+                      <input
+                        v-model="editingDate"
+                        type="date"
+                        class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+                        @keydown.esc="cancelEdit"
+                        @keydown.enter="saveEdit"
+                      >
+                    </div>
+                    <button
+                      @click="confirmDeleteEvent(event.id)"
+                      class="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg"
+                      :class="{ 'opacity-100': isHovered === event.id }"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </th>
+              <th class="p-4 text-center">
+                <button @click="newEventForm = true" class="text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200" title="Ajouter un nouvel événement">
+                  ✨
                 </button>
-              </div>
-              <div v-else class="w-full">
-                <input
-                  v-model="editingPlayerName"
-                  type="text"
-                  class="w-full p-1 border rounded"
-                  @keydown.esc="cancelEditPlayer"
-                  @keydown.enter="saveEditPlayer"
-                  ref="editPlayerInput"
+              </th>
+            </tr>
+            <tr class="bg-black/10">
+              <th class="p-4 text-left w-[100px]"></th>
+              <th class="p-4 text-center text-lg w-[100px]"></th>
+              <th
+                v-for="event in events"
+                :key="event.id"
+                class="p-4 text-center w-40"
+              >
+                <button
+                  @click="handleTirage(event.id, 6)"
+                  class="rounded-full text-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg hover:shadow-pink-500/25 p-3 w-12 h-12 flex items-center justify-center mx-auto transition-all duration-300 transform hover:scale-110"
+                  :title="(selections[event.id] && selections[event.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
                 >
-              </div>
-            </td>
-            <td class="p-4 sm:p-3 text-center text-gray-700 text-4xl sm:text-base w-[100px]">
-              <span :title="`${countSelections(player.name)} sélection${countSelections(player.name) > 1 ? 's' : ''}, ${countAvailability(player.name)} dispo${countAvailability(player.name) > 1 ? 's' : ''}`">
-                {{ countSelections(player.name) }}/{{ countAvailability(player.name) }}
-              </span>
-            </td>
-            <td
-              v-for="event in events"
-              :key="event.id"
-              class="p-4 sm:p-3 text-center cursor-pointer hover:bg-blue-100"
-              @click="toggleAvailability(player.name, event.id)"
+                  🎭
+                </button>
+              </th>
+              <th class="p-4"></th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      <!-- Corps scrollable -->
+      <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-200px)] bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-b-2xl">
+        <table class="table-auto border-collapse w-full table-fixed">
+          <colgroup>
+            <col style="width: 10%;" />
+            <col style="width: 10%;" />
+            <col v-for="(event, index) in events" :key="index" :style="'width: calc(70% / ' + events.length + ');'" />
+            <col style="width: 5%;" />
+          </colgroup>
+          <tbody>
+            <tr
+              v-for="player in players"
+              :key="player.id"
+              class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
+              :data-player-id="player.id"
+              :class="{ 'highlighted-player': player.id === highlightedPlayer }"
             >
-              <span
-                v-if="isSelected(player.name, event.id)"
-                :title="getTooltipText(player, event.id)"
+              <td class="p-4 font-medium text-white w-[100px] relative group text-lg">
+                <div v-if="editingPlayer !== player.id" class="font-bold text-lg whitespace-pre-wrap flex items-center justify-between">
+                  <span 
+                    @dblclick="startEditPlayer(player)" 
+                    class="hover:border-b-2 hover:border-dashed hover:border-purple-400 edit-cursor transition-colors duration-200"
+                    :title="'Double-clic pour modifier : ' + player.name"
+                  >
+                    {{ player.name }}
+                  </span>
+                  <button @click="handlePlayerDelete(player.id)" class="hidden group-hover:block text-red-400 hover:text-red-300 hover:scale-110 transition-all duration-200" title="Supprimer le joueur">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div v-else class="w-full">
+                  <input
+                    v-model="editingPlayerName"
+                    type="text"
+                    class="w-full p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+                    @keydown.esc="cancelEditPlayer"
+                    @keydown.enter="saveEditPlayer"
+                    ref="editPlayerInput"
+                  >
+                </div>
+              </td>
+              <td class="p-4 text-center text-gray-300 text-lg w-[100px]">
+                <span class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-3 py-1 rounded-full border border-purple-500/30" :title="`${countSelections(player.name)} sélection${countSelections(player.name) > 1 ? 's' : ''}, ${countAvailability(player.name)} dispo${countAvailability(player.name) > 1 ? 's' : ''}`">
+                  {{ countSelections(player.name) }}/{{ countAvailability(player.name) }}
+                </span>
+              </td>
+              <td
+                v-for="event in events"
+                :key="event.id"
+                class="p-4 text-center cursor-pointer hover:bg-white/10 transition-all duration-200"
+                @click="toggleAvailability(player.name, event.id)"
               >
-                🎭
-              </span>
-              <span
-                v-else-if="isAvailable(player.name, event.id)"
-                :title="getTooltipText(player, event.id)"
-              >
-                ✅
-              </span>
-              <span
-                v-else-if="isAvailable(player.name, event.id) === false"
-                :title="getTooltipText(player, event.id)"
-              >
-                ❌
-              </span>
-              <span
-                v-else
-                :title="getTooltipText(player, event.id)"
-              >
-                –
-              </span>
-            </td>
-            <td class="p-3"></td>
-          </tr>
-        </tbody>
-      </table>
+                <div class="flex items-center justify-center">
+                  <span
+                    v-if="isSelected(player.name, event.id)"
+                    class="text-2xl hover:scale-110 transition-transform duration-200"
+                    :title="getTooltipText(player, event.id)"
+                  >
+                    🎭
+                  </span>
+                  <span
+                    v-else-if="isAvailable(player.name, event.id)"
+                    class="text-2xl hover:scale-110 transition-transform duration-200"
+                    :title="getTooltipText(player, event.id)"
+                  >
+                    ✅
+                  </span>
+                  <span
+                    v-else-if="isAvailable(player.name, event.id) === false"
+                    class="text-2xl hover:scale-110 transition-transform duration-200"
+                    :title="getTooltipText(player, event.id)"
+                  >
+                    ❌
+                  </span>
+                  <span
+                    v-else
+                    class="text-gray-500 hover:text-white transition-colors duration-200"
+                    :title="getTooltipText(player, event.id)"
+                  >
+                    –
+                  </span>
+                </div>
+              </td>
+              <td class="p-4"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- Message de succès -->
-  <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-green-500 text-white p-4 rounded-lg shadow-lg">
-    {{ successMessage }}
+  <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm z-50">
+    <div class="flex items-center space-x-2">
+      <span class="text-xl">✨</span>
+      <span>{{ successMessage }}</span>
+    </div>
   </div>
 
   <!-- Modales -->
-  <div v-if="newEventForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4">Nouvel événement</h2>
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
+  <div v-if="newEventForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvel événement</h2>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
         <input
           v-model="newEventTitle"
           type="text"
-          class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
           placeholder="Titre de l'événement"
         >
       </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
         <input
           v-model="newEventDate"
           type="date"
-          class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
         >
       </div>
-      <div class="flex justify-end space-x-2">
+      <div class="flex justify-end space-x-3">
         <button
           @click="cancelNewEvent"
-          class="px-4 py-2 text-gray-700 hover:text-gray-900"
+          class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
         >
           Annuler
         </button>
         <button
           @click="createEvent"
-          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300"
         >
           Créer
         </button>
@@ -230,28 +250,28 @@
   </div>
 
   <!-- Modale de création de joueur -->
-  <div v-if="newPlayerForm" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4">Nouveau joueur</h2>
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouveau joueur</h2>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Nom</label>
         <input
           v-model="newPlayerName"
           type="text"
-          class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
           placeholder="Nom du joueur"
         >
       </div>
-      <div class="flex justify-end space-x-2">
+      <div class="flex justify-end space-x-3">
         <button
           @click="newPlayerForm = false"
-          class="px-4 py-2 text-gray-700 hover:text-gray-900"
+          class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
         >
           Annuler
         </button>
         <button
           @click="addNewPlayer"
-          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300"
         >
           Ajouter
         </button>
@@ -260,20 +280,25 @@
   </div>
 
   <!-- Modale de confirmation de suppression -->
-  <div v-if="confirmDelete" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4">Confirmation</h2>
-      <p class="mb-4">Êtes-vous sûr de vouloir supprimer ?</p>
-      <div class="flex justify-end space-x-2">
+  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">⚠️</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
+        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer cet événement ?</p>
+      </div>
+      <div class="flex justify-end space-x-3">
         <button
           @click="cancelDelete"
-          class="px-4 py-2 text-gray-700 hover:text-gray-900"
+          class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
         >
           Annuler
         </button>
         <button
           @click="deleteEventConfirmed"
-          class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
         >
           Supprimer
         </button>
@@ -282,24 +307,38 @@
   </div>
 
   <!-- Modale de confirmation de suppression de joueur -->
-  <div v-if="confirmPlayerDelete" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-4 rounded shadow">
-      <p class="mb-4">Êtes-vous sûr de vouloir supprimer ce joueur ?</p>
-      <div class="flex justify-end space-x-2">
-        <button @click="cancelPlayerDelete" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Annuler</button>
-        <button @click="deletePlayerConfirmed" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded">Supprimer</button>
+  <div v-if="confirmPlayerDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">⚠️</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
+        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer ce joueur ?</p>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button @click="cancelPlayerDelete" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
+        <button @click="deletePlayerConfirmed" class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300">Supprimer</button>
       </div>
     </div>
   </div>
 
   <!-- Modale de confirmation de relance de sélection -->
-  <div v-if="confirmReselect" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-      <h2 class="text-xl font-bold mb-4">Confirmation</h2>
-      <p class="mb-4">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles. Pensez à prévenir les gens du changement !</p>
-      <div class="flex justify-end space-x-2">
-        <button @click="cancelTirage" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Annuler</button>
-        <button @click="confirmTirage" class="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded">Confirmer</button>
+  <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">🎭</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
+        <p class="text-gray-300">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles.</p>
+      </div>
+      <p class="mb-6 text-sm text-yellow-400 bg-yellow-900/20 p-3 rounded-lg border border-yellow-500/20">
+        ⚠️ Pensez à prévenir les gens du changement !
+      </p>
+      <div class="flex justify-end space-x-3">
+        <button @click="cancelTirage" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
+        <button @click="confirmTirage" class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300">Confirmer</button>
       </div>
     </div>
   </div>
@@ -307,8 +346,9 @@
 
 <style>
 .highlighted-player {
-  background-color: #4F46E5 !important;
-  color: white !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(236, 72, 153, 0.3)) !important;
+  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3) !important;
 }
 .highlighted-player * {
   color: white !important;
@@ -323,7 +363,7 @@
 .grid-table th,
 .grid-table td {
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
   word-wrap: break-word;
 }
