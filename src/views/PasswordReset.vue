@@ -146,16 +146,22 @@ async function resetPassword() {
   resetSuccess.value = ''
   
   try {
+    console.log('🔍 [DEBUG] Début réinitialisation avec token:', oobCode.value)
+    
     // Réinitialisation avec token Firebase
     await confirmPasswordReset(auth, oobCode.value, newPassword.value)
-    resetSuccess.value = 'Mot de passe réinitialisé avec succès !'
+    console.log('🔍 [DEBUG] Mot de passe Firebase Auth mis à jour')
+    
+    // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !
+    console.log('🔍 [DEBUG] Réinitialisation terminée avec Firebase Auth')
+    resetSuccess.value = 'Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
     
     // Rediriger vers l'accueil après 3 secondes
     setTimeout(() => {
       goHome()
     }, 3000)
   } catch (err) {
-    console.error('Erreur lors de la réinitialisation:', err)
+    console.error('❌ [ERROR] Erreur lors de la réinitialisation:', err)
     
     if (err.code === 'auth/weak-password') {
       resetError.value = 'Le mot de passe doit contenir au moins 6 caractères'

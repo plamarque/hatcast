@@ -167,16 +167,40 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
       return false
     }
     
-    // Vérifier le hash du mot de passe
-    const inputHash = simpleHash(password)
-    const isValid = protectionData.passwordHash === inputHash
-    
-    // Si le mot de passe est valide, sauvegarder la session
-    if (isValid) {
-      playerPasswordSessionManager.saveSession(playerId, password)
+    // Si on a un firebaseUid, utiliser Firebase Auth
+    if (protectionData.firebaseUid) {
+      console.log('🔍 [DEBUG] Vérification avec Firebase Auth')
+      
+      try {
+        const { signInWithEmailAndPassword } = await import('firebase/auth')
+        const { auth } = await import('./firebase.js')
+        
+        // Essayer de se connecter avec Firebase Auth
+        await signInWithEmailAndPassword(auth, protectionData.email, password)
+        
+        // Si la connexion réussit, le mot de passe est correct
+        console.log('🔍 [DEBUG] Mot de passe Firebase Auth valide')
+        
+        // Sauvegarder la session
+        playerPasswordSessionManager.saveSession(playerId, password)
+        
+        return true
+      } catch (firebaseError) {
+        console.log('🔍 [DEBUG] Mot de passe Firebase Auth invalide:', firebaseError.code)
+        return false
+      }
+    } else {
+      // Fallback : vérifier avec le hash stocké (pour les anciens comptes)
+      console.log('🔍 [DEBUG] Vérification avec hash local')
+      const inputHash = simpleHash(password)
+      const isValid = protectionData.passwordHash === inputHash
+      
+      if (isValid) {
+        playerPasswordSessionManager.saveSession(playerId, password)
+      }
+      
+      return isValid
     }
-    
-    return isValid
   } catch (error) {
     console.error('Erreur lors de la vérification du mot de passe:', error)
     return false
