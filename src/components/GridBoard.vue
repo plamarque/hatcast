@@ -1039,38 +1039,100 @@ function isSelected(player, eventId) {
 }
 
 async function tirer(eventId, count = 6) {
-  const candidates = players.value.filter(p => isAvailable(p.name, eventId))
+  const event = events.value.find(e => e.id === eventId)
+  const requiredCount = event?.playerCount || 6
+  
+  // Récupérer la sélection actuelle
+  const currentSelection = selections.value[eventId] || []
+  
+  // Vérifier si TOUS les joueurs de la sélection sont encore disponibles
+  const allSelectedStillAvailable = currentSelection.length > 0 && 
+    currentSelection.every(playerName => isAvailable(playerName, eventId))
+  
+  if (allSelectedStillAvailable) {
+    // Cas exceptionnel : tous les joueurs sont disponibles, on refait un tirage complet
+    console.log('Tous les joueurs sélectionnés sont disponibles, nouveau tirage complet')
+    
+    const candidates = players.value.filter(p => isAvailable(p.name, eventId))
 
-  // Tirage pondéré : moins sélectionné = plus de chances
-  const weightedCandidates = candidates.map(player => {
-    const s = countSelections(player.name)
-    return {
-      name: player.name,
-      weight: 1 / (1 + s) // poids inverse du nombre de sélections
-    }
-  })
-
-  const tirage = []
-  const pool = [...weightedCandidates]
-
-  while (tirage.length < count && pool.length > 0) {
-    const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
-    let r = Math.random() * totalWeight
-
-    const chosenIndex = pool.findIndex(p => {
-      r -= p.weight
-      return r <= 0
+    // Tirage pondéré : moins sélectionné = plus de chances
+    const weightedCandidates = candidates.map(player => {
+      const s = countSelections(player.name)
+      return {
+        name: player.name,
+        weight: 1 / (1 + s) // poids inverse du nombre de sélections
+      }
     })
 
-    if (chosenIndex >= 0) {
-      tirage.push(pool[chosenIndex].name)
-      pool.splice(chosenIndex, 1)
+    const tirage = []
+    const pool = [...weightedCandidates]
+
+    while (tirage.length < requiredCount && pool.length > 0) {
+      const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
+      let r = Math.random() * totalWeight
+
+      const chosenIndex = pool.findIndex(p => {
+        r -= p.weight
+        return r <= 0
+      })
+
+      if (chosenIndex >= 0) {
+        tirage.push(pool[chosenIndex].name)
+        pool.splice(chosenIndex, 1)
+      }
+    }
+
+    selections.value[eventId] = tirage
+  } else {
+    // Logique normale : garder les joueurs disponibles et compléter
+    const keepSelectedPlayers = currentSelection.filter(playerName => isAvailable(playerName, eventId))
+    
+    // Calculer combien de places il reste à pourvoir
+    const remainingSlots = requiredCount - keepSelectedPlayers.length
+    
+    if (remainingSlots <= 0) {
+      // Si on a déjà assez de joueurs sélectionnés et disponibles, on garde la sélection actuelle
+      selections.value[eventId] = keepSelectedPlayers
+    } else {
+      // Tirage pour les places manquantes
+      const alreadySelected = new Set(keepSelectedPlayers)
+      const candidates = players.value.filter(p => 
+        isAvailable(p.name, eventId) && !alreadySelected.has(p.name)
+      )
+
+      // Tirage pondéré : moins sélectionné = plus de chances
+      const weightedCandidates = candidates.map(player => {
+        const s = countSelections(player.name)
+        return {
+          name: player.name,
+          weight: 1 / (1 + s) // poids inverse du nombre de sélections
+        }
+      })
+
+      const newTirage = []
+      const pool = [...weightedCandidates]
+
+      while (newTirage.length < remainingSlots && pool.length > 0) {
+        const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
+        let r = Math.random() * totalWeight
+
+        const chosenIndex = pool.findIndex(p => {
+          r -= p.weight
+          return r <= 0
+        })
+
+        if (chosenIndex >= 0) {
+          newTirage.push(pool[chosenIndex].name)
+          pool.splice(chosenIndex, 1)
+        }
+      }
+
+      // Combiner les joueurs gardés et les nouveaux tirés
+      selections.value[eventId] = [...keepSelectedPlayers, ...newTirage]
     }
   }
 
-  selections.value[eventId] = tirage
-
-  await saveSelection(eventId, tirage, seasonId.value)
+  await saveSelection(eventId, selections.value[eventId], seasonId.value)
   updateAllStats()
   updateAllChances()
 }
@@ -1086,6 +1148,9 @@ async function tirerProtected(eventId, count = 6) {
   
   // Vérifier si c'est une reselection avant de faire le tirage
   const wasReselection = selections.value[eventId] && selections.value[eventId].length > 0
+  
+  // Sauvegarder l'ancienne sélection pour comparer
+  const oldSelection = wasReselection ? [...selections.value[eventId]] : []
   
   await tirer(eventId, count)
   
@@ -1108,7 +1173,10 @@ async function tirerProtected(eventId, count = 6) {
     // Afficher le message de succès dans la popin de sélection
     if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
       console.log('Appel de showSuccess sur la popin de sélection')
-      selectionModalRef.value.showSuccess(wasReselection)
+      const newSelection = selections.value[eventId] || []
+      const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
+      const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
+      selectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
     } else {
       console.log('selectionModalRef.value:', selectionModalRef.value)
       console.log('showSuccess disponible:', selectionModalRef.value?.showSuccess)
@@ -1121,7 +1189,7 @@ async function tirerProtected(eventId, count = 6) {
     const selectedPlayers = selections.value[eventId] || []
     
     if (wasReselection) {
-      successMessage.value = 'Nouvelle sélection effectuée avec succès !'
+      successMessage.value = 'Sélection mise à jour avec succès !'
     } else {
       successMessage.value = 'Sélection effectuée avec succès !'
     }
@@ -1601,7 +1669,7 @@ function getEventStatus(eventId) {
     }
   }
   
-  // Cas 4: Sélection complète
+  // Cas 4: Sélection complète (tous les joueurs sélectionnés sont disponibles)
   return {
     type: 'complete',
     availableCount,

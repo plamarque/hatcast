@@ -332,13 +332,18 @@ function getInvitationMessage() {
 }
 
 // Fonction pour afficher le message de succès (appelée depuis le parent)
-function showSuccess(reselection = false) {
+function showSuccess(reselection = false, isPartialUpdate = false) {
   isReselection.value = reselection
   
   if (reselection) {
     const eventDate = formatDateFull(props.event.date)
     const playersList = props.currentSelection.join(', ')
-    successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
+    
+    if (isPartialUpdate) {
+      successMessageText.value = `Sélection mise à jour pour ${props.event.title} du ${eventDate} : ${playersList}`
+    } else {
+      successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
+    }
   } else {
     successMessageText.value = 'Sélection effectuée avec succès !'
   }
