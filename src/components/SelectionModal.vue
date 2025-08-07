@@ -48,6 +48,17 @@
         </div>
       </div>
       
+      <!-- Warning de sélection incomplète -->
+      <div v-if="hasIncompleteSelection" class="mb-6">
+        <div class="flex items-center space-x-3 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/20">
+          <div class="text-yellow-400 text-xl">⚠️</div>
+          <div class="flex-1">
+            <h3 class="text-yellow-300 text-sm font-semibold mb-1">Sélection incomplète</h3>
+            <p class="text-yellow-200 text-sm">{{ incompleteSelectionMessage }}</p>
+          </div>
+        </div>
+      </div>
+      
       <!-- Section de sélection actuelle -->
       <div v-if="hasSelection" class="mb-6">
         <h3 class="text-lg font-semibold text-white mb-3">Joueurs sélectionnés :</h3>
@@ -55,9 +66,19 @@
           <div
             v-for="player in currentSelection"
             :key="player"
-            class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
+            class="relative bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
+            :class="{
+              'from-red-500/20 to-red-600/20 border-red-500/30': !isPlayerAvailable(player),
+              'from-yellow-500/20 to-orange-500/20 border-yellow-500/30': isPlayerUnavailable(player)
+            }"
           >
             <span class="text-white font-medium">{{ player }}</span>
+            <!-- Icône de disponibilité -->
+            <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs">
+              <span v-if="isPlayerAvailable(player)" class="text-green-400">✅</span>
+              <span v-else-if="isPlayerUnavailable(player)" class="text-red-400">❌</span>
+              <span v-else class="text-gray-400">–</span>
+            </div>
           </div>
         </div>
         
@@ -89,15 +110,12 @@
       <!-- Section d'invitation à la sélection -->
       <div v-else class="mb-6">
         <div class="text-center p-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
-          <div class="text-4xl mb-4">{{ availableCount === 0 ? '⚠️' : '🎲' }}</div>
+          <div class="text-4xl mb-4">{{ getInvitationIcon() }}</div>
           <h3 class="text-xl font-semibold text-white mb-2">
-            {{ availableCount === 0 ? 'Aucun joueur disponible' : 'Aucune sélection effectuée' }}
+            {{ getInvitationTitle() }}
           </h3>
           <p class="text-gray-300">
-            {{ availableCount === 0 
-              ? 'Aucun joueur n\'est disponible pour cet événement. Veuillez d\'abord indiquer les disponibilités.' 
-              : 'Cliquez sur "Sélection Auto" pour lancer le tirage automatique des joueurs' 
-            }}
+            {{ getInvitationMessage() }}
           </p>
         </div>
       </div>
@@ -149,6 +167,11 @@ const props = defineProps({
   selectedCount: {
     type: Number,
     default: 0
+  },
+  // Props pour la gestion des disponibilités
+  playerAvailability: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -163,6 +186,38 @@ const isReselection = ref(false)
 // Computed properties
 const hasSelection = computed(() => {
   return props.currentSelection && props.currentSelection.length > 0
+})
+
+const hasIncompleteSelection = computed(() => {
+  if (!hasSelection.value) return false
+  
+  // Vérifier si des joueurs sélectionnés ne sont plus disponibles
+  const hasUnavailablePlayers = props.currentSelection.some(player => !isPlayerAvailable(player))
+  
+  // Vérifier s'il y a assez de joueurs disponibles pour compléter la sélection
+  const requiredCount = props.event?.playerCount || 6
+  const hasInsufficientPlayers = props.availableCount < requiredCount
+  
+  return hasUnavailablePlayers || hasInsufficientPlayers
+})
+
+const incompleteSelectionMessage = computed(() => {
+  if (!hasIncompleteSelection.value) return ''
+  
+  const unavailablePlayers = props.currentSelection.filter(player => !isPlayerAvailable(player))
+  const requiredCount = props.event?.playerCount || 6
+  
+  if (unavailablePlayers.length > 0) {
+    if (unavailablePlayers.length === 1) {
+      return `${unavailablePlayers[0]} n'est plus disponible. Veuillez relancer la sélection.`
+    } else {
+      return `${unavailablePlayers.length} joueurs ne sont plus disponibles. Veuillez relancer la sélection.`
+    }
+  } else if (props.availableCount < requiredCount) {
+    return `Seulement ${props.availableCount} joueurs disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de joueurs à sélectionner.`
+  }
+  
+  return 'Sélection incomplète'
 })
 
 const selectionMessage = computed(() => {
@@ -223,6 +278,52 @@ function handlePerfect() {
 
 function close() {
   emit('close')
+}
+
+// Fonctions pour vérifier la disponibilité des joueurs
+function isPlayerAvailable(playerName) {
+  return props.playerAvailability[playerName] === true
+}
+
+function isPlayerUnavailable(playerName) {
+  return props.playerAvailability[playerName] === false
+}
+
+// Fonctions pour l'invitation à la sélection
+function getInvitationIcon() {
+  const requiredCount = props.event?.playerCount || 6
+  
+  if (props.availableCount === 0) {
+    return '⚠️'
+  } else if (props.availableCount < requiredCount) {
+    return '⚠️'
+  } else {
+    return '🎲'
+  }
+}
+
+function getInvitationTitle() {
+  const requiredCount = props.event?.playerCount || 6
+  
+  if (props.availableCount === 0) {
+    return 'Aucun joueur disponible'
+  } else if (props.availableCount < requiredCount) {
+    return 'Pas assez de joueurs disponibles'
+  } else {
+    return 'Aucune sélection effectuée'
+  }
+}
+
+function getInvitationMessage() {
+  const requiredCount = props.event?.playerCount || 6
+  
+  if (props.availableCount === 0) {
+    return 'Aucun joueur n\'est disponible pour cet événement. Veuillez d\'abord indiquer les disponibilités.'
+  } else if (props.availableCount < requiredCount) {
+    return `Seulement ${props.availableCount} joueurs disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de joueurs à sélectionner.`
+  } else {
+    return 'Cliquez sur "Sélection Auto" pour lancer le tirage automatique des joueurs'
+  }
 }
 
 // Fonction pour afficher le message de succès (appelée depuis le parent)

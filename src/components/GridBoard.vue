@@ -54,11 +54,29 @@
                 @click="showEventDetails(event)"
               >
                 <div class="flex flex-col gap-3">
-                  <div class="flex flex-col items-center space-y-2 relative">
+                  <div class="flex flex-col items-center space-y-2">
                     <div class="font-bold text-lg text-center whitespace-pre-wrap relative group cursor-pointer">
                       <span class="hover:border-b-2 hover:border-dashed hover:border-purple-400 transition-colors duration-200 text-white" :title="'Cliquez pour voir les détails : ' + event.title">
                         {{ formatDate(event.date) }}
                       </span>
+                    </div>
+                    <!-- Indicateur d'état de l'événement -->
+                    <div 
+                      v-if="hasEventWarning(event.id)"
+                      class="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-yellow-400 transition-colors duration-200"
+                      :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                      @click.stop="openSelectionModal(event)"
+                    >
+                      <span class="text-xs text-white font-bold">⚠️</span>
+                    </div>
+                    <!-- Indicateur prêt pour sélection -->
+                    <div 
+                      v-else-if="getEventStatus(event.id).type === 'ready'"
+                      class="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-400 transition-colors duration-200"
+                      :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                      @click.stop="openSelectionModal(event)"
+                    >
+                      <span class="text-xs text-white font-bold">🎲</span>
                     </div>
                   </div>
                 </div>
@@ -472,6 +490,7 @@
     :current-selection="selections[selectionModalEvent?.id] || []"
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
+    :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
@@ -1538,6 +1557,97 @@ function getPlayerStats(player) {
   const ratio = availability === 0 ? 0 : Math.round((selection / availability) * 100);
   
   return { availability, selection, ratio };
+}
+
+// Fonctions pour détecter l'état des événements
+function getEventStatus(eventId) {
+  const selectedPlayers = selections.value[eventId] || []
+  const event = events.value.find(e => e.id === eventId)
+  const requiredCount = event?.playerCount || 6
+  const availableCount = countAvailablePlayers(eventId)
+  
+  // Cas 1: Sélection incomplète (sélection existante avec problèmes)
+  if (selectedPlayers.length > 0) {
+    const hasUnavailablePlayers = selectedPlayers.some(playerName => !isAvailable(playerName, eventId))
+    const hasInsufficientPlayers = availableCount < requiredCount
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers) {
+      return {
+        type: 'incomplete',
+        hasUnavailablePlayers,
+        hasInsufficientPlayers,
+        unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
+        availableCount,
+        requiredCount
+      }
+    }
+  }
+  
+  // Cas 2: Pas assez de joueurs pour faire une sélection
+  if (availableCount < requiredCount) {
+    return {
+      type: 'insufficient',
+      availableCount,
+      requiredCount
+    }
+  }
+  
+  // Cas 3: Assez de joueurs mais pas de sélection
+  if (selectedPlayers.length === 0) {
+    return {
+      type: 'ready',
+      availableCount,
+      requiredCount
+    }
+  }
+  
+  // Cas 4: Sélection complète
+  return {
+    type: 'complete',
+    availableCount,
+    requiredCount
+  }
+}
+
+function hasEventWarning(eventId) {
+  const status = getEventStatus(eventId)
+  return status.type === 'incomplete' || status.type === 'insufficient'
+}
+
+function getEventTooltip(eventId) {
+  const status = getEventStatus(eventId)
+  
+  switch (status.type) {
+    case 'incomplete':
+      if (status.hasUnavailablePlayers) {
+        if (status.unavailablePlayers.length === 1) {
+          return `Sélection incomplète : ${status.unavailablePlayers[0]} n'est plus disponible`
+        } else {
+          return `Sélection incomplète : ${status.unavailablePlayers.length} joueurs ne sont plus disponibles`
+        }
+      } else {
+        return `Sélection incomplète : ${status.availableCount} joueurs disponibles pour ${status.requiredCount} requis`
+      }
+    case 'insufficient':
+      return `Pas assez de joueurs : ${status.availableCount} disponibles pour ${status.requiredCount} requis`
+    case 'ready':
+      return `Prêt pour la sélection : ${status.availableCount} joueurs disponibles`
+    case 'complete':
+      return `Sélection complète : ${status.availableCount} joueurs disponibles`
+    default:
+      return ''
+  }
+}
+
+function getPlayerAvailabilityForEvent(eventId) {
+  if (!eventId) return {}
+  
+  const availabilityMap = {}
+  players.value.forEach(player => {
+    availabilityMap[player.name] = isAvailable(player.name, eventId)
+  })
+  
+  return availabilityMap
 }
 
 // Fonctions pour la nouvelle popin de sélection
