@@ -297,7 +297,7 @@
   </div>
 
   <!-- Modale de confirmation de relance de sélection -->
-  <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -316,64 +316,7 @@
     </div>
   </div>
 
-  <!-- Popin de confirmation de sélection -->
-  <div v-if="showSelectionResultModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-2xl">
-      <div class="text-center mb-6">
-        <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-3xl">🎉</span>
-        </div>
-        <h2 class="text-2xl font-bold text-white mb-2">Sélection effectuée !</h2>
-        <p class="text-gray-300">{{ selectionResultMessage }}</p>
-      </div>
-      
-      <div class="mb-6">
-        <h3 class="text-lg font-semibold text-white mb-3">Message à envoyer :</h3>
-        <div class="relative">
-          <textarea
-            v-model="selectionMessage"
-            class="w-full p-4 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
-            rows="4"
-            readonly
-          ></textarea>
-          <button
-            @click="copyToClipboard"
-            class="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg p-2 hover:from-purple-600 hover:to-pink-700 transition-all duration-300"
-            :title="copyButtonText"
-          >
-            <svg v-if="!copied" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-            </svg>
-            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <div class="mb-6">
-        <h3 class="text-lg font-semibold text-white mb-3">Joueurs sélectionnés :</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div
-            v-for="player in selectedPlayersList"
-            :key="player"
-            class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 rounded-lg border border-purple-500/30 text-center"
-          >
-            <span class="text-white font-medium">{{ player }}</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="flex justify-center">
-        <button 
-          @click="closeSelectionResult"
-          class="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300"
-        >
-          Parfait ! 👍
-        </button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Popin de détails du spectacle -->
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click="closeEventDetails">
@@ -420,9 +363,9 @@
           <span>Modifier</span>
         </button>
         <button 
-                          @click="handleTirage(selectedEvent?.id)"
+          @click="openSelectionModal(selectedEvent)"
           class="px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center space-x-2"
-          :title="(selections[selectedEvent?.id] && selections[selectedEvent?.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
+          title="Gérer la sélection"
         >
           <span>🎭</span>
           <span>Sélection</span>
@@ -519,6 +462,19 @@
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
   />
+
+  <!-- Modal de sélection -->
+  <SelectionModal
+    ref="selectionModalRef"
+    :show="showSelectionModal"
+    :event="selectionModalEvent"
+    :current-selection="selections[selectionModalEvent?.id] || []"
+    :available-count="countAvailablePlayers(selectionModalEvent?.id)"
+    :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
+    @close="closeSelectionModal"
+    @selection="handleSelectionFromModal"
+    @perfect="handlePerfectFromModal"
+  />
 </template>
 
 <style>
@@ -580,6 +536,7 @@ import { db } from '../services/firebase.js'
 import { verifySeasonPin } from '../services/seasons.js'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
+import SelectionModal from './SelectionModal.vue'
 
 // Déclarer la prop slug
 const props = defineProps({
@@ -622,13 +579,12 @@ const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
 const editingDescription = ref('')
 
-// Variables pour la confirmation de sélection
-const showSelectionResultModal = ref(false)
-const selectionResultMessage = ref('')
-const selectedPlayersList = ref([])
-const selectionMessage = ref('')
-const copied = ref(false)
-const copyButtonText = ref('Copier le message')
+
+
+// Variables pour la nouvelle popin de sélection
+const showSelectionModal = ref(false)
+const selectionModalEvent = ref(null)
+const selectionModalRef = ref(null)
 
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
@@ -1099,29 +1055,46 @@ async function tirer(eventId, count = 6) {
 }
 
 async function tirerProtected(eventId, count = 6) {
+  console.log('tirerProtected appelé avec eventId:', eventId)
+  console.log('showSelectionModal.value:', showSelectionModal.value)
+  console.log('selectionModalEvent.value?.id:', selectionModalEvent.value?.id)
+  
+  // Vérifier si c'est une reselection avant de faire le tirage
+  const wasReselection = selections.value[eventId] && selections.value[eventId].length > 0
+  
   await tirer(eventId, count)
   
-  // Préparer les données pour la popin de confirmation
-  const event = events.value.find(e => e.id === eventId)
-  const selectedPlayers = selections.value[eventId] || []
-  const isReselection = selectedPlayers.length > 0
-  
-  // Créer le message
-  const eventDate = formatDateFull(event.date)
-  const playersList = selectedPlayers.join(', ')
-  
-  if (isReselection) {
-    selectionResultMessage.value = `Attention, nouvelle sélection effectuée !`
-    selectionMessage.value = `Attention, nouvelle sélection pour ${event.title} du ${eventDate} : ${playersList}`
+  // Mettre à jour les données de la popin de sélection si elle est ouverte
+  if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
+    console.log('Popin de sélection ouverte, mise à jour...')
+    // Forcer la mise à jour des données
+    await nextTick()
+    
+    // Afficher le message de succès dans la popin de sélection
+    if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
+      console.log('Appel de showSuccess sur la popin de sélection')
+      selectionModalRef.value.showSuccess(wasReselection)
+    } else {
+      console.log('selectionModalRef.value:', selectionModalRef.value)
+      console.log('showSuccess disponible:', selectionModalRef.value?.showSuccess)
+    }
   } else {
-    selectionResultMessage.value = `Sélection effectuée avec succès !`
-    selectionMessage.value = `Sélection pour ${event.title} du ${eventDate} : ${playersList}`
+    console.log('Popin de sélection fermée, affichage message global')
+    // Afficher un message de succès global si la popin n'est pas ouverte
+    showSuccessMessage.value = true
+    const event = events.value.find(e => e.id === eventId)
+    const selectedPlayers = selections.value[eventId] || []
+    
+    if (wasReselection) {
+      successMessage.value = 'Nouvelle sélection effectuée avec succès !'
+    } else {
+      successMessage.value = 'Sélection effectuée avec succès !'
+    }
+    
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
   }
-  
-  selectedPlayersList.value = selectedPlayers
-  
-  // Afficher la popin de confirmation
-  showSelectionResultModal.value = true
 }
 
 function formatDate(dateValue) {
@@ -1331,11 +1304,13 @@ async function confirmTirage() {
     await tirerProtected(eventIdToReselect.value, count)
     confirmReselect.value = false
     eventIdToReselect.value = null
+    // Ne pas fermer la popin de sélection, elle restera ouverte avec la nouvelle sélection
   }
 }
 function cancelTirage() {
   confirmReselect.value = false
   eventIdToReselect.value = null
+  // La popin de sélection reste ouverte
 }
 
 // Fonctions pour la protection par PIN
@@ -1416,12 +1391,12 @@ async function executePendingOperation(operation) {
           // Afficher la modal de confirmation de relance
           eventIdToReselect.value = data.eventId
           confirmReselect.value = true
-          // Fermer la popin de détails
+          // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false
         } else {
           // Lancer directement la sélection
           await tirerProtected(data.eventId, data.count)
-          // Fermer la popin de détails
+          // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false
         }
         break
@@ -1461,29 +1436,7 @@ function startEditingFromDetails() {
   showEventDetailsModal.value = false; // Fermer le popin
 }
 
-function copyToClipboard() {
-  const textToCopy = selectionMessage.value;
-  navigator.clipboard.writeText(textToCopy).then(() => {
-    copied.value = true;
-    copyButtonText.value = 'Copié !';
-    setTimeout(() => {
-      copied.value = false;
-      copyButtonText.value = 'Copier le message';
-    }, 2000);
-  }).catch(err => {
-    console.error('Erreur lors de la copie du texte:', err);
-    alert('Impossible de copier le message.');
-  });
-}
 
-function closeSelectionResult() {
-  showSelectionResultModal.value = false;
-  selectionResultMessage.value = '';
-  selectedPlayersList.value = [];
-  selectionMessage.value = '';
-  copied.value = false;
-  copyButtonText.value = 'Copier le message';
-}
 
 // Fonctions pour le modal joueur
 function showPlayerDetails(player) {
@@ -1538,6 +1491,39 @@ function getPlayerStats(player) {
   const ratio = availability === 0 ? 0 : Math.round((selection / availability) * 100);
   
   return { availability, selection, ratio };
+}
+
+// Fonctions pour la nouvelle popin de sélection
+function openSelectionModal(event) {
+  selectionModalEvent.value = event
+  showSelectionModal.value = true
+}
+
+function closeSelectionModal() {
+  showSelectionModal.value = false
+  selectionModalEvent.value = null
+}
+
+async function handleSelectionFromModal() {
+  if (!selectionModalEvent.value) return
+  
+  const eventId = selectionModalEvent.value.id
+  const count = selectionModalEvent.value.playerCount || 6
+  
+  // Demander le PIN code avant de lancer la sélection
+  await requirePin({
+    type: 'launchSelection',
+    data: { eventId, count }
+  })
+}
+
+function handlePerfectFromModal() {
+  closeSelectionModal()
+  showSuccessMessage.value = true
+  successMessage.value = 'Sélection validée !'
+  setTimeout(() => {
+    showSuccessMessage.value = false
+  }, 3000)
 }
 
 </script>
