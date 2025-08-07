@@ -98,6 +98,7 @@ const loading = ref(true)
 const error = ref('')
 const playerData = ref(null)
 const seasonId = ref(null)
+const firebaseToken = ref(null)
 
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -120,12 +121,42 @@ onMounted(async () => {
     console.log('🔍 [DEBUG] Paramètres reçus:', { player, season, token, mode, oobCode })
     
     // Si on a un token Firebase (oobCode), on doit d'abord le vérifier
-    if ((token || oobCode) && !player && !season) {
-      const firebaseToken = token || oobCode
-      console.log('🔍 [DEBUG] Token Firebase détecté:', firebaseToken)
+    if (oobCode && !player && !season) {
+      console.log('🔍 [DEBUG] Token Firebase détecté:', oobCode)
+      firebaseToken.value = oobCode
       
       // Vérifier le token Firebase et récupérer l'email
       try {
+        // Vérifier le token Firebase
+        const { confirmPasswordReset } = await import('firebase/auth')
+        const { auth } = await import('../services/firebase.js')
+        
+        // Le token est valide, on peut maintenant chercher le joueur
+        // Pour cela, on va chercher dans toutes les saisons
+        const { collection, getDocs } = await import('firebase/firestore')
+        const { db } = await import('../services/firebase.js')
+        
+        // Chercher dans toutes les saisons
+        const seasonsRef = collection(db, 'seasons')
+        const seasonsSnapshot = await getDocs(seasonsRef)
+        
+        let foundPlayer = null
+        let foundSeason = null
+        
+        for (const seasonDoc of seasonsSnapshot.docs) {
+          const protectionRef = collection(db, 'seasons', seasonDoc.id, 'playerProtection')
+          const protectionSnapshot = await getDocs(protectionRef)
+          
+          for (const protectionDoc of protectionSnapshot.docs) {
+            const protectionData = protectionDoc.data()
+            if (protectionData.firebaseUid) {
+              // Vérifier si ce compte correspond au token
+              // Pour l'instant, on va chercher par email dans les logs Firebase
+              console.log('🔍 [DEBUG] Vérification protection:', protectionData)
+            }
+          }
+        }
+        
         // Pour l'instant, on va utiliser une approche simplifiée
         // En production, il faudrait stocker le mapping token -> player
         error.value = 'Token Firebase reçu. Veuillez utiliser le lien direct avec player et season.'
@@ -203,10 +234,18 @@ async function resetPassword() {
   resetSuccess.value = ''
   
   try {
-    // Mettre à jour le hash dans Firestore
-    await updatePlayerPasswordInFirestore(playerData.value.id, newPassword.value, seasonId.value)
-    
-    resetSuccess.value = 'Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
+    if (firebaseToken.value) {
+      // Réinitialisation avec token Firebase
+      const { confirmPasswordReset } = await import('firebase/auth')
+      const { auth } = await import('../services/firebase.js')
+      
+      await confirmPasswordReset(auth, firebaseToken.value, newPassword.value)
+      resetSuccess.value = 'Mot de passe réinitialisé avec succès !'
+    } else {
+      // Réinitialisation normale
+      await updatePlayerPasswordInFirestore(playerData.value.id, newPassword.value, seasonId.value)
+      resetSuccess.value = 'Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
+    }
     
     // Rediriger vers l'accueil après 3 secondes
     setTimeout(() => {
