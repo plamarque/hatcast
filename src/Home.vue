@@ -164,6 +164,7 @@
       :show="showPinModal"
       :message="getPinModalMessage()"
       :error="pinErrorMessage"
+      :session-info="getSessionInfo()"
       @submit="handlePinSubmit"
       @cancel="handlePinCancel"
     />
@@ -173,6 +174,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getSeasons, addSeason, deleteSeason, verifySeasonPin } from './services/seasons.js'
+import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 
@@ -306,6 +308,24 @@ function getPinModalMessage() {
 }
 
 async function requirePin(operation) {
+  // Vérifier si le PIN est déjà en cache pour cette saison
+  if (pinSessionManager.isPinCached(seasonToDelete.value.id)) {
+    const cachedPin = pinSessionManager.getCachedPin(seasonToDelete.value.id)
+    console.log('PIN en cache trouvé, utilisation automatique')
+    
+    // Vérifier que le PIN est toujours valide
+    const isValid = await verifySeasonPin(seasonToDelete.value.id, cachedPin)
+    if (isValid) {
+      // Exécuter directement l'opération
+      await executePendingOperation(operation)
+      return
+    } else {
+      // PIN invalide, effacer le cache
+      pinSessionManager.clearSession()
+    }
+  }
+  
+  // Afficher la modal de saisie du PIN
   pendingOperation.value = operation
   showPinModal.value = true
 }
@@ -318,6 +338,9 @@ async function handlePinSubmit(pinCode) {
     console.log('PIN valide:', isValid)
     
     if (isValid) {
+      // Sauvegarder le PIN en session
+      pinSessionManager.saveSession(seasonId, pinCode)
+      
       console.log('PIN correct, fermeture de la modal et exécution de l\'opération')
       showPinModal.value = false
       const operationToExecute = pendingOperation.value
@@ -343,6 +366,16 @@ function handlePinCancel() {
   showPinModal.value = false
   pendingOperation.value = null
   pinErrorMessage.value = ''
+}
+
+function getSessionInfo() {
+  if (seasonToDelete.value && pinSessionManager.isPinCached(seasonToDelete.value.id)) {
+    return {
+      timeRemaining: pinSessionManager.getTimeRemaining(),
+      isExpiringSoon: pinSessionManager.isExpiringSoon()
+    }
+  }
+  return null
 }
 
 async function executePendingOperation(operation) {

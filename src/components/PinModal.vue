@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -7,9 +7,59 @@
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Code d'accès requis</h2>
         <p class="text-gray-300">{{ message }}</p>
+        <div v-if="sessionInfo" class="mt-2 p-2 bg-green-900/20 border border-green-500/30 rounded-lg">
+          <p class="text-sm text-green-400">
+            Session active : {{ sessionInfo.timeRemaining }} min restantes
+          </p>
+        </div>
       </div>
       
-      <div class="mb-6">
+      <!-- Mode de saisie -->
+      <div class="mb-4 flex justify-center">
+        <div class="flex bg-gray-800 rounded-lg p-1">
+          <button
+            @click="inputMode = 'direct'"
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
+            :class="inputMode === 'direct' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'"
+          >
+            Saisie directe
+          </button>
+          <button
+            @click="inputMode = 'keypad'"
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200"
+            :class="inputMode === 'keypad' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'"
+          >
+            Pavé numérique
+          </button>
+        </div>
+      </div>
+      
+      <!-- Saisie directe -->
+      <div v-if="inputMode === 'direct'" class="mb-6">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Code PIN</label>
+          <input
+            v-model="pinCode"
+            type="password"
+            maxlength="4"
+            pattern="[0-9]{4}"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            class="w-full p-4 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center text-2xl font-mono tracking-widest"
+            placeholder="••••"
+            @input="validatePinInput"
+            @keydown.enter="submit"
+            @keydown.escape="cancel"
+            ref="pinInput"
+          >
+        </div>
+        <p class="text-xs text-gray-400 text-center">Tapez directement votre code PIN à 4 chiffres</p>
+      </div>
+      
+      <!-- Pavé numérique -->
+      <div v-else class="mb-6">
         <div class="flex justify-center space-x-3 mb-4">
           <div 
             v-for="(digit, index) in 4" 
@@ -75,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 
 const props = defineProps({
   show: {
@@ -89,6 +139,10 @@ const props = defineProps({
   error: {
     type: String,
     default: ''
+  },
+  sessionInfo: {
+    type: Object,
+    default: null
   }
 })
 
@@ -96,14 +150,40 @@ const emit = defineEmits(['submit', 'cancel'])
 
 const pinCode = ref('')
 const error = ref('')
+const inputMode = ref('direct') // 'direct' ou 'keypad'
+const pinInput = ref(null)
 
 // Réinitialiser le PIN quand la modal s'ouvre
 watch(() => props.show, (newValue) => {
   if (newValue) {
     pinCode.value = ''
     error.value = ''
+    // Focus sur l'input si en mode direct
+    if (inputMode.value === 'direct') {
+      nextTick(() => {
+        pinInput.value?.focus()
+      })
+    }
   }
 })
+
+// Focus automatique quand on change de mode
+watch(inputMode, (newMode) => {
+  if (newMode === 'direct' && props.show) {
+    nextTick(() => {
+      pinInput.value?.focus()
+    })
+  }
+})
+
+function validatePinInput() {
+  // Garder seulement les chiffres
+  pinCode.value = pinCode.value.replace(/[^0-9]/g, '')
+  // Limiter à 4 chiffres
+  if (pinCode.value.length > 4) {
+    pinCode.value = pinCode.value.slice(0, 4)
+  }
+}
 
 function addDigit(digit) {
   if (pinCode.value.length < 4) {
@@ -135,9 +215,13 @@ const handleKeydown = (event) => {
   if (!props.show) return
   
   if (event.key >= '0' && event.key <= '9') {
-    addDigit(parseInt(event.key))
+    if (inputMode.value === 'keypad') {
+      addDigit(parseInt(event.key))
+    }
   } else if (event.key === 'Backspace') {
-    removeDigit()
+    if (inputMode.value === 'keypad') {
+      removeDigit()
+    }
   } else if (event.key === 'Enter') {
     submit()
   } else if (event.key === 'Escape') {

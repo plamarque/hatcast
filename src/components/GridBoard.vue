@@ -449,6 +449,7 @@
     :show="showPinModal"
     :message="getPinModalMessage()"
     :error="pinErrorMessage"
+    :session-info="getSessionInfo()"
     @submit="handlePinSubmit"
     @cancel="handlePinCancel"
   />
@@ -534,6 +535,7 @@ import {
 import { collection, getDocs, query, where, doc } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
 import { verifySeasonPin } from '../services/seasons.js'
+import pinSessionManager from '../services/pinSession.js'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
 import SelectionModal from './SelectionModal.vue'
@@ -1328,6 +1330,24 @@ function getPinModalMessage() {
 }
 
 async function requirePin(operation) {
+  // Vérifier si le PIN est déjà en cache pour cette saison
+  if (pinSessionManager.isPinCached(seasonId.value)) {
+    const cachedPin = pinSessionManager.getCachedPin(seasonId.value)
+    console.log('PIN en cache trouvé, utilisation automatique')
+    
+    // Vérifier que le PIN est toujours valide
+    const isValid = await verifySeasonPin(seasonId.value, cachedPin)
+    if (isValid) {
+      // Exécuter directement l'opération
+      await executePendingOperation(operation)
+      return
+    } else {
+      // PIN invalide, effacer le cache
+      pinSessionManager.clearSession()
+    }
+  }
+  
+  // Afficher la modal de saisie du PIN
   pendingOperation.value = operation
   showPinModal.value = true
 }
@@ -1337,6 +1357,9 @@ async function handlePinSubmit(pinCode) {
     const isValid = await verifySeasonPin(seasonId.value, pinCode)
     
     if (isValid) {
+      // Sauvegarder le PIN en session
+      pinSessionManager.saveSession(seasonId.value, pinCode)
+      
       showPinModal.value = false
       const operationToExecute = pendingOperation.value
       pendingOperation.value = null
@@ -1360,6 +1383,16 @@ function handlePinCancel() {
   showPinModal.value = false
   pendingOperation.value = null
   pinErrorMessage.value = ''
+}
+
+function getSessionInfo() {
+  if (pinSessionManager.isPinCached(seasonId.value)) {
+    return {
+      timeRemaining: pinSessionManager.getTimeRemaining(),
+      isExpiringSoon: pinSessionManager.isExpiringSoon()
+    }
+  }
+  return null
 }
 
 async function executePendingOperation(operation) {
