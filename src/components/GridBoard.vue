@@ -1,5 +1,6 @@
 <template>
   <div class="relative">
+    <h1 class="text-3xl font-bold text-center my-4">{{ seasonName ? `Saison : ${seasonName}` : '' }}</h1>
     <!-- En-têtes fixes -->
     <div class="sticky top-0 bg-white z-50 shadow overflow-x-auto">
       <table class="border-collapse border border-gray-400 w-full table-fixed">
@@ -353,8 +354,23 @@ import {
   addPlayer,
   deletePlayer,
   updatePlayer,
-  reorderPlayersAlphabetically
+  reorderPlayersAlphabetically,
+  initializeStorage
 } from '../services/storage.js'
+import { collection, getDocs, query, where, doc } from 'firebase/firestore'
+import { db } from '../services/firebase.js'
+
+// Déclarer la prop slug
+const props = defineProps({
+  slug: {
+    type: String,
+    required: true
+  }
+})
+
+const seasonSlug = props.slug
+const seasonName = ref('')
+const seasonId = ref('')
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -663,29 +679,38 @@ onMounted(async () => {
   const useFirebase = true
   setStorageMode(useFirebase ? 'firebase' : 'mock')
 
-  // Charger toutes les données
-  const [newEvents, newPlayers] = await Promise.all([
-    loadEvents(),
-    loadPlayers()
-  ])
+  // Migration automatique si besoin
+  await initializeStorage()
 
-  // Filtrer les doublons par name
-  const seen = {}
-  const uniquePlayers = newPlayers.filter(p => {
-    if (!seen[p.name]) {
-      seen[p.name] = true
-      return true
-    }
-    return false
-  })
+  // Charger la saison par slug
+  const q = query(collection(db, 'seasons'), where('slug', '==', seasonSlug))
+  const snap = await getDocs(q)
+  if (!snap.empty) {
+    const seasonDoc = snap.docs[0]
+    seasonId.value = seasonDoc.id
+    seasonName.value = seasonDoc.data().name
+    document.title = `Saison : ${seasonName.value}`
+  }
 
-  // Mettre à jour toutes les références
-  events.value = newEvents
-  players.value = uniquePlayers
-  
-  // Charger la disponibilité et les sélections avec les données actualisées
-  availability.value = await loadAvailability(players.value, events.value)
-  selections.value = await loadSelections()
+  // Charger les données de la saison
+  if (seasonId.value) {
+    // Joueurs
+    const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
+    players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    // Événements
+    const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
+    events.value = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    // Disponibilités
+    const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
+    const availObj = {}
+    availSnap.docs.forEach(doc => { availObj[doc.id] = doc.data() })
+    availability.value = availObj
+    // Sélections
+    const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
+    const selObj = {}
+    selSnap.docs.forEach(doc => { selObj[doc.id] = doc.data().players || [] })
+    selections.value = selObj
+  }
   
   // Mettre à jour les stats et les chances une seule fois
   updateAllStats()

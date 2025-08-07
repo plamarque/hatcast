@@ -1,9 +1,9 @@
 <template>
-  <GridBoard />
+  <router-view />
 </template>
 
 <script setup>
-import GridBoard from './components/GridBoard.vue'
+// Plus besoin d'importer GridBoard ici
 </script>
 
 <style>
