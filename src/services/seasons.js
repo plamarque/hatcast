@@ -56,3 +56,13 @@ export async function verifySeasonPin(seasonId, pinCode) {
   }
   return false
 }
+
+// Get PIN code for a season
+export async function getSeasonPin(seasonId) {
+  const seasonDoc = await getDoc(doc(db, SEASONS_COLLECTION, seasonId))
+  if (seasonDoc.exists()) {
+    const seasonData = seasonDoc.data()
+    return seasonData.pinCode
+  }
+  return null
+}

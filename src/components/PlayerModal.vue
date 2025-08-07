@@ -40,6 +40,13 @@
           <span>Modifier</span>
         </button>
         <button 
+          @click="showProtectionModal = true"
+          class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center space-x-2"
+        >
+          <span>🔒</span>
+          <span>Protection</span>
+        </button>
+        <button 
           @click="handleDelete"
           class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center space-x-2"
         >
@@ -87,10 +94,31 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de protection du joueur -->
+  <PlayerProtectionModal
+    :show="showProtectionModal"
+    :player="player"
+    :seasonId="seasonId"
+    @close="showProtectionModal = false"
+    @update="handleProtectionUpdate"
+  />
+
+  <!-- Modal de vérification du mot de passe -->
+  <PasswordVerificationModal
+    :show="showPasswordVerification"
+    :player="player"
+    :seasonId="seasonId"
+    @close="showPasswordVerification = false"
+    @verified="handlePasswordVerified"
+  />
 </template>
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
+import PlayerProtectionModal from './PlayerProtectionModal.vue'
+import PasswordVerificationModal from './PasswordVerificationModal.vue'
+import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
 
 const props = defineProps({
   show: {
@@ -105,14 +133,20 @@ const props = defineProps({
     type: Object,
     default: () => ({ availability: 0, selection: 0, ratio: 0 })
   },
-
+  seasonId: {
+    type: String,
+    default: null
+  }
 })
 
-const emit = defineEmits(['close', 'update', 'delete'])
+const emit = defineEmits(['close', 'update', 'delete', 'refresh'])
 
 const editing = ref(false)
 const editingName = ref('')
 const editNameInput = ref(null)
+const showProtectionModal = ref(false)
+const showPasswordVerification = ref(false)
+const pendingAction = ref(null) // 'update' ou 'delete'
 
 
 
@@ -138,9 +172,30 @@ function cancelEdit() {
   editingName.value = ''
 }
 
-function saveEdit() {
+async function saveEdit() {
   if (!editingName.value.trim()) return
   
+  // Vérifier si le joueur est protégé
+  const isProtected = await isPlayerProtected(props.player?.id, props.seasonId)
+  if (isProtected) {
+    // Vérifier s'il y a une session active
+    const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
+    if (hasCachedPassword) {
+      // Session active, procéder directement
+      performUpdate()
+    } else {
+      // Pas de session, demander le mot de passe
+      pendingAction.value = 'update'
+      showPasswordVerification.value = true
+    }
+    return
+  }
+  
+  // Si non protégé, procéder directement
+  performUpdate()
+}
+
+function performUpdate() {
   emit('update', {
     playerId: props.player?.id,
     newName: editingName.value.trim()
@@ -150,8 +205,48 @@ function saveEdit() {
   editingName.value = ''
 }
 
-function handleDelete() {
+async function handleDelete() {
+  // Vérifier si le joueur est protégé
+  const isProtected = await isPlayerProtected(props.player?.id, props.seasonId)
+  if (isProtected) {
+    // Vérifier s'il y a une session active
+    const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
+    if (hasCachedPassword) {
+      // Session active, procéder directement
+      performDelete()
+    } else {
+      // Pas de session, demander le mot de passe
+      pendingAction.value = 'delete'
+      showPasswordVerification.value = true
+    }
+    return
+  }
+  
+  // Si non protégé, procéder directement
+  performDelete()
+}
+
+function performDelete() {
   emit('delete', props.player?.id)
+}
+
+function handleProtectionUpdate() {
+  // Rafraîchir les données si nécessaire
+  // Pas besoin d'émettre d'événement, la modal se fermera et les données seront rechargées
+  // ou on peut émettre un événement spécifique pour le rafraîchissement
+  emit('refresh')
+}
+
+function handlePasswordVerified(verificationData) {
+  // Le mot de passe a été vérifié, procéder à l'action en cours
+  if (pendingAction.value === 'update') {
+    performUpdate()
+  } else if (pendingAction.value === 'delete') {
+    performDelete()
+  }
+  
+  // Réinitialiser l'action en cours
+  pendingAction.value = null
 }
 
 // Réinitialiser l'édition quand la modal se ferme
@@ -159,6 +254,7 @@ watch(() => props.show, (newValue) => {
   if (!newValue) {
     editing.value = false
     editingName.value = ''
+    pendingAction.value = null
   }
 })
 </script>

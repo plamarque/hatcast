@@ -1,7 +1,7 @@
 // src/services/firebase.js
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getAuth, signInAnonymously } from 'firebase/auth'
+import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -17,6 +17,47 @@ const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const auth = getAuth(app)
 
+// Connexion anonyme par défaut
 signInAnonymously(auth)
 
-export { db }
+// Fonctions d'authentification pour les joueurs
+export async function createPlayerAccount(email, password) {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    return userCredential.user
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function signInPlayer(email, password) {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    return userCredential.user
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function resetPlayerPassword(email) {
+  try {
+    await sendPasswordResetEmail(auth, email)
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function updatePlayerPassword(newPassword) {
+  try {
+    const user = auth.currentUser
+    if (user) {
+      await updatePassword(user, newPassword)
+    } else {
+      throw new Error('Aucun utilisateur connecté')
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
+export { db, auth }

@@ -4,10 +4,12 @@ import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from './Home.vue'
 import GridBoard from './components/GridBoard.vue'
+import PasswordReset from './views/PasswordReset.vue'
 
 const routes = [
   { path: '/', component: Home },
-  { path: '/season/:slug', component: GridBoard, props: true }
+  { path: '/season/:slug', component: GridBoard, props: true },
+  { path: '/reset-password', component: PasswordReset }
 ]
 
 const router = createRouter({

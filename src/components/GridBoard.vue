@@ -118,7 +118,14 @@
               :class="{ 'highlighted-player': player.id === highlightedPlayer }"
             >
               <td class="p-4 font-medium text-white w-[100px] relative group text-lg">
-                <div class="font-bold text-lg whitespace-pre-wrap flex items-center justify-between">
+                <div class="font-bold text-lg whitespace-pre-wrap flex items-center">
+                  <span 
+                    v-if="isPlayerProtectedInGrid(player.id)"
+                    class="text-yellow-400 mr-1 text-sm"
+                    title="Joueur protégé par mot de passe"
+                  >
+                    🔒
+                  </span>
                   <span 
                     @click="showPlayerDetails(player)" 
                     class="hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200"
@@ -472,14 +479,248 @@
     @cancel="handlePinCancel"
   />
 
+  <!-- Modal de vérification du mot de passe du joueur -->
+  <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">🔐</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Vérification requise</h2>
+        <p class="text-lg text-gray-300">Suppression de joueur protégé</p>
+        <p class="text-sm text-gray-400 mt-2">Ce joueur est protégé par mot de passe</p>
+      </div>
+
+      <!-- Formulaire de vérification -->
+      <div class="mb-6">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
+            <input
+              v-model="playerPasswordInput"
+              type="password"
+              class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-white placeholder-gray-400"
+              placeholder="Entrez le mot de passe"
+              @keydown.enter="handlePlayerPasswordSubmit(playerPasswordInput)"
+              ref="playerPasswordInputRef"
+            >
+          </div>
+          
+
+        </div>
+        
+        <button
+          @click="handlePlayerPasswordSubmit(playerPasswordInput)"
+          :disabled="!playerPasswordInput || playerPasswordLoading"
+          class="w-full mt-4 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+        >
+          <span v-if="playerPasswordLoading" class="animate-spin">⏳</span>
+          <span v-else>🔓</span>
+          <span>{{ playerPasswordLoading ? 'Vérification...' : 'Vérifier et supprimer' }}</span>
+        </button>
+      </div>
+
+      <!-- Mot de passe oublié -->
+      <div class="mb-6 text-center">
+        <button
+          @click="showPlayerForgotPassword = true"
+          class="text-sm text-red-400 hover:text-red-300 transition-colors underline"
+        >
+          Mot de passe oublié ?
+        </button>
+      </div>
+
+      <!-- Messages d'erreur -->
+      <div v-if="playerPasswordErrorMessage" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+        <div class="text-red-300 text-sm">{{ playerPasswordErrorMessage }}</div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-center">
+        <button
+          @click="handlePlayerPasswordCancel"
+          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
+        >
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de vérification du mot de passe pour les disponibilités -->
+  <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">🔐</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Vérification requise</h2>
+        <p class="text-lg text-gray-300">Modification de disponibilité</p>
+        <p class="text-sm text-gray-400 mt-2">Ce joueur est protégé par mot de passe</p>
+      </div>
+
+      <!-- Formulaire de vérification -->
+      <div class="mb-6">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
+            <input
+              v-model="availabilityPasswordInput"
+              type="password"
+              class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+              placeholder="Entrez le mot de passe"
+              @keydown.enter="handleAvailabilityPasswordSubmit(availabilityPasswordInput)"
+              ref="availabilityPasswordInputRef"
+            >
+          </div>
+          
+
+        </div>
+        
+        <button
+          @click="handleAvailabilityPasswordSubmit(availabilityPasswordInput)"
+          :disabled="!availabilityPasswordInput || availabilityPasswordLoading"
+          class="w-full mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+        >
+          <span v-if="availabilityPasswordLoading" class="animate-spin">⏳</span>
+          <span v-else>🔓</span>
+          <span>{{ availabilityPasswordLoading ? 'Vérification...' : 'Vérifier et modifier' }}</span>
+        </button>
+      </div>
+
+      <!-- Mot de passe oublié -->
+      <div class="mb-6 text-center">
+        <button
+          @click="showAvailabilityForgotPassword = true"
+          class="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+        >
+          Mot de passe oublié ?
+        </button>
+      </div>
+
+      <!-- Messages d'erreur -->
+      <div v-if="availabilityPasswordErrorMessage" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+        <div class="text-red-300 text-sm">{{ availabilityPasswordErrorMessage }}</div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-center">
+        <button
+          @click="handleAvailabilityPasswordCancel"
+          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
+        >
+          Annuler
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal mot de passe oublié pour les disponibilités -->
+  <div v-if="showAvailabilityForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4" @click="showAvailabilityForgotPassword = false">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">📧</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Mot de passe oublié</h2>
+        <p class="text-lg text-gray-300">Modification de disponibilité</p>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-sm text-gray-300 mb-4">
+          Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
+        </p>
+        
+        <button
+          @click="sendAvailabilityResetEmail"
+          :disabled="availabilityResetLoading"
+          class="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+        >
+          <span v-if="availabilityResetLoading" class="animate-spin">⏳</span>
+          <span v-else>📧</span>
+          <span>{{ availabilityResetLoading ? 'Envoi...' : 'Envoyer l\'email' }}</span>
+        </button>
+      </div>
+
+      <!-- Messages -->
+      <div v-if="availabilityResetError" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+        <div class="text-red-300 text-sm">{{ availabilityResetError }}</div>
+      </div>
+
+      <div v-if="availabilityResetSuccess" class="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+        <div class="text-green-300 text-sm">{{ availabilityResetSuccess }}</div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-center">
+        <button
+          @click="showAvailabilityForgotPassword = false"
+          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal mot de passe oublié pour la suppression de joueur -->
+  <div v-if="showPlayerForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4" @click="showPlayerForgotPassword = false">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">📧</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Mot de passe oublié</h2>
+        <p class="text-lg text-gray-300">Suppression de joueur protégé</p>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-sm text-gray-300 mb-4">
+          Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
+        </p>
+        
+        <button
+          @click="sendPlayerResetEmail"
+          :disabled="playerResetLoading"
+          class="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+        >
+          <span v-if="playerResetLoading" class="animate-spin">⏳</span>
+          <span v-else>📧</span>
+          <span>{{ playerResetLoading ? 'Envoi...' : 'Envoyer l\'email' }}</span>
+        </button>
+      </div>
+
+      <!-- Messages -->
+      <div v-if="playerResetError" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+        <div class="text-red-300 text-sm">{{ playerResetError }}</div>
+      </div>
+
+      <div v-if="playerResetSuccess" class="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+        <div class="text-green-300 text-sm">{{ playerResetSuccess }}</div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-center">
+        <button
+          @click="showPlayerForgotPassword = false"
+          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal de détails du joueur -->
   <PlayerModal
     :show="showPlayerModal"
     :player="selectedPlayer"
     :stats="getPlayerStats(selectedPlayer)"
+    :seasonId="seasonId"
     @close="closePlayerModal"
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
+    @refresh="handlePlayerRefresh"
   />
 
   <!-- Modal de sélection -->
@@ -553,8 +794,9 @@ import {
 } from '../services/storage.js'
 import { collection, getDocs, query, where, doc } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
-import { verifySeasonPin } from '../services/seasons.js'
+import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
+import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail } from '../services/playerProtection.js'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
 import SelectionModal from './SelectionModal.vue'
@@ -595,6 +837,30 @@ const showPinModal = ref(false)
 const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
 
+// Variables pour la protection par mot de passe de joueur
+const showPlayerPasswordModal = ref(false)
+const pendingPlayerOperation = ref(null)
+const playerPasswordErrorMessage = ref('')
+const playerPasswordInput = ref('')
+const playerPasswordLoading = ref(false)
+const playerPasswordInputRef = ref(null)
+
+// Variables pour la protection des disponibilités
+const showAvailabilityPasswordModal = ref(false)
+const pendingAvailabilityOperation = ref(null)
+const availabilityPasswordErrorMessage = ref('')
+const availabilityPasswordInput = ref('')
+const availabilityPasswordLoading = ref(false)
+const availabilityPasswordInputRef = ref(null)
+const showAvailabilityForgotPassword = ref(false)
+const availabilityResetLoading = ref(false)
+const availabilityResetError = ref('')
+const availabilityResetSuccess = ref('')
+const showPlayerForgotPassword = ref(false)
+const playerResetLoading = ref(false)
+const playerResetError = ref('')
+const playerResetSuccess = ref('')
+
 // Variables pour les détails du spectacle
 const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
@@ -606,6 +872,9 @@ const editingDescription = ref('')
 const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
 const selectionModalRef = ref(null)
+
+// Variables pour la protection des joueurs
+const protectedPlayers = ref(new Set())
 
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
@@ -625,6 +894,25 @@ function highlightPlayer(playerId) {
 // Fonction pour cacher la mise en évidence
 function hideHighlight() {
   highlightedPlayer.value = null
+}
+
+// Fonction pour vérifier si un joueur est protégé
+function isPlayerProtectedInGrid(playerId) {
+  return protectedPlayers.value.has(playerId)
+}
+
+// Fonction pour charger l'état de protection de tous les joueurs
+async function loadProtectedPlayers() {
+  if (!seasonId.value) return
+  
+  const protectedSet = new Set()
+  for (const player of players.value) {
+    const isProtected = await isPlayerProtected(player.id, seasonId.value)
+    if (isProtected) {
+      protectedSet.add(player.id)
+    }
+  }
+  protectedPlayers.value = protectedSet
 }
 
 const showSuccessMessage = ref(false)
@@ -752,6 +1040,9 @@ async function confirmDeletePlayer(playerId) {
       players.value = newPlayers
       availability.value = newAvailability
       selections.value = newSelections
+      
+      // Recharger l'état de protection des joueurs
+      loadProtectedPlayers()
     })
     showSuccessMessage.value = true
     successMessage.value = 'Joueur supprimé avec succès !'
@@ -780,6 +1071,9 @@ async function addNewPlayer() {
       players.value = newPlayers
       availability.value = newAvailability
       selections.value = newSelections
+      
+      // Recharger l'état de protection des joueurs
+      loadProtectedPlayers()
       
       // Trouver le nouveau joueur et le mettre en évidence
       const newPlayer = players.value.find(p => p.id === newId)
@@ -939,6 +1233,9 @@ onMounted(async () => {
     // Joueurs
     const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
     players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    
+    // Charger l'état de protection des joueurs
+    await loadProtectedPlayers()
     // Événements
     const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
     events.value = eventsSnap.docs.map(doc => ({ 
@@ -981,7 +1278,7 @@ onMounted(async () => {
   console.log('availability loaded:', availability.value)
 })
 
-function toggleAvailability(playerName, eventId) {
+async function toggleAvailability(playerName, eventId) {
   const player = players.value.find(p => p.name === playerName);
   if (!player) {
     console.error('Joueur non trouvé:', playerName);
@@ -993,6 +1290,30 @@ function toggleAvailability(playerName, eventId) {
     return;
   }
   
+  // Vérifier si le joueur est protégé
+  const isProtected = await isPlayerProtected(player.id, seasonId.value)
+  
+  if (isProtected) {
+    // Vérifier s'il y a une session active
+    const hasCachedPassword = isPlayerPasswordCached(player.id)
+    if (hasCachedPassword) {
+      // Session active, procéder directement
+      performToggleAvailability(player, eventId)
+    } else {
+      // Pas de session, demander le mot de passe
+      await requirePlayerPasswordForAvailability({
+        type: 'toggleAvailability',
+        data: { player, eventId }
+      })
+    }
+    return
+  }
+  
+  // Si non protégé, procéder directement
+  performToggleAvailability(player, eventId)
+}
+
+function performToggleAvailability(player, eventId) {
   // Récupérer l'état actuel depuis availability.value
   const current = availability.value[player.name]?.[eventId];
   console.log(`toggleAvailability - ${player.name} pour ${eventId}:`, current)
@@ -1380,11 +1701,22 @@ async function handlePlayerDelete(playerId) {
   // Fermer la popup du joueur d'abord
   closePlayerModal();
   
-  // Demander le PIN code avant d'afficher la confirmation
-  await requirePin({
-    type: 'deletePlayer',
-    data: { playerId }
-  })
+  // Vérifier si le joueur est protégé
+  const isProtected = await isPlayerProtected(playerId, seasonId.value)
+  
+  if (isProtected) {
+    // Le joueur est protégé, demander son mot de passe d'abord
+    await requirePlayerPassword({
+      type: 'deletePlayer',
+      data: { playerId }
+    })
+  } else {
+    // Le joueur n'est pas protégé, demander le PIN de saison
+    await requirePin({
+      type: 'deletePlayer',
+      data: { playerId }
+    })
+  }
 }
 
 async function handleTirage(eventId, count = null) {
@@ -1462,6 +1794,38 @@ async function requirePin(operation) {
   showPinModal.value = true
 }
 
+async function requirePlayerPassword(operation) {
+  const playerId = operation.data.playerId
+  
+  // Vérifier si le mot de passe du joueur est déjà en cache
+  if (isPlayerPasswordCached(playerId)) {
+    console.log('Mot de passe du joueur en cache trouvé, utilisation automatique')
+    // Exécuter directement l'opération
+    await executePendingOperation(operation)
+    return
+  }
+  
+  // Afficher la modal de saisie du mot de passe du joueur
+  pendingPlayerOperation.value = operation
+  showPlayerPasswordModal.value = true
+}
+
+async function requirePlayerPasswordForAvailability(operation) {
+  const playerId = operation.data.player.id
+  
+  // Vérifier si le mot de passe du joueur est déjà en cache
+  if (isPlayerPasswordCached(playerId)) {
+    console.log('Mot de passe du joueur en cache trouvé, utilisation automatique')
+    // Exécuter directement l'opération
+    await executePendingOperation(operation)
+    return
+  }
+  
+  // Afficher la modal de saisie du mot de passe du joueur pour les disponibilités
+  pendingAvailabilityOperation.value = operation
+  showAvailabilityPasswordModal.value = true
+}
+
 async function handlePinSubmit(pinCode) {
   try {
     const isValid = await verifySeasonPin(seasonId.value, pinCode)
@@ -1493,6 +1857,154 @@ function handlePinCancel() {
   showPinModal.value = false
   pendingOperation.value = null
   pinErrorMessage.value = ''
+}
+
+async function handlePlayerPasswordSubmit(password) {
+  if (!password) return
+  
+  playerPasswordLoading.value = true
+  playerPasswordErrorMessage.value = ''
+  
+  try {
+    const playerId = pendingPlayerOperation.value.data.playerId
+    
+    // Vérifier si c'est le PIN de saison
+    const seasonPin = await getSeasonPin(seasonId.value)
+    if (password === seasonPin) {
+      // PIN de saison accepté
+      showPlayerPasswordModal.value = false
+      const operationToExecute = pendingPlayerOperation.value
+      pendingPlayerOperation.value = null
+      playerPasswordInput.value = ''
+      
+      // Exécuter l'opération
+      await executePendingOperation(operationToExecute)
+      return
+    }
+    
+    // Vérifier le mot de passe du joueur
+    const isValid = await verifyPlayerPassword(playerId, password, seasonId.value)
+    
+    if (isValid) {
+      showPlayerPasswordModal.value = false
+      const operationToExecute = pendingPlayerOperation.value
+      pendingPlayerOperation.value = null
+      playerPasswordInput.value = ''
+      
+      // Exécuter l'opération
+      await executePendingOperation(operationToExecute)
+    } else {
+      playerPasswordErrorMessage.value = 'Mot de passe incorrect'
+      // Réinitialiser le message d'erreur après 3 secondes
+      setTimeout(() => {
+        playerPasswordErrorMessage.value = ''
+      }, 3000)
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification du mot de passe:', error)
+    playerPasswordErrorMessage.value = 'Erreur lors de la vérification du mot de passe'
+  } finally {
+    playerPasswordLoading.value = false
+  }
+}
+
+function handlePlayerPasswordCancel() {
+  showPlayerPasswordModal.value = false
+  pendingPlayerOperation.value = null
+  playerPasswordErrorMessage.value = ''
+  playerPasswordInput.value = ''
+  playerPasswordLoading.value = false
+}
+
+async function handleAvailabilityPasswordSubmit(password) {
+  if (!password) return
+  
+  availabilityPasswordLoading.value = true
+  availabilityPasswordErrorMessage.value = ''
+  
+  try {
+    const player = pendingAvailabilityOperation.value.data.player
+    
+    // Vérifier si c'est le PIN de saison
+    const seasonPin = await getSeasonPin(seasonId.value)
+    if (password === seasonPin) {
+      // PIN de saison accepté
+      showAvailabilityPasswordModal.value = false
+      const operationToExecute = pendingAvailabilityOperation.value
+      pendingAvailabilityOperation.value = null
+      availabilityPasswordInput.value = ''
+      
+      // Exécuter l'opération
+      await executePendingOperation(operationToExecute)
+      return
+    }
+    
+    // Vérifier le mot de passe du joueur
+    const isValid = await verifyPlayerPassword(player.id, password, seasonId.value)
+    
+    if (isValid) {
+      showAvailabilityPasswordModal.value = false
+      const operationToExecute = pendingAvailabilityOperation.value
+      pendingAvailabilityOperation.value = null
+      availabilityPasswordInput.value = ''
+      
+      // Exécuter l'opération
+      await executePendingOperation(operationToExecute)
+    } else {
+      availabilityPasswordErrorMessage.value = 'Mot de passe incorrect'
+      // Réinitialiser le message d'erreur après 3 secondes
+      setTimeout(() => {
+        availabilityPasswordErrorMessage.value = ''
+      }, 3000)
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification du mot de passe:', error)
+    availabilityPasswordErrorMessage.value = 'Erreur lors de la vérification du mot de passe'
+  } finally {
+    availabilityPasswordLoading.value = false
+  }
+}
+
+function handleAvailabilityPasswordCancel() {
+  showAvailabilityPasswordModal.value = false
+  pendingAvailabilityOperation.value = null
+  availabilityPasswordErrorMessage.value = ''
+  availabilityPasswordInput.value = ''
+  availabilityPasswordLoading.value = false
+}
+
+async function sendAvailabilityResetEmail() {
+  availabilityResetLoading.value = true
+  availabilityResetError.value = ''
+  availabilityResetSuccess.value = ''
+  
+  try {
+    const player = pendingAvailabilityOperation.value.data.player
+    const result = await sendPasswordResetEmail(player.id, seasonId.value)
+    availabilityResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+  } catch (err) {
+    console.error('Erreur lors de l\'envoi de l\'email:', err)
+    availabilityResetError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
+  } finally {
+    availabilityResetLoading.value = false
+  }
+}
+
+async function sendPlayerResetEmail() {
+  playerResetLoading.value = true
+  playerResetError.value = ''
+  playerResetSuccess.value = ''
+  
+  try {
+    const playerId = pendingPlayerOperation.value.data.playerId
+    const result = await sendPasswordResetEmail(playerId, seasonId.value)
+    playerResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+  } catch (err) {
+    console.error('Erreur lors de l\'envoi de l\'email:', err)
+    playerResetError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
+  } finally {
+    playerResetLoading.value = false
+  }
 }
 
 function getSessionInfo() {
@@ -1542,6 +2054,10 @@ async function executePendingOperation(operation) {
           // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false
         }
+        break
+      case 'toggleAvailability':
+        // Exécuter directement la modification de disponibilité
+        performToggleAvailability(data.player, data.eventId)
         break
     }
   } catch (error) {
@@ -1606,6 +2122,9 @@ async function handlePlayerUpdate({ playerId, newName }) {
       availability.value = newAvailability;
       selections.value = newSelections;
       
+      // Recharger l'état de protection des joueurs
+      loadProtectedPlayers()
+      
       // Mettre à jour le selectedPlayer dans le modal
       if (selectedPlayer.value && selectedPlayer.value.id === playerId) {
         const updatedPlayer = newPlayers.find(p => p.id === playerId);
@@ -1623,6 +2142,40 @@ async function handlePlayerUpdate({ playerId, newName }) {
   } catch (error) {
     console.error('Erreur lors de l\'édition du joueur:', error);
     alert('Erreur lors de l\'édition du joueur. Veuillez réessayer.');
+  }
+}
+
+async function handlePlayerRefresh() {
+  try {
+    // Recharger les données
+    await Promise.all([
+      loadPlayers(seasonId.value),
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
+    ]).then(([newPlayers, newAvailability, newSelections]) => {
+      players.value = newPlayers;
+      availability.value = newAvailability;
+      selections.value = newSelections;
+      
+      // Recharger l'état de protection des joueurs
+      loadProtectedPlayers()
+      
+      // Mettre à jour le selectedPlayer dans le modal
+      if (selectedPlayer.value) {
+        const updatedPlayer = newPlayers.find(p => p.id === selectedPlayer.value.id);
+        if (updatedPlayer) {
+          selectedPlayer.value = updatedPlayer;
+        }
+      }
+    });
+    
+    showSuccessMessage.value = true;
+    successMessage.value = 'Données mises à jour !';
+    setTimeout(() => {
+      showSuccessMessage.value = false;
+    }, 3000);
+  } catch (error) {
+    console.error('Erreur lors du rafraîchissement:', error);
   }
 }
 
