@@ -194,6 +194,17 @@
           placeholder="Description de l'événement (optionnel)"
         ></textarea>
       </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
+        <input
+          v-model="newEventPlayerCount"
+          type="number"
+          min="1"
+          max="20"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+          placeholder="6"
+        >
+      </div>
       <div class="flex justify-end space-x-3">
         <button
           @click="cancelNewEvent"
@@ -384,7 +395,7 @@
       
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-white mb-3">Statistiques</h3>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-3 gap-4">
           <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-purple-500/30">
             <div class="text-2xl font-bold text-white">{{ countAvailablePlayers(selectedEvent?.id) }}</div>
             <div class="text-sm text-gray-300">Disponibles</div>
@@ -392,6 +403,10 @@
           <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-500/30">
             <div class="text-2xl font-bold text-white">{{ countSelectedPlayers(selectedEvent?.id) }}</div>
             <div class="text-sm text-gray-300">Sélectionnés</div>
+          </div>
+          <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
+            <div class="text-2xl font-bold text-white">{{ selectedEvent?.playerCount || 6 }}</div>
+            <div class="text-sm text-gray-300">À sélectionner</div>
           </div>
         </div>
       </div>
@@ -405,12 +420,12 @@
           <span>Modifier</span>
         </button>
         <button 
-          @click="handleTirage(selectedEvent?.id, 6)"
+                          @click="handleTirage(selectedEvent?.id)"
           class="px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center space-x-2"
           :title="(selections[selectedEvent?.id] && selections[selectedEvent?.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
         >
           <span>🎭</span>
-          <span>{{ (selections[selectedEvent?.id] && selections[selectedEvent?.id].length > 0) ? 'Relancer' : 'Lancer' }}</span>
+          <span>Sélection</span>
         </button>
         <button 
           @click="confirmDeleteEvent(selectedEvent?.id)"
@@ -457,6 +472,17 @@
           placeholder="Description de l'événement (optionnel)"
           @keydown.esc="cancelEdit"
         ></textarea>
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
+        <input
+          v-model="editingPlayerCount"
+          type="number"
+          min="1"
+          max="20"
+          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+          @keydown.esc="cancelEdit"
+        >
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -574,6 +600,7 @@ const eventToDelete = ref(null)
 const editingEvent = ref(null)
 const editingTitle = ref('')
 const editingDate = ref('')
+const editingPlayerCount = ref(6)
 
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
@@ -689,11 +716,18 @@ function startEditing(event) {
 async function saveEdit() {
   if (!editingEvent.value || !editingTitle.value.trim() || !editingDate.value) return
 
+  const playerCount = parseInt(editingPlayerCount.value)
+  if (isNaN(playerCount) || playerCount < 1 || playerCount > 20) {
+    alert('Le nombre de joueurs doit être un nombre entier entre 1 et 20')
+    return
+  }
+
   try {
     const eventData = {
       title: editingTitle.value.trim(),
       date: editingDate.value,
-      description: editingDescription.value.trim() || ''
+      description: editingDescription.value.trim() || '',
+      playerCount: playerCount
     }
     await updateEvent(editingEvent.value, eventData, seasonId.value)
     
@@ -712,6 +746,7 @@ async function saveEdit() {
     editingTitle.value = ''
     editingDate.value = ''
     editingDescription.value = ''
+    editingPlayerCount.value = 6
     showSuccessMessage.value = true
     successMessage.value = 'Événement mis à jour avec succès !'
     setTimeout(() => {
@@ -804,6 +839,7 @@ function cancelEdit() {
   editingTitle.value = ''
   editingDate.value = ''
   editingDescription.value = ''
+  editingPlayerCount.value = 6
 }
 
 const isHovered = ref(null)
@@ -812,6 +848,7 @@ const newEventForm = ref(false)
 const newEventTitle = ref('')
 const newEventDate = ref('')
 const newEventDescription = ref('')
+const newEventPlayerCount = ref(6)
 
 // Fonction pour annuler la création d'événement
 
@@ -822,10 +859,17 @@ async function createEvent() {
     return
   }
 
+  const playerCount = parseInt(newEventPlayerCount.value)
+  if (isNaN(playerCount) || playerCount < 1 || playerCount > 20) {
+    alert('Le nombre de joueurs doit être un nombre entier entre 1 et 20')
+    return
+  }
+
   const newEvent = {
     title: newEventTitle.value.trim(),
     date: newEventDate.value,
-    description: newEventDescription.value.trim() || ''
+    description: newEventDescription.value.trim() || '',
+    playerCount: playerCount
   }
 
   // Créer l'événement directement après validation du PIN
@@ -854,6 +898,7 @@ async function createEventProtected(eventData) {
     newEventTitle.value = ''
     newEventDate.value = ''
     newEventDescription.value = ''
+    newEventPlayerCount.value = 6
     newEventForm.value = false
     
     // Forcer la mise à jour de l'interface
@@ -874,6 +919,7 @@ function cancelNewEvent() {
   newEventTitle.value = ''
   newEventDate.value = ''
   newEventDescription.value = ''
+  newEventPlayerCount.value = 6
   newEventForm.value = false
 }
 
@@ -918,7 +964,11 @@ onMounted(async () => {
     players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     // Événements
     const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
-    events.value = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    events.value = eventsSnap.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      playerCount: doc.data().playerCount || 6 // Valeur par défaut pour les événements existants
+    }))
     // Disponibilités
     const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
     const availObj = {}
@@ -1135,10 +1185,16 @@ function updateAllStats() {
   players.value.forEach(player => updateStatsForPlayer(player.name))
 }
 
-function chanceToBeSelected(playerName, eventId, count = 6) {
+function chanceToBeSelected(playerName, eventId, count = null) {
   const availablePlayers = players.value.filter(p => isAvailable(p.name, eventId) === true)
 
   if (!availablePlayers.find(p => p.name === playerName)) return 0
+
+  // Si count n'est pas fourni, utiliser le nombre de joueurs de l'événement
+  if (count === null) {
+    const event = events.value.find(e => e.id === eventId)
+    count = event?.playerCount || 6
+  }
 
   // Calcul du poids basé sur le nombre de sélections déjà faites
   const weights = availablePlayers.map(p => {
@@ -1156,9 +1212,10 @@ function chanceToBeSelected(playerName, eventId, count = 6) {
   return Math.round(chance * 100)
 }
 
-function updateAllChances(count = 6) {
+function updateAllChances() {
   const chanceMap = {}
   events.value.forEach(event => {
+    const eventPlayerCount = event.playerCount || 6
     const availablePlayers = players.value.filter(p => isAvailable(p.name, event.id) === true)
     const weights = availablePlayers.map(p => {
       const pastSelections = countSelections(p.name)
@@ -1170,7 +1227,7 @@ function updateAllChances(count = 6) {
     const totalWeight = weights.reduce((sum, p) => sum + p.weight, 0)
 
     weights.forEach(p => {
-      const chance = Math.min(1, (p.weight / totalWeight) * count)
+      const chance = Math.min(1, (p.weight / totalWeight) * eventPlayerCount)
       if (!chanceMap[p.name]) chanceMap[p.name] = {}
       chanceMap[p.name][event.id] = Math.round(chance * 100)
     })
@@ -1245,7 +1302,13 @@ async function handlePlayerDelete(playerId) {
   })
 }
 
-async function handleTirage(eventId, count = 6) {
+async function handleTirage(eventId, count = null) {
+  // Si count n'est pas fourni, utiliser le nombre de joueurs de l'événement
+  if (count === null) {
+    const event = events.value.find(e => e.id === eventId)
+    count = event?.playerCount || 6
+  }
+  
   if (selections.value[eventId] && selections.value[eventId].length > 0) {
     // Demander le PIN code avant d'afficher la confirmation de relance
     await requirePin({
@@ -1263,7 +1326,9 @@ async function handleTirage(eventId, count = 6) {
 async function confirmTirage() {
   if (eventIdToReselect.value) {
     // Lancer directement la sélection (le PIN a déjà été validé)
-    await tirerProtected(eventIdToReselect.value, 6)
+    const event = events.value.find(e => e.id === eventIdToReselect.value)
+    const count = event?.playerCount || 6
+    await tirerProtected(eventIdToReselect.value, count)
     confirmReselect.value = false
     eventIdToReselect.value = null
   }
@@ -1392,6 +1457,7 @@ function startEditingFromDetails() {
   editingTitle.value = selectedEvent.value.title;
   editingDate.value = selectedEvent.value.date;
   editingDescription.value = selectedEvent.value.description || '';
+  editingPlayerCount.value = selectedEvent.value.playerCount || 6;
   showEventDetailsModal.value = false; // Fermer le popin
 }
 
