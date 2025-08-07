@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Impro Selector</title>
+    <script>
+        // Redirection pour GitHub Pages SPA
+        const path = window.location.pathname;
+        const search = window.location.search;
+        const hash = window.location.hash;
+        
+        // Si ce n'est pas déjà la page principale, rediriger
+        if (path !== '/impro-selector/' && !path.startsWith('/impro-selector/')) {
+            window.location.href = '/impro-selector/' + search + hash;
+        }
+    </script>
+</head>
+<body>
+    <p>Redirection...</p>
+</body>
+</html>
