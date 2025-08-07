@@ -88,10 +88,11 @@
               class="p-3 text-center w-40"
             >
               <button
-                @click="tirer(event.id, 6)" 
-                class="px-2 py-1 rounded-md text-4xl sm:text-base bg-white hover:bg-gray-50 hover:border-gray-200 border shadow text-gray-800"
+                @click="handleTirage(event.id, 6)"
+                class="rounded-md text-2xl sm:text-base bg-white hover:bg-gray-50 hover:border-gray-200 border shadow text-gray-800 p-1 w-8 h-8 flex items-center justify-center mx-auto"
+                :title="(selections[event.id] && selections[event.id].length > 0) ? 'Relancer la sélection' : 'Lancer la sélection'"
               >
-                🎭 Sélectionner
+                🎭
               </button>
             </th>
             <th class="p-3"></th>
@@ -289,6 +290,18 @@
       </div>
     </div>
   </div>
+
+  <!-- Modale de confirmation de relance de sélection -->
+  <div v-if="confirmReselect" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+      <h2 class="text-xl font-bold mb-4">Confirmation</h2>
+      <p class="mb-4">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles. Pensez à prévenir les gens du changement !</p>
+      <div class="flex justify-end space-x-2">
+        <button @click="cancelTirage" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Annuler</button>
+        <button @click="confirmTirage" class="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded">Confirmer</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style>
@@ -353,6 +366,8 @@ const editingPlayerName = ref('')
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
 const highlightedPlayer = ref(null)
+const confirmReselect = ref(false)
+const eventIdToReselect = ref(null)
 
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
@@ -917,5 +932,25 @@ function cancelPlayerDelete() {
 function handlePlayerDelete(playerId) {
   playerToDelete.value = playerId
   confirmPlayerDelete.value = true
+}
+
+function handleTirage(eventId, count = 6) {
+  if (selections.value[eventId] && selections.value[eventId].length > 0) {
+    confirmReselect.value = true
+    eventIdToReselect.value = eventId
+  } else {
+    tirer(eventId, count)
+  }
+}
+function confirmTirage() {
+  if (eventIdToReselect.value) {
+    tirer(eventIdToReselect.value, 6)
+    confirmReselect.value = false
+    eventIdToReselect.value = null
+  }
+}
+function cancelTirage() {
+  confirmReselect.value = false
+  eventIdToReselect.value = null
 }
 </script>
