@@ -1058,13 +1058,27 @@ async function tirer(eventId, count = 6) {
 
 async function tirerProtected(eventId, count = 6) {
   console.log('tirerProtected appelé avec eventId:', eventId)
-  console.log('showSelectionModal.value:', showSelectionModal.value)
-  console.log('selectionModalEvent.value?.id:', selectionModalEvent.value?.id)
+  console.log('showSelectionModal.value AVANT:', showSelectionModal.value)
+  console.log('selectionModalEvent.value?.id AVANT:', selectionModalEvent.value?.id)
+  
+  // Sauvegarder l'état de la popin avant le tirage
+  const wasSelectionModalOpen = showSelectionModal.value
+  const selectionModalEventId = selectionModalEvent.value?.id
   
   // Vérifier si c'est une reselection avant de faire le tirage
   const wasReselection = selections.value[eventId] && selections.value[eventId].length > 0
   
   await tirer(eventId, count)
+  
+  console.log('showSelectionModal.value APRÈS tirage:', showSelectionModal.value)
+  console.log('selectionModalEvent.value?.id APRÈS tirage:', selectionModalEvent.value?.id)
+  
+  // S'assurer que la popin de sélection reste ouverte si elle était ouverte
+  if (wasSelectionModalOpen && !showSelectionModal.value) {
+    console.log('Restauration de la popin de sélection...')
+    showSelectionModal.value = true
+    selectionModalEvent.value = events.value.find(e => e.id === selectionModalEventId)
+  }
   
   // Mettre à jour les données de la popin de sélection si elle est ouverte
   if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
@@ -1542,6 +1556,17 @@ async function handleSelectionFromModal() {
   
   const eventId = selectionModalEvent.value.id
   const count = selectionModalEvent.value.playerCount || 6
+  
+  // Vérifier s'il y a des joueurs disponibles
+  const availableCount = countAvailablePlayers(eventId)
+  if (availableCount === 0) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Aucun joueur disponible pour cet événement'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    return
+  }
   
   // Demander le PIN code avant de lancer la sélection
   await requirePin({
