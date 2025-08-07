@@ -66,19 +66,19 @@
           <div
             v-for="player in currentSelection"
             :key="player"
-            class="relative bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
+            class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
             :class="{
               'from-red-500/20 to-red-600/20 border-red-500/30': !isPlayerAvailable(player),
               'from-yellow-500/20 to-orange-500/20 border-yellow-500/30': isPlayerUnavailable(player)
             }"
           >
-            <span class="text-white font-medium">{{ player }}</span>
-            <!-- Icône de disponibilité -->
-            <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs">
-              <span v-if="isPlayerAvailable(player)" class="text-green-400">✅</span>
-              <span v-else-if="isPlayerUnavailable(player)" class="text-red-400">❌</span>
-              <span v-else class="text-gray-400">–</span>
-            </div>
+            <span class="text-white font-medium">
+              <span v-if="isPlayerSelected(player)" class="text-purple-400 mr-2">🎭</span>
+              <span v-else-if="isPlayerAvailable(player)" class="text-green-400 mr-2">✅</span>
+              <span v-else-if="isPlayerUnavailable(player)" class="text-red-400 mr-2">❌</span>
+              <span v-else class="text-gray-400 mr-2">–</span>
+              {{ player }}
+            </span>
           </div>
         </div>
         
@@ -287,6 +287,11 @@ function isPlayerAvailable(playerName) {
 
 function isPlayerUnavailable(playerName) {
   return props.playerAvailability[playerName] === false
+}
+
+function isPlayerSelected(playerName) {
+  // Un joueur est "sélectionné" s'il est dans la sélection actuelle ET disponible
+  return props.currentSelection.includes(playerName) && isPlayerAvailable(playerName)
 }
 
 // Fonctions pour l'invitation à la sélection
