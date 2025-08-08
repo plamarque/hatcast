@@ -1,10 +1,10 @@
 // storage.js
 import { db } from './firebase.js'
-import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 
 let mode = 'mock' // or 'firebase'
 
-const playersList = [
+let playersList = [
   { id: 'p1', name: 'Alice' },
   { id: 'p2', name: 'Bob' },
   { id: 'p3', name: 'Charlie' },
@@ -22,7 +22,7 @@ const playersList = [
   { id: 'p15', name: 'Oscar' }
 ]
 
-const eventList = [
+let eventList = [
   { id: 'event1', title: 'Apérock Septembre', date: '2025-09-08', description: 'Soirée apéro-rock avec ambiance festive' },
   { id: 'event2', title: 'Match à Cambo', date: '2025-11-25', description: 'Match d\'improvisation compétitif à Cambo-les-Bains' },
   { id: 'event3', title: 'Impro des Familles', date: '2025-12-02', description: 'Spectacle d\'improvisation pour toute la famille' },
@@ -258,6 +258,23 @@ export async function saveAvailability(player, availabilityMap, seasonId = null)
       : doc(db, 'availability', player)
     await setDoc(availRef, availabilityMap)
   }
+}
+
+// Mise à jour ciblée d'une disponibilité pour un joueur/événement (utilisé par magic links)
+export async function setSingleAvailability({ seasonId, playerName, eventId, value }) {
+  if (mode !== 'firebase') return
+  const availRef = seasonId
+    ? doc(db, 'seasons', seasonId, 'availability', playerName)
+    : doc(db, 'availability', playerName)
+  const snap = await getDoc(availRef)
+  const current = snap.exists() ? snap.data() : {}
+  const next = { ...current }
+  if (value === undefined) {
+    delete next[eventId]
+  } else {
+    next[eventId] = value
+  }
+  await setDoc(availRef, next)
 }
 
 export async function saveSelection(eventId, players, seasonId = null) {

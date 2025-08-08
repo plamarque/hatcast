@@ -388,6 +388,14 @@
           <span>Modifier</span>
         </button>
         <button 
+          @click="notifyPlayersForEvent(selectedEvent)"
+          class="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center space-x-2"
+          title="Envoyer un email aux joueurs protégés pour indiquer leur disponibilité"
+        >
+          <span>📧</span>
+          <span>Relancer</span>
+        </button>
+        <button 
           @click="openSelectionModal(selectedEvent)"
           class="px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center space-x-2"
           title="Gérer la sélection"
@@ -797,7 +805,9 @@ import { db } from '../services/firebase.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
   import playerPasswordSessionManager from '../services/playerPasswordSession.js'
-import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail } from '../services/playerProtection.js'
+import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail, getPlayerEmail } from '../services/playerProtection.js'
+import { createMagicLink } from '../services/magicLinks.js'
+import { queueAvailabilityEmail } from '../services/emailService.js'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
 import SelectionModal from './SelectionModal.vue'
@@ -996,6 +1006,8 @@ async function saveEdit() {
       playerCount: playerCount
     }
     await updateEvent(editingEvent.value, eventData, seasonId.value)
+    // Après modification, envoyer des notifications
+    await sendAvailabilityEmailsForEvent({ eventId: editingEvent.value, eventData, reason: 'updated' })
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
@@ -1178,11 +1190,17 @@ async function createEventProtected(eventData) {
     
     showSuccessMessage.value = true
     successMessage.value = 'Événement créé avec succès !'
+    // Après création, envoyer des notifications
+    try {
+      await sendAvailabilityEmailsForEvent({ eventId, eventData, reason: 'created' })
+    } catch (mailErr) {
+      console.warn('Envoi des emails partiellement en échec:', mailErr)
+    }
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error('Erreur lors de la création de l\'événement:', error)
+    console.error('Erreur lors de la création de l\'événement:', error?.message || error)
     alert('Erreur lors de la création de l\'événement. Veuillez réessayer.')
   }
 }
@@ -2276,6 +2294,47 @@ function getEventTooltip(eventId) {
     default:
       return ''
   }
+}
+
+// Envoi d'emails de disponibilité aux joueurs protégés (avec liens magiques)
+async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
+  if (!seasonId.value) return
+  const event = { id: eventId, ...eventData }
+  const failures = []
+  for (const player of players.value) {
+    const protectedFlag = await isPlayerProtected(player.id, seasonId.value)
+    if (!protectedFlag) continue
+    const email = await getPlayerEmail(player.id, seasonId.value)
+    if (!email) continue
+    try {
+      const yes = await createMagicLink({ seasonId: seasonId.value, playerId: player.id, eventId: event.id, action: 'yes' })
+      const no = await createMagicLink({ seasonId: seasonId.value, playerId: player.id, eventId: event.id, action: 'no' })
+      const urlYes = `${yes.url}&slug=${encodeURIComponent(seasonSlug)}`
+      const urlNo = `${no.url}&slug=${encodeURIComponent(seasonSlug)}`
+      await queueAvailabilityEmail({
+        toEmail: email,
+        playerName: player.name,
+        eventTitle: event.title,
+        eventDate: formatDateFull(event.date),
+        yesUrl: urlYes,
+        noUrl: urlNo,
+        reason
+      })
+    } catch (e) {
+      console.error('Email non envoyé pour', player.name, e?.message || e)
+      failures.push(player.id)
+    }
+  }
+  showSuccessMessage.value = true
+  successMessage.value = failures.length > 0
+    ? `Emails envoyés (avec ${failures.length} échec(s))`
+    : 'Emails envoyés aux joueurs protégés.'
+  setTimeout(() => { showSuccessMessage.value = false }, 3000)
+}
+
+// Bouton manuel depuis la fiche de l'événement
+async function notifyPlayersForEvent(event) {
+  await sendAvailabilityEmailsForEvent({ eventId: event.id, eventData: event, reason: 'manual' })
 }
 
 function getPlayerAvailabilityForEvent(eventId) {

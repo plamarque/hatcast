@@ -159,6 +159,20 @@ export async function getPlayerEmail(playerId, seasonId = null) {
   }
 }
 
+// Lister les protections (pour récupérer emails des joueurs protégés)
+export async function listProtectedPlayers(seasonId = null) {
+  try {
+    const protectionCollection = seasonId
+      ? collection(db, 'seasons', seasonId, 'playerProtection')
+      : collection(db, 'playerProtection')
+    const snap = await getDocs(protectionCollection)
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (error) {
+    console.error('Erreur lors du chargement des protections:', error)
+    return []
+  }
+}
+
 export async function verifyPlayerPassword(playerId, password, seasonId = null) {
   try {
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
