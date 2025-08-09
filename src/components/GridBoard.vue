@@ -53,8 +53,8 @@
                 @click="showEventDetails(event)"
               >
                 <div class="flex flex-col items-center gap-1">
-                  <div class="text-3xl sm:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
-                  <div class="text-5xl sm:text-2xl leading-tight text-white text-center clamp-2" :title="event.title">
+                  <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
+                  <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
                     {{ event.title || 'Sans titre' }}
                   </div>
                   <!-- Indicateur d'état de l'événement -->
@@ -92,8 +92,8 @@
               :data-player-id="player.id"
               :class="{ 'highlighted-player': player.id === highlightedPlayer }"
             >
-              <td class="p-5 md:p-5 font-medium text-white relative group text-3xl md:text-2xl sticky left-0 z-40 bg-gray-900">
-                <div class="font-bold text-3xl md:text-2xl whitespace-pre-wrap flex items-center">
+              <td class="p-4 md:p-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900">
+                <div class="font-bold text-xl md:text-2xl whitespace-pre-wrap flex items-center">
                   <span 
                     v-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
@@ -103,7 +103,7 @@
                   </span>
                   <span 
                     @click="showPlayerDetails(player)" 
-                    class="hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200"
+                     class="player-name hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
                     {{ player.name }}
@@ -114,34 +114,34 @@
               <td
                 v-for="event in events"
                 :key="event.id"
-                class="p-6 md:p-6 text-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-24"
+                class="p-3 md:p-5 text-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-20"
                 @click="toggleAvailability(player.name, event.id)"
               >
                 <div class="flex items-center justify-center">
                   <span
                     v-if="isSelected(player.name, event.id)"
-                    class="text-5xl md:text-3xl hover:scale-110 transition-transform duration-200"
+                    class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
                     :title="getTooltipText(player, event.id)"
                   >
                     🎭
                   </span>
                   <span
                     v-else-if="isAvailable(player.name, event.id)"
-                    class="text-5xl md:text-3xl hover:scale-110 transition-transform duration-200"
+                    class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
                     :title="getTooltipText(player, event.id)"
                   >
                     ✅
                   </span>
                   <span
                     v-else-if="isAvailable(player.name, event.id) === false"
-                    class="text-5xl md:text-3xl hover:scale-110 transition-transform duration-200"
+                    class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
                     :title="getTooltipText(player, event.id)"
                   >
                     ❌
                   </span>
                   <span
                     v-else
-                    class="text-gray-500 hover:text-white transition-colors duration-200 text-4xl"
+                    class="text-gray-500 hover:text-white transition-colors duration-200 text-xl"
                     :title="getTooltipText(player, event.id)"
                   >
                     –
@@ -776,14 +776,23 @@
 }
 
 /* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
-.col-left { width: 16.5rem; }
-.col-event { width: 12.5rem; }
-.col-right { width: 3.75rem; }
+.col-left { width: 11rem; }
+.col-event { width: 15rem; }
+.col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
   .col-left { width: 12rem; }
   .col-event { width: 7.5rem; }
   .col-right { width: 3rem; }
+}
+
+/* Forcer des tailles encore plus grandes en très petit viewport (<= 430px) */
+@media (max-width: 430px) {
+  .header-date { font-size: 18px; }
+  .header-title { font-size: 24px; line-height: 1.1; }
+  .player-name { font-size: 22px; line-height: 1.1; }
+  .col-left { width: 9rem; }
+  .col-event { width: 12rem; }
 }
 </style>
 
