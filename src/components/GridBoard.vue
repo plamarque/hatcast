@@ -19,9 +19,9 @@
       
     </div>
 
-    <div class="w-full px-2 md:px-4 pb-4 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px]">
+    <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div class="sticky top-0 z-[80] bg-gray-900 overflow-hidden border border-white/20 rounded-t-2xl border-b-0">
+      <div class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
         <div class="flex items-start">
           <!-- Left sticky cell -->
           <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900">
@@ -74,7 +74,7 @@
 
       <div
         ref="gridboardRef"
-        class="gridboard overflow-x-auto bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-b-2xl border-t-0"
+        class="gridboard overflow-x-auto bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm"
       >
         <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
           <colgroup>
