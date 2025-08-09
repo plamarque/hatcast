@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
     <!-- Header avec titre de la saison -->
-    <div class="text-center py-8 px-4 relative">
+    <div ref="pageHeaderRef" class="sticky top-0 z-[70] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
       <!-- Flèche de retour -->
       <button 
         @click="goBack"
@@ -19,63 +19,70 @@
       
     </div>
 
-    <div class="w-full px-2 md:px-4 pb-4">
-      <div ref="gridboardRef" class="gridboard relative overflow-x-auto bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-2xl">
-        <table class="table-auto border-collapse table-fixed w-full min-w-max">
+    <div class="w-full px-2 md:px-4 pb-4 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px]">
+      <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
+      <div class="sticky top-0 z-[80] bg-gray-900 overflow-hidden border border-white/20 rounded-t-2xl border-b-0">
+        <div class="flex items-start">
+          <!-- Left sticky cell -->
+          <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900">
+            <div class="flex items-center justify-center">
+              <button
+                @click="openNewEventForm"
+                class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
+                title="Ajouter un nouvel événement"
+              >
+                <span class="text-lg">➕</span>
+                <span class="hidden sm:inline">Ajouter un événement</span>
+                <span class="sm:hidden">Événement</span>
+              </button>
+            </div>
+          </div>
+          <!-- Event headers -->
+          <div class="flex" :style="{ transform: `translateX(-${headerScrollX}px)` }">
+            <div
+              v-for="event in events"
+              :key="'h-'+event.id"
+              class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
+              @click="showEventDetails(event)"
+            >
+              <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
+              <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
+                {{ event.title || 'Sans titre' }}
+              </div>
+              <div 
+                v-if="hasEventWarning(event.id)"
+                class="mt-1 w-4 h-4 bg-yellow-500 rounded-full mx-auto flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
+                :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                @click.stop="openSelectionModal(event)"
+              >
+                <span class="text-xs text-white font-bold">⚠️</span>
+              </div>
+              <div 
+                v-else-if="getEventStatus(event.id).type === 'ready'"
+                class="mt-1 w-4 h-4 bg-green-500 rounded-full mx-auto flex items-center justify-center hover:bg-green-400 transition-colors duration-200"
+                :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                @click.stop="openSelectionModal(event)"
+              >
+                <span class="text-xs text-white font-bold">🎲</span>
+              </div>
+            </div>
+          </div>
+          <!-- Right spacer (keeps end alignment) -->
+          <div class="col-right flex-shrink-0 p-3"></div>
+        </div>
+      </div>
+
+      <div
+        ref="gridboardRef"
+        class="gridboard overflow-x-auto bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-b-2xl border-t-0"
+      >
+        <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
           <colgroup>
             <col class="col-left" />
             <col v-for="(event, index) in events" :key="'c'+index" class="col-event" />
             <col class="col-right" />
           </colgroup>
-          <thead>
-            <tr class="text-white">
-              <th class="p-3 md:p-4 text-left sticky top-0 left-0 z-50 bg-gray-900">
-                <div class="flex items-center justify-center">
-                  <button
-                    @click="openNewEventForm"
-                    class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
-                    title="Ajouter un nouvel événement"
-                  >
-                    <span class="text-lg">➕</span>
-                    <span class="hidden sm:inline">Ajouter un événement</span>
-                    <span class="sm:hidden">Événement</span>
-                  </button>
-                </div>
-              </th>
-              <th
-                v-for="event in events"
-                :key="event.id"
-                class="p-3 text-center align-top cursor-pointer sticky top-0 bg-gray-900"
-                @click="showEventDetails(event)"
-              >
-                <div class="flex flex-col items-center gap-1">
-                  <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
-                  <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
-                    {{ event.title || 'Sans titre' }}
-                  </div>
-                  <!-- Indicateur d'état de l'événement -->
-                  <div 
-                    v-if="hasEventWarning(event.id)"
-                    class="mt-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-white font-bold">⚠️</span>
-                  </div>
-                  <!-- Indicateur prêt pour sélection -->
-                  <div 
-                    v-else-if="getEventStatus(event.id).type === 'ready'"
-                    class="mt-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-400 transition-colors duration-200"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-white font-bold">🎲</span>
-                  </div>
-                </div>
-              </th>
-              <th class="p-3 text-center align-top sticky top-0 bg-gray-900"></th>
-            </tr>
-          </thead>
+          <thead class="hidden"></thead>
           <tbody>
             <tr
               v-for="player in players"
@@ -811,8 +818,28 @@
 </style>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+
+// Sticky header offset handling
+const pageHeaderRef = ref(null)
+const stickyOffset = ref(64)
+
+onMounted(async () => {
+  await nextTick()
+  const header = pageHeaderRef.value
+  stickyOffset.value = header ? header.offsetHeight : 64
+  window.addEventListener('resize', updateStickyOffset)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateStickyOffset)
+})
+
+function updateStickyOffset() {
+  const header = pageHeaderRef.value
+  stickyOffset.value = header ? header.offsetHeight : 64
+}
 import {
   setStorageMode,
   loadEvents,
@@ -924,6 +951,7 @@ const protectedPlayers = ref(new Set())
 const gridboardRef = ref(null)
 const showLeftHint = ref(false)
 const showRightHint = ref(false)
+  const headerScrollX = ref(0)
 
 function updateScrollHints() {
   const el = gridboardRef.value
@@ -1347,7 +1375,10 @@ onMounted(async () => {
     updateScrollHints()
     const el = gridboardRef.value
     if (el) {
-      el.addEventListener('scroll', updateScrollHints, { passive: true })
+      el.addEventListener('scroll', (e) => {
+        updateScrollHints()
+        headerScrollX.value = el.scrollLeft || 0
+      }, { passive: true })
       window.addEventListener('resize', updateScrollHints)
     }
   })
@@ -2456,4 +2487,5 @@ function handlePerfectFromModal() {
   }, 3000)
 }
 
+// end of script setup
 </script>
