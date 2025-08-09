@@ -22,10 +22,10 @@
     <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
-        <div class="flex items-start">
+        <div class="flex items-stretch">
           <!-- Left sticky cell -->
-          <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900">
-            <div class="flex items-center justify-center">
+          <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
+            <div class="flex items-center justify-center h-full">
               <button
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
@@ -38,43 +38,45 @@
             </div>
           </div>
           <!-- Event headers -->
-          <div class="flex" :style="{ transform: `translateX(-${headerScrollX}px)` }">
-            <div
-              v-for="event in events"
-              :key="'h-'+event.id"
-              class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
-              @click="showEventDetails(event)"
-            >
-              <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
-              <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
-                {{ event.title || 'Sans titre' }}
-              </div>
-              <div 
-                v-if="hasEventWarning(event.id)"
-                class="mt-1 w-4 h-4 bg-yellow-500 rounded-full mx-auto flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
-                :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                @click.stop="openSelectionModal(event)"
+          <div class="flex-1 overflow-hidden">
+            <div class="flex relative z-[60]" :style="{ transform: `translateX(-${headerScrollX}px)` }">
+              <div
+                v-for="event in events"
+                :key="'h-'+event.id"
+                class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
+                @click="showEventDetails(event)"
               >
-                <span class="text-xs text-white font-bold">⚠️</span>
-              </div>
-              <div 
-                v-else-if="getEventStatus(event.id).type === 'ready'"
-                class="mt-1 w-4 h-4 bg-green-500 rounded-full mx-auto flex items-center justify-center hover:bg-green-400 transition-colors duration-200"
-                :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                @click.stop="openSelectionModal(event)"
-              >
-                <span class="text-xs text-white font-bold">🎲</span>
+                <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
+                <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
+                  {{ event.title || 'Sans titre' }}
+                </div>
+                <div 
+                  v-if="hasEventWarning(event.id)"
+                  class="mt-1 w-4 h-4 bg-yellow-500 rounded-full mx-auto flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
+                  :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                  @click.stop="openSelectionModal(event)"
+                >
+                  <span class="text-xs text-white font-bold">⚠️</span>
+                </div>
+                <div 
+                  v-else-if="getEventStatus(event.id).type === 'ready'"
+                  class="mt-1 w-4 h-4 bg-green-500 rounded-full mx-auto flex items-center justify-center hover:bg-green-400 transition-colors duration-200"
+                  :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                  @click.stop="openSelectionModal(event)"
+                >
+                  <span class="text-xs text-white font-bold">🎲</span>
+                </div>
               </div>
             </div>
           </div>
           <!-- Right spacer (keeps end alignment) -->
-          <div class="col-right flex-shrink-0 p-3"></div>
+          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[81] bg-gray-900 h-full"></div>
         </div>
       </div>
 
       <div
         ref="gridboardRef"
-        class="gridboard overflow-x-auto bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm"
+        class="gridboard overflow-x-auto bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50"
       >
         <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
           <colgroup>
