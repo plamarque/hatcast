@@ -93,6 +93,9 @@
 .max-h-\[90vh\] {
   max-height: 90vh;
 }
+.max-h-\[92vh\] {
+  max-height: 92vh;
+}
 .max-h-\[calc\(100vh-100px\)\] {
   max-height: calc(100vh - 100px);
 }
@@ -155,6 +158,9 @@
 }
 .flex-1 {
   flex: 1;
+}
+.flex-\[1\.4\] {
+  flex: 1.4;
 }
 .table-auto {
   table-layout: auto;
