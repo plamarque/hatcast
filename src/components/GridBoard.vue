@@ -21,8 +21,8 @@
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
-        <div class="flex items-stretch">
+      <div ref="headerBarRef" class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
+        <div class="flex items-stretch relative">
           <!-- Left sticky cell -->
           <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
             <div class="flex items-center justify-center h-full">
@@ -39,7 +39,7 @@
           </div>
           <!-- Event headers -->
           <div class="flex-1 overflow-hidden">
-            <div class="flex relative z-[60]" :style="{ transform: `translateX(-${headerScrollX}px)` }">
+            <div ref="headerEventsRef" class="flex relative z-[60]" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
                 v-for="event in events"
                 :key="'h-'+event.id"
@@ -71,6 +71,24 @@
           </div>
           <!-- Right spacer (keeps end alignment) -->
           <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[81] bg-gray-900 h-full"></div>
+
+          <!-- Horizontal scroll chevrons -->
+          <button
+            v-show="showLeftHint"
+            @click.prevent="scrollHeaderBy(-1)"
+            class="absolute left-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[85] backdrop-blur-sm"
+            title="Événements précédents — cliquez pour défiler"
+          >
+            ‹
+          </button>
+          <button
+            v-show="showRightHint"
+            @click.prevent="scrollHeaderBy(1)"
+            class="absolute right-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[85] backdrop-blur-sm"
+            title="Événements suivants — cliquez pour défiler"
+          >
+            ›
+          </button>
         </div>
       </div>
 
@@ -177,15 +195,7 @@
         </table>
       </div>
 
-      <!-- Indicateurs de scroll horizontal -->
-      <div v-show="showLeftHint" class="pointer-events-none absolute inset-y-0 left-2 w-6 flex items-center justify-center z-[60]">
-        <div class="h-[80%] w-6 bg-gradient-to-r from-black/40 to-transparent rounded-r-lg"></div>
-        <div class="absolute text-white/80">‹</div>
-      </div>
-      <div v-show="showRightHint" class="pointer-events-none absolute inset-y-0 right-2 w-6 flex items-center justify-center z-[60]">
-        <div class="h-[80%] w-6 bg-gradient-to-l from-black/40 to-transparent rounded-l-lg"></div>
-        <div class="absolute text-white/80">›</div>
-      </div>
+      <!-- Indicateurs legacy supprimés (remplacés par chevrons flottants) -->
     </div>
   </div>
 
@@ -954,6 +964,8 @@ const gridboardRef = ref(null)
 const showLeftHint = ref(false)
 const showRightHint = ref(false)
   const headerScrollX = ref(0)
+  const headerBarRef = ref(null)
+  const headerEventsRef = ref(null)
 
 function updateScrollHints() {
   const el = gridboardRef.value
@@ -1384,6 +1396,13 @@ onMounted(async () => {
       window.addEventListener('resize', updateScrollHints)
     }
   })
+
+  function scrollHeaderBy(direction) {
+    const el = gridboardRef.value
+    if (!el) return
+    const step = el.clientWidth * 0.6
+    el.scrollTo({ left: el.scrollLeft + direction * step, behavior: 'smooth' })
+  }
 })
 
 async function toggleAvailability(playerName, eventId) {
