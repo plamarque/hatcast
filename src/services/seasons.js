@@ -9,7 +9,8 @@ import {
   query,
   orderBy,
   where,
-  getDoc
+  getDoc,
+  updateDoc
 } from 'firebase/firestore'
 
 const SEASONS_COLLECTION = 'seasons'
@@ -65,4 +66,10 @@ export async function getSeasonPin(seasonId) {
     return seasonData.pinCode
   }
   return null
+}
+
+// Update only the sort order of a season
+export async function setSeasonSortOrder(seasonId, sortOrder) {
+  const seasonRef = doc(db, SEASONS_COLLECTION, seasonId)
+  await updateDoc(seasonRef, { sortOrder })
 }

@@ -11,24 +11,14 @@
     </div>
 
     <div class="container mx-auto px-4 pb-16">
-      <!-- Bouton Nouvelle saison -->
-      <div class="flex justify-center mb-12">
-        <button 
-          @click="showCreateModal = true"
-          class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105"
-        >
-          ✨ Nouvelle saison
-        </button>
-      </div>
-      
       <!-- Grille des saisons -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
         <div
-          v-for="season in seasons"
+          v-for="(season, index) in sortedSeasons"
           :key="season.id"
-          class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-8 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20"
+          class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20"
         >
-          <div @click="goToSeason(season.slug)" class="text-center">
+          <div @click="goToSeason(season.slug)" class="text-center cursor-pointer">
             <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
               <span class="text-2xl">🎭</span>
             </div>
@@ -40,18 +30,50 @@
               Cliquez pour accéder
             </p>
           </div>
-          
-          <!-- Bouton de suppression -->
-          <button 
-            @click.stop="confirmDeleteSeason(season)"
-            class="absolute top-4 right-4 text-red-400 hover:text-red-300 hover:scale-110 transition-all duration-200 opacity-0 group-hover:opacity-100"
-            title="Supprimer cette saison"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-            </svg>
-          </button>
+
+          <!-- Menu 3 points -->
+          <div class="absolute top-4 right-4">
+            <div class="relative" @click.stop>
+              <button
+                @click="toggleMenu(index)"
+                class="p-1 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
+                :aria-expanded="openMenuIndex === index"
+                aria-haspopup="true"
+                title="Options"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.75a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+                </svg>
+              </button>
+              <div
+                v-if="openMenuIndex === index"
+                class="absolute right-0 mt-2 w-44 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-1 z-10"
+                role="menu"
+              >
+                <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
+                  Monter
+                </button>
+                <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
+                  Descendre
+                </button>
+                <div class="border-t border-white/10 my-1"></div>
+                <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10" role="menuitem">
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <!-- Bouton Nouvelle saison (en dessous de la grille) -->
+      <div v-if="seasons.length > 0" class="flex justify-center mt-12">
+        <button 
+          @click="showCreateModal = true"
+          class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105"
+        >
+          ✨ Nouvelle saison
+        </button>
       </div>
 
       <!-- Message si aucune saison -->
@@ -172,14 +194,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getSeasons, addSeason, deleteSeason, verifySeasonPin } from './services/seasons.js'
+import { ref, onMounted, computed } from 'vue'
+import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrder } from './services/seasons.js'
 import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 
 const seasons = ref([])
 const router = useRouter()
+const openMenuIndex = ref(null)
 
 // État des modals
 const showCreateModal = ref(false)
@@ -197,10 +220,97 @@ const pinErrorMessage = ref('')
 onMounted(async () => {
   seasons.value = await getSeasons()
   console.log('Saisons chargées:', seasons.value)
+  await migrateMissingSortOrders()
+})
+
+// Tri contrôlé: par sortOrder croissant, puis createdAt desc, puis nom
+const sortedSeasons = computed(() => {
+  return [...seasons.value].sort((a, b) => {
+    const aOrder = typeof a.sortOrder === 'number' ? a.sortOrder : Number.MAX_SAFE_INTEGER
+    const bOrder = typeof b.sortOrder === 'number' ? b.sortOrder : Number.MAX_SAFE_INTEGER
+    if (aOrder !== bOrder) return aOrder - bOrder
+
+    // fallback: createdAt (Timestamp Firestore) desc
+    const aCreated = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0
+    const bCreated = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0
+    if (aCreated !== bCreated) return bCreated - aCreated
+
+    // dernier secours: nom asc
+    return (a.name || '').localeCompare(b.name || '')
+  })
 })
 
 function goToSeason(slug) {
   router.push(`/season/${slug}`)
+}
+
+function toggleMenu(index) {
+  openMenuIndex.value = openMenuIndex.value === index ? null : index
+}
+
+function closeMenu() {
+  openMenuIndex.value = null
+}
+
+async function migrateMissingSortOrders() {
+  // Si aucune saison, rien à faire
+  if (!seasons.value.length) return
+  // Trouver l'ordre max existant
+  const existingOrders = seasons.value
+    .map(s => (typeof s.sortOrder === 'number' ? s.sortOrder : null))
+    .filter(v => v !== null)
+  let maxOrder = existingOrders.length ? Math.max(...existingOrders) : 0
+
+  // Affecter un sortOrder aux saisons qui n'en ont pas, en les plaçant après
+  for (const s of seasons.value) {
+    if (typeof s.sortOrder !== 'number') {
+      maxOrder += 1
+      try {
+        await setSeasonSortOrder(s.id, maxOrder)
+        s.sortOrder = maxOrder
+      } catch (e) {
+        console.error('Erreur migration sortOrder pour', s.name, e)
+      }
+    }
+  }
+}
+
+async function moveSeasonUp(index) {
+  closeMenu()
+  if (index <= 0) return
+  const list = [...sortedSeasons.value]
+  const current = list[index]
+  const prev = list[index - 1]
+  const temp = current.sortOrder
+  current.sortOrder = prev.sortOrder
+  prev.sortOrder = temp
+  try {
+    await Promise.all([
+      setSeasonSortOrder(current.id, current.sortOrder),
+      setSeasonSortOrder(prev.id, prev.sortOrder)
+    ])
+  } catch (e) {
+    console.error('Erreur lors du déplacement vers le haut', e)
+  }
+}
+
+async function moveSeasonDown(index) {
+  closeMenu()
+  const list = [...sortedSeasons.value]
+  if (index >= list.length - 1) return
+  const current = list[index]
+  const next = list[index + 1]
+  const temp = current.sortOrder
+  current.sortOrder = next.sortOrder
+  next.sortOrder = temp
+  try {
+    await Promise.all([
+      setSeasonSortOrder(current.id, current.sortOrder),
+      setSeasonSortOrder(next.id, next.sortOrder)
+    ])
+  } catch (e) {
+    console.error('Erreur lors du déplacement vers le bas', e)
+  }
 }
 
 // Génération automatique du slug
@@ -240,6 +350,7 @@ async function createSeason() {
   try {
     await addSeason(newSeasonName.value.trim(), newSeasonSlug.value.trim(), newSeasonPin.value.trim())
     seasons.value = await getSeasons() // Recharger la liste
+    await migrateMissingSortOrders() // Assigner un ordre si manquant (nouvelles saisons en dernier)
     cancelCreate()
   } catch (error) {
     console.error('Erreur lors de la création de la saison:', error)
