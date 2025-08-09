@@ -30,19 +30,15 @@
           <thead>
             <tr class="text-white">
               <th class="p-3 md:p-4 text-left sticky top-0 left-0 z-50 bg-gray-900">
-                <div class="flex flex-col items-center space-y-2">
-                  <span class="font-bold text-lg relative group">
-                    <span class="border-b-2 border-dashed border-purple-400">
-                      Joueurs
-                    </span>
-                  </span>
-                  <button 
-                    @click="newPlayerForm = true" 
-                    class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer text-sm font-medium" 
-                    title="Ajouter un nouveau joueur"
+                <div class="flex items-center justify-center">
+                  <button
+                    @click="openNewEventForm"
+                    class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
+                    title="Ajouter un nouvel événement"
                   >
                     <span class="text-lg">➕</span>
-                    <span>S'ajouter</span>
+                    <span class="hidden sm:inline">Ajouter un événement</span>
+                    <span class="sm:hidden">Événement</span>
                   </button>
                 </div>
               </th>
@@ -77,11 +73,7 @@
                   </div>
                 </div>
               </th>
-              <th class="p-3 text-center align-top sticky top-0 bg-gray-900">
-                <button @click="openNewEventForm" class="text-3xl sm:text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200" title="Ajouter un nouvel événement">
-                  ✨
-                </button>
-              </th>
+              <th class="p-3 text-center align-top sticky top-0 bg-gray-900"></th>
             </tr>
           </thead>
           <tbody>
@@ -148,6 +140,28 @@
                   </span>
                 </div>
               </td>
+              <td class="p-3 md:p-4"></td>
+            </tr>
+            <!-- Dernière ligne: ajouter un joueur -->
+            <tr class="border-t border-white/10">
+              <td class="p-4 md:p-5 sticky left-0 z-40 bg-gray-900">
+                <div class="flex items-center">
+                  <button
+                    @click="newPlayerForm = true"
+                    class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
+                    title="Ajouter un nouveau joueur"
+                  >
+                    <span class="text-lg">➕</span>
+                    <span class="hidden sm:inline">Ajouter un joueur</span>
+                    <span class="sm:hidden">Joueur</span>
+                  </button>
+                </div>
+              </td>
+              <td
+                v-for="event in events"
+                :key="'add-row-'+event.id"
+                class="p-3 md:p-5"
+              ></td>
               <td class="p-3 md:p-4"></td>
             </tr>
           </tbody>
