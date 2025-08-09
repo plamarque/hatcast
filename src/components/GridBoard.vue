@@ -19,18 +19,17 @@
       <p class="text-gray-300">Gestion des sélections et disponibilités</p>
     </div>
 
-    <div class="container mx-auto px-4 pb-16">
-      <!-- En-têtes fixes -->
-      <div class="sticky top-0 z-50 backdrop-blur-sm bg-black/20 border border-white/20 rounded-t-2xl overflow-hidden">
-        <table class="border-collapse w-full table-fixed">
+    <div class="w-full px-2 md:px-4 pb-4">
+      <div ref="gridboardRef" class="gridboard relative overflow-x-auto bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-2xl">
+        <table class="table-auto border-collapse table-fixed w-full min-w-max">
           <colgroup>
-            <col style="width: 15%;" />
-            <col v-for="(event, index) in events" :key="index" :style="'width: calc(80% / ' + events.length + ');'" />
-            <col style="width: 5%;" />
+            <col class="col-left" />
+            <col v-for="(event, index) in events" :key="'c'+index" class="col-event" />
+            <col class="col-right" />
           </colgroup>
           <thead>
             <tr class="text-white">
-              <th class="p-4 text-left">
+              <th class="p-3 md:p-4 text-left sticky top-0 left-0 z-50 bg-gray-900">
                 <div class="flex flex-col items-center space-y-2">
                   <span class="font-bold text-lg relative group">
                     <span class="border-b-2 border-dashed border-purple-400">
@@ -50,65 +49,41 @@
               <th
                 v-for="event in events"
                 :key="event.id"
-                class="p-4 text-center"
+                class="p-3 text-center align-top cursor-pointer sticky top-0 bg-gray-900"
                 @click="showEventDetails(event)"
               >
-                <div class="flex flex-col gap-3">
-                  <div class="flex flex-col items-center space-y-2">
-                    <div class="font-bold text-lg text-center whitespace-pre-wrap relative group cursor-pointer">
-                      <span class="hover:border-b-2 hover:border-dashed hover:border-purple-400 transition-colors duration-200 text-white" :title="'Cliquez pour voir les détails : ' + event.title">
-                        {{ formatDate(event.date) }}
-                      </span>
-                    </div>
-                    <!-- Indicateur d'état de l'événement -->
-                    <div 
-                      v-if="hasEventWarning(event.id)"
-                      class="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-yellow-400 transition-colors duration-200"
-                      :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                      @click.stop="openSelectionModal(event)"
-                    >
-                      <span class="text-xs text-white font-bold">⚠️</span>
-                    </div>
-                    <!-- Indicateur prêt pour sélection -->
-                    <div 
-                      v-else-if="getEventStatus(event.id).type === 'ready'"
-                      class="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-400 transition-colors duration-200"
-                      :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                      @click.stop="openSelectionModal(event)"
-                    >
-                      <span class="text-xs text-white font-bold">🎲</span>
-                    </div>
+                <div class="flex flex-col items-center gap-1">
+                  <div class="text-3xl sm:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
+                  <div class="text-5xl sm:text-2xl leading-tight text-white text-center clamp-2" :title="event.title">
+                    {{ event.title || 'Sans titre' }}
+                  </div>
+                  <!-- Indicateur d'état de l'événement -->
+                  <div 
+                    v-if="hasEventWarning(event.id)"
+                    class="mt-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-white font-bold">⚠️</span>
+                  </div>
+                  <!-- Indicateur prêt pour sélection -->
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'ready'"
+                    class="mt-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-400 transition-colors duration-200"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-white font-bold">🎲</span>
                   </div>
                 </div>
               </th>
-              <th class="p-4 text-center">
-                <button @click="openNewEventForm" class="text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200" title="Ajouter un nouvel événement">
+              <th class="p-3 text-center align-top sticky top-0 bg-gray-900">
+                <button @click="openNewEventForm" class="text-3xl sm:text-2xl text-purple-400 hover:text-pink-400 hover:scale-110 transition-all duration-200" title="Ajouter un nouvel événement">
                   ✨
                 </button>
               </th>
             </tr>
-            <tr class="bg-black/10">
-              <th class="p-4 text-left w-[100px]"></th>
-              <th
-                v-for="event in events"
-                :key="event.id"
-                class="p-4 text-center w-40"
-              >
-              </th>
-              <th class="p-4"></th>
-            </tr>
           </thead>
-        </table>
-      </div>
-
-      <!-- Corps scrollable -->
-      <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-200px)] bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-b-2xl">
-        <table class="table-auto border-collapse w-full table-fixed">
-          <colgroup>
-            <col style="width: 15%;" />
-            <col v-for="(event, index) in events" :key="index" :style="'width: calc(80% / ' + events.length + ');'" />
-            <col style="width: 5%;" />
-          </colgroup>
           <tbody>
             <tr
               v-for="player in players"
@@ -117,8 +92,8 @@
               :data-player-id="player.id"
               :class="{ 'highlighted-player': player.id === highlightedPlayer }"
             >
-              <td class="p-4 font-medium text-white w-[100px] relative group text-lg">
-                <div class="font-bold text-lg whitespace-pre-wrap flex items-center">
+              <td class="p-5 md:p-5 font-medium text-white relative group text-3xl md:text-2xl sticky left-0 z-40 bg-gray-900">
+                <div class="font-bold text-3xl md:text-2xl whitespace-pre-wrap flex items-center">
                   <span 
                     v-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
@@ -139,47 +114,59 @@
               <td
                 v-for="event in events"
                 :key="event.id"
-                class="p-4 text-center cursor-pointer hover:bg-white/10 transition-all duration-200"
+                class="p-6 md:p-6 text-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-24"
                 @click="toggleAvailability(player.name, event.id)"
               >
                 <div class="flex items-center justify-center">
                   <span
                     v-if="isSelected(player.name, event.id)"
-                    class="text-2xl hover:scale-110 transition-transform duration-200"
+                    class="text-5xl md:text-3xl hover:scale-110 transition-transform duration-200"
                     :title="getTooltipText(player, event.id)"
                   >
                     🎭
                   </span>
                   <span
                     v-else-if="isAvailable(player.name, event.id)"
-                    class="text-2xl hover:scale-110 transition-transform duration-200"
+                    class="text-5xl md:text-3xl hover:scale-110 transition-transform duration-200"
                     :title="getTooltipText(player, event.id)"
                   >
                     ✅
                   </span>
                   <span
                     v-else-if="isAvailable(player.name, event.id) === false"
-                    class="text-2xl hover:scale-110 transition-transform duration-200"
+                    class="text-5xl md:text-3xl hover:scale-110 transition-transform duration-200"
                     :title="getTooltipText(player, event.id)"
                   >
                     ❌
                   </span>
                   <span
                     v-else
-                    class="text-gray-500 hover:text-white transition-colors duration-200"
+                    class="text-gray-500 hover:text-white transition-colors duration-200 text-4xl"
                     :title="getTooltipText(player, event.id)"
                   >
                     –
                   </span>
                 </div>
               </td>
-              <td class="p-4"></td>
+              <td class="p-3 md:p-4"></td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Indicateurs de scroll horizontal -->
+      <div v-show="showLeftHint" class="pointer-events-none absolute inset-y-0 left-2 w-6 flex items-center justify-center z-[60]">
+        <div class="h-[80%] w-6 bg-gradient-to-r from-black/40 to-transparent rounded-r-lg"></div>
+        <div class="absolute text-white/80">‹</div>
+      </div>
+      <div v-show="showRightHint" class="pointer-events-none absolute inset-y-0 right-2 w-6 flex items-center justify-center z-[60]">
+        <div class="h-[80%] w-6 bg-gradient-to-l from-black/40 to-transparent rounded-l-lg"></div>
+        <div class="absolute text-white/80">›</div>
+      </div>
     </div>
   </div>
+
+  
 
   <!-- Message de succès -->
   <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm z-50">
@@ -778,10 +765,30 @@
     font-size: 0.9em;
   }
 }
+
+/* Utilité de clamp multi-lignes si Tailwind line-clamp n'est pas activé */
+.clamp-2 {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
+.col-left { width: 16.5rem; }
+.col-event { width: 12.5rem; }
+.col-right { width: 3.75rem; }
+
+@media (min-width: 640px) { /* sm */
+  .col-left { width: 12rem; }
+  .col-event { width: 7.5rem; }
+  .col-right { width: 3rem; }
+}
 </style>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   setStorageMode,
@@ -879,6 +886,8 @@ const editingDescription = ref('')
 
 
 
+// plus de popover pour les en-têtes (on ouvre directement la popin de détails)
+
 // Variables pour la nouvelle popin de sélection
 const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
@@ -886,6 +895,19 @@ const selectionModalRef = ref(null)
 
 // Variables pour la protection des joueurs
 const protectedPlayers = ref(new Set())
+
+// Refs et états pour scroll hints et sticky col gauche
+const gridboardRef = ref(null)
+const showLeftHint = ref(false)
+const showRightHint = ref(false)
+
+function updateScrollHints() {
+  const el = gridboardRef.value
+  if (!el) return
+  const { scrollLeft, scrollWidth, clientWidth } = el
+  showLeftHint.value = scrollLeft > 2
+  showRightHint.value = scrollLeft < scrollWidth - clientWidth - 2
+}
 
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
@@ -1295,6 +1317,16 @@ onMounted(async () => {
   
   console.log('players (deduplicated):', players.value.map(p => ({ id: p.id, name: p.name })))
   console.log('availability loaded:', availability.value)
+
+  // init scroll hints
+  nextTick(() => {
+    updateScrollHints()
+    const el = gridboardRef.value
+    if (el) {
+      el.addEventListener('scroll', updateScrollHints, { passive: true })
+      window.addEventListener('resize', updateScrollHints)
+    }
+  })
 })
 
 async function toggleAvailability(playerName, eventId) {
@@ -2100,6 +2132,13 @@ async function executePendingOperation(operation) {
 function goBack() {
   router.push('/')
 }
+
+// Nettoyage listeners
+onUnmounted(() => {
+  const el = gridboardRef.value
+  if (el) el.removeEventListener('scroll', updateScrollHints)
+  window.removeEventListener('resize', updateScrollHints)
+})
 
 function showEventDetails(event) {
   selectedEvent.value = event;
