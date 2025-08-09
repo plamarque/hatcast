@@ -13,10 +13,10 @@
         </svg>
       </button>
       
-      <h1 class="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+      <h1 class="text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
         {{ seasonName ? seasonName : 'Chargement...' }}
       </h1>
-      <p class="text-gray-300">Gestion des sélections et disponibilités</p>
+      
     </div>
 
     <div class="w-full px-2 md:px-4 pb-4">
