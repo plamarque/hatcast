@@ -90,6 +90,9 @@
 .h-px {
   height: 1px;
 }
+.max-h-\[90vh\] {
+  max-height: 90vh;
+}
 .max-h-\[calc\(100vh-100px\)\] {
   max-height: calc(100vh - 100px);
 }
@@ -209,6 +212,9 @@
 .items-center {
   align-items: center;
 }
+.items-end {
+  align-items: flex-end;
+}
 .justify-between {
   justify-content: space-between;
 }
@@ -291,6 +297,9 @@
 .bg-clip-text {
   background-clip: text;
 }
+.pb-\[env\(safe-area-inset-bottom\)\] {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 .text-center {
   text-align: center;
 }
@@ -338,6 +347,9 @@
 }
 .whitespace-normal {
   white-space: normal;
+}
+.whitespace-nowrap {
+  white-space: nowrap;
 }
 .whitespace-pre-wrap {
   white-space: pre-wrap;

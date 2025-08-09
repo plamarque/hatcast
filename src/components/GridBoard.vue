@@ -543,19 +543,20 @@
   </div>
 
   <!-- Modal de vérification du mot de passe pour les disponibilités -->
-  <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+  <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[110] p-0 md:p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh]">
+      <!-- En-tête -->
+      <div class="text-center p-6 pb-4 border-b border-white/10">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-3 flex items-center justify-center">
           <span class="text-2xl">🔐</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-2">Vérification requise</h2>
-        <p class="text-lg text-gray-300">Modification de disponibilité</p>
-        <p class="text-sm text-gray-400 mt-2">Ce joueur est protégé par mot de passe</p>
+        <h2 class="text-2xl font-bold text-white mb-1">Vérification requise</h2>
+        <p class="text-base text-gray-300">Modification de disponibilité</p>
+        <p class="text-sm text-gray-400 mt-1">Ce joueur est protégé par mot de passe</p>
       </div>
 
-      <!-- Formulaire de vérification -->
-      <div class="mb-6">
+      <!-- Contenu scrollable -->
+      <div class="px-4 pt-3 pb-16 md:px-6 md:pt-4 md:pb-20 overflow-y-auto">
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
@@ -568,43 +569,42 @@
               ref="availabilityPasswordInputRef"
             >
           </div>
-          
-
         </div>
-        
+
+        <!-- Mot de passe oublié -->
+        <div class="mt-2 text-center">
+          <button
+            @click="showAvailabilityForgotPassword = true"
+            class="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+          >
+            Mot de passe oublié ?
+          </button>
+        </div>
+
+        <!-- Messages d'erreur -->
+        <div v-if="availabilityPasswordErrorMessage" class="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+          <div class="text-red-300 text-sm">{{ availabilityPasswordErrorMessage }}</div>
+        </div>
+      </div>
+
+      <!-- Pied (sticky) -->
+      <div class="sticky bottom-0 w-full p-3 md:p-4 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 pb-[env(safe-area-inset-bottom)]">
+        <button
+          @click="handleAvailabilityPasswordCancel"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 text-sm md:text-base whitespace-nowrap"
+        >
+          Annuler
+        </button>
         <button
           @click="handleAvailabilityPasswordSubmit(availabilityPasswordInput)"
           :disabled="!availabilityPasswordInput || availabilityPasswordLoading"
-          class="w-full mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 flex-1 text-sm md:text-base whitespace-nowrap"
         >
           <span v-if="availabilityPasswordLoading" class="animate-spin">⏳</span>
           <span v-else>🔓</span>
-          <span>{{ availabilityPasswordLoading ? 'Vérification...' : 'Vérifier et modifier' }}</span>
-        </button>
-      </div>
-
-      <!-- Mot de passe oublié -->
-      <div class="mb-6 text-center">
-        <button
-          @click="showAvailabilityForgotPassword = true"
-          class="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
-        >
-          Mot de passe oublié ?
-        </button>
-      </div>
-
-      <!-- Messages d'erreur -->
-      <div v-if="availabilityPasswordErrorMessage" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-        <div class="text-red-300 text-sm">{{ availabilityPasswordErrorMessage }}</div>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex justify-center">
-        <button
-          @click="handleAvailabilityPasswordCancel"
-          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
-        >
-          Annuler
+          <span>
+            {{ availabilityPasswordLoading ? 'Vérification...' : 'Vérifier' }}<span class="hidden sm:inline"> et modifier</span>
+          </span>
         </button>
       </div>
     </div>
