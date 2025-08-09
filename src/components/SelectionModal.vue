@@ -1,151 +1,116 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[80] p-4" @click="close">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-2xl" @click.stop>
-      <div class="text-center mb-6">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="close">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
+      <div class="relative text-center p-6 pb-4 border-b border-white/10">
+        <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span class="text-3xl">🎭</span>
         </div>
-        <h2 class="text-3xl font-bold text-white mb-2">Sélection pour {{ event?.title }}</h2>
-        <p class="text-xl text-purple-300">{{ formatDateFull(event?.date) }}</p>
+        <h2 class="text-2xl md:text-3xl font-bold text-white mb-1">Sélection pour {{ event?.title }}</h2>
+        <p class="text-sm md:text-base text-purple-300">{{ formatDateFull(event?.date) }}</p>
       </div>
       
-      <!-- Statistiques -->
-      <div class="mb-6">
-        <div class="grid grid-cols-3 gap-4">
-          <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
-            <div class="text-2xl font-bold text-white">{{ event?.playerCount || 6 }}</div>
-            <div class="text-sm text-gray-300">À sélectionner</div>
-          </div>
-          <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-purple-500/30">
-            <div class="text-2xl font-bold text-white">{{ availableCount }}</div>
-            <div class="text-sm text-gray-300">Disponibles</div>
-          </div>
-          <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-500/30">
-            <div class="text-2xl font-bold text-white">{{ selectedCount }}</div>
-            <div class="text-sm text-gray-300">Sélectionnés</div>
-          </div>
-        </div>
-      </div>
-      
-
-      
-      <!-- Message de succès après sélection -->
-      <div v-if="showSuccessMessage" class="mb-6">
-        <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-          <div class="text-blue-400 text-xl">✨</div>
-          <div class="flex-1">
-            <p class="text-blue-300 text-sm font-medium">{{ successMessageText }}</p>
-          </div>
-          <button 
-            @click="hideSuccessMessage"
-            class="text-blue-400 hover:text-blue-300 transition-colors"
-            title="Fermer le message"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Warning de sélection incomplète -->
-      <div v-if="hasIncompleteSelection" class="mb-6">
-        <div class="flex items-center space-x-3 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/20">
-          <div class="text-yellow-400 text-xl">⚠️</div>
-          <div class="flex-1">
-            <h3 class="text-yellow-300 text-sm font-semibold mb-1">Sélection incomplète</h3>
-            <p class="text-yellow-200 text-sm">{{ incompleteSelectionMessage }}</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Section de sélection actuelle -->
-      <div v-if="hasSelection" class="mb-6">
-        <h3 class="text-lg font-semibold text-white mb-3">Joueurs sélectionnés :</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-          <div
-            v-for="player in currentSelection"
-            :key="player"
-            class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
-            :class="{
-              'from-red-500/20 to-red-600/20 border-red-500/30': !isPlayerAvailable(player),
-              'from-yellow-500/20 to-orange-500/20 border-yellow-500/30': isPlayerUnavailable(player)
-            }"
-          >
-            <span class="text-white font-medium">
-              <span v-if="isPlayerSelected(player)" class="text-purple-400 mr-2">🎭</span>
-              <span v-else-if="isPlayerAvailable(player)" class="text-green-400 mr-2">✅</span>
-              <span v-else-if="isPlayerUnavailable(player)" class="text-red-400 mr-2">❌</span>
-              <span v-else class="text-gray-400 mr-2">–</span>
-              {{ player }}
-            </span>
+      <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+        <!-- 1) Sélection actuelle en premier -->
+        <div v-if="hasSelection" class="mb-3">
+          <h3 class="text-base md:text-lg font-semibold text-white mb-2">Joueurs sélectionnés</h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-0">
+            <div
+              v-for="player in currentSelection"
+              :key="player"
+              class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
+              :class="{
+                'from-red-500/20 to-red-600/20 border-red-500/30': !isPlayerAvailable(player),
+                'from-yellow-500/20 to-orange-500/20 border-yellow-500/30': isPlayerUnavailable(player)
+              }"
+            >
+              <span class="text-white font-medium">
+                <span v-if="isPlayerSelected(player)" class="text-purple-400 mr-2">🎭</span>
+                <span v-else-if="isPlayerAvailable(player)" class="text-green-400 mr-2">✅</span>
+                <span v-else-if="isPlayerUnavailable(player)" class="text-red-400 mr-2">❌</span>
+                <span v-else class="text-gray-400 mr-2">–</span>
+                {{ player }}
+              </span>
+            </div>
           </div>
         </div>
         
-        <div class="mb-4">
-          <h4 class="text-md font-semibold text-white mb-2">Message à envoyer :</h4>
-          <div class="relative">
-            <textarea
-              :value="selectionMessage"
-              class="w-full p-4 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
-              rows="3"
-              readonly
-            ></textarea>
-            <button
-              @click="copyToClipboard"
-              class="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg p-2 hover:from-purple-600 hover:to-pink-700 transition-all duration-300"
-              :title="copyButtonText"
+        <!-- 2) Avertissement succinct si sélection incomplète -->
+        <div v-if="hasIncompleteSelection" class="mb-3">
+          <div class="flex items-center space-x-2 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+            <div class="text-yellow-400">⚠️</div>
+            <div class="text-yellow-200 text-sm">Sélection incomplète. Vérifie ci-dessous.</div>
+          </div>
+        </div>
+
+        <!-- 3) Statistiques (allégées et centrées) -->
+        <div class="grid grid-cols-3 gap-2 md:gap-3 mb-3">
+          <div class="p-3 md:p-3 rounded-lg border border-white/10 bg-white/5 text-center">
+            <div class="text-cyan-300 text-lg md:text-xl font-semibold">{{ event?.playerCount || 6 }}</div>
+            <div class="text-xs md:text-sm text-gray-400">À sélectionner</div>
+          </div>
+          <div class="p-3 md:p-3 rounded-lg border border-white/10 bg-white/5 text-center">
+            <div class="text-green-400 text-lg md:text-xl font-semibold">{{ availableCount }}</div>
+            <div class="text-xs md:text-sm text-gray-400">Disponibles</div>
+          </div>
+          <div class="p-3 md:p-3 rounded-lg border border-white/10 bg-white/5 text-center">
+            <div class="text-purple-400 text-lg md:text-xl font-semibold">{{ selectedCount }}</div>
+            <div class="text-xs md:text-sm text-gray-400">Sélectionnés</div>
+          </div>
+        </div>
+
+        <!-- 4) Message de succès après sélection -->
+        <div v-if="showSuccessMessage" class="mb-3">
+          <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
+            <div class="text-blue-400 text-xl">✨</div>
+            <div class="flex-1">
+              <p class="text-blue-300 text-sm font-medium">{{ successMessageText }}</p>
+            </div>
+            <button 
+              @click="hideSuccessMessage"
+              class="text-blue-400 hover:text-blue-300 transition-colors"
+              title="Fermer le message"
             >
-              <svg v-if="!copied" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
-              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
             </button>
           </div>
         </div>
-      </div>
+
+        <!-- 5) (optionnel) Invitation concise supprimée pour éviter la redondance -->
       
-      <!-- Section d'invitation à la sélection -->
-      <div v-else class="mb-6">
-        <div class="text-center p-6 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
-          <div class="text-4xl mb-4">{{ getInvitationIcon() }}</div>
-          <h3 class="text-xl font-semibold text-white mb-2">
-            {{ getInvitationTitle() }}
-          </h3>
-          <p class="text-gray-300">
-            {{ getInvitationMessage() }}
-          </p>
-        </div>
-      </div>
+      <!-- Anciennes sections redondantes supprimées -->
       
-      <!-- Boutons d'action -->
-      <div class="flex justify-center space-x-3">
-        <button 
-          @click="handleSelection"
-          :disabled="availableCount === 0"
-          class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')"
-        >
-          <span>✨</span>
-          <span>Sélection Auto</span>
+      </div>
+      <!-- Footer sticky -->
+      <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
+        <button @click="handleSelection" :disabled="availableCount === 0" class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')">
+          ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
         </button>
-        <button 
-          v-if="hasSelection"
-          @click="handlePerfect"
-          class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center space-x-2"
-        >
-          <span>👍</span>
-          <span>Parfait</span>
+        <button v-if="hasSelection" @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap">
+          👍 <span class="hidden sm:inline">Parfait</span>
+        </button>
+        <button @click="openAnnounce" :disabled="!hasSelection" class="h-12 px-3 md:px-4 bg-gray-700 text-white rounded-lg flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+          📣 <span class="hidden sm:inline">Annoncer</span>
         </button>
       </div>
     </div>
   </div>
+  
+  <!-- Popin Annoncer -->
+  <AnnounceModal
+    :show="showAnnounce"
+    :event="event"
+    :message="selectionMessage"
+    :is-partial="isReselection"
+    @close="showAnnounce = false"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import AnnounceModal from './AnnounceModal.vue'
 
 const props = defineProps({
   show: {
@@ -179,6 +144,7 @@ const emit = defineEmits(['close', 'selection', 'perfect'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
+const showAnnounce = ref(false)
 const showSuccessMessage = ref(false)
 const successMessageText = ref('')
 const isReselection = ref(false)
@@ -236,6 +202,7 @@ watch(() => props.show, (newValue) => {
     showSuccessMessage.value = false
     successMessageText.value = ''
     isReselection.value = false
+    showAnnounce.value = false
   }
 })
 
@@ -278,6 +245,10 @@ function handlePerfect() {
 
 function close() {
   emit('close')
+}
+
+function openAnnounce() {
+  showAnnounce.value = true
 }
 
 // Fonctions pour vérifier la disponibilité des joueurs

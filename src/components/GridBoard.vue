@@ -330,73 +330,73 @@
 
 
 
-  <!-- Popin de détails du spectacle -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[80] p-4" @click="closeEventDetails">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-2xl" @click.stop>
-      <div class="text-center mb-6">
-        <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-3xl">🎭</span>
+  <!-- Popin de détails de l'événement -->
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeEventDetails">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
+      <!-- Header -->
+      <div class="relative text-center p-6 pb-4 border-b border-white/10">
+        <button @click="closeEventDetails" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+        <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-3 flex items-center justify-center">
+          <span class="text-2xl md:text-3xl">🎭</span>
         </div>
-        <h2 class="text-3xl font-bold text-white mb-2">{{ selectedEvent?.title }}</h2>
-        <p class="text-xl text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
+        <h2 class="text-2xl md:text-3xl font-bold text-white mb-1">{{ selectedEvent?.title }}</h2>
+        <p class="text-sm md:text-base text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
       </div>
-      
-      <div v-if="selectedEvent?.description" class="mb-6">
-        <h3 class="text-lg font-semibold text-white mb-3">Description</h3>
-        <p class="text-gray-300 bg-gray-800/50 p-4 rounded-lg border border-gray-600/50">
-          {{ selectedEvent.description }}
-        </p>
-      </div>
-      
-      <div class="mb-6">
-        <h3 class="text-lg font-semibold text-white mb-3">Statistiques</h3>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-purple-500/30">
-            <div class="text-2xl font-bold text-white">{{ countAvailablePlayers(selectedEvent?.id) }}</div>
-            <div class="text-sm text-gray-300">Disponibles</div>
+
+      <!-- Content scrollable -->
+      <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+        <div v-if="selectedEvent?.description" class="mb-4 md:mb-6">
+          <p class="text-gray-300 bg-gray-800/50 p-4 rounded-lg border border-gray-600/50">
+            {{ selectedEvent.description }}
+          </p>
+        </div>
+
+        <!-- Stats directes sans titre -->
+        <div class="grid grid-cols-3 gap-3 md:gap-4 mb-2 md:mb-4">
+          <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30">
+            <div class="text-xl md:text-2xl font-bold text-white">{{ countAvailablePlayers(selectedEvent?.id) }}</div>
+            <div class="text-xs md:text-sm text-gray-300">Disponibles</div>
           </div>
-          <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-4 rounded-lg border border-cyan-500/30">
-            <div class="text-2xl font-bold text-white">{{ countSelectedPlayers(selectedEvent?.id) }}</div>
-            <div class="text-sm text-gray-300">Sélectionnés</div>
+          <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30">
+            <div class="text-xl md:text-2xl font-bold text-white">{{ countSelectedPlayers(selectedEvent?.id) }}</div>
+            <div class="text-xs md:text-sm text-gray-300">Sélectionnés</div>
           </div>
-          <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-lg border border-green-500/30">
-            <div class="text-2xl font-bold text-white">{{ selectedEvent?.playerCount || 6 }}</div>
-            <div class="text-sm text-gray-300">À sélectionner</div>
+          <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30">
+            <div class="text-xl md:text-2xl font-bold text-white">{{ selectedEvent?.playerCount || 6 }}</div>
+            <div class="text-xs md:text-sm text-gray-300">À sélectionner</div>
           </div>
         </div>
+
+        <!-- Actions desktop -->
+        <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
+          <button @click="startEditingFromDetails" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
+            <span>✏️</span><span>Modifier</span>
+          </button>
+          <button @click="notifyPlayersForEvent(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2" title="Envoyer un email aux joueurs protégés pour indiquer leur disponibilité">
+            <span>📧</span><span>Relancer</span>
+          </button>
+          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
+            <span>🎭</span><span>Sélection</span>
+          </button>
+          <button @click="confirmDeleteEvent(selectedEvent?.id)" class="px-5 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
+            <span>🗑️</span><span>Supprimer</span>
+          </button>
+          <button @click="closeEventDetails" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
+        </div>
+
+        <!-- More actions (mobile) -->
+        <div v-if="showEventMoreActions" class="md:hidden mt-3 space-y-2">
+          <button @click="startEditingFromDetails(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-white/10">✏️ Modifier</button>
+          <button @click="notifyPlayersForEvent(selectedEvent); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-amber-600/20 text-amber-200 border border-amber-500/30">📧 Relancer</button>
+          <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-red-600/20 text-red-200 border border-red-500/30">🗑️ Supprimer</button>
+        </div>
       </div>
-      
-      <div class="flex justify-center space-x-3">
-        <button 
-          @click="startEditingFromDetails"
-          class="px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center space-x-2"
-        >
-          <span>✏️</span>
-          <span>Modifier</span>
-        </button>
-        <button 
-          @click="notifyPlayersForEvent(selectedEvent)"
-          class="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center space-x-2"
-          title="Envoyer un email aux joueurs protégés pour indiquer leur disponibilité"
-        >
-          <span>📧</span>
-          <span>Relancer</span>
-        </button>
-        <button 
-          @click="openSelectionModal(selectedEvent)"
-          class="px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center space-x-2"
-          title="Gérer la sélection"
-        >
-          <span>🎭</span>
-          <span>Sélection</span>
-        </button>
-        <button 
-          @click="confirmDeleteEvent(selectedEvent?.id)"
-          class="px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center space-x-2"
-        >
-          <span>🗑️</span>
-          <span>Supprimer</span>
-        </button>
+
+      <!-- Footer sticky (mobile) -->
+      <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
+        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélection</button>
+        <button @click="closeEventDetails" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
+        <button @click="showEventMoreActions = !showEventMoreActions" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
     </div>
   </div>
@@ -892,6 +892,7 @@ const playerResetSuccess = ref('')
 const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
 const editingDescription = ref('')
+const showEventMoreActions = ref(false)
 
 
 
@@ -2159,6 +2160,7 @@ function closeEventDetails() {
   showEventDetailsModal.value = false;
   selectedEvent.value = null;
   editingDescription.value = '';
+  showEventMoreActions.value = false;
 }
 
 function startEditingFromDetails() {
