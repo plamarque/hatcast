@@ -132,6 +132,12 @@
 .min-h-screen {
   min-height: 100vh;
 }
+.w-1\/2 {
+  width: calc(1/2 * 100%);
+}
+.w-2\/3 {
+  width: calc(2/3 * 100%);
+}
 .w-\[80px\] {
   width: 80px;
 }

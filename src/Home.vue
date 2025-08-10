@@ -10,9 +10,19 @@
       </p>
     </div>
 
-    <div class="container mx-auto px-4 pb-16">
-      <!-- Grille des saisons -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
+    <div class="container mx-auto px-4 pb-16" :aria-busy="isLoading">
+      <!-- Grille des saisons (chargement) -->
+      <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto animate-pulse">
+        <div v-for="n in 8" :key="'skeleton-'+n" class="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-2xl p-8">
+          <div class="w-16 h-16 bg-white/10 rounded-full mx-auto mb-6"></div>
+          <div class="h-6 bg-white/10 rounded mb-4 w-2/3 mx-auto"></div>
+          <div class="h-px bg-white/10 mb-4"></div>
+          <div class="h-4 bg-white/10 rounded w-1/2 mx-auto"></div>
+        </div>
+      </div>
+
+      <!-- Grille des saisons (données) -->
+      <div v-else-if="seasons.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
         <div
           v-for="(season, index) in sortedSeasons"
           :key="season.id"
@@ -67,7 +77,7 @@
       </div>
 
       <!-- Bouton Nouvelle saison (en dessous de la grille) -->
-      <div v-if="seasons.length > 0" class="flex justify-center mt-12">
+      <div v-if="!isLoading && seasons.length > 0" class="flex justify-center mt-12">
         <button 
           @click="showCreateModal = true"
           class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105"
@@ -77,7 +87,7 @@
       </div>
 
       <!-- Message si aucune saison -->
-      <div v-if="seasons.length === 0" class="text-center py-16">
+      <div v-if="!isLoading && seasons.length === 0" class="text-center py-16">
         <div class="w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
           <span class="text-4xl">🎪</span>
         </div>
@@ -201,6 +211,7 @@ import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 
 const seasons = ref([])
+const isLoading = ref(true)
 const router = useRouter()
 const openMenuIndex = ref(null)
 
@@ -218,9 +229,15 @@ const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
 
 onMounted(async () => {
-  seasons.value = await getSeasons()
-  console.log('Saisons chargées:', seasons.value)
-  await migrateMissingSortOrders()
+  try {
+    // Charger vite les saisons pour afficher rapidement
+    seasons.value = await getSeasons()
+    console.log('Saisons chargées:', seasons.value)
+    // Lancer les migrations en arrière-plan
+    migrateMissingSortOrders().catch(err => console.error('Migration sortOrder échouée', err))
+  } finally {
+    isLoading.value = false
+  }
 })
 
 // Tri contrôlé: par sortOrder croissant, puis createdAt desc, puis nom
