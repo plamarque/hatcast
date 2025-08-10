@@ -15,7 +15,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory('/impro-selector/'),
+  history: createWebHistory('/'),
   routes
 })
 

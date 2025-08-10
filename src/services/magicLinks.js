@@ -26,7 +26,7 @@ export async function createMagicLink({ seasonId, playerId, eventId, action }) {
   const ref = doc(db, COLLECTION, id)
   const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
   await setDoc(ref, { seasonId, playerId, eventId, token, action, expiresAt })
-  const base = window.location.origin + (import.meta.env.BASE_URL || '/impro-selector/')
+  const base = window.location.origin + '/'
   const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
   return { id, token, url }
 }
