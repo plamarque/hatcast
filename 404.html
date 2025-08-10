@@ -4,15 +4,31 @@
     <meta charset="utf-8">
     <title>Impro Selector</title>
     <script>
-        // Redirection pour GitHub Pages SPA
-        const path = window.location.pathname;
-        const search = window.location.search;
-        const hash = window.location.hash;
-        
-        // Si ce n'est pas déjà la page principale, rediriger
-        if (path !== '/impro-selector/' && !path.startsWith('/impro-selector/')) {
-            window.location.href = '/impro-selector/' + search + hash;
-        }
+        // SPA redirect for GitHub Pages
+        (function() {
+            var path = window.location.pathname;
+            var search = window.location.search;
+            var hash = window.location.hash;
+            var base = '/impro-selector/';
+
+            function redirectWithP(encodedTarget) {
+                var redirectUrl = base + '?p=' + encodedTarget;
+                window.location.replace(redirectUrl);
+            }
+
+            // If the request is already under the repo path but not the base index,
+            // move the full target (relative to base) into ?p= so index.html can restore it.
+            if (path.startsWith(base) && path !== base) {
+                var relative = path.substring(base.length) + (search || '') + (hash || '');
+                redirectWithP(encodeURIComponent(relative));
+            } else if (!path.startsWith(base)) {
+                // If the request is outside the base (rare on project pages), still preserve it
+                var full = path + (search || '') + (hash || '');
+                redirectWithP(encodeURIComponent(full));
+            } else {
+                // Already at base, nothing to do; index will load
+            }
+        })();
     </script>
 </head>
 <body>
