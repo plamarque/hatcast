@@ -41,7 +41,7 @@
           <div class="flex-1 overflow-hidden">
             <div ref="headerEventsRef" class="flex relative z-[60]" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
-                v-for="event in events"
+                v-for="event in sortedEvents"
                 :key="'h-'+event.id"
                 class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
                 @click="showEventDetails(event)"
@@ -99,13 +99,13 @@
         <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
           <colgroup>
             <col class="col-left" />
-            <col v-for="(event, index) in events" :key="'c'+index" class="col-event" />
+            <col v-for="(event, index) in sortedEvents" :key="'c'+index" class="col-event" />
             <col class="col-right" />
           </colgroup>
           <thead class="hidden"></thead>
           <tbody>
             <tr
-              v-for="player in players"
+              v-for="player in sortedPlayers"
               :key="player.id"
               class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
               :data-player-id="player.id"
@@ -131,7 +131,7 @@
               </td>
 
               <td
-                v-for="event in events"
+                v-for="event in sortedEvents"
                 :key="event.id"
                 class="p-3 md:p-5 text-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-20"
                 @click="toggleAvailability(player.name, event.id)"
@@ -185,7 +185,7 @@
                 </div>
               </td>
               <td
-                v-for="event in events"
+                v-for="event in sortedEvents"
                 :key="'add-row-'+event.id"
                 class="p-3 md:p-5"
               ></td>
@@ -830,7 +830,7 @@
 </style>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 // Sticky header offset handling
@@ -1403,6 +1403,35 @@ onMounted(async () => {
     const step = el.clientWidth * 0.6
     el.scrollTo({ left: el.scrollLeft + direction * step, behavior: 'smooth' })
   }
+})
+
+// Helpers de tri
+function toDateObject(value) {
+  if (!value) return null
+  if (value instanceof Date) return value
+  if (typeof value?.toDate === 'function') return value.toDate()
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
+const sortedPlayers = computed(() => {
+  // Tri strictement alphabétique A→Z sur le nom affiché
+  return [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+})
+
+const sortedEvents = computed(() => {
+  // Tri chronologique gauche→droite, puis titre en cas d'égalité
+  return [...events.value].sort((a, b) => {
+    const da = toDateObject(a.date)
+    const db = toDateObject(b.date)
+    const ta = da ? da.getTime() : Number.POSITIVE_INFINITY
+    const tb = db ? db.getTime() : Number.POSITIVE_INFINITY
+    if (ta !== tb) return ta - tb
+    return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
+  })
 })
 
 async function toggleAvailability(playerName, eventId) {

@@ -93,14 +93,20 @@ export async function loadEvents(seasonId = null) {
 
   // Tri des événements par date (croissant) puis par titre (alphabétique)
   return events.sort((a, b) => {
-    // Comparer les dates
-    const dateA = new Date(a.date)
-    const dateB = new Date(b.date)
-    if (dateA < dateB) return -1
-    if (dateA > dateB) return 1
-    
-    // Si les dates sont égales, comparer les titres
-    return a.title.localeCompare(b.title)
+    const toDate = (v) => {
+      if (!v) return null
+      if (v instanceof Date) return v
+      if (typeof v?.toDate === 'function') return v.toDate()
+      const d = new Date(v)
+      return isNaN(d.getTime()) ? null : d
+    }
+
+    const da = toDate(a.date)
+    const db = toDate(b.date)
+    const ta = da ? da.getTime() : Number.POSITIVE_INFINITY
+    const tb = db ? db.getTime() : Number.POSITIVE_INFINITY
+    if (ta !== tb) return ta - tb
+    return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
   })
 }
 
