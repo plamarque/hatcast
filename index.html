@@ -13,7 +13,7 @@
           var p = params.get('p');
           if (p) {
             var target = decodeURIComponent(p);
-            var base = '/impro-selector/';
+            var base = '/';
             // Avoid infinite loops: only push if not already there
             if (!window.location.pathname.startsWith(base + target)) {
               // Use history API to set the correct path before Vue Router mounts

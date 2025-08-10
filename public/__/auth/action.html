@@ -61,7 +61,7 @@
         
         if (mode === 'resetPassword' && oobCode) {
             // Rediriger vers notre application avec le token
-            const redirectUrl = `${window.location.origin}/impro-selector/reset-password?oobCode=${oobCode}`;
+            const redirectUrl = `${window.location.origin}/reset-password?oobCode=${oobCode}`;
             
             console.log('🔍 [DEBUG] Redirection vers:', redirectUrl);
             
@@ -74,7 +74,7 @@
             document.querySelector('.container').innerHTML = `
                 <h1>❌ Erreur</h1>
                 <p>Lien de réinitialisation invalide ou expiré.</p>
-                <p><a href="/impro-selector/" style="color: #667eea;">Retour à l'accueil</a></p>
+                <p><a href="/" style="color: #667eea;">Retour à l'accueil</a></p>
             `;
         }
     </script>
