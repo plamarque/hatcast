@@ -83,7 +83,7 @@ onMounted(async () => {
     // Appliquer la disponibilité directement (bypass protections)
     const newValue = action === 'yes' ? true : false
     await setSingleAvailability({ seasonId, playerName, eventId, value: newValue })
-    await consumeMagicLink({ seasonId, playerId, eventId })
+    await consumeMagicLink({ seasonId, playerId, eventId, action })
 
     status.value = 'ok'
     title.value = 'Merci !'

@@ -6,9 +6,9 @@ import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore'
 
 const COLLECTION = 'magicLinks'
 
-// key schema: `${seasonId}__${playerId}__${eventId}`
-function buildId({ seasonId, playerId, eventId }) {
-  return `${seasonId}__${playerId}__${eventId}`
+// key schema: `${seasonId}__${playerId}__${eventId}__${action}` (avoid overwriting yes/no)
+function buildId({ seasonId, playerId, eventId, action }) {
+  return `${seasonId}__${playerId}__${eventId}__${action}`
 }
 
 function randomToken(length = 32) {
@@ -21,7 +21,7 @@ function randomToken(length = 32) {
 }
 
 export async function createMagicLink({ seasonId, playerId, eventId, action }) {
-  const id = buildId({ seasonId, playerId, eventId })
+  const id = buildId({ seasonId, playerId, eventId, action })
   const token = randomToken(40)
   const ref = doc(db, COLLECTION, id)
   const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
@@ -32,7 +32,7 @@ export async function createMagicLink({ seasonId, playerId, eventId, action }) {
 }
 
 export async function verifyMagicLink({ seasonId, playerId, eventId, token, action }) {
-  const id = buildId({ seasonId, playerId, eventId })
+  const id = buildId({ seasonId, playerId, eventId, action })
   const ref = doc(db, COLLECTION, id)
   const snap = await getDoc(ref)
   if (!snap.exists()) return { valid: false, reason: 'not_found' }
@@ -43,8 +43,8 @@ export async function verifyMagicLink({ seasonId, playerId, eventId, token, acti
   return { valid: true, data }
 }
 
-export async function consumeMagicLink({ seasonId, playerId, eventId }) {
-  const id = buildId({ seasonId, playerId, eventId })
+export async function consumeMagicLink({ seasonId, playerId, eventId, action }) {
+  const id = buildId({ seasonId, playerId, eventId, action })
   const ref = doc(db, COLLECTION, id)
   await deleteDoc(ref)
 }
