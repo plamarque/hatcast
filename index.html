@@ -13,7 +13,7 @@
           var p = params.get('p');
           if (p) {
             var target = decodeURIComponent(p);
-            var base = '/impro-selector/';
+            var base = '/';
             // Avoid infinite loops: only push if not already there
             if (!window.location.pathname.startsWith(base + target)) {
               // Use history API to set the correct path before Vue Router mounts
@@ -25,8 +25,8 @@
         }
       })();
     </script>
-    <script type="module" crossorigin src="/impro-selector/assets/index-8c1d1a59.js"></script>
-    <link rel="stylesheet" href="/impro-selector/assets/index-a652018a.css">
+    <script type="module" crossorigin src="/assets/index-870d7c75.js"></script>
+    <link rel="stylesheet" href="/assets/index-a652018a.css">
   </head>
   <body>
     <div id="app"></div>
