@@ -1,6 +1,6 @@
 // src/services/firebase.js
 import { initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -16,6 +16,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const auth = getAuth(app)
+
+// Activer la persistance IndexedDB (accélère les lectures répétées et le hors-ligne)
+try {
+  // Ne pas await ici pour éviter de bloquer l'initialisation
+  // Échouer silencieusement si non supporté ou en cas de multi-onglets
+  // noinspection JSIgnoredPromiseFromCall
+  enableIndexedDbPersistence(db)
+} catch (e) {
+  // Optionnel: log en debug uniquement
+  // console.debug('IndexedDB persistence not enabled', e)
+}
 
 // Connexion anonyme par défaut
 signInAnonymously(auth)

@@ -93,6 +93,7 @@
       </div>
 
       <div
+        v-show="!isLoadingGrid"
         ref="gridboardRef"
         class="gridboard overflow-x-auto bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50"
       >
@@ -196,6 +197,17 @@
       </div>
 
       <!-- Indicateurs legacy supprimés (remplacés par chevrons flottants) -->
+    </div>
+  </div>
+
+  <!-- Overlay de chargement pleine page -->
+  <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
+    <div class="text-center">
+      <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
+        <span class="text-3xl">🎭</span>
+      </div>
+      <p class="text-white text-lg">Préparation de la grille…</p>
+      <p class="text-white/70 text-sm mt-1">Un instant</p>
     </div>
   </div>
 
@@ -819,6 +831,12 @@
   .col-right { width: 3rem; }
 }
 
+/* Optimisations de rendu pour grandes grilles */
+.gridboard {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px 600px; /* taille de réserve pour éviter les sauts */
+}
+
 /* Forcer des tailles encore plus grandes en très petit viewport (<= 430px) */
 @media (max-width: 430px) {
   .header-date { font-size: 18px; }
@@ -874,7 +892,7 @@ import { db } from '../services/firebase.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
   import playerPasswordSessionManager from '../services/playerPasswordSession.js'
-import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail, getPlayerEmail } from '../services/playerProtection.js'
+import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail, getPlayerEmail, listProtectedPlayers } from '../services/playerProtection.js'
 import { createMagicLink } from '../services/magicLinks.js'
 import { queueAvailabilityEmail } from '../services/emailService.js'
 import PinModal from './PinModal.vue'
@@ -958,6 +976,7 @@ const selectionModalRef = ref(null)
 
 // Variables pour la protection des joueurs
 const protectedPlayers = ref(new Set())
+const isLoadingGrid = ref(true)
 
 // Refs et états pour scroll hints et sticky col gauche
 const gridboardRef = ref(null)
@@ -1003,15 +1022,20 @@ function isPlayerProtectedInGrid(playerId) {
 // Fonction pour charger l'état de protection de tous les joueurs
 async function loadProtectedPlayers() {
   if (!seasonId.value) return
-  
-  const protectedSet = new Set()
-  for (const player of players.value) {
-    const isProtected = await isPlayerProtected(player.id, seasonId.value)
-    if (isProtected) {
-      protectedSet.add(player.id)
+  try {
+    const protections = await listProtectedPlayers(seasonId.value)
+    const next = new Set()
+    protections.forEach(p => { if (p.isProtected) next.add(p.playerId || p.id) })
+    protectedPlayers.value = next
+  } catch (e) {
+    // fallback lent mais sûr
+    const protectedSet = new Set()
+    for (const player of players.value) {
+      const isProt = await isPlayerProtected(player.id, seasonId.value)
+      if (isProt) protectedSet.add(player.id)
     }
+    protectedPlayers.value = protectedSet
   }
-  protectedPlayers.value = protectedSet
 }
 
 const showSuccessMessage = ref(false)
@@ -1337,54 +1361,62 @@ onMounted(async () => {
 
   // Charger les données de la saison
   if (seasonId.value) {
-    // Joueurs
-    const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
+    // Requêtes parallèles
+    const [playersSnap, eventsSnap, availSnap, selSnap, protections] = await Promise.all([
+      getDocs(collection(db, 'seasons', seasonId.value, 'players')),
+      getDocs(collection(db, 'seasons', seasonId.value, 'events')),
+      getDocs(collection(db, 'seasons', seasonId.value, 'availability')),
+      getDocs(collection(db, 'seasons', seasonId.value, 'selections')),
+      listProtectedPlayers(seasonId.value)
+    ])
+
     players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    
-    // Charger l'état de protection des joueurs
-    await loadProtectedPlayers()
-    // Événements
-    const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
-    events.value = eventsSnap.docs.map(doc => ({ 
-      id: doc.id, 
+
+    const protSet = new Set()
+    if (Array.isArray(protections)) {
+      protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+    }
+    protectedPlayers.value = protSet
+
+    events.value = eventsSnap.docs.map(doc => ({
+      id: doc.id,
       ...doc.data(),
-      playerCount: doc.data().playerCount || 6 // Valeur par défaut pour les événements existants
+      playerCount: doc.data().playerCount || 6
     }))
-    // Disponibilités
-    const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
+
     const availObj = {}
-    availSnap.docs.forEach(doc => { 
+    availSnap.docs.forEach(doc => {
       const data = doc.data()
-      // Nettoyer les données pour convertir les anciennes chaînes en booléens
       const cleanedData = {}
       Object.keys(data).forEach(eventId => {
         const value = data[eventId]
-        if (value === 'oui') {
-          cleanedData[eventId] = true
-        } else if (value === 'non') {
-          cleanedData[eventId] = false
-        } else {
-          cleanedData[eventId] = value // Garder true, false, ou undefined
-        }
+        cleanedData[eventId] = value === 'oui' ? true : value === 'non' ? false : value
       })
       availObj[doc.id] = cleanedData
     })
     availability.value = availObj
-    // Sélections
-    const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
+
     const selObj = {}
     selSnap.docs.forEach(doc => { selObj[doc.id] = doc.data().players || [] })
     selections.value = selObj
   }
   
-  // Mettre à jour les stats et les chances une seule fois
-  updateAllStats()
-  updateAllChances()
+  // Déplacer les calculs lourds en idle
+  const scheduleIdle = (fn) => {
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => fn())
+    } else {
+      setTimeout(fn, 0)
+    }
+  }
+  scheduleIdle(() => { updateAllStats(); updateAllChances() })
   
   console.log('players (deduplicated):', players.value.map(p => ({ id: p.id, name: p.name })))
   console.log('availability loaded:', availability.value)
 
   // init scroll hints
+  await nextTick()
+  isLoadingGrid.value = false
   nextTick(() => {
     updateScrollHints()
     const el = gridboardRef.value
