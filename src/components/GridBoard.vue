@@ -430,7 +430,12 @@
           <button @click="startEditingFromDetails" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
             <span>✏️</span><span>Modifier</span>
           </button>
-          <button @click="notifyPlayersForEvent(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2" title="Envoyer un email aux joueurs protégés pour indiquer leur disponibilité">
+          <button 
+            @click="notifyPlayersForEvent(selectedEvent)" 
+            :disabled="selectedEvent?.archived"
+            class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
+            :title="selectedEvent?.archived ? 'Impossible de relancer un événement archivé' : 'Envoyer un email aux joueurs protégés pour indiquer leur disponibilité'"
+          >
             <span>📧</span><span>Relancer</span>
           </button>
           <button @click="toggleEventArchived" class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 flex items-center gap-2" :title="selectedEvent?.archived ? 'Désarchiver cet événement' : 'Archiver cet événement'">
@@ -448,7 +453,14 @@
         <!-- More actions (mobile) -->
         <div v-if="showEventMoreActions" class="md:hidden mt-3 space-y-2">
           <button @click="startEditingFromDetails(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-white/10">✏️ Modifier</button>
-          <button @click="notifyPlayersForEvent(selectedEvent); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-amber-600/20 text-amber-200 border border-amber-500/30">📧 Relancer</button>
+          <button 
+            @click="notifyPlayersForEvent(selectedEvent); showEventMoreActions=false" 
+            :disabled="selectedEvent?.archived"
+            class="w-full px-4 py-3 rounded-lg bg-amber-600/20 text-amber-200 border border-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
+            :title="selectedEvent?.archived ? 'Impossible de relancer un événement archivé' : 'Envoyer un email aux joueurs protégés pour indiquer leur disponibilité'"
+          >
+            <span>📧</span><span>Relancer</span>
+          </button>
           <button @click="toggleEventArchived(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-indigo-600/20 text-indigo-200 border border-indigo-500/30">{{ selectedEvent?.archived ? '📂 Désarchiver' : '📁 Archiver' }}</button>
           <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-red-600/20 text-red-200 border border-red-500/30">🗑️ Supprimer</button>
         </div>
@@ -2567,7 +2579,17 @@ function getEventTooltip(eventId) {
 // Envoi d'emails de disponibilité aux joueurs protégés (avec liens magiques)
 async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
   if (!seasonId.value) return
+  
+  // Vérifier si l'événement est archivé
   const event = { id: eventId, ...eventData }
+  if (event.archived) {
+    console.log('Événement archivé, aucune notification envoyée:', event.title)
+    showSuccessMessage.value = true
+    successMessage.value = 'Aucune notification envoyée : événement archivé'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
+  
   const failures = []
   for (const player of players.value) {
     const protectedFlag = await isPlayerProtected(player.id, seasonId.value)
@@ -2602,6 +2624,14 @@ async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
 
 // Bouton manuel depuis la fiche de l'événement
 async function notifyPlayersForEvent(event) {
+  // Vérifier si l'événement est archivé avant d'envoyer les notifications
+  if (event.archived) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Impossible de relancer : événement archivé'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
+  
   await sendAvailabilityEmailsForEvent({ eventId: event.id, eventData: event, reason: 'manual' })
 }
 
