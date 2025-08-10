@@ -360,12 +360,28 @@ export async function updateEvent(eventId, eventData, seasonId = null) {
     const eventRef = seasonId
       ? doc(db, 'seasons', seasonId, 'events', eventId)
       : doc(db, 'events', eventId)
-    await setDoc(eventRef, eventData)
+    // Utiliser merge pour ne pas écraser des champs existants (ex: archived)
+    await setDoc(eventRef, eventData, { merge: true })
   } else {
     // Pour le mode mock, on met à jour l'événement
     const index = eventList.findIndex(event => event.id === eventId)
     if (index !== -1) {
       eventList[index] = { id: eventId, ...eventData }
+    }
+  }
+}
+
+// Mise à jour de l'état d'archivage d'un événement
+export async function setEventArchived(eventId, archived, seasonId = null) {
+  if (mode === 'firebase') {
+    const eventRef = seasonId
+      ? doc(db, 'seasons', seasonId, 'events', eventId)
+      : doc(db, 'events', eventId)
+    await updateDoc(eventRef, { archived: !!archived })
+  } else {
+    const idx = eventList.findIndex(e => e.id === eventId)
+    if (idx !== -1) {
+      eventList[idx] = { ...eventList[idx], archived: !!archived }
     }
   }
 }

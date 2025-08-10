@@ -17,6 +17,14 @@
         {{ seasonName ? seasonName : 'Chargement...' }}
       </h1>
       
+      <!-- Bouton d'affichage des événements archivés -->
+      <button
+        @click="toggleShowArchived"
+        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+        :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
+      >
+        <span class="text-2xl">{{ showArchived ? '📂' : '📁' }}</span>
+      </button>
     </div>
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
@@ -25,7 +33,7 @@
         <div class="flex items-stretch relative">
           <!-- Left sticky cell -->
           <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
-            <div class="flex items-center justify-center h-full">
+            <div class="flex items-center justify-center h-full gap-2">
               <button
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
@@ -41,7 +49,7 @@
           <div class="flex-1 overflow-hidden">
             <div ref="headerEventsRef" class="flex relative z-[60]" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
-                v-for="event in sortedEvents"
+                v-for="event in displayedEvents"
                 :key="'h-'+event.id"
                 class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
                 @click="showEventDetails(event)"
@@ -50,6 +58,7 @@
                 <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
                   {{ event.title || 'Sans titre' }}
                 </div>
+                <div v-if="event.archived" class="mt-1 text-xs text-gray-400">(Archivé)</div>
                 <div 
                   v-if="hasEventWarning(event.id)"
                   class="mt-1 w-4 h-4 bg-yellow-500 rounded-full mx-auto flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
@@ -100,7 +109,7 @@
         <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
           <colgroup>
             <col class="col-left" />
-            <col v-for="(event, index) in sortedEvents" :key="'c'+index" class="col-event" />
+            <col v-for="(event, index) in displayedEvents" :key="'c'+index" class="col-event" />
             <col class="col-right" />
           </colgroup>
           <thead class="hidden"></thead>
@@ -132,7 +141,7 @@
               </td>
 
               <td
-                v-for="event in sortedEvents"
+                v-for="event in displayedEvents"
                 :key="event.id"
                 class="p-3 md:p-5 text-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-20"
                 @click="toggleAvailability(player.name, event.id)"
@@ -186,7 +195,7 @@
                 </div>
               </td>
               <td
-                v-for="event in sortedEvents"
+                v-for="event in displayedEvents"
                 :key="'add-row-'+event.id"
                 class="p-3 md:p-5"
               ></td>
@@ -250,6 +259,10 @@
           rows="3"
           placeholder="Description de l'événement (optionnel)"
         ></textarea>
+      </div>
+      <div class="mb-6 flex items-center gap-3">
+        <input id="new-archived" type="checkbox" v-model="newEventArchived" class="w-4 h-4" />
+        <label for="new-archived" class="text-sm font-medium text-gray-300">Créer comme archivé</label>
       </div>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
@@ -420,6 +433,9 @@
           <button @click="notifyPlayersForEvent(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2" title="Envoyer un email aux joueurs protégés pour indiquer leur disponibilité">
             <span>📧</span><span>Relancer</span>
           </button>
+          <button @click="toggleEventArchived" class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 flex items-center gap-2" :title="selectedEvent?.archived ? 'Désarchiver cet événement' : 'Archiver cet événement'">
+            <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+          </button>
           <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
             <span>🎭</span><span>Sélection</span>
           </button>
@@ -433,6 +449,7 @@
         <div v-if="showEventMoreActions" class="md:hidden mt-3 space-y-2">
           <button @click="startEditingFromDetails(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-white/10">✏️ Modifier</button>
           <button @click="notifyPlayersForEvent(selectedEvent); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-amber-600/20 text-amber-200 border border-amber-500/30">📧 Relancer</button>
+          <button @click="toggleEventArchived(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-indigo-600/20 text-indigo-200 border border-indigo-500/30">{{ selectedEvent?.archived ? '📂 Désarchiver' : '📁 Archiver' }}</button>
           <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-red-600/20 text-red-200 border border-red-500/30">🗑️ Supprimer</button>
         </div>
       </div>
@@ -480,6 +497,10 @@
           placeholder="Description de l'événement (optionnel)"
           @keydown.esc="cancelEdit"
         ></textarea>
+      </div>
+      <div class="mb-6 flex items-center gap-3">
+        <input id="edit-archived" type="checkbox" v-model="editingArchived" class="w-4 h-4" />
+        <label for="edit-archived" class="text-sm font-medium text-gray-300">Archiver cet événement</label>
       </div>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
@@ -963,6 +984,7 @@ const playerResetSuccess = ref('')
 const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
 const editingDescription = ref('')
+const editingArchived = ref(false)
 const showEventMoreActions = ref(false)
 
 
@@ -1099,6 +1121,8 @@ function startEditing(event) {
   editingEvent.value = event.id
   editingTitle.value = event.title
   editingDate.value = event.date
+  editingDescription.value = event.description || ''
+  editingArchived.value = !!event.archived
 }
 
 async function saveEdit() {
@@ -1115,11 +1139,14 @@ async function saveEdit() {
       title: editingTitle.value.trim(),
       date: editingDate.value,
       description: editingDescription.value.trim() || '',
-      playerCount: playerCount
+      playerCount: playerCount,
+      archived: !!editingArchived.value
     }
     await updateEvent(editingEvent.value, eventData, seasonId.value)
     // Après modification, envoyer des notifications
-    await sendAvailabilityEmailsForEvent({ eventId: editingEvent.value, eventData, reason: 'updated' })
+    if (!eventData.archived) {
+      await sendAvailabilityEmailsForEvent({ eventId: editingEvent.value, eventData, reason: 'updated' })
+    }
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
@@ -1137,6 +1164,7 @@ async function saveEdit() {
     editingDate.value = ''
     editingDescription.value = ''
     editingPlayerCount.value = 6
+    editingArchived.value = false
     showSuccessMessage.value = true
     successMessage.value = 'Événement mis à jour avec succès !'
     setTimeout(() => {
@@ -1245,6 +1273,7 @@ const newEventTitle = ref('')
 const newEventDate = ref('')
 const newEventDescription = ref('')
 const newEventPlayerCount = ref(6)
+const newEventArchived = ref(false)
 
 // Fonction pour annuler la création d'événement
 
@@ -1265,7 +1294,8 @@ async function createEvent() {
     title: newEventTitle.value.trim(),
     date: newEventDate.value,
     description: newEventDescription.value.trim() || '',
-    playerCount: playerCount
+    playerCount: playerCount,
+    archived: !!newEventArchived.value
   }
 
   // Créer l'événement directement après validation du PIN
@@ -1295,6 +1325,7 @@ async function createEventProtected(eventData) {
     newEventDate.value = ''
     newEventDescription.value = ''
     newEventPlayerCount.value = 6
+    newEventArchived.value = false
     newEventForm.value = false
     
     // Forcer la mise à jour de l'interface
@@ -1304,7 +1335,9 @@ async function createEventProtected(eventData) {
     successMessage.value = 'Événement créé avec succès !'
     // Après création, envoyer des notifications
     try {
-      await sendAvailabilityEmailsForEvent({ eventId, eventData, reason: 'created' })
+      if (!eventData.archived) {
+        await sendAvailabilityEmailsForEvent({ eventId, eventData, reason: 'created' })
+      }
     } catch (mailErr) {
       console.warn('Envoi des emails partiellement en échec:', mailErr)
     }
@@ -1469,6 +1502,17 @@ const sortedEvents = computed(() => {
     return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
   })
 })
+
+// Affichage conditionnel des évènements archivés
+const showArchived = ref(false)
+const displayedEvents = computed(() => {
+  const list = sortedEvents.value
+  return showArchived.value ? list : list.filter(e => !e.archived)
+})
+
+function toggleShowArchived() {
+  showArchived.value = !showArchived.value
+}
 
 async function toggleAvailability(playerName, eventId) {
   const player = players.value.find(p => p.name === playerName);
@@ -1957,7 +2001,8 @@ function getPinModalMessage() {
     deleteEvent: 'Suppression d\'événement - Code PIN requis',
     addEvent: 'Ajout d\'événement - Code PIN requis',
     deletePlayer: 'Suppression de joueur - Code PIN requis',
-    launchSelection: 'Lancement de sélection - Code PIN requis'
+    launchSelection: 'Lancement de sélection - Code PIN requis',
+    toggleArchive: 'Archivage d\'événement - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -2259,6 +2304,16 @@ async function executePendingOperation(operation) {
         // Exécuter directement la modification de disponibilité
         performToggleAvailability(data.player, data.eventId)
         break
+      case 'toggleArchive':
+        await setEventArchived(data.eventId, data.archived, seasonId.value)
+        {
+          const idx = events.value.findIndex(e => e.id === data.eventId)
+          if (idx !== -1) {
+            events.value[idx] = { ...events.value[idx], archived: !!data.archived }
+          }
+          editingArchived.value = !!data.archived
+        }
+        break
     }
   } catch (error) {
     console.error('Erreur lors de l\'exécution de l\'opération:', error)
@@ -2284,6 +2339,7 @@ onUnmounted(() => {
 function showEventDetails(event) {
   selectedEvent.value = event;
   editingDescription.value = event.description || '';
+  editingArchived.value = !!event.archived;
   showEventDetailsModal.value = true;
 }
 
@@ -2303,7 +2359,38 @@ function startEditingFromDetails() {
   showEventDetailsModal.value = false; // Fermer le popin
 }
 
-
+async function toggleEventArchived() {
+  if (!selectedEvent.value) return;
+  
+  try {
+    const newArchivedState = !selectedEvent.value.archived;
+    const eventData = {
+      ...selectedEvent.value,
+      archived: newArchivedState
+    };
+    
+    await updateEvent(selectedEvent.value.id, eventData, seasonId.value);
+    
+    // Mettre à jour l'événement localement
+    selectedEvent.value.archived = newArchivedState;
+    
+    // Mettre à jour la liste des événements
+    const eventIndex = events.value.findIndex(e => e.id === selectedEvent.value.id);
+    if (eventIndex !== -1) {
+      events.value[eventIndex].archived = newArchivedState;
+    }
+    
+    showSuccessMessage.value = true;
+    successMessage.value = newArchivedState ? 'Événement archivé avec succès !' : 'Événement désarchivé avec succès !';
+    setTimeout(() => {
+      showSuccessMessage.value = false;
+    }, 3000);
+    
+  } catch (error) {
+    console.error('Erreur lors de la modification de l\'archivage:', error);
+    alert('Erreur lors de la modification de l\'archivage. Veuillez réessayer.');
+  }
+}
 
 // Fonctions pour le modal joueur
 function showPlayerDetails(player) {
