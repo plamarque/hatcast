@@ -1357,6 +1357,10 @@ onMounted(async () => {
     seasonId.value = seasonDoc.id
     seasonName.value = seasonDoc.data().name
     document.title = `Saison : ${seasonName.value}`
+  } else {
+    // Saison introuvable: rediriger vers l'accueil
+    router.push('/')
+    return
   }
 
   // Charger les données de la saison

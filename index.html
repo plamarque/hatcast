@@ -5,6 +5,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Impro Selector</title>
+    <script>
+      // Restore deep link after GitHub Pages 404 redirect placed path into ?p=
+      (function() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var p = params.get('p');
+          if (p) {
+            var target = decodeURIComponent(p);
+            var base = '/impro-selector/';
+            // Avoid infinite loops: only push if not already there
+            if (!window.location.pathname.startsWith(base + target)) {
+              // Use history API to set the correct path before Vue Router mounts
+              window.history.replaceState({}, '', base + target);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>
