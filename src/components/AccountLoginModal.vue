@@ -19,7 +19,11 @@
           <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe</label>
           <input v-model="password" type="password" class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400" placeholder="Mot de passe">
         </div>
-        <div class="text-right">
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 text-gray-300 text-sm">
+            <input type="checkbox" v-model="staySignedIn" class="w-4 h-4">
+            <span>Rester connecté sur cet appareil</span>
+          </label>
           <button @click="forgotPassword" class="text-sm text-blue-400 hover:text-blue-300 underline">Mot de passe oublié ?</button>
         </div>
 
@@ -41,6 +45,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { signInPlayer, resetPlayerPassword } from '../services/firebase.js'
+import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 
 const props = defineProps({
   show: { type: Boolean, default: false }
@@ -53,6 +58,7 @@ const password = ref('')
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
+const staySignedIn = ref(true)
 
 const canLogin = computed(() => !!email.value && email.value.includes('@') && !!password.value)
 
@@ -63,6 +69,10 @@ async function login() {
   success.value = ''
   try {
     await signInPlayer(email.value.trim(), password.value)
+    if (staySignedIn.value) {
+      // Marquer l'appareil de confiance pour l'email du compte afin d'éviter la re-saisie
+      try { playerPasswordSessionManager.saveSession(email.value.trim()) } catch {}
+    }
     emit('success')
   } catch (e) {
     error.value = 'Email ou mot de passe incorrect'

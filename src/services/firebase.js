@@ -1,7 +1,7 @@
 // src/services/firebase.js
 import { initializeApp } from 'firebase/app'
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword } from 'firebase/auth'
+import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,8 +27,20 @@ try {
   // Silence: inutile en prod
 }
 
-// Connexion anonyme par défaut
-signInAnonymously(auth)
+// Persistance de session durable (navigateur) pour éviter de redemander l'authentification
+try {
+  // Préférer une persistance locale longue (IndexedDB/localStorage selon l'environnement)
+  // noinspection JSIgnoredPromiseFromCall
+  setPersistence(auth, browserLocalPersistence)
+} catch (_) {}
+
+// Connexion anonyme uniquement si aucun utilisateur n'est déjà persisté
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    // noinspection JSIgnoredPromiseFromCall
+    signInAnonymously(auth)
+  }
+})
 
 // Fonctions d'authentification pour les joueurs
 export async function createPlayerAccount(email, password) {

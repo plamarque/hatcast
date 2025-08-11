@@ -24,6 +24,10 @@
               ref="passwordInput"
             >
           </div>
+          <div class="flex items-center gap-2 text-gray-300 text-sm">
+            <input id="staySignedIn" type="checkbox" v-model="staySignedIn" class="w-4 h-4">
+            <label for="staySignedIn">Rester connecté sur cet appareil</label>
+          </div>
           
 
         </div>
@@ -146,6 +150,7 @@ const showForgotPassword = ref(false)
 const forgotPasswordError = ref('')
 const forgotPasswordSuccess = ref('')
 const passwordInput = ref(null)
+const staySignedIn = ref(true)
 
 // Vérifier le mot de passe
 async function verifyPassword() {
@@ -159,6 +164,9 @@ async function verifyPassword() {
     const seasonPin = await getSeasonPin(props.seasonId)
     if (password.value === seasonPin) {
       // PIN de saison accepté
+      if (staySignedIn.value) {
+        try { playerPasswordSessionManager.saveSession(props.player.id) } catch {}
+      }
       emit('verified', { type: 'season_pin' })
       closeModal()
       return
@@ -168,7 +176,10 @@ async function verifyPassword() {
     const isValid = await verifyPlayerPassword(props.player.id, password.value, props.seasonId)
     
     if (isValid) {
-      // Sauvegarder la session (déjà fait dans verifyPlayerPassword)
+      // Marquer l'appareil de confiance (en plus de la logique interne)
+      if (staySignedIn.value) {
+        try { playerPasswordSessionManager.saveSession(props.player.id) } catch {}
+      }
       emit('verified', { type: 'player_password' })
       closeModal()
     } else {

@@ -289,8 +289,8 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
         // Si la connexion réussit, le mot de passe est correct
         logger.debug('Mot de passe Firebase Auth valide')
         
-        // Sauvegarder la session
-        playerPasswordSessionManager.saveSession(playerId, password)
+        // Marquer l'appareil de confiance (pas de stockage du MDP)
+        playerPasswordSessionManager.saveSession(playerId)
         // Enregistrer la préférence locale de joueur privilégié pour cette saison
         try {
           if (seasonId) {
@@ -309,8 +309,8 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
       const inputHash = simpleHash(password)
       const isValid = protectionData.passwordHash === inputHash
       
-      if (isValid) {
-        playerPasswordSessionManager.saveSession(playerId, password)
+        if (isValid) {
+        playerPasswordSessionManager.saveSession(playerId)
         // Enregistrer la préférence locale de joueur privilégié pour cette saison
         try {
           if (seasonId) {
@@ -349,7 +349,8 @@ export function isPlayerPasswordCached(playerId) {
 
 // Récupérer le mot de passe en cache pour un joueur
 export function getCachedPlayerPassword(playerId) {
-  return playerPasswordSessionManager.getCachedPassword(playerId)
+  // Compat: ne renvoie plus de mot de passe. Indisponible par design.
+  return null
 }
 
 export async function sendPasswordResetEmail(playerId, seasonId = null) {

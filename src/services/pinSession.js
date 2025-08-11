@@ -1,5 +1,6 @@
 // Service de gestion de la session PIN
-const PIN_SESSION_DURATION = 10 * 60 * 1000 // 10 minutes en millisecondes
+// 1 semaine en millisecondes
+const PIN_SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
 const PIN_SESSION_KEY = 'impro_selector_pin_session'
 
 class PinSessionManager {
@@ -15,6 +16,11 @@ class PinSessionManager {
         const session = JSON.parse(sessionStr)
         // Vérifier si la session n'est pas expirée
         if (session.timestamp && (Date.now() - session.timestamp) < PIN_SESSION_DURATION) {
+          // Sliding expiration: toucher le timestamp à la lecture
+          try {
+            session.timestamp = Date.now()
+            localStorage.setItem(PIN_SESSION_KEY, JSON.stringify(session))
+          } catch (_) {}
           return session
         } else {
           // Session expirée, la supprimer
@@ -49,9 +55,17 @@ class PinSessionManager {
     if (!this.sessionData) return false
     
     // Vérifier si c'est la même saison et si la session n'est pas expirée
-    return this.sessionData.seasonId === seasonId && 
+    const valid = this.sessionData.seasonId === seasonId && 
            this.sessionData.timestamp && 
            (Date.now() - this.sessionData.timestamp) < PIN_SESSION_DURATION
+    // Sliding expiration: rafraîchir si valide
+    if (valid) {
+      try {
+        this.sessionData.timestamp = Date.now()
+        localStorage.setItem(PIN_SESSION_KEY, JSON.stringify(this.sessionData))
+      } catch (_) {}
+    }
+    return valid
   }
 
   // Récupérer le PIN en cache
