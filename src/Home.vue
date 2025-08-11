@@ -1,13 +1,19 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
     <!-- Header avec titre principal -->
-    <div class="text-center py-16 px-4">
+    <div class="text-center py-16 px-4 relative">
+      <button
+        @click="showAppHelp = true"
+        class="absolute right-4 top-4 text-white/90 hover:text-white p-2 rounded-full hover:bg-white/10"
+        title="Comment ça marche ?"
+        aria-label="Comment ça marche ?"
+      >
+        <span class="text-2xl">❓</span>
+      </button>
       <h1 class="text-6xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent animate-pulse">
-        Sélections Spectacle
+        Impro Pick
       </h1>
-      <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-        Gérez facilement les sélections pour vos spectacles.
-      </p>
+      <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">Arrêtez de vous prendre la tête pour savoir qui doit jouer, laissez le hasard choisir pour vous !</p>
     </div>
 
     <div class="container mx-auto px-4 pb-16" :aria-busy="isLoading">
@@ -201,6 +207,9 @@
       @cancel="handlePinCancel"
     />
 
+    <!-- Popin Aide (global) -->
+    <AppHelpModal :show="showAppHelp" @close="showAppHelp = false" />
+
     <!-- Footer -->
     <footer class="mt-16 border-t border-white/10">
       <div class="container mx-auto px-4 py-6 text-center text-xs text-gray-400">
@@ -225,6 +234,7 @@ import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrde
 import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
+import AppHelpModal from './components/AppHelpModal.vue'
 
 const seasons = ref([])
 const isLoading = ref(true)
@@ -243,6 +253,7 @@ const seasonToDelete = ref(null)
 const showPinModal = ref(false)
 const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
+const showAppHelp = ref(false)
 
 onMounted(async () => {
   try {
