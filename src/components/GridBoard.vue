@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
     <!-- Header avec titre de la saison -->
-    <div ref="pageHeaderRef" class="sticky top-0 z-[70] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
+    <div ref="pageHeaderRef" class="sticky top-0 z-[140] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
       <!-- Flèche de retour -->
       <button 
         @click="goBack"
@@ -58,7 +58,7 @@
           </button>
           <div
             v-if="showHeaderMenu"
-            class="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[95] overflow-hidden"
+            class="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[200] overflow-hidden"
           >
             <button
               @click="toggleShowArchived(); closeHeaderMenu()"
@@ -186,12 +186,12 @@
             class="fixed z-[400]"
             :style="{ left: addPlayerCoachmark.position.x + 'px', top: addPlayerCoachmark.position.y + 'px' }"
           >
-            <div class="coachmark pointer-events-auto max-w-xs bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-sm font-semibold mb-1">Ajoutez votre nom</div>
-              <div class="text-xs text-gray-300 mb-2">Cliquez sur "Ajouter un joueur" pour vous inscrire</div>
+            <div id="coachmark-add" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative" :class="{ 'coachmark-right': addPlayerCoachmark.side === 'right', 'coachmark-left': addPlayerCoachmark.side === 'left' }">
+              <div class="text-lg md:text-base font-semibold mb-1">Ajoutez votre nom</div>
+              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur "Ajouter un joueur" pour vous inscrire</div>
               <div class="flex items-center justify-between">
-                <span class="text-purple-300 text-xs">Étape 1/4</span>
-                <button @click="dismissCoachmarkStep(0)" class="text-xs text-white/80 hover:text-white">Suivant</button>
+                <span class="text-purple-300 text-base md:text-sm">Étape 1/4</span>
+                <button @click="dismissCoachmarkStep(0)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant ></button>
               </div>
             </div>
           </div>
@@ -204,12 +204,12 @@
             class="fixed z-[400]"
             :style="{ position: 'absolute', left: availabilityCoachmark.position.x + 'px', top: availabilityCoachmark.position.y + 'px' }"
           >
-            <div id="coachmark-avail" class="coachmark pointer-events-auto max-w-xs bg-gray-900 border border-pink-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-sm font-semibold mb-1">Indiquez vos disponibilités</div>
-              <div class="text-xs text-gray-300 mb-2">Cliquez cette case pour alterner Oui / Non / Vide</div>
+            <div id="coachmark-avail" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-pink-500/40 rounded-xl shadow-2xl p-3 text-white relative">
+              <div class="text-lg md:text-base font-semibold mb-1">Indiquez vos disponibilités</div>
+              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez cette case pour alterner Oui / Non / Vide</div>
               <div class="flex items-center justify-between">
-                <span class="text-pink-300 text-xs">Étape 2/4</span>
-                <button @click="dismissCoachmarkStep(1)" class="text-xs text-white/80 hover:text-white">Suivant</button>
+                <span class="text-pink-300 text-base md:text-sm">Étape 2/4</span>
+                <button @click="dismissCoachmarkStep(1)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant</button>
               </div>
             </div>
           </div>
@@ -222,12 +222,12 @@
             class="fixed z-[400]"
             :style="{ position: 'absolute', left: playerNameCoachmark.position.x + 'px', top: playerNameCoachmark.position.y + 'px' }"
           >
-            <div id="coachmark-name" class="coachmark pointer-events-auto max-w-xs bg-gray-900 border border-yellow-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-sm font-semibold mb-1">Ouvrez votre fiche</div>
-              <div class="text-xs text-gray-300 mb-2">Cliquez sur votre nom pour voir les détails et la protection</div>
+            <div id="coachmark-name" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-yellow-500/40 rounded-xl shadow-2xl p-3 text-white relative">
+              <div class="text-lg md:text-base font-semibold mb-1">Ouvrez votre fiche</div>
+              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur votre nom pour voir les détails et la protection</div>
               <div class="flex items-center justify-between">
-                <span class="text-yellow-300 text-xs">Étape 3/4</span>
-                <button @click="dismissCoachmarkStep(2)" class="text-xs text-white/80 hover:text-white">Suivant</button>
+                <span class="text-yellow-300 text-base md:text-sm">Étape 3/4</span>
+                <button @click="dismissCoachmarkStep(2)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant</button>
               </div>
             </div>
           </div>
@@ -287,8 +287,8 @@
               </td>
               <td class="p-3 md:p-4"></td>
             </tr>
-            <!-- Dernière ligne: ajouter un joueur (masquée pendant étapes 1 et 2 pour éviter les doublons) -->
-            <tr v-if="!(events.length === 0 && players.length === 0) && !(events.length > 0 && players.length === 0)" class="border-t border-white/10">
+            <!-- Dernière ligne: ajouter un joueur (toujours visible pour éviter blocage quand 0 joueur) -->
+            <tr class="border-t border-white/10">
               <td class="px-0 py-4 md:py-5 sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 flex items-center">
                   <button
@@ -1158,6 +1158,24 @@
     border-color: transparent transparent rgba(17,24,39,1) transparent; /* bg-gray-900 */
   }
 
+/* Variante flèche à gauche */
+.coachmark-left:after {
+  top: 16px;
+  left: auto;
+  right: -8px;
+  border-width: 8px 0 8px 8px;
+  border-color: transparent transparent transparent rgba(17,24,39,1);
+}
+
+/* Variante flèche à droite */
+.coachmark-right:after {
+  top: 16px;
+  left: -8px;
+  right: auto;
+  border-width: 8px 8px 8px 0;
+  border-color: transparent rgba(17,24,39,1) transparent transparent;
+}
+
 /* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
 </style>
 
@@ -1175,6 +1193,7 @@ import {
   loadAvailability,
   loadSelections,
   addPlayer,
+  deletePlayer,
   deleteEvent,
   updateEvent,
   saveEvent,
@@ -1232,7 +1251,7 @@ const newPlayerName = ref('')
 const highlightedPlayer = ref(null)
 const guidedPlayerId = ref(null)
 const guidedEventId = ref(null)
-const addPlayerCoachmark = ref({ position: null })
+const addPlayerCoachmark = ref({ position: null, side: null })
 const availabilityCoachmark = ref({ position: null })
 const playerNameCoachmark = ref({ position: null })
 const confirmReselect = ref(false)
@@ -1308,11 +1327,34 @@ function evaluatePlayerTourStart() {
       nextTick(() => {
         const addBtn = document.querySelector('button[data-onboarding="add-player"]')
         if (addBtn) {
-          addBtn.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          // Faire remonter le bas du bouton dans le viewport pour garantir la place au-dessus
+          addBtn.scrollIntoView({ behavior: 'smooth', block: 'end' })
           const rect = addBtn.getBoundingClientRect()
-          addPlayerCoachmark.value.position = {
-            x: Math.round(rect.left),
-            y: Math.round(rect.bottom + window.scrollY + 8)
+          const coachEl = document.getElementById('coachmark-add')
+          const estimatedWidth = 280
+          const estimatedHeight = 100
+          const coachWidth = coachEl?.offsetWidth || estimatedWidth
+          const coachHeight = coachEl?.offsetHeight || estimatedHeight
+          const rightX = Math.round(rect.right + 12)
+          const canRight = (rightX + coachWidth) <= (window.innerWidth - 12)
+          if (canRight) {
+            // Centrer verticalement dans le viewport (sans scrollY) + offset optique vers le haut
+            const centerY = rect.top + rect.height / 2 - coachHeight / 2
+            const opticalOffset = -14
+            const minY = 12
+            const maxY = window.innerHeight - coachHeight - 12
+            const y = Math.max(minY, Math.min(Math.round(centerY + opticalOffset), maxY))
+            addPlayerCoachmark.value = {
+              position: { x: rightX, y },
+              side: 'right'
+            }
+          } else {
+            // Fallback: au-dessus centré horizontalement
+            const centerX = Math.round(rect.left + rect.width / 2 - coachWidth / 2)
+            const y = Math.round(rect.top - coachHeight - 8)
+            const minX = 8
+            const maxX = window.innerWidth - coachWidth - 8
+            addPlayerCoachmark.value = { position: { x: Math.max(minX, Math.min(centerX, maxX)), y }, side: null }
           }
         }
       })
@@ -1599,6 +1641,42 @@ function highlightPlayer(playerId) {
   }, 3000)
 }
 
+// Repositionner la coachmark de l'étape 1 (ajout joueur) de façon robuste
+function positionAddCoachmark() {
+  if (playerTourStep.value !== 1) return
+  const addBtn = document.querySelector('button[data-onboarding="add-player"]')
+  if (!addBtn) return
+  const rect = addBtn.getBoundingClientRect()
+  const coachEl = document.getElementById('coachmark-add')
+  const estimatedWidth = 280
+  const estimatedHeight = 100
+  const coachWidth = (coachEl?.offsetWidth && coachEl.offsetWidth > 0) ? coachEl.offsetWidth : estimatedWidth
+  const coachHeight = (coachEl?.offsetHeight && coachEl.offsetHeight > 0) ? coachEl.offsetHeight : estimatedHeight
+  const rightX = Math.round(rect.right + 12)
+  const canRight = (rightX + coachWidth) <= (window.innerWidth - 12)
+  if (canRight) {
+    const centerY = rect.top + rect.height / 2 - coachHeight / 2
+    const opticalOffset = -14
+    const y = clampYWithHeader(centerY + opticalOffset, coachHeight)
+    addPlayerCoachmark.value = { position: { x: rightX, y }, side: 'right' }
+  } else {
+    const centerX = Math.round(rect.left + rect.width / 2 - coachWidth / 2)
+    const y = clampYWithHeader(rect.top - coachHeight - 8, coachHeight)
+    const minX = 8
+    const maxX = window.innerWidth - coachWidth - 8
+    addPlayerCoachmark.value = { position: { x: Math.max(minX, Math.min(centerX, maxX)), y }, side: null }
+  }
+}
+
+// Calcule un top sécurisé en tenant compte du header sticky visible
+function clampYWithHeader(y, coachHeight) {
+  const headerEl = pageHeaderRef?.value
+  const headerH = headerEl ? Math.max(0, Math.round(headerEl.getBoundingClientRect().height || 0)) : 0
+  const minY = Math.max(12, headerH + 8)
+  const maxY = window.innerHeight - coachHeight - 12
+  return Math.max(minY, Math.min(Math.round(y), maxY))
+}
+
 // Menu d'actions (mobile)
 const showHeaderMenu = ref(false)
 const headerMenuRef = ref(null)
@@ -1611,6 +1689,21 @@ function onClickOutsideHeaderMenu(e) {
 }
 onMounted(() => { document.addEventListener('click', onClickOutsideHeaderMenu) })
 onUnmounted(() => { document.removeEventListener('click', onClickOutsideHeaderMenu) })
+
+// Repositionner la coachmark à l'étape 1 lors des scroll/resize et des changements de joueurs
+function maybeRepositionCoachmark() {
+  if (playerTourStep.value === 1 && addPlayerCoachmark.value?.position) {
+    positionAddCoachmark()
+  }
+}
+onMounted(() => {
+  window.addEventListener('scroll', maybeRepositionCoachmark, { passive: true })
+  window.addEventListener('resize', maybeRepositionCoachmark)
+})
+onUnmounted(() => {
+  window.removeEventListener('scroll', maybeRepositionCoachmark)
+  window.removeEventListener('resize', maybeRepositionCoachmark)
+})
 
 // Lancer immédiatement le tutoriel joueur (bouton en haut à droite)
 function startPlayerTourNow() {
@@ -1632,12 +1725,35 @@ function startPlayerTourNow() {
   nextTick(() => {
     const addBtn = document.querySelector('button[data-onboarding="add-player"]')
     if (addBtn) {
-      addBtn.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      const rect = addBtn.getBoundingClientRect()
-      addPlayerCoachmark.value.position = {
-        x: Math.round(rect.left),
-        y: Math.round(rect.bottom + window.scrollY + 8)
-      }
+      // Assurer que le bas du bouton est visible, puis mesurer après reflow
+      addBtn.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      requestAnimationFrame(() => {
+        const rect = addBtn.getBoundingClientRect()
+        const coachEl = document.getElementById('coachmark-add')
+        const estimatedWidth = 280
+        const estimatedHeight = 100
+        const coachWidth = coachEl?.offsetWidth || estimatedWidth
+        const coachHeight = coachEl?.offsetHeight || estimatedHeight
+        const rightX = Math.round(rect.right + 12)
+        const canRight = (rightX + coachWidth) <= (window.innerWidth - 12)
+        if (canRight) {
+          const centerY = rect.top + rect.height / 2 - coachHeight / 2
+          const opticalOffset = -14
+          const minY = 12
+          const maxY = window.innerHeight - coachHeight - 12
+          const y = Math.max(minY, Math.min(Math.round(centerY + opticalOffset), maxY))
+          addPlayerCoachmark.value = {
+            position: { x: rightX, y },
+            side: 'right'
+          }
+        } else {
+          const centerX = Math.round(rect.left + rect.width / 2 - coachWidth / 2)
+          const y = Math.round(rect.top - coachHeight - 8)
+          const minX = 8
+          const maxX = window.innerWidth - coachWidth - 8
+          addPlayerCoachmark.value = { position: { x: Math.max(minX, Math.min(centerX, maxX)), y }, side: null }
+        }
+      })
     }
   })
 }
