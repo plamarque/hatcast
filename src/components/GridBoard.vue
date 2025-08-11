@@ -31,15 +31,6 @@
           </button>
           
           <button
-            @click="exportSeasonAvailabilityToCSV"
-            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            title="Exporter CSV"
-            aria-label="Exporter CSV"
-          >
-            <span class="text-2xl">⬇️</span>
-          </button>
-
-          <button
             @click="showHowItWorksGlobal = true"
             class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
             title="Kezako ?"
@@ -76,14 +67,6 @@
               <span class="text-sm">Mon compte</span>
             </button>
             
-            <button
-              @click="exportSeasonAvailabilityToCSV(); closeHeaderMenu()"
-              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-            >
-              <span>⬇️</span>
-              <span class="text-sm">Exporter CSV</span>
-            </button>
-
             <button
               @click="showHowItWorksGlobal = true; closeHeaderMenu()"
               class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
@@ -4303,83 +4286,6 @@ function clearEventFocus() {
   document.querySelectorAll('.focused-event-column-start, .focused-event-column-end').forEach(el => {
     el.classList.remove('focused-event-column-start', 'focused-event-column-end')
   })
-}
-
-// Export CSV: toutes les disponibilités de la saison (avec en-têtes)
-function exportSeasonAvailabilityToCSV() {
-  try {
-    // Construire les colonnes: Joueur + tous les évènements de la saison (triés)
-    const allEvents = sortedEvents.value || []
-    const header = ['Joueur', ...allEvents.map(e => formatCsvHeaderForEvent(e))]
-
-    // Lignes par joueur (tri alphabétique via sortedPlayers)
-    const rows = []
-    const playersOrdered = (sortedPlayers?.value ?? players.value) || []
-    for (const player of playersOrdered) {
-      const name = player?.name || ''
-      const availMap = availability.value?.[name] || {}
-      const line = [name, ...allEvents.map(e => availabilityToString(availMap[e.id]))]
-      rows.push(line)
-    }
-
-    // Générer CSV avec BOM pour compatibilité Excel
-    const csv = toCsvString([header, ...rows])
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
-
-    // Nom de fichier
-    const base = seasonName?.value || seasonSlug || 'saison'
-    const fileName = `${sanitizeFilename(base)}-disponibilites.csv`
-
-    // Déclencher le téléchargement
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = fileName
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Erreur export CSV', err)
-    alert('Erreur lors de l\'export CSV. Veuillez réessayer.')
-  }
-}
-
-function formatCsvHeaderForEvent(event) {
-  const dateObj = toDateObject(event?.date)
-  const iso = dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}` : ''
-  const title = event?.title || 'Sans titre'
-  return `${iso} · ${title}`.trim()
-}
-
-function availabilityToString(value) {
-  if (value === true || value === 'oui') return 'oui'
-  if (value === false || value === 'non') return 'non'
-  return ''
-}
-
-function toCsvString(matrix) {
-  return matrix.map(row => row.map(csvEscape).join(',')).join('\n')
-}
-
-function csvEscape(value) {
-  const str = String(value ?? '')
-  if (/[",\n\r]/.test(str)) {
-    return '"' + str.replace(/"/g, '""') + '"'
-  }
-  return str
-}
-
-function sanitizeFilename(name) {
-  return String(name || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '') // enlever accents
-    .replace(/[^a-zA-Z0-9\-_. ]+/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$|^\.+|\.+$/g, '')
-    || 'fichier'
 }
 
 // end of script setup
