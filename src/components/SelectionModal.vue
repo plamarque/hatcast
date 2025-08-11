@@ -10,7 +10,7 @@
         <p class="text-sm md:text-base text-purple-300">{{ formatDateFull(event?.date) }}</p>
         <div class="mt-3">
           <button @click="openHowItWorks" class="inline-flex items-center gap-2 text-sm text-blue-300 hover:text-blue-200">
-            <span>❓</span> <span>Comment ça marche ?</span>
+            <span>❓</span> <span>Kezako ?</span>
           </button>
         </div>
       </div>

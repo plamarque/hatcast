@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
     <!-- Header avec titre de la saison -->
-    <div ref="pageHeaderRef" class="sticky top-0 z-[140] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
+    <div ref="pageHeaderRef" class="sticky top-0 z-[60] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
       <!-- Flèche de retour -->
       <button 
         @click="goBack"
@@ -29,19 +29,12 @@
           >
             <span class="text-2xl">👤</span>
           </button>
-          <button
-            @click="startPlayerTourNow"
-            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            title="Lancer le tutoriel interactif"
-            aria-label="Lancer le tutoriel interactif"
-          >
-            <span class="text-2xl">✨</span>
-          </button>
+          
           <button
             @click="showHowItWorksGlobal = true"
             class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            title="Comment ça marche ?"
-            aria-label="Comment ça marche ?"
+            title="Kezako ?"
+            aria-label="Kezako ?"
           >
             <span class="text-2xl">❓</span>
           </button>
@@ -50,30 +43,22 @@
         <!-- Mobile: menu 3 points -->
         <div class="relative md:hidden" ref="headerMenuRef">
             <button
-              @click.stop="toggleHeaderMenu"
+              @click.stop="toggleHeaderMenu(); updateHeaderMenuPosition()"
               class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
               title="Menu"
               aria-label="Menu"
             >
               <span class="text-2xl">⋯</span>
             </button>
+        </div>
+        <teleport to="body">
           <div
             v-if="showHeaderMenu"
-            class="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[200] overflow-hidden"
+            ref="headerMenuDropdownRef"
+            class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[400] overflow-hidden"
+            :style="headerMenuStyle"
           >
-            <button
-              @click="toggleShowArchived(); closeHeaderMenu()"
-              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-            >
-              <span class="inline-flex items-center justify-center w-5 h-5">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12c1.5-4 5.25-7.5 9.75-7.5S20.25 8 21.75 12c-1.5 4-5.25 7.5-9.75 7.5S3.75 16 2.25 12z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  <path v-if="!showArchived" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/>
-                </svg>
-              </span>
-              <span class="text-sm">{{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}</span>
-            </button>
+            
             <button
               @click="openAccount(); closeHeaderMenu()"
               class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
@@ -81,22 +66,16 @@
               <span>👤</span>
               <span class="text-sm">Mon compte</span>
             </button>
-            <button
-              @click="startPlayerTourNow(); closeHeaderMenu()"
-              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-            >
-              <span>✨</span>
-              <span class="text-sm">Lancer le tutoriel</span>
-            </button>
+            
             <button
               @click="showHowItWorksGlobal = true; closeHeaderMenu()"
               class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
             >
               <span>❓</span>
-              <span class="text-sm">Comment ça marche ?</span>
+              <span class="text-sm">Kezako ?</span>
             </button>
           </div>
-        </div>
+        </teleport>
       </div>
     </div>
 
@@ -1642,6 +1621,7 @@ const showRightHint = ref(false)
   const headerScrollX = ref(0)
   const headerBarRef = ref(null)
   const headerEventsRef = ref(null)
+  const gridResizeObserver = ref(null)
 
 function updateScrollHints() {
   const el = gridboardRef.value
@@ -1854,15 +1834,57 @@ function clampYWithHeader(y, coachHeight) {
 // Menu d'actions (mobile)
 const showHeaderMenu = ref(false)
 const headerMenuRef = ref(null)
-function toggleHeaderMenu() { showHeaderMenu.value = !showHeaderMenu.value }
+const headerMenuDropdownRef = ref(null)
+const headerMenuStyle = ref({ position: 'fixed', top: '0px', right: '0px' })
+
+function updateHeaderMenuPosition() {
+  try {
+    const anchor = headerMenuRef.value
+    if (!anchor) return
+    const rect = anchor.getBoundingClientRect()
+    const gap = 8
+    const top = Math.max(gap, Math.round(rect.bottom + gap))
+    const right = Math.max(gap, Math.round(window.innerWidth - rect.right))
+    headerMenuStyle.value = {
+      position: 'fixed',
+      top: `${top}px`,
+      right: `${right}px`,
+      zIndex: 400
+    }
+  } catch {}
+}
+
+function toggleHeaderMenu() {
+  showHeaderMenu.value = !showHeaderMenu.value
+  if (showHeaderMenu.value) nextTick(() => updateHeaderMenuPosition())
+}
 function closeHeaderMenu() { showHeaderMenu.value = false }
 function onClickOutsideHeaderMenu(e) {
   if (!showHeaderMenu.value) return
-  const el = headerMenuRef.value
-  if (el && !el.contains(e.target)) showHeaderMenu.value = false
+  const anchorEl = headerMenuRef.value
+  const dropdownEl = headerMenuDropdownRef.value
+  const clickedInsideAnchor = anchorEl && anchorEl.contains(e.target)
+  const clickedInsideDropdown = dropdownEl && dropdownEl.contains(e.target)
+  if (!clickedInsideAnchor && !clickedInsideDropdown) showHeaderMenu.value = false
 }
-onMounted(() => { document.addEventListener('click', onClickOutsideHeaderMenu) })
-onUnmounted(() => { document.removeEventListener('click', onClickOutsideHeaderMenu) })
+function onKeydownHeaderMenu(e) {
+  if (e.key === 'Escape') closeHeaderMenu()
+}
+function repositionHeaderMenuIfOpen() {
+  if (showHeaderMenu.value) updateHeaderMenuPosition()
+}
+onMounted(() => {
+  document.addEventListener('click', onClickOutsideHeaderMenu)
+  document.addEventListener('keydown', onKeydownHeaderMenu)
+  window.addEventListener('scroll', repositionHeaderMenuIfOpen, { passive: true })
+  window.addEventListener('resize', repositionHeaderMenuIfOpen)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutsideHeaderMenu)
+  document.removeEventListener('keydown', onKeydownHeaderMenu)
+  window.removeEventListener('scroll', repositionHeaderMenuIfOpen)
+  window.removeEventListener('resize', repositionHeaderMenuIfOpen)
+})
 
 // Repositionner la coachmark à l'étape 1 lors des scroll/resize et des changements de joueurs
 function maybeRepositionCoachmark() {
@@ -2440,7 +2462,10 @@ onMounted(async () => {
   loadingProgress.value = 100
   isLoadingGrid.value = false
   nextTick(() => {
+    // Recalcule immédiat + raf + délai pour capter les changements de layout (mobile)
     updateScrollHints()
+    requestAnimationFrame(() => updateScrollHints())
+    setTimeout(() => updateScrollHints(), 250)
     const el = gridboardRef.value
     if (el) {
       el.addEventListener('scroll', (e) => {
@@ -2448,6 +2473,13 @@ onMounted(async () => {
         headerScrollX.value = el.scrollLeft || 0
       }, { passive: true })
       window.addEventListener('resize', updateScrollHints)
+      // Observer les changements de taille/contenu pour mettre à jour les chevrons
+      if (typeof ResizeObserver !== 'undefined') {
+        gridResizeObserver.value = new ResizeObserver(() => {
+          updateScrollHints()
+        })
+        gridResizeObserver.value.observe(el)
+      }
     }
 
   // (onboarding créateur désormais géré par CreatorOnboardingModal)
@@ -2696,6 +2728,12 @@ function performToggleAvailability(player, eventId) {
             }
           }
         })
+
+// Nettoyage listeners/observers
+onUnmounted(() => {
+  try { window.removeEventListener('resize', updateScrollHints) } catch {}
+  try { if (gridResizeObserver.value) gridResizeObserver.value.disconnect() } catch {}
+})
       }
     }
   } catch {}

@@ -5,8 +5,8 @@
       <button
         @click="showAppHelp = true"
         class="absolute right-4 top-4 text-white/90 hover:text-white p-2 rounded-full hover:bg-white/10"
-        title="Comment ça marche ?"
-        aria-label="Comment ça marche ?"
+        title="Kezako ?"
+        aria-label="Kezako ?"
       >
         <span class="text-2xl">❓</span>
       </button>
