@@ -31,6 +31,21 @@ export async function createMagicLink({ seasonId, playerId, eventId, action }) {
   return { id, token, url }
 }
 
+// Magic link pour vérification d'email de protection joueur
+// Utilise eventId spécial "protection" et action "verify_email"
+export async function createEmailVerificationLink({ seasonId, playerId, email }) {
+  const eventId = 'protection'
+  const action = 'verify_email'
+  const id = buildId({ seasonId, playerId, eventId, action })
+  const token = randomToken(40)
+  const ref = doc(db, COLLECTION, id)
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
+  await setDoc(ref, { seasonId, playerId, eventId, token, action, email, expiresAt })
+  const base = window.location.origin + '/'
+  const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+  return { id, token, url }
+}
+
 export async function verifyMagicLink({ seasonId, playerId, eventId, token, action }) {
   const id = buildId({ seasonId, playerId, eventId, action })
   const ref = doc(db, COLLECTION, id)

@@ -93,6 +93,9 @@
 .-mt-\[72px\] {
   margin-top: calc(72px * -1);
 }
+.ml-auto {
+  margin-left: auto;
+}
 .block {
   display: block;
 }

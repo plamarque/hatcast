@@ -266,6 +266,13 @@ watch(() => props.show, (newValue) => {
     editing.value = false
     editingName.value = ''
     pendingAction.value = null
+    // Sécurité: s'assurer que le sous-modal protection est bien fermé
+    showProtectionModal.value = false
   }
+})
+
+// Exposer une méthode pour ouvrir la protection depuis le parent
+defineExpose({
+  openProtection() { showProtectionModal.value = true }
 })
 </script>

@@ -61,6 +61,33 @@ export async function queueAvailabilityEmail({
   return { success: true }
 }
 
+// Envoi d'un email de vérification pour activer la protection
+export async function queueProtectionVerificationEmail({ toEmail, playerName, verifyUrl, fromEmail = undefined }) {
+  const html = `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <h2>Vérification de votre email</h2>
+      <p>Bonjour ${playerName},</p>
+      <p>Pour sécuriser votre joueur, merci de confirmer que vous avez accès à cette adresse email.</p>
+      <p>
+        <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;">Vérifier mon email</a>
+      </p>
+      <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans 7 jours.</p>
+    </div>
+  `
+  const subject = 'Confirmez votre email pour activer la protection'
+  const docData = {
+    to: toEmail,
+    message: { subject, html },
+    createdAt: serverTimestamp(),
+    meta: { reason: 'protection_email_verification', playerName }
+  }
+  if (fromEmail) {
+    docData.from = fromEmail
+    docData.replyTo = fromEmail
+  }
+  await addDoc(collection(db, 'mail'), docData)
+}
+
 // Fonction pour envoyer des emails de notification de sélection
 export async function queueSelectionEmail({
   toEmail,

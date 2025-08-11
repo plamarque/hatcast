@@ -1,6 +1,7 @@
 // src/services/playerProtection.js
 import { db } from './firebase.js'
 import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { createEmailVerificationLink } from './magicLinks.js'
 import playerPasswordSessionManager from './playerPasswordSession.js'
 
 // Fonction simple pour hasher un mot de passe (pour la démo)
@@ -85,24 +86,87 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
   }
 }
 
+// Etape 1: Démarrer la vérification email - envoie un magic link de vérification
+export async function startEmailVerificationForProtection({ playerId, email, seasonId = null }) {
+  // Vérifier unicité email
+  const protectionCollection = seasonId
+    ? collection(db, 'seasons', seasonId, 'playerProtection')
+    : collection(db, 'playerProtection')
+  const q = query(protectionCollection, where('email', '==', email))
+  const snap = await getDocs(q)
+  if (!snap.empty) {
+    const other = snap.docs.find(d => d.id !== playerId)
+    if (other) throw new Error('Cette adresse email est déjà utilisée par un autre joueur')
+  }
+
+  // Vérifier si l'email existe déjà dans Firebase Auth pour prévenir tôt
+  try {
+    const { fetchSignInMethodsForEmail } = await import('firebase/auth')
+    const { auth } = await import('./firebase.js')
+    const methods = await fetchSignInMethodsForEmail(auth, email)
+    if (Array.isArray(methods) && methods.length > 0) {
+      // Un compte Auth existe déjà avec cet email -> informer dès maintenant
+      throw new Error('Cette adresse email est déjà utilisée par un autre joueur')
+    }
+  } catch (authCheckError) {
+    // Si l'API renvoie invalid-email, laisser le contrôle au front; sinon relancer l'erreur si message défini
+    if (authCheckError?.code && authCheckError.code !== 'auth/invalid-email') {
+      throw authCheckError
+    }
+  }
+
+  // Stocker provisoirement l'email saisi (sans activer la protection)
+  const ref = seasonId
+    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+    : doc(db, 'playerProtection', playerId)
+  const existing = await getDoc(ref)
+  if (!existing.exists()) {
+    await setDoc(ref, { playerId, email, isProtected: false, createdAt: new Date() })
+  } else {
+    await updateDoc(ref, { email, updatedAt: new Date() })
+  }
+
+  // Créer et retourner le lien de vérification
+  const { url } = await createEmailVerificationLink({ seasonId, playerId, email })
+  return { success: true, url }
+}
+
+// Etape 2: Marquer l'email comme vérifié via la page /magic
+export async function markEmailVerifiedForProtection({ playerId, seasonId = null }) {
+  const ref = seasonId
+    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+    : doc(db, 'playerProtection', playerId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Protection introuvable')
+  await updateDoc(ref, { emailVerifiedAt: new Date() })
+  return { success: true }
+}
+
+// Réinitialiser la vérification d'email pour permettre de ressaisir une autre adresse
+export async function clearEmailVerificationForProtection({ playerId, seasonId = null }) {
+  const ref = seasonId
+    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+    : doc(db, 'playerProtection', playerId)
+  await updateDoc(ref, { emailVerifiedAt: null })
+  return { success: true }
+}
+
 export async function unprotectPlayer(playerId, seasonId = null) {
   try {
     const protectionRef = seasonId
       ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
       : doc(db, 'playerProtection', playerId)
     
-    // Récupérer l'email avant de désactiver la protection
-    const protectionData = await getPlayerProtectionData(playerId, seasonId)
-    const savedEmail = protectionData?.email || ''
-    
+    // Désactiver la protection et purger l'email pour confidentialité
     await setDoc(protectionRef, {
       playerId,
-      email: savedEmail, // Garder l'email même après désactivation
+      email: '',
       isProtected: false,
+      emailVerifiedAt: null,
       updatedAt: new Date()
     })
     
-    return { success: true, email: savedEmail }
+    return { success: true, email: '' }
   } catch (error) {
     console.error('Erreur lors de la suppression de la protection:', error)
     throw error

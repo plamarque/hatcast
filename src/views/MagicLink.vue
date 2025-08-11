@@ -22,6 +22,7 @@ import { verifyMagicLink, consumeMagicLink } from '../services/magicLinks.js'
 import { setSingleAvailability, setStorageMode } from '../services/storage.js'
 import { db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
+import { markEmailVerifiedForProtection } from '../services/playerProtection.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,19 +52,22 @@ onMounted(async () => {
     setStorageMode('firebase')
     // Plus de route de désistement dédiée: on traite uniquement les magic links
     
-    // Route magique normale
     const seasonId = String(route.query.sid || '')
     const playerId = String(route.query.pid || '')
-    const eventId = String(route.query.eid || '')
+    let eventId = String(route.query.eid || '')
     const token = String(route.query.t || '')
-    const action = String(route.query.a || '') // 'yes' | 'no'
+    const action = String(route.query.a || '') // 'yes' | 'no' | 'verify_email'
     const slug = String(route.query.slug || '')
 
-    if (!seasonId || !playerId || !eventId || !token || !action) {
+    if (!seasonId || !playerId || !token || !action) {
       status.value = 'error'
       title.value = 'Lien invalide'
       message.value = 'Paramètres manquants.'
       return
+    }
+
+    if (action === 'verify_email') {
+      eventId = 'protection'
     }
 
     const verification = await verifyMagicLink({ seasonId, playerId, eventId, token, action })
@@ -71,6 +75,22 @@ onMounted(async () => {
       status.value = 'error'
       title.value = 'Lien invalide'
       message.value = 'Le lien est invalide ou expiré.'
+      return
+    }
+
+    if (action === 'verify_email') {
+      // Vérification d'email pour protection de joueur
+      await markEmailVerifiedForProtection({ playerId, seasonId })
+      await consumeMagicLink({ seasonId, playerId, eventId: 'protection', action })
+      status.value = 'ok'
+      title.value = 'Email vérifié'
+      message.value = 'Merci ! Vous pouvez maintenant définir votre mot de passe.'
+      // Renvoyer vers la saison de départ
+      if (slug) {
+        setTimeout(() => router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&open=protection&verified=1`), 800)
+      } else {
+        setTimeout(() => router.push('/'), 800)
+      }
       return
     }
 

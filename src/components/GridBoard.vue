@@ -17,14 +17,24 @@
         {{ seasonName ? seasonName : 'Chargement...' }}
       </h1>
       
-      <!-- Bouton d'affichage des événements archivés -->
-      <button
-        @click="toggleShowArchived"
-        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-        :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
-      >
-        <span class="text-2xl">{{ showArchived ? '📂' : '📁' }}</span>
-      </button>
+      <!-- Actions à droite (archivés + aide) -->
+      <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+        <button
+          @click="toggleShowArchived"
+          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+          :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
+        >
+          <span class="text-2xl">{{ showArchived ? '📂' : '📁' }}</span>
+        </button>
+        <button
+          @click="showHowItWorksGlobal = true"
+          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+          title="Comment ça marche ?"
+          aria-label="Comment ça marche ?"
+        >
+          <span class="text-2xl">❓</span>
+        </button>
+      </div>
     </div>
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
@@ -833,6 +843,7 @@
 
   <!-- Modal de détails du joueur -->
   <PlayerModal
+    ref="playerModalRef"
     :show="showPlayerModal"
     :player="selectedPlayer"
     :stats="getPlayerStats(selectedPlayer)"
@@ -871,6 +882,9 @@
     @close="closeEventAnnounceModal"
     @send-email-notifications="handleSendEmailNotifications"
   />
+
+  <!-- Popin Aide (global) -->
+  <AppHelpModal :show="showHowItWorksGlobal" @close="showHowItWorksGlobal = false" />
 
   <!-- Modal de prompt pour annoncer après création/modification -->
   <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
@@ -1023,6 +1037,7 @@ import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
+import AppHelpModal from './AppHelpModal.vue'
 import PasswordResetModal from './PasswordResetModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PinModal from './PinModal.vue'
@@ -1066,6 +1081,7 @@ const eventIdToReselect = ref(null)
 // Variables pour le modal joueur
 const showPlayerModal = ref(false)
 const selectedPlayer = ref(null)
+const playerModalRef = ref(null)
 
 // Variables pour la protection par PIN
 const showPinModal = ref(false)
@@ -1123,6 +1139,7 @@ const showEventAnnounceModal = ref(false)
 const eventToAnnounce = ref(null)
 const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
+const showHowItWorksGlobal = ref(false)
 
 // Variables pour le modal de désistement
 // Désistement modal supprimé: on utilise les magic links "no"
@@ -1823,6 +1840,19 @@ onMounted(async () => {
       setTimeout(() => {
         showErrorMessage.value = false
       }, 3000)
+    }
+  }
+
+  // Ouvrir automatiquement la fiche joueur depuis l'URL (?player=...)
+  const playerIdFromUrl = route.query.player
+  if (playerIdFromUrl && players.value.length > 0) {
+    const target = players.value.find(p => p.id === playerIdFromUrl)
+    if (target) {
+      showPlayerDetails(target)
+      await nextTick()
+      if (route.query.open === 'protection' && playerModalRef?.value?.openProtection) {
+        playerModalRef.value.openProtection()
+      }
     }
   }
 
