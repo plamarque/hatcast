@@ -199,8 +199,51 @@ export async function updatePlayer(playerId, newName, seasonId = null) {
     const playerRef = seasonId
       ? doc(db, 'seasons', seasonId, 'players', playerId)
       : doc(db, 'players', playerId)
+
+    // Lire l'ancien nom (si existant) avant mise à jour
+    const prevSnap = await getDoc(playerRef)
+    const oldName = prevSnap.exists() ? (prevSnap.data().name || null) : null
+
     // Mettre à jour uniquement le nom et préserver les autres champs. Crée le doc s'il n'existe pas.
     await setDoc(playerRef, { name: newName }, { merge: true })
+
+    // Si le nom change, renommer les dépendances (availability + selections)
+    if (oldName && oldName !== newName) {
+      const batch = writeBatch(db)
+
+      // Renommer le document de disponibilités (clé = nom du joueur)
+      try {
+        const availRefOld = seasonId
+          ? doc(db, 'seasons', seasonId, 'availability', oldName)
+          : doc(db, 'availability', oldName)
+        const availSnap = await getDoc(availRefOld)
+        if (availSnap.exists()) {
+          const data = availSnap.data() || {}
+          const availRefNew = seasonId
+            ? doc(db, 'seasons', seasonId, 'availability', newName)
+            : doc(db, 'availability', newName)
+          batch.set(availRefNew, data, { merge: true })
+          batch.delete(availRefOld)
+        }
+      } catch (_) {}
+
+      // Mettre à jour les sélections (tableaux de noms)
+      try {
+        const selCol = seasonId
+          ? collection(db, 'seasons', seasonId, 'selections')
+          : collection(db, 'selections')
+        const selSnap = await getDocs(selCol)
+        selSnap.forEach((d) => {
+          const arr = Array.isArray(d.data()?.players) ? d.data().players : []
+          if (arr.includes(oldName)) {
+            const next = arr.map((n) => (n === oldName ? newName : n))
+            batch.update(d.ref, { players: next })
+          }
+        })
+      } catch (_) {}
+
+      await batch.commit()
+    }
   } else {
     const index = playersList.findIndex(player => player.id === playerId)
     if (index !== -1) {
