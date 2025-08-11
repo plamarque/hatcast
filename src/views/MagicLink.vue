@@ -22,7 +22,7 @@ import { verifyMagicLink, consumeMagicLink } from '../services/magicLinks.js'
 import { setSingleAvailability, setStorageMode } from '../services/storage.js'
 import { db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
-import { markEmailVerifiedForProtection } from '../services/playerProtection.js'
+import { markEmailVerifiedForProtection, finalizeProtectionAfterVerification } from '../services/playerProtection.js'
 import logger from '../services/logger.js'
 
 const route = useRoute()
@@ -82,6 +82,8 @@ onMounted(async () => {
     if (action === 'verify_email') {
       // Vérification d'email pour protection de joueur
       await markEmailVerifiedForProtection({ playerId, seasonId })
+      // Activer la protection si l'email existe déjà (compte existant)
+      try { await finalizeProtectionAfterVerification({ playerId, seasonId }) } catch {}
       await consumeMagicLink({ seasonId, playerId, eventId: 'protection', action })
       status.value = 'ok'
       title.value = 'Email vérifié'

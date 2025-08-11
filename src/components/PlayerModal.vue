@@ -34,10 +34,15 @@
         <!-- Actions secondaires (mobile: cachées par défaut, desktop: visibles en ligne) -->
         <div class="hidden md:flex justify-center flex-wrap gap-3 mt-6">
           <button @click="startEditing" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
-            <span>✏️</span><span>Modifier</span>
+            <span>✏️</span><span>Renommer</span>
           </button>
           <button @click="showProtectionModal = true" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
-            <span>🔒</span><span>Protection</span>
+            <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
+            <span>
+              {{ isProtectedForPlayer
+                ? (isOwnerForPlayer ? 'Dissocier de mon compte' : 'Déverrouiller')
+                : 'Verrouiller' }}
+            </span>
           </button>
           <button @click="handleDelete" class="px-5 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
             <span>🗑️</span><span>Supprimer</span>
@@ -50,7 +55,7 @@
         <!-- Menu plus d'actions (mobile) -->
         <div v-if="showMoreActions" class="md:hidden mt-3 space-y-2">
           <button @click="startEditing(); showMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-white/10">
-            ✏️ Modifier
+            ✏️ Renommer
           </button>
           <button @click="handleDelete(); showMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-red-600/20 text-red-200 border border-red-500/30">
             🗑️ Supprimer
@@ -61,7 +66,7 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="showProtectionModal = true" class="h-12 px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-[1.4]">
-          🔒 Protection
+          {{ isProtectedForPlayer ? (isOwnerForPlayer ? '🔓 Dissocier' : '🔓 Déverrouiller') : '🔒 Verrouiller' }}
         </button>
         <button @click="closeModal" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">
           Fermer
@@ -76,7 +81,7 @@
   <!-- Modal d'édition du nom -->
   <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier le joueur</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Renommer le joueur</h2>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nom</label>
         <input
@@ -105,8 +110,8 @@
     </div>
   </div>
 
-  <!-- Modal de protection du joueur -->
-<PlayerProtectionModal
+  <!-- Modal d'association du joueur -->
+<PlayerClaimModal
   :show="showProtectionModal"
   :player="player"
   :seasonId="seasonId"
@@ -128,7 +133,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import PlayerProtectionModal from './PlayerProtectionModal.vue'
+import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
 
@@ -168,6 +173,8 @@ const showProtectionModal = ref(false)
 const showPasswordVerification = ref(false)
 const pendingAction = ref(null) // 'update' ou 'delete'
 const showMoreActions = ref(false)
+const isProtectedForPlayer = ref(false)
+const isOwnerForPlayer = ref(false)
 
 
 
@@ -278,6 +285,12 @@ watch(() => props.show, (newValue) => {
     pendingAction.value = null
     // Sécurité: s'assurer que le sous-modal protection est bien fermé
     showProtectionModal.value = false
+  }
+  if (newValue && props.player?.id) {
+    isPlayerProtected(props.player.id, props.seasonId).then(v => { isProtectedForPlayer.value = !!v })
+    import('../services/playerProtection.js').then(mod => {
+      try { isOwnerForPlayer.value = !!mod.isPlayerPasswordCached(props.player.id) } catch { isOwnerForPlayer.value = false }
+    })
   }
 })
 

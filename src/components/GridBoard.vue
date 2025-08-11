@@ -22,11 +22,12 @@
         <!-- Desktop: actions visibles -->
         <div class="hidden md:flex items-center gap-2">
           <button
-            @click="toggleShowArchived"
+            @click="openAccountMenu"
             class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
+            title="Mon compte"
+            aria-label="Mon compte"
           >
-            <span class="text-2xl">{{ showArchived ? '📂' : '📁' }}</span>
+            <span class="text-2xl">👤</span>
           </button>
           <button
             @click="startPlayerTourNow"
@@ -48,14 +49,14 @@
 
         <!-- Mobile: menu 3 points -->
         <div class="relative md:hidden" ref="headerMenuRef">
-          <button
-            @click.stop="toggleHeaderMenu"
-            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            title="Menu"
-            aria-label="Menu"
-          >
-            <span class="text-2xl">⋯</span>
-          </button>
+            <button
+              @click.stop="toggleHeaderMenu"
+              class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+              title="Menu"
+              aria-label="Menu"
+            >
+              <span class="text-2xl">⋯</span>
+            </button>
           <div
             v-if="showHeaderMenu"
             class="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[200] overflow-hidden"
@@ -64,8 +65,21 @@
               @click="toggleShowArchived(); closeHeaderMenu()"
               class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
             >
-              <span>{{ showArchived ? '📂' : '📁' }}</span>
+              <span class="inline-flex items-center justify-center w-5 h-5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12c1.5-4 5.25-7.5 9.75-7.5S20.25 8 21.75 12c-1.5 4-5.25 7.5-9.75 7.5S3.75 16 2.25 12z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path v-if="!showArchived" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/>
+                </svg>
+              </span>
               <span class="text-sm">{{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}</span>
+            </button>
+            <button
+              @click="openAccountMenu(); closeHeaderMenu()"
+              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
+            >
+              <span>👤</span>
+              <span class="text-sm">Mon compte</span>
             </button>
             <button
               @click="startPlayerTourNow(); closeHeaderMenu()"
@@ -140,6 +154,20 @@
           </div>
           <!-- Right spacer (keeps end alignment) -->
           <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[81] bg-gray-900 h-full"></div>
+
+          <!-- Toggle archived events (top-right, above right chevron) -->
+          <button
+            @click="toggleShowArchived"
+            class="absolute right-2 top-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[86] backdrop-blur-sm"
+            :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
+            :aria-label="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12c1.5-4 5.25-7.5 9.75-7.5S20.25 8 21.75 12c-1.5 4-5.25 7.5-9.75 7.5S3.75 16 2.25 12z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path v-if="!showArchived" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/>
+            </svg>
+          </button>
 
           <!-- Horizontal scroll chevrons -->
           <button
@@ -1022,6 +1050,17 @@
   <!-- Popin Aide (global) -->
   <AppHelpModal :show="showHowItWorksGlobal" @close="showHowItWorksGlobal = false" />
 
+  <!-- Menu Compte (global) -->
+  <AccountMenu
+    :show="showAccountMenu"
+    :season-id="seasonId"
+    @close="closeAccountMenu"
+    @manage-player="onManageAccountPlayer"
+    @change-password="handleAccountChangePassword"
+    @logout-device="handleAccountLogoutDevice"
+    @delete-account="handleAccountDeleteAccount"
+  />
+
   <!-- Modal de prompt pour annoncer après création/modification -->
   <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
@@ -1190,6 +1229,8 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
+import { auth } from '../services/firebase.js'
+import { signOut } from 'firebase/auth'
 import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
 import { 
   initializeStorage, 
@@ -1220,11 +1261,12 @@ import PasswordResetModal from './PasswordResetModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
-import PlayerProtectionModal from './PlayerProtectionModal.vue'
+import PlayerClaimModal from './PlayerClaimModal.vue'
 import SelectionModal from './SelectionModal.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import CreatorOnboardingModal from './CreatorOnboardingModal.vue'
 import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
+import AccountMenu from './AccountMenu.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1380,6 +1422,67 @@ const eventToAnnounce = ref(null)
 const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
 const showHowItWorksGlobal = ref(false)
+const showAccountMenu = ref(false)
+function openAccountMenu() { showAccountMenu.value = true }
+function closeAccountMenu() { showAccountMenu.value = false }
+
+async function handleAccountChangePassword() {
+  try {
+    const email = auth?.currentUser?.email
+    if (!email) return
+    const { resetPlayerPassword } = await import('../services/firebase.js')
+    await resetPlayerPassword(email)
+    showSuccessMessage.value = true
+    successMessage.value = 'Email de réinitialisation envoyé.'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+  } catch (e) {
+    showErrorMessage.value = true
+    errorMessage.value = 'Impossible d\'envoyer l\'email de réinitialisation.'
+    setTimeout(() => { showErrorMessage.value = false }, 3000)
+  }
+}
+
+async function handleAccountLogoutDevice() {
+  try {
+    await signOut(auth)
+    closeAccountMenu()
+    showSuccessMessage.value = true
+    successMessage.value = 'Déconnecté de cet appareil.'
+    setTimeout(() => { showSuccessMessage.value = false }, 2500)
+  } catch (e) {
+    showErrorMessage.value = true
+    errorMessage.value = 'Déconnexion impossible.'
+    setTimeout(() => { showErrorMessage.value = false }, 3000)
+  }
+}
+
+async function handleAccountDeleteAccount() {
+  alert('Suppression de compte: contactez l\'organisateur pour dissocier vos joueurs. Fonction complète à venir.')
+}
+
+async function onManageAccountPlayer(assoc) {
+  closeAccountMenu()
+  try {
+    if (assoc.seasonId && assoc.seasonId !== seasonId.value) {
+      const seasonRef = doc(db, 'seasons', assoc.seasonId)
+      const seasonSnap = await getDocs(collection(db, 'seasons'))
+      const match = seasonSnap.docs.find(d => d.id === assoc.seasonId)
+      const slug = match?.data()?.slug
+      if (slug) {
+        router.push(`/season/${slug}?player=${encodeURIComponent(assoc.playerId)}&open=protection`)
+        return
+      }
+    } else {
+      const player = players.value.find(p => p.id === assoc.playerId)
+      if (player) {
+        showPlayerDetails(player)
+        return
+      }
+      // Fallback: ouvrir via URL
+      router.push(`?player=${encodeURIComponent(assoc.playerId)}&open=protection`)
+    }
+  } catch (_) {}
+}
 
   // Onboarding créateur (multi-étapes)
   // Onboarding créateur: géré par CreatorOnboardingModal
