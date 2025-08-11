@@ -42,6 +42,9 @@
 .z-50 {
   z-index: 50;
 }
+.z-\[5\] {
+  z-index: 5;
+}
 .z-\[60\] {
   z-index: 60;
 }
@@ -316,6 +319,11 @@
 }
 .justify-end {
   justify-content: flex-end;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .overflow-auto {
   overflow: auto;

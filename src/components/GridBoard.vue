@@ -1005,6 +1005,7 @@
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
     @send-email-notifications="handleSendEmailNotifications"
+    @update-selection="handleUpdateSelectionFromModal"
   />
 
   <!-- Modal d'annonce d'événement -->
@@ -2984,7 +2985,8 @@ function getPinModalMessage() {
     addEvent: 'Ajout d\'événement - Code PIN requis',
     deletePlayer: 'Suppression de joueur - Code PIN requis',
     launchSelection: 'Lancement de sélection - Code PIN requis',
-    toggleArchive: 'Archivage d\'événement - Code PIN requis'
+    toggleArchive: 'Archivage d\'événement - Code PIN requis',
+    updateSelection: 'Mise à jour de sélection - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -3287,6 +3289,18 @@ async function executePendingOperation(operation) {
             events.value[idx] = { ...events.value[idx], archived: !!data.archived }
           }
           editingArchived.value = !!data.archived
+        }
+        break
+      case 'updateSelection':
+        // Persister la sélection manuelle après validation du PIN
+        {
+          const { eventId, players } = data
+          await saveSelection(eventId, Array.isArray(players) ? players : [], seasonId.value)
+          selections.value[eventId] = Array.isArray(players) ? players : []
+          // Feedback via la modale de sélection si ouverte
+          try {
+            selectionModalRef.value?.showSuccess(true, true)
+          } catch {}
         }
         break
     }
@@ -3823,6 +3837,17 @@ function handlePerfectFromModal() {
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
+}
+
+// Sauvegarde d'une sélection manuelle via PIN
+async function handleUpdateSelectionFromModal(payload) {
+  if (!payload || !payload.eventId) return
+  const { eventId, players } = payload
+  // Demander le PIN avant enregistrement
+  await requirePin({
+    type: 'updateSelection',
+    data: { eventId, players }
+  })
 }
 
 // Fonction pour gérer le focus sur un événement spécifique depuis l'URL

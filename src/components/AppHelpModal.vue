@@ -6,7 +6,7 @@
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-2xl">🎭</div>
           <div>
-            <h2 class="text-xl md:text-2xl font-bold text-white">Bienvenue dans Impro Pick</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-white">Bienvenue dans Tu joues quand ?</h2>
             <p class="text-sm text-purple-300">L'appli impro pour organiser saisons, événements et sélections</p>
           </div>
         </div>
@@ -16,7 +16,7 @@
         <div class="bg-white/5 border border-white/10 rounded-lg p-4">
           <h3 class="text-white font-semibold mb-2">À quoi ça sert ?</h3>
           <p>
-            Impro Pick vous aide à gérer vos spectacles d'impro&nbsp;: saisons, événements, joueurs, disponibilités,
+            Tu joues quand ? vous aide à gérer vos spectacles d'impro&nbsp;: saisons, événements, joueurs, disponibilités,
             tirage au sort équitable et annonces. Fini les prises de tête&nbsp;: indiquez qui est dispo, et laissez le hasard pondéré faire le reste.
           </p>
         </div>

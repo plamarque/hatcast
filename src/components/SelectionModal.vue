@@ -16,26 +16,65 @@
       </div>
       
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <!-- 1) Sélection actuelle en premier -->
-        <div v-if="hasSelection" class="mb-3">
+        <!-- 1) Joueurs sélectionnés (avec édition inline et slots vides) -->
+        <div class="mb-3">
           <h3 class="text-base md:text-lg font-semibold text-white mb-2">Joueurs sélectionnés</h3>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-0">
             <div
-              v-for="player in currentSelection"
-              :key="player"
-              class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 rounded-lg border border-green-500/30 text-center"
-              :class="{
-                'from-red-500/20 to-red-600/20 border-red-500/30': !isPlayerAvailable(player),
-                'from-yellow-500/20 to-orange-500/20 border-yellow-500/30': isPlayerUnavailable(player)
-              }"
+              v-for="(slot, i) in slots"
+              :key="'sel-slot-'+i"
+              class="relative p-3 rounded-lg border text-center transition-colors"
+              :class="slot
+                ? [
+                    'bg-gradient-to-r',
+                    isPlayerUnavailable(slot)
+                      ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+                      : (!isPlayerAvailable(slot)
+                          ? 'from-red-500/20 to-red-600/20 border-red-500/30'
+                          : 'from-green-500/20 to-emerald-500/20 border-green-500/30')
+                  ]
+                : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
             >
-              <span class="text-white font-medium">
-                <span v-if="isPlayerSelected(player)" class="text-purple-400 mr-2">🎭</span>
-                <span v-else-if="isPlayerAvailable(player)" class="text-green-400 mr-2">✅</span>
-                <span v-else-if="isPlayerUnavailable(player)" class="text-red-400 mr-2">❌</span>
-                <span v-else class="text-gray-400 mr-2">–</span>
-                {{ player }}
-              </span>
+              <!-- Slot rempli -->
+              <div v-if="slot" class="flex items-center justify-between gap-2">
+                <div class="flex-1 text-white font-medium truncate" :title="slot">
+                  <span v-if="isInSavedSelectionAndAvailable(slot)" class="text-purple-400 mr-2">🎭</span>
+                  <span v-else-if="isPlayerAvailable(slot)" class="text-green-400 mr-2">✅</span>
+                  <span v-else-if="isPlayerUnavailable(slot)" class="text-red-400 mr-2">❌</span>
+                  <span v-else class="text-gray-400 mr-2">–</span>
+                  {{ slot }}
+                </div>
+                <button
+                  @click="clearSlot(i)"
+                  class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
+                  title="Retirer ce joueur"
+                >
+                  ×
+                </button>
+              </div>
+
+              <!-- Slot vide -->
+              <div v-else class="flex items-center justify-center">
+                <template v-if="editingSlotIndex === i">
+                  <select
+                    class="w-full bg-gray-800 text-white rounded-md p-2 border border-white/20 focus:outline-none"
+                    @change="onChooseForSlot($event, i)"
+                    @blur="cancelEditSlot()"
+                  >
+                    <option value="">— Choisir —</option>
+                    <option v-for="name in availableOptionsForSlot(i)" :key="name" :value="name">{{ name }}</option>
+                  </select>
+                </template>
+                <button
+                  v-else
+                  @click="startEditSlot(i)"
+                  class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
+                  title="Ajouter un joueur"
+                >
+                  <span class="text-lg">＋</span>
+                  <span class="text-sm">Ajouter</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -63,6 +102,8 @@
             <div class="text-xs md:text-sm text-gray-400">Sélectionnés</div>
           </div>
         </div>
+
+        
 
         <!-- 4) Message de succès après sélection -->
         <div v-if="showSuccessMessage" class="mb-3">
@@ -92,6 +133,9 @@
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="handleSelection" :disabled="availableCount === 0" class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')">
           ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
+        </button>
+        <button @click="saveManualSelection" :disabled="!hasManualChanges" class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed" title="Enregistrer cette composition manuelle">
+          💾 <span class="hidden sm:inline">Enregistrer</span><span class="sm:hidden">Save</span>
         </button>
         <button v-if="hasSelection" @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap">
           👍 <span class="hidden sm:inline">Parfait</span>
@@ -166,7 +210,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-email-notifications'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-email-notifications', 'update-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -175,6 +219,65 @@ const showSuccessMessage = ref(false)
 const successMessageText = ref('')
 const isReselection = ref(false)
 const showHowItWorks = ref(false)
+
+// --- Manual slots state ---
+const requiredCount = computed(() => props.event?.playerCount || 6)
+const slots = ref([])
+const editingSlotIndex = ref(null)
+
+// Build normalized current selection to the slots length
+const normalizedCurrentSelection = computed(() => {
+  const base = Array.from({ length: requiredCount.value }, (_, i) => props.currentSelection?.[i] || null)
+  return base
+})
+
+const hasManualChanges = computed(() => {
+  return JSON.stringify(slots.value) !== JSON.stringify(normalizedCurrentSelection.value)
+})
+
+const allAvailableNames = computed(() => {
+  return (props.players || [])
+    .map(p => p.name)
+    .filter(name => props.playerAvailability?.[name] === true)
+    .sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
+})
+
+function availableOptionsForSlot(index) {
+  const used = new Set(slots.value.filter(Boolean))
+  // If editing a slot that already had a value (rare here since editor opens for empty), allow keeping it
+  const current = slots.value[index]
+  if (current) used.delete(current)
+  return allAvailableNames.value.filter(name => !used.has(name))
+}
+
+function startEditSlot(index) {
+  editingSlotIndex.value = index
+}
+
+function cancelEditSlot() {
+  editingSlotIndex.value = null
+}
+
+function onChooseForSlot(event, index) {
+  const value = event?.target?.value || ''
+  if (value) {
+    slots.value[index] = value
+  }
+  editingSlotIndex.value = null
+}
+
+function clearSlot(index) {
+  slots.value[index] = null
+}
+
+const slotsWarning = computed(() => {
+  // Warn if more slots than available players
+  const freeCount = availableOptionsForSlot(-1).length // -1 -> no exclusion, all available
+  if (freeCount < requiredCount.value) {
+    return ''
+  }
+  return ''
+})
 
 // Computed properties
 const hasSelection = computed(() => {
@@ -230,7 +333,22 @@ watch(() => props.show, (newValue) => {
     successMessageText.value = ''
     isReselection.value = false
     showAnnounce.value = false
+    // Initialize slots from current selection and requiredCount
+    const filled = Array.isArray(props.currentSelection) ? [...props.currentSelection] : []
+    const len = requiredCount.value
+    slots.value = Array.from({ length: len }, (_, i) => filled[i] || null)
+    editingSlotIndex.value = null
   }
+})
+
+// Rebuild slots when playerCount changes while open
+watch([requiredCount, () => props.currentSelection, () => props.event?.id], () => {
+  if (!props.show) return
+  const filled = Array.isArray(props.currentSelection) ? [...props.currentSelection] : []
+  const len = requiredCount.value
+  // keep existing chosen values in order where possible
+  const next = Array.from({ length: len }, (_, i) => filled[i] || slots.value[i] || null)
+  slots.value = next.slice(0, len)
 })
 
 // Methods
@@ -272,6 +390,12 @@ function handlePerfect() {
   emit('perfect')
 }
 
+function saveManualSelection() {
+  if (!props.event?.id) return
+  const players = slots.value.filter(Boolean)
+  emit('update-selection', { eventId: props.event.id, players })
+}
+
 function close() {
   emit('close')
 }
@@ -295,6 +419,10 @@ function isPlayerUnavailable(playerName) {
 
 function isPlayerSelected(playerName) {
   // Un joueur est "sélectionné" s'il est dans la sélection actuelle ET disponible
+  return props.currentSelection.includes(playerName) && isPlayerAvailable(playerName)
+}
+
+function isInSavedSelectionAndAvailable(playerName) {
   return props.currentSelection.includes(playerName) && isPlayerAvailable(playerName)
 }
 

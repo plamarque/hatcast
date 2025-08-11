@@ -11,9 +11,9 @@
         <span class="text-2xl">❓</span>
       </button>
       <h1 class="text-6xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent animate-pulse">
-        Impro Pick
+        Tu joues quand ?
       </h1>
-      <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">Arrêtez de vous prendre la tête pour savoir qui doit jouer, laissez le hasard choisir pour vous !</p>
+      <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. Laissez chacun indiquer ses dispos et le hasard choisir pour vous !</p>
     </div>
 
     <div class="container mx-auto px-4 pb-16" :aria-busy="isLoading">
