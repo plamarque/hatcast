@@ -73,7 +73,7 @@
           Associer un compte
         </button>
         <button
-          v-else-if="!showDeactivateForm"
+          v-else
           @click="startDeactivateProtection"
           :disabled="loading"
           class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
@@ -81,34 +81,7 @@
           🔓 Dissocier
         </button>
       </div>
-      
-      <!-- Formulaire de dissociation -->
-      <div v-if="isProtected && showDeactivateForm" class="space-y-4 mt-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe de confirmation</label>
-          <input
-            v-model="deactivatePassword"
-            type="password"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="Entrez le mot de passe pour confirmer"
-          >
-        </div>
-        <div class="flex gap-3 justify-center">
-          <button
-            @click="confirmDeactivateProtection"
-            :disabled="!deactivatePassword || loading"
-            class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ loading ? 'Dissociation...' : 'Confirmer' }}
-          </button>
-          <button
-            @click="showDeactivateForm = false"
-            class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
-          >
-            Annuler
-          </button>
-        </div>
-      </div>
+
       
       <!-- Explication: pourquoi créer un compte ? -->
       <div v-if="!isProtected" class="mt-4">
@@ -140,13 +113,23 @@
     @close="showAccountClaim = false"
     @success="handleClaimSuccess"
   />
+
+  <!-- Modal de vérification du mot de passe -->
+  <PasswordVerificationModal
+    :show="showPasswordVerification"
+    :player="player"
+    :seasonId="seasonId"
+    @close="showPasswordVerification = false"
+    @verified="handlePasswordVerified"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { unprotectPlayer, isPlayerProtected, verifyPlayerPassword } from '../services/playerProtection.js'
+import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
 import { useRoute } from 'vue-router'
 import AccountClaimModal from './AccountClaimModal.vue'
+import PasswordVerificationModal from './PasswordVerificationModal.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -163,10 +146,9 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 const showExplanation = ref(false)
-const showDeactivateForm = ref(false)
-const deactivatePassword = ref('')
 const showAccountClaim = ref(false)
 const route = useRoute()
+const showPasswordVerification = ref(false)
 
 const validEmail = computed(() => false)
 const passwordsValid = computed(() => false)
@@ -248,24 +230,26 @@ async function activateProtection() {
 }
 
 function startDeactivateProtection() {
-  showDeactivateForm.value = true
-  deactivatePassword.value = ''
   error.value = ''
+  // Si le mot de passe du joueur est déjà en cache, on peut dissocier directement
+  try {
+    if (props.player?.id && isPlayerPasswordCached(props.player.id)) {
+      performUnprotect()
+      return
+    }
+  } catch {}
+  // Sinon, ouvrir la modal standard de vérification (gère aussi le PIN et MDP oublié)
+  showPasswordVerification.value = true
 }
 
-async function confirmDeactivateProtection() {
-  if (!deactivatePassword.value) return
+async function performUnprotect() {
   loading.value = true
   error.value = ''
   success.value = ''
   try {
-    const isValid = await verifyPlayerPassword(props.player.id, deactivatePassword.value, props.seasonId)
-    if (!isValid) { error.value = 'Mot de passe incorrect. Veuillez réessayer.'; return }
     const result = await unprotectPlayer(props.player.id, props.seasonId)
     success.value = 'Protection désactivée avec succès !'
     isProtected.value = false
-    showDeactivateForm.value = false
-    deactivatePassword.value = ''
     if (result.email) { email.value = result.email }
     emit('update')
   } catch (err) {
@@ -274,6 +258,11 @@ async function confirmDeactivateProtection() {
   } finally {
     loading.value = false
   }
+}
+
+function handlePasswordVerified() {
+  showPasswordVerification.value = false
+  performUnprotect()
 }
 
 function closeModal() { emit('close') }
@@ -285,8 +274,7 @@ watch(() => props.show, (newValue) => {
     error.value = ''
     success.value = ''
     showExplanation.value = false
-    showDeactivateForm.value = false
-    deactivatePassword.value = ''
+    showPasswordVerification.value = false
     checkProtectionStatus()
     if (props.onboarding) { nextTick(() => {}) }
   }
