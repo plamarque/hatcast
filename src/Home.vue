@@ -200,6 +200,22 @@
       @submit="handlePinSubmit"
       @cancel="handlePinCancel"
     />
+
+    <!-- Footer -->
+    <footer class="mt-16 border-t border-white/10">
+      <div class="container mx-auto px-4 py-6 text-center text-xs text-gray-400">
+        <span>© Patrice Lamarque 2025</span>
+        <span class="mx-2">•</span>
+        <span>Licence MIT</span>
+        <span class="mx-2">•</span>
+        <a
+          href="https://github.com/plamarque/impro-selector"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline decoration-white/20 hover:decoration-white/40 hover:text-gray-200"
+        >GitHub</a>
+      </div>
+    </footer>
   </div>
 </template>
 
