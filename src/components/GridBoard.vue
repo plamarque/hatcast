@@ -580,38 +580,67 @@
           </div>
         </div>
 
-        <!-- Section des disponibilités des joueurs -->
+        <!-- Section des disponibilités des joueurs (style allégé, filtres) -->
         <div v-if="selectedEvent" class="mb-4 md:mb-6">
-          <h3 class="text-lg font-semibold text-white mb-3">Disponibilités des joueurs</h3>
-          
-          <div class="bg-gray-800 border border-gray-600 rounded-lg overflow-hidden">
-            <!-- En-tête du tableau -->
-            <div class="grid grid-cols-12 gap-0 bg-gray-700 border-b border-gray-600">
-              <div class="col-span-4 p-3 font-medium text-gray-300">Joueur</div>
-              <div class="col-span-8 p-3 font-medium text-gray-300 text-center">Disponibilité</div>
-            </div>
-            
-            <!-- Lignes des joueurs -->
-            <div 
-              v-for="player in sortedPlayers" 
-              :key="player.id"
-              class="grid grid-cols-12 gap-0 border-b border-gray-600 last:border-b-0 hover:bg-gray-700/50 transition-colors"
+          <!-- Alerte + Filtres -->
+          <div class="mb-3 flex items-center">
+            <div
+              v-if="hasEventWarningForSelectedEvent"
+              class="flex items-center gap-2 px-2 py-1 rounded-md border text-[11px] md:text-xs max-w-[70%] truncate"
+              :class="eventStatus?.type === 'incomplete' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-200' : 'bg-orange-500/10 border-orange-500/30 text-orange-200'"
+              :title="eventWarningText"
             >
-              <div class="col-span-4 p-3 flex items-center min-w-0">
-                <span class="font-medium text-white block truncate max-w-full flex-1 min-w-0" :title="player.name">{{ player.name }}</span>
-                <span v-if="isPlayerProtectedInGrid(player.id)" class="text-yellow-400 ml-2 text-lg" title="Joueur protégé">🔒</span>
+              <span>⚠️</span>
+              <span class="truncate">{{ eventWarningText }}</span>
+            </div>
+
+            <select
+              v-model="availabilityFilter"
+              class="ml-auto bg-gray-800 text-white rounded-md px-3 py-2 border border-white/10 focus:outline-none text-sm"
+              title="Filtrer les joueurs par statut"
+            >
+              <option value="selected">Sélectionnés</option>
+              <option value="available">Disponibles</option>
+              <option value="unavailable">Non Disponibles</option>
+              <option value="unknown">Pas de réponse</option>
+              <option value="all">Tous</option>
+            </select>
+          </div>
+
+          <!-- Liste des joueurs (sans contour/table header) -->
+          <div class="space-y-0.5">
+            <div
+              v-for="player in filteredPlayers"
+              :key="player.id"
+              class="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-gray-800/40 transition-colors"
+            >
+              <div class="flex items-center min-w-0 gap-1.5">
+                <span
+                  v-if="isPlayerProtectedInGrid(player.id)"
+                  class="text-yellow-400 mr-1 text-xs"
+                  title="Joueur protégé par mot de passe"
+                >
+                  🔒
+                </span>
+                <span
+                  class="text-white text-sm md:text-base block truncate max-w-full flex-1 min-w-0"
+                  :title="player.name"
+                >
+                  {{ player.name }}
+                </span>
               </div>
-              
-              <div class="col-span-8 p-0">
-                 <AvailabilityCell
+
+              <div class="flex-0 p-0">
+                <AvailabilityCell
                   :player-name="player.name"
                   :event-id="selectedEvent.id"
                   :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
                   :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
                   :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                   :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                   :disabled="selectedEvent?.archived === true"
-                   @toggle="handleAvailabilityToggle"
+                  :show-selected-chance="isSelectionComplete(selectedEvent.id)"
+                  :disabled="selectedEvent?.archived === true"
+                  :compact="true"
+                  @toggle="handleAvailabilityToggle"
                 />
               </div>
             </div>
@@ -2615,6 +2644,46 @@ const displayedEvents = computed(() => {
 function toggleShowArchived() {
   showArchived.value = !showArchived.value
 }
+
+  // Filtre pour la liste de disponibilités dans le détail d'événement
+  const availabilityFilter = ref('selected') // selected | available | unavailable | unknown | all
+  const filteredPlayers = computed(() => {
+    if (!selectedEvent.value) return sortedPlayers.value
+    const eventId = selectedEvent.value.id
+    const selectionSet = new Set((selections.value?.[eventId] || []))
+
+    return sortedPlayers.value.filter(player => {
+      const name = player.name
+      const avail = availability.value[name]?.[eventId]
+      const isSel = selectionSet.has(name)
+
+      switch (availabilityFilter.value) {
+        case 'selected':
+          return isSel
+        case 'available':
+          return avail === true && !isSel
+        case 'unavailable':
+          return avail === false
+        case 'unknown':
+          return avail !== true && avail !== false
+        case 'all':
+        default:
+          return true
+      }
+    })
+  })
+
+  // Avertissements pour l'événement sélectionné
+  const eventStatus = computed(() => selectedEvent.value ? getEventStatus(selectedEvent.value.id) : null)
+  const hasEventWarningForSelectedEvent = computed(() => {
+    if (!selectedEvent.value) return false
+    const status = getEventStatus(selectedEvent.value.id)
+    return status.type === 'incomplete' || status.type === 'insufficient'
+  })
+  const eventWarningText = computed(() => {
+    if (!selectedEvent.value) return ''
+    return getEventTooltip(selectedEvent.value.id)
+  })
 
 async function toggleAvailability(playerName, eventId) {
   const player = players.value.find(p => p.name === playerName);

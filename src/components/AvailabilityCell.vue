@@ -1,8 +1,9 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 min-h-20 p-3 md:p-5"
+    class="flex items-center justify-center transition-all duration-200"
     :class="[
-      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
+      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10',
+      compact ? 'min-h-0 p-1 md:p-2' : 'min-h-20 p-3 md:p-5'
     ]"
     @click="toggleAvailability"
     @mouseenter="hover = true"
@@ -18,30 +19,30 @@
       </template>
       <template v-else>
         <span
-          v-if="isSelected"
-          class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
+          v-if="isSelected && isAvailable === true"
+          :class="[compact ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl', 'hover:scale-110 transition-transform duration-200']"
           :title="tooltipText"
         >
           🎭
         </span>
         <span
           v-else-if="isAvailable === true"
-          class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
+          :class="[compact ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl', 'hover:scale-110 transition-transform duration-200']"
           :title="tooltipText"
         >
           ✅
         </span>
         <span
           v-else-if="isAvailable === false"
-          class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
+          :class="[compact ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl', 'hover:scale-110 transition-transform duration-200']"
           :title="tooltipText"
         >
           ❌
         </span>
          <span
           v-else
-          class="text-gray-500 transition-colors duration-200 text-xl"
-          :class="disabled ? '' : 'hover:text-white'"
+          class="text-gray-500 transition-colors duration-200"
+          :class="[compact ? 'text-base md:text-lg' : 'text-xl md:text-2xl', disabled ? '' : 'hover:text-white']"
           :title="tooltipText"
         >
           –
@@ -58,6 +59,10 @@ const props = defineProps({
   playerName: {
     type: String,
     required: true
+  },
+  compact: {
+    type: Boolean,
+    default: false
   },
   eventId: {
     type: String,
@@ -100,7 +105,7 @@ const tooltipText = computed(() => {
   if (props.disabled) {
     return 'Événement archivé — désarchivez pour modifier'
   }
-  if (props.isSelected) {
+  if (props.isSelected && props.isAvailable === true) {
     if (shouldShowChance.value) {
       return `${props.playerName} est sélectionné pour cet événement • avait ~${props.chancePercent}% de chances`
     }
