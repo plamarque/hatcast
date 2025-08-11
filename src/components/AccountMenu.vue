@@ -12,9 +12,9 @@
 
       <!-- Tabs -->
       <div class="flex justify-center gap-2 mb-4">
-        <button @click="activeTab='players'" :class="tabClass('players')">Joueurs</button>
-        <button @click="activeTab='notifications'" :class="tabClass('notifications')">Notifications</button>
         <button @click="activeTab='manage'" :class="tabClass('manage')">Gérer</button>
+        <button @click="activeTab='notifications'" :class="tabClass('notifications')">Notifications</button>
+        <button @click="activeTab='players'" :class="tabClass('players')">Joueurs</button>
       </div>
 
       <div class="space-y-3">
