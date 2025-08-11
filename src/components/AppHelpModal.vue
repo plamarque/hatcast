@@ -22,30 +22,19 @@
         </div>
 
         <div class="space-y-3">
-          <h3 class="text-white font-semibold">Par où commencer</h3>
-          <ol class="list-decimal list-inside space-y-2 text-gray-300">
-            <li><span class="text-white">Créer une saison</span>&nbsp;: depuis l'accueil, cliquez «&nbsp;Nouvelle saison&nbsp;» et définissez un code PIN (4 chiffres) pour protéger les actions sensibles.</li>
-            <li><span class="text-white">Ajouter des joueurs</span>&nbsp;: dans la grille, utilisez «&nbsp;Ajouter un joueur&nbsp;».</li>
-            <li><span class="text-white">Créer des événements</span>&nbsp;: «&nbsp;Ajouter un événement&nbsp;», choisissez la date, le titre et le nombre de joueurs.</li>
-            <li><span class="text-white">Inviter les joueurs</span>&nbsp;: ouvrez un événement et cliquez «&nbsp;Annoncer&nbsp;» pour envoyer des liens magiques (email/copie) afin qu'ils indiquent leur disponibilité.</li>
-            <li><span class="text-white">Lancer la sélection</span>&nbsp;: quand il y a assez de «&nbsp;✅ Disponible&nbsp;», cliquez «&nbsp;Sélection Auto&nbsp;» pour tirer au sort de façon équitable.</li>
-          </ol>
-        </div>
-
-        <div class="space-y-2">
-          <h3 class="text-white font-semibold">Liens magiques et disponibilités</h3>
-          <p>
-            Les joueurs reçoivent un lien unique pour répondre «&nbsp;Oui/Non/Peut-être&nbsp;». Vous pouvez aussi mettre à jour leurs disponibilités directement dans la grille.
-          </p>
-        </div>
-
-        <div class="space-y-2">
-          <h3 class="text-white font-semibold">Sécurité et protections</h3>
-          <ul class="list-disc list-inside space-y-1 text-gray-300">
-            <li><span class="text-white">PIN de saison</span>&nbsp;: requis pour supprimer/modifier des éléments sensibles.</li>
-            <li><span class="text-white">Protection joueur</span>&nbsp;: vous pouvez protéger un joueur par mot de passe pour éviter les modifications non souhaitées.</li>
+          <h3 class="text-white font-semibold">Fonctionnalités principales</h3>
+          <ul class="list-disc list-inside space-y-2 text-gray-300">
+            <li><span class="text-white">Saisons</span>&nbsp;: regroupez vos événements par saison pour garder un historique clair.</li>
+            <li><span class="text-white">Événements</span>&nbsp;: créez des dates avec un titre et un nombre de joueurs à sélectionner; archivez-les quand ils sont passés.</li>
+            <li><span class="text-white">Joueurs</span>&nbsp;: gérez la liste des joueurs et leurs informations.</li>
+            <li><span class="text-white">Indication de disponibilité</span>&nbsp;: Oui/Non/Peut‑être via liens magiques ou directement dans la grille.</li>
+            <li><span class="text-white">Sélection automatique</span>&nbsp;: tirage au sort pondéré qui favorise l'équité sur la durée.</li>
+            <li><span class="text-white">Protection des saisies</span>&nbsp;: PIN de saison pour sécuriser les actions sensibles, mot de passe possible pour certains joueurs.</li>
+            <li><span class="text-white">Notifications</span>&nbsp;: annoncez un événement (email/lien) pour collecter facilement les disponibilités.</li>
           </ul>
         </div>
+
+        
 
         <div class="space-y-2 text-sm text-gray-300">
           <h3 class="text-white font-semibold">Astuces</h3>
