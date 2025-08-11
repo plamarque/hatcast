@@ -17,23 +17,72 @@
         {{ seasonName ? seasonName : 'Chargement...' }}
       </h1>
       
-      <!-- Actions à droite (archivés + aide) -->
+      <!-- Actions à droite -->
       <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-        <button
-          @click="toggleShowArchived"
-          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-          :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
-        >
-          <span class="text-2xl">{{ showArchived ? '📂' : '📁' }}</span>
-        </button>
-        <button
-          @click="showHowItWorksGlobal = true"
-          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-          title="Comment ça marche ?"
-          aria-label="Comment ça marche ?"
-        >
-          <span class="text-2xl">❓</span>
-        </button>
+        <!-- Desktop: actions visibles -->
+        <div class="hidden md:flex items-center gap-2">
+          <button
+            @click="toggleShowArchived"
+            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+            :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
+          >
+            <span class="text-2xl">{{ showArchived ? '📂' : '📁' }}</span>
+          </button>
+          <button
+            @click="startPlayerTourNow"
+            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+            title="Lancer le tutoriel interactif"
+            aria-label="Lancer le tutoriel interactif"
+          >
+            <span class="text-2xl">✨</span>
+          </button>
+          <button
+            @click="showHowItWorksGlobal = true"
+            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+            title="Comment ça marche ?"
+            aria-label="Comment ça marche ?"
+          >
+            <span class="text-2xl">❓</span>
+          </button>
+        </div>
+
+        <!-- Mobile: menu 3 points -->
+        <div class="relative md:hidden" ref="headerMenuRef">
+          <button
+            @click.stop="toggleHeaderMenu"
+            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+            title="Menu"
+            aria-label="Menu"
+          >
+            <span class="text-2xl">⋯</span>
+          </button>
+          <div
+            v-if="showHeaderMenu"
+            class="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[95] overflow-hidden"
+          >
+            <button
+              @click="toggleShowArchived(); closeHeaderMenu()"
+              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
+            >
+              <span>{{ showArchived ? '📂' : '📁' }}</span>
+              <span class="text-sm">{{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}</span>
+            </button>
+            <button
+              @click="startPlayerTourNow(); closeHeaderMenu()"
+              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
+            >
+              <span>✨</span>
+              <span class="text-sm">Lancer le tutoriel</span>
+            </button>
+            <button
+              @click="showHowItWorksGlobal = true; closeHeaderMenu()"
+              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
+            >
+              <span>❓</span>
+              <span class="text-sm">Comment ça marche ?</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1252,6 +1301,7 @@ function evaluatePlayerTourStart() {
     const alreadyCompleted = localStorage.getItem(`playerTourCompleted:${seasonId.value}`)
     const startFlag = localStorage.getItem(`startPlayerTour:${seasonId.value}`)
     if (!alreadyCompleted && startFlag) {
+      // Toujours démarrer par l'étape 1 (ajout) même si un joueur existe déjà
       playerTourStep.value = 1
       localStorage.removeItem(`startPlayerTour:${seasonId.value}`)
       // Positionner le coachmark près du bouton Ajouter un joueur (scroll si hors vue)
@@ -1547,6 +1597,49 @@ function highlightPlayer(playerId) {
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
+}
+
+// Menu d'actions (mobile)
+const showHeaderMenu = ref(false)
+const headerMenuRef = ref(null)
+function toggleHeaderMenu() { showHeaderMenu.value = !showHeaderMenu.value }
+function closeHeaderMenu() { showHeaderMenu.value = false }
+function onClickOutsideHeaderMenu(e) {
+  if (!showHeaderMenu.value) return
+  const el = headerMenuRef.value
+  if (el && !el.contains(e.target)) showHeaderMenu.value = false
+}
+onMounted(() => { document.addEventListener('click', onClickOutsideHeaderMenu) })
+onUnmounted(() => { document.removeEventListener('click', onClickOutsideHeaderMenu) })
+
+// Lancer immédiatement le tutoriel joueur (bouton en haut à droite)
+function startPlayerTourNow() {
+  try {
+    if (seasonId.value) {
+      localStorage.removeItem(`playerTourCompleted:${seasonId.value}`)
+      localStorage.setItem(`startPlayerTour:${seasonId.value}`, '1')
+    }
+  } catch {}
+  // Réinitialiser l'état de guidage
+  guidedPlayerId.value = guidedPlayerId.value || (players.value[0]?.id || null)
+  guidedEventId.value = displayedEvents.value[0]?.id || null
+  addPlayerCoachmark.value.position = null
+  availabilityCoachmark.value.position = null
+  playerNameCoachmark.value.position = null
+  // Démarrer à l'étape 1
+  playerTourStep.value = 1
+  // Positionner le coachmark sur le bouton Ajouter un joueur
+  nextTick(() => {
+    const addBtn = document.querySelector('button[data-onboarding="add-player"]')
+    if (addBtn) {
+      addBtn.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const rect = addBtn.getBoundingClientRect()
+      addPlayerCoachmark.value.position = {
+        x: Math.round(rect.left),
+        y: Math.round(rect.bottom + window.scrollY + 8)
+      }
+    }
+  })
 }
 
 // Fonction pour cacher la mise en évidence
@@ -2469,7 +2562,8 @@ function startAvailabilityGuidance() {
   let targetPlayerId = null
   try { if (seasonId.value) targetPlayerId = localStorage.getItem(`lastAddedPlayerId:${seasonId.value}`) } catch {}
   if (!targetPlayerId && players.value.length > 0) {
-    // Repli: prendre le premier joueur trié
+    // On veut quand même montrer l'étape 1 même si un joueur existe déjà
+    // Donc ne pas passer automatiquement à l'étape 2 ici
     targetPlayerId = players.value[0]?.id || null
   }
   guidedPlayerId.value = targetPlayerId
