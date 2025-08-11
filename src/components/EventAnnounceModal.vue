@@ -4,7 +4,9 @@
       <!-- Header -->
       <div class="relative p-5 pb-4 border-b border-white/10">
         <button @click="onClose" title="Fermer" class="absolute right-2.5 top-2.5 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
-        <h2 class="text-xl md:text-2xl font-bold text-white pr-10">Annoncer l'événement</h2>
+        <h2 class="text-xl md:text-2xl font-bold text-white pr-10">
+          {{ mode === 'selection' ? 'Annoncer la sélection' : 'Annoncer l\'événement' }}
+        </h2>
         <p class="text-sm text-purple-300 mt-1" v-if="event">{{ event.title }} — {{ formatDateFull(event.date) }}</p>
       </div>
 
@@ -12,7 +14,12 @@
       <div class="px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto">
         <!-- Message d'information -->
         <div class="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20 p-3">
-          <p class="text-blue-200 text-sm">Choisis comment annoncer cet événement aux joueurs :</p>
+          <p class="text-blue-200 text-sm">
+            {{ mode === 'selection' 
+              ? 'Choisis comment annoncer cette sélection aux joueurs :' 
+              : 'Choisis comment annoncer cet événement aux joueurs :' 
+            }}
+          </p>
         </div>
 
         <!-- Onglets de méthode d'annonce -->
@@ -37,15 +44,8 @@
           <!-- Prévisualisation du message -->
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Prévisualisation du message :</label>
-            <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 text-white">
-              <p class="font-medium mb-2">Disponibilité demandée</p>
-              <p class="mb-2">Bonjour [Nom du joueur],</p>
-              <p class="mb-2">Peux-tu indiquer ta disponibilité pour <a :href="eventDirectLink" target="_blank" class="text-blue-400 hover:text-blue-300 underline font-semibold">{{ event?.title }}</a> ({{ formatDateFull(event?.date) }}) ?</p>
-              <p class="mb-2">Clique sur l'un des liens ci-dessous :</p>
-              <div class="flex gap-2 mt-3">
-                <span class="px-3 py-1 bg-green-600 text-white rounded text-sm">Oui, je suis disponible</span>
-                <span class="px-3 py-1 bg-red-600 text-white rounded text-sm">Non, je ne suis pas disponible</span>
-              </div>
+            <div class="bg-gray-800 border border-gray-600 rounded-lg p-4 text-white whitespace-pre-line">
+              {{ previewMessage }}
             </div>
           </div>
 
@@ -65,15 +65,18 @@
             <!-- Hint pour les destinataires -->
             <div v-if="showDestinatairesHint" class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-3">
               <p class="text-blue-200 text-sm">
-                Les destinataires sont les joueurs qui ont renseigné une adresse email en utilisant la fonction Protéger.
+                {{ mode === 'selection' 
+                  ? 'Les destinataires sont les joueurs sélectionnés qui ont renseigné une adresse email en utilisant la fonction Protéger.'
+                  : 'Les destinataires sont les joueurs qui ont renseigné une adresse email en utilisant la fonction Protéger.'
+                }}
               </p>
             </div>
             
             <div class="bg-gray-800 border border-gray-600 rounded-lg p-3">
-              <div v-if="protectedPlayersWithEmail.length > 0" class="space-y-2">
+              <div v-if="recipientsWithEmail.length > 0" class="space-y-2">
                 <div class="flex flex-wrap gap-2">
                   <span
-                    v-for="player in protectedPlayersWithEmail"
+                    v-for="player in recipientsWithEmail"
                     :key="player.id"
                     class="px-3 py-1 bg-gray-700 text-white rounded text-sm"
                   >
@@ -82,20 +85,15 @@
                 </div>
               </div>
               <div v-else class="text-amber-400 text-sm">
-                ⚠️ Aucun joueur protégé avec email renseigné. Les notifications ne pourront pas être envoyées.
+                ⚠️ {{ mode === 'selection' 
+                  ? 'Aucun joueur sélectionné avec email renseigné. Les notifications ne pourront pas être envoyées.'
+                  : 'Aucun joueur protégé avec email renseigné. Les notifications ne pourront pas être envoyées.'
+                }}
               </div>
             </div>
           </div>
 
-          <!-- Bouton d'envoi -->
-          <button
-            @click="sendEmailNotifications"
-            :disabled="protectedPlayersWithEmail.length === 0 || isSending"
-            class="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600"
-          >
-            <span v-if="!isSending">📧 Envoyer les notifications email</span>
-            <span v-else>📧 Envoi en cours...</span>
-          </button>
+
         </div>
 
         <!-- Contenu de l'onglet Copie -->
@@ -125,18 +123,33 @@
             </button>
           </div>
 
-          <button
-            @click="copyToClipboard"
-            class="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300"
-          >
-            📋 Copier le message
-          </button>
+
         </div>
       </div>
 
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="onClose" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">
+        <!-- Bouton d'action selon l'onglet actif -->
+        <button
+          v-if="activeTab === 'email'"
+          @click="sendEmailNotifications"
+          :disabled="recipientsWithEmail.length === 0 || isSending"
+          class="h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex-1"
+        >
+          <span v-if="!isSending">📧 Envoyer les notifications email</span>
+          <span v-else>📧 Envoi en cours...</span>
+        </button>
+        
+        <button
+          v-if="activeTab === 'copy'"
+          @click="copyToClipboard"
+          class="h-12 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 flex-1"
+        >
+          📋 Copier le message
+        </button>
+        
+        <!-- Bouton fermer -->
+        <button @click="onClose" class="h-12 px-4 bg-gray-700 text-white rounded-lg">
           Fermer
         </button>
       </div>
@@ -152,10 +165,14 @@ const props = defineProps({
   event: { type: Object, default: null },
   seasonId: { type: String, default: '' },
   seasonSlug: { type: String, default: '' },
-  players: { type: Array, default: () => [] }
+  players: { type: Array, default: () => [] },
+  // Nouvelle prop pour différencier le mode
+  mode: { type: String, default: 'event', validator: (value) => ['event', 'selection'].includes(value) },
+  // Pour le mode sélection, on peut passer les joueurs sélectionnés
+  selectedPlayers: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['close', 'notifications-sent'])
+const emit = defineEmits(['close', 'notifications-sent', 'send-email-notifications'])
 
 const activeTab = ref('email')
 const copied = ref(false)
@@ -178,19 +195,60 @@ const eventDirectLink = computed(() => {
 const copyMessage = computed(() => {
   if (!props.event) return ''
   const eventDate = formatDateFull(props.event.date)
-  return `Bonjour !\n\nNouvel événement : ${props.event.title}\nDate : ${eventDate}\n\nLien direct vers l'événement : ${eventDirectLink.value}\n\nMerci de confirmer votre disponibilité.`
+  
+  if (props.mode === 'selection') {
+    const playersList = props.selectedPlayers.join(', ')
+    return `Sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
+  } else {
+    return `Bonjour !\n\nNouvel événement : ${props.event.title}\nDate : ${eventDate}\n\nLien direct vers l'événement : ${eventDirectLink.value}\n\nMerci de confirmer votre disponibilité.`
+  }
 })
 
-const protectedPlayersWithEmail = ref([])
-
-// Charger les emails des joueurs protégés
-async function loadProtectedPlayersEmails() {
-  if (!props.seasonId || !props.players) return
+// Message complet pour la prévisualisation (même logique que l'email)
+const previewMessage = computed(() => {
+  if (!props.event || !props.selectedPlayers) return ''
   
-  const protectedPlayers = props.players.filter(player => player.isProtected)
+  if (props.mode === 'selection') {
+    const playersList = props.selectedPlayers.join(', ')
+    return `Sélection confirmée
+
+Bonjour [Nom du joueur],
+
+Tu as été sélectionné(e) pour ${props.event.title} (${formatDateFull(props.event.date)}).
+
+Sélection complète : ${playersList}.
+
+Tu n'es plus disponible ? Signale le rapidement ici : [Lien de désistement]`
+  } else {
+    return `Disponibilité demandée
+
+Bonjour [Nom du joueur],
+
+Peux-tu indiquer ta disponibilité pour ${props.event.title} (${formatDateFull(props.event.date)}) ?`
+  }
+})
+
+const recipientsWithEmail = ref([])
+
+// Charger les emails des destinataires selon le mode
+async function loadRecipientsEmails() {
+  if (!props.seasonId) return
+  
+  let targetPlayers = []
+  
+  if (props.mode === 'selection') {
+    // Mode sélection : on prend les joueurs sélectionnés
+    targetPlayers = props.players.filter(player => 
+      props.selectedPlayers.includes(player.name)
+    )
+  } else {
+    // Mode événement : on prend les joueurs protégés
+    targetPlayers = props.players.filter(player => player.isProtected)
+  }
+  
   const playersWithEmail = []
   
-  for (const player of protectedPlayers) {
+  for (const player of targetPlayers) {
     try {
       // Importer la fonction depuis le service
       const { getPlayerEmail } = await import('../services/playerProtection.js')
@@ -206,7 +264,7 @@ async function loadProtectedPlayersEmails() {
     }
   }
   
-  protectedPlayersWithEmail.value = playersWithEmail
+  recipientsWithEmail.value = playersWithEmail
 }
 
 // Functions
@@ -236,18 +294,27 @@ function copyToClipboard() {
 }
 
 async function sendEmailNotifications() {
-  if (!props.event || protectedPlayersWithEmail.value.length === 0) return
+  if (!props.event || recipientsWithEmail.value.length === 0) return
   
   isSending.value = true
   
   try {
-    // Utiliser la logique existante de sendAvailabilityEmailsForEvent
-    // On émet un événement pour que GridBoard gère l'envoi
-    emit('send-email-notifications', {
-      eventId: props.event.id,
-      eventData: props.event,
-      reason: 'manual'
-    })
+    if (props.mode === 'selection') {
+      // Mode sélection : émettre un événement spécifique
+      emit('send-email-notifications', {
+        eventId: props.event.id,
+        eventData: props.event,
+        reason: 'selection',
+        selectedPlayers: props.selectedPlayers
+      })
+    } else {
+      // Mode événement : utiliser la logique existante
+      emit('send-email-notifications', {
+        eventId: props.event.id,
+        eventData: props.event,
+        reason: 'manual'
+      })
+    }
     
     // Le modal sera fermé par GridBoard après l'envoi réussi
   } catch (error) {
@@ -262,7 +329,7 @@ async function sendEmailNotifications() {
 onMounted(() => {
   if (props.show) {
     activeTab.value = 'email'
-    loadProtectedPlayersEmails()
+    loadRecipientsEmails()
   }
 })
 
@@ -270,7 +337,14 @@ onMounted(() => {
 watch(() => props.show, (newShow) => {
   if (newShow) {
     activeTab.value = 'email'
-    loadProtectedPlayersEmails()
+    loadRecipientsEmails()
+  }
+})
+
+// Watch for changes in selectedPlayers (mode sélection)
+watch(() => props.selectedPlayers, () => {
+  if (props.show && props.mode === 'selection') {
+    loadRecipientsEmails()
   }
 })
 </script>

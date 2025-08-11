@@ -19,7 +19,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { verifyMagicLink, consumeMagicLink } from '../services/magicLinks.js'
-import { setSingleAvailability } from '../services/storage.js'
+import { setSingleAvailability, setStorageMode } from '../services/storage.js'
 import { db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
 
@@ -47,6 +47,11 @@ function goToSeason() {
 
 onMounted(async () => {
   try {
+    // Assurer le mode Firebase pour les écritures
+    setStorageMode('firebase')
+    // Plus de route de désistement dédiée: on traite uniquement les magic links
+    
+    // Route magique normale
     const seasonId = String(route.query.sid || '')
     const playerId = String(route.query.pid || '')
     const eventId = String(route.query.eid || '')
@@ -91,8 +96,12 @@ onMounted(async () => {
       ? 'Votre disponibilité a été enregistrée: Disponible.'
       : 'Votre disponibilité a été enregistrée: Non disponible.'
 
-    // Optionnel: redirection automatique
-    setTimeout(() => goToSeason(), 2000)
+    // Redirection vers la page de l'événement pour afficher les détails
+    if (slug) {
+      setTimeout(() => router.push(`/season/${slug}/event/${eventId}`), 1200)
+    } else {
+      setTimeout(() => router.push('/'), 1200)
+    }
   } catch (err) {
     console.error('Magic link error:', err)
     status.value = 'error'

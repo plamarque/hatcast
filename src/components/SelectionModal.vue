@@ -99,18 +99,22 @@
   </div>
   
   <!-- Popin Annoncer -->
-  <AnnounceModal
+  <EventAnnounceModal
     :show="showAnnounce"
     :event="event"
-    :message="selectionMessage"
-    :is-partial="isReselection"
+    :season-id="seasonId"
+    :season-slug="seasonSlug"
+    :players="players"
+    mode="selection"
+    :selected-players="currentSelection"
     @close="showAnnounce = false"
+    @send-email-notifications="handleSendEmailNotifications"
   />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import AnnounceModal from './AnnounceModal.vue'
+import EventAnnounceModal from './EventAnnounceModal.vue'
 
 const props = defineProps({
   show: {
@@ -137,10 +141,23 @@ const props = defineProps({
   playerAvailability: {
     type: Object,
     default: () => ({})
+  },
+  // Nouvelles props pour EventAnnounceModal
+  seasonId: {
+    type: String,
+    default: ''
+  },
+  seasonSlug: {
+    type: String,
+    default: ''
+  },
+  players: {
+    type: Array,
+    default: () => []
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-email-notifications'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -333,4 +350,12 @@ function hideSuccessMessage() {
 defineExpose({
   showSuccess
 })
+
+// Fonction pour gérer l'envoi d'emails de sélection
+function handleSendEmailNotifications(data) {
+  // Émettre l'événement vers le parent (GridBoard)
+  emit('send-email-notifications', data)
+  // Fermer le modal d'annonce
+  showAnnounce.value = false
+}
 </script>

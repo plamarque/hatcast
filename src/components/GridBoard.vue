@@ -836,9 +836,13 @@
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
     :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
+    :season-id="seasonId"
+    :season-slug="seasonSlug"
+    :players="enrichedPlayers"
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
+    @send-email-notifications="handleSendEmailNotifications"
   />
 
   <!-- Modal d'annonce d'événement -->
@@ -874,6 +878,8 @@
       </div>
     </div>
   </div>
+
+  
 </template>
 
 <style>
@@ -990,11 +996,12 @@ import {
   deleteEvent,
   updateEvent,
   saveEvent,
-  saveAvailability
+  saveAvailability,
+  saveSelection
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
-import { queueAvailabilityEmail } from '../services/emailService.js'
+import { queueAvailabilityEmail, sendSelectionEmailsForEvent } from '../services/emailService.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
@@ -1008,11 +1015,15 @@ import PlayerProtectionModal from './PlayerProtectionModal.vue'
 import SelectionModal from './SelectionModal.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 
-// Déclarer la prop slug
+// Déclarer les props
 const props = defineProps({
   slug: {
     type: String,
     required: true
+  },
+  eventId: {
+    type: String,
+    required: false
   }
 })
 
@@ -1097,14 +1108,36 @@ const eventToAnnounce = ref(null)
 const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
 
+// Variables pour le modal de désistement
+// Désistement modal supprimé: on utilise les magic links "no"
+
 // Variables pour la protection des joueurs
 const protectedPlayers = ref(new Set())
 const isLoadingGrid = ref(true)
 
 // Variables pour le focus sur un événement spécifique
-const focusedEventId = ref(null)
+const focusedEventId = ref(props.eventId || null)
 const showFocusedEventHighlight = ref(false)
 const focusedEventScrollTimeout = ref(null)
+
+// Watcher pour la prop eventId
+watch(() => props.eventId, (newEventId) => {
+  if (newEventId) {
+    focusedEventId.value = newEventId
+    // Attendre que les événements soient chargés avant de faire le focus
+    if (events.value.length > 0) {
+      focusOnEvent(newEventId)
+    } else {
+      // Si les événements ne sont pas encore chargés, attendre
+      const unwatch = watch(events, (newEvents) => {
+        if (newEvents.length > 0) {
+          focusOnEvent(newEventId)
+          unwatch() // Arrêter de surveiller
+        }
+      }, { immediate: true })
+    }
+  }
+})
 
 // Computed property pour enrichir les joueurs avec leur statut de protection et email
 const enrichedPlayers = computed(() => {
@@ -1641,6 +1674,8 @@ onMounted(async () => {
     }
   }
 
+  // Désistement: plus de modal/route dédiée, on utilise les magic links "no"
+
   function scrollHeaderBy(direction) {
     const el = gridboardRef.value
     if (!el) return
@@ -1651,12 +1686,25 @@ onMounted(async () => {
 
 // Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
 watch(() => route.params.eventId, (newEventId) => {
-  if (newEventId && events.value.length > 0) {
-    // Trouver l'événement correspondant
-    const targetEvent = events.value.find(e => e.id === newEventId);
-    if (targetEvent) {
-      // Ouvrir automatiquement la popup de détails
-      showEventDetails(targetEvent);
+  if (newEventId) {
+    const openWhenReady = () => {
+      const targetEvent = events.value.find(e => e.id === newEventId)
+      if (targetEvent) {
+        showEventDetails(targetEvent)
+        return true
+      }
+      return false
+    }
+
+    if (events.value.length > 0) {
+      openWhenReady()
+    } else {
+      const unwatch = watch(events, (newEvents) => {
+        if (newEvents.length > 0) {
+          const done = openWhenReady()
+          if (done) unwatch()
+        }
+      }, { immediate: true })
     }
   }
 }, { immediate: true })
@@ -2509,11 +2557,24 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-function showEventDetails(event) {
-  selectedEvent.value = event;
-  editingDescription.value = event.description || '';
-  editingArchived.value = !!event.archived;
-  showEventDetailsModal.value = true;
+async function showEventDetails(event) {
+  selectedEvent.value = event
+  editingDescription.value = event.description || ''
+  editingArchived.value = !!event.archived
+
+  // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
+  try {
+    const [newAvailability, newSelections] = await Promise.all([
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadSelections(seasonId.value)
+    ])
+    availability.value = newAvailability
+    selections.value = newSelections
+  } catch (e) {
+    console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
+  }
+
+  showEventDetailsModal.value = true
 }
 
 function closeEventDetails() {
@@ -2892,15 +2953,34 @@ function closeAnnouncePrompt() {
   announcePromptEvent.value = null
 }
 
-async function handleSendEmailNotifications({ eventId, eventData, reason }) {
+async function handleSendEmailNotifications({ eventId, eventData, reason, selectedPlayers }) {
   try {
-    await sendAvailabilityEmailsForEvent({ eventId, eventData, reason })
-    
-    // Fermer le modal et afficher le message de succès
-    closeEventAnnounceModal()
-    showSuccessMessage.value = true
-    successMessage.value = 'Notifications envoyées avec succès !'
-    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    if (reason === 'selection') {
+      // Mode sélection : envoyer des emails de notification de sélection
+      await sendSelectionEmailsForEvent({ 
+        eventId, 
+        eventData, 
+        selectedPlayers,
+        seasonId: seasonId.value,
+        seasonSlug: seasonSlug,
+        players: enrichedPlayers.value
+      })
+      
+      // Fermer le modal de sélection et afficher le message de succès
+      closeSelectionModal()
+      showSuccessMessage.value = true
+      successMessage.value = 'Notifications de sélection envoyées avec succès !'
+      setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    } else {
+      // Mode événement : utiliser la logique existante
+      await sendAvailabilityEmailsForEvent({ eventId, eventData, reason })
+      
+      // Fermer le modal et afficher le message de succès
+      closeEventAnnounceModal()
+      showSuccessMessage.value = true
+      successMessage.value = 'Notifications envoyées avec succès !'
+      setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    }
   } catch (error) {
     console.error('Erreur lors de l\'envoi des notifications:', error)
     showSuccessMessage.value = true
@@ -2930,6 +3010,8 @@ function closeSelectionModal() {
   showSelectionModal.value = false
   selectionModalEvent.value = null
 }
+
+// Désistement helpers supprimés
 
 async function handleSelectionFromModal() {
   if (!selectionModalEvent.value) return
@@ -3023,7 +3105,19 @@ function focusOnEvent(eventId) {
   if (!eventId) return
   
   const targetEvent = events.value.find(e => e.id === eventId)
-  if (!targetEvent) return
+  if (!targetEvent) {
+    console.warn(`Événement ${eventId} non trouvé dans la liste des événements`)
+    // Attendre un peu et réessayer
+    setTimeout(() => {
+      const retryEvent = events.value.find(e => e.id === eventId)
+      if (retryEvent) {
+        focusOnEventFromUrl(eventId, retryEvent)
+      } else {
+        console.error(`Événement ${eventId} toujours introuvable après retry`)
+      }
+    }, 500)
+    return
+  }
   
   // Utiliser la fonction spécialisée pour l'URL
   focusOnEventFromUrl(eventId, targetEvent)
