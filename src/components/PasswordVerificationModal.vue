@@ -119,6 +119,7 @@
 import { ref, watch, nextTick } from 'vue'
 import { verifyPlayerPassword, sendPasswordResetEmail } from '../services/playerProtection.js'
 import { getSeasonPin } from '../services/seasons.js'
+import logger from '../services/logger.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 
 const props = defineProps({
@@ -174,7 +175,7 @@ async function verifyPassword() {
       error.value = 'Mot de passe incorrect. Veuillez réessayer.'
     }
   } catch (err) {
-    console.error('Erreur lors de la vérification:', err)
+    logger.error('Erreur lors de la vérification', err)
     error.value = 'Erreur lors de la vérification. Veuillez réessayer.'
   } finally {
     loading.value = false
@@ -191,7 +192,7 @@ async function sendResetEmail() {
     const result = await sendPasswordResetEmail(props.player.id, props.seasonId)
     forgotPasswordSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
   } catch (err) {
-    console.error('Erreur lors de l\'envoi de l\'email:', err)
+    logger.error('Erreur lors de l\'envoi de l\'email', err)
     forgotPasswordError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
   } finally {
     loading.value = false

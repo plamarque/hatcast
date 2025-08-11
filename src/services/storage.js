@@ -1,5 +1,6 @@
 // storage.js
 import { db } from './firebase.js'
+import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 
 let mode = 'mock' // or 'firebase'
@@ -293,26 +294,26 @@ export async function saveSelection(eventId, players, seasonId = null) {
 }
 
 export async function deleteEvent(eventId, seasonId = null) {
-  console.log('Suppression de l\'événement:', eventId)
+  logger.info('Suppression de l\'événement', { eventId })
   
   if (mode === 'firebase') {
     try {
       // Supprimer l'événement
-      console.log('Suppression de l\'événement dans Firestore')
+      logger.debug('Suppression de l\'événement dans Firestore')
       const eventRef = seasonId
         ? doc(db, 'seasons', seasonId, 'events', eventId)
         : doc(db, 'events', eventId)
       await deleteDoc(eventRef)
       
       // Supprimer la sélection associée
-      console.log('Suppression de la sélection associée')
+      logger.debug('Suppression de la sélection associée')
       const selRef = seasonId
         ? doc(db, 'seasons', seasonId, 'selections', eventId)
         : doc(db, 'selections', eventId)
       await deleteDoc(selRef)
       
       // Supprimer les disponibilités pour cet événement
-      console.log('Suppression des disponibilités')
+      logger.debug('Suppression des disponibilités')
       const availabilitySnap = seasonId
         ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
         : await getDocs(collection(db, 'availability'))
@@ -321,7 +322,7 @@ export async function deleteEvent(eventId, seasonId = null) {
       availabilitySnap.forEach(doc => {
         const availabilityData = doc.data()
         if (availabilityData[eventId] !== undefined) {
-          console.log('Mise à jour de la disponibilité pour:', doc.id)
+          logger.debug('Mise à jour de la disponibilité pour un joueur')
           const updatedData = { ...availabilityData }
           delete updatedData[eventId]
           batch.update(doc.ref, updatedData)
@@ -329,9 +330,9 @@ export async function deleteEvent(eventId, seasonId = null) {
       })
       
       await batch.commit()
-      console.log('Opérations de suppression terminées avec succès')
+      logger.info('Opérations de suppression terminées avec succès')
     } catch (error) {
-      console.error('Erreur lors de la suppression:', error)
+      logger.error('Erreur lors de la suppression', error)
       throw error
     }
   } else {

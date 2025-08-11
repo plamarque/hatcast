@@ -72,6 +72,7 @@
 import { ref, computed } from 'vue'
 import { updatePassword } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
+import logger from '../services/logger.js'
 import { updatePlayerPasswordInFirestore } from '../services/playerProtection.js'
 
 const props = defineProps({
@@ -136,7 +137,7 @@ async function resetPassword() {
       closeModal()
     }, 2000)
   } catch (err) {
-    console.error('Erreur lors de la réinitialisation:', err)
+    logger.error('Erreur lors de la réinitialisation', err)
     
     if (err.code === 'auth/weak-password') {
       error.value = 'Le mot de passe doit contenir au moins 6 caractères'

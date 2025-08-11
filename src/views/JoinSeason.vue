@@ -51,6 +51,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
 import { addPlayer } from '../services/storage.js'
+import logger from '../services/logger.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -101,7 +102,7 @@ async function submit() {
       goToSeason()
     }, 600)
   } catch (err) {
-    console.error('Erreur inscription:', err)
+    logger.error('Erreur inscription', err)
     feedback.value = `Erreur lors de l'inscription: ${err?.message || 'Veuillez réessayer'}`
   } finally {
     isSubmitting.value = false

@@ -235,6 +235,7 @@ import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 import AppHelpModal from './components/AppHelpModal.vue'
+import logger from './services/logger.js'
 
 const seasons = ref([])
 const isLoading = ref(true)
@@ -259,9 +260,9 @@ onMounted(async () => {
   try {
     // Charger vite les saisons pour afficher rapidement
     seasons.value = await getSeasons()
-    console.log('Saisons chargées:', seasons.value)
+    logger.info('Saisons chargées', { count: seasons.value?.length || 0 })
     // Lancer les migrations en arrière-plan
-    migrateMissingSortOrders().catch(err => console.error('Migration sortOrder échouée', err))
+    migrateMissingSortOrders().catch(err => logger.error('Migration sortOrder échouée', err))
   } finally {
     isLoading.value = false
   }
@@ -313,7 +314,7 @@ async function migrateMissingSortOrders() {
         await setSeasonSortOrder(s.id, maxOrder)
         s.sortOrder = maxOrder
       } catch (e) {
-        console.error('Erreur migration sortOrder pour', s.name, e)
+        logger.error('Erreur migration sortOrder', { seasonName: s?.name, error: e })
       }
     }
   }
@@ -334,7 +335,7 @@ async function moveSeasonUp(index) {
       setSeasonSortOrder(prev.id, prev.sortOrder)
     ])
   } catch (e) {
-    console.error('Erreur lors du déplacement vers le haut', e)
+    logger.error('Erreur lors du déplacement vers le haut', e)
   }
 }
 
@@ -353,7 +354,7 @@ async function moveSeasonDown(index) {
       setSeasonSortOrder(next.id, next.sortOrder)
     ])
   } catch (e) {
-    console.error('Erreur lors du déplacement vers le bas', e)
+    logger.error('Erreur lors du déplacement vers le bas', e)
   }
 }
 
@@ -397,7 +398,7 @@ async function createSeason() {
     await migrateMissingSortOrders() // Assigner un ordre si manquant (nouvelles saisons en dernier)
     cancelCreate()
   } catch (error) {
-    console.error('Erreur lors de la création de la saison:', error)
+    logger.error('Erreur lors de la création de la saison', error)
     alert('Erreur lors de la création de la saison. Veuillez réessayer.')
   }
 }
@@ -427,21 +428,21 @@ async function deleteSeasonWithPin() {
 }
 
 async function deleteSeasonConfirmed() {
-  console.log('deleteSeasonConfirmed appelé avec seasonToDelete:', seasonToDelete.value)
+  logger.debug('deleteSeasonConfirmed appelé', { hasSeason: !!seasonToDelete.value })
   if (!seasonToDelete.value) {
-    console.log('Aucune saison à supprimer')
+    logger.warn('Aucune saison à supprimer')
     return
   }
 
   try {
-    console.log('Suppression de la saison ID:', seasonToDelete.value.id)
+    logger.info('Suppression de la saison', { seasonId: seasonToDelete.value.id })
     await deleteSeason(seasonToDelete.value.id)
-    console.log('Saison supprimée, rechargement de la liste...')
+    logger.info('Saison supprimée, rechargement de la liste')
     seasons.value = await getSeasons() // Recharger la liste
-    console.log('Nouvelle liste des saisons:', seasons.value)
+    logger.info('Liste des saisons rechargée', { count: seasons.value?.length || 0 })
     cancelDelete()
   } catch (error) {
-    console.error('Erreur lors de la suppression de la saison:', error)
+    logger.error('Erreur lors de la suppression de la saison', error)
     alert('Erreur lors de la suppression de la saison. Veuillez réessayer.')
   }
 }
@@ -466,7 +467,7 @@ async function requirePin(operation) {
   // Vérifier si le PIN est déjà en cache pour cette saison
   if (pinSessionManager.isPinCached(seasonToDelete.value.id)) {
     const cachedPin = pinSessionManager.getCachedPin(seasonToDelete.value.id)
-    console.log('PIN en cache trouvé, utilisation automatique')
+    logger.debug('PIN en cache trouvé, utilisation automatique')
     
     // Vérifier que le PIN est toujours valide
     const isValid = await verifySeasonPin(seasonToDelete.value.id, cachedPin)
@@ -486,23 +487,23 @@ async function requirePin(operation) {
 }
 
 async function handlePinSubmit(pinCode) {
-  console.log('PIN soumis:', pinCode, 'pour l\'opération:', pendingOperation.value)
+  logger.debug('PIN soumis pour l\'opération', { operationType: pendingOperation.value?.type })
   try {
     const seasonId = pendingOperation.value?.data?.seasonId || seasonToDelete.value?.id
     const isValid = await verifySeasonPin(seasonId, pinCode)
-    console.log('PIN valide:', isValid)
+    logger.debug('PIN validé', { valid: isValid })
     
     if (isValid) {
       // Sauvegarder le PIN en session
       pinSessionManager.saveSession(seasonId, pinCode)
       
-      console.log('PIN correct, fermeture de la modal et exécution de l\'opération')
+      logger.debug('PIN correct, fermeture de la modal et exécution de l\'opération')
       showPinModal.value = false
       const operationToExecute = pendingOperation.value
       pendingOperation.value = null
       
       // Exécuter l'opération en attente
-      console.log('Appel de executePendingOperation avec:', operationToExecute)
+      logger.debug('Appel de executePendingOperation', { operationType: operationToExecute?.type })
       await executePendingOperation(operationToExecute)
     } else {
       pinErrorMessage.value = 'Code PIN incorrect'
@@ -512,7 +513,7 @@ async function handlePinSubmit(pinCode) {
       }, 3000)
     }
   } catch (error) {
-    console.error('Erreur lors de la vérification du PIN:', error)
+    logger.error('Erreur lors de la vérification du PIN', error)
     pinErrorMessage.value = 'Erreur lors de la vérification du code PIN'
   }
 }
@@ -534,29 +535,29 @@ function getSessionInfo() {
 }
 
 async function executePendingOperation(operation) {
-  console.log('executePendingOperation appelé avec:', operation)
+  logger.debug('executePendingOperation appelé', { hasOperation: !!operation })
   if (!operation) {
-    console.log('Aucune opération à exécuter')
+    logger.warn('Aucune opération à exécuter')
     return
   }
   
   const { type, data } = operation
-  console.log('Exécution de l\'opération:', type, 'avec données:', data)
+  logger.info('Exécution de l\'opération', { type })
   
   try {
     switch (type) {
       case 'deleteSeason':
-        console.log('Suppression de la saison ID:', data.seasonId)
+        logger.info('Suppression de la saison', { seasonId: data.seasonId })
         await deleteSeason(data.seasonId)
-        console.log('Saison supprimée, rechargement de la liste...')
+        logger.info('Saison supprimée, rechargement de la liste')
         seasons.value = await getSeasons() // Recharger la liste
-        console.log('Nouvelle liste des saisons:', seasons.value)
+        logger.info('Liste des saisons rechargée', { count: seasons.value?.length || 0 })
         break
       default:
-        console.log('Type d\'opération non reconnu:', type)
+        logger.warn('Type d\'opération non reconnu', { type })
     }
   } catch (error) {
-    console.error('Erreur lors de l\'exécution de l\'opération:', error)
+    logger.error('Erreur lors de l\'exécution de l\'opération', error)
     alert('Erreur lors de l\'opération. Veuillez réessayer.')
   }
 }

@@ -23,6 +23,7 @@ import { setSingleAvailability, setStorageMode } from '../services/storage.js'
 import { db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
 import { markEmailVerifiedForProtection } from '../services/playerProtection.js'
+import logger from '../services/logger.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,7 +124,7 @@ onMounted(async () => {
       setTimeout(() => router.push('/'), 1200)
     }
   } catch (err) {
-    console.error('Magic link error:', err)
+    logger.error('Magic link error', err)
     status.value = 'error'
     title.value = 'Erreur'
     message.value = 'Impossible de traiter votre lien.'

@@ -22,7 +22,8 @@ class PinSessionManager {
         }
       }
     } catch (error) {
-      console.error('Erreur lors du chargement de la session PIN:', error)
+      // eslint-disable-next-line no-console
+      console.error('Erreur lors du chargement de la session PIN')
     }
     return null
   }
@@ -38,7 +39,8 @@ class PinSessionManager {
       localStorage.setItem(PIN_SESSION_KEY, JSON.stringify(session))
       this.sessionData = session
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la session PIN:', error)
+      // eslint-disable-next-line no-console
+      console.error('Erreur lors de la sauvegarde de la session PIN')
     }
   }
 
@@ -66,7 +68,8 @@ class PinSessionManager {
       localStorage.removeItem(PIN_SESSION_KEY)
       this.sessionData = null
     } catch (error) {
-      console.error('Erreur lors de la suppression de la session PIN:', error)
+      // eslint-disable-next-line no-console
+      console.error('Erreur lors de la suppression de la session PIN')
     }
   }
 

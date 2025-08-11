@@ -88,6 +88,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { confirmPasswordReset } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
+import logger from '../services/logger.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -115,7 +116,7 @@ onMounted(async () => {
     // Récupérer les paramètres de l'URL
     const { oobCode: token } = route.query
     
-    console.log('🔍 [DEBUG] Token reçu:', token)
+    logger.debug('Token reçu (masqué)')
     
     if (!token) {
       error.value = 'Lien de réinitialisation incomplet'
@@ -132,7 +133,7 @@ onMounted(async () => {
     loading.value = false
     
   } catch (err) {
-    console.error('Erreur lors de la vérification du lien:', err)
+    logger.error('Erreur lors de la vérification du lien', err)
     error.value = 'Erreur lors de la vérification du lien'
     loading.value = false
   }
@@ -146,14 +147,14 @@ async function resetPassword() {
   resetSuccess.value = ''
   
   try {
-    console.log('🔍 [DEBUG] Début réinitialisation avec token:', oobCode.value)
+    logger.debug('Début réinitialisation avec token (masqué)')
     
     // Réinitialisation avec token Firebase
     await confirmPasswordReset(auth, oobCode.value, newPassword.value)
-    console.log('🔍 [DEBUG] Mot de passe Firebase Auth mis à jour')
+    logger.info('Mot de passe Firebase Auth mis à jour')
     
     // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !
-    console.log('🔍 [DEBUG] Réinitialisation terminée avec Firebase Auth')
+    logger.info('Réinitialisation terminée avec Firebase Auth')
     resetSuccess.value = 'Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
     
     // Rediriger vers l'accueil après 3 secondes
@@ -161,7 +162,7 @@ async function resetPassword() {
       goHome()
     }, 3000)
   } catch (err) {
-    console.error('❌ [ERROR] Erreur lors de la réinitialisation:', err)
+    logger.error('Erreur lors de la réinitialisation', err)
     
     if (err.code === 'auth/weak-password') {
       resetError.value = 'Le mot de passe doit contenir au moins 6 caractères'

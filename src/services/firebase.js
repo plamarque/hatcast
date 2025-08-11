@@ -24,8 +24,7 @@ try {
   // noinspection JSIgnoredPromiseFromCall
   enableIndexedDbPersistence(db)
 } catch (e) {
-  // Optionnel: log en debug uniquement
-  // console.debug('IndexedDB persistence not enabled', e)
+  // Silence: inutile en prod
 }
 
 // Connexion anonyme par défaut

@@ -257,7 +257,9 @@ function copyToClipboard() {
       copyButtonText.value = 'Copier le message'
     }, 2000)
   }).catch(err => {
-    console.error('Erreur lors de la copie du texte:', err)
+    // Silence in production; optional debug in development
+    // eslint-disable-next-line no-console
+    console.warn('Erreur lors de la copie du texte')
     alert('Impossible de copier le message.')
   })
 }

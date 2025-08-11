@@ -1,5 +1,6 @@
 // src/services/playerProtection.js
 import { db } from './firebase.js'
+import logger from './logger.js'
 import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { createEmailVerificationLink } from './magicLinks.js'
 import playerPasswordSessionManager from './playerPasswordSession.js'
@@ -27,7 +28,7 @@ function simpleHash(password) {
 
 export async function protectPlayer(playerId, email, password, seasonId = null) {
   try {
-    console.log('🔍 [DEBUG] Début protectPlayer:', { playerId, email, seasonId })
+    logger.info('Début protectPlayer', { playerId, seasonId })
     
     // Vérifier si l'email est déjà utilisé
     const existingProtection = await getPlayerProtectionData(playerId, seasonId)
@@ -54,12 +55,12 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     }
     
     // Créer un compte Firebase Auth pour ce joueur
-    console.log('🔍 [DEBUG] Création du compte Firebase Auth...')
+    logger.debug('Création du compte Firebase Auth...')
     const { createUserWithEmailAndPassword } = await import('firebase/auth')
     const { auth } = await import('./firebase.js')
     
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    console.log('🔍 [DEBUG] Compte Firebase Auth créé:', userCredential.user.uid)
+    logger.info('Compte Firebase Auth créé', { uid: userCredential.user.uid })
     
     // Hasher le mot de passe pour Firestore
     const passwordHash = simpleHash(password)
@@ -78,10 +79,10 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
       createdAt: new Date()
     })
     
-    console.log('🔍 [DEBUG] Protection sauvegardée dans Firestore')
+    logger.info('Protection sauvegardée dans Firestore')
     return { success: true }
   } catch (error) {
-    console.error('❌ [ERROR] Erreur lors de la protection du joueur:', error)
+    logger.error('Erreur lors de la protection du joueur', error)
     throw error
   }
 }
@@ -168,7 +169,7 @@ export async function unprotectPlayer(playerId, seasonId = null) {
     
     return { success: true, email: '' }
   } catch (error) {
-    console.error('Erreur lors de la suppression de la protection:', error)
+    logger.error('Erreur lors de la suppression de la protection', error)
     throw error
   }
 }
@@ -188,7 +189,7 @@ export async function isPlayerProtected(playerId, seasonId = null) {
     const protectionData = protectionDoc.data()
     return protectionData.isProtected === true
   } catch (error) {
-    console.error('Erreur lors de la vérification de protection:', error)
+    logger.error('Erreur lors de la vérification de protection', error)
     return false
   }
 }
@@ -207,7 +208,7 @@ export async function getPlayerProtectionData(playerId, seasonId = null) {
     
     return protectionDoc.data()
   } catch (error) {
-    console.error('Erreur lors de la récupération des données de protection:', error)
+    logger.error('Erreur lors de la récupération des données de protection', error)
     return null
   }
 }
@@ -218,7 +219,7 @@ export async function getPlayerEmail(playerId, seasonId = null) {
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
     return protectionData?.email || ''
   } catch (error) {
-    console.error('Erreur lors de la récupération de l\'email:', error)
+    logger.error('Erreur lors de la récupération de l\'email', error)
     return ''
   }
 }
@@ -232,7 +233,7 @@ export async function listProtectedPlayers(seasonId = null) {
     const snap = await getDocs(protectionCollection)
     return snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (error) {
-    console.error('Erreur lors du chargement des protections:', error)
+    logger.error('Erreur lors du chargement des protections', error)
     return []
   }
 }
@@ -247,7 +248,7 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
     
     // Si on a un firebaseUid, utiliser Firebase Auth
     if (protectionData.firebaseUid) {
-      console.log('🔍 [DEBUG] Vérification avec Firebase Auth')
+      logger.debug('Vérification avec Firebase Auth')
       
       try {
         const { signInWithEmailAndPassword } = await import('firebase/auth')
@@ -257,19 +258,19 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
         await signInWithEmailAndPassword(auth, protectionData.email, password)
         
         // Si la connexion réussit, le mot de passe est correct
-        console.log('🔍 [DEBUG] Mot de passe Firebase Auth valide')
+        logger.debug('Mot de passe Firebase Auth valide')
         
         // Sauvegarder la session
         playerPasswordSessionManager.saveSession(playerId, password)
         
         return true
       } catch (firebaseError) {
-        console.log('🔍 [DEBUG] Mot de passe Firebase Auth invalide:', firebaseError.code)
+        logger.debug('Mot de passe Firebase Auth invalide', { code: firebaseError.code })
         return false
       }
     } else {
       // Fallback : vérifier avec le hash stocké (pour les anciens comptes)
-      console.log('🔍 [DEBUG] Vérification avec hash local')
+      logger.debug('Vérification avec hash local')
       const inputHash = simpleHash(password)
       const isValid = protectionData.passwordHash === inputHash
       
@@ -280,7 +281,7 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
       return isValid
     }
   } catch (error) {
-    console.error('Erreur lors de la vérification du mot de passe:', error)
+    logger.error('Erreur lors de la vérification du mot de passe', error)
     return false
   }
 }
@@ -297,29 +298,28 @@ export function getCachedPlayerPassword(playerId) {
 
 export async function sendPasswordResetEmail(playerId, seasonId = null) {
   try {
-    console.log('🔍 [DEBUG] Début sendPasswordResetEmail:', { playerId, seasonId })
+    logger.info('Début sendPasswordResetEmail', { playerId, seasonId })
     
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
-    console.log('🔍 [DEBUG] Protection data:', protectionData)
+    logger.debug('Protection data disponible')
     
     if (!protectionData || !protectionData.isProtected) {
       throw new Error('Joueur non protégé')
     }
     
-    console.log('🔍 [DEBUG] Email à utiliser:', protectionData.email)
+    logger.debug('Email à utiliser (masqué)')
     
     // Vérifier si on a un firebaseUid (compte Firebase Auth créé)
     if (protectionData.firebaseUid) {
-      console.log('🔍 [DEBUG] Utilisation du compte Firebase Auth existant')
+      logger.debug('Utilisation du compte Firebase Auth existant')
       const { sendPasswordResetEmail } = await import('firebase/auth')
       const { auth } = await import('./firebase.js')
       
-          console.log('🔍 [DEBUG] Tentative d\'envoi d\'email à:', protectionData.email)
+          logger.debug('Tentative d\'envoi d\'email')
     await sendPasswordResetEmail(auth, protectionData.email)
-    console.log('🔍 [DEBUG] Email envoyé avec succès via Firebase Auth!')
-    console.log('🔍 [DEBUG] Vérifiez votre boîte mail:', protectionData.email)
+    logger.info('Email envoyé avec succès via Firebase Auth')
     } else {
-      console.log('🔍 [DEBUG] Pas de compte Firebase Auth, création temporaire...')
+      logger.debug('Pas de compte Firebase Auth, création temporaire...')
       
       // Créer un compte Firebase Auth temporaire pour envoyer l'email
       const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth')
@@ -331,11 +331,11 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
       try {
         // Créer le compte
         const userCredential = await createUserWithEmailAndPassword(auth, protectionData.email, tempPassword)
-        console.log('🔍 [DEBUG] Compte temporaire créé:', userCredential.user.uid)
+        logger.info('Compte temporaire créé', { uid: userCredential.user.uid })
         
         // Envoyer l'email de réinitialisation
         await sendPasswordResetEmail(auth, protectionData.email)
-        console.log('🔍 [DEBUG] Email envoyé avec succès!')
+        logger.info('Email envoyé avec succès')
         
         // Mettre à jour Firestore avec le firebaseUid
         const { updateDoc } = await import('firebase/firestore')
@@ -351,10 +351,10 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
         
       } catch (createError) {
         if (createError.code === 'auth/email-already-in-use') {
-          console.log('🔍 [DEBUG] Email déjà utilisé, tentative d\'envoi direct...')
+          logger.debug('Email déjà utilisé, tentative d\'envoi direct...')
           // L'email existe déjà, essayer d'envoyer directement
           await sendPasswordResetEmail(auth, protectionData.email)
-          console.log('🔍 [DEBUG] Email envoyé avec succès!')
+          logger.info('Email envoyé avec succès')
         } else {
           throw createError
         }
@@ -363,9 +363,7 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
     
     return { success: true, message: 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.' }
   } catch (error) {
-    console.error('❌ [ERROR] Erreur lors de l\'envoi de l\'email de réinitialisation:', error)
-    console.error('❌ [ERROR] Code d\'erreur:', error.code)
-    console.error('❌ [ERROR] Message d\'erreur:', error.message)
+    logger.error('Erreur lors de l\'envoi de l\'email de réinitialisation', { error })
     
     // Gestion des erreurs spécifiques Firebase
     if (error.code === 'auth/user-not-found') {
@@ -398,7 +396,7 @@ export async function updatePlayerPasswordInFirestore(playerId, newPassword, sea
     
     return { success: true }
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du mot de passe:', error)
+    logger.error('Erreur lors de la mise à jour du mot de passe', error)
     throw error
   }
 }
@@ -410,7 +408,7 @@ export async function requirePlayerPasswordForAvailability(operation) {
   return new Promise((resolve, reject) => {
     // Le composant GridBoard gère l'affichage de la modal et la résolution
     // Cette fonction est appelée pour déclencher le processus de vérification
-    console.log('Demande de mot de passe pour disponibilité:', operation)
+    logger.debug('Demande de mot de passe pour disponibilité')
     
     // Pour l'instant, on rejette avec une erreur pour forcer la gestion côté composant
     reject(new Error('Gestion de mot de passe à implémenter côté composant'))

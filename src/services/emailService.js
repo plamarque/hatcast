@@ -1,6 +1,7 @@
 // src/services/emailService.js
 // Service d'envoi d'emails – version Trigger Email (Firebase Extension)
 import { db } from './firebase.js'
+import logger from './logger.js'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
 // Pour utiliser EmailJS, il faut :
@@ -99,7 +100,7 @@ export async function queueSelectionEmail({
   subject = undefined,
   fromEmail = undefined
 }) {
-  console.log(`🔍 DEBUG queueSelectionEmail appelée pour ${playerName} avec:`, { toEmail, eventTitle, eventDate, eventUrl, hasCustomHtml: !!html, hasCustomSubject: !!subject })
+  logger.debug('queueSelectionEmail', { forPlayer: playerName, hasCustomHtml: !!html, hasCustomSubject: !!subject })
   
   // Si HTML et sujet personnalisés sont fournis, les utiliser
   // Sinon, utiliser le template par défaut
@@ -117,8 +118,7 @@ export async function queueSelectionEmail({
 
   const emailSubject = subject || `🎭 Sélection confirmée · ${eventTitle}`
   
-  console.log(`🔍 DEBUG HTML final utilisé:`, emailHtml.substring(0, 200) + '...')
-  console.log(`🔍 DEBUG Sujet final utilisé:`, emailSubject)
+  logger.debug('queueSelectionEmail html/subject ready')
 
   const docData = {
     to: toEmail,
@@ -134,21 +134,21 @@ export async function queueSelectionEmail({
     docData.replyTo = fromEmail
   }
 
-  console.log(`🔍 DEBUG Données à envoyer à Firestore:`, docData)
+  logger.debug('queueSelectionEmail firestore payload ready')
   
   try {
     await addDoc(collection(db, 'mail'), docData)
-    console.log(`✅ Email ajouté à la queue Firestore pour ${playerName}`)
+    logger.info('Email ajouté à la queue Firestore', { playerName })
     return { success: true }
   } catch (error) {
-    console.error(`❌ Erreur lors de l'ajout à Firestore pour ${playerName}:`, error)
+    logger.error('Erreur lors de l\'ajout à Firestore', { playerName, error })
     throw error
   }
 }
 
 // Fonction pour envoyer des emails de notification de sélection pour un événement
 export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, seasonId, seasonSlug, players }) {
-  console.log('🔍 DEBUG sendSelectionEmailsForEvent appelée avec:', { eventId, eventData, selectedPlayers, seasonId, seasonSlug, playersCount: players?.length })
+  logger.info('sendSelectionEmailsForEvent', { eventId, seasonId, seasonSlug, playersCount: players?.length, selectedCount: selectedPlayers?.length })
   
   if (!eventData || !selectedPlayers || selectedPlayers.length === 0) {
     throw new Error('Données manquantes pour l\'envoi des emails de sélection')
@@ -157,36 +157,33 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
   const { getPlayerEmail } = await import('./playerProtection.js')
   const { createMagicLink } = await import('./magicLinks.js')
   const eventUrl = `${window.location.origin}/season/${seasonSlug}/event/${eventId}`
-  console.log('🔍 DEBUG eventUrl:', eventUrl)
   
   // Créer la liste des joueurs sélectionnés
   const playersList = selectedPlayers.join(', ')
-  console.log('🔍 DEBUG playersList:', playersList)
   
   const subject = `🎭 Sélection confirmée · ${eventData.title}`
-  console.log('🔍 DEBUG subject:', subject)
 
   // Envoyer un email personnalisé à chaque joueur sélectionné
   const emailPromises = []
   
   for (const playerName of selectedPlayers) {
-    console.log(`🔍 DEBUG Traitement du joueur: ${playerName}`)
+    logger.debug('Traitement du joueur', { playerName })
     try {
       // Trouver le joueur dans la liste des joueurs
       const player = players?.find(p => p.name === playerName)
       if (!player) {
-        console.warn(`⚠️ Joueur non trouvé: ${playerName}`)
+        logger.warn('Joueur non trouvé', { playerName })
         continue
       }
-      console.log(`🔍 DEBUG Joueur trouvé:`, player)
+      logger.debug('Joueur trouvé')
       
       // Récupérer l'email du joueur
       const email = await getPlayerEmail(player.id, seasonId)
       if (!email) {
-        console.warn(`⚠️ Pas d'email pour le joueur: ${playerName}`)
+        logger.warn('Pas d\'email pour le joueur', { playerName })
         continue
       }
-      console.log(`🔍 DEBUG Email trouvé pour ${playerName}:`, email)
+      logger.debug('Email trouvé pour joueur')
       
       // Créer un magic link "no" pour le désistement
       const noMagicLink = await createMagicLink({ 
@@ -213,7 +210,7 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
           </p>
         </div>
       `
-      console.log(`🔍 DEBUG HTML généré pour ${playerName}:`, html.substring(0, 200) + '...')
+      logger.debug('HTML généré pour joueur')
       
       // Envoyer l'email de sélection personnalisé
       const emailPromise = queueSelectionEmail({
@@ -227,18 +224,18 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       })
       
       emailPromises.push(emailPromise)
-      console.log(`✅ Email ajouté à la queue pour ${playerName}`)
+      logger.info('Email ajouté à la queue', { playerName })
     } catch (error) {
-      console.error(`❌ Erreur lors de l'envoi de l'email de sélection pour ${playerName}:`, error)
+      logger.error('Erreur lors de l\'envoi de l\'email de sélection', { playerName, error })
     }
   }
   
-  console.log(`🔍 DEBUG Nombre total d'emails à envoyer: ${emailPromises.length}`)
+  logger.info('Nombre total d\'emails à envoyer', { count: emailPromises.length })
   
   // Attendre que tous les emails soient envoyés
   await Promise.all(emailPromises)
   
-  console.log('✅ Tous les emails ont été envoyés avec succès')
+  logger.info('Tous les emails ont été envoyés avec succès')
   return { success: true, count: emailPromises.length }
 }
 

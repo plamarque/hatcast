@@ -8,6 +8,17 @@ import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
 import JoinSeason from './views/JoinSeason.vue'
 
+// Réduire le bruit de logs en production (garder warnings/erreurs)
+if (import.meta.env && import.meta.env.PROD) {
+  const noop = () => {}
+  // eslint-disable-next-line no-console
+  console.debug = noop
+  // eslint-disable-next-line no-console
+  console.log = noop
+  // eslint-disable-next-line no-console
+  console.info = noop
+}
+
 const routes = [
   { path: '/', component: Home },
   { path: '/season/:slug', component: GridBoard, props: true },

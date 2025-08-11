@@ -1835,10 +1835,8 @@ async function confirmDeleteEvent(eventId) {
 
 async function deleteEventConfirmed(eventId = null) {
   const eventIdToDelete = eventId || eventToDelete.value
-  console.log('deleteEventConfirmed - eventId param:', eventId)
-  console.log('deleteEventConfirmed - eventToDelete.value:', eventToDelete.value)
-  console.log('deleteEventConfirmed - eventIdToDelete:', eventIdToDelete)
-  console.log('deleteEventConfirmed - type de eventIdToDelete:', typeof eventIdToDelete)
+  // eslint-disable-next-line no-console
+  console.debug('deleteEventConfirmed')
   
   if (!eventIdToDelete) {
     console.error('Aucun événement à supprimer')
@@ -1869,7 +1867,8 @@ async function deleteEventConfirmed(eventId = null) {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error('Erreur lors de la suppression de l\'événement:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la suppression de l\'événement')
     alert('Erreur lors de la suppression de l\'événement. Veuillez réessayer.')
   }
 }
@@ -1934,7 +1933,8 @@ async function saveEdit() {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error('Erreur lors de l\'édition de l\'événement:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'édition de l\'événement')
     alert('Erreur lors de l\'édition de l\'événement. Veuillez réessayer.')
   }
 }
@@ -1966,7 +1966,8 @@ async function confirmDeletePlayer(playerId) {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error('Erreur lors de la suppression du joueur:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la suppression du joueur')
     alert('Erreur lors de la suppression du joueur. Veuillez réessayer.')
   }
 }
@@ -2035,7 +2036,8 @@ async function addNewPlayer() {
     newPlayerForm.value = false
     newPlayerName.value = ''
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du joueur:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'ajout du joueur')
     alert('Erreur lors de l\'ajout du joueur. Veuillez réessayer.')
   }
 }
@@ -2124,7 +2126,8 @@ async function createEventProtected(eventData) {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error('Erreur lors de la création de l\'événement:', error?.message || error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la création de l\'événement')
     alert('Erreur lors de la création de l\'événement. Veuillez réessayer.')
   }
 }
@@ -2252,8 +2255,11 @@ onMounted(async () => {
   loadingProgress.value = 95
   scheduleIdle(() => { updateAllStats(); updateAllChances() })
   
-  console.log('players (deduplicated):', players.value.map(p => ({ id: p.id, name: p.name })))
-  console.log('availability loaded:', availability.value)
+  // Logs allégés
+  // eslint-disable-next-line no-console
+  console.debug('players (deduplicated)')
+  // eslint-disable-next-line no-console
+  console.debug('availability loaded')
 
   // init scroll hints
   await nextTick()
@@ -2278,12 +2284,14 @@ onMounted(async () => {
   if (eventIdFromUrl && events.value.length > 0) {
     const targetEvent = events.value.find(e => e.id === eventIdFromUrl)
     if (targetEvent) {
-      console.log('Événement trouvé depuis l\'URL:', targetEvent.title)
+      // eslint-disable-next-line no-console
+      console.debug('Événement trouvé depuis l\'URL')
       
       // Utiliser la fonction améliorée de focus
       await focusOnEventFromUrl(eventIdFromUrl, targetEvent)
     } else {
-      console.warn('Événement non trouvé avec l\'ID:', eventIdFromUrl)
+      // eslint-disable-next-line no-console
+      console.warn('Événement non trouvé avec l\'ID')
       // Afficher un message d'erreur à l'utilisateur
       showErrorMessage.value = true
       errorMessage.value = `Événement non trouvé`
@@ -2377,12 +2385,14 @@ function toggleShowArchived() {
 async function toggleAvailability(playerName, eventId) {
   const player = players.value.find(p => p.name === playerName);
   if (!player) {
-    console.error('Joueur non trouvé:', playerName);
+    // eslint-disable-next-line no-console
+    console.error('Joueur non trouvé')
     return;
   }
   const eventItem = events.value.find(e => e.id === eventId);
   if (!eventItem) {
-    console.error('Événement non trouvé:', eventId);
+    // eslint-disable-next-line no-console
+    console.error('Événement non trouvé')
     return;
   }
   
@@ -2394,7 +2404,8 @@ async function toggleAvailability(playerName, eventId) {
     const hasCachedPassword = isPlayerPasswordCached(player.id);
     const wasRecentlyVerified = recentlyVerifiedPlayer.value === player.id;
     
-    console.log('Joueur protégé:', { 
+    // eslint-disable-next-line no-console
+    console.debug('Joueur protégé:', { 
       playerId: player.id, 
       hasCachedPassword, 
       wasRecentlyVerified,
@@ -2403,16 +2414,19 @@ async function toggleAvailability(playerName, eventId) {
     
     if (hasCachedPassword || wasRecentlyVerified) {
       // Session active ou joueur récemment vérifié, procéder directement
-      console.log('Session active ou joueur récemment vérifié, procéder au toggle');
+      // eslint-disable-next-line no-console
+      console.debug('Session active ou joueur récemment vérifié, procéder au toggle');
       if (wasRecentlyVerified) {
         // Nettoyer le flag après utilisation
-        console.log('Nettoyage du flag recentlyVerifiedPlayer');
+        // eslint-disable-next-line no-console
+        console.debug('Nettoyage du flag recentlyVerifiedPlayer');
         recentlyVerifiedPlayer.value = null;
       }
       performToggleAvailability(player, eventId);
     } else {
       // Pas de session, demander le mot de passe
-      console.log('Pas de session, affichage de la modal de vérification');
+      // eslint-disable-next-line no-console
+      console.debug('Pas de session, affichage de la modal de vérification');
       // Utiliser la même logique que dans handleAvailabilityToggle
       pendingAvailabilityAction.value = { playerName, eventId };
       passwordVerificationPlayer.value = player;
@@ -2428,7 +2442,8 @@ async function toggleAvailability(playerName, eventId) {
 function performToggleAvailability(player, eventId) {
   // Récupérer l'état actuel depuis availability.value
   const current = availability.value[player.name]?.[eventId];
-  console.log(`toggleAvailability - ${player.name} pour ${eventId}:`, current)
+  // eslint-disable-next-line no-console
+  console.debug('toggleAvailability')
   let newValue;
   
   // Logique de basculement : undefined -> true -> false -> undefined
@@ -2495,7 +2510,8 @@ function performToggleAvailability(player, eventId) {
       }, 3000);
     })
     .catch((error) => {
-      console.error('Erreur lors de la mise à jour de la disponibilité:', error);
+      // eslint-disable-next-line no-console
+      console.error('Erreur lors de la mise à jour de la disponibilité')
       alert('Erreur lors de la mise à jour de la disponibilité. Veuillez réessayer.');
     });
 }
@@ -2523,7 +2539,8 @@ async function tirer(eventId, count = 6) {
   
   if (allSelectedStillAvailable) {
     // Cas exceptionnel : tous les joueurs sont disponibles, on refait un tirage complet
-    console.log('Tous les joueurs sélectionnés sont disponibles, nouveau tirage complet')
+    // eslint-disable-next-line no-console
+    console.debug('Tous les joueurs sélectionnés sont disponibles, nouveau tirage complet')
     
     const candidates = players.value.filter(p => isAvailable(p.name, eventId))
 
@@ -2610,9 +2627,10 @@ async function tirer(eventId, count = 6) {
 }
 
 async function tirerProtected(eventId, count = 6) {
-  console.log('tirerProtected appelé avec eventId:', eventId)
-  console.log('showSelectionModal.value AVANT:', showSelectionModal.value)
-  console.log('selectionModalEvent.value?.id AVANT:', selectionModalEvent.value?.id)
+  // eslint-disable-next-line no-console
+  console.debug('tirerProtected appelé')
+  // eslint-disable-next-line no-console
+  console.debug('etat modal selection avant')
   
   // Sauvegarder l'état de la popin avant le tirage
   const wasSelectionModalOpen = showSelectionModal.value
@@ -2626,35 +2644,39 @@ async function tirerProtected(eventId, count = 6) {
   
   await tirer(eventId, count)
   
-  console.log('showSelectionModal.value APRÈS tirage:', showSelectionModal.value)
-  console.log('selectionModalEvent.value?.id APRÈS tirage:', selectionModalEvent.value?.id)
+  // eslint-disable-next-line no-console
+  console.debug('etat modal selection apres')
   
   // S'assurer que la popin de sélection reste ouverte si elle était ouverte
   if (wasSelectionModalOpen && !showSelectionModal.value) {
-    console.log('Restauration de la popin de sélection...')
+    // eslint-disable-next-line no-console
+    console.debug('Restauration de la popin de sélection...')
     showSelectionModal.value = true
     selectionModalEvent.value = events.value.find(e => e.id === selectionModalEventId)
   }
   
   // Mettre à jour les données de la popin de sélection si elle est ouverte
   if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
-    console.log('Popin de sélection ouverte, mise à jour...')
+    // eslint-disable-next-line no-console
+    console.debug('Popin de sélection ouverte, mise à jour...')
     // Forcer la mise à jour des données
     await nextTick()
     
     // Afficher le message de succès dans la popin de sélection
     if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
-      console.log('Appel de showSuccess sur la popin de sélection')
+      // eslint-disable-next-line no-console
+      console.debug('Appel de showSuccess sur la popin de sélection')
       const newSelection = selections.value[eventId] || []
       const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
       const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
       selectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
     } else {
-      console.log('selectionModalRef.value:', selectionModalRef.value)
-      console.log('showSuccess disponible:', selectionModalRef.value?.showSuccess)
+      // eslint-disable-next-line no-console
+      console.debug('showSuccess indisponible')
     }
   } else {
-    console.log('Popin de sélection fermée, affichage message global')
+    // eslint-disable-next-line no-console
+    console.debug('Popin de sélection fermée, affichage message global')
     // Afficher un message de succès global si la popin n'est pas ouverte
     showSuccessMessage.value = true
     const event = events.value.find(e => e.id === eventId)
@@ -2863,6 +2885,7 @@ const confirmPlayerDelete = ref(false)
 async function deletePlayerConfirmed(playerId = null) {
   const playerIdToDelete = playerId || playerToDelete.value
   if (!playerIdToDelete) {
+    // eslint-disable-next-line no-console
     console.error('Aucun joueur à supprimer')
     return
   }
@@ -2881,7 +2904,8 @@ async function deletePlayerConfirmed(playerId = null) {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error("Erreur lors de la suppression du joueur :", error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la suppression du joueur')
     alert("Erreur lors de la suppression du joueur. Veuillez réessayer.")
   }
 }
@@ -2970,7 +2994,8 @@ async function requirePin(operation) {
   // Vérifier si le PIN est déjà en cache pour cette saison
   if (pinSessionManager.isPinCached(seasonId.value)) {
     const cachedPin = pinSessionManager.getCachedPin(seasonId.value)
-    console.log('PIN en cache trouvé, utilisation automatique')
+    // eslint-disable-next-line no-console
+    console.debug('PIN en cache trouvé, utilisation automatique')
     
     // Vérifier que le PIN est toujours valide
     const isValid = await verifySeasonPin(seasonId.value, cachedPin)
@@ -2994,7 +3019,8 @@ async function requirePlayerPassword(operation) {
   
   // Vérifier si le mot de passe du joueur est déjà en cache
   if (isPlayerPasswordCached(playerId)) {
-    console.log('Mot de passe du joueur en cache trouvé, utilisation automatique')
+    // eslint-disable-next-line no-console
+    console.debug('Mot de passe du joueur en cache trouvé, utilisation automatique')
     // Exécuter directement l'opération
     await executePendingOperation(operation)
     return
@@ -3029,7 +3055,8 @@ async function handlePinSubmit(pinCode) {
       }, 3000)
     }
   } catch (error) {
-    console.error('Erreur lors de la vérification du PIN:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la vérification du PIN')
     pinErrorMessage.value = 'Erreur lors de la vérification du code PIN'
   }
 }
@@ -3086,7 +3113,8 @@ async function handlePlayerPasswordSubmit(password) {
       }, 3000)
     }
   } catch (error) {
-    console.error('Erreur lors de la vérification du mot de passe:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la vérification du mot de passe')
     playerPasswordErrorMessage.value = 'Erreur lors de la vérification du mot de passe'
   } finally {
     playerPasswordLoading.value = false
@@ -3147,7 +3175,8 @@ async function handleAvailabilityPasswordSubmit(password) {
       }, 3000)
     }
   } catch (error) {
-    console.error('Erreur lors de la vérification du mot de passe:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la vérification du mot de passe')
     availabilityPasswordErrorMessage.value = 'Erreur lors de la vérification du mot de passe'
   } finally {
     availabilityPasswordLoading.value = false
@@ -3172,7 +3201,8 @@ async function sendAvailabilityResetEmail() {
     const result = await sendPasswordResetEmail(player.id, seasonId.value)
     availabilityResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
   } catch (err) {
-    console.error('Erreur lors de l\'envoi de l\'email:', err)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'envoi de l\'email')
     availabilityResetError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
   } finally {
     availabilityResetLoading.value = false
@@ -3189,7 +3219,8 @@ async function sendPlayerResetEmail() {
     const result = await sendPasswordResetEmail(playerId, seasonId.value)
     playerResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
   } catch (err) {
-    console.error('Erreur lors de l\'envoi de l\'email:', err)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'envoi de l\'email')
     playerResetError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
   } finally {
     playerResetLoading.value = false
@@ -3215,8 +3246,8 @@ async function executePendingOperation(operation) {
     switch (type) {
       case 'deleteEvent':
         // Afficher la modal de confirmation après validation du PIN
-        console.log('executePendingOperation - data.eventId:', data.eventId)
-        console.log('executePendingOperation - type de data.eventId:', typeof data.eventId)
+        // eslint-disable-next-line no-console
+        console.debug('executePendingOperation - data.eventId reçu')
         eventToDelete.value = data.eventId
         confirmDelete.value = true
         break
@@ -3260,7 +3291,8 @@ async function executePendingOperation(operation) {
         break
     }
   } catch (error) {
-    console.error('Erreur lors de l\'exécution de l\'opération:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'exécution de l\'opération')
     showSuccessMessage.value = true
     successMessage.value = 'Erreur lors de l\'opération. Veuillez réessayer.'
     setTimeout(() => {
@@ -3319,30 +3351,36 @@ function closeEventDetailsAndUpdateUrl() {
 
 // Fonction pour gérer le toggle des disponibilités depuis la popup de détails
 async function handleAvailabilityToggle(playerName, eventId) {
-  console.log('handleAvailabilityToggle appelé avec:', { playerName, eventId });
+  // eslint-disable-next-line no-console
+  console.debug('handleAvailabilityToggle appelé')
   
   const player = players.value.find(p => p.name === playerName);
   if (!player) {
-    console.error('Joueur non trouvé:', playerName);
+    // eslint-disable-next-line no-console
+    console.error('Joueur non trouvé');
     return;
   }
   
-  console.log('Joueur trouvé:', player);
+  // eslint-disable-next-line no-console
+  console.debug('Joueur trouvé');
   
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
-  console.log('Joueur protégé:', isProtected);
+  // eslint-disable-next-line no-console
+  console.debug('Joueur protégé');
   
   if (isProtected) {
     // Vérifier s'il y a une session active
     const hasCachedPassword = isPlayerPasswordCached(player.id);
     if (hasCachedPassword) {
       // Session active, procéder directement
-      console.log('Session active, procéder au toggle');
+      // eslint-disable-next-line no-console
+      console.debug('Session active, procéder au toggle');
       await toggleAvailability(playerName, eventId);
     } else {
       // Pas de session, demander le mot de passe
-      console.log('Demande du mot de passe pour joueur protégé');
+      // eslint-disable-next-line no-console
+      console.debug('Demande du mot de passe pour joueur protégé');
       pendingAvailabilityAction.value = { playerName, eventId };
       passwordVerificationPlayer.value = player;
       showPasswordVerification.value = true;
@@ -3351,7 +3389,8 @@ async function handleAvailabilityToggle(playerName, eventId) {
   }
   
   // Si non protégé, procéder directement
-  console.log('Joueur non protégé, procéder au toggle');
+  // eslint-disable-next-line no-console
+  console.debug('Joueur non protégé, procéder au toggle');
   await toggleAvailability(playerName, eventId);
 }
 
@@ -3363,18 +3402,21 @@ function isPlayerSelected(playerName, eventId) {
 
 // Fonction pour gérer la vérification de mot de passe réussie
 async function handlePasswordVerified(verificationData) {
-  console.log('Mot de passe vérifié:', verificationData);
+  // eslint-disable-next-line no-console
+  console.debug('Mot de passe vérifié');
   
   // Marquer le joueur comme récemment vérifié pour éviter la boucle
   if (passwordVerificationPlayer.value) {
     recentlyVerifiedPlayer.value = passwordVerificationPlayer.value.id;
-    console.log('Joueur marqué comme récemment vérifié:', passwordVerificationPlayer.value.id);
+    // eslint-disable-next-line no-console
+    console.debug('Joueur marqué comme récemment vérifié');
   }
   
   // Procéder à l'action de disponibilité en attente
   if (pendingAvailabilityAction.value) {
     const { playerName, eventId } = pendingAvailabilityAction.value;
-    console.log('Exécution de l\'action en attente:', { playerName, eventId });
+    // eslint-disable-next-line no-console
+    console.debug('Exécution de l\'action en attente');
     
     // Procéder au toggle de disponibilité
     await toggleAvailability(playerName, eventId);
@@ -3382,7 +3424,8 @@ async function handlePasswordVerified(verificationData) {
     // Réinitialiser l'action en attente
     pendingAvailabilityAction.value = null;
   } else {
-    console.log('Aucune action en attente trouvée');
+    // eslint-disable-next-line no-console
+    console.debug('Aucune action en attente trouvée');
   }
   
   // Fermer la modal de vérification
@@ -3427,7 +3470,8 @@ async function toggleEventArchived() {
     }, 3000);
     
   } catch (error) {
-    console.error('Erreur lors de la modification de l\'archivage:', error);
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de la modification de l\'archivage');
     alert('Erreur lors de la modification de l\'archivage. Veuillez réessayer.');
   }
 }
@@ -3482,7 +3526,8 @@ async function handlePlayerUpdate({ playerId, newName }) {
       showSuccessMessage.value = false;
     }, 3000);
   } catch (error) {
-    console.error('Erreur lors de l\'édition du joueur:', error);
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'édition du joueur');
     alert('Erreur lors de l\'édition du joueur. Veuillez réessayer.');
   }
 }
@@ -3517,7 +3562,8 @@ async function handlePlayerRefresh() {
       showSuccessMessage.value = false;
     }, 3000);
   } catch (error) {
-    console.error('Erreur lors du rafraîchissement:', error);
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors du rafraîchissement');
   }
 }
 
@@ -3618,7 +3664,8 @@ async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
   // Vérifier si l'événement est archivé
   const event = { id: eventId, ...eventData }
   if (event.archived) {
-    console.log('Événement archivé, aucune notification envoyée:', event.title)
+    // eslint-disable-next-line no-console
+    console.debug('Événement archivé, aucune notification envoyée')
     showSuccessMessage.value = true
     successMessage.value = 'Aucune notification envoyée : événement archivé'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
@@ -3646,7 +3693,8 @@ async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
         reason
       })
     } catch (e) {
-      console.error('Email non envoyé pour', player.name, e?.message || e)
+      // eslint-disable-next-line no-console
+      console.error('Email non envoyé pour un joueur')
       failures.push(player.id)
     }
   }
@@ -3712,7 +3760,8 @@ async function handleSendEmailNotifications({ eventId, eventData, reason, select
       setTimeout(() => { showSuccessMessage.value = false }, 3000)
     }
   } catch (error) {
-    console.error('Erreur lors de l\'envoi des notifications:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'envoi des notifications')
     showSuccessMessage.value = true
     successMessage.value = 'Erreur lors de l\'envoi des notifications'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
@@ -3792,6 +3841,7 @@ async function focusOnEventFromUrl(eventId, targetEvent) {
   
   const eventElement = document.querySelector(`[data-event-id="${eventId}"]`)
   if (!eventElement) {
+    // eslint-disable-next-line no-console
     console.warn('Élément événement non trouvé dans le DOM')
     return
   }
@@ -3836,14 +3886,16 @@ function focusOnEvent(eventId) {
   
   const targetEvent = events.value.find(e => e.id === eventId)
   if (!targetEvent) {
-    console.warn(`Événement ${eventId} non trouvé dans la liste des événements`)
+    // eslint-disable-next-line no-console
+    console.warn('Événement non trouvé dans la liste des événements')
     // Attendre un peu et réessayer
     setTimeout(() => {
       const retryEvent = events.value.find(e => e.id === eventId)
       if (retryEvent) {
         focusOnEventFromUrl(eventId, retryEvent)
       } else {
-        console.error(`Événement ${eventId} toujours introuvable après retry`)
+        // eslint-disable-next-line no-console
+        console.error('Événement toujours introuvable après retry')
       }
     }, 500)
     return

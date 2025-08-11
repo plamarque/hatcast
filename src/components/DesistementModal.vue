@@ -154,7 +154,8 @@ async function confirmDesistement() {
     // Passer à l'étape de succès
     step.value = 'success'
   } catch (error) {
-    console.error('Erreur lors du désistement:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors du désistement')
     errorMessage.value = 'Impossible d\'enregistrer votre désistement. Veuillez réessayer.'
     step.value = 'error'
   } finally {

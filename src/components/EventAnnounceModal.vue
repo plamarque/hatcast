@@ -288,7 +288,9 @@ function copyToClipboard() {
       copyButtonText.value = 'Copier le message'
     }, 2000)
   }).catch(err => {
-    console.error('Erreur lors de la copie du texte:', err)
+    // Silence en prod
+    // eslint-disable-next-line no-console
+    console.warn('Erreur lors de la copie du texte')
     alert('Impossible de copier le message.')
   })
 }
@@ -318,7 +320,8 @@ async function sendEmailNotifications() {
     
     // Le modal sera fermé par GridBoard après l'envoi réussi
   } catch (error) {
-    console.error('Erreur lors de l\'envoi des notifications:', error)
+    // eslint-disable-next-line no-console
+    console.error('Erreur lors de l\'envoi des notifications')
     alert('Erreur lors de l\'envoi des notifications. Veuillez réessayer.')
   } finally {
     isSending.value = false

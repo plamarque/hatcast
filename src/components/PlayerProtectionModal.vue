@@ -192,6 +192,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { protectPlayer, unprotectPlayer, isPlayerProtected, verifyPlayerPassword, getPlayerEmail, startEmailVerificationForProtection } from '../services/playerProtection.js'
+import logger from '../services/logger.js'
 import { queueProtectionVerificationEmail } from '../services/emailService.js'
 import { useRoute } from 'vue-router'
 
@@ -288,7 +289,7 @@ async function sendVerificationEmail() {
     await queueProtectionVerificationEmail({ toEmail: email.value, playerName: props.player?.name || 'joueur', verifyUrl })
     verificationSent.value = true
   } catch (e) {
-    // Afficher immédiatement l'erreur d'email déjà utilisé ou email invalide
+    logger.error('Erreur envoi email de vérification protection', e)
     error.value = e?.message || 'Impossible d\'envoyer l\'email de vérification'
   } finally {
     loading.value = false
@@ -338,7 +339,7 @@ async function activateProtection() {
       if (props.onboarding) emit('onboarding-finished')
     } catch {}
   } catch (err) {
-    console.error('Erreur lors de l\'activation de la protection:', err)
+    logger.error('Erreur lors de l\'activation de la protection', err)
     if (err.message && err.message.includes('email')) {
       error.value = 'Cette adresse email est déjà utilisée par un autre joueur.'
     } else {
@@ -387,7 +388,7 @@ async function confirmDeactivateProtection() {
     
     emit('update')
   } catch (err) {
-    console.error('Erreur lors de la désactivation de la protection:', err)
+    logger.error('Erreur lors de la désactivation de la protection', err)
     error.value = 'Erreur lors de la désactivation de la protection. Veuillez réessayer.'
   } finally {
     loading.value = false
@@ -406,7 +407,7 @@ async function deactivateProtection() {
     isProtected.value = false
     emit('update')
   } catch (err) {
-    console.error('Erreur lors de la désactivation de la protection:', err)
+    logger.error('Erreur lors de la désactivation de la protection', err)
     error.value = 'Erreur lors de la désactivation de la protection. Veuillez réessayer.'
   } finally {
     loading.value = false
