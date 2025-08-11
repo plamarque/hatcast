@@ -137,11 +137,11 @@
         <button @click="saveManualSelection" :disabled="!hasManualChanges" class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed" title="Enregistrer cette composition manuelle">
           💾 <span class="hidden sm:inline">Enregistrer</span><span class="sm:hidden">Save</span>
         </button>
-        <button v-if="hasSelection" @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap">
-          👍 <span class="hidden sm:inline">Parfait</span>
-        </button>
-        <button @click="openAnnounce" :disabled="!hasSelection" class="h-12 px-3 md:px-4 bg-gray-700 text-white rounded-lg flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+        <button @click="openAnnounce" :disabled="!hasSelection" class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
           📣 <span class="hidden sm:inline">Annoncer</span>
+        </button>
+        <button v-if="hasSelection" @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gray-700 text-white rounded-lg flex-1 whitespace-nowrap">
+          👍 <span class="hidden sm:inline">Fermer</span>
         </button>
       </div>
     </div>

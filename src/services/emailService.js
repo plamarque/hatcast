@@ -181,6 +181,65 @@ export async function queueSelectionEmail({
   }
 }
 
+// Nouveau: email lorsqu'un joueur n'est plus sélectionné
+export async function queueDeselectionEmail({
+  toEmail,
+  playerName,
+  eventTitle,
+  eventDate,
+  eventUrl,
+  newSelectedPlayers = [],
+  html = undefined,
+  subject = undefined,
+  fromEmail = undefined
+}) {
+  // Respecter préférences notification (on réutilise notifySelection)
+  try {
+    const prefRef = doc(db, 'userPreferences', toEmail)
+    const prefSnap = await getDoc(prefRef)
+    if (prefSnap.exists()) {
+      const prefs = prefSnap.data()
+      if (prefs?.notifySelection === false) {
+        return { success: true, skipped: true }
+      }
+    }
+  } catch {}
+
+  const playersList = Array.isArray(newSelectedPlayers) ? newSelectedPlayers.join(', ') : ''
+
+  const emailHtml = html || `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <h2>🎭 Sélection mise à jour</h2>
+      <p>Bonjour ${playerName},</p>
+      <p>La sélection pour <strong>${eventTitle}</strong> (${eventDate}) a été mise à jour et tu n'en fais plus partie 😔.</p>
+      ${playersList ? `<p>Nouvelle sélection: <strong>${playersList}</strong>.</p>` : ''}
+      <p>
+        <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;background:#6b7280;color:#fff;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
+      </p>
+      <p style="font-size:12px;color:#6b7280;">Motif: mise à jour de sélection (relance auto ou ajustement manuel).</p>
+    </div>
+  `
+
+  const emailSubject = subject || `🎭 Tu n'es plus dans la sélection · ${eventTitle}`
+
+  const docData = {
+    to: toEmail,
+    message: {
+      subject: emailSubject,
+      html: emailHtml
+    },
+    createdAt: serverTimestamp(),
+    meta: { reason: 'deselection', eventTitle, eventDate, playerName, newSelectedPlayers }
+  }
+  if (fromEmail) {
+    docData.from = fromEmail
+    docData.replyTo = fromEmail
+  }
+
+  await addDoc(collection(db, 'mail'), docData)
+  return { success: true }
+}
+
 // Fonction pour envoyer des emails de notification de sélection pour un événement
 export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, seasonId, seasonSlug, players }) {
   logger.info('sendSelectionEmailsForEvent', { eventId, seasonId, seasonSlug, playersCount: players?.length, selectedCount: selectedPlayers?.length })
@@ -271,6 +330,64 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
   await Promise.all(emailPromises)
   
   logger.info('Tous les emails ont été envoyés avec succès')
+  return { success: true, count: emailPromises.length }
+}
+
+// Envoi des emails quand des joueurs sont retirés de la sélection
+export async function sendDeselectionEmailsForEvent({ eventId, eventData, removedPlayers, newSelectedPlayers, seasonId, seasonSlug, players }) {
+  logger.info('sendDeselectionEmailsForEvent', { eventId, seasonId, removedCount: removedPlayers?.length })
+
+  if (!eventData || !removedPlayers || removedPlayers.length === 0) {
+    return { success: true, count: 0 }
+  }
+
+  const { getPlayerEmail } = await import('./playerProtection.js')
+  const eventUrl = `${window.location.origin}/season/${seasonSlug}/event/${eventId}`
+
+  const emailPromises = []
+  const playersList = Array.isArray(newSelectedPlayers) ? newSelectedPlayers.join(', ') : ''
+
+  for (const playerName of removedPlayers) {
+    try {
+      const player = players?.find(p => p.name === playerName)
+      if (!player) {
+        logger.warn('Joueur retiré non trouvé', { playerName })
+        continue
+      }
+      const email = await getPlayerEmail(player.id, seasonId)
+      if (!email) {
+        logger.warn('Pas d\'email pour le joueur retiré', { playerName })
+        continue
+      }
+
+      const html = `
+        <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+          <h2>🎭 Sélection mise à jour</h2>
+          <p>Bonjour <strong>${playerName}</strong>,</p>
+          <p>Tu n'es plus sélectionné(e) pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}) 😔.</p>
+          ${playersList ? `<p>Nouvelle sélection: <strong>${playersList}</strong>.</p>` : ''}
+          <p>
+            <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;background:#6b7280;color:#fff;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
+          </p>
+        </div>
+      `
+
+      emailPromises.push(queueDeselectionEmail({
+        toEmail: email,
+        playerName,
+        eventTitle: eventData.title,
+        eventDate: formatDateFull(eventData.date),
+        eventUrl,
+        newSelectedPlayers,
+        html
+      }))
+    } catch (error) {
+      logger.error('Erreur lors de l\'envoi de l\'email de désélection', { playerName, error })
+    }
+  }
+
+  await Promise.all(emailPromises)
+  logger.info('Emails de désélection envoyés', { count: emailPromises.length })
   return { success: true, count: emailPromises.length }
 }
 

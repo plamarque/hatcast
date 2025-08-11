@@ -1268,7 +1268,7 @@ import {
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
-import { queueAvailabilityEmail, sendSelectionEmailsForEvent } from '../services/emailService.js'
+import { queueAvailabilityEmail, sendSelectionEmailsForEvent, sendDeselectionEmailsForEvent } from '../services/emailService.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
@@ -3541,8 +3541,27 @@ async function executePendingOperation(operation) {
         // Persister la sélection manuelle après validation du PIN
         {
           const { eventId, players } = data
-          await saveSelection(eventId, Array.isArray(players) ? players : [], seasonId.value)
-          selections.value[eventId] = Array.isArray(players) ? players : []
+          // Détecter les joueurs retirés avant de sauvegarder
+          const oldSelection = [...(selections.value[eventId] || [])]
+          const nextSelection = Array.isArray(players) ? players : []
+          await saveSelection(eventId, nextSelection, seasonId.value)
+          selections.value[eventId] = nextSelection
+          // Emails de désélection si applicable
+          try {
+            const removedPlayers = oldSelection.filter(name => !nextSelection.includes(name))
+            if (removedPlayers.length > 0) {
+              const event = events.value.find(e => e.id === eventId)
+              await sendDeselectionEmailsForEvent({
+                eventId,
+                eventData: event,
+                removedPlayers,
+                newSelectedPlayers: nextSelection,
+                seasonId: seasonId.value,
+                seasonSlug,
+                players: enrichedPlayers.value
+              })
+            }
+          } catch {}
           // Feedback via la modale de sélection si ouverte
           try {
             selectionModalRef.value?.showSuccess(true, true)
