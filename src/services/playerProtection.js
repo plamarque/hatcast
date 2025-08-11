@@ -17,6 +17,11 @@ function simpleHash(password) {
   return hash.toString()
 }
 
+// Clé de préférence locale pour remonter le joueur protégé en tête du tri
+function getPreferredPlayerStorageKey(seasonId) {
+  return `seasonPreferredPlayer:${seasonId || 'global'}`
+}
+
 // Structure des données de protection d'un joueur
 // {
 //   playerId: string,
@@ -80,6 +85,13 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     })
     
     logger.info('Protection sauvegardée dans Firestore')
+
+    // Sauvegarder une préférence locale: ce joueur est privilégié pour cette saison
+    try {
+      if (seasonId) {
+        localStorage.setItem(getPreferredPlayerStorageKey(seasonId), playerId)
+      }
+    } catch (_) {}
     return { success: true }
   } catch (error) {
     logger.error('Erreur lors de la protection du joueur', error)
@@ -167,6 +179,17 @@ export async function unprotectPlayer(playerId, seasonId = null) {
       updatedAt: new Date()
     })
     
+    // Si la préférence locale pointe vers ce joueur, la nettoyer
+    try {
+      if (seasonId) {
+        const key = getPreferredPlayerStorageKey(seasonId)
+        const current = localStorage.getItem(key)
+        if (current === playerId) {
+          localStorage.removeItem(key)
+        }
+      }
+    } catch (_) {}
+
     return { success: true, email: '' }
   } catch (error) {
     logger.error('Erreur lors de la suppression de la protection', error)
@@ -262,6 +285,12 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
         
         // Sauvegarder la session
         playerPasswordSessionManager.saveSession(playerId, password)
+        // Enregistrer la préférence locale de joueur privilégié pour cette saison
+        try {
+          if (seasonId) {
+            localStorage.setItem(getPreferredPlayerStorageKey(seasonId), playerId)
+          }
+        } catch (_) {}
         
         return true
       } catch (firebaseError) {
@@ -276,6 +305,12 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
       
       if (isValid) {
         playerPasswordSessionManager.saveSession(playerId, password)
+        // Enregistrer la préférence locale de joueur privilégié pour cette saison
+        try {
+          if (seasonId) {
+            localStorage.setItem(getPreferredPlayerStorageKey(seasonId), playerId)
+          }
+        } catch (_) {}
       }
       
       return isValid

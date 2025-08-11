@@ -38,6 +38,7 @@
           <div>• <span class="text-blue-300">Protection des disponibilités :</span> Seul vous pouvez modifier vos disponibilités</div>
           <div>• <span class="text-blue-300">Protection du nom :</span> Seul vous pouvez changer votre nom de joueur</div>
           <div>• <span class="text-blue-300">Email requis :</span> Permet de réinitialiser le mot de passe en cas d'oubli et de recevoir des notifications quand des changements surviennent</div>
+          <div>• <span class="text-blue-300">Confort de saisie :</span> après authentification par mot de passe, votre ligne est automatiquement remontée en haut de la grille sur cet appareil, pour un accès plus rapide</div>
         </div>
       </div>
 

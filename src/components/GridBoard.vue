@@ -246,7 +246,7 @@
               :key="player.id"
               class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
               :data-player-id="player.id"
-              :class="{ 'highlighted-player': player.id === highlightedPlayer }"
+              :class="{ 'highlighted-player': player.id === highlightedPlayer, 'preferred-player': player.id === preferredPlayerId }"
             >
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 font-bold text-xl md:text-2xl whitespace-pre-wrap flex items-center">
@@ -1056,6 +1056,11 @@
 }
 .highlighted-player * {
   color: white !important;
+}
+
+/* Surbrillance légère pour le joueur préféré localement */
+.preferred-player {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.10), rgba(234, 179, 8, 0.05)) !important; /* jaune doux */
 }
 
 .grid-table {
@@ -2356,8 +2361,33 @@ function toDateObject(value) {
 }
 
 const sortedPlayers = computed(() => {
-  // Tri strictement alphabétique A→Z sur le nom affiché
-  return [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+  // Préférence locale: joueur privilégié pour cette saison
+  let preferredPlayerId = null
+  try {
+    if (seasonId.value) {
+      preferredPlayerId = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
+    }
+  } catch (_) {}
+
+  const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+  if (!preferredPlayerId) return base
+
+  const idx = base.findIndex(p => p.id === preferredPlayerId)
+  if (idx <= 0) return base
+
+  const preferred = base[idx]
+  const rest = base.slice(0, idx).concat(base.slice(idx + 1))
+  return [preferred, ...rest]
+})
+
+// Exposer l'ID du joueur préféré pour la surbrillance légère
+const preferredPlayerId = computed(() => {
+  try {
+    if (seasonId.value) {
+      return localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
+    }
+  } catch (_) {}
+  return null
 })
 
 const sortedEvents = computed(() => {
