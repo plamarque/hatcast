@@ -106,13 +106,15 @@
   </div>
 
   <!-- Modal de protection du joueur -->
-  <PlayerProtectionModal
-    :show="showProtectionModal"
-    :player="player"
-    :seasonId="seasonId"
-    @close="showProtectionModal = false"
-    @update="handleProtectionUpdate"
-  />
+<PlayerProtectionModal
+  :show="showProtectionModal"
+  :player="player"
+  :seasonId="seasonId"
+  :onboarding="onboardingStep === 4"
+  @close="showProtectionModal = false"
+  @update="handleProtectionUpdate"
+  @onboarding-finished="$emit('advance-onboarding', 5)"
+/>
 
   <!-- Modal de vérification du mot de passe -->
   <PasswordVerificationModal
@@ -146,10 +148,18 @@ const props = defineProps({
   seasonId: {
     type: String,
     default: null
+  },
+  onboardingStep: {
+    type: Number,
+    default: 0
+  },
+  onboardingPlayerId: {
+    type: [String, null],
+    default: null
   }
 })
 
-const emit = defineEmits(['close', 'update', 'delete', 'refresh'])
+const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding'])
 
 const editing = ref(false)
 const editingName = ref('')
@@ -275,4 +285,43 @@ watch(() => props.show, (newValue) => {
 defineExpose({
   openProtection() { showProtectionModal.value = true }
 })
+
+// Coachmark simple sur le bouton Protection quand onboardingStep === 4
+const protectionCoachmark = ref({ position: null })
+
+watch(() => props.show, (open) => {
+  if (open && props.onboardingStep === 4) {
+    nextTick(() => {
+      const btns = document.querySelectorAll('button')
+      let target = null
+      btns.forEach((b) => {
+        if (!target && b.textContent && b.textContent.includes('Protection')) target = b
+      })
+      if (target) {
+        const rect = target.getBoundingClientRect()
+        protectionCoachmark.value.position = {
+          x: Math.round(rect.right + 8),
+          y: Math.round(rect.top + window.scrollY - 4)
+        }
+      }
+    })
+  } else if (!open) {
+    protectionCoachmark.value.position = null
+  }
+})
 </script>
+
+<style scoped>
+.coachmark {
+  position: relative;
+}
+.coachmark:after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 16px;
+  border-width: 0 8px 8px 8px;
+  border-style: solid;
+  border-color: transparent transparent rgba(17,24,39,1) transparent;
+}
+</style>

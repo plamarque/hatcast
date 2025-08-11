@@ -129,9 +129,62 @@
         ref="gridboardRef"
         class="gridboard overflow-x-auto bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50"
       >
-        <!-- Onboarding guidé (modal overlay) déplacé hors de la grille -->
+        <!-- Coachmarks d'onboarding (mini-fenêtres contextuelles) -->
+        <div v-if="playerTourStep === 1" class="pointer-events-none">
+          <!-- Étape 1: coachmark bouton Ajouter un joueur -->
+          <div
+            v-if="addPlayerCoachmark.position"
+            class="fixed z-[400]"
+            :style="{ left: addPlayerCoachmark.position.x + 'px', top: addPlayerCoachmark.position.y + 'px' }"
+          >
+            <div class="coachmark pointer-events-auto max-w-xs bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative">
+              <div class="text-sm font-semibold mb-1">Ajoutez votre nom</div>
+              <div class="text-xs text-gray-300 mb-2">Cliquez sur "Ajouter un joueur" pour vous inscrire</div>
+              <div class="flex items-center justify-between">
+                <span class="text-purple-300 text-xs">Étape 1/4</span>
+                <button @click="dismissCoachmarkStep(0)" class="text-xs text-white/80 hover:text-white">Suivant</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
+        <div v-if="playerTourStep === 2 && guidedPlayerId && guidedEventId" class="pointer-events-none">
+          <!-- Étape 2: coachmark cellule disponibilité -->
+          <div
+            v-if="availabilityCoachmark.position"
+            class="fixed z-[400]"
+            :style="{ position: 'absolute', left: availabilityCoachmark.position.x + 'px', top: availabilityCoachmark.position.y + 'px' }"
+          >
+            <div id="coachmark-avail" class="coachmark pointer-events-auto max-w-xs bg-gray-900 border border-pink-500/40 rounded-xl shadow-2xl p-3 text-white relative">
+              <div class="text-sm font-semibold mb-1">Indiquez vos disponibilités</div>
+              <div class="text-xs text-gray-300 mb-2">Cliquez cette case pour alterner Oui / Non / Vide</div>
+              <div class="flex items-center justify-between">
+                <span class="text-pink-300 text-xs">Étape 2/4</span>
+                <button @click="dismissCoachmarkStep(1)" class="text-xs text-white/80 hover:text-white">Suivant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="playerTourStep === 3 && guidedPlayerId" class="pointer-events-none">
+          <!-- Étape 3: coachmark nom joueur -->
+          <div
+            v-if="playerNameCoachmark.position"
+            class="fixed z-[400]"
+            :style="{ position: 'absolute', left: playerNameCoachmark.position.x + 'px', top: playerNameCoachmark.position.y + 'px' }"
+          >
+            <div id="coachmark-name" class="coachmark pointer-events-auto max-w-xs bg-gray-900 border border-yellow-500/40 rounded-xl shadow-2xl p-3 text-white relative">
+              <div class="text-sm font-semibold mb-1">Ouvrez votre fiche</div>
+              <div class="text-xs text-gray-300 mb-2">Cliquez sur votre nom pour voir les détails et la protection</div>
+              <div class="flex items-center justify-between">
+                <span class="text-yellow-300 text-xs">Étape 3/4</span>
+                <button @click="dismissCoachmarkStep(2)" class="text-xs text-white/80 hover:text-white">Suivant</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table class="table-auto border-separate border-spacing-0 table-fixed w-auto min-w-max">
           <colgroup>
             <col class="col-left" />
             <col v-for="(event, index) in displayedEvents" :key="'c'+index" class="col-event" />
@@ -146,8 +199,8 @@
               :data-player-id="player.id"
               :class="{ 'highlighted-player': player.id === highlightedPlayer }"
             >
-              <td class="p-4 md:p-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900">
-                <div class="font-bold text-xl md:text-2xl whitespace-pre-wrap flex items-center">
+              <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
+                <div class="px-4 md:px-5 font-bold text-xl md:text-2xl whitespace-pre-wrap flex items-center">
                   <span 
                     v-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
@@ -158,7 +211,7 @@
                   <span 
                     @click="showPlayerDetails(player)" 
                      class="player-name hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight"
-                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 2 && player.id === (sortedPlayers[0]?.id) }"
+                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
                     {{ player.name }}
@@ -171,7 +224,7 @@
                 :key="event.id"
                 :data-event-id="event.id"
                 class="p-0"
-                :class="{ 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 1 && player.id === (sortedPlayers[0]?.id) && event.id === (displayedEvents[0]?.id) }"
+                :class="{ 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && event.id === (guidedEventId || (displayedEvents[0]?.id)) }"
               >
                 <AvailabilityCell
                   :player-name="player.name"
@@ -187,12 +240,13 @@
             </tr>
             <!-- Dernière ligne: ajouter un joueur (masquée pendant étapes 1 et 2 pour éviter les doublons) -->
             <tr v-if="!(events.length === 0 && players.length === 0) && !(events.length > 0 && players.length === 0)" class="border-t border-white/10">
-              <td class="p-4 md:p-5 sticky left-0 z-40 bg-gray-900">
-                <div class="flex items-center">
+              <td class="px-0 py-4 md:py-5 sticky left-0 z-40 bg-gray-900 left-col-td">
+                <div class="px-4 md:px-5 flex items-center">
                   <button
                     @click="newPlayerForm = true"
                     class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
                     title="Ajouter un nouveau joueur"
+                    data-onboarding="add-player"
                   >
                     <span class="text-lg">➕</span>
                     <span class="hidden sm:inline">Ajouter un joueur</span>
@@ -243,16 +297,13 @@
     @dismissed="afterCloseOnboarding"
   />
 
+  <!-- Ancienne modale d'onboarding joueur désactivée au profit de coachmarks interactifs -->
   <PlayerOnboardingModal
-    v-if="!isLoadingGrid"
+    v-if="false && !isLoadingGrid"
     :season-id="seasonId"
     :players-count="players.length"
     :events-count="events.length"
     :creator-onboarding-done="seasonMeta?.onboardingCreatorDone === true"
-    @add-self="() => { newPlayerForm = true }"
-    @focus-availability="() => {}"
-    @open-protection="() => { if (playerModalRef?.value?.openProtection) playerModalRef.value.openProtection() }"
-    @done="() => {}"
   />
 
   
@@ -880,10 +931,13 @@
     :player="selectedPlayer"
     :stats="getPlayerStats(selectedPlayer)"
     :seasonId="seasonId"
+    :onboarding-step="playerTourStep"
+    :onboarding-player-id="guidedPlayerId"
     @close="closePlayerModal"
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
     @refresh="handlePlayerRefresh"
+    @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
   />
 
   <!-- Modal de sélection -->
@@ -968,6 +1022,13 @@
   word-wrap: break-word;
 }
 
+/* Empêcher la cellule gauche sticky de s'élargir plus que la colonne prévue */
+.left-col-td {
+  width: var(--left-col-width, 12rem);
+  max-width: var(--left-col-width, 12rem);
+  min-width: var(--left-col-width, 12rem);
+}
+
 /* Responsivité: adaptation des cellules sur écran réduit */
 @media (max-width: 768px) {
   .grid-table th,
@@ -1035,14 +1096,16 @@
   border: 3px solid rgba(236, 72, 153, 0.8);
 }
 
-/* Forcer une largeur cohérente de la colonne gauche (header et table) */
-.col-left {
-  width: 260px;
-}
-
-
-
-
+  /* Coachmarks: petite flèche vers l'élément ciblé (optionnelle, simple) */
+  .coachmark:after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 16px;
+    border-width: 0 8px 8px 8px;
+    border-style: solid;
+    border-color: transparent transparent rgba(17,24,39,1) transparent; /* bg-gray-900 */
+  }
 
 /* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
 </style>
@@ -1116,6 +1179,11 @@ const editingPlayerCount = ref(6)
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
 const highlightedPlayer = ref(null)
+const guidedPlayerId = ref(null)
+const guidedEventId = ref(null)
+const addPlayerCoachmark = ref({ position: null })
+const availabilityCoachmark = ref({ position: null })
+const playerNameCoachmark = ref({ position: null })
 const confirmReselect = ref(false)
 const eventIdToReselect = ref(null)
 
@@ -1178,12 +1246,24 @@ function evaluatePlayerTourStart() {
     // Ne pas démarrer l'onboarding joueur tant que l'onboarding créateur n'est pas terminé
     if (!seasonMeta.value || seasonMeta.value.onboardingCreatorDone !== true) return
     // Démarrer uniquement quand on a au moins 1 player et 1 event (utiliser events pour éviter dépendance précoce)
-    if (players.value.length === 0 || events.value.length === 0) return
+    if (events.value.length === 0) return
     const alreadyCompleted = localStorage.getItem(`playerTourCompleted:${seasonId.value}`)
     const startFlag = localStorage.getItem(`startPlayerTour:${seasonId.value}`)
     if (!alreadyCompleted && startFlag) {
       playerTourStep.value = 1
       localStorage.removeItem(`startPlayerTour:${seasonId.value}`)
+      // Positionner le coachmark près du bouton Ajouter un joueur (scroll si hors vue)
+      nextTick(() => {
+        const addBtn = document.querySelector('button[data-onboarding="add-player"]')
+        if (addBtn) {
+          addBtn.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          const rect = addBtn.getBoundingClientRect()
+          addPlayerCoachmark.value.position = {
+            x: Math.round(rect.left),
+            y: Math.round(rect.bottom + window.scrollY + 8)
+          }
+        }
+      })
     }
   } catch {}
 }
@@ -1704,11 +1784,30 @@ async function addNewPlayer() {
       const newPlayer = players.value.find(p => p.id === newId)
       highlightPlayer(newId)
 
+      // Avancer à l'étape 2 (disponibilités) et définir les cibles du guidage
+      guidedPlayerId.value = newId
+      guidedEventId.value = (displayedEvents.value && displayedEvents.value[0] && displayedEvents.value[0].id) ? displayedEvents.value[0].id : null
+      try { if (seasonId.value) localStorage.setItem(`lastAddedPlayerId:${seasonId.value}`, newId) } catch {}
+      // Passer à l'étape 2 du tutoriel (indication des dispos)
+      try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = 2 } catch {}
+
       // Scroller automatiquement vers le joueur
       const row = document.querySelector(`[data-player-id="${newId}"]`)
       if (row) {
         row.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
+      // Positionner le coachmark de disponibilité
+      nextTick(() => {
+        const selector = `[data-player-id="${guidedPlayerId.value}"] td[data-event-id="${guidedEventId.value}"]`
+        const cell = document.querySelector(selector)
+        if (cell) {
+          const rect = cell.getBoundingClientRect()
+          availabilityCoachmark.value.position = {
+            x: Math.round(rect.left),
+            y: Math.round(rect.top + window.scrollY - 48)
+          }
+        }
+      })
 
       // Afficher le message de succès
       showSuccessMessage.value = true
@@ -2148,9 +2247,23 @@ function performToggleAvailability(player, eventId) {
   // Avancer le mini-tutoriel joueur: étape 1 -> 2 au premier toggle
   try {
     if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 1) {
-      const isFirstCell = (player.id === (sortedPlayers.value[0]?.id)) && (eventId === (displayedEvents.value[0]?.id))
-      if (isFirstCell) {
-        playerTourStep.value = 2
+      const isGuidedCell = (player.id === (guidedPlayerId.value || (sortedPlayers.value[0]?.id))) && (eventId === (guidedEventId.value || (displayedEvents.value[0]?.id)))
+      if (isGuidedCell) {
+        playerTourStep.value = 3
+        // Positionner le coachmark près du nom du joueur
+        nextTick(() => {
+          const row = document.querySelector(`[data-player-id="${player.id}"]`)
+          if (row) {
+            const nameEl = row.querySelector('.player-name')
+            if (nameEl) {
+              const rect = nameEl.getBoundingClientRect()
+              playerNameCoachmark.value.position = {
+                x: Math.round(rect.right + 8),
+                y: Math.round(rect.top + window.scrollY - 4)
+              }
+            }
+          }
+        })
       }
     }
   } catch {}
@@ -2345,6 +2458,70 @@ async function tirerProtected(eventId, count = 6) {
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
+  }
+}
+
+// Démarrer la mise en avant de la cellule de dispo du joueur
+function startAvailabilityGuidance() {
+  // Essayer de cibler le dernier joueur ajouté pour cette saison
+  let targetPlayerId = null
+  try { if (seasonId.value) targetPlayerId = localStorage.getItem(`lastAddedPlayerId:${seasonId.value}`) } catch {}
+  if (!targetPlayerId && players.value.length > 0) {
+    // Repli: prendre le premier joueur trié
+    targetPlayerId = players.value[0]?.id || null
+  }
+  guidedPlayerId.value = targetPlayerId
+  guidedEventId.value = displayedEvents.value[0]?.id || null
+  try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = 2 } catch {}
+  // S'assurer que l'élément est dans le viewport
+  if (guidedPlayerId.value) {
+    const row = document.querySelector(`[data-player-id="${guidedPlayerId.value}"]`)
+    row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  // Positionner le coachmark près de la cellule, en restant dans le viewport
+  nextTick(() => {
+    const selector = `[data-player-id="${guidedPlayerId.value}"] td[data-event-id="${guidedEventId.value}"]`
+    const cell = document.querySelector(selector)
+    if (cell) {
+      const rect = cell.getBoundingClientRect()
+      // Ajuster pour rester dans le viewport (éviter scroll intempestif)
+      const proposedX = Math.round(rect.left)
+      const proposedY = Math.round(rect.top + window.scrollY - 72)
+      const minY = window.scrollY + 16
+      const y = Math.max(proposedY, minY)
+      availabilityCoachmark.value.position = { x: proposedX, y }
+    }
+  })
+}
+
+// Ouvrir directement la protection sur la fiche du joueur guidé
+function openProtectionGuidance() {
+  // Choisir le joueur cible
+  let targetPlayer = null
+  const targetId = guidedPlayerId.value || (players.value[0]?.id || null)
+  if (targetId) {
+    targetPlayer = players.value.find(p => p.id === targetId) || null
+  }
+  if (!targetPlayer && players.value.length > 0) targetPlayer = players.value[0]
+  if (!targetPlayer) return
+
+  selectedPlayer.value = targetPlayer
+  showPlayerModal.value = true
+  nextTick(() => {
+    if (playerModalRef?.value?.openProtection) {
+      playerModalRef.value.openProtection()
+    }
+  })
+}
+
+// Cacher un coachmark d'étape (permet à l'utilisateur de cliquer ensuite)
+function dismissCoachmarkStep(stepNumber) {
+  if (stepNumber === 0) {
+    addPlayerCoachmark.value.position = null
+  } else if (stepNumber === 1) {
+    availabilityCoachmark.value.position = null
+  } else if (stepNumber === 2) {
+    playerNameCoachmark.value.position = null
   }
 }
 
@@ -3048,14 +3225,10 @@ function showPlayerDetails(player) {
   selectedPlayer.value = player;
   showPlayerModal.value = true;
 
-    // Avancer le mini-tutoriel joueur: étape 2 -> fin (3)
+    // Avancer le mini-tutoriel joueur (étape 3 -> protection)
     try {
-      if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 2) {
-        playerTourStep.value = 3
-        // On peut marquer la complétion pour cette saison
-        if (seasonId.value) {
-          localStorage.setItem(`playerTourCompleted:${seasonId.value}`, '1')
-        }
+      if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 3) {
+        // La suite (mise en avant du bouton Protection) se fera dans le modal
       }
     } catch {}
 }

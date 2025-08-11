@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { protectPlayer, unprotectPlayer, isPlayerProtected, verifyPlayerPassword, getPlayerEmail, startEmailVerificationForProtection } from '../services/playerProtection.js'
 import { queueProtectionVerificationEmail } from '../services/emailService.js'
 import { useRoute } from 'vue-router'
@@ -207,10 +207,14 @@ const props = defineProps({
   seasonId: {
     type: String,
     default: null
+  },
+  onboarding: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['close', 'update'])
+const emit = defineEmits(['close', 'update', 'onboarding-finished'])
 
 const isProtected = ref(false)
 const step = ref(1) // 1 email, 2 password
@@ -329,6 +333,10 @@ async function activateProtection() {
     confirmPassword.value = ''
     
     emit('update')
+    // Fin d'onboarding si demandé
+    try {
+      if (props.onboarding) emit('onboarding-finished')
+    } catch {}
   } catch (err) {
     console.error('Erreur lors de l\'activation de la protection:', err)
     if (err.message && err.message.includes('email')) {
@@ -433,6 +441,12 @@ watch(() => props.show, (newValue) => {
     
     // Vérifier l'état de protection et charger l'email si nécessaire
     checkProtectionStatus()
+    // Si onboarding, mettre en avant le flux email -> mot de passe
+    if (props.onboarding) {
+      nextTick(() => {
+        // Rien de bloquant ici; on pourrait poser des coachmarks si besoin
+      })
+    }
   }
 })
 </script>
