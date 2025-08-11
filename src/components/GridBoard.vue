@@ -126,6 +126,7 @@
                 :key="'h-'+event.id"
                 :data-event-id="event.id"
                 class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
+                :class="{ 'archived-header': event.archived }"
                 @click="showEventDetails(event)"
               >
                 <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
@@ -300,8 +301,11 @@
                 v-for="event in displayedEvents"
                 :key="event.id"
                 :data-event-id="event.id"
-                class="p-0"
-                :class="{ 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && event.id === (guidedEventId || (displayedEvents[0]?.id)) }"
+                :class="[
+                  'p-0',
+                  event.archived ? 'archived-col' : '',
+                  { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && event.id === (guidedEventId || (displayedEvents[0]?.id)) }
+                ]"
               >
                 <AvailabilityCell
                   :player-name="player.name"
@@ -310,7 +314,8 @@
                    :is-selected="isSelected(player.name, event.id)"
                    :chance-percent="chances[player.name]?.[event.id] ?? null"
                    :show-selected-chance="isSelectionComplete(event.id)"
-                  @toggle="toggleAvailability"
+                   :disabled="event.archived === true"
+                   @toggle="toggleAvailability"
                 />
               </td>
               <td class="p-3 md:p-4"></td>
@@ -335,7 +340,7 @@
                 v-for="event in displayedEvents"
                 :key="'add-row-'+event.id"
                 :data-event-id="event.id"
-                class="p-3 md:p-5"
+                :class="['p-3 md:p-5', event.archived ? 'archived-col' : '']"
               ></td>
               <td class="p-3 md:p-4"></td>
             </tr>
@@ -619,14 +624,15 @@
               </div>
               
               <div class="col-span-8 p-0">
-                <AvailabilityCell
+                 <AvailabilityCell
                   :player-name="player.name"
                   :event-id="selectedEvent.id"
                   :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
                   :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
                   :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                  :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                  @toggle="handleAvailabilityToggle"
+                   :show-selected-chance="isSelectionComplete(selectedEvent.id)"
+                   :disabled="selectedEvent?.archived === true"
+                   @toggle="handleAvailabilityToggle"
                 />
               </div>
             </div>
@@ -1156,7 +1162,25 @@
   overflow: hidden;
 }
 
-/* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
+  /* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
+  
+  /* Colonne atténuée pour événements archivés */
+  .archived-header {
+    filter: grayscale(25%);
+    opacity: 0.7;
+    background: linear-gradient(180deg, rgba(148,163,184,0.12), rgba(148,163,184,0.08));
+  }
+  td.archived-col {
+    background: linear-gradient(180deg, rgba(148,163,184,0.10), rgba(148,163,184,0.06)); /* slate tint */
+    position: relative;
+  }
+  td.archived-col::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(100,116,139,0.08); /* extra veil */
+    pointer-events: none;
+  }
 .col-left { width: 11rem; }
 .col-event { width: 15rem; }
 .col-right { width: 4.5rem; }
@@ -2570,6 +2594,13 @@ async function toggleAvailability(playerName, eventId) {
     console.error('Événement non trouvé')
     return;
   }
+  // Empêcher toute modification sur un événement archivé
+  if (eventItem.archived) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Événement archivé — désarchivez pour modifier'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
   
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
@@ -3548,6 +3579,14 @@ async function handleAvailabilityToggle(playerName, eventId) {
     console.error('Joueur non trouvé');
     return;
   }
+  // Empêcher toute modification sur un événement archivé
+  const evt = events.value.find(e => e.id === eventId)
+  if (evt?.archived) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Événement archivé — désarchivez pour modifier'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
   
   // eslint-disable-next-line no-console
   console.debug('Joueur trouvé');
@@ -3968,10 +4007,16 @@ function getPlayerAvailabilityForEvent(eventId) {
 }
 
 // Fonctions pour la nouvelle popin de sélection
-function openSelectionModal(event) {
+ function openSelectionModal(event) {
+  if (event?.archived) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Impossible d\'ouvrir la sélection sur un événement archivé'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
   selectionModalEvent.value = event
   showSelectionModal.value = true
-}
+ }
 
 function closeSelectionModal() {
   showSelectionModal.value = false

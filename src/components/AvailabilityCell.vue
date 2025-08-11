@@ -1,6 +1,9 @@
 <template>
   <div 
-    class="flex items-center justify-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-20 p-3 md:p-5"
+    class="flex items-center justify-center transition-all duration-200 min-h-20 p-3 md:p-5"
+    :class="[
+      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'
+    ]"
     @click="toggleAvailability"
     @mouseenter="hover = true"
     @mouseleave="hover = false"
@@ -35,9 +38,10 @@
         >
           ❌
         </span>
-        <span
+         <span
           v-else
-          class="text-gray-500 hover:text-white transition-colors duration-200 text-xl"
+          class="text-gray-500 transition-colors duration-200 text-xl"
+          :class="disabled ? '' : 'hover:text-white'"
           :title="tooltipText"
         >
           –
@@ -74,6 +78,10 @@ const props = defineProps({
   showSelectedChance: {
     type: Boolean,
     default: false
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -89,6 +97,9 @@ const shouldShowChance = computed(() => {
 })
 
 const tooltipText = computed(() => {
+  if (props.disabled) {
+    return 'Événement archivé — désarchivez pour modifier'
+  }
   if (props.isSelected) {
     if (shouldShowChance.value) {
       return `${props.playerName} est sélectionné pour cet événement • avait ~${props.chancePercent}% de chances`
@@ -106,6 +117,7 @@ const tooltipText = computed(() => {
 })
 
 function toggleAvailability() {
+  if (props.disabled) return
   emit('toggle', props.playerName, props.eventId)
 }
 </script>
