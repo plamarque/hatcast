@@ -7,10 +7,11 @@
           <span class="text-2xl">👤</span>
         </div>
         <h2 class="text-2xl font-bold text-white mb-1">Mon compte</h2>
-        <p class="text-sm text-gray-300">Connectez-vous pour gérer votre compte</p>
+        <p class="text-sm text-gray-300">Connectez-vous pour gérer votre compte et vos préférences</p>
       </div>
 
       <div class="space-y-4">
+        <AccountBenefitsHint />
         <div>
           <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
           <input v-model="email" type="email" class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400" placeholder="votre@email.com">
@@ -46,6 +47,7 @@
 import { ref, computed } from 'vue'
 import { signInPlayer, resetPlayerPassword } from '../services/firebase.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
+import AccountBenefitsHint from './AccountBenefitsHint.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false }

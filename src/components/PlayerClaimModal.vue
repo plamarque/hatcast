@@ -84,24 +84,7 @@
 
       
       <!-- Explication: pourquoi créer un compte ? -->
-      <div v-if="!isProtected" class="mt-4">
-        <button 
-          @click="showExplanation = !showExplanation"
-          class="w-full p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-all duration-200 flex items-center justify-between"
-        >
-          <h3 class="text-sm font-semibold text-blue-300">💡 A quoi sert un compte ?</h3>
-          <span class="text-blue-300 transition-transform duration-200" :class="{ 'rotate-180': showExplanation }">▼</span>
-        </button>
-        <div 
-          v-if="showExplanation"
-          class="mt-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg text-sm text-gray-300 space-y-2"
-        >
-          <div class="text-gray-300">Vous pouvez continuer à utiliser cette application sans compte, mais avec un compte, vous bénéficiez de nombreux avantages.</div>
-          <div>• <span class="text-blue-300">Protéger vos saisies :</span> vous seul pourrez modifier les disponibilités de ce joueur</div>
-          <div>• <span class="text-blue-300">Notifications :</span> recevez des emails lorsqu'il y a de nouvelles sélections</div>
-          <div>• <span class="text-blue-300">Confort :</span> votre joueur reste toujours en haut de la liste</div>
-        </div>
-      </div>
+      <AccountBenefitsHint v-if="!isProtected" />
     </div>
   </div>
   
@@ -130,6 +113,7 @@ import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached } from '../s
 import { useRoute } from 'vue-router'
 import AccountClaimModal from './AccountClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
+import AccountBenefitsHint from './AccountBenefitsHint.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -145,7 +129,7 @@ const isOwner = ref(false)
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
-const showExplanation = ref(false)
+// Hint state is now inside AccountBenefitsHint component
 const showAccountClaim = ref(false)
 const route = useRoute()
 const showPasswordVerification = ref(false)
