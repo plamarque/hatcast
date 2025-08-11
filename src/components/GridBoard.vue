@@ -41,9 +41,9 @@
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
         <div class="flex items-stretch relative">
-          <!-- Left sticky cell -->
-          <div class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
-            <div class="flex items-center justify-center h-full gap-2">
+          <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
+          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
+      <div class="flex items-center justify-center h-full gap-2">
               <button
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
@@ -129,6 +129,8 @@
         ref="gridboardRef"
         class="gridboard overflow-x-auto bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50"
       >
+        <!-- Onboarding guidé (modal overlay) déplacé hors de la grille -->
+
         <table class="table-auto border-separate border-spacing-0 table-fixed w-full min-w-max">
           <colgroup>
             <col class="col-left" />
@@ -156,6 +158,7 @@
                   <span 
                     @click="showPlayerDetails(player)" 
                      class="player-name hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight"
+                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 2 && player.id === (sortedPlayers[0]?.id) }"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
                     {{ player.name }}
@@ -168,6 +171,7 @@
                 :key="event.id"
                 :data-event-id="event.id"
                 class="p-0"
+                :class="{ 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 1 && player.id === (sortedPlayers[0]?.id) && event.id === (displayedEvents[0]?.id) }"
               >
                 <AvailabilityCell
                   :player-name="player.name"
@@ -181,13 +185,13 @@
               </td>
               <td class="p-3 md:p-4"></td>
             </tr>
-            <!-- Dernière ligne: ajouter un joueur -->
-            <tr class="border-t border-white/10">
+            <!-- Dernière ligne: ajouter un joueur (masquée pendant étapes 1 et 2 pour éviter les doublons) -->
+            <tr v-if="!(events.length === 0 && players.length === 0) && !(events.length > 0 && players.length === 0)" class="border-t border-white/10">
               <td class="p-4 md:p-5 sticky left-0 z-40 bg-gray-900">
                 <div class="flex items-center">
                   <button
                     @click="newPlayerForm = true"
-                    class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
+                    class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
                     title="Ajouter un nouveau joueur"
                   >
                     <span class="text-lg">➕</span>
@@ -218,15 +222,43 @@
       <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
         <span class="text-3xl">🎭</span>
       </div>
-      <p class="text-white text-lg">Préparation de la grille…</p>
-      <p class="text-white/70 text-sm mt-1">Un instant</p>
+      <p class="text-white text-lg">{{ currentLoadingLabel }}…</p>
+      <div class="mt-3 w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" :style="{ width: loadingProgress + '%' }"></div>
+      </div>
+      <p class="text-white/60 text-xs mt-2">{{ loadingProgress }}%</p>
     </div>
   </div>
+
+  <CreatorOnboardingModal
+    v-if="!isLoadingGrid"
+    :season-id="seasonId"
+    :season-slug="seasonSlug"
+    :players-count="players.length"
+    :events-count="events.length"
+    :onboarding-done="seasonMeta?.onboardingCreatorDone === true"
+    @create-event="openNewEventForm"
+    @add-player="() => { newPlayerForm = true }"
+    @copy-link="copyJoinLink"
+    @dismissed="afterCloseOnboarding"
+  />
+
+  <PlayerOnboardingModal
+    v-if="!isLoadingGrid"
+    :season-id="seasonId"
+    :players-count="players.length"
+    :events-count="events.length"
+    :creator-onboarding-done="seasonMeta?.onboardingCreatorDone === true"
+    @add-self="() => { newPlayerForm = true }"
+    @focus-availability="() => {}"
+    @open-protection="() => { if (playerModalRef?.value?.openProtection) playerModalRef.value.openProtection() }"
+    @done="() => {}"
+  />
 
   
 
   <!-- Message de succès -->
-  <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm z-50">
+  <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm z-[200]">
     <div class="flex items-center space-x-2">
       <span class="text-xl">✨</span>
       <span>{{ successMessage }}</span>
@@ -234,7 +266,7 @@
   </div>
 
   <!-- Message d'erreur -->
-  <div v-if="showErrorMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl shadow-2xl border border-red-400/30 backdrop-blur-sm z-50">
+  <div v-if="showErrorMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl shadow-2xl border border-red-400/30 backdrop-blur-sm z-[200]">
     <div class="flex items-center space-x-2">
       <span class="text-xl">⚠️</span>
       <span>{{ errorMessage }}</span>
@@ -1003,6 +1035,11 @@
   border: 3px solid rgba(236, 72, 153, 0.8);
 }
 
+/* Forcer une largeur cohérente de la colonne gauche (header et table) */
+.col-left {
+  width: 260px;
+}
+
 
 
 
@@ -1023,6 +1060,7 @@ import {
   loadEvents,
   loadAvailability,
   loadSelections,
+  addPlayer,
   deleteEvent,
   updateEvent,
   saveEvent,
@@ -1045,6 +1083,8 @@ import PlayerModal from './PlayerModal.vue'
 import PlayerProtectionModal from './PlayerProtectionModal.vue'
 import SelectionModal from './SelectionModal.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
+import CreatorOnboardingModal from './CreatorOnboardingModal.vue'
+import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1064,6 +1104,7 @@ const route = useRoute()
 const seasonSlug = props.slug
 const seasonName = ref('')
 const seasonId = ref('')
+const seasonMeta = ref({})
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -1129,6 +1170,24 @@ const recentlyVerifiedPlayer = ref(null) // Pour éviter la boucle de vérificat
 
 // plus de popover pour les en-têtes (on ouvre directement la popin de détails)
 
+// Mini-tutoriel joueur: déclenché après Join
+const playerTourStep = ref(0) // 0=off, 1=toggle dispo, 2=ouvrir fiche, 3=done
+function evaluatePlayerTourStart() {
+  try {
+    if (!seasonId.value) return
+    // Ne pas démarrer l'onboarding joueur tant que l'onboarding créateur n'est pas terminé
+    if (!seasonMeta.value || seasonMeta.value.onboardingCreatorDone !== true) return
+    // Démarrer uniquement quand on a au moins 1 player et 1 event (utiliser events pour éviter dépendance précoce)
+    if (players.value.length === 0 || events.value.length === 0) return
+    const alreadyCompleted = localStorage.getItem(`playerTourCompleted:${seasonId.value}`)
+    const startFlag = localStorage.getItem(`startPlayerTour:${seasonId.value}`)
+    if (!alreadyCompleted && startFlag) {
+      playerTourStep.value = 1
+      localStorage.removeItem(`startPlayerTour:${seasonId.value}`)
+    }
+  } catch {}
+}
+
 // Variables pour la nouvelle popin de sélection
 const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
@@ -1141,12 +1200,37 @@ const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
 const showHowItWorksGlobal = ref(false)
 
+  // Onboarding créateur (multi-étapes)
+  // Onboarding créateur: géré par CreatorOnboardingModal
+// Si l'utilisateur vient du /join, masquer l'onboarding créateur
+onMounted(() => {
+  try {
+    if (seasonId.value) {
+      const dismiss = localStorage.getItem(`dismissCreatorOnboarding:${seasonId.value}`)
+      if (dismiss) {
+        onboardingDismissedShare.value = true
+      }
+    }
+  } catch {}
+})
+
+// Quand le modal onboarding se ferme, synchroniser la grille
+function afterCloseOnboarding() {
+  // Laisser le DOM s'actualiser puis forcer la sync
+  nextTick(() => {
+    forceGridLayoutSync()
+  })
+}
+
 // Variables pour le modal de désistement
 // Désistement modal supprimé: on utilise les magic links "no"
 
 // Variables pour la protection des joueurs
 const protectedPlayers = ref(new Set())
 const isLoadingGrid = ref(true)
+// Chargement multi-étapes de la grille
+const loadingProgress = ref(0)
+const currentLoadingLabel = ref('Préparation de la grille')
 
 // Variables pour le focus sur un événement spécifique
 const focusedEventId = ref(props.eventId || null)
@@ -1218,6 +1302,17 @@ function updateScrollHints() {
   showLeftHint.value = scrollLeft > 2
   showRightHint.value = scrollLeft < scrollWidth - clientWidth - 2
 }
+
+// Forcer un recalcul des largeurs et synchronisation header/grille
+function forceGridLayoutSync() {
+  try {
+    // Déclencher un reflow et resync des hints/header
+    updateScrollHints()
+    headerScrollX.value = gridboardRef.value?.scrollLeft || 0
+  } catch {}
+}
+
+// (déplacé plus bas après déclaration de players/events)
 
 // Scroll horizontal: défiler d'exactement une colonne par clic
 function scrollHeaderBy(direction) {
@@ -1304,6 +1399,8 @@ function startHoldScroll(direction, evt) {
   // Petit délai avant de démarrer (distinction clic vs maintien)
   holdScrollTimer.value = window.setTimeout(tick, 250)
 }
+
+// (watcher déplacé plus bas après la déclaration de events/players)
 
 function stopHoldScroll(evt) {
   if (evt && typeof evt.preventDefault === 'function') evt.preventDefault()
@@ -1422,6 +1519,21 @@ const successMessage = ref('')
 const showErrorMessage = ref(false)
 const errorMessage = ref('')
 
+// Helper: copier le lien d'inscription publique
+function copyJoinLink() {
+  try {
+    const url = `${window.location.origin}/season/${seasonSlug}`
+    navigator.clipboard.writeText(url)
+    showSuccessMessage.value = true
+    successMessage.value = 'Lien copié dans le presse-papiers'
+    setTimeout(() => { showSuccessMessage.value = false }, 2500)
+  } catch (e) {
+    showErrorMessage.value = true
+    errorMessage.value = 'Impossible de copier le lien'
+    setTimeout(() => { showErrorMessage.value = false }, 2500)
+  }
+}
+
 async function confirmDeleteEvent(eventId) {
   // Demander le PIN code avant d'afficher la confirmation
   await requirePin({
@@ -1502,8 +1614,8 @@ async function saveEdit() {
       archived: !!editingArchived.value
     }
     await updateEvent(editingEvent.value, eventData, seasonId.value)
-    // Après modification, proposer d'annoncer l'événement
-    if (!eventData.archived) {
+    // Après modification, proposer d'annoncer uniquement s'il y a des joueurs protégés
+    if (!eventData.archived && players.value.length > 0 && protectedPlayers.value.size > 0) {
       announcePromptEvent.value = { id: editingEvent.value, ...eventData }
       showAnnouncePrompt.value = true
     }
@@ -1693,8 +1805,8 @@ async function createEventProtected(eventData) {
     
     showSuccessMessage.value = true
     successMessage.value = 'Événement créé avec succès !'
-    // Après création, proposer d'annoncer l'événement
-    if (!eventData.archived) {
+    // Après création, proposer d'annoncer uniquement s'il y a des joueurs protégés
+    if (!eventData.archived && players.value.length > 0 && protectedPlayers.value.size > 0) {
       announcePromptEvent.value = { id: eventId, ...eventData }
       showAnnouncePrompt.value = true
     }
@@ -1731,6 +1843,19 @@ const selections = ref({})
 const stats = ref({})
 const chances = ref({})
 
+// Resynchroniser header/grille quand la structure change (1er event/joueur)
+watch([() => events.value.length, () => players.value.length, isLoadingGrid], () => {
+  if (isLoadingGrid.value) return
+  nextTick(() => {
+    forceGridLayoutSync()
+  })
+})
+
+// Lancer l'évaluation du mini-tutoriel joueur après la première charge de données
+watch([() => players.value.length, () => events.value.length, seasonId], () => {
+  evaluatePlayerTourStart()
+})
+
 // Initialiser les données au montage
 onMounted(async () => {
   const useFirebase = true
@@ -1745,7 +1870,9 @@ onMounted(async () => {
   if (!snap.empty) {
     const seasonDoc = snap.docs[0]
     seasonId.value = seasonDoc.id
-    seasonName.value = seasonDoc.data().name
+    const data = seasonDoc.data()
+    seasonName.value = data.name
+    seasonMeta.value = data
     document.title = `Saison : ${seasonName.value}`
   } else {
     // Saison introuvable: rediriger vers l'accueil
@@ -1755,29 +1882,26 @@ onMounted(async () => {
 
   // Charger les données de la saison
   if (seasonId.value) {
-    // Requêtes parallèles
-    const [playersSnap, eventsSnap, availSnap, selSnap, protections] = await Promise.all([
-      getDocs(collection(db, 'seasons', seasonId.value, 'players')),
-      getDocs(collection(db, 'seasons', seasonId.value, 'events')),
-      getDocs(collection(db, 'seasons', seasonId.value, 'availability')),
-      getDocs(collection(db, 'seasons', seasonId.value, 'selections')),
-      listProtectedPlayers(seasonId.value)
-    ])
-
-    players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-
-    const protSet = new Set()
-    if (Array.isArray(protections)) {
-      protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
-    }
-    protectedPlayers.value = protSet
-
+    // Étape 1: événements
+    currentLoadingLabel.value = 'Chargement des événements de la saison'
+    loadingProgress.value = 20
+    const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
     events.value = eventsSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       playerCount: doc.data().playerCount || 6
     }))
 
+    // Étape 2: joueurs
+    currentLoadingLabel.value = 'Chargement des joueurs'
+    loadingProgress.value = 45
+    const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
+    players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+    // Étape 3: disponibilités
+    currentLoadingLabel.value = 'Chargement des disponibilités'
+    loadingProgress.value = 70
+    const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
     const availObj = {}
     availSnap.docs.forEach(doc => {
       const data = doc.data()
@@ -1790,9 +1914,20 @@ onMounted(async () => {
     })
     availability.value = availObj
 
+    // Étape 4: sélections + protections
+    currentLoadingLabel.value = 'Chargement des sélections'
+    loadingProgress.value = 85
+    const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
     const selObj = {}
     selSnap.docs.forEach(doc => { selObj[doc.id] = doc.data().players || [] })
     selections.value = selObj
+
+    const protections = await listProtectedPlayers(seasonId.value)
+    const protSet = new Set()
+    if (Array.isArray(protections)) {
+      protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+    }
+    protectedPlayers.value = protSet
   }
   
   // Déplacer les calculs lourds en idle
@@ -1803,6 +1938,8 @@ onMounted(async () => {
       setTimeout(fn, 0)
     }
   }
+  currentLoadingLabel.value = 'Préparation de l\'interface'
+  loadingProgress.value = 95
   scheduleIdle(() => { updateAllStats(); updateAllChances() })
   
   console.log('players (deduplicated):', players.value.map(p => ({ id: p.id, name: p.name })))
@@ -1810,6 +1947,7 @@ onMounted(async () => {
 
   // init scroll hints
   await nextTick()
+  loadingProgress.value = 100
   isLoadingGrid.value = false
   nextTick(() => {
     updateScrollHints()
@@ -1821,6 +1959,8 @@ onMounted(async () => {
       }, { passive: true })
       window.addEventListener('resize', updateScrollHints)
     }
+
+  // (onboarding créateur désormais géré par CreatorOnboardingModal)
   })
 
   // Gérer le focus sur un événement spécifique depuis l'URL
@@ -2005,6 +2145,16 @@ function performToggleAvailability(player, eventId) {
     availability.value[player.name][eventId] = newValue;
   }
   
+  // Avancer le mini-tutoriel joueur: étape 1 -> 2 au premier toggle
+  try {
+    if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 1) {
+      const isFirstCell = (player.id === (sortedPlayers.value[0]?.id)) && (eventId === (displayedEvents.value[0]?.id))
+      if (isFirstCell) {
+        playerTourStep.value = 2
+      }
+    }
+  } catch {}
+
   // Sauvegarder les disponibilités pour ce joueur
   saveAvailability(player.name, availability.value[player.name], seasonId.value)
     .then(async () => {
@@ -2897,6 +3047,17 @@ async function toggleEventArchived() {
 function showPlayerDetails(player) {
   selectedPlayer.value = player;
   showPlayerModal.value = true;
+
+    // Avancer le mini-tutoriel joueur: étape 2 -> fin (3)
+    try {
+      if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 2) {
+        playerTourStep.value = 3
+        // On peut marquer la complétion pour cette saison
+        if (seasonId.value) {
+          localStorage.setItem(`playerTourCompleted:${seasonId.value}`, '1')
+        }
+      }
+    } catch {}
 }
 
 function closePlayerModal() {

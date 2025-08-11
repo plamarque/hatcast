@@ -6,11 +6,13 @@ import Home from './Home.vue'
 import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
+import JoinSeason from './views/JoinSeason.vue'
 
 const routes = [
   { path: '/', component: Home },
   { path: '/season/:slug', component: GridBoard, props: true },
   { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
+  { path: '/season/:slug/join', component: JoinSeason, props: true },
   { path: '/reset-password', component: PasswordReset },
   { path: '/magic', component: MagicLink }
 ]
