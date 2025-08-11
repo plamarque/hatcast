@@ -22,7 +22,10 @@
           <label class="block text-sm font-medium text-gray-300 mb-2">Adresse email</label>
           <input v-model="email" type="email" class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400" placeholder="votre@email.com">
         </div>
-        <div v-if="verificationSent" class="text-sm text-gray-300">Un email a été envoyé à {{ email }}. Cliquez sur le lien contenu dans l'email pour continuer.</div>
+        <div v-if="verificationSent" class="p-3 rounded-lg border border-green-500/30 bg-green-500/10 text-green-200 text-sm flex items-center gap-2">
+          <span>✅</span>
+          <span>Un email a été envoyé à {{ email }}. Cliquez sur le lien contenu dans l'email pour continuer.</span>
+        </div>
       </div>
 
       <div v-else-if="step === 2" class="space-y-4">

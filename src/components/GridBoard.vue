@@ -2514,8 +2514,11 @@ onMounted(async () => {
     if (target) {
       showPlayerDetails(target)
       await nextTick()
-      if (route.query.open === 'protection' && playerModalRef?.value?.openProtection) {
-        playerModalRef.value.openProtection()
+      // Si retour depuis verification email (verified=1), afficher un toast de succès
+      if (route.query.verified === '1') {
+        showSuccessMessage.value = true
+        successMessage.value = 'Joueur associé à votre compte.'
+        setTimeout(() => { showSuccessMessage.value = false }, 2500)
       }
     }
   }

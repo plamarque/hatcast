@@ -18,15 +18,15 @@
           <div class="grid grid-cols-3 gap-3 md:gap-4">
             <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.availability }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Disponibles</div>
+              <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
             </div>
             <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Sélectionnés</div>
+              <div class="text-xs md:text-sm text-gray-300">Sélections</div>
             </div>
             <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}%</div>
-              <div class="text-xs md:text-sm text-gray-300">Taux</div>
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}</div>
+              <div class="text-xs md:text-sm text-gray-300">% de sélection</div>
             </div>
           </div>
         </div>
@@ -39,9 +39,7 @@
           <button @click="showProtectionModal = true" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
             <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
             <span>
-              {{ isProtectedForPlayer
-                ? (isOwnerForPlayer ? 'Dissocier de mon compte' : 'Déverrouiller')
-                : 'Verrouiller' }}
+              {{ isProtectedForPlayer ? 'Déverrouiller' : 'Verrouiller' }}
             </span>
           </button>
           <button @click="handleDelete" class="px-5 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
@@ -66,7 +64,7 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="showProtectionModal = true" class="h-12 px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-[1.4]">
-          {{ isProtectedForPlayer ? (isOwnerForPlayer ? '🔓 Dissocier' : '🔓 Déverrouiller') : '🔒 Verrouiller' }}
+          {{ isProtectedForPlayer ? '🔓 Déverrouiller' : '🔒 Verrouiller' }}
         </button>
         <button @click="closeModal" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">
           Fermer

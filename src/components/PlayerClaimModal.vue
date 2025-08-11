@@ -14,7 +14,7 @@
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span class="text-2xl">🔒</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-2">{{ isProtected ? 'Déverrouiller les disponibilités' : 'Verrouiller ce joueur' }}</h2>
+        <h2 class="text-2xl font-bold text-white mb-2">{{ isProtected ? 'Déverrouiller ce joueur' : 'Verrouiller ce joueur' }}</h2>
         <p class="text-lg text-gray-300">{{ player?.name }}</p>
       </div>
 
@@ -232,7 +232,7 @@ async function performUnprotect() {
   success.value = ''
   try {
     const result = await unprotectPlayer(props.player.id, props.seasonId)
-    success.value = 'Protection désactivée avec succès !'
+    success.value = 'Joueur déverrouillé!'
     isProtected.value = false
     if (result.email) { email.value = result.email }
     emit('update')
@@ -257,7 +257,6 @@ watch(() => props.show, (newValue) => {
   if (newValue && props.player) {
     error.value = ''
     success.value = ''
-    showExplanation.value = false
     showPasswordVerification.value = false
     checkProtectionStatus()
     if (props.onboarding) { nextTick(() => {}) }

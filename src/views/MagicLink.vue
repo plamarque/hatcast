@@ -114,7 +114,7 @@ onMounted(async () => {
       message.value = 'Merci ! Vous pouvez maintenant définir votre mot de passe.'
       // Renvoyer vers la saison de départ
       if (slug) {
-        setTimeout(() => router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&open=protection&verified=1`), 800)
+        setTimeout(() => router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`), 800)
       } else {
         setTimeout(() => router.push('/'), 800)
       }
