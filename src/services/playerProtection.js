@@ -339,4 +339,18 @@ export async function updatePlayerPasswordInFirestore(playerId, newPassword, sea
   }
 }
 
+// Fonction pour gérer la demande de mot de passe lors de la modification des disponibilités
+export async function requirePlayerPasswordForAvailability(operation) {
+  // Cette fonction est un placeholder qui sera gérée par le composant GridBoard
+  // Elle retourne une promesse qui sera résolue par le composant
+  return new Promise((resolve, reject) => {
+    // Le composant GridBoard gère l'affichage de la modal et la résolution
+    // Cette fonction est appelée pour déclencher le processus de vérification
+    console.log('Demande de mot de passe pour disponibilité:', operation)
+    
+    // Pour l'instant, on rejette avec une erreur pour forcer la gestion côté composant
+    reject(new Error('Gestion de mot de passe à implémenter côté composant'))
+  })
+}
+
 

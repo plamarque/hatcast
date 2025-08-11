@@ -51,6 +51,7 @@
               <div
                 v-for="event in displayedEvents"
                 :key="'h-'+event.id"
+                :data-event-id="event.id"
                 class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
                 @click="showEventDetails(event)"
               >
@@ -143,39 +144,16 @@
               <td
                 v-for="event in displayedEvents"
                 :key="event.id"
-                class="p-3 md:p-5 text-center cursor-pointer hover:bg-white/10 transition-all duration-200 min-h-20"
-                @click="toggleAvailability(player.name, event.id)"
+                :data-event-id="event.id"
+                class="p-0"
               >
-                <div class="flex items-center justify-center">
-                  <span
-                    v-if="isSelected(player.name, event.id)"
-                    class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
-                    :title="getTooltipText(player, event.id)"
-                  >
-                    🎭
-                  </span>
-                  <span
-                    v-else-if="isAvailable(player.name, event.id)"
-                    class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
-                    :title="getTooltipText(player, event.id)"
-                  >
-                    ✅
-                  </span>
-                  <span
-                    v-else-if="isAvailable(player.name, event.id) === false"
-                    class="text-2xl md:text-3xl hover:scale-110 transition-transform duration-200"
-                    :title="getTooltipText(player, event.id)"
-                  >
-                    ❌
-                  </span>
-                  <span
-                    v-else
-                    class="text-gray-500 hover:text-white transition-colors duration-200 text-xl"
-                    :title="getTooltipText(player, event.id)"
-                  >
-                    –
-                  </span>
-                </div>
+                <AvailabilityCell
+                  :player-name="player.name"
+                  :event-id="event.id"
+                  :is-available="isAvailable(player.name, event.id)"
+                  :is-selected="isSelected(player.name, event.id)"
+                  @toggle="toggleAvailability"
+                />
               </td>
               <td class="p-3 md:p-4"></td>
             </tr>
@@ -197,6 +175,7 @@
               <td
                 v-for="event in displayedEvents"
                 :key="'add-row-'+event.id"
+                :data-event-id="event.id"
                 class="p-3 md:p-5"
               ></td>
               <td class="p-3 md:p-4"></td>
@@ -227,6 +206,14 @@
     <div class="flex items-center space-x-2">
       <span class="text-xl">✨</span>
       <span>{{ successMessage }}</span>
+    </div>
+  </div>
+
+  <!-- Message d'erreur -->
+  <div v-if="showErrorMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl shadow-2xl border border-red-400/30 backdrop-blur-sm z-50">
+    <div class="flex items-center space-x-2">
+      <span class="text-xl">⚠️</span>
+      <span>{{ errorMessage }}</span>
     </div>
   </div>
 
@@ -425,18 +412,53 @@
           </div>
         </div>
 
+        <!-- Section des disponibilités des joueurs -->
+        <div v-if="selectedEvent" class="mb-4 md:mb-6">
+          <h3 class="text-lg font-semibold text-white mb-3">Disponibilités des joueurs</h3>
+          
+          <div class="bg-gray-800 border border-gray-600 rounded-lg overflow-hidden">
+            <!-- En-tête du tableau -->
+            <div class="grid grid-cols-12 gap-0 bg-gray-700 border-b border-gray-600">
+              <div class="col-span-4 p-3 font-medium text-gray-300">Joueur</div>
+              <div class="col-span-8 p-3 font-medium text-gray-300 text-center">Disponibilité</div>
+            </div>
+            
+            <!-- Lignes des joueurs -->
+            <div 
+              v-for="player in sortedPlayers" 
+              :key="player.id"
+              class="grid grid-cols-12 gap-0 border-b border-gray-600 last:border-b-0 hover:bg-gray-700/50 transition-colors"
+            >
+              <div class="col-span-4 p-3 flex items-center">
+                <span class="font-medium text-white">{{ player.name }}</span>
+                <span v-if="isPlayerProtectedInGrid(player.id)" class="text-yellow-400 ml-2 text-lg" title="Joueur protégé">🔒</span>
+              </div>
+              
+              <div class="col-span-8 p-0">
+                <AvailabilityCell
+                  :player-name="player.name"
+                  :event-id="selectedEvent.id"
+                  :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
+                  :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                  @toggle="handleAvailabilityToggle"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Actions desktop -->
         <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
           <button @click="startEditingFromDetails" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
             <span>✏️</span><span>Modifier</span>
           </button>
           <button 
-            @click="notifyPlayersForEvent(selectedEvent)" 
+            @click="openEventAnnounceModal(selectedEvent)" 
             :disabled="selectedEvent?.archived"
             class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
-            :title="selectedEvent?.archived ? 'Impossible de relancer un événement archivé' : 'Envoyer un email aux joueurs protégés pour indiquer leur disponibilité'"
+            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux joueurs (email, copie, WhatsApp)'"
           >
-            <span>📧</span><span>Relancer</span>
+            <span>📢</span><span>Annoncer</span>
           </button>
           <button @click="toggleEventArchived" class="px-5 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-lg hover:from-indigo-600 hover:to-blue-700 transition-all duration-300 flex items-center gap-2" :title="selectedEvent?.archived ? 'Désarchiver cet événement' : 'Archiver cet événement'">
             <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
@@ -447,19 +469,19 @@
           <button @click="confirmDeleteEvent(selectedEvent?.id)" class="px-5 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
             <span>🗑️</span><span>Supprimer</span>
           </button>
-          <button @click="closeEventDetails" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
+          <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
         </div>
 
         <!-- More actions (mobile) -->
         <div v-if="showEventMoreActions" class="md:hidden mt-3 space-y-2">
           <button @click="startEditingFromDetails(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-white/10">✏️ Modifier</button>
           <button 
-            @click="notifyPlayersForEvent(selectedEvent); showEventMoreActions=false" 
+            @click="openEventAnnounceModal(selectedEvent); showEventMoreActions=false" 
             :disabled="selectedEvent?.archived"
             class="w-full px-4 py-3 rounded-lg bg-amber-600/20 text-amber-200 border border-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
-            :title="selectedEvent?.archived ? 'Impossible de relancer un événement archivé' : 'Envoyer un email aux joueurs protégés pour indiquer leur disponibilité'"
+            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux joueurs (email, copie, WhatsApp)'"
           >
-            <span>📧</span><span>Relancer</span>
+            <span>📢</span><span>Annoncer</span>
           </button>
           <button @click="toggleEventArchived(); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-indigo-600/20 text-indigo-200 border border-indigo-500/30">{{ selectedEvent?.archived ? '📂 Désarchiver' : '📁 Archiver' }}</button>
           <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions=false" class="w-full px-4 py-3 rounded-lg bg-red-600/20 text-red-200 border border-red-500/30">🗑️ Supprimer</button>
@@ -469,11 +491,20 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélection</button>
-        <button @click="closeEventDetails" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
+        <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
         <button @click="showEventMoreActions = !showEventMoreActions" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
     </div>
   </div>
+
+  <!-- Modal de vérification du mot de passe pour joueur protégé -->
+  <PasswordVerificationModal
+    :show="showPasswordVerification"
+    :player="passwordVerificationPlayer"
+    :seasonId="seasonId"
+    @close="showPasswordVerification = false"
+    @verified="handlePasswordVerified"
+  />
 
   <!-- Modal d'édition d'événement -->
   <div v-if="editingEvent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
@@ -809,6 +840,40 @@
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
   />
+
+  <!-- Modal d'annonce d'événement -->
+  <EventAnnounceModal
+    :show="showEventAnnounceModal"
+    :event="eventToAnnounce"
+    :season-id="seasonId"
+    :season-slug="seasonSlug"
+    :players="enrichedPlayers"
+    @close="closeEventAnnounceModal"
+    @send-email-notifications="handleSendEmailNotifications"
+  />
+
+  <!-- Modal de prompt pour annoncer après création/modification -->
+  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
+      <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer cet événement ?</h3>
+      <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux joueurs pour qu'ils indiquent leur disponibilité</p>
+      
+      <div class="flex gap-3">
+        <button
+          @click="openEventAnnounceModal(announcePromptEvent)"
+          class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300"
+        >
+          📢 Oui
+        </button>
+        <button
+          @click="closeAnnouncePrompt"
+          class="flex-1 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all duration-300"
+        >
+          Plus tard
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style>
@@ -878,59 +943,70 @@
   .col-left { width: 9rem; }
   .col-event { width: 12rem; }
 }
+
+/* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
+.focused-event-highlight {
+  /* Halo subtil qui entoure chaque élément */
+  box-shadow: 0 0 25px rgba(236, 72, 153, 0.4), 0 0 50px rgba(139, 92, 246, 0.3);
+  border: 2px solid rgba(236, 72, 153, 0.6);
+  border-radius: 8px;
+  position: relative;
+  z-index: 10;
+  /* FORCER LE RECHARGEMENT CSS */
+}
+
+/* Effet de halo qui entoure visuellement toute la colonne */
+.focused-event-column-start {
+  /* Premier élément (en-tête) : halo plus prononcé */
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.5), 0 0 60px rgba(139, 92, 246, 0.4);
+  border: 3px solid rgba(236, 72, 153, 0.8);
+}
+
+.focused-event-column-end {
+  /* Dernier élément (dernière cellule) : halo plus prononcé */
+  border: 3px solid rgba(236, 72, 153, 0.8);
+}
+
+
+
+
+
+/* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
 </style>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-
-// Sticky header offset handling
-const pageHeaderRef = ref(null)
-const stickyOffset = ref(64)
-
-onMounted(async () => {
-  await nextTick()
-  const header = pageHeaderRef.value
-  stickyOffset.value = header ? header.offsetHeight : 64
-  window.addEventListener('resize', updateStickyOffset)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateStickyOffset)
-})
-
-function updateStickyOffset() {
-  const header = pageHeaderRef.value
-  stickyOffset.value = header ? header.offsetHeight : 64
-}
-import {
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../services/firebase.js'
+import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
+import { 
+  initializeStorage, 
   setStorageMode,
-  loadEvents,
   loadPlayers,
+  loadEvents,
   loadAvailability,
   loadSelections,
-  saveAvailability,
-  saveSelection,
-  saveEvent,
   deleteEvent,
   updateEvent,
-  addPlayer,
-  deletePlayer,
-  updatePlayer,
-  reorderPlayersAlphabetically,
-  initializeStorage
+  saveEvent,
+  saveAvailability
 } from '../services/storage.js'
-import { collection, getDocs, query, where, doc } from 'firebase/firestore'
-import { db } from '../services/firebase.js'
-import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
-import pinSessionManager from '../services/pinSession.js'
-  import playerPasswordSessionManager from '../services/playerPasswordSession.js'
-import { isPlayerProtected, isPlayerPasswordCached, verifyPlayerPassword, sendPasswordResetEmail, getPlayerEmail, listProtectedPlayers } from '../services/playerProtection.js'
+
 import { createMagicLink } from '../services/magicLinks.js'
 import { queueAvailabilityEmail } from '../services/emailService.js'
+import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
+import pinSessionManager from '../services/pinSession.js'
+import playerPasswordSessionManager from '../services/playerPasswordSession.js'
+import AnnounceModal from './AnnounceModal.vue'
+import EventAnnounceModal from './EventAnnounceModal.vue'
+import PasswordResetModal from './PasswordResetModal.vue'
+import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PinModal from './PinModal.vue'
 import PlayerModal from './PlayerModal.vue'
+import PlayerProtectionModal from './PlayerProtectionModal.vue'
 import SelectionModal from './SelectionModal.vue'
+import AvailabilityCell from './AvailabilityCell.vue'
 
 // Déclarer la prop slug
 const props = defineProps({
@@ -941,6 +1017,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 
 const seasonSlug = props.slug
 const seasonName = ref('')
@@ -999,6 +1076,12 @@ const editingDescription = ref('')
 const editingArchived = ref(false)
 const showEventMoreActions = ref(false)
 
+// Variables pour la vérification de mot de passe des joueurs protégés
+const showPasswordVerification = ref(false)
+const passwordVerificationPlayer = ref(null)
+const pendingAvailabilityAction = ref(null) // { playerName, eventId }
+const recentlyVerifiedPlayer = ref(null) // Pour éviter la boucle de vérification
+
 
 
 // plus de popover pour les en-têtes (on ouvre directement la popin de détails)
@@ -1008,9 +1091,51 @@ const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
 const selectionModalRef = ref(null)
 
+// Variables pour le modal d'annonce d'événement
+const showEventAnnounceModal = ref(false)
+const eventToAnnounce = ref(null)
+const showAnnouncePrompt = ref(false)
+const announcePromptEvent = ref(null)
+
 // Variables pour la protection des joueurs
 const protectedPlayers = ref(new Set())
 const isLoadingGrid = ref(true)
+
+// Variables pour le focus sur un événement spécifique
+const focusedEventId = ref(null)
+const showFocusedEventHighlight = ref(false)
+const focusedEventScrollTimeout = ref(null)
+
+// Computed property pour enrichir les joueurs avec leur statut de protection et email
+const enrichedPlayers = computed(() => {
+  return players.value.map(player => ({
+    ...player,
+    isProtected: protectedPlayers.value.has(player.id),
+    email: null // Sera chargé à la demande
+  }))
+})
+
+// Computed property pour l'index de l'événement ciblé
+const focusedEventIndex = computed(() => {
+  if (!focusedEventId.value) return -1
+  return displayedEvents.value.findIndex(e => e.id === focusedEventId.value)
+})
+
+// Computed property pour vérifier si l'événement ciblé est visible
+const isFocusedEventVisible = computed(() => {
+  if (!focusedEventId.value || focusedEventIndex.value === -1) return false
+  
+  // Sur mobile, vérifier si l'événement ciblé est dans la vue actuelle
+  if (window.innerWidth <= 768) {
+    const eventElement = document.querySelector(`[data-event-id="${focusedEventId.value}"]`)
+    if (eventElement) {
+      const rect = eventElement.getBoundingClientRect()
+      return rect.left >= 0 && rect.right <= window.innerWidth
+    }
+  }
+  
+  return true
+})
 
 // Refs et états pour scroll hints et sticky col gauche
 const gridboardRef = ref(null)
@@ -1072,8 +1197,28 @@ async function loadProtectedPlayers() {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const showSuccessMessage = ref(false)
 const successMessage = ref('')
+const showErrorMessage = ref(false)
+const errorMessage = ref('')
 
 async function confirmDeleteEvent(eventId) {
   // Demander le PIN code avant d'afficher la confirmation
@@ -1155,9 +1300,10 @@ async function saveEdit() {
       archived: !!editingArchived.value
     }
     await updateEvent(editingEvent.value, eventData, seasonId.value)
-    // Après modification, envoyer des notifications
+    // Après modification, proposer d'annoncer l'événement
     if (!eventData.archived) {
-      await sendAvailabilityEmailsForEvent({ eventId: editingEvent.value, eventData, reason: 'updated' })
+      announcePromptEvent.value = { id: editingEvent.value, ...eventData }
+      showAnnouncePrompt.value = true
     }
     
     // Recharger les données pour s'assurer que le tri est appliqué
@@ -1345,13 +1491,10 @@ async function createEventProtected(eventData) {
     
     showSuccessMessage.value = true
     successMessage.value = 'Événement créé avec succès !'
-    // Après création, envoyer des notifications
-    try {
-      if (!eventData.archived) {
-        await sendAvailabilityEmailsForEvent({ eventId, eventData, reason: 'created' })
-      }
-    } catch (mailErr) {
-      console.warn('Envoi des emails partiellement en échec:', mailErr)
+    // Après création, proposer d'annoncer l'événement
+    if (!eventData.archived) {
+      announcePromptEvent.value = { id: eventId, ...eventData }
+      showAnnouncePrompt.value = true
     }
     setTimeout(() => {
       showSuccessMessage.value = false
@@ -1478,6 +1621,26 @@ onMounted(async () => {
     }
   })
 
+  // Gérer le focus sur un événement spécifique depuis l'URL
+  const eventIdFromUrl = route.query.event
+  if (eventIdFromUrl && events.value.length > 0) {
+    const targetEvent = events.value.find(e => e.id === eventIdFromUrl)
+    if (targetEvent) {
+      console.log('Événement trouvé depuis l\'URL:', targetEvent.title)
+      
+      // Utiliser la fonction améliorée de focus
+      await focusOnEventFromUrl(eventIdFromUrl, targetEvent)
+    } else {
+      console.warn('Événement non trouvé avec l\'ID:', eventIdFromUrl)
+      // Afficher un message d'erreur à l'utilisateur
+      showErrorMessage.value = true
+      errorMessage.value = `Événement non trouvé`
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 3000)
+    }
+  }
+
   function scrollHeaderBy(direction) {
     const el = gridboardRef.value
     if (!el) return
@@ -1485,6 +1648,18 @@ onMounted(async () => {
     el.scrollTo({ left: el.scrollLeft + direction * step, behavior: 'smooth' })
   }
 })
+
+// Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
+watch(() => route.params.eventId, (newEventId) => {
+  if (newEventId && events.value.length > 0) {
+    // Trouver l'événement correspondant
+    const targetEvent = events.value.find(e => e.id === newEventId);
+    if (targetEvent) {
+      // Ouvrir automatiquement la popup de détails
+      showEventDetails(targetEvent);
+    }
+  }
+}, { immediate: true })
 
 // Helpers de tri
 function toDateObject(value) {
@@ -1538,27 +1713,43 @@ async function toggleAvailability(playerName, eventId) {
     return;
   }
   
-  // Vérifier si le joueur est protégé
-  const isProtected = await isPlayerProtected(player.id, seasonId.value)
+  // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
+  const isProtected = isPlayerProtectedInGrid(player.id);
   
   if (isProtected) {
-    // Vérifier s'il y a une session active
-    const hasCachedPassword = isPlayerPasswordCached(player.id)
-    if (hasCachedPassword) {
-      // Session active, procéder directement
-      performToggleAvailability(player, eventId)
+    // Vérifier s'il y a une session active OU si le joueur vient d'être vérifié
+    const hasCachedPassword = isPlayerPasswordCached(player.id);
+    const wasRecentlyVerified = recentlyVerifiedPlayer.value === player.id;
+    
+    console.log('Joueur protégé:', { 
+      playerId: player.id, 
+      hasCachedPassword, 
+      wasRecentlyVerified,
+      recentlyVerifiedPlayer: recentlyVerifiedPlayer.value 
+    });
+    
+    if (hasCachedPassword || wasRecentlyVerified) {
+      // Session active ou joueur récemment vérifié, procéder directement
+      console.log('Session active ou joueur récemment vérifié, procéder au toggle');
+      if (wasRecentlyVerified) {
+        // Nettoyer le flag après utilisation
+        console.log('Nettoyage du flag recentlyVerifiedPlayer');
+        recentlyVerifiedPlayer.value = null;
+      }
+      performToggleAvailability(player, eventId);
     } else {
       // Pas de session, demander le mot de passe
-      await requirePlayerPasswordForAvailability({
-        type: 'toggleAvailability',
-        data: { player, eventId }
-      })
+      console.log('Pas de session, affichage de la modal de vérification');
+      // Utiliser la même logique que dans handleAvailabilityToggle
+      pendingAvailabilityAction.value = { playerName, eventId };
+      passwordVerificationPlayer.value = player;
+      showPasswordVerification.value = true;
     }
-    return
+    return;
   }
   
   // Si non protégé, procéder directement
-  performToggleAvailability(player, eventId)
+  performToggleAvailability(player, eventId);
 }
 
 function performToggleAvailability(player, eventId) {
@@ -1593,7 +1784,10 @@ function performToggleAvailability(player, eventId) {
   
   // Sauvegarder les disponibilités pour ce joueur
   saveAvailability(player.name, availability.value[player.name], seasonId.value)
-    .then(() => {
+    .then(async () => {
+      // Forcer la réactivité de l'interface
+      await nextTick();
+      
       showSuccessMessage.value = true;
       successMessage.value = 'Disponibilité mise à jour avec succès !';
       setTimeout(() => {
@@ -1890,26 +2084,7 @@ function updateAllChances() {
   chances.value = chanceMap
 }
 
-function getTooltipText(player, eventId) {
-  const name = player.name
-  const avail = isAvailable(name, eventId)
-  const selected = isSelected(name, eventId)
-  const chance = chances.value?.[name]?.[eventId] ?? 0
 
-  if (avail === false) {
-    return 'Non disponible – cliquez pour changer'
-  }
-
-  if (selected) {
-    return `Sélectionné · Chance estimée : ${chance}%`
-  }
-
-  if (avail === true) {
-    return `Disponible · Chance estimée : ${chance}%`
-  }
-
-  return 'Cliquez pour indiquer votre disponibilité'
-}
 
 const playerToDelete = ref(null)
 const confirmPlayerDelete = ref(false)
@@ -2059,21 +2234,7 @@ async function requirePlayerPassword(operation) {
   showPlayerPasswordModal.value = true
 }
 
-async function requirePlayerPasswordForAvailability(operation) {
-  const playerId = operation.data.player.id
-  
-  // Vérifier si le mot de passe du joueur est déjà en cache
-  if (isPlayerPasswordCached(playerId)) {
-    console.log('Mot de passe du joueur en cache trouvé, utilisation automatique')
-    // Exécuter directement l'opération
-    await executePendingOperation(operation)
-    return
-  }
-  
-  // Afficher la modal de saisie du mot de passe du joueur pour les disponibilités
-  pendingAvailabilityOperation.value = operation
-  showAvailabilityPasswordModal.value = true
-}
+
 
 async function handlePinSubmit(pinCode) {
   try {
@@ -2362,6 +2523,89 @@ function closeEventDetails() {
   showEventMoreActions.value = false;
 }
 
+function closeEventDetailsAndUpdateUrl() {
+  // Fermer la popup
+  closeEventDetails();
+  
+  // Mettre à jour l'URL pour revenir à la liste des événements
+  if (route.params.eventId) {
+    router.push(`/season/${props.slug}`);
+  }
+}
+
+// Fonction pour gérer le toggle des disponibilités depuis la popup de détails
+async function handleAvailabilityToggle(playerName, eventId) {
+  console.log('handleAvailabilityToggle appelé avec:', { playerName, eventId });
+  
+  const player = players.value.find(p => p.name === playerName);
+  if (!player) {
+    console.error('Joueur non trouvé:', playerName);
+    return;
+  }
+  
+  console.log('Joueur trouvé:', player);
+  
+  // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
+  const isProtected = isPlayerProtectedInGrid(player.id);
+  console.log('Joueur protégé:', isProtected);
+  
+  if (isProtected) {
+    // Vérifier s'il y a une session active
+    const hasCachedPassword = isPlayerPasswordCached(player.id);
+    if (hasCachedPassword) {
+      // Session active, procéder directement
+      console.log('Session active, procéder au toggle');
+      await toggleAvailability(playerName, eventId);
+    } else {
+      // Pas de session, demander le mot de passe
+      console.log('Demande du mot de passe pour joueur protégé');
+      pendingAvailabilityAction.value = { playerName, eventId };
+      passwordVerificationPlayer.value = player;
+      showPasswordVerification.value = true;
+    }
+    return;
+  }
+  
+  // Si non protégé, procéder directement
+  console.log('Joueur non protégé, procéder au toggle');
+  await toggleAvailability(playerName, eventId);
+}
+
+// Fonction pour vérifier si un joueur est sélectionné pour un événement spécifique
+function isPlayerSelected(playerName, eventId) {
+  const selected = selections.value[eventId] || [];
+  return selected.includes(playerName);
+}
+
+// Fonction pour gérer la vérification de mot de passe réussie
+async function handlePasswordVerified(verificationData) {
+  console.log('Mot de passe vérifié:', verificationData);
+  
+  // Marquer le joueur comme récemment vérifié pour éviter la boucle
+  if (passwordVerificationPlayer.value) {
+    recentlyVerifiedPlayer.value = passwordVerificationPlayer.value.id;
+    console.log('Joueur marqué comme récemment vérifié:', passwordVerificationPlayer.value.id);
+  }
+  
+  // Procéder à l'action de disponibilité en attente
+  if (pendingAvailabilityAction.value) {
+    const { playerName, eventId } = pendingAvailabilityAction.value;
+    console.log('Exécution de l\'action en attente:', { playerName, eventId });
+    
+    // Procéder au toggle de disponibilité
+    await toggleAvailability(playerName, eventId);
+    
+    // Réinitialiser l'action en attente
+    pendingAvailabilityAction.value = null;
+  } else {
+    console.log('Aucune action en attente trouvée');
+  }
+  
+  // Fermer la modal de vérification
+  showPasswordVerification.value = false;
+  passwordVerificationPlayer.value = null;
+}
+
 function startEditingFromDetails() {
   editingEvent.value = selectedEvent.value.id;
   editingTitle.value = selectedEvent.value.title;
@@ -2622,17 +2866,47 @@ async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
   setTimeout(() => { showSuccessMessage.value = false }, 3000)
 }
 
-// Bouton manuel depuis la fiche de l'événement
-async function notifyPlayersForEvent(event) {
-  // Vérifier si l'événement est archivé avant d'envoyer les notifications
-  if (event.archived) {
+// Fonctions pour le modal d'annonce d'événement
+function openEventAnnounceModal(event) {
+  if (event?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Impossible de relancer : événement archivé'
+    successMessage.value = 'Impossible d\'annoncer un événement archivé'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
   
-  await sendAvailabilityEmailsForEvent({ eventId: event.id, eventData: event, reason: 'manual' })
+  // Fermer le dialogue de confirmation avant d'ouvrir la modale d'annonce
+  closeAnnouncePrompt()
+  
+  eventToAnnounce.value = event
+  showEventAnnounceModal.value = true
+}
+
+function closeEventAnnounceModal() {
+  showEventAnnounceModal.value = false
+  eventToAnnounce.value = null
+}
+
+function closeAnnouncePrompt() {
+  showAnnouncePrompt.value = false
+  announcePromptEvent.value = null
+}
+
+async function handleSendEmailNotifications({ eventId, eventData, reason }) {
+  try {
+    await sendAvailabilityEmailsForEvent({ eventId, eventData, reason })
+    
+    // Fermer le modal et afficher le message de succès
+    closeEventAnnounceModal()
+    showSuccessMessage.value = true
+    successMessage.value = 'Notifications envoyées avec succès !'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi des notifications:', error)
+    showSuccessMessage.value = true
+    successMessage.value = 'Erreur lors de l\'envoi des notifications'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+  }
 }
 
 function getPlayerAvailabilityForEvent(eventId) {
@@ -2688,6 +2962,172 @@ function handlePerfectFromModal() {
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
+}
+
+// Fonction pour gérer le focus sur un événement spécifique depuis l'URL
+async function focusOnEventFromUrl(eventId, targetEvent) {
+  if (!eventId || !targetEvent) return
+  
+  // Nettoyer l'ancien focus
+  clearEventFocus()
+  
+  // Définir le nouvel événement ciblé
+  focusedEventId.value = eventId
+  showFocusedEventHighlight.value = true
+  
+  // Attendre que le DOM soit rendu
+  await nextTick()
+  
+  const eventElement = document.querySelector(`[data-event-id="${eventId}"]`)
+  if (!eventElement) {
+    console.warn('Élément événement non trouvé dans le DOM')
+    return
+  }
+  
+  // Retirer l'ancienne mise en évidence
+  document.querySelectorAll('.focused-event-highlight').forEach(el => {
+    el.classList.remove('focused-event-highlight')
+  })
+  
+  // Appliquer la mise en évidence sur TOUTE la colonne (en-tête + cellules de disponibilité)
+  const allEventElements = document.querySelectorAll(`[data-event-id="${eventId}"]`)
+  allEventElements.forEach(el => {
+    el.classList.add('focused-event-highlight')
+  })
+  
+  // Ajouter une classe spéciale pour créer l'effet de colonne entourée
+  const firstElement = allEventElements[0]
+  const lastElement = allEventElements[allEventElements.length - 1]
+  
+  if (firstElement) firstElement.classList.add('focused-event-column-start')
+  if (lastElement) lastElement.classList.add('focused-event-column-end')
+  
+  // Scroll optimisé pour mobile et desktop
+  await scrollToEvent(eventElement)
+  
+  // Message informatif
+  showSuccessMessage.value = true
+  successMessage.value = `Événement ciblé : ${targetEvent.title}`
+  setTimeout(() => {
+    showSuccessMessage.value = false
+  }, 4000)
+  
+  // Arrêter le highlight après 8 secondes
+  focusedEventScrollTimeout.value = setTimeout(() => {
+    clearEventFocus()
+  }, 8000)
+}
+
+// Fonction pour gérer le focus sur un événement spécifique (générique)
+function focusOnEvent(eventId) {
+  if (!eventId) return
+  
+  const targetEvent = events.value.find(e => e.id === eventId)
+  if (!targetEvent) return
+  
+  // Utiliser la fonction spécialisée pour l'URL
+  focusOnEventFromUrl(eventId, targetEvent)
+}
+
+// Fonction pour faire défiler vers un événement avec logique mobile/desktop
+async function scrollToEvent(eventElement) {
+  if (!eventElement) return
+  
+  // Attendre un peu pour s'assurer que le DOM est stable
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  if (window.innerWidth <= 768) {
+    // Logique mobile : centrer l'événement dans la vue
+    const container = gridboardRef.value
+    if (container) {
+      // Calculer la position optimale pour centrer l'événement
+      const eventLeft = eventElement.offsetLeft
+      const eventWidth = eventElement.offsetWidth
+      const containerWidth = container.clientWidth
+      
+      // Position pour centrer l'événement
+      const targetScrollLeft = eventLeft - (containerWidth / 2) + (eventWidth / 2)
+      
+      // Appliquer le scroll avec des limites
+      const maxScrollLeft = container.scrollWidth - containerWidth
+      const finalScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft))
+      
+      container.scrollTo({
+        left: finalScrollLeft,
+        behavior: 'smooth'
+      })
+      
+      // Vérifier que l'événement est bien visible après le scroll
+      setTimeout(() => {
+        const rect = eventElement.getBoundingClientRect()
+        if (rect.left < 0 || rect.right > window.innerWidth) {
+          // Si l'événement n'est pas complètement visible, ajuster
+          const adjustedScrollLeft = eventLeft - 20 // Laisser une marge
+          container.scrollTo({
+            left: Math.max(0, adjustedScrollLeft),
+            behavior: 'smooth'
+          })
+        }
+      }, 500)
+    }
+  } else {
+    // Logique desktop : centrer l'événement
+    eventElement.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center',
+      inline: 'center'
+    })
+  }
+  
+  // Centrer aussi la zone de disponibilités (gridboard) si elle existe
+  const gridboardContainer = gridboardRef.value
+  if (gridboardContainer) {
+    // Attendre que le scroll de l'en-tête soit terminé
+    setTimeout(() => {
+      // Trouver la première cellule de disponibilité pour cet événement
+      const firstAvailabilityCell = document.querySelector(`[data-event-id="${focusedEventId.value}"]`)
+      if (firstAvailabilityCell && firstAvailabilityCell.closest('tbody')) {
+        // C'est une cellule de disponibilité, centrer la vue
+        const cellLeft = firstAvailabilityCell.offsetLeft
+        const cellWidth = firstAvailabilityCell.offsetWidth
+        const containerWidth = gridboardContainer.clientWidth
+        
+        // Position pour centrer la cellule
+        const targetScrollLeft = cellLeft - (containerWidth / 2) + (cellWidth / 2)
+        
+        // Appliquer le scroll avec des limites
+        const maxScrollLeft = gridboardContainer.scrollWidth - containerWidth
+        const finalScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft))
+        
+        gridboardContainer.scrollTo({
+          left: finalScrollLeft,
+          behavior: 'smooth'
+        })
+      }
+    }, 300) // Attendre 300ms pour que le scroll de l'en-tête soit terminé
+  }
+}
+
+// Fonction pour nettoyer le focus
+function clearEventFocus() {
+  // Nettoyer le timeout de scroll si il existe
+  if (focusedEventScrollTimeout.value) {
+    clearTimeout(focusedEventScrollTimeout.value)
+    focusedEventScrollTimeout.value = null
+  }
+  
+  focusedEventId.value = null
+  showFocusedEventHighlight.value = false
+  
+  // Retirer la classe CSS de mise en évidence
+  document.querySelectorAll('.focused-event-highlight').forEach(el => {
+    el.classList.remove('focused-event-highlight')
+  })
+  
+  // Retirer les classes de colonne
+  document.querySelectorAll('.focused-event-column-start, .focused-event-column-end').forEach(el => {
+    el.classList.remove('focused-event-column-start', 'focused-event-column-end')
+  })
 }
 
 // end of script setup

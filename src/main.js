@@ -10,6 +10,7 @@ import MagicLink from './views/MagicLink.vue'
 const routes = [
   { path: '/', component: Home },
   { path: '/season/:slug', component: GridBoard, props: true },
+  { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
   { path: '/reset-password', component: PasswordReset },
   { path: '/magic', component: MagicLink }
 ]
