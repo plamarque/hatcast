@@ -8,6 +8,11 @@
         </div>
         <h2 class="text-2xl md:text-3xl font-bold text-white mb-1">Sélection pour {{ event?.title }}</h2>
         <p class="text-sm md:text-base text-purple-300">{{ formatDateFull(event?.date) }}</p>
+        <div class="mt-3">
+          <button @click="openHowItWorks" class="inline-flex items-center gap-2 text-sm text-blue-300 hover:text-blue-200">
+            <span>❓</span> <span>Comment ça marche ?</span>
+          </button>
+        </div>
       </div>
       
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
@@ -110,11 +115,15 @@
     @close="showAnnounce = false"
     @send-email-notifications="handleSendEmailNotifications"
   />
+
+  <!-- Popin Comment ça marche -->
+  <HowItWorksModal :show="showHowItWorks" @close="showHowItWorks = false" />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
+import HowItWorksModal from './HowItWorksModal.vue'
 
 const props = defineProps({
   show: {
@@ -165,6 +174,7 @@ const showAnnounce = ref(false)
 const showSuccessMessage = ref(false)
 const successMessageText = ref('')
 const isReselection = ref(false)
+const showHowItWorks = ref(false)
 
 // Computed properties
 const hasSelection = computed(() => {
@@ -266,6 +276,10 @@ function close() {
 
 function openAnnounce() {
   showAnnounce.value = true
+}
+
+function openHowItWorks() {
+  showHowItWorks.value = true
 }
 
 // Fonctions pour vérifier la disponibilité des joueurs

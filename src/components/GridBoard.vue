@@ -151,7 +151,9 @@
                   :player-name="player.name"
                   :event-id="event.id"
                   :is-available="isAvailable(player.name, event.id)"
-                  :is-selected="isSelected(player.name, event.id)"
+                   :is-selected="isSelected(player.name, event.id)"
+                   :chance-percent="chances[player.name]?.[event.id] ?? null"
+                   :show-selected-chance="isSelectionComplete(event.id)"
                   @toggle="toggleAvailability"
                 />
               </td>
@@ -440,6 +442,8 @@
                   :event-id="selectedEvent.id"
                   :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
                   :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                  :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
+                  :show-selected-chance="isSelectionComplete(selectedEvent.id)"
                   @toggle="handleAvailabilityToggle"
                 />
               </div>
@@ -464,7 +468,7 @@
             <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
           </button>
           <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
-            <span>🎭</span><span>Sélection</span>
+            <span>🎭</span><span>Sélectionner</span>
           </button>
           <button @click="confirmDeleteEvent(selectedEvent?.id)" class="px-5 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center gap-2">
             <span>🗑️</span><span>Supprimer</span>
@@ -490,7 +494,7 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélection</button>
+        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélectionner</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
         <button @click="showEventMoreActions = !showEventMoreActions" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
@@ -1836,6 +1840,9 @@ function performToggleAvailability(player, eventId) {
       // Forcer la réactivité de l'interface
       await nextTick();
       
+      // Recalculer les chances car la disponibilité a changé
+      updateAllChances()
+
       showSuccessMessage.value = true;
       successMessage.value = 'Disponibilité mise à jour avec succès !';
       setTimeout(() => {
@@ -2061,6 +2068,12 @@ function countSelectedPlayers(eventId) {
   if (!eventId) return 0;
   const eventSelections = selections.value[eventId] || [];
   return eventSelections.length;
+}
+
+function isSelectionComplete(eventId) {
+  const event = events.value.find(e => e.id === eventId)
+  const required = event?.playerCount || 6
+  return countSelectedPlayers(eventId) >= required
 }
 
 function ratioSelection(player) {
