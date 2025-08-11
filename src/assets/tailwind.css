@@ -213,6 +213,9 @@
 .w-full {
   width: 100%;
 }
+.max-w-full {
+  max-width: 100%;
+}
 .min-w-\[80px\] {
   min-width: 80px;
 }

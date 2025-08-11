@@ -277,7 +277,7 @@
               :class="{ 'highlighted-player': player.id === highlightedPlayer, 'preferred-player': player.id === preferredPlayerId }"
             >
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-4 md:px-5 font-bold text-xl md:text-2xl whitespace-pre-wrap flex items-center">
+                <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
                   <span 
                     v-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
@@ -287,7 +287,7 @@
                   </span>
                   <span 
                     @click="showPlayerDetails(player)" 
-                     class="player-name hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight"
+                     class="player-name hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0"
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
@@ -613,8 +613,8 @@
               :key="player.id"
               class="grid grid-cols-12 gap-0 border-b border-gray-600 last:border-b-0 hover:bg-gray-700/50 transition-colors"
             >
-              <div class="col-span-4 p-3 flex items-center">
-                <span class="font-medium text-white">{{ player.name }}</span>
+              <div class="col-span-4 p-3 flex items-center min-w-0">
+                <span class="font-medium text-white block truncate max-w-full flex-1 min-w-0" :title="player.name">{{ player.name }}</span>
                 <span v-if="isPlayerProtectedInGrid(player.id)" class="text-yellow-400 ml-2 text-lg" title="Joueur protégé">🔒</span>
               </div>
               
