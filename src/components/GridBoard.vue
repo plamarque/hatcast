@@ -85,7 +85,13 @@
           <!-- Horizontal scroll chevrons -->
           <button
             v-show="showLeftHint"
-            @click.prevent="scrollHeaderBy(-1)"
+            @click.prevent="onChevronClick(-1, $event)"
+            @mousedown.prevent="startHoldScroll(-1, $event)"
+            @mouseup="stopHoldScroll($event)"
+            @mouseleave="stopHoldScroll($event)"
+            @touchstart.prevent="startHoldScroll(-1, $event)"
+            @touchend="stopHoldScroll($event)"
+            @touchcancel="stopHoldScroll($event)"
             class="absolute left-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[85] backdrop-blur-sm"
             title="Événements précédents — cliquez pour défiler"
           >
@@ -93,7 +99,13 @@
           </button>
           <button
             v-show="showRightHint"
-            @click.prevent="scrollHeaderBy(1)"
+            @click.prevent="onChevronClick(1, $event)"
+            @mousedown.prevent="startHoldScroll(1, $event)"
+            @mouseup="stopHoldScroll($event)"
+            @mouseleave="stopHoldScroll($event)"
+            @touchstart.prevent="startHoldScroll(1, $event)"
+            @touchend="stopHoldScroll($event)"
+            @touchcancel="stopHoldScroll($event)"
             class="absolute right-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[85] backdrop-blur-sm"
             title="Événements suivants — cliquez pour défiler"
           >
@@ -1190,6 +1202,142 @@ function updateScrollHints() {
   showRightHint.value = scrollLeft < scrollWidth - clientWidth - 2
 }
 
+// Scroll horizontal: défiler d'exactement une colonne par clic
+function scrollHeaderBy(direction) {
+  const container = gridboardRef.value
+  if (!container) return
+
+  // Mesurer la largeur d'une colonne d'événement
+  let oneColumnWidth = 0
+
+  // 1) Mesure d'une vraie cellule du tableau (plus fiable pour le scroll)
+  const firstEventCell = container.querySelector('tbody tr td[data-event-id]')
+  if (firstEventCell) {
+    oneColumnWidth = firstEventCell.getBoundingClientRect().width
+  } else if (headerEventsRef?.value) {
+    // 2) Repli: mesure d'une colonne d'en-tête
+    const firstHeaderCol = headerEventsRef.value.querySelector('.col-event')
+    if (firstHeaderCol) {
+      oneColumnWidth = firstHeaderCol.getBoundingClientRect().width
+    }
+  }
+
+  // 3) Repli final
+  if (!oneColumnWidth || !isFinite(oneColumnWidth)) {
+    oneColumnWidth = container.clientWidth * 0.6
+  }
+
+  const target = container.scrollLeft + direction * oneColumnWidth
+  container.scrollTo({ left: target, behavior: 'smooth' })
+}
+
+// Gestion du maintien (mobile/desktop) pour défilement continu à rythme lisible
+const holdScrollTimer = ref(null)
+const holdScrollRaf = ref(0)
+const isHolding = ref(false)
+const holdStarted = ref(false)
+const currentHoldDirection = ref(0)
+
+function onChevronClick(direction, evt) {
+  // Sur mobile, un tap doit avancer d'une colonne.
+  // Si un maintien avait démarré, on l'annule pour éviter double mouvement.
+  if (evt && typeof evt.preventDefault === 'function') evt.preventDefault()
+  stopHoldScroll()
+  scrollHeaderBy(direction)
+}
+
+function startHoldScroll(direction, evt) {
+  // Éviter le ghost click sur mobile
+  if (evt && typeof evt.preventDefault === 'function') evt.preventDefault()
+
+  // Si déjà en maintien, ignorer
+  if (isHolding.value) return
+  isHolding.value = true
+  currentHoldDirection.value = direction
+  holdStarted.value = false
+
+  const container = gridboardRef.value
+  if (!container) return
+
+  // Mesure de base pour étapes incrémentales
+  let oneColumnWidth = 0
+  const firstEventCell = container.querySelector('tbody tr td[data-event-id]')
+  if (firstEventCell) {
+    oneColumnWidth = firstEventCell.getBoundingClientRect().width
+  } else if (headerEventsRef?.value) {
+    const firstHeaderCol = headerEventsRef.value.querySelector('.col-event')
+    if (firstHeaderCol) oneColumnWidth = firstHeaderCol.getBoundingClientRect().width
+  }
+  if (!oneColumnWidth || !isFinite(oneColumnWidth)) {
+    oneColumnWidth = container.clientWidth * 0.6
+  }
+
+  // Défilement progressif: ~1/6 de colonne tous les ~120ms (lisible)
+  const stepPerTick = oneColumnWidth / 6
+  const tickMs = 120
+
+  const tick = () => {
+    if (!isHolding.value || currentHoldDirection.value === 0) return
+    if (!holdStarted.value) holdStarted.value = true
+    const next = container.scrollLeft + currentHoldDirection.value * stepPerTick
+    container.scrollTo({ left: next, behavior: 'auto' })
+    holdScrollTimer.value = window.setTimeout(tick, tickMs)
+  }
+
+  // Petit délai avant de démarrer (distinction clic vs maintien)
+  holdScrollTimer.value = window.setTimeout(tick, 250)
+}
+
+function stopHoldScroll(evt) {
+  if (evt && typeof evt.preventDefault === 'function') evt.preventDefault()
+  const wasHolding = isHolding.value
+  const wasHoldStarted = holdStarted.value
+
+  isHolding.value = false
+  if (holdScrollTimer.value) {
+    clearTimeout(holdScrollTimer.value)
+    holdScrollTimer.value = null
+  }
+
+  // Si c'est un touchend et que le maintien n'a pas démarré, on interprète comme un tap: 1 colonne
+  if (evt && typeof evt.type === 'string' && evt.type.startsWith('touch') && !wasHoldStarted) {
+    const dir = currentHoldDirection.value || 0
+    if (dir !== 0) {
+      scrollHeaderBy(dir)
+    }
+    currentHoldDirection.value = 0
+    return
+  }
+
+  currentHoldDirection.value = 0
+
+  // Si un maintien a réellement eu lieu, on snap à la colonne la plus proche
+  if (wasHolding && wasHoldStarted) {
+    snapToNearestColumn()
+  }
+}
+
+function snapToNearestColumn() {
+  const container = gridboardRef.value
+  if (!container) return
+
+  // Mesurer la largeur d'une colonne
+  let colWidth = 0
+  const firstEventCell = container.querySelector('tbody tr td[data-event-id]')
+  if (firstEventCell) {
+    colWidth = firstEventCell.getBoundingClientRect().width
+  } else if (headerEventsRef?.value) {
+    const firstHeaderCol = headerEventsRef.value.querySelector('.col-event')
+    if (firstHeaderCol) colWidth = firstHeaderCol.getBoundingClientRect().width
+  }
+  if (!colWidth || !isFinite(colWidth) || colWidth <= 0) return
+
+  const left = container.scrollLeft
+  const idx = Math.round(left / colWidth)
+  const target = idx * colWidth
+  container.scrollTo({ left: target, behavior: 'smooth' })
+}
+
 // Fonction pour mettre en évidence un joueur
 function highlightPlayer(playerId) {
   highlightedPlayer.value = playerId
@@ -1679,13 +1827,6 @@ onMounted(async () => {
   }
 
   // Désistement: plus de modal/route dédiée, on utilise les magic links "no"
-
-  function scrollHeaderBy(direction) {
-    const el = gridboardRef.value
-    if (!el) return
-    const step = el.clientWidth * 0.6
-    el.scrollTo({ left: el.scrollLeft + direction * step, behavior: 'smooth' })
-  }
 })
 
 // Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
