@@ -199,11 +199,13 @@ export async function updatePlayer(playerId, newName, seasonId = null) {
     const playerRef = seasonId
       ? doc(db, 'seasons', seasonId, 'players', playerId)
       : doc(db, 'players', playerId)
-    await setDoc(playerRef, { name: newName })
+    // Mettre à jour uniquement le nom et préserver les autres champs. Crée le doc s'il n'existe pas.
+    await setDoc(playerRef, { name: newName }, { merge: true })
   } else {
     const index = playersList.findIndex(player => player.id === playerId)
     if (index !== -1) {
-      playersList[index] = newName
+      // Conserver l'objet joueur et ne modifier que le nom
+      playersList[index] = { ...playersList[index], name: newName }
     }
   }
 }

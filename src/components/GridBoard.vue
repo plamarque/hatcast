@@ -1204,6 +1204,7 @@ import {
   updateEvent,
   saveEvent,
   saveAvailability,
+  updatePlayer,
   saveSelection
 } from '../services/storage.js'
 
