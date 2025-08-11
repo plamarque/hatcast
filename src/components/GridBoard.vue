@@ -22,7 +22,7 @@
         <!-- Desktop: actions visibles -->
         <div class="hidden md:flex items-center gap-2">
           <button
-            @click="openAccountMenu"
+            @click="openAccount"
             class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
             title="Mon compte"
             aria-label="Mon compte"
@@ -75,7 +75,7 @@
               <span class="text-sm">{{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}</span>
             </button>
             <button
-              @click="openAccountMenu(); closeHeaderMenu()"
+              @click="openAccount(); closeHeaderMenu()"
               class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
             >
               <span>👤</span>
@@ -1061,6 +1061,21 @@
     @delete-account="handleAccountDeleteAccount"
   />
 
+  <!-- Auth/Association pour ouvrir Mon compte -->
+  <AccountClaimModal
+    :show="showAccountAuth"
+    :player="accountAuthPlayer"
+    :season-id="seasonId"
+    @close="showAccountAuth = false"
+    @success="() => { showAccountAuth = false; showAccountMenu = true }"
+  />
+
+  <AccountLoginModal
+    :show="showAccountLogin"
+    @close="showAccountLogin = false"
+    @success="() => { showAccountLogin = false; showAccountMenu = true }"
+  />
+
   <!-- Modal de prompt pour annoncer après création/modification -->
   <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
@@ -1267,6 +1282,8 @@ import AvailabilityCell from './AvailabilityCell.vue'
 import CreatorOnboardingModal from './CreatorOnboardingModal.vue'
 import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
 import AccountMenu from './AccountMenu.vue'
+import AccountClaimModal from './AccountClaimModal.vue'
+import AccountLoginModal from './AccountLoginModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1423,8 +1440,31 @@ const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
 const showHowItWorksGlobal = ref(false)
 const showAccountMenu = ref(false)
+const showAccountAuth = ref(false)
+const showAccountLogin = ref(false)
+const accountAuthPlayer = ref(null)
 function openAccountMenu() { showAccountMenu.value = true }
 function closeAccountMenu() { showAccountMenu.value = false }
+// Ouvrir compte avec flow d'association si anonyme
+function openAccount() {
+  try {
+    const user = auth?.currentUser
+    if (!user || user.isAnonymous) {
+      // Choisir un joueur par défaut (préféré ou premier)
+      let target = null
+      if (preferredPlayerId.value) {
+        target = players.value.find(p => p.id === preferredPlayerId.value) || null
+      }
+      if (!target) target = players.value[0] || null
+      // Ouvrir login classique (email + mot de passe)
+      showAccountLogin.value = true
+      // Mémoriser un joueur si l'utilisateur choisit l'association ensuite
+      if (target) accountAuthPlayer.value = target
+      return
+    }
+  } catch {}
+  showAccountMenu.value = true
+}
 
 async function handleAccountChangePassword() {
   try {

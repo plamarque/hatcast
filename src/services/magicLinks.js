@@ -64,4 +64,39 @@ export async function consumeMagicLink({ seasonId, playerId, eventId, action }) 
   await deleteDoc(ref)
 }
 
+// ===== Account email update magic link (separate collection) =====
+const ACCOUNT_COLLECTION = 'accountMagicLinks'
+
+export function buildAccountId(token) {
+  return `account__${token}`
+}
+
+export async function createAccountEmailUpdateLink({ currentEmail, newEmail }) {
+  const token = randomToken(40)
+  const id = buildAccountId(token)
+  const ref = doc(db, ACCOUNT_COLLECTION, id)
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7
+  await setDoc(ref, { token, currentEmail, newEmail, action: 'account_email_update', expiresAt })
+  const base = window.location.origin + '/'
+  const url = `${base}magic?a=account_email_update&t=${encodeURIComponent(token)}`
+  return { id, token, url }
+}
+
+export async function verifyAccountEmailUpdateLink({ token }) {
+  const id = buildAccountId(token)
+  const ref = doc(db, ACCOUNT_COLLECTION, id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return { valid: false, reason: 'not_found' }
+  const data = snap.data()
+  if (data.token !== token) return { valid: false, reason: 'token_mismatch' }
+  if (typeof data.expiresAt === 'number' && Date.now() > data.expiresAt) return { valid: false, reason: 'expired' }
+  return { valid: true, data }
+}
+
+export async function consumeAccountEmailUpdateLink({ token }) {
+  const id = buildAccountId(token)
+  const ref = doc(db, ACCOUNT_COLLECTION, id)
+  await deleteDoc(ref)
+}
+
 

@@ -2,7 +2,7 @@
 // Service d'envoi d'emails – version Trigger Email (Firebase Extension)
 import { db } from './firebase.js'
 import logger from './logger.js'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore'
 
 // Pour utiliser EmailJS, il faut :
 // 1. Créer un compte sur https://www.emailjs.com/
@@ -29,6 +29,17 @@ export async function queueAvailabilityEmail({
   reason = 'new_event',
   fromEmail = undefined // optionnel, sinon valeur par défaut de l'extension
 }) {
+  // Respecter préférences notification
+  try {
+    const prefRef = doc(db, 'userPreferences', toEmail)
+    const prefSnap = await getDoc(prefRef)
+    if (prefSnap.exists()) {
+      const prefs = prefSnap.data()
+      if (prefs?.notifyAvailability === false) {
+        return { success: true, skipped: true }
+      }
+    }
+  } catch {}
   const html = `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
       <h2>Disponibilité demandée</h2>
@@ -63,30 +74,43 @@ export async function queueAvailabilityEmail({
 }
 
 // Envoi d'un email de vérification pour activer la protection
-export async function queueProtectionVerificationEmail({ toEmail, playerName, verifyUrl, fromEmail = undefined }) {
+// Nouveau: email de vérification générique (protection joueur ou mise à jour email compte)
+export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'player_protection', displayName = 'utilisateur', fromEmail = undefined }) {
+  const isAccount = purpose === 'account_email_update'
+  const title = isAccount ? 'Vérification de votre nouvelle adresse email' : 'Vérification de votre email'
+  const line1 = `Bonjour ${displayName},`
+  const body = isAccount
+    ? "Pour sécuriser votre compte, merci de confirmer que vous avez accès à cette nouvelle adresse email."
+    : "Pour sécuriser votre joueur, merci de confirmer que vous avez accès à cette adresse email."
+  const cta = isAccount ? 'Confirmer mon adresse email' : 'Vérifier mon email'
+  const subject = isAccount ? 'Confirmez votre nouvelle adresse email' : 'Confirmez votre email pour activer la protection'
   const html = `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <h2>Vérification de votre email</h2>
-      <p>Bonjour ${playerName},</p>
-      <p>Pour sécuriser votre joueur, merci de confirmer que vous avez accès à cette adresse email.</p>
+      <h2>${title}</h2>
+      <p>${line1}</p>
+      <p>${body}</p>
       <p>
-        <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;">Vérifier mon email</a>
+        <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;">${cta}</a>
       </p>
       <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans 7 jours.</p>
     </div>
   `
-  const subject = 'Confirmez votre email pour activer la protection'
   const docData = {
     to: toEmail,
     message: { subject, html },
     createdAt: serverTimestamp(),
-    meta: { reason: 'protection_email_verification', playerName }
+    meta: { reason: purpose, displayName }
   }
   if (fromEmail) {
     docData.from = fromEmail
     docData.replyTo = fromEmail
   }
   await addDoc(collection(db, 'mail'), docData)
+}
+
+// Ancien alias conservé pour compat: protection joueur
+export async function queueProtectionVerificationEmail({ toEmail, playerName, verifyUrl, fromEmail = undefined }) {
+  return queueVerificationEmail({ toEmail, verifyUrl, purpose: 'player_protection', displayName: playerName, fromEmail })
 }
 
 // Fonction pour envoyer des emails de notification de sélection
@@ -100,6 +124,17 @@ export async function queueSelectionEmail({
   subject = undefined,
   fromEmail = undefined
 }) {
+  // Respecter préférences notification
+  try {
+    const prefRef = doc(db, 'userPreferences', toEmail)
+    const prefSnap = await getDoc(prefRef)
+    if (prefSnap.exists()) {
+      const prefs = prefSnap.data()
+      if (prefs?.notifySelection === false) {
+        return { success: true, skipped: true }
+      }
+    }
+  } catch {}
   logger.debug('queueSelectionEmail', { forPlayer: playerName, hasCustomHtml: !!html, hasCustomSubject: !!subject })
   
   // Si HTML et sujet personnalisés sont fournis, les utiliser

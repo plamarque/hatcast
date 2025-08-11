@@ -18,7 +18,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { verifyMagicLink, consumeMagicLink } from '../services/magicLinks.js'
+import { verifyMagicLink, consumeMagicLink, verifyAccountEmailUpdateLink, consumeAccountEmailUpdateLink } from '../services/magicLinks.js'
+import { auth } from '../services/firebase.js'
+import { updateEmail as updateAuthEmail } from 'firebase/auth'
 import { setSingleAvailability, setStorageMode } from '../services/storage.js'
 import { db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
@@ -60,10 +62,32 @@ onMounted(async () => {
     const action = String(route.query.a || '') // 'yes' | 'no' | 'verify_email'
     const slug = String(route.query.slug || '')
 
-    if (!seasonId || !playerId || !token || !action) {
+    if (!token || !action) {
       status.value = 'error'
       title.value = 'Lien invalide'
       message.value = 'Paramètres manquants.'
+      return
+    }
+
+    if (action === 'account_email_update') {
+      const v = await verifyAccountEmailUpdateLink({ token })
+      if (!v.valid) {
+        status.value = 'error'
+        title.value = 'Lien invalide'
+        message.value = 'Le lien est invalide ou expiré.'
+        return
+      }
+      try {
+        await updateAuthEmail(auth.currentUser, v.data.newEmail)
+        await consumeAccountEmailUpdateLink({ token })
+        status.value = 'ok'
+        title.value = 'Email mis à jour'
+        message.value = 'Votre adresse email a été mise à jour avec succès.'
+      } catch (e) {
+        status.value = 'error'
+        title.value = 'Action impossible'
+        message.value = 'Veuillez vous reconnecter puis réessayer.'
+      }
       return
     }
 
