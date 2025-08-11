@@ -57,13 +57,13 @@
         const mode = urlParams.get('mode');
         const oobCode = urlParams.get('oobCode');
         
-        console.log('🔍 [DEBUG] Paramètres reçus:', { mode, oobCode });
+        // Ne pas logguer les tokens sensibles dans la console
         
         if (mode === 'resetPassword' && oobCode) {
             // Rediriger vers notre application avec le token
             const redirectUrl = `${window.location.origin}/reset-password?oobCode=${oobCode}`;
             
-            console.log('🔍 [DEBUG] Redirection vers:', redirectUrl);
+            // Debug supprimé pour éviter toute fuite d'URL avec token
             
             // Attendre un peu pour montrer le loading
             setTimeout(() => {
