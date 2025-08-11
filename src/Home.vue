@@ -66,6 +66,10 @@
                 class="absolute right-0 mt-2 w-44 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-1 z-10"
                 role="menu"
               >
+                <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10" role="menuitem">
+                  Exporter CSV
+                </button>
+                <div class="border-t border-white/10 my-1"></div>
                 <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
                   Monter
                 </button>
@@ -236,6 +240,7 @@ import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 import AppHelpModal from './components/AppHelpModal.vue'
 import logger from './services/logger.js'
+import { loadEvents, loadPlayers, loadAvailability, loadSelections } from './services/storage.js'
 
 const seasons = ref([])
 const isLoading = ref(true)
@@ -318,6 +323,114 @@ async function migrateMissingSortOrders() {
       }
     }
   }
+}
+
+// -------- Export CSV (saison) --------
+async function exportSeasonAvailabilityCsv(season) {
+  try {
+    if (!season?.id) {
+      alert('Saison introuvable')
+      return
+    }
+
+    // Charger données de la saison
+    const [events, players] = await Promise.all([
+      loadEvents(season.id),
+      loadPlayers(season.id)
+    ])
+    const [availability, selections] = await Promise.all([
+      loadAvailability(players, events, season.id),
+      loadSelections(season.id)
+    ])
+
+    // Construire l'en-tête
+    const header = ['Joueur', ...events.map(e => formatCsvHeaderForEvent(e))]
+
+    // Lignes
+    const rows = []
+    for (const player of players) {
+      const name = player?.name || ''
+      const availMap = availability?.[name] || {}
+      const line = [name, ...events.map(e => cellValue(availMap[e.id], selections?.[e.id], name))]
+      rows.push(line)
+    }
+
+    // Générer CSV (avec BOM pour Excel)
+    const csv = toCsvString([header, ...rows])
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const base = season?.name || season?.slug || 'saison'
+    const fileName = `${sanitizeFilename(base)}-disponibilites.csv`
+
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    logger.info('Export CSV saison', { seasonId: season.id, events: events.length, players: players.length })
+  } catch (err) {
+    logger.error('Erreur export CSV', err)
+    alert('Erreur lors de l\'export CSV. Veuillez réessayer.')
+  }
+}
+
+function toDateObject(value) {
+  if (!value) return null
+  if (value instanceof Date) return value
+  if (typeof value?.toDate === 'function') return value.toDate()
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
+function formatCsvHeaderForEvent(event) {
+  const dateObj = toDateObject(event?.date)
+  const iso = dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}` : ''
+  const title = event?.title || 'Sans titre'
+  return `${iso} · ${title}`.trim()
+}
+
+function availabilityToString(value) {
+  if (value === true || value === 'oui') return 'disponible'
+  if (value === false || value === 'non') return 'non disponible'
+  return ''
+}
+
+function toCsvString(matrix) {
+  return matrix.map(row => row.map(csvEscape).join(',')).join('\n')
+}
+
+function csvEscape(value) {
+  const str = String(value ?? '')
+  if (/[",\n\r]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"'
+  }
+  return str
+}
+
+function sanitizeFilename(name) {
+  return String(name || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\-_. ]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$|^\.+|\.+$/g, '')
+    || 'fichier'
+}
+
+function cellValue(availabilityValue, selectedList, playerName) {
+  const isSelected = Array.isArray(selectedList) && selectedList.includes(playerName)
+  if (isSelected) {
+    if (availabilityValue === false || availabilityValue === 'non') return 'non disponible'
+    return 'sélectionné'
+  }
+  return availabilityToString(availabilityValue)
 }
 
 async function moveSeasonUp(index) {
