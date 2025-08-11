@@ -1024,9 +1024,9 @@
 
 /* Empêcher la cellule gauche sticky de s'élargir plus que la colonne prévue */
 .left-col-td {
-  width: var(--left-col-width, 12rem);
-  max-width: var(--left-col-width, 12rem);
-  min-width: var(--left-col-width, 12rem);
+  width: 11rem;
+  max-width: 11rem;
+  min-width: 11rem;
 }
 
 /* Responsivité: adaptation des cellules sur écran réduit */
@@ -1054,6 +1054,7 @@
 
 @media (min-width: 640px) { /* sm */
   .col-left { width: 12rem; }
+  .left-col-td { width: 12rem; max-width: 12rem; min-width: 12rem; }
   .col-event { width: 7.5rem; }
   .col-right { width: 3rem; }
 }
@@ -1069,8 +1070,9 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 9rem; }
-  .col-event { width: 12rem; }
+  .col-left { width: 9.25rem; }
+  .col-event { width: 12.25rem; }
+  .left-col-td { width: 9.25rem; max-width: 9.25rem; min-width: 9.25rem; }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
