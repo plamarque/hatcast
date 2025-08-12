@@ -35,9 +35,24 @@
           </button>
         </div>
 
-        <div class="text-sm text-gray-300">
-          <p v-if="isPartial" class="mb-1">Note: cette annonce concerne une mise à jour partielle de la sélection.</p>
-          <p v-else>Vérifie le message si besoin avant de l'envoyer.</p>
+        <div class="text-sm text-gray-300 space-y-3">
+          <div>
+            <p class="mb-1">Vérifie le message si besoin avant de l'envoyer.</p>
+            <p class="text-xs text-blue-300">Astuce: “Copier le message” ajoute le lien direct vers l'événement pour faciliter l'envoi manuel.</p>
+          </div>
+
+          <!-- Joueurs à joindre manuellement -->
+          <div v-if="manualRecipients && manualRecipients.length > 0" class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+            <p class="text-yellow-200 text-sm mb-2">Joueurs à joindre manuellement (pas de canal actif):</p>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="p in manualRecipients"
+                :key="p.id || p.name"
+                class="px-3 py-1 rounded-md text-sm bg-gray-800 border border-gray-600 text-gray-200"
+              >{{ p.name }}</span>
+            </div>
+            <button @click="copyManualList" class="mt-2 text-xs px-2 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600">Copier la liste</button>
+          </div>
         </div>
       </div>
 
@@ -61,7 +76,9 @@ const props = defineProps({
   show: { type: Boolean, default: false },
   event: { type: Object, default: null },
   message: { type: String, default: '' },
-  isPartial: { type: Boolean, default: false }
+  isPartial: { type: Boolean, default: false },
+  manualRecipients: { type: Array, default: () => [] },
+  eventLink: { type: String, default: '' }
 })
 
 const emit = defineEmits(['close'])
@@ -80,7 +97,8 @@ function formatDateFull(dateValue) {
 }
 
 function copyToClipboard() {
-  const textToCopy = props.message || ''
+  const footer = props.eventLink ? `\n\nLien direct: ${props.eventLink}` : ''
+  const textToCopy = (props.message || '') + footer
   navigator.clipboard.writeText(textToCopy).then(() => {
     copied.value = true
     copyButtonText.value = 'Copié !'
@@ -93,6 +111,18 @@ function copyToClipboard() {
     console.warn('Erreur lors de la copie du texte')
     alert('Impossible de copier le message.')
   })
+}
+
+function copyManualList() {
+  const names = (props.manualRecipients || []).map(p => p.name).join(', ')
+  navigator.clipboard.writeText(names || '').then(() => {
+    copied.value = true
+    copyButtonText.value = 'Liste copiée !'
+    setTimeout(() => {
+      copied.value = false
+      copyButtonText.value = 'Copier le message'
+    }, 1500)
+  }).catch(() => {})
 }
 </script>
 

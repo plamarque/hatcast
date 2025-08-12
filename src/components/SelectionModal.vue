@@ -89,9 +89,9 @@
 
         <!-- 3) Statistiques (allégées et centrées) -->
         <div class="grid grid-cols-3 gap-2 md:gap-3 mb-3">
-          <div class="p-3 md:p-3 rounded-lg border border-white/10 bg-white/5 text-center">
-            <div class="text-cyan-300 text-lg md:text-xl font-semibold">{{ event?.playerCount || 6 }}</div>
-            <div class="text-xs md:text-sm text-gray-400">À sélectionner</div>
+          <div class="p-3 md:p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-center">
+            <div class="text-yellow-300 text-lg md:text-xl font-semibold">{{ Math.max((event?.playerCount || 6) - selectedCount, 0) }}</div>
+            <div class="text-xs md:text-sm text-yellow-300">manquants</div>
           </div>
           <div class="p-3 md:p-3 rounded-lg border border-white/10 bg-white/5 text-center">
             <div class="text-green-400 text-lg md:text-xl font-semibold">{{ availableCount }}</div>
@@ -157,7 +157,7 @@
     mode="selection"
     :selected-players="currentSelection"
     @close="showAnnounce = false"
-    @send-email-notifications="handleSendEmailNotifications"
+    @send-notifications="handleSendNotifications"
   />
 
   <!-- Popin Comment ça marche -->
@@ -210,7 +210,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-email-notifications', 'update-selection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'update-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -496,10 +496,8 @@ defineExpose({
 })
 
 // Fonction pour gérer l'envoi d'emails de sélection
-function handleSendEmailNotifications(data) {
+function handleSendNotifications(data) {
   // Émettre l'événement vers le parent (GridBoard)
-  emit('send-email-notifications', data)
-  // Fermer le modal d'annonce
-  showAnnounce.value = false
+  emit('send-notifications', data)
 }
 </script>

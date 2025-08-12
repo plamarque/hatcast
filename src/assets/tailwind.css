@@ -252,6 +252,9 @@
 .flex-shrink-0 {
   flex-shrink: 0;
 }
+.shrink-0 {
+  flex-shrink: 0;
+}
 .table-auto {
   table-layout: auto;
 }
@@ -517,8 +520,17 @@
 .opacity-0 {
   opacity: 0%;
 }
+.opacity-25 {
+  opacity: 25%;
+}
 .opacity-50 {
   opacity: 50%;
+}
+.opacity-60 {
+  opacity: 60%;
+}
+.opacity-75 {
+  opacity: 75%;
 }
 .opacity-100 {
   opacity: 100%;

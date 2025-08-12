@@ -574,9 +574,9 @@
             <div class="text-xl md:text-2xl font-bold text-white">{{ countSelectedPlayers(selectedEvent?.id) }}</div>
             <div class="text-xs md:text-sm text-gray-300">Sélectionnés</div>
           </div>
-          <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30">
-            <div class="text-xl md:text-2xl font-bold text-white">{{ selectedEvent?.playerCount || 6 }}</div>
-            <div class="text-xs md:text-sm text-gray-300">À sélectionner</div>
+          <div class="p-3 md:p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-center">
+            <div class="text-xl md:text-2xl font-bold text-yellow-300">{{ Math.max((selectedEvent?.playerCount || 6) - countSelectedPlayers(selectedEvent?.id), 0) }}</div>
+            <div class="text-xs md:text-sm text-yellow-300">manquants</div>
           </div>
         </div>
 
@@ -1046,7 +1046,7 @@
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
-    @send-email-notifications="handleSendEmailNotifications"
+    @send-notifications="handleSendNotifications"
     @update-selection="handleUpdateSelectionFromModal"
   />
 
@@ -1057,8 +1057,10 @@
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedPlayers"
+    :sending="isSendingNotifications"
+    :availability-by-player="getPlayerAvailabilityForEvent(eventToAnnounce?.id)"
     @close="closeEventAnnounceModal"
-    @send-email-notifications="handleSendEmailNotifications"
+    @send-notifications="handleSendNotifications"
   />
 
   <!-- Popin Aide (global) -->
@@ -1298,7 +1300,8 @@ import {
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
-import { queueAvailabilityEmail, sendSelectionEmailsForEvent, sendDeselectionEmailsForEvent } from '../services/emailService.js'
+import { sendDeselectionEmailsForEvent } from '../services/emailService.js'
+import { sendAvailabilityNotificationsForEvent, sendSelectionNotificationsForEvent } from '../services/notificationsService.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
@@ -4061,53 +4064,17 @@ function getEventTooltip(eventId) {
   }
 }
 
-// Envoi d'emails de disponibilité aux joueurs protégés (avec liens magiques)
-async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
-  if (!seasonId.value) return
-  
-  // Vérifier si l'événement est archivé
-  const event = { id: eventId, ...eventData }
-  if (event.archived) {
-    // eslint-disable-next-line no-console
-    console.debug('Événement archivé, aucune notification envoyée')
-    showSuccessMessage.value = true
-    successMessage.value = 'Aucune notification envoyée : événement archivé'
-    setTimeout(() => { showSuccessMessage.value = false }, 3000)
-    return
-  }
-  
-  const failures = []
+// Construction de la liste des joueurs protégés avec email pour l'envoi multi-canal
+async function buildProtectedPlayersWithEmails() {
+  const result = []
   for (const player of players.value) {
     const protectedFlag = await isPlayerProtected(player.id, seasonId.value)
     if (!protectedFlag) continue
     const email = await getPlayerEmail(player.id, seasonId.value)
     if (!email) continue
-    try {
-      const yes = await createMagicLink({ seasonId: seasonId.value, playerId: player.id, eventId: event.id, action: 'yes' })
-      const no = await createMagicLink({ seasonId: seasonId.value, playerId: player.id, eventId: event.id, action: 'no' })
-      const urlYes = `${yes.url}&slug=${encodeURIComponent(seasonSlug)}`
-      const urlNo = `${no.url}&slug=${encodeURIComponent(seasonSlug)}`
-      await queueAvailabilityEmail({
-        toEmail: email,
-        playerName: player.name,
-        eventTitle: event.title,
-        eventDate: formatDateFull(event.date),
-        yesUrl: urlYes,
-        noUrl: urlNo,
-        eventUrl: `${window.location.origin}/season/${seasonSlug}/event/${event.id}`,
-        reason
-      })
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Email non envoyé pour un joueur')
-      failures.push(player.id)
-    }
+    result.push({ ...player, email })
   }
-  showSuccessMessage.value = true
-  successMessage.value = failures.length > 0
-    ? `Emails envoyés (avec ${failures.length} échec(s))`
-    : 'Emails envoyés aux joueurs protégés.'
-  setTimeout(() => { showSuccessMessage.value = false }, 3000)
+  return result
 }
 
 // Fonctions pour le modal d'annonce d'événement
@@ -4124,11 +4091,25 @@ function openEventAnnounceModal(event) {
   
   eventToAnnounce.value = event
   showEventAnnounceModal.value = true
+  // Mémoriser dans l'URL pour restauration après refresh
+  try {
+    const params = new URLSearchParams(window.location.search)
+    params.set('modal', 'announce')
+    params.set('event', event?.id || '')
+    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+  } catch {}
 }
 
 function closeEventAnnounceModal() {
   showEventAnnounceModal.value = false
   eventToAnnounce.value = null
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('modal') === 'announce') {
+      params.delete('modal'); params.delete('event')
+      history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    }
+  } catch {}
 }
 
 function closeAnnouncePrompt() {
@@ -4136,32 +4117,70 @@ function closeAnnouncePrompt() {
   announcePromptEvent.value = null
 }
 
-async function handleSendEmailNotifications({ eventId, eventData, reason, selectedPlayers }) {
+const isSendingNotifications = ref(false)
+
+async function handleSendNotifications({ eventId, eventData, reason, selectedPlayers, scope = 'all', recipient = null }) {
+  isSendingNotifications.value = true
   try {
     if (reason === 'selection') {
-      // Mode sélection : envoyer des emails de notification de sélection
-      await sendSelectionEmailsForEvent({ 
-        eventId, 
-        eventData, 
-        selectedPlayers,
-        seasonId: seasonId.value,
-        seasonSlug: seasonSlug,
-        players: enrichedPlayers.value
-      })
+      if (scope === 'single' && recipient?.email) {
+        // Envoi ciblé pour un joueur sélectionné
+        await sendSelectionNotificationsForEvent({
+          eventId,
+          eventData,
+          selectedPlayers: [recipient.name],
+          seasonId: seasonId.value,
+          seasonSlug: seasonSlug,
+          players: enrichedPlayers.value
+        })
+      } else {
+        // Batch pour tous les sélectionnés
+        await sendSelectionNotificationsForEvent({ 
+          eventId, 
+          eventData, 
+          selectedPlayers,
+          seasonId: seasonId.value,
+          seasonSlug: seasonSlug,
+          players: enrichedPlayers.value
+        })
+      }
       
-      // Fermer le modal de sélection et afficher le message de succès
-      closeSelectionModal()
       showSuccessMessage.value = true
-      successMessage.value = 'Notifications de sélection envoyées avec succès !'
+      successMessage.value = scope === 'single'
+        ? `Notification envoyée à ${recipient?.name || '1 joueur'}`
+        : 'Notifications de sélection envoyées à tous les joueurs sélectionnés !'
       setTimeout(() => { showSuccessMessage.value = false }, 3000)
     } else {
-      // Mode événement : utiliser la logique existante
-      await sendAvailabilityEmailsForEvent({ eventId, eventData, reason })
+      // Mode événement : envoi multi-canal
+      if (scope === 'single' && recipient?.email) {
+        // Ciblé: construire une "liste" d'un seul destinataire
+        await sendAvailabilityNotificationsForEvent({
+          eventId,
+          eventData,
+          players: [recipient],
+          seasonId: seasonId.value,
+          seasonSlug: seasonSlug,
+          createMagicLink,
+          reminder: false,
+          getAvailabilityForEvent: (name, eId) => isAvailable(name, eId)
+        })
+      } else {
+        await sendAvailabilityNotificationsForEvent({
+          eventId,
+          eventData,
+          players: await buildProtectedPlayersWithEmails(),
+          seasonId: seasonId.value,
+          seasonSlug: seasonSlug,
+          createMagicLink,
+          reminder: false,
+          getAvailabilityForEvent: (name, eId) => isAvailable(name, eId)
+        })
+      }
       
-      // Fermer le modal et afficher le message de succès
-      closeEventAnnounceModal()
       showSuccessMessage.value = true
-      successMessage.value = 'Notifications envoyées avec succès !'
+      successMessage.value = scope === 'single'
+        ? `Notification envoyée à ${recipient?.name || '1 joueur'}`
+        : 'Notifications envoyées à tous les joueurs protégés !'
       setTimeout(() => { showSuccessMessage.value = false }, 3000)
     }
   } catch (error) {
@@ -4171,6 +4190,7 @@ async function handleSendEmailNotifications({ eventId, eventData, reason, select
     successMessage.value = 'Erreur lors de l\'envoi des notifications'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
   }
+  isSendingNotifications.value = false
 }
 
 function getPlayerAvailabilityForEvent(eventId) {
@@ -4194,11 +4214,24 @@ function getPlayerAvailabilityForEvent(eventId) {
   }
   selectionModalEvent.value = event
   showSelectionModal.value = true
+  try {
+    const params = new URLSearchParams(window.location.search)
+    params.set('modal', 'selection')
+    params.set('event', event?.id || '')
+    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+  } catch {}
  }
 
 function closeSelectionModal() {
   showSelectionModal.value = false
   selectionModalEvent.value = null
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('modal') === 'selection') {
+      params.delete('modal'); params.delete('event')
+      history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    }
+  } catch {}
 }
 
 // Désistement helpers supprimés
@@ -4326,6 +4359,20 @@ function focusOnEvent(eventId) {
   // Utiliser la fonction spécialisée pour l'URL
   focusOnEventFromUrl(eventId, targetEvent)
 }
+
+// Restaurer les modales depuis l'URL après chargement des événements
+watch(events, (list) => {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const modal = params.get('modal')
+    const eventId = params.get('event')
+    if (!modal || !eventId) return
+    const t = list.find(e => e.id === eventId)
+    if (!t) return
+    if (modal === 'announce') openEventAnnounceModal(t)
+    if (modal === 'selection') openSelectionModal(t)
+  } catch {}
+}, { immediate: true })
 
 // Fonction pour faire défiler vers un événement avec logique mobile/desktop
 async function scrollToEvent(eventElement) {

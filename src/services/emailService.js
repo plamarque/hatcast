@@ -44,20 +44,19 @@ export async function queueAvailabilityEmail({
   } catch {}
   const html = `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <h2>Disponibilité demandée</h2>
-      <p>Bonjour ${playerName},</p>
-      <p>Peux-tu indiquer ta disponibilité pour <strong>${eventTitle}</strong> (${eventDate}) ?</p>
-      <p>
-        <a href="${yesUrl}" style="display:inline-block;padding:10px 16px;margin-right:8px;background:#16a34a;color:#fff;border-radius:8px;text-decoration:none;">Je suis dispo ✅</a>
-        <a href="${noUrl}" style="display:inline-block;padding:10px 16px;background:#dc2626;color:#fff;border-radius:8px;text-decoration:none;">Pas dispo ❌</a>
+      <p><strong>Nouvel événement programmé!</strong></p>
+      <p style="margin: 12px 0 2px 0; font-weight: 600;">${eventTitle}</p>
+      <p style="margin: 0 0 16px 0; color:#374151;">${eventDate}</p>
+      <p>Nous avons besoin de savoir si tu es disponible.</p>
+      <p style="margin-top: 12px;">
+        <a href="${yesUrl}" style="display:inline-block;padding:10px 12px;margin-right:8px;border:2px solid #16a34a;color:#16a34a;border-radius:8px;text-decoration:none;">✅ Dispo</a>
+        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
       </p>
-      <p style="font-size:12px;color:#6b7280;">Motif: ${reason}</p>
+      <p style="margin-top: 16px;">Merci!!</p>
     </div>
   `
 
-  const subject = reason === 'reminder'
-    ? `Rappel disponibilité · ${eventTitle} (${eventDate})`
-    : `Disponibilité demandée · ${eventTitle} (${eventDate})`
+  const subject = `${reason === 'reminder' ? 'Rappel: ' : ''}${eventTitle} (${eventDate})`
 
   const docData = {
     to: toEmail,
@@ -81,8 +80,8 @@ export async function queueAvailabilityEmail({
     const prefSnap = await getDoc(prefRef)
     const prefs = prefSnap.exists() ? prefSnap.data() : {}
     if (prefs?.notifyAvailabilityPush !== false) {
-      const title = reason === 'reminder' ? '⏰ Rappel disponibilité' : '🗓️ Disponibilité demandée'
-      const body = `${playerName}, ${eventTitle} (${eventDate})`
+      const title = `${reason === 'reminder' ? 'Rappel: ' : ''}${eventTitle} (${eventDate})`
+      const body = `${playerName}, t'es dispo ?`
       await queuePushMessage({
         toEmail,
         title,
@@ -163,11 +162,10 @@ export async function queueSelectionEmail({
   // Sinon, utiliser le template par défaut
   const emailHtml = html || `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <h2>🎭 Tu as été sélectionné(e) !</h2>
       <p>Bonjour ${playerName},</p>
       <p>Félicitations ! Tu as été sélectionné(e) pour <strong>${eventTitle}</strong> (${eventDate}).</p>
       <p>
-        <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;background:#8b5cf6;color:#fff;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
+        <a href="${eventUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;">Afficher les Détails</a>
       </p>
       <p style="font-size:12px;color:#6b7280;">Tu recevras bientôt plus d'informations sur l'organisation.</p>
     </div>
@@ -347,16 +345,12 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       // Créer le contenu HTML personnalisé pour ce joueur
       const html = `
         <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-          <h2>🎭 Sélection confirmée</h2>
           <p>Bonjour <strong>${playerName}</strong>,</p>
           <p>Tu as été sélectionné(e) pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}).</p>
-          <p>Sélection complète : <strong>${playersList}</strong>.</p>
-          <p>Tu n'es plus disponible ? Signale le rapidement ici :</p>
+          <p>Un imprévu ?</p>
           <p>
-            <a href="${notAvailableUrl}" style="display:inline-block;padding:10px 16px;background:#dc2626;color:#fff;border-radius:8px;text-decoration:none;">Signaler que je ne suis plus disponible</a>
-          </p>
-          <p>
-            <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;background:#8b5cf6;color:#fff;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
+            <a href="${notAvailableUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;margin-right:8px;">❌ Plus dispo</a>
+            <a href="${eventUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;">Afficher les Détails</a>
           </p>
         </div>
       `
@@ -423,7 +417,7 @@ export async function sendDeselectionEmailsForEvent({ eventId, eventData, remove
           <p>Tu n'es plus sélectionné(e) pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}) 😔.</p>
           ${playersList ? `<p>Nouvelle sélection: <strong>${playersList}</strong>.</p>` : ''}
           <p>
-            <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;background:#6b7280;color:#fff;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
+            <a href="${eventUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #6b7280;color:#6b7280;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
           </p>
         </div>
       `
