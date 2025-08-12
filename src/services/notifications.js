@@ -13,16 +13,32 @@ export async function canUsePush() {
   }
 }
 
+async function getActiveServiceWorkerRegistration() {
+  if (typeof navigator === 'undefined' || !navigator.serviceWorker) return null
+  const reg = await navigator.serviceWorker.ready
+  if (reg?.active && reg.active.state === 'activated') return reg
+  const sw = reg?.installing || reg?.waiting
+  if (!sw) return reg
+  if (sw.state === 'activated') return reg
+  await new Promise((resolve) => {
+    const onChange = () => {
+      if (sw.state === 'activated') {
+        sw.removeEventListener('statechange', onChange)
+        resolve()
+      }
+    }
+    sw.addEventListener('statechange', onChange)
+  })
+  return reg
+}
+
 export async function requestAndGetToken(serviceWorkerRegistration) {
   if (!(await canUsePush())) return null
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return null
   const messaging = getMessaging(app)
-  // Fallback: si aucune registration n'est passée, attendre le SW prêt
-  let swReg = serviceWorkerRegistration
-  if (!swReg && typeof navigator !== 'undefined' && navigator.serviceWorker) {
-    try { swReg = await navigator.serviceWorker.ready } catch {}
-  }
+  // Fallback: si aucune registration n'est passée, attendre un SW actif
+  let swReg = serviceWorkerRegistration || await getActiveServiceWorkerRegistration()
   const token = await getToken(messaging, swReg ? { vapidKey, serviceWorkerRegistration: swReg } : { vapidKey })
   // Persist token with user identity (by email if available)
   try {
