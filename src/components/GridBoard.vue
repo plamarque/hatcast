@@ -724,9 +724,6 @@
             <span>📢</span><span>Annoncer</span>
           </button>
           
-          <!-- Bouton Fermer -->
-          <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
-          
           <!-- Menu 3-points pour actions secondaires -->
           <div class="relative" ref="eventMoreActionsRef">
             <button 
@@ -737,6 +734,9 @@
               <span>⋯</span><span>Plus</span>
             </button>
           </div>
+          
+          <!-- Bouton Fermer -->
+          <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
           
           <!-- Dropdown des actions secondaires (positionné absolument) -->
           <teleport to="body">
@@ -1139,6 +1139,8 @@
     :seasonId="seasonId"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
+    :is-protected="selectedPlayer ? protectedPlayers.has(selectedPlayer.id) : false"
+    :is-preferred="selectedPlayer ? preferredPlayerIdsSet.has(selectedPlayer.id) : false"
     @close="closePlayerModal"
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
@@ -2666,101 +2668,102 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
 
 // Initialiser les données au montage
 onMounted(async () => {
-  const useFirebase = true
-  setStorageMode(useFirebase ? 'firebase' : 'mock')
+  try {
+    const useFirebase = true
+    setStorageMode(useFirebase ? 'firebase' : 'mock')
 
-  // Migration automatique si besoin
-  await initializeStorage()
+    // Migration automatique si besoin
+    await initializeStorage()
 
-  // Charger la saison par slug
-  const q = query(collection(db, 'seasons'), where('slug', '==', props.slug))
-  const snap = await getDocs(q)
-  if (!snap.empty) {
-    const seasonDoc = snap.docs[0]
-    seasonId.value = seasonDoc.id
-    const data = seasonDoc.data()
-    seasonName.value = data.name
-    seasonMeta.value = data
-    document.title = `Saison : ${seasonName.value}`
-    
-    // Mémoriser cette saison comme dernière visitée
-    rememberLastVisitedSeason(props.slug)
-  } else {
-    // Saison introuvable: rediriger vers la page des saisons
-    router.push('/seasons')
-    return
-  }
-
-  // Charger les données de la saison
-  if (seasonId.value) {
-    // Étape 1: événements
-    currentLoadingLabel.value = 'Chargement des événements de la saison'
-    loadingProgress.value = 20
-    const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
-    events.value = eventsSnap.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      playerCount: doc.data().playerCount || 6
-    }))
-
-    // Étape 2: joueurs
-    currentLoadingLabel.value = 'Chargement des joueurs'
-    loadingProgress.value = 45
-    const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
-    players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-
-    // Étape 3: disponibilités
-    currentLoadingLabel.value = 'Chargement des disponibilités'
-    loadingProgress.value = 70
-    const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
-    const availObj = {}
-    availSnap.docs.forEach(doc => {
-      const data = doc.data()
-      const cleanedData = {}
-      Object.keys(data).forEach(eventId => {
-        const value = data[eventId]
-        cleanedData[eventId] = value === 'oui' ? true : value === 'non' ? false : value
-      })
-      availObj[doc.id] = cleanedData
-    })
-    availability.value = availObj
-
-    // Étape 4: sélections + protections
-    currentLoadingLabel.value = 'Chargement des sélections'
-    loadingProgress.value = 85
-    const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
-    const selObj = {}
-    selSnap.docs.forEach(doc => { selObj[doc.id] = doc.data().players || [] })
-    selections.value = selObj
-
-    const protections = await listProtectedPlayers(seasonId.value)
-    const protSet = new Set()
-    if (Array.isArray(protections)) {
-      protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
-    }
-    protectedPlayers.value = protSet
-  }
-  
-  // Déplacer les calculs lourds en idle
-  const scheduleIdle = (fn) => {
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      window.requestIdleCallback(() => fn())
+    // Charger la saison par slug
+    const q = query(collection(db, 'seasons'), where('slug', '==', props.slug))
+    const snap = await getDocs(q)
+    if (!snap.empty) {
+      const seasonDoc = snap.docs[0]
+      seasonId.value = seasonDoc.id
+      const data = seasonDoc.data()
+      seasonName.value = data.name
+      seasonMeta.value = data
+      document.title = `Saison : ${seasonName.value}`
+      
+      // Mémoriser cette saison comme dernière visitée
+      rememberLastVisitedSeason(props.slug)
     } else {
-      setTimeout(fn, 0)
+      // Saison introuvable: rediriger vers la page des saisons
+      router.push('/seasons')
+      return
     }
-  }
-  currentLoadingLabel.value = 'Préparation de l\'interface'
-  loadingProgress.value = 95
-  scheduleIdle(() => { updateAllStats(); updateAllChances() })
-  
-  // Logs allégés
-  // eslint-disable-next-line no-console
-  console.debug('players (deduplicated)')
-  // eslint-disable-next-line no-console
-  console.debug('availability loaded')
 
-  // init scroll hints
-  await nextTick()
+    // Charger les données de la saison
+    if (seasonId.value) {
+      // Étape 1: événements
+      currentLoadingLabel.value = 'Chargement des événements de la saison'
+      loadingProgress.value = 20
+      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
+      events.value = eventsSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        playerCount: doc.data().playerCount || 6
+      }))
+
+      // Étape 2: joueurs
+      currentLoadingLabel.value = 'Chargement des joueurs'
+      loadingProgress.value = 45
+      const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
+      players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+      // Étape 3: disponibilités
+      currentLoadingLabel.value = 'Chargement des disponibilités'
+      loadingProgress.value = 70
+      const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
+      const availObj = {}
+      availSnap.docs.forEach(doc => {
+        const data = doc.data()
+        const cleanedData = {}
+        Object.keys(data).forEach(eventId => {
+          const value = data[eventId]
+          cleanedData[eventId] = value === 'oui' ? true : value === 'non' ? false : value
+        })
+        availObj[doc.id] = cleanedData
+      })
+      availability.value = availObj
+
+      // Étape 4: sélections + protections
+      currentLoadingLabel.value = 'Chargement des sélections'
+      loadingProgress.value = 85
+      const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
+      const selObj = {}
+      selSnap.docs.forEach(doc => { selObj[doc.id] = doc.data().players || [] })
+      selections.value = selObj
+
+      const protections = await listProtectedPlayers(seasonId.value)
+      const protSet = new Set()
+      if (Array.isArray(protections)) {
+        protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+      }
+      protectedPlayers.value = protSet
+    }
+    
+    // Déplacer les calculs lourds en idle
+    const scheduleIdle = (fn) => {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(() => fn())
+      } else {
+        setTimeout(fn, 0)
+      }
+    }
+    currentLoadingLabel.value = 'Préparation de l\'interface'
+    loadingProgress.value = 95
+    scheduleIdle(() => { updateAllStats(); updateAllChances() })
+    
+    // Logs allégés
+    // eslint-disable-next-line no-console
+    console.debug('players (deduplicated)')
+    // eslint-disable-next-line no-console
+    console.debug('availability loaded')
+
+    // init scroll hints
+    await nextTick()
   loadingProgress.value = 100
   isLoadingGrid.value = false
   nextTick(() => {
@@ -2823,6 +2826,19 @@ onMounted(async () => {
         setTimeout(() => { showSuccessMessage.value = false }, 2500)
       }
     }
+  }
+
+  } catch (error) {
+    // En cas d'erreur, afficher un message et continuer
+    console.error('Erreur lors du chargement de la grille:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors du chargement des données'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+    
+    // Forcer la fermeture du loading même en cas d'erreur
+    isLoadingGrid.value = false
   }
 
   // Désistement: plus de modal/route dédiée, on utilise les magic links "no"

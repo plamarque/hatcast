@@ -32,11 +32,11 @@
         <div v-if="success" class="p-3 bg-green-500/20 border border-green-500/30 rounded-lg text-green-300 text-sm">{{ success }}</div>
 
         <div class="flex justify-center gap-3 mt-2">
-          <button @click="$emit('close')" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
           <button @click="login" :disabled="!canLogin || loading" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
             <span v-if="loading" class="animate-spin">⏳</span>
             <span v-else>Se connecter</span>
           </button>
+          <button @click="$emit('close')" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
         </div>
       </div>
     </div>

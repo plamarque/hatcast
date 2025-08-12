@@ -60,12 +60,6 @@
       <!-- Actions -->
       <div class="flex justify-center gap-3">
         <button
-          @click="closeModal"
-          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
-        >
-          Fermer
-        </button>
-        <button
           v-if="!isProtected"
           @click="showAccountClaim = true"
           class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300"
@@ -80,11 +74,16 @@
         >
           🔓 Dissocier
         </button>
+        <button
+          @click="closeModal"
+          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
+        >
+          Fermer
+        </button>
       </div>
 
       
-      <!-- Explication: pourquoi créer un compte ? -->
-      <AccountBenefitsHint v-if="!isProtected" />
+
     </div>
   </div>
   
@@ -113,7 +112,7 @@ import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached } from '../s
 import { useRoute } from 'vue-router'
 import AccountClaimModal from './AccountClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
-import AccountBenefitsHint from './AccountBenefitsHint.vue'
+
 
 const props = defineProps({
   show: { type: Boolean, default: false },
