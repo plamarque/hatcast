@@ -16,13 +16,20 @@ self.addEventListener('activate', (event) => {
 
 // Basic notificationclick handler (future-proof for push integration)
 self.addEventListener('notificationclick', (event) => {
-  const url = event.notification?.data?.url || '/'
+  const data = event.notification?.data || {}
+  const url = data.url || '/'
+  const noUrl = data.noUrl
   event.notification.close()
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      const client = clients.find((c) => c.url.includes(url))
+      // Action spécifique "no" (désistement)
+      if (event.action === 'no' && noUrl) {
+        return self.clients.openWindow(noUrl)
+      }
+      const targetUrl = url
+      const client = clients.find((c) => c.url.includes(targetUrl))
       if (client) return client.focus()
-      return self.clients.openWindow(url)
+      return self.clients.openWindow(targetUrl)
     })
   )
 })
@@ -44,11 +51,19 @@ try {
   })
   const messaging = firebase.messaging()
   messaging.onBackgroundMessage((payload) => {
-    const title = payload.notification?.title || payload.data?.title || 'Notification'
-    const body = payload.notification?.body || payload.data?.body || ''
-    const icon = payload.notification?.icon || '/icons/manifest-icon-192.maskable.png'
-    const url = payload.data?.url || '/'
-    self.registration.showNotification(title, { body, icon, data: { url } })
+    const data = payload?.data || {}
+    const title = data.title || payload.notification?.title || 'Notification'
+    const body = data.body || payload.notification?.body || ''
+    const icon = data.icon || '/icons/manifest-icon-192.maskable.png'
+    const url = data.url || '/'
+    const noUrl = data.noUrl
+    /** @type {NotificationAction[]} */
+    const actions = []
+    if (noUrl) {
+      actions.push({ action: 'no', title: 'Je ne suis plus dispo ❌' })
+    }
+    actions.push({ action: 'open', title: 'Voir' })
+    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl } })
   })
 } catch (e) {
   // ignore in dev/preview

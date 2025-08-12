@@ -27,8 +27,10 @@ exports.processPushQueue = functions.firestore
     }
 
     const message = {
-      notification: { title, body },
-      data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+      // Data-only message so the Service Worker builds the notification (enables actions)
+      data: Object.fromEntries(
+        Object.entries({ title, body, ...data }).map(([k, v]) => [k, String(v)])
+      ),
       tokens
     }
 

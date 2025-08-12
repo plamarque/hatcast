@@ -183,8 +183,9 @@ export async function queueSelectionEmail({
         await queuePushMessage({
           toEmail: toEmail,
           title: '🎭 Sélection confirmée',
-          body: `${playerName}, ${eventTitle} le ${eventDate}`,
-          data: { url: eventUrl || window.location.origin }
+          body: `${playerName}, tu as été sélectionné(e) pour ${eventTitle} (${eventDate}) 🎉`,
+          data: { url: eventUrl || window.location.origin },
+          reason: 'selection'
         })
       }
     } catch {}
@@ -262,8 +263,11 @@ export async function queueDeselectionEmail({
       await queuePushMessage({
         toEmail,
         title: '🎭 Sélection mise à jour',
-        body: `${playerName}, tu n'es plus dans ${eventTitle} (${eventDate})`,
-        data: { url: eventUrl || window.location.origin },
+        body: `${playerName}, tu n'es plus sélectionné(e) pour ${eventTitle} (${eventDate}) 😔`,
+        data: {
+          url: eventUrl || window.location.origin,
+          noUrl: eventUrl && eventUrl.includes('/event/') ? eventUrl.replace('/event/', '/magic?auto=no&event=') : undefined
+        },
         reason: 'deselection'
       })
     }
