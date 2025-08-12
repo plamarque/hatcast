@@ -104,30 +104,78 @@
                 v-for="event in displayedEvents"
                 :key="'h-'+event.id"
                 :data-event-id="event.id"
-                class="col-event flex-shrink-0 p-3 text-center cursor-pointer"
+                class="col-event flex-shrink-0 p-3 text-center flex flex-col justify-between"
                 :class="{ 'archived-header': event.archived }"
-                @click="showEventDetails(event)"
               >
-                <div class="header-date text-[16px] md:text-base text-gray-300" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
-                <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2" :title="event.title">
-                  {{ event.title || 'Sans titre' }}
-                </div>
-                <div v-if="event.archived" class="mt-1 text-xs text-gray-400">(Archivé)</div>
+                <!-- Zone cliquable principale (titre + date) -->
                 <div 
-                  v-if="hasEventWarning(event.id)"
-                  class="mt-1 w-4 h-4 bg-yellow-500 rounded-full mx-auto flex items-center justify-center hover:bg-yellow-400 transition-colors duration-200"
-                  :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                  @click.stop="openSelectionModal(event)"
+                  class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24"
+                  :title="event.title + ' - Cliquez pour voir les détails'"
+                  @click.stop="showEventDetails(event)"
                 >
-                  <span class="text-xs text-white font-bold">⚠️</span>
+                  <div class="flex flex-col items-center flex-1 justify-center">
+                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
+                      {{ event.title || 'Sans titre' }}
+                    </div>
+                    <div v-if="event.archived" class="mt-1 text-xs text-gray-400">(Archivé)</div>
+                  </div>
+                  
+                  <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
                 </div>
-                <div 
-                  v-else-if="getEventStatus(event.id).type === 'ready'"
-                  class="mt-1 w-4 h-4 bg-green-500 rounded-full mx-auto flex items-center justify-center hover:bg-green-400 transition-colors duration-200"
-                  :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                  @click.stop="openSelectionModal(event)"
-                >
-                  <span class="text-xs text-white font-bold">🎲</span>
+                
+                <!-- Section basse : indicateur de statut -->
+                <div class="flex flex-col items-center mt-2">
+                  
+                  <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                  <div 
+                    v-if="event.archived"
+                    class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
+                    title="Événement archivé"
+                  >
+                    <span class="text-xs text-gray-300 font-medium">📁</span>
+                    <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                  </div>
+                  
+                  <!-- Indicateur de statut de sélection (seulement si pas archivé) -->
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'ready'"
+                    class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer group"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-blue-300 font-medium group-hover:text-blue-200">🆕</span>
+                    <span class="text-xs text-blue-200 font-medium ml-1 group-hover:text-blue-100">Nouveau</span>
+                  </div>
+                  
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'complete'"
+                    class="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-green-500/30 transition-colors duration-200 cursor-pointer group"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-green-300 font-medium group-hover:text-green-200">✅</span>
+                    <span class="text-xs text-green-200 font-medium ml-1 group-hover:text-green-100">Complet</span>
+                  </div>
+                  
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'incomplete'"
+                    class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-orange-500/30 transition-colors duration-200 cursor-pointer group"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-orange-300 font-medium group-hover:text-orange-200">⚠️</span>
+                    <span class="text-xs text-orange-200 font-medium ml-1 group-hover:text-orange-100">À finaliser</span>
+                  </div>
+                  
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'insufficient'"
+                    class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-red-500/30 transition-colors duration-200 cursor-pointer group"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-red-300 font-medium group-hover:text-red-200">❌</span>
+                    <span class="text-xs text-red-200 font-medium ml-1 group-hover:text-red-100">Manque</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -272,14 +320,14 @@
                   >
                     🔒
                   </span>
-                  <span 
+                                    <div 
                     @click="showPlayerDetails(player)" 
-                     class="player-name hover:border-b-2 hover:border-dashed hover:border-purple-400 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0"
+                    class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group"
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
-                    {{ player.name }}
-                  </span>
+                    <span class="group-hover:text-purple-300 transition-colors duration-200">{{ player.name }}</span>
+                  </div>
                 </div>
               </td>
 
