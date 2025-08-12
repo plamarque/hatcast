@@ -18,10 +18,12 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return null
   const messaging = getMessaging(app)
-  const token = await getToken(messaging, {
-    vapidKey,
-    serviceWorkerRegistration
-  })
+  // Fallback: si aucune registration n'est passée, attendre le SW prêt
+  let swReg = serviceWorkerRegistration
+  if (!swReg && typeof navigator !== 'undefined' && navigator.serviceWorker) {
+    try { swReg = await navigator.serviceWorker.ready } catch {}
+  }
+  const token = await getToken(messaging, swReg ? { vapidKey, serviceWorkerRegistration: swReg } : { vapidKey })
   // Persist token with user identity (by email if available)
   try {
     const email = auth?.currentUser?.email || 'anonymous'

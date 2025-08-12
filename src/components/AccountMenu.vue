@@ -83,6 +83,7 @@
             <div v-if="testPushSuccess" class="text-xs text-green-300">Notification test envoyée (vérifiez votre appareil)</div>
             <div v-if="testPushError" class="text-xs text-red-300">{{ testPushError }}</div>
             <div v-if="fcmToken" class="text-[10px] text-gray-400 break-all">FCM token: {{ fcmToken }}</div>
+            <div class="text-[10px] text-gray-500">VAPID: {{ vapidKeyPreview || 'indisponible' }}</div>
           </div>
 
           <div class="text-right">
@@ -228,6 +229,7 @@ const testPushError = ref('')
 const enablePushLoading = ref(false)
 const fcmToken = ref(localStorage.getItem('fcmToken') || '')
 const pushEnabledOnDevice = ref(false)
+const vapidKeyPreview = (function maskKey(key) { try { return key ? (key.length > 20 ? key.slice(0,8) + '…' + key.slice(-6) : key) : '' } catch { return '' } })(import.meta.env?.VITE_FIREBASE_VAPID_KEY)
 
 async function loadPrefs() {
   try {
