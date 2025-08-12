@@ -3334,6 +3334,16 @@ async function requirePin(operation) {
 async function requirePlayerPassword(operation) {
   const playerId = operation.data.playerId
   
+  // Si un PIN de saison valide est déjà en cache, ne pas redemander
+  try {
+    if (pinSessionManager.isPinCached(seasonId.value)) {
+      // eslint-disable-next-line no-console
+      console.debug('PIN de saison en cache — saut de la demande de mot de passe joueur')
+      await executePendingOperation(operation)
+      return
+    }
+  } catch {}
+
   // Vérifier si le mot de passe du joueur est déjà en cache
   if (isPlayerPasswordCached(playerId)) {
     // eslint-disable-next-line no-console
@@ -3397,10 +3407,10 @@ async function handlePlayerPasswordSubmit(password) {
     const seasonPin = await getSeasonPin(seasonId.value)
     if (password === seasonPin) {
       // PIN de saison accepté
-      // Mémoriser la session mot de passe pour ce joueur afin d'éviter de redemander pendant 10 minutes
-      try {
-        playerPasswordSessionManager.saveSession(pendingPlayerOperation.value.data.playerId, password)
-      } catch {}
+      // Mémoriser le PIN de saison (session PIN long terme)
+      try { pinSessionManager.saveSession(seasonId.value, password) } catch {}
+      // Optionnel: marquer l'appareil de confiance pour ce joueur
+      try { playerPasswordSessionManager.saveSession(pendingPlayerOperation.value.data.playerId) } catch {}
       showPlayerPasswordModal.value = false
       const operationToExecute = pendingPlayerOperation.value
       pendingPlayerOperation.value = null
@@ -3459,10 +3469,10 @@ async function handleAvailabilityPasswordSubmit(password) {
     const seasonPin = await getSeasonPin(seasonId.value)
     if (password === seasonPin) {
       // PIN de saison accepté
-      // Mémoriser la session mot de passe pour ce joueur afin d'éviter de redemander pendant 10 minutes
-      try {
-        playerPasswordSessionManager.saveSession(pendingAvailabilityOperation.value.data.player.id, password)
-      } catch {}
+      // Mémoriser le PIN de saison (session PIN long terme)
+      try { pinSessionManager.saveSession(seasonId.value, password) } catch {}
+      // Optionnel: marquer l'appareil de confiance pour ce joueur
+      try { playerPasswordSessionManager.saveSession(pendingAvailabilityOperation.value.data.player.id) } catch {}
       showAvailabilityPasswordModal.value = false
       const operationToExecute = pendingAvailabilityOperation.value
       pendingAvailabilityOperation.value = null
