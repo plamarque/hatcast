@@ -1,9 +1,50 @@
 <template>
   <router-view />
+
+  <button
+    v-if="canInstallPwa"
+    class="fixed bottom-4 right-4 z-50 rounded-full bg-sky-600 text-white px-4 py-2 shadow-lg hover:bg-sky-700 active:bg-sky-800"
+    @click="installPwa"
+  >
+    Installer l’app
+  </button>
 </template>
 
 <script setup>
-// Plus besoin d'importer GridBoard ici
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+
+const deferredPrompt = ref(null)
+const canInstallPwa = ref(false)
+
+function handleBeforeInstallPrompt(event) {
+  event.preventDefault()
+  deferredPrompt.value = event
+  canInstallPwa.value = true
+}
+
+async function installPwa() {
+  if (!deferredPrompt.value) return
+  deferredPrompt.value.prompt()
+  const { outcome } = await deferredPrompt.value.userChoice
+  // Quel que soit le choix, on remet à zéro; le navigateur décidera quand ré-émettre l'événement
+  canInstallPwa.value = false
+  deferredPrompt.value = null
+}
+
+function handleAppInstalled() {
+  canInstallPwa.value = false
+  deferredPrompt.value = null
+}
+
+onMounted(() => {
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  window.addEventListener('appinstalled', handleAppInstalled)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  window.removeEventListener('appinstalled', handleAppInstalled)
+})
 </script>
 
 <style>
