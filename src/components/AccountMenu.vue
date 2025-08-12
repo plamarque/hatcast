@@ -278,7 +278,9 @@ async function enablePushOnThisDevice() {
       pushEnabledOnDevice.value = true
     }
   } catch (e) {
-    testPushError.value = 'Activation impossible'
+    const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unknown'
+    const msg = (e && (e.message || e.code)) ? ` (${e.message || e.code})` : ''
+    testPushError.value = `Activation impossible – permission: ${perm}${msg}`
   } finally {
     enablePushLoading.value = false
   }
