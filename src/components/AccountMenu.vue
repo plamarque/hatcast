@@ -37,26 +37,59 @@
         </div>
 
         <!-- Tab: Notifications -->
-        <div v-else-if="activeTab==='notifications'" class="text-sm text-gray-300">
+        <div v-else-if="activeTab==='notifications'" class="text-sm text-gray-300 space-y-3">
+          <!-- Section Emails -->
           <div class="p-3 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <div class="text-white font-semibold text-sm mb-1">Emails</div>
             <div class="flex items-center justify-between">
               <label class="flex items-center gap-2">
                 <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
-                <span>Recevoir les demandes de disponibilités</span>
+                <span>M'envoyer un email lorsqu'un événement a besoin de joueurs</span>
               </label>
             </div>
             <div class="flex items-center justify-between">
               <label class="flex items-center gap-2">
                 <input type="checkbox" v-model="prefs.notifySelection" class="w-4 h-4">
-                <span>Recevoir les emails de sélection</span>
+                <span>M'envoyer un email lorsque je suis concerné par une sélection</span>
               </label>
             </div>
-            <div class="text-right">
-              <button @click="savePrefs" :disabled="prefsLoading" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50">{{ prefsLoading ? '⏳' : 'Sauvegarder' }}</button>
-            </div>
-            <div v-if="prefsError" class="text-xs text-red-300">{{ prefsError }}</div>
-            <div v-if="prefsSuccess" class="text-xs text-green-300">{{ prefsSuccess }}</div>
           </div>
+
+          <!-- Section Push (expérimental) -->
+          <div class="p-3 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <div class="text-white font-semibold text-sm mb-1">Push (expérimental)</div>
+            <div class="text-xs text-emerald-200 mb-1">Fonctionnalité en test: activable uniquement ici.</div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifySelectionPush" class="w-4 h-4">
+                <span>Me notifier lorsque je suis concerné par une sélection</span>
+              </label>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-white/10">
+              <div class="text-xs text-gray-400">Notifications sur cet appareil</div>
+              <template v-if="!pushEnabledOnDevice">
+                <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ enablePushLoading ? '...' : 'Activer' }}</button>
+              </template>
+              <template v-else>
+                <span class="inline-flex items-center text-xs text-gray-300">
+                  <span class="mr-1 text-emerald-400">✓</span> Actif
+                </span>
+              </template>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <div class="text-xs text-gray-400">Test de notification push</div>
+              <button @click="sendTestPush" :disabled="testPushLoading || !email" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ testPushLoading ? 'Envoi…' : 'Envoyer un test' }}</button>
+            </div>
+            <div v-if="testPushSuccess" class="text-xs text-green-300">Notification test envoyée (vérifiez votre appareil)</div>
+            <div v-if="testPushError" class="text-xs text-red-300">{{ testPushError }}</div>
+            <div v-if="fcmToken" class="text-[10px] text-gray-400 break-all">FCM token: {{ fcmToken }}</div>
+          </div>
+
+          <div class="text-right">
+            <button @click="savePrefs" :disabled="prefsLoading" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50">{{ prefsLoading ? '⏳' : 'Sauvegarder' }}</button>
+          </div>
+          <div v-if="prefsError" class="text-xs text-red-300">{{ prefsError }}</div>
+          <div v-if="prefsSuccess" class="text-xs text-green-300">{{ prefsSuccess }}</div>
         </div>
 
         <!-- Tab: Gérer -->
@@ -97,6 +130,8 @@ import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { setDoc } from 'firebase/firestore'
 import { createAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { queueVerificationEmail } from '../services/emailService.js'
+import { queuePushMessage } from '../services/pushService.js'
+import { canUsePush, requestAndGetToken } from '../services/notifications'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -182,10 +217,17 @@ async function updateAccountEmail() {
 }
 
 // Preferences state
-const prefs = ref({ notifyAvailability: true, notifySelection: true })
+const prefs = ref({ notifyAvailability: true, notifySelection: true, notifySelectionPush: true })
 const prefsLoading = ref(false)
 const prefsError = ref('')
 const prefsSuccess = ref('')
+// Test push state
+const testPushLoading = ref(false)
+const testPushSuccess = ref('')
+const testPushError = ref('')
+const enablePushLoading = ref(false)
+const fcmToken = ref(localStorage.getItem('fcmToken') || '')
+const pushEnabledOnDevice = ref(false)
 
 async function loadPrefs() {
   try {
@@ -196,11 +238,57 @@ async function loadPrefs() {
       const data = snap.data() || {}
       prefs.value.notifyAvailability = data.notifyAvailability !== false
       prefs.value.notifySelection = data.notifySelection !== false
+      prefs.value.notifySelectionPush = data.notifySelectionPush !== false
     } else {
-      prefs.value = { notifyAvailability: true, notifySelection: true }
+      prefs.value = { notifyAvailability: true, notifySelection: true, notifySelectionPush: true }
     }
   } catch {}
 }
+
+async function sendTestPush() {
+  if (!email.value) return
+  testPushLoading.value = true
+  testPushError.value = ''
+  testPushSuccess.value = ''
+  try {
+    await queuePushMessage({ toEmail: email.value, title: 'Test Impro Selector', body: 'Ceci est un test de notification', data: { url: '/' }, reason: 'manual_test' })
+    testPushSuccess.value = 'OK'
+  } catch (e) {
+    testPushError.value = 'Échec de l\'envoi du test'
+  } finally {
+    testPushLoading.value = false
+  }
+}
+
+async function enablePushOnThisDevice() {
+  try {
+    enablePushLoading.value = true
+    const supported = await canUsePush()
+    if (!supported) {
+      testPushError.value = 'Push non supporté sur cet appareil'
+      return
+    }
+    const swReg = window.__swReg
+    const token = await requestAndGetToken(swReg)
+    if (token) {
+      fcmToken.value = token
+      try { localStorage.setItem('fcmToken', token) } catch {}
+      pushEnabledOnDevice.value = true
+    }
+  } catch (e) {
+    testPushError.value = 'Activation impossible'
+  } finally {
+    enablePushLoading.value = false
+  }
+}
+
+onMounted(() => {
+  try {
+    pushEnabledOnDevice.value = (typeof Notification !== 'undefined' && Notification.permission === 'granted' && !!localStorage.getItem('fcmToken'))
+  } catch (_) {
+    pushEnabledOnDevice.value = false
+  }
+})
 
 async function savePrefs() {
   if (!email.value) return

@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Local HTTPS certs/keys (mkcert/dev)
+*.pem
+*.key
+*.crt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

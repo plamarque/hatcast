@@ -1,6 +1,13 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
+
+const CERT_PATH = process.env.VITE_HTTPS_CERT_PATH
+const KEY_PATH = process.env.VITE_HTTPS_KEY_PATH
+const httpsConfig = (CERT_PATH && KEY_PATH && fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH))
+  ? { cert: fs.readFileSync(CERT_PATH), key: fs.readFileSync(KEY_PATH) }
+  : false
 
 export default defineConfig({
   base: '/',
@@ -33,9 +40,15 @@ export default defineConfig({
       }
     })
   ],
+  server: {
+    host: true,
+    allowedHosts: true,
+    https: httpsConfig || false
+  },
   preview: {
     host: true,
     // Autoriser tous les hôtes (utile pour tunnels dynamiques comme trycloudflare)
-    allowedHosts: true
+    allowedHosts: true,
+    https: httpsConfig || false
   }
 })

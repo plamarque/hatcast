@@ -2,6 +2,7 @@ import './assets/main.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import { registerSW } from 'virtual:pwa-register'
 import Home from './Home.vue'
 import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
@@ -33,4 +34,14 @@ const router = createRouter({
   routes
 })
 
-createApp(App).use(router).mount('#app')
+const app = createApp(App)
+app.use(router)
+app.mount('#app')
+
+// Enregistrer le service worker pour PWA et Push
+registerSW({
+  immediate: true,
+  onRegistered(swReg) {
+    window.__swReg = swReg
+  }
+})

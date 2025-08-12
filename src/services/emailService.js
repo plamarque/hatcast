@@ -3,6 +3,7 @@
 import { db } from './firebase.js'
 import logger from './logger.js'
 import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore'
+import { queuePushMessage } from './pushService'
 
 // Pour utiliser EmailJS, il faut :
 // 1. Créer un compte sur https://www.emailjs.com/
@@ -173,6 +174,20 @@ export async function queueSelectionEmail({
   
   try {
     await addDoc(collection(db, 'mail'), docData)
+    // Enqueue push mirror si préférences l'autorisent
+    try {
+      const prefRef = doc(db, 'userPreferences', toEmail)
+      const prefSnap = await getDoc(prefRef)
+      const prefs = prefSnap.exists() ? prefSnap.data() : {}
+      if (prefs?.notifySelectionPush !== false) {
+        await queuePushMessage({
+          toEmail: toEmail,
+          title: '🎭 Sélection confirmée',
+          body: `${playerName}, ${eventTitle} le ${eventDate}`,
+          data: { url: eventUrl || window.location.origin }
+        })
+      }
+    } catch {}
     logger.info('Email ajouté à la queue Firestore', { playerName })
     return { success: true }
   } catch (error) {
@@ -237,6 +252,22 @@ export async function queueDeselectionEmail({
   }
 
   await addDoc(collection(db, 'mail'), docData)
+
+  // Mirror push notification si autorisé (on réutilise notifySelectionPush)
+  try {
+    const prefRef = doc(db, 'userPreferences', toEmail)
+    const prefSnap = await getDoc(prefRef)
+    const prefs = prefSnap.exists() ? prefSnap.data() : {}
+    if (prefs?.notifySelectionPush !== false) {
+      await queuePushMessage({
+        toEmail,
+        title: '🎭 Sélection mise à jour',
+        body: `${playerName}, tu n'es plus dans ${eventTitle} (${eventDate})`,
+        data: { url: eventUrl || window.location.origin },
+        reason: 'deselection'
+      })
+    }
+  } catch {}
   return { success: true }
 }
 

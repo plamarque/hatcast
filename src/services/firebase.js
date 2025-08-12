@@ -82,4 +82,4 @@ export async function updatePlayerPassword(newPassword) {
   }
 }
 
-export { db, auth }
+export { app, db, auth }
