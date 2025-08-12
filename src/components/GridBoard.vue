@@ -259,7 +259,14 @@
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
                   <span 
-                    v-if="isPlayerProtectedInGrid(player.id)"
+                    v-if="preferredPlayerIdsSet.has(player.id)"
+                    class="text-yellow-400 mr-1 text-sm"
+                    title="Mon joueur"
+                  >
+                    ⭐
+                  </span>
+                  <span 
+                    v-else-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
                     title="Joueur protégé par mot de passe"
                   >
@@ -616,7 +623,14 @@
             >
               <div class="flex items-center min-w-0 gap-1.5">
                 <span
-                  v-if="isPlayerProtectedInGrid(player.id)"
+                  v-if="preferredPlayerIdsSet.has(player.id)"
+                  class="text-yellow-400 mr-1 text-xs"
+                  title="Mon joueur"
+                >
+                  ⭐
+                </span>
+                <span
+                  v-else-if="isPlayerProtectedInGrid(player.id)"
                   class="text-yellow-400 mr-1 text-xs"
                   title="Joueur protégé par mot de passe"
                 >
