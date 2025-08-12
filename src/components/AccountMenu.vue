@@ -65,6 +65,12 @@
                 <span>Me notifier lorsque je suis concerné par une sélection</span>
               </label>
             </div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifyAvailabilityPush" class="w-4 h-4">
+                <span>Me notifier lorsqu'un événement a besoin de joueurs</span>
+              </label>
+            </div>
             <div class="flex items-center justify-between pt-2 border-t border-white/10">
               <div class="text-xs text-gray-400">Notifications sur cet appareil</div>
               <template v-if="!pushEnabledOnDevice">
@@ -218,7 +224,7 @@ async function updateAccountEmail() {
 }
 
 // Preferences state
-const prefs = ref({ notifyAvailability: true, notifySelection: true, notifySelectionPush: true })
+const prefs = ref({ notifyAvailability: true, notifySelection: true, notifySelectionPush: true, notifyAvailabilityPush: true })
 const prefsLoading = ref(false)
 const prefsError = ref('')
 const prefsSuccess = ref('')
@@ -241,8 +247,9 @@ async function loadPrefs() {
       prefs.value.notifyAvailability = data.notifyAvailability !== false
       prefs.value.notifySelection = data.notifySelection !== false
       prefs.value.notifySelectionPush = data.notifySelectionPush !== false
+      prefs.value.notifyAvailabilityPush = data.notifyAvailabilityPush !== false
     } else {
-      prefs.value = { notifyAvailability: true, notifySelection: true, notifySelectionPush: true }
+      prefs.value = { notifyAvailability: true, notifySelection: true, notifySelectionPush: true, notifyAvailabilityPush: true }
     }
   } catch {}
 }

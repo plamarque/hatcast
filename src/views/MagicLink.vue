@@ -135,13 +135,28 @@ onMounted(async () => {
     // Appliquer la disponibilité directement (bypass protections)
     const newValue = action === 'yes' ? true : false
     await setSingleAvailability({ seasonId, playerName, eventId, value: newValue })
+
+    // Si le joueur se déclare indisponible, le retirer de la sélection le cas échéant
+    if (action === 'no') {
+      try {
+        const selRef = doc(db, 'seasons', seasonId, 'selections', eventId)
+        const selSnap = await getDoc(selRef)
+        if (selSnap.exists()) {
+          const playersArr = Array.isArray(selSnap.data()?.players) ? selSnap.data().players : []
+          const next = playersArr.filter((n) => n !== playerName)
+          if (next.length !== playersArr.length) {
+            await setDoc(selRef, { players: next }, { merge: true })
+          }
+        }
+      } catch (_) {}
+    }
     await consumeMagicLink({ seasonId, playerId, eventId, action })
 
     status.value = 'ok'
     title.value = 'Merci !'
     message.value = action === 'yes'
       ? 'Votre disponibilité a été enregistrée: Disponible.'
-      : 'Votre disponibilité a été enregistrée: Non disponible.'
+      : 'Votre disponibilité a été enregistrée: Non disponible. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
 
     // Redirection vers la page de l'événement pour afficher les détails
     if (slug) {

@@ -4094,6 +4094,7 @@ async function sendAvailabilityEmailsForEvent({ eventId, eventData, reason }) {
         eventDate: formatDateFull(event.date),
         yesUrl: urlYes,
         noUrl: urlNo,
+        eventUrl: `${window.location.origin}/season/${seasonSlug}/event/${event.id}`,
         reason
       })
     } catch (e) {

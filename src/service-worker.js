@@ -19,13 +19,13 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification?.data || {}
   const url = data.url || '/'
   const noUrl = data.noUrl
+  const yesUrl = data.yesUrl
   event.notification.close()
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // Action spécifique "no" (désistement)
-      if (event.action === 'no' && noUrl) {
-        return self.clients.openWindow(noUrl)
-      }
+      // Actions spécifiques pour disponibilité
+      if (event.action === 'no' && noUrl) return self.clients.openWindow(noUrl)
+      if (event.action === 'yes' && yesUrl) return self.clients.openWindow(yesUrl)
       const targetUrl = url
       const client = clients.find((c) => c.url.includes(targetUrl))
       if (client) return client.focus()
@@ -57,13 +57,13 @@ try {
     const icon = data.icon || '/icons/manifest-icon-192.maskable.png'
     const url = data.url || '/'
     const noUrl = data.noUrl
+    const yesUrl = data.yesUrl
     /** @type {NotificationAction[]} */
     const actions = []
-    if (noUrl) {
-      actions.push({ action: 'no', title: 'Je ne suis plus dispo ❌' })
-    }
+    if (yesUrl) actions.push({ action: 'yes', title: '✅ Dispo' })
+    if (noUrl) actions.push({ action: 'no', title: '❌ Pas dispo' })
     actions.push({ action: 'open', title: 'Voir' })
-    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl } })
+    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl } })
   })
 } catch (e) {
   // ignore in dev/preview

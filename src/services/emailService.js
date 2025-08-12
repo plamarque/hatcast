@@ -27,6 +27,7 @@ export async function queueAvailabilityEmail({
   eventDate,
   yesUrl,
   noUrl,
+  eventUrl = undefined,
   reason = 'new_event',
   fromEmail = undefined // optionnel, sinon valeur par défaut de l'extension
 }) {
@@ -54,7 +55,9 @@ export async function queueAvailabilityEmail({
     </div>
   `
 
-  const subject = `Disponibilité demandée · ${eventTitle}`
+  const subject = reason === 'reminder'
+    ? `Rappel disponibilité · ${eventTitle} (${eventDate})`
+    : `Disponibilité demandée · ${eventTitle} (${eventDate})`
 
   const docData = {
     to: toEmail,
@@ -71,6 +74,24 @@ export async function queueAvailabilityEmail({
   }
 
   await addDoc(collection(db, 'mail'), docData)
+
+  // Mirror push (expérimental) si activé dans préférences
+  try {
+    const prefRef = doc(db, 'userPreferences', toEmail)
+    const prefSnap = await getDoc(prefRef)
+    const prefs = prefSnap.exists() ? prefSnap.data() : {}
+    if (prefs?.notifyAvailabilityPush !== false) {
+      const title = reason === 'reminder' ? '⏰ Rappel disponibilité' : '🗓️ Disponibilité demandée'
+      const body = `${playerName}, ${eventTitle} (${eventDate})`
+      await queuePushMessage({
+        toEmail,
+        title,
+        body,
+        data: { url: eventUrl || window.location.origin, yesUrl, noUrl, reason },
+        reason: reason === 'reminder' ? 'availability_reminder' : 'availability_request'
+      })
+    }
+  } catch {}
   return { success: true }
 }
 
