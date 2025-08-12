@@ -254,7 +254,7 @@
               :key="player.id"
               class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
               :data-player-id="player.id"
-              :class="{ 'highlighted-player': player.id === highlightedPlayer, 'preferred-player': player.id === preferredPlayerId }"
+              :class="{ 'highlighted-player': player.id === highlightedPlayer, 'preferred-player': preferredPlayerIdsSet.has(player.id) }"
             >
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
@@ -1277,6 +1277,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
 import { auth } from '../services/firebase.js'
+import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { signOut } from 'firebase/auth'
 import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
 import { 
@@ -1416,6 +1417,28 @@ function evaluatePlayerTourStart() {
     // Démarrer uniquement quand on a au moins 1 player et 1 event (utiliser events pour éviter dépendance précoce)
     if (events.value.length === 0) return
     const alreadyCompleted = localStorage.getItem(`playerTourCompleted:${seasonId.value}`)
+    // Backfill préférences: si utilisateur connecté avec associations, peupler les préférés pour cette saison
+    try {
+      const userEmail = auth?.currentUser?.email || ''
+      if (userEmail) {
+        listAssociationsForEmail(userEmail).then(async (assocs) => {
+          const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
+          if (seasonal.length > 0) {
+            const key = `seasonPreferredPlayer:${seasonId.value}`
+            const raw = localStorage.getItem(key)
+            let current = []
+            if (raw) {
+              if (raw.startsWith('[')) { try { current = JSON.parse(raw) || [] } catch {} }
+              else { current = [raw] }
+            }
+            const set = new Set(current)
+            seasonal.forEach(a => set.add(a.playerId))
+            const updated = Array.from(set)
+            localStorage.setItem(key, JSON.stringify(updated))
+          }
+        }).catch(() => {})
+      }
+    } catch {}
     const startFlag = localStorage.getItem(`startPlayerTour:${seasonId.value}`)
     if (!alreadyCompleted && startFlag) {
       // Toujours démarrer par l'étape 1 (ajout) même si un joueur existe déjà
@@ -1484,8 +1507,9 @@ function openAccount() {
     if (!user || user.isAnonymous) {
       // Choisir un joueur par défaut (préféré ou premier)
       let target = null
-      if (preferredPlayerId.value) {
-        target = players.value.find(p => p.id === preferredPlayerId.value) || null
+      if (preferredPlayerIdsSet.value && preferredPlayerIdsSet.value.size > 0) {
+        const firstPreferredId = preferredPlayerIdsSet.value.values().next().value
+        target = players.value.find(p => p.id === firstPreferredId) || null
       }
       if (!target) target = players.value[0] || null
       // Ouvrir login classique (email + mot de passe)
@@ -2593,33 +2617,47 @@ function toDateObject(value) {
 }
 
 const sortedPlayers = computed(() => {
-  // Préférence locale: joueur privilégié pour cette saison
-  let preferredPlayerId = null
+  // Charger la(les) préférence(s) locale(s): joueurs privilégiés pour cette saison
+  let preferredRaw = null
   try {
     if (seasonId.value) {
-      preferredPlayerId = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
+      preferredRaw = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
     }
   } catch (_) {}
 
   const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
-  if (!preferredPlayerId) return base
+  if (!preferredRaw) return base
 
-  const idx = base.findIndex(p => p.id === preferredPlayerId)
-  if (idx <= 0) return base
+  // Support compat: soit un ID simple, soit un tableau JSON d'IDs
+  let preferredIds = []
+  try {
+    if (preferredRaw.startsWith('[')) preferredIds = JSON.parse(preferredRaw)
+    else if (preferredRaw) preferredIds = [preferredRaw]
+  } catch (_) {
+    preferredIds = []
+  }
+  const preferredSet = new Set(preferredIds)
+  if (preferredSet.size === 0) return base
 
-  const preferred = base[idx]
-  const rest = base.slice(0, idx).concat(base.slice(idx + 1))
-  return [preferred, ...rest]
+  const preferredFirst = base.filter(p => preferredSet.has(p.id))
+  const rest = base.filter(p => !preferredSet.has(p.id))
+  return [...preferredFirst, ...rest]
 })
 
-// Exposer l'ID du joueur préféré pour la surbrillance légère
-const preferredPlayerId = computed(() => {
+// Exposer l'ensemble des joueurs préférés pour la surbrillance légère
+const preferredPlayerIdsSet = computed(() => {
   try {
     if (seasonId.value) {
-      return localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
+      const raw = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
+      if (!raw) return new Set()
+      if (raw.startsWith('[')) {
+        const arr = JSON.parse(raw)
+        return new Set(Array.isArray(arr) ? arr : [])
+      }
+      return new Set([raw])
     }
   } catch (_) {}
-  return null
+  return new Set()
 })
 
 const sortedEvents = computed(() => {

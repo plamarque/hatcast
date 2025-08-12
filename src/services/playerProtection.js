@@ -17,9 +17,47 @@ function simpleHash(password) {
   return hash.toString()
 }
 
-// Clé de préférence locale pour remonter le joueur protégé en tête du tri
+// Clé de préférence locale pour remonter le(s) joueur(s) protégé(s) en tête du tri
 function getPreferredPlayerStorageKey(seasonId) {
   return `seasonPreferredPlayer:${seasonId || 'global'}`
+}
+
+// Utilitaires de persistance multi-préférés (compat: accepte ancien format string)
+function addPreferredPlayerLocal(seasonId, playerId) {
+  try {
+    const key = getPreferredPlayerStorageKey(seasonId)
+    const raw = localStorage.getItem(key)
+    if (!raw) {
+      localStorage.setItem(key, JSON.stringify([playerId]))
+      return
+    }
+    if (raw.startsWith('[')) {
+      const arr = JSON.parse(raw)
+      if (!arr.includes(playerId)) {
+        arr.push(playerId)
+        localStorage.setItem(key, JSON.stringify(arr))
+      }
+    } else {
+      if (raw !== playerId) {
+        localStorage.setItem(key, JSON.stringify([raw, playerId]))
+      }
+    }
+  } catch (_) {}
+}
+
+function removePreferredPlayerLocal(seasonId, playerId) {
+  try {
+    const key = getPreferredPlayerStorageKey(seasonId)
+    const raw = localStorage.getItem(key)
+    if (!raw) return
+    if (raw.startsWith('[')) {
+      const arr = JSON.parse(raw).filter(id => id !== playerId)
+      if (arr.length === 0) localStorage.removeItem(key)
+      else localStorage.setItem(key, JSON.stringify(arr))
+    } else if (raw === playerId) {
+      localStorage.removeItem(key)
+    }
+  } catch (_) {}
 }
 
 // Structure des données de protection d'un joueur
@@ -86,12 +124,8 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     
     logger.info('Protection sauvegardée dans Firestore')
 
-    // Sauvegarder une préférence locale: ce joueur est privilégié pour cette saison
-    try {
-      if (seasonId) {
-        localStorage.setItem(getPreferredPlayerStorageKey(seasonId), playerId)
-      }
-    } catch (_) {}
+    // Sauvegarder une préférence locale: ce joueur est privilégié pour cette saison (multi support)
+    if (seasonId) addPreferredPlayerLocal(seasonId, playerId)
     return { success: true }
   } catch (error) {
     logger.error('Erreur lors de la protection du joueur', error)
@@ -155,16 +189,8 @@ export async function unprotectPlayer(playerId, seasonId = null) {
       updatedAt: new Date()
     })
     
-    // Si la préférence locale pointe vers ce joueur, la nettoyer
-    try {
-      if (seasonId) {
-        const key = getPreferredPlayerStorageKey(seasonId)
-        const current = localStorage.getItem(key)
-        if (current === playerId) {
-          localStorage.removeItem(key)
-        }
-      }
-    } catch (_) {}
+    // Nettoyer la préférence locale pour ce joueur
+    if (seasonId) removePreferredPlayerLocal(seasonId, playerId)
 
     return { success: true, email: '' }
   } catch (error) {
@@ -291,12 +317,8 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
         
         // Marquer l'appareil de confiance (pas de stockage du MDP)
         playerPasswordSessionManager.saveSession(playerId)
-        // Enregistrer la préférence locale de joueur privilégié pour cette saison
-        try {
-          if (seasonId) {
-            localStorage.setItem(getPreferredPlayerStorageKey(seasonId), playerId)
-          }
-        } catch (_) {}
+        // Enregistrer la préférence locale de joueur privilégié pour cette saison (multi)
+        if (seasonId) addPreferredPlayerLocal(seasonId, playerId)
         
         return true
       } catch (firebaseError) {
@@ -311,12 +333,8 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
       
         if (isValid) {
         playerPasswordSessionManager.saveSession(playerId)
-        // Enregistrer la préférence locale de joueur privilégié pour cette saison
-        try {
-          if (seasonId) {
-            localStorage.setItem(getPreferredPlayerStorageKey(seasonId), playerId)
-          }
-        } catch (_) {}
+        // Enregistrer la préférence locale de joueur privilégié pour cette saison (multi)
+        if (seasonId) addPreferredPlayerLocal(seasonId, playerId)
       }
       
       return isValid
