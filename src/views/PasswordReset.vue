@@ -177,6 +177,6 @@ async function resetPassword() {
 }
 
 function goHome() {
-  router.push('/')
+      router.push('/seasons')
 }
 </script>

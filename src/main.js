@@ -3,7 +3,8 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { registerSW } from 'virtual:pwa-register'
-import Home from './Home.vue'
+import SeasonResolver from './components/SeasonResolver.vue'
+import Seasons from './Seasons.vue'
 import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
@@ -21,7 +22,8 @@ if (import.meta.env && import.meta.env.PROD) {
 }
 
 const routes = [
-  { path: '/', component: Home },
+  { path: '/', component: SeasonResolver },
+  { path: '/seasons', component: Seasons },
   { path: '/season/:slug', component: GridBoard, props: true },
   { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
   { path: '/season/:slug/join', component: JoinSeason, props: true },

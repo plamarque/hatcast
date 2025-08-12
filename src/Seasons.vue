@@ -261,6 +261,8 @@ const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
 const showAppHelp = ref(false)
 
+
+
 onMounted(async () => {
   try {
     // Charger vite les saisons pour afficher rapidement

@@ -6,7 +6,7 @@
       <button 
         @click="goBack"
         class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-        title="Retour à l'accueil"
+        title="Retour aux saisons"
       >
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -1305,6 +1305,7 @@ import { sendAvailabilityNotificationsForEvent, sendSelectionNotificationsForEve
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
+import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import AppHelpModal from './AppHelpModal.vue'
@@ -2439,9 +2440,12 @@ onMounted(async () => {
     seasonName.value = data.name
     seasonMeta.value = data
     document.title = `Saison : ${seasonName.value}`
+    
+    // Mémoriser cette saison comme dernière visitée
+    rememberLastVisitedSeason(props.slug)
   } else {
-    // Saison introuvable: rediriger vers l'accueil
-    router.push('/')
+    // Saison introuvable: rediriger vers la page des saisons
+    router.push('/seasons')
     return
   }
 
@@ -3701,7 +3705,7 @@ async function executePendingOperation(operation) {
 }
 
 function goBack() {
-  router.push('/')
+  router.push('/seasons')
 }
 
 // Nettoyage listeners

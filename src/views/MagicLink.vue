@@ -45,7 +45,7 @@ function goToSeason() {
   if (slug) {
     router.push(`/season/${slug}`)
   } else {
-    router.push('/')
+          router.push('/seasons')
   }
 }
 
@@ -116,7 +116,7 @@ onMounted(async () => {
       if (slug) {
         setTimeout(() => router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`), 800)
       } else {
-        setTimeout(() => router.push('/'), 800)
+        setTimeout(() => router.push('/seasons'), 800)
       }
       return
     }
@@ -162,7 +162,7 @@ onMounted(async () => {
     if (slug) {
       setTimeout(() => router.push(`/season/${slug}/event/${eventId}`), 1200)
     } else {
-      setTimeout(() => router.push('/'), 1200)
+      setTimeout(() => router.push('/seasons'), 1200)
     }
   } catch (err) {
     logger.error('Magic link error', err)
