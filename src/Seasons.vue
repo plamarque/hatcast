@@ -1,52 +1,86 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <!-- Section Hero -->
-    <section class="hero-section relative overflow-hidden">
-      <!-- Bouton d'aide flottant -->
-      <button
-        @click="showAppHelp = true"
-        class="absolute right-4 top-4 z-10 text-white/90 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all duration-200"
-        title="Kezako ?"
-        aria-label="Kezako ?"
-      >
-        <span class="text-2xl">❓</span>
-      </button>
-      
+            <!-- Barre de navigation sticky -->
+        <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg' : 'bg-gray-900/20 backdrop-blur-sm'">
+      <nav class="container mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+          <!-- Logo HatCast à gauche -->
+          <div class="flex items-center">
+            <a href="/" class="flex items-center">
+              <div class="relative w-48 h-12 md:w-56 md:h-14">
+                <img 
+                  src="/logos/hatcast-logo-mobile.png" 
+                  alt="Logo HatCast - Retour à l'accueil" 
+                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden"
+                />
+                <img 
+                  src="/logos/hatcast-logo-desktop.png" 
+                  alt="Logo HatCast - Retour à l'accueil" 
+                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block"
+                />
+              </div>
+            </a>
+          </div>
+          
+                         <!-- Navigation à droite -->
+               <div class="flex items-center">
+                 <!-- Bouton Connexion ou Mon Compte selon l'état -->
+                 <button 
+                   v-if="!currentUser"
+                   @click="openAccountLogin"
+                   class="px-4 py-2 rounded-lg transition-all duration-300 border transition-colors"
+                   :class="isScrolled ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'"
+                 >
+                   Connexion
+                 </button>
+                 <!-- Bouton Mon Compte si connecté -->
+                 <button 
+                   v-else
+                   @click="openAccountMenu"
+                   class="px-4 py-2 rounded-lg transition-all duration-300 border transition-colors flex items-center gap-2"
+                   :class="isScrolled ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'"
+                 >
+                   <span>👤</span>
+                   <span class="hidden sm:inline">Mon compte</span>
+                 </button>
+               </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Section Hero -->
+    <section class="hero-section relative overflow-hidden pt-24">
+
+
+
       <!-- Contenu du Hero à 2 colonnes -->
-      <div class="hero-content py-20 md:py-28 px-4 relative z-10">
+      <div class="hero-content py-16 md:py-24 px-4 relative z-10">
         <div class="container mx-auto">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             
-            <!-- Colonne gauche : Logo HatCast et illustration -->
-            <div class="text-center lg:text-left order-2 lg:order-1">
+            <!-- Colonne gauche : Contenu principal -->
+            <div class="text-center order-2 lg:order-1">
               <div class="hero-content-wrapper">
                 
-                <!-- Logo HatCast - Checkmark géométrique en masque -->
-                <div class="hatcast-logo mb-8 flex justify-center lg:justify-start">
-                  <div class="relative w-24 h-24 md:w-32 md:h-32">
-                    <!-- Logo SVG externe avec gradient signature -->
-                    <img 
-                      src="/logo.svg" 
-                      alt="Logo HatCast - Checkmark qui se transforme en masque" 
-                      class="w-full h-full drop-shadow-2xl transform hover:scale-110 transition-all duration-500 hover:rotate-3"
-                    />
-                  </div>
-                </div>
-                
-                <!-- Illustration avec mockup de l'app -->
-                <div class="hero-illustration relative">
+                <!-- Illustration avec mockup de l'app (masquée sur mobile) -->
+                <div class="hero-illustration relative hidden lg:block">
                   <!-- Mockup principal avec screenshot de la grille -->
                   <div class="relative mx-auto lg:mx-0 w-full max-w-lg">
-                    <!-- Fond du mockup -->
-                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-4 shadow-2xl border border-white/10">
-                      <!-- Barre de titre du mockup -->
-                      <div class="flex items-center gap-3 mb-4">
-                        <div class="flex gap-2">
-                          <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                          <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <!-- Fond du mockup avec effet de profondeur -->
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-4 shadow-2xl border border-white/10 relative overflow-hidden">
+                      <!-- Halo lumineux en arrière-plan -->
+                      <div class="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-cyan-500/10 rounded-3xl blur-xl"></div>
+                      <!-- Contenu du mockup -->
+                      <div class="relative z-10">
+                        <!-- Barre de titre du mockup -->
+                        <div class="flex items-center gap-3 mb-4">
+                          <div class="flex gap-2">
+                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                          </div>
+                          <div class="text-gray-400 text-sm">HatCast - Grille des disponibilités</div>
                         </div>
-                        <div class="text-gray-400 text-sm">HatCast - Grille des disponibilités</div>
                       </div>
                       
                       <!-- Screenshot simulé de la grille -->
@@ -91,10 +125,12 @@
                         </div>
                       </div>
                     </div>
+                  </div>
                     
-                    <!-- Éléments flottants décoratifs -->
-                    <div class="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-500 rounded-2xl shadow-xl transform rotate-12"></div>
-                    <div class="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl shadow-xl transform -rotate-12"></div>
+                  <!-- Éléments flottants décoratifs -->
+                  <div class="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-500 rounded-2xl shadow-xl transform rotate-12 z-30"></div>
+                  <div class="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl shadow-xl transform -rotate-12 z-30 flex items-center justify-center">
+                    <img src="/logos/hatcast-mask.png" alt="Masque HatCast" class="w-10 h-10 object-contain transform rotate-12" />
                   </div>
                 </div>
               </div>
@@ -103,37 +139,51 @@
             <!-- Colonne droite : Contenu et CTA -->
             <div class="text-center lg:text-left order-1 lg:order-2">
               <!-- Titre principal -->
-              <div class="hero-title mb-6">
-                <h1 class="text-4xl md:text-6xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                  Tu joues quand ?
+              <div class="hero-title mb-8">
+                <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent leading-tight">
+                  Faites vos équipes d'impro…<br>en un clin d'œil
                 </h1>
               </div>
               
               <!-- Sous-titre -->
-              <div class="hero-subtitle mb-8">
-                <p class="text-xl md:text-2xl text-gray-300 leading-relaxed">
-                  Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. 
-                  Laissez chacun indiquer ses dispos et le hasard choisir pour vous !
+              <div class="hero-subtitle mb-10">
+                <p class="text-xl md:text-2xl text-gray-300 leading-relaxed max-w-2xl">
+                  Plus de casse-tête pour savoir qui joue quand. Chacun indique ses dispos, 
+                  <strong class="text-white">HatCast compose l'équipe pour vous</strong>, équitablement et sans tension.
                 </p>
               </div>
               
               <!-- Call-to-action principal -->
-              <div class="hero-cta mb-8">
-                <button 
-                  @click="showCreateModal = true"
-                  class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105 text-lg md:text-xl"
-                >
-                  🚀 Démarrez
-                </button>
+              <div class="hero-cta mb-10">
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                  <button 
+                    @click="showCreateModal = true"
+                    class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-5 px-10 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105 text-lg md:text-xl"
+                  >
+                    🚀 Démarrez
+                  </button>
+                  
+                  <!-- CTA secondaire discret -->
+                  <button
+                    @click="scrollToHelp"
+                    class="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-medium py-3 px-6 rounded-lg hover:bg-cyan-500/10 transition-all duration-300 border border-cyan-500/30 hover:border-cyan-400/50"
+                  >
+                    <span>ℹ️</span>
+                    En savoir plus
+                  </button>
+                </div>
               </div>
               
-              <!-- Indication subtile -->
-              <div class="hero-hint">
-                <div class="inline-flex items-center gap-2 text-gray-400 text-sm">
-                  <span>↓</span>
+              <!-- Indication cliquable vers les saisons -->
+              <div class="hero-hint text-center">
+                <button
+                  @click="scrollToSeasons"
+                  class="inline-flex items-center gap-2 text-gray-400 hover:text-cyan-300 transition-all duration-300 text-sm cursor-pointer group"
+                >
+                  <span class="group-hover:animate-bounce">↓</span>
                   <span>Vos saisons ci-dessous</span>
-                  <span>↓</span>
-                </div>
+                  <span class="group-hover:animate-bounce">↓</span>
+                </button>
               </div>
             </div>
           </div>
@@ -149,93 +199,129 @@
       </div>
     </section>
 
-    <div class="container mx-auto px-4 pb-16" :aria-busy="isLoading">
-      <!-- Grille des saisons (chargement) -->
-      <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto animate-pulse">
-        <div v-for="n in 8" :key="'skeleton-'+n" class="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-2xl p-8">
-          <div class="w-16 h-16 bg-white/10 rounded-full mx-auto mb-6"></div>
-          <div class="h-6 bg-white/10 rounded mb-4 w-2/3 mx-auto"></div>
-          <div class="h-px bg-white/10 mb-4"></div>
-          <div class="h-4 bg-white/10 rounded w-1/2 mx-auto"></div>
+    <!-- Section des saisons -->
+    <section class="seasons-section py-16">
+      <div class="container mx-auto px-4">
+        <!-- Titre de section -->
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+            Saisons en cours
+          </h2>
+          <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+            Sélectionnez une saison pour gérer les disponibilités et équipes.
+          </p>
         </div>
-      </div>
 
-      <!-- Grille des saisons (données) -->
-      <div v-else-if="seasons.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
-        <div
-          v-for="(season, index) in sortedSeasons"
-          :key="season.id"
-          class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20"
-        >
-          <div @click="goToSeason(season.slug)" class="text-center cursor-pointer">
-            <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
-              <span class="text-2xl">🎭</span>
+        <div class="pb-16" :aria-busy="isLoading">
+          <!-- Grille des saisons (chargement) -->
+          <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto justify-items-center place-content-center animate-pulse">
+            <div v-for="n in 8" :key="'skeleton-'+n" class="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-2xl p-8 w-full max-w-sm">
+              <div class="w-16 h-16 bg-white/10 rounded-full mx-auto mb-6"></div>
+              <div class="h-6 bg-white/10 rounded mb-4 w-2/3 mx-auto"></div>
+              <div class="h-px bg-white/10 mb-4"></div>
+              <div class="h-4 bg-white/10 rounded w-1/2 mx-auto"></div>
             </div>
-            <h2 class="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors">
-              {{ season.name }}
-            </h2>
-            <div class="w-full bg-gradient-to-r from-transparent via-white/20 to-transparent h-px mb-4"></div>
-            <p class="text-gray-300 text-sm">
-              Cliquez pour accéder
-            </p>
           </div>
 
-          <!-- Menu 3 points -->
-          <div class="absolute top-4 right-4">
-            <div class="relative" @click.stop>
-              <button
-                @click="toggleMenu(index)"
-                class="p-1 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
-                :aria-expanded="openMenuIndex === index"
-                aria-haspopup="true"
-                title="Options"
-              >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.75a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
-                </svg>
-              </button>
-              <div
-                v-if="openMenuIndex === index"
-                class="absolute right-0 mt-2 w-44 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-1 z-10"
-                role="menu"
-              >
-                <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10" role="menuitem">
-                  Exporter CSV
-                </button>
-                <div class="border-t border-white/10 my-1"></div>
-                <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
-                  Monter
-                </button>
-                <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
-                  Descendre
-                </button>
-                <div class="border-t border-white/10 my-1"></div>
-                <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10" role="menuitem">
-                  Supprimer
-                </button>
+          <!-- Grille des saisons (données) -->
+          <div v-else-if="seasons.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto justify-items-center place-content-center">
+            <div
+              v-for="(season, index) in sortedSeasons"
+              :key="season.id"
+              class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 w-full max-w-sm"
+            >
+              <div @click="goToSeason(season.slug)" class="text-center cursor-pointer">
+                <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
+                  <span class="text-2xl">🎭</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors">
+                  {{ season.name }}
+                </h2>
+                <div class="w-full bg-gradient-to-r from-transparent via-white/20 to-transparent h-px mb-4"></div>
+                <!-- Statistiques de la saison -->
+                <div class="flex justify-center gap-6 text-sm">
+                  <div class="text-center">
+                    <div class="text-white font-semibold">{{ season.events?.length || 0 }}</div>
+                    <div class="text-gray-400 text-xs">Événements</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-white font-semibold">{{ season.players?.length || 0 }}</div>
+                    <div class="text-gray-400 text-xs">Joueurs</div>
+                  </div>
+                </div>
+                <!-- Debug: afficher les données brutes -->
+                <div class="text-xs text-gray-500 mt-2">
+                  Debug: events={{ season.events?.length || 'undefined' }}, players={{ season.players?.length || 'undefined' }}
+                </div>
+              </div>
+
+              <!-- Menu 3 points -->
+              <div class="absolute top-4 right-4">
+                <div class="relative" @click.stop>
+                  <button
+                    @click="toggleMenu(index)"
+                    class="p-1 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
+                    :aria-expanded="openMenuIndex === index"
+                    aria-haspopup="true"
+                    title="Options"
+                  >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.75a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+                    </svg>
+                  </button>
+                  <div
+                    v-if="openMenuIndex === index"
+                    class="absolute right-0 mt-2 w-44 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-1 z-10"
+                    role="menu"
+                  >
+                    <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10" role="menuitem">
+                      Exporter CSV
+                    </button>
+                    <div class="border-t border-white/10 my-1"></div>
+                    <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
+                      Monter
+                    </button>
+                    <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
+                      Descendre
+                    </button>
+                    <div class="border-t border-white/10 my-1"></div>
+                    <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10" role="menuitem">
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+                  <!-- Bouton Nouvelle saison -->
+        <div class="text-center mt-12">
+          <button
+            @click="showCreateModal = true"
+            class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl text-lg hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
+          >
+            <span>➕</span>
+            Nouvelle saison
+          </button>
+        </div>
+
+          <!-- Message si aucune saison -->
+          <div v-if="!isLoading && seasons.length === 0" class="text-center py-16">
+            <div class="w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <span class="text-4xl">🎪</span>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-4">Aucune saison créée</h3>
+            <p class="text-gray-300 mb-8">Commencez par créer votre première saison de spectacles !</p>
+            <button 
+              @click="showCreateModal = true"
+              class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-xl hover:shadow-pink-500/25 transition-all duration-300"
+            >
+              Créer ma première saison
+            </button>
+          </div>
         </div>
       </div>
-
-
-
-      <!-- Message si aucune saison -->
-      <div v-if="!isLoading && seasons.length === 0" class="text-center py-16">
-        <div class="w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
-          <span class="text-4xl">🎪</span>
-        </div>
-        <h3 class="text-2xl font-bold text-white mb-4">Aucune saison créée</h3>
-        <p class="text-gray-300 mb-8">Commencez par créer votre première saison de spectacles !</p>
-        <button 
-          @click="showCreateModal = true"
-          class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-xl hover:shadow-pink-500/25 transition-all duration-300"
-        >
-          Créer ma première saison
-        </button>
-      </div>
-    </div>
+    </section>
 
     <!-- Modal de création de saison -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -336,24 +422,182 @@
       @cancel="handlePinCancel"
     />
 
-    <!-- Popin Aide (global) -->
-    <AppHelpModal :show="showAppHelp" @close="showAppHelp = false" />
+    <!-- Section d'aide - Kezako ? -->
+    <section class="help-section py-20 bg-gradient-to-br from-gray-900/50 to-gray-800/50 border-t border-white/10">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          <!-- Titre principal -->
+          <div class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              Qu'est-ce que HatCast ?
+            </h2>
+            <p class="text-xl text-purple-300 max-w-3xl mx-auto">
+              L'appli pour sélectionner vos joueurs d'impro simplement, équitablement et sans prise de tête
+            </p>
+          </div>
+
+          <!-- Grille 2×3 des fonctionnalités -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            <!-- Gestion des saisons -->
+            <div class="text-center p-6 bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-2xl border border-white/10">
+              <div class="w-20 h-20 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-pink-500/30">
+                <span class="text-4xl">🎭</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Gestion des saisons</h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Déclarez tous vos spectacles et indiquez combien de joueurs vous aurez besoin. 
+                Organisez votre saison d'impro de A à Z.
+              </p>
+            </div>
+
+            <!-- Sondage de disponibilités -->
+            <div class="text-center p-6 bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-2xl border border-white/10">
+              <div class="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-cyan-600/20 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-purple-500/30">
+                <span class="text-4xl">📅</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Sondage de disponibilités</h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Créez des sondages pour vos événements. Chaque joueur indique ses disponibilités 
+                et HatCast optimise la composition des équipes.
+              </p>
+            </div>
+
+            <!-- Sélection auto ou manuelle -->
+            <div class="text-center p-6 bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-2xl border border-white/10">
+              <div class="w-20 h-20 bg-gradient-to-br from-cyan-500/20 to-pink-600/20 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-cyan-500/30">
+                <span class="text-4xl">🎲</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Sélection auto ou manuelle</h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Laissez le hasard pondéré décider ou reprenez la main à tout moment.
+              </p>
+            </div>
+
+            <!-- Pensé pour le mobile -->
+            <div class="text-center p-6 bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-2xl border border-white/10">
+              <div class="w-20 h-20 bg-gradient-to-br from-green-500/20 to-blue-600/20 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-green-500/30">
+                <span class="text-4xl">📱</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Pensé pour le mobile</h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Utilisez HatCast facilement sur smartphone ou tablette, où que vous soyez.
+              </p>
+            </div>
+
+            <!-- Comptes facultatifs -->
+            <div class="text-center p-6 bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-2xl border border-white/10">
+              <div class="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-blue-500/30">
+                <span class="text-4xl">🔐</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Comptes facultatifs</h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Créez un compte pour recevoir des rappels et sécuriser vos infos.
+              </p>
+            </div>
+
+            <!-- Notifications intelligentes -->
+            <div class="text-center p-6 bg-gradient-to-br from-gray-800/50 to-gray-700/50 rounded-2xl border border-white/10">
+              <div class="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-teal-600/20 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-emerald-500/30">
+                <span class="text-4xl">🔔</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Notifications intelligentes</h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Recevez des alertes par email et push pour les événements et sélections. 
+                Restez informé sans être submergé.
+              </p>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </section>
 
     <!-- Footer -->
-    <footer class="mt-16 border-t border-white/10">
-      <div class="container mx-auto px-4 py-6 text-center text-xs text-gray-400">
-        <span>© Patrice Lamarque 2025</span>
-        <span class="mx-2">•</span>
-        <span>Licence MIT</span>
-        <span class="mx-2">•</span>
-        <a
-          href="https://github.com/plamarque/hatcast"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="underline decoration-white/20 hover:decoration-white/40 hover:text-gray-200"
-        >GitHub</a>
+    <footer class="border-t border-white/10 bg-gradient-to-br from-gray-900/50 to-gray-800/50">
+      <div class="container mx-auto px-4 py-12">
+        <!-- Section principale du footer -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <!-- Logo et description -->
+          <div class="col-span-1 md:col-span-2">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="relative w-32 h-8">
+                <img 
+                  src="/logos/hatcast-logo-mobile.png" 
+                  alt="Logo HatCast" 
+                  class="w-full h-full opacity-80"
+                />
+              </div>
+            </div>
+            <p class="text-gray-400 text-sm leading-relaxed max-w-md">
+              L'appli pour sélectionner vos joueurs d'impro simplement, équitablement et sans prise de tête.
+            </p>
+          </div>
+          
+          <!-- Contact -->
+          <div>
+            <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact</h4>
+            <div class="space-y-2">
+              <a href="mailto:contact@hatcast.app" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
+                📧 contact@hatcast.app
+              </a>
+              <p class="text-gray-500 text-xs">Retours et suggestions bienvenus</p>
+            </div>
+          </div>
+          
+          <!-- Ressources -->
+          <div>
+            <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Ressources</h4>
+            <div class="space-y-2">
+              <a href="#" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
+                📚 Guide utilisateur
+              </a>
+              <a href="https://github.com/plamarque/hatcast" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
+                🔗 Code source
+              </a>
+              <p class="text-gray-500 text-xs">Documentation en cours</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Séparateur -->
+        <div class="border-t border-white/10 mb-6"></div>
+        
+        <!-- Copyright et licence -->
+        <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500">
+          <div class="flex items-center gap-4 mb-4 sm:mb-0">
+            <span>© Patrice Lamarque 2025</span>
+            <span class="hidden sm:inline">•</span>
+            <span>Licence MIT</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="text-gray-600">En cours de développement</span>
+            <a
+              href="https://github.com/plamarque/hatcast"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-gray-400 hover:text-blue-300 transition-colors underline decoration-gray-600 hover:decoration-blue-300"
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
+
+    <!-- Modal de connexion -->
+    <AccountLoginModal
+      :show="showAccountLogin"
+      @close="closeAccountLogin"
+      @success="onLoginSuccess"
+    />
+
+    <!-- Menu Mon Compte -->
+    <AccountMenu
+      :show="showAccountMenu"
+      @close="closeAccountMenu"
+      @logout-device="handleLogout"
+    />
   </div>
 </template>
 
@@ -363,9 +607,12 @@ import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrde
 import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
-import AppHelpModal from './components/AppHelpModal.vue'
+import AccountLoginModal from './components/AccountLoginModal.vue'
+import AccountMenu from './components/AccountMenu.vue'
 import logger from './services/logger.js'
 import { loadEvents, loadPlayers, loadAvailability, loadSelections } from './services/storage.js'
+import { auth } from './services/firebase.js'
+import { getLastVisitedSeason } from './services/seasonPreferences.js'
 
 const seasons = ref([])
 const isLoading = ref(true)
@@ -384,7 +631,15 @@ const seasonToDelete = ref(null)
 const showPinModal = ref(false)
 const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
-const showAppHelp = ref(false)
+
+// Variables pour la gestion de compte
+const currentUser = ref(null)
+const showAccountLogin = ref(false)
+const showAccountMenu = ref(false)
+
+// État du scroll pour le header sticky
+const isScrolled = ref(false)
+
 
 
 
@@ -393,10 +648,51 @@ onMounted(async () => {
     // Charger vite les saisons pour afficher rapidement
     seasons.value = await getSeasons()
     logger.info('Saisons chargées', { count: seasons.value?.length || 0 })
+    
+    // Charger les événements et joueurs pour chaque saison
+    if (seasons.value.length > 0) {
+      const seasonsWithData = await Promise.all(
+        seasons.value.map(async (season) => {
+          try {
+            const [events, players] = await Promise.all([
+              loadEvents(season.id),
+              loadPlayers(season.id)
+            ])
+            return {
+              ...season,
+              events: events || [],
+              players: players || []
+            }
+          } catch (error) {
+            logger.warn(`Erreur lors du chargement des données pour la saison ${season.id}`, error)
+            return {
+              ...season,
+              events: [],
+              players: []
+            }
+          }
+        })
+      )
+      seasons.value = seasonsWithData
+      logger.info('Données des saisons chargées', { count: seasons.value.length })
+    }
+    
     // Lancer les migrations en arrière-plan
     migrateMissingSortOrders().catch(err => logger.error('Migration sortOrder échouée', err))
   } finally {
     isLoading.value = false
+  }
+
+  // Détecter le scroll pour le header sticky
+  const handleScroll = () => {
+    isScrolled.value = window.scrollY > 10
+  }
+  
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  
+  // Cleanup lors de la destruction du composant
+  return () => {
+    window.removeEventListener('scroll', handleScroll)
   }
 })
 
@@ -427,6 +723,20 @@ function toggleMenu(index) {
 
 function closeMenu() {
   openMenuIndex.value = null
+}
+
+function scrollToHelp() {
+  const helpSection = document.querySelector('.help-section')
+  if (helpSection) {
+    helpSection.scrollIntoView({ behavior: 'smooth' })
+  }
+}
+
+function scrollToSeasons() {
+  const seasonsSection = document.querySelector('.seasons-section')
+  if (seasonsSection) {
+    seasonsSection.scrollIntoView({ behavior: 'smooth' })
+  }
 }
 
 async function migrateMissingSortOrders() {
@@ -801,4 +1111,79 @@ async function executePendingOperation(operation) {
     alert('Erreur lors de l\'opération. Veuillez réessayer.')
   }
 }
+
+// Gestion de l'état de connexion
+function onAuthStateChanged(user) {
+  currentUser.value = user
+  logger.debug('État de connexion changé', { 
+    isLoggedIn: !!user, 
+    email: user?.email || 'non connecté' 
+  })
+}
+
+// Fonctions de gestion de compte
+function openAccountLogin() {
+  showAccountLogin.value = true
+}
+
+function closeAccountLogin() {
+  showAccountLogin.value = false
+}
+
+function onLoginSuccess() {
+  showAccountLogin.value = false
+  // Rediriger vers la saison préférée ou scroll vers les saisons
+  handlePostLoginNavigation()
+}
+
+function openAccountMenu() {
+  showAccountMenu.value = true
+}
+
+function closeAccountMenu() {
+  showAccountMenu.value = false
+}
+
+async function handleLogout() {
+  try {
+    await auth.signOut()
+    showAccountMenu.value = false
+    currentUser.value = null
+    logger.info('Utilisateur déconnecté avec succès')
+  } catch (error) {
+    logger.error('Erreur lors de la déconnexion', error)
+    alert('Erreur lors de la déconnexion. Veuillez réessayer.')
+  }
+}
+
+async function handlePostLoginNavigation() {
+  try {
+    // Essayer de récupérer la saison préférée
+    const lastSeason = await getLastVisitedSeason()
+    if (lastSeason) {
+      // Rediriger vers la saison préférée
+      router.push(`/season/${lastSeason}`)
+      return
+    }
+  } catch (error) {
+    logger.warn('Impossible de récupérer la saison préférée', error)
+  }
+  
+  // Sinon, scroll vers la section des saisons
+  scrollToSeasons()
+}
+
+// Initialisation de l'écouteur d'état d'authentification
+onMounted(() => {
+  // Initialiser l'état de connexion
+  currentUser.value = auth.currentUser
+  
+  // Écouter les changements d'état d'authentification
+  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
+  
+  // Cleanup lors de la destruction du composant
+  return () => {
+    unsubscribe()
+  }
+})
 </script>

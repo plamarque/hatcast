@@ -45,6 +45,12 @@
 .z-10 {
   z-index: 10;
 }
+.z-20 {
+  z-index: 20;
+}
+.z-30 {
+  z-index: 30;
+}
 .z-40 {
   z-index: 40;
 }
@@ -125,6 +131,9 @@
 }
 .order-2 {
   order: 2;
+}
+.col-span-1 {
+  grid-column: span 1 / span 1;
 }
 .col-span-4 {
   grid-column: span 4 / span 4;
@@ -359,6 +368,9 @@
 .flex-wrap {
   flex-wrap: wrap;
 }
+.place-content-center {
+  place-content: center;
+}
 .items-center {
   align-items: center;
 }
@@ -379,6 +391,9 @@
 }
 .justify-end {
   justify-content: flex-end;
+}
+.justify-items-center {
+  justify-items: center;
 }
 .truncate {
   overflow: hidden;
@@ -468,6 +483,9 @@
 }
 .bg-clip-text {
   background-clip: text;
+}
+.object-contain {
+  object-fit: contain;
 }
 .pt-\[72px\] {
   padding-top: 72px;
@@ -564,6 +582,9 @@
 }
 .opacity-75 {
   opacity: 75%;
+}
+.opacity-80 {
+  opacity: 80%;
 }
 .opacity-100 {
   opacity: 100%;
