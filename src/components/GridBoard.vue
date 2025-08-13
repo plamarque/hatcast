@@ -120,7 +120,48 @@
                     <div v-if="event.archived" class="mt-1 text-xs text-gray-400">(Archivé)</div>
                   </div>
                   
-                  <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200" :title="formatDateFull(event.date)">{{ formatDate(event.date) }}</div>
+                  <div class="relative">
+                    <div 
+                      @click.stop="toggleCalendarMenu(event.id)"
+                      class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 cursor-pointer hover:bg-white/10 px-2 py-1 rounded" 
+                      :title="formatDateFull(event.date) + ' - Cliquez pour ajouter à votre agenda'"
+                    >
+                      {{ formatDate(event.date) }}
+                    </div>
+                    
+                    <!-- Menu déroulant d'agenda -->
+                    <div 
+                      v-if="openCalendarMenuId === event.id"
+                      class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[9999] overflow-hidden"
+                    >
+                      <div class="p-2">
+                        <button 
+                          @click.stop="handleAddToCalendar('google', event); closeCalendarMenu()"
+                          class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
+                          title="Ouvrir dans Google Calendar"
+                        >
+                          <span>🌐</span>
+                          <span>Google Calendar</span>
+                        </button>
+                        <button 
+                          @click.stop="handleAddToCalendar('outlook', event); closeCalendarMenu()"
+                          class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
+                          title="Ouvrir dans Outlook"
+                        >
+                          <span>📧</span>
+                          <span>Outlook</span>
+                        </button>
+                        <button 
+                          @click.stop="handleAddToCalendar('ics', event); closeCalendarMenu()"
+                          class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm border-t border-white/10 pt-2 mt-2"
+                          title="Télécharger un fichier .ics compatible avec tous les agendas"
+                        >
+                          <span>📥</span>
+                          <span>Télécharger (.ics)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <!-- Section basse : indicateur de statut -->
@@ -603,24 +644,83 @@
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeEventDetails">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
-      <div class="relative text-center p-6 pb-4 border-b border-white/10">
+      <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="closeEventDetails" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
-        <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-          <span class="text-2xl md:text-3xl">🎭</span>
+        
+        <!-- Layout horizontal compact -->
+        <div class="flex items-start gap-4 md:gap-6">
+          <!-- Icône illustrative -->
+          <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex-shrink-0 flex items-center justify-center">
+            <span class="text-xl md:text-2xl">🎭</span>
+          </div>
+          
+                     <!-- Informations principales -->
+           <div class="flex-1 min-w-0">
+             <div class="flex items-center gap-3 mb-2">
+               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
+               <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
+                 <span class="text-blue-300">👥</span>
+                 <span class="text-blue-200">{{ selectedEvent?.playerCount || 6 }} joueurs</span>
+               </div>
+             </div>
+             <div class="flex items-center gap-3 mb-3">
+               <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
+               <div class="relative">
+                 <button 
+                   @click="toggleCalendarMenuDetails()"
+                   class="px-3 py-1.5 hover:bg-white/20 rounded text-purple-300 hover:text-green-400 transition-colors duration-200 text-sm flex items-center gap-2 border border-purple-500/30"
+                   title="Ajouter à votre agenda"
+                 >
+                   <span>📅</span>
+                   <span>Agenda</span>
+                 </button>
+                 
+                 <!-- Menu déroulant d'agenda pour la modal -->
+                 <div 
+                   v-if="showCalendarMenuDetails"
+                   class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[9999] overflow-hidden"
+                 >
+                   <div class="p-2">
+                     <button 
+                       @click="handleAddToCalendar('google'); closeCalendarMenuDetails()"
+                       class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
+                       title="Ouvrir dans Google Calendar"
+                     >
+                       <span>🌐</span>
+                       <span>Google Calendar</span>
+                     </button>
+                     <button 
+                       @click="handleAddToCalendar('outlook'); closeCalendarMenuDetails()"
+                       class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
+                       title="Ouvrir dans Outlook"
+                     >
+                       <span>📧</span>
+                       <span>Outlook</span>
+                     </button>
+                     <button 
+                       @click="handleAddToCalendar('ics'); closeCalendarMenuDetails()"
+                       class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm border-t border-white/10 pt-2 mt-2"
+                       title="Télécharger un fichier .ics compatible avec tous les agendas"
+                     >
+                       <span>📥</span>
+                       <span>Télécharger (.ics)</span>
+                     </button>
+                   </div>
+                 </div>
+               </div>
+             </div>
+            
+            <!-- Description intégrée dans le header si elle existe -->
+            <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
+              {{ selectedEvent.description }}
+            </div>
+          </div>
         </div>
-        <h2 class="text-2xl md:text-3xl font-bold text-white mb-1">{{ selectedEvent?.title }}</h2>
-        <p class="text-sm md:text-base text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
       </div>
 
-      <!-- Content scrollable -->
-      <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <div v-if="selectedEvent?.description" class="mb-4 md:mb-6">
-          <p class="text-gray-300 bg-gray-800/50 p-4 rounded-lg border border-gray-600/50">
-            {{ selectedEvent.description }}
-          </p>
-        </div>
-
-        <!-- Stats directes sans titre -->
+        <!-- Content scrollable -->
+  <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+    <!-- Stats directes sans titre -->
         <div class="grid grid-cols-3 gap-3 md:gap-4 mb-2 md:mb-4">
           <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
             <div class="text-xl md:text-2xl font-bold text-white">{{ countAvailablePlayers(selectedEvent?.id) }}</div>
@@ -1420,6 +1520,7 @@ import {
 import { createMagicLink } from '../services/magicLinks.js'
 import { sendDeselectionEmailsForEvent } from '../services/emailService.js'
 import { sendAvailabilityNotificationsForEvent, sendSelectionNotificationsForEvent } from '../services/notificationsService.js'
+import { addToCalendar } from '../services/calendarService.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
@@ -1525,6 +1626,10 @@ const eventMoreActionsStyle = ref({ position: 'fixed', top: '0px', left: '0px' }
 const eventMoreActionsMobileDropdownRef = ref(null)
 const eventMoreActionsMobileStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
 
+// Variables pour les menus d'agenda
+const openCalendarMenuId = ref(null)
+const showCalendarMenuDetails = ref(false)
+
 // Fonctions pour gérer le dropdown des actions d'événements
 function updateEventMoreActionsPosition() {
   try {
@@ -1589,6 +1694,27 @@ function toggleEventMoreActionsMobile() {
   if (showEventMoreActions.value) {
     nextTick(() => updateEventMoreActionsMobilePosition())
   }
+}
+
+// Fonctions pour gérer les menus d'agenda
+function toggleCalendarMenu(eventId) {
+  if (openCalendarMenuId.value === eventId) {
+    openCalendarMenuId.value = null
+  } else {
+    openCalendarMenuId.value = eventId
+  }
+}
+
+function closeCalendarMenu() {
+  openCalendarMenuId.value = null
+}
+
+function toggleCalendarMenuDetails() {
+  showCalendarMenuDetails.value = !showCalendarMenuDetails.value
+}
+
+function closeCalendarMenuDetails() {
+  showCalendarMenuDetails.value = false
 }
 
 // Variables pour la vérification de mot de passe des joueurs protégés
@@ -4002,9 +4128,43 @@ function closeEventDetails() {
   editingDescription.value = '';
   showEventMoreActions.value = false;
   showEventMoreActionsDesktop.value = false;
+  // Fermer les menus d'agenda
+  closeCalendarMenu();
+  closeCalendarMenuDetails();
   // Nettoyer les styles des dropdowns
   eventMoreActionsStyle.value = { position: 'fixed', top: '0px', left: '0px' };
   eventMoreActionsMobileStyle.value = { position: 'fixed', top: '0px', left: '0px' };
+}
+
+// Fonction pour ajouter un événement à l'agenda
+function handleAddToCalendar(type, event = null) {
+  const targetEvent = event || selectedEvent.value
+  if (!targetEvent) return
+  
+  try {
+    addToCalendar(type, targetEvent, seasonName.value)
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    if (type === 'ics') {
+      successMessage.value = 'Fichier .ics téléchargé ! Importez-le dans votre agenda'
+    } else if (type === 'google') {
+      successMessage.value = 'Google Calendar ouvert dans un nouvel onglet'
+    } else if (type === 'outlook') {
+      successMessage.value = 'Outlook ouvert dans un nouvel onglet'
+    }
+    
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout au calendrier:', error)
+    showSuccessMessage.value = true
+    successMessage.value = 'Erreur lors de l\'ajout au calendrier'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
 }
 
 function closeEventDetailsAndUpdateUrl() {

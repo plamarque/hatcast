@@ -17,85 +17,10 @@
 
         <!-- Contenu Notifications (sans onglets) -->
         <div class="space-y-4">
-          <!-- Prévisualisation du message -->
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Prévisualisation du message :</label>
-            <!-- Tabs Email/Push -->
-            <div class="inline-flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700 mb-3">
-              <button
-                class="px-3 py-2 text-sm transition-colors"
-                :class="activePreviewTab === 'email' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-                @click="activePreviewTab = 'email'"
-                title="Prévisualiser l'email"
-              >📧</button>
-              <button
-                class="px-3 py-2 text-sm transition-colors"
-                :class="activePreviewTab === 'push' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-                @click="activePreviewTab = 'push'"
-                title="Prévisualiser la notification push"
-              >🔔</button>
-            </div>
-
-            <!-- Email preview -->
-            <div v-if="activePreviewTab === 'email'" :class="(hasSelectedRecipientContact || selectedRecipient?.id === 'ALL') ? 'bg-gray-800 border border-gray-600 rounded-lg p-4 text-white space-y-3' : 'space-y-3'">
-              <template v-if="hasSelectedRecipientContact || selectedRecipient?.id === 'ALL'">
-                <div class="text-sm text-gray-300"><span class="font-semibold">De:</span> {{ emailFrom }}</div>
-                <div class="text-sm text-gray-300"><span class="font-semibold">À:</span> {{ selectedRecipient?.id === 'ALL' ? '<joueur>' : (selectedRecipient?.name || '[Nom du joueur]') }}</div>
-                <div class="text-sm text-gray-300"><span class="font-semibold">Objet:</span> {{ emailSubject }}</div>
-                <div class="bg-white text-black rounded-md p-4" v-html="emailHtml"></div>
-              </template>
-              <template v-else>
-                <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm">
-                  Ce joueur  n'a pas configuré d'email. Utilise la fonction « Copier le message » et envoie-lui ces informations par un autre canal.
-                </div>
-                <textarea class="w-full mt-2 p-3 bg-gray-900 border border-gray-700 rounded-md text-white text-sm" :value="nonContactCopyText" rows="5" readonly></textarea>
-              </template>
-            </div>
-
-            <!-- Push preview (closer to Android notification) -->
-            <div v-else :class="(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact) ? 'text-white' : 'bg-gray-900 border border-gray-700 rounded-xl p-4 text-white'">
-              <template v-if="!(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact)">
-              <!-- Header line: app + time + bell -->
-              <div class="flex items-center justify-between text-xs text-white/70">
-                <div class="flex items-center gap-2 min-w-0">
-                  <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">🔔</div>
-                  <div class="truncate">Impropick</div>
-                  <span class="opacity-60">•</span>
-                  <span>il y a 1 min</span>
-                </div>
-                <img src="/icons/manifest-icon-192.maskable.png" alt="App icon" class="w-10 h-10 rounded-full shadow" />
-              </div>
-
-              <!-- Body -->
-              <div class="mt-3">
-                <div class="text-lg font-semibold leading-snug">{{ pushTitle }}</div>
-                <div class="mt-2 text-base whitespace-pre-line text-white/90">{{ pushBody }}</div>
-              </div>
-
-              <!-- Actions (chips) -->
-              <div class="mt-4 flex items-center gap-4 text-base">
-                <template v-if="props.mode === 'event'">
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-600/20 text-green-300 border border-green-600/40">✅ Dispo</span>
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600/20 text-red-300 border border-red-600/40">❌ Pas dispo</span>
-                </template>
-                <template v-else>
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-100 text-gray-900 border border-white/20">Ouvrir</span>
-                </template>
-              </div>
-              </template>
-              <template v-else>
-                <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm mb-2">
-                  {{ selectedRecipient?.name }} n'a pas installé l'appli. Envoie-lui ce message manuellement.
-                </div>
-                <textarea class="w-full p-3 bg-gray-800 border border-gray-700 rounded-md text-white text-sm" :value="nonContactCopyText" rows="5" readonly></textarea>
-              </template>
-            </div>
-          </div>
-
-          <!-- Destinataires -->
+          <!-- Personnes à Prévenir -->
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-              Destinataires
+              Personnes à Prévenir
               <button 
                 @click="showDestinatairesHint = !showDestinatairesHint"
                 class="text-blue-400 hover:text-blue-300 text-lg cursor-help"
@@ -144,6 +69,81 @@
             </div>
           </div>
 
+          <!-- Aperçu du message -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Aperçu du message :</label>
+            <!-- Tabs Email/Push -->
+            <div class="inline-flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700 mb-3">
+              <button
+                class="px-3 py-1.5 text-sm transition-colors"
+                :class="activePreviewTab === 'email' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+                @click="activePreviewTab = 'email'"
+                title="Prévisualiser l'email"
+              >📧</button>
+              <button
+                class="px-3 py-1.5 text-sm transition-colors"
+                :class="activePreviewTab === 'push' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+                @click="activePreviewTab = 'push'"
+                title="Prévisualiser la notification push"
+              >🔔</button>
+            </div>
+
+            <!-- Email preview -->
+            <div v-if="activePreviewTab === 'email'" :class="(hasSelectedRecipientContact || selectedRecipient?.id === 'ALL') ? 'bg-gray-800 border border-gray-600 rounded-lg p-4 text-white space-y-3' : 'space-y-3'">
+              <template v-if="hasSelectedRecipientContact || selectedRecipient?.id === 'ALL'">
+                <div class="text-sm text-gray-300"><span class="font-semibold">De:</span> {{ emailFrom }}</div>
+                <div class="text-sm text-gray-300"><span class="font-semibold">À:</span> {{ selectedRecipient?.id === 'ALL' ? '<joueur>' : (selectedRecipient?.name || '[Nom du joueur]') }}</div>
+                <div class="text-sm text-gray-300"><span class="font-semibold">Objet:</span> {{ emailSubject }}</div>
+                <div class="bg-white text-black rounded-md p-4" v-html="emailHtml"></div>
+              </template>
+              <template v-else>
+                <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm">
+                  Ce joueur  n'a pas configuré d'email. Utilise la fonction « Copier le message » et envoie-lui ces informations par un autre canal.
+                </div>
+                <textarea class="w-full mt-2 p-3 bg-gray-900 border border-gray-700 rounded-md text-white text-sm" :value="nonContactCopyText" rows="5" readonly></textarea>
+              </template>
+            </div>
+
+            <!-- Push preview (closer to Android notification) -->
+            <div v-else :class="(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact) ? 'text-white' : 'bg-gray-900 border border-gray-700 rounded-xl p-4 text-white'">
+              <template v-if="!(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact)">
+              <!-- Header line: app + time + bell -->
+              <div class="flex items-center justify-between text-xs text-white/70">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">🔔</div>
+                  <div class="truncate">Impropick</div>
+                  <span class="opacity-60">•</span>
+                  <span>il y a 1 min</span>
+                </div>
+                <img src="/icons/manifest-icon-192.maskable.png" alt="App icon" class="w-10 h-10 rounded-full shadow" />
+              </div>
+
+              <!-- Body -->
+              <div class="mt-3">
+                <div class="text-lg font-semibold leading-snug">{{ pushTitle }}</div>
+                <div class="mt-2 text-base whitespace-pre-line text-white/90">{{ pushBody }}</div>
+              </div>
+
+              <!-- Actions (chips) -->
+              <div class="mt-4 flex items-center gap-4 text-base">
+                <template v-if="props.mode === 'event'">
+                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-600/20 text-green-300 border border-green-600/40">✅ Dispo</span>
+                  <span class="text-red-600/20 text-red-300 border border-red-600/40">❌ Pas dispo</span>
+                </template>
+                <template v-else>
+                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-100 text-gray-900 border border-white/20">Ouvrir</span>
+                </template>
+              </div>
+              </template>
+              <template v-else>
+                <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm mb-2">
+                  {{ selectedRecipient?.name }} n'a pas installé l'appli. Envoie-lui ce message manuellement.
+                </div>
+                <textarea class="w-full p-3 bg-gray-800 border border-gray-700 rounded-md text-white text-sm" :value="nonContactCopyText" rows="5" readonly></textarea>
+              </template>
+            </div>
+          </div>
+
 
         </div>
 
@@ -161,9 +161,15 @@
           >
             <span v-if="!computedSending">
               <template v-if="selectedRecipient && selectedRecipient.id !== 'ALL'">
-                <span :class="!hasSelectedRecipientContact ? 'opacity-60' : ''">🔔 Notifier {{ selectedRecipient.name }}</span>
+                <span :class="!hasSelectedRecipientContact ? 'opacity-60' : ''">
+                  <span class="hidden sm:inline">🔔 Notifier {{ selectedRecipient.name }}</span>
+                  <span class="sm:hidden">🔔 Notifier</span>
+                </span>
               </template>
-              <template v-else>🔔 Envoyer les notifications</template>
+              <template v-else>
+                <span class="hidden sm:inline">🔔 Envoyer les notifications</span>
+                <span class="sm:hidden">🔔 Envoyer</span>
+              </template>
             </span>
             <span v-else class="inline-flex items-center gap-2">
               <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -178,7 +184,10 @@
             class="h-12 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300"
             :title="copyButtonText"
           >
-            <span v-if="!copied">📋 Copier le message</span>
+            <span v-if="!copied">
+              <span class="hidden sm:inline">📋 Copier le message</span>
+              <span class="sm:hidden">📋 Copier</span>
+            </span>
             <span v-else>✅ Copié</span>
           </button>
         </div>
@@ -252,7 +261,7 @@ const emailSubject = computed(() => {
   if (props.mode === 'event') {
     return `${props.event?.title} (${dateStr})`
   }
-  return `🎭 Sélection confirmée · ${props.event?.title}`
+  return `🎭 Sélectionné pour ${props.event?.title}`
 })
 
 const emailFrom = computed(() => {
@@ -291,12 +300,10 @@ const emailHtml = computed(() => {
   }
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>Bonjour ${playerName},</p>
-      <p>Tu as été sélectionné(e) pour <strong>${props.event?.title}</strong> (${dateStr}).</p>
-      <p>Un imprévu ?</p>
-      <p>
-        <a href="#no" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;margin-right:8px;">❌ Plus dispo</a>
-        <a href="#event" style="display:inline-block;padding:10px 12px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;">Afficher les Détails</a>
+      <p><strong>${playerName}</strong>, tu as été sélectionné pour <strong>${props.event?.title}</strong> le <strong>${dateStr}</strong>!</p>
+      <p style="margin-top: 16px; font-weight: 600;">Actions rapides :</p>
+      <p style="margin-top: 8px;">
+        <a href="#no" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
       </p>
     </div>
   `
@@ -316,7 +323,7 @@ const emailTextContent = computed(() => {
 // Push preview content
 const pushTitle = computed(() => {
   if (props.mode === 'event') return `${props.event?.title} (${formatDateFull(props.event?.date)})`
-  return '🎭 Sélection confirmée'
+  return '🎭 Sélectionné pour'
 })
 
 const pushBody = computed(() => {
@@ -330,7 +337,7 @@ const pushBody = computed(() => {
   if (props.mode === 'event') {
     return `${playerName}, t'es dispo ?`
   }
-  return `${playerName}, tu as été sélectionné(e) pour ${props.event?.title} (${dateStr}) 🎉`
+  return `${playerName}, tu as été sélectionné pour ${props.event?.title} le ${dateStr}!\n\n[ Afficher les Détails]\n\nUn imprévu ?\n❌ Pas dispo`
 })
 
 const recipientsWithEmail = ref([])
@@ -374,7 +381,7 @@ const deselectMagicLinkText = computed(() => {
   }
 })
 
-// Charger les emails des destinataires selon le mode
+// Charger les emails des personnes à prévenir selon le mode
 async function loadRecipientsEmails() {
   if (!props.seasonId) return
   
