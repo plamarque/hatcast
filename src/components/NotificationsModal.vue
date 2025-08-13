@@ -2,77 +2,96 @@
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] p-4" @click="close">
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl w-full max-w-xl" @click.stop>
       <button @click="close" class="absolute right-3 top-3 text-white/80 hover:text-white" aria-label="Fermer" title="Fermer">✖️</button>
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-indigo-400 to-cyan-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-2xl">🔔</span>
+      <!-- Header compact style modales -->
+      <div class="mb-4 md:mb-6">
+        <div class="flex items-start gap-4">
+          <!-- Icône et titre à gauche -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-400 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span class="text-lg md:text-xl">🔔</span>
+            </div>
+            <div class="space-y-2">
+              <h3 class="text-white font-semibold text-base md:text-lg">Notifications</h3>
+              <p class="text-gray-400 text-xs md:text-sm">Ne ratez rien, soyez le premier prévenu !</p>
+            </div>
+          </div>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-1">Notifications</h2>
-        <p class="text-sm text-gray-300">Gérez vos préférences de notifications</p>
       </div>
 
-      <div class="space-y-3">
+      <!-- Séparateur -->
+      <div class="border-t border-white/10 mb-4 md:mb-6"></div>
+
+      <div class="space-y-4 md:space-y-6">
         <!-- Section Emails -->
-        <div class="p-3 rounded-lg border border-white/10 bg-white/5 space-y-3">
-          <div class="text-white font-semibold text-sm mb-1">Emails</div>
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
-              <span>M'envoyer un email lorsqu'un événement a besoin de joueurs</span>
-            </label>
-          </div>
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="prefs.notifySelection" class="w-4 h-4">
-              <span>M'envoyer un email lorsque je suis concerné par une sélection</span>
-            </label>
+        <div class="space-y-2 md:space-y-3">
+          <h3 class="text-white font-semibold mb-2 md:mb-3 flex items-center gap-2 text-sm md:text-base">
+            <span class="text-blue-400">📧</span>
+            Emails
+          </h3>
+          <div class="p-3 md:p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
+                <span class="text-sm text-white">M'envoyer un email lorsqu'un événement a besoin de joueurs</span>
+              </label>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifySelection" class="w-4 h-4">
+                <span class="text-sm text-white">M'envoyer un email lorsque je suis concerné par une sélection</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <!-- Section Push (expérimental) -->
-        <div class="p-3 rounded-lg border border-white/10 bg-white/5 space-y-3">
-          <div class="text-white font-semibold text-sm mb-1">Push (expérimental)</div>
-          <div class="text-xs text-emerald-200 mb-1">Fonctionnalité en test: activable uniquement ici.</div>
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="prefs.notifySelectionPush" class="w-4 h-4">
-              <span>Me notifier lorsque je suis concerné par une sélection</span>
-            </label>
+        <!-- Section Mobile (expérimental) -->
+        <div class="space-y-2 md:space-y-3">
+          <h3 class="text-white font-semibold mb-2 md:mb-3 flex items-center gap-2 text-sm md:text-base">
+            <span class="text-emerald-400">📱</span>
+            Mobile (expérimental)
+          </h3>
+          <div class="p-3 md:p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <div class="text-xs text-emerald-200 mb-1">Fonctionnalité en test: activable uniquement ici.</div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifySelectionPush" class="w-4 h-4">
+                <span class="text-sm text-white">Me notifier lorsque je suis concerné par une sélection</span>
+              </label>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifyAvailabilityPush" class="w-4 h-4">
+                <span class="text-sm text-white">Me notifier lorsqu'un événement a besoin de joueurs</span>
+              </label>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-white/10">
+              <div class="text-xs text-gray-400">Notifications sur cet appareil</div>
+              <template v-if="!pushEnabledOnDevice">
+                <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ enablePushLoading ? '...' : 'Activer' }}</button>
+              </template>
+              <template v-else>
+                <span class="inline-flex items-center text-xs text-gray-300">
+                  <span class="mr-1 text-emerald-400">✓</span> Actif
+                </span>
+              </template>
+            </div>
+            <div class="flex items-center justify-between pt-2">
+              <div class="text-xs text-gray-400">Test de notification push</div>
+              <button @click="sendTestPush" :disabled="testPushLoading || !email" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ testPushLoading ? 'Envoi…' : 'Envoyer un test' }}</button>
+            </div>
+            <div v-if="testPushSuccess" class="text-xs text-green-300">Notification test envoyée (vérifiez votre appareil)</div>
+            <div v-if="testPushError" class="text-xs text-red-300">{{ testPushError }}</div>
+            <div v-if="fcmToken" class="text-[10px] text-gray-400 break-all">FCM token: {{ fcmToken }}</div>
+            <div class="text-[10px] text-gray-500">VAPID: {{ vapidKeyPreview || 'indisponible' }}</div>
           </div>
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2">
-              <input type="checkbox" v-model="prefs.notifyAvailabilityPush" class="w-4 h-4">
-              <span>Me notifier lorsqu'un événement a besoin de joueurs</span>
-            </label>
-          </div>
-          <div class="flex items-center justify-between pt-2 border-t border-white/10">
-            <div class="text-xs text-gray-400">Notifications sur cet appareil</div>
-            <template v-if="!pushEnabledOnDevice">
-              <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ enablePushLoading ? '...' : 'Activer' }}</button>
-            </template>
-            <template v-else>
-              <span class="inline-flex items-center text-xs text-gray-300">
-                <span class="mr-1 text-emerald-400">✓</span> Actif
-              </span>
-            </template>
-          </div>
-          <div class="flex items-center justify-between pt-2">
-            <div class="text-xs text-gray-400">Test de notification push</div>
-            <button @click="sendTestPush" :disabled="testPushLoading || !email" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ testPushLoading ? 'Envoi…' : 'Envoyer un test' }}</button>
-          </div>
-          <div v-if="testPushSuccess" class="text-xs text-green-300">Notification test envoyée (vérifiez votre appareil)</div>
-          <div v-if="testPushError" class="text-xs text-red-300">{{ testPushError }}</div>
-          <div v-if="fcmToken" class="text-[10px] text-gray-400 break-all">FCM token: {{ fcmToken }}</div>
-          <div class="text-[10px] text-gray-500">VAPID: {{ vapidKeyPreview || 'indisponible' }}</div>
         </div>
 
-        <div class="text-right">
-          <button @click="savePrefs" :disabled="prefsLoading" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50">{{ prefsLoading ? '⏳' : 'Sauvegarder' }}</button>
-        </div>
         <div v-if="prefsError" class="text-xs text-red-300">{{ prefsError }}</div>
         <div v-if="prefsSuccess" class="text-xs text-green-300">{{ prefsSuccess }}</div>
       </div>
 
-      <div class="mt-6 text-center">
+      <div class="mt-6 flex justify-between items-center">
+        <button @click="savePrefs" :disabled="prefsLoading" class="px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50">{{ prefsLoading ? '⏳' : 'Sauvegarder' }}</button>
         <button @click="close" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800">Fermer</button>
       </div>
     </div>
