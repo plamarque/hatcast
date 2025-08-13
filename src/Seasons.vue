@@ -17,69 +17,85 @@
         <div class="container mx-auto">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             
-            <!-- Colonne gauche : Grande illustration avec screenshots -->
+            <!-- Colonne gauche : Logo Kijoukan et illustration -->
             <div class="text-center lg:text-left order-2 lg:order-1">
-              <div class="hero-illustration relative">
-                <!-- Mockup principal avec screenshot de la grille -->
-                <div class="relative mx-auto lg:mx-0 w-full max-w-lg">
-                  <!-- Fond du mockup -->
-                  <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-4 shadow-2xl border border-white/10">
-                    <!-- Barre de titre du mockup -->
-                    <div class="flex items-center gap-3 mb-4">
-                      <div class="flex gap-2">
-                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                      </div>
-                      <div class="text-gray-400 text-sm">Kijoukan - Grille des disponibilités</div>
-                    </div>
-                    
-                    <!-- Screenshot simulé de la grille -->
-                    <div class="bg-gray-700 rounded-2xl p-4 min-h-[300px]">
-                      <!-- En-tête avec événements -->
-                      <div class="grid grid-cols-4 gap-2 mb-4">
-                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">15 Jan</div>
-                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">22 Jan</div>
-                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">29 Jan</div>
-                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">5 Fév</div>
+              <div class="hero-content-wrapper">
+                
+                <!-- Logo Kijoukan - Checkmark géométrique en masque -->
+                <div class="kijoukan-logo mb-8 flex justify-center lg:justify-start">
+                  <div class="relative w-24 h-24 md:w-32 md:h-32">
+                    <!-- Logo SVG externe avec gradient signature -->
+                    <img 
+                      src="/logo.svg" 
+                      alt="Logo Kijoukan - Checkmark qui se transforme en masque" 
+                      class="w-full h-full drop-shadow-2xl transform hover:scale-110 transition-all duration-500 hover:rotate-3"
+                    />
+                  </div>
+                </div>
+                
+                <!-- Illustration avec mockup de l'app -->
+                <div class="hero-illustration relative">
+                  <!-- Mockup principal avec screenshot de la grille -->
+                  <div class="relative mx-auto lg:mx-0 w-full max-w-lg">
+                    <!-- Fond du mockup -->
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-4 shadow-2xl border border-white/10">
+                      <!-- Barre de titre du mockup -->
+                      <div class="flex items-center gap-3 mb-4">
+                        <div class="flex gap-2">
+                          <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                          <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                        </div>
+                        <div class="text-gray-400 text-sm">Kijoukan - Grille des disponibilités</div>
                       </div>
                       
-                      <!-- Lignes des joueurs -->
-                      <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                          <div class="w-16 text-xs text-gray-300">Marie</div>
-                          <div class="grid grid-cols-4 gap-2 flex-1">
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
-                            <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
-                            <div class="h-6 bg-gray-500/20 border border-gray-500/30 rounded"></div>
-                          </div>
+                      <!-- Screenshot simulé de la grille -->
+                      <div class="bg-gray-700 rounded-2xl p-4 min-h-[300px]">
+                        <!-- En-tête avec événements -->
+                        <div class="grid grid-cols-4 gap-2 mb-4">
+                          <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">15 Jan</div>
+                          <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">22 Jan</div>
+                          <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">29 Jan</div>
+                          <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">5 Fév</div>
                         </div>
-                        <div class="flex items-center gap-2">
-                          <div class="w-16 text-xs text-gray-300">Pierre</div>
-                          <div class="grid grid-cols-4 gap-2 flex-1">
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
-                            <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                        
+                        <!-- Lignes des joueurs -->
+                        <div class="space-y-2">
+                          <div class="flex items-center gap-2">
+                            <div class="w-16 text-xs text-gray-300">Marie</div>
+                            <div class="grid grid-cols-4 gap-2 flex-1">
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                              <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                              <div class="h-6 bg-gray-500/20 border border-gray-500/30 rounded"></div>
+                            </div>
                           </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                          <div class="w-16 text-xs text-gray-300">Sophie</div>
-                          <div class="grid grid-cols-4 gap-2 flex-1">
-                            <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
-                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                          <div class="flex items-center gap-2">
+                            <div class="w-16 text-xs text-gray-300">Pierre</div>
+                            <div class="grid grid-cols-4 gap-2 flex-1">
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                              <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <div class="w-16 text-xs text-gray-300">Sophie</div>
+                            <div class="grid grid-cols-4 gap-2 flex-1">
+                              <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                              <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                    
+                    <!-- Éléments flottants décoratifs -->
+                    <div class="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-500 rounded-2xl shadow-xl transform rotate-12"></div>
+                    <div class="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl shadow-xl transform -rotate-12"></div>
                   </div>
-                  
-                  <!-- Éléments flottants décoratifs -->
-                  <div class="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-500 rounded-2xl shadow-xl transform rotate-12"></div>
-                  <div class="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl shadow-xl transform -rotate-12"></div>
                 </div>
               </div>
             </div>
