@@ -4,6 +4,7 @@ import { db } from './firebase.js'
 import logger from './logger.js'
 import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore'
 import { queuePushMessage } from './pushService'
+import { buildAvailabilityEmailTemplate } from './emailTemplates.js'
 
 // Pour utiliser EmailJS, il faut :
 // 1. Créer un compte sur https://www.emailjs.com/
@@ -42,19 +43,14 @@ export async function queueAvailabilityEmail({
       }
     }
   } catch {}
-  const html = `
-    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p><strong>Nouvel événement programmé!</strong></p>
-      <p style="margin: 12px 0 2px 0; font-weight: 600;">${eventTitle}</p>
-      <p style="margin: 0 0 16px 0; color:#374151;">${eventDate}</p>
-      <p>Nous avons besoin de savoir si tu es disponible.</p>
-      <p style="margin-top: 12px;">
-        <a href="${yesUrl}" style="display:inline-block;padding:10px 12px;margin-right:8px;border:2px solid #16a34a;color:#16a34a;border-radius:8px;text-decoration:none;">✅ Dispo</a>
-        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
-      </p>
-      <p style="margin-top: 16px;">Merci!!</p>
-    </div>
-  `
+  const html = buildAvailabilityEmailTemplate({
+    playerName,
+    eventTitle,
+    eventDate,
+    eventUrl,
+    yesUrl,
+    noUrl
+  })
 
   const subject = `${reason === 'reminder' ? 'Rappel: ' : ''}${eventTitle} (${eventDate})`
 

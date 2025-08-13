@@ -401,6 +401,9 @@
 .justify-items-center {
   justify-items: center;
 }
+.self-start {
+  align-self: flex-start;
+}
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
