@@ -1,52 +1,13 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-            <!-- Barre de navigation sticky -->
-        <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg' : 'bg-gray-900/20 backdrop-blur-sm'">
-      <nav class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
-          <!-- Logo HatCast à gauche -->
-          <div class="flex items-center">
-            <a href="/" class="flex items-center">
-              <div class="relative w-48 h-12 md:w-56 md:h-14">
-                <img 
-                  src="/logos/hatcast-logo-mobile.png" 
-                  alt="Logo HatCast - Retour à l'accueil" 
-                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden"
-                />
-                <img 
-                  src="/logos/hatcast-logo-desktop.png" 
-                  alt="Logo HatCast - Retour à l'accueil" 
-                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block"
-                />
-              </div>
-            </a>
-          </div>
-          
-                         <!-- Navigation à droite -->
-               <div class="flex items-center">
-                 <!-- Bouton Connexion ou Mon Compte selon l'état -->
-                 <button 
-                   v-if="!currentUser"
-                   @click="openAccountLogin"
-                   class="px-4 py-2 rounded-lg transition-all duration-300 border transition-colors"
-                   :class="isScrolled ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'"
-                 >
-                   Connexion
-                 </button>
-                 <!-- Icône Mon Compte si connecté (même style que GridBoard) -->
-                 <button 
-                   v-else
-                   @click="openAccountMenu"
-                   class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-                   title="Mon compte"
-                   aria-label="Mon compte"
-                 >
-                   <span class="text-2xl">👤</span>
-                 </button>
-               </div>
-        </div>
-      </nav>
-    </header>
+            <!-- Header partagé -->
+        <AppHeader 
+          :is-scrolled="isScrolled"
+          @open-account-menu="openAccountMenu"
+          @open-help="scrollToHelp"
+          @logout="handleLogout"
+          @open-login="openAccountLogin"
+        />
 
     <!-- Section Hero -->
     <section class="hero-section relative overflow-hidden pt-24">
@@ -606,6 +567,7 @@ import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 import AccountLoginModal from './components/AccountLoginModal.vue'
 import AccountMenu from './components/AccountMenu.vue'
+import AppHeader from './components/AppHeader.vue'
 import logger from './services/logger.js'
 import { loadEvents, loadPlayers, loadAvailability, loadSelections, setStorageMode, initializeStorage } from './services/storage.js'
 import { auth } from './services/firebase.js'

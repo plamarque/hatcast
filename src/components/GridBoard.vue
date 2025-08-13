@@ -1,83 +1,16 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-    <!-- Header avec titre de la saison -->
-    <div ref="pageHeaderRef" class="sticky top-0 z-[60] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
-      <!-- Flèche de retour -->
-      <button 
-        @click="goBack"
-        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-        title="Retour aux saisons"
-      >
-        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-      </button>
-      
-      <h1 class="text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-        {{ seasonName ? seasonName : 'Chargement...' }}
-      </h1>
-      
-      <!-- Actions à droite -->
-      <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-        <!-- Desktop: actions visibles -->
-        <div class="hidden md:flex items-center gap-2">
-          <button
-            @click="openAccount"
-            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            title="Mon compte"
-            aria-label="Mon compte"
-          >
-            <span class="text-2xl">👤</span>
-          </button>
-          
-          <button
-            @click="showHowItWorksGlobal = true"
-            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-            title="Kezako ?"
-            aria-label="Kezako ?"
-          >
-            <span class="text-2xl">❓</span>
-          </button>
-        </div>
-
-        <!-- Mobile: menu 3 points -->
-        <div class="relative md:hidden" ref="headerMenuRef">
-            <button
-              @click.stop="toggleHeaderMenu(); updateHeaderMenuPosition()"
-              class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-              title="Menu"
-              aria-label="Menu"
-            >
-              <span class="text-2xl">⋯</span>
-            </button>
-        </div>
-        <teleport to="body">
-          <div
-            v-if="showHeaderMenu"
-            ref="headerMenuDropdownRef"
-            class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[400] overflow-hidden"
-            :style="headerMenuStyle"
-          >
-            
-            <button
-              @click="openAccount(); closeHeaderMenu()"
-              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-            >
-              <span>👤</span>
-              <span class="text-sm">Mon compte</span>
-            </button>
-            
-            <button
-              @click="showHowItWorksGlobal = true; closeHeaderMenu()"
-              class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-            >
-              <span>❓</span>
-              <span class="text-sm">Kezako ?</span>
-            </button>
-          </div>
-        </teleport>
-      </div>
-    </div>
+    <!-- Header de saison partagé -->
+    <SeasonHeader 
+      :season-name="seasonName"
+      :is-scrolled="isScrolled"
+      @go-back="goBack"
+      @open-account-menu="openAccountMenu"
+      @open-help="showHowItWorksGlobal = true"
+      @logout="handleAccountLogoutDevice"
+      @open-login="openAccount"
+      @open-account="openAccount"
+    />
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
@@ -1542,6 +1475,7 @@ import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
 import AccountMenu from './AccountMenu.vue'
 import AccountClaimModal from './AccountClaimModal.vue'
 import AccountLoginModal from './AccountLoginModal.vue'
+import SeasonHeader from './SeasonHeader.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1562,6 +1496,9 @@ const seasonSlug = props.slug
 const seasonName = ref('')
 const seasonId = ref('')
 const seasonMeta = ref({})
+
+// État du scroll pour le header sticky
+const isScrolled = ref(false)
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -1915,6 +1852,12 @@ onMounted(() => {
     }
   } catch {}
   
+  // Gestionnaire de scroll pour le header sticky
+  const handleScroll = () => {
+    isScrolled.value = window.scrollY > 10
+  }
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  
   // Gestionnaire de clic en dehors du dropdown desktop pour fermer automatiquement
   document.addEventListener('click', (event) => {
     // Gestion du dropdown desktop
@@ -2261,60 +2204,7 @@ function clampYWithHeader(y, coachHeight) {
   return Math.max(minY, Math.min(Math.round(y), maxY))
 }
 
-// Menu d'actions (mobile)
-const showHeaderMenu = ref(false)
-const headerMenuRef = ref(null)
-const headerMenuDropdownRef = ref(null)
-const headerMenuStyle = ref({ position: 'fixed', top: '0px', right: '0px' })
 
-function updateHeaderMenuPosition() {
-  try {
-    const anchor = headerMenuRef.value
-    if (!anchor) return
-    const rect = anchor.getBoundingClientRect()
-    const gap = 8
-    const top = Math.max(gap, Math.round(rect.bottom + gap))
-    const right = Math.max(gap, Math.round(window.innerWidth - rect.right))
-    headerMenuStyle.value = {
-      position: 'fixed',
-      top: `${top}px`,
-      right: `${right}px`,
-      zIndex: 400
-    }
-  } catch {}
-}
-
-function toggleHeaderMenu() {
-  showHeaderMenu.value = !showHeaderMenu.value
-  if (showHeaderMenu.value) nextTick(() => updateHeaderMenuPosition())
-}
-function closeHeaderMenu() { showHeaderMenu.value = false }
-function onClickOutsideHeaderMenu(e) {
-  if (!showHeaderMenu.value) return
-  const anchorEl = headerMenuRef.value
-  const dropdownEl = headerMenuDropdownRef.value
-  const clickedInsideAnchor = anchorEl && anchorEl.contains(e.target)
-  const clickedInsideDropdown = dropdownEl && dropdownEl.contains(e.target)
-  if (!clickedInsideAnchor && !clickedInsideDropdown) showHeaderMenu.value = false
-}
-function onKeydownHeaderMenu(e) {
-  if (e.key === 'Escape') closeHeaderMenu()
-}
-function repositionHeaderMenuIfOpen() {
-  if (showHeaderMenu.value) updateHeaderMenuPosition()
-}
-onMounted(() => {
-  document.addEventListener('click', onClickOutsideHeaderMenu)
-  document.addEventListener('keydown', onKeydownHeaderMenu)
-  window.addEventListener('scroll', repositionHeaderMenuIfOpen, { passive: true })
-  window.addEventListener('resize', repositionHeaderMenuIfOpen)
-})
-onUnmounted(() => {
-  document.removeEventListener('click', onClickOutsideHeaderMenu)
-  document.removeEventListener('keydown', onKeydownHeaderMenu)
-  window.removeEventListener('scroll', repositionHeaderMenuIfOpen)
-  window.removeEventListener('resize', repositionHeaderMenuIfOpen)
-})
 
 // Repositionner la coachmark à l'étape 1 lors des scroll/resize et des changements de joueurs
 function maybeRepositionCoachmark() {
@@ -2329,6 +2219,9 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', maybeRepositionCoachmark)
   window.removeEventListener('resize', maybeRepositionCoachmark)
+  
+  // Cleanup du scroll pour le header sticky
+  window.removeEventListener('scroll', handleScroll)
 })
 
 // Lancer immédiatement le tutoriel joueur (bouton en haut à droite)
