@@ -33,15 +33,15 @@
                  >
                    Connexion
                  </button>
-                 <!-- Bouton Mon Compte si connecté -->
+                 <!-- Icône Mon Compte si connecté (même style que GridBoard) -->
                  <button 
                    v-else
                    @click="openAccountMenu"
-                   class="px-4 py-2 rounded-lg transition-all duration-300 border transition-colors flex items-center gap-2"
-                   :class="isScrolled ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'"
+                   class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+                   title="Mon compte"
+                   aria-label="Mon compte"
                  >
-                   <span>👤</span>
-                   <span class="hidden sm:inline">Mon compte</span>
+                   <span class="text-2xl">👤</span>
                  </button>
                </div>
         </div>

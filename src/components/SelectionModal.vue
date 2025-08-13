@@ -267,7 +267,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')

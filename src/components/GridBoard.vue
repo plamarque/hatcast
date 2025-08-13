@@ -330,6 +330,8 @@
           </div>
         </div>
 
+
+
         <table class="table-auto border-separate border-spacing-0 table-fixed w-auto min-w-max">
           <colgroup>
             <col class="col-left" />
