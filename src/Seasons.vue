@@ -249,10 +249,7 @@
                     <div class="text-gray-400 text-xs">Joueurs</div>
                   </div>
                 </div>
-                <!-- Debug: afficher les données brutes -->
-                <div class="text-xs text-gray-500 mt-2">
-                  Debug: events={{ season.events?.length || 'undefined' }}, players={{ season.players?.length || 'undefined' }}
-                </div>
+
               </div>
 
               <!-- Menu 3 points -->
@@ -610,7 +607,7 @@ import PinModal from './components/PinModal.vue'
 import AccountLoginModal from './components/AccountLoginModal.vue'
 import AccountMenu from './components/AccountMenu.vue'
 import logger from './services/logger.js'
-import { loadEvents, loadPlayers, loadAvailability, loadSelections } from './services/storage.js'
+import { loadEvents, loadPlayers, loadAvailability, loadSelections, setStorageMode, initializeStorage } from './services/storage.js'
 import { auth } from './services/firebase.js'
 import { getLastVisitedSeason } from './services/seasonPreferences.js'
 
@@ -645,6 +642,10 @@ const isScrolled = ref(false)
 
 onMounted(async () => {
   try {
+    // Initialiser le mode de stockage Firebase
+    setStorageMode('firebase')
+    await initializeStorage()
+    
     // Charger vite les saisons pour afficher rapidement
     seasons.value = await getSeasons()
     logger.info('Saisons chargées', { count: seasons.value?.length || 0 })
@@ -658,6 +659,7 @@ onMounted(async () => {
               loadEvents(season.id),
               loadPlayers(season.id)
             ])
+            logger.debug(`Saison ${season.name}: ${events?.length || 0} événements, ${players?.length || 0} joueurs`)
             return {
               ...season,
               events: events || [],
