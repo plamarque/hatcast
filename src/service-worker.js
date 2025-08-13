@@ -9,9 +9,33 @@ self.__WB_DISABLE_DEV_LOGS = true
 precacheAndRoute(self.__WB_MANIFEST || [])
 cleanupOutdatedCaches()
 
+// Force update check and skip waiting for new versions
 self.skipWaiting()
+
+// Handle service worker updates
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      // Clear old caches to ensure new assets are loaded
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== 'workbox-precache-v2') {
+              return caches.delete(cacheName)
+            }
+          })
+        )
+      })
+    ])
+  )
+})
+
+// Listen for messages from the main thread to check for updates
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 // Basic notificationclick handler (future-proof for push integration)

@@ -8,6 +8,23 @@
   >
     Installer l’app
   </button>
+  
+  <!-- Bouton de mise à jour PWA -->
+  <button
+    v-if="updateAvailable && !refreshing"
+    class="fixed bottom-4 right-4 z-50 rounded-full bg-green-600 text-white px-4 py-2 shadow-lg hover:bg-green-700 active:bg-green-800"
+    @click="updateApp"
+  >
+    🔄 Mettre à jour
+  </button>
+  
+  <!-- Indicateur de mise à jour en cours -->
+  <div
+    v-if="refreshing"
+    class="fixed bottom-4 right-4 z-50 rounded-full bg-green-600 text-white px-4 py-2 shadow-lg"
+  >
+    🔄 Mise à jour...
+  </div>
 </template>
 
 <script setup>
@@ -15,6 +32,8 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 
 const deferredPrompt = ref(null)
 const canInstallPwa = ref(false)
+const updateAvailable = ref(false)
+const refreshing = ref(false)
 
 function handleBeforeInstallPrompt(event) {
   event.preventDefault()
@@ -36,9 +55,41 @@ function handleAppInstalled() {
   deferredPrompt.value = null
 }
 
+// Handle service worker updates
+function handleServiceWorkerUpdate() {
+  updateAvailable.value = true
+}
+
+function updateApp() {
+  refreshing.value = true
+  // Send message to service worker to skip waiting
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.postMessage({ type: 'SKIP_WAITING' })
+  }
+  // Reload the page to apply the update
+  window.location.reload()
+}
+
 onMounted(() => {
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)
+  
+  // Check for service worker updates
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing.value) return
+      updateAvailable.value = true
+    })
+    
+    // Check for updates every hour
+    setInterval(() => {
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration) {
+          registration.update()
+        }
+      })
+    }, 60 * 60 * 1000) // 1 hour
+  }
 })
 
 onBeforeUnmount(() => {
