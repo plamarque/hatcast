@@ -31,7 +31,7 @@
     <teleport to="body">
       <div
         v-if="isOpen && isConnected"
-        class="fixed w-52 md:w-56 bg-gray-900 border border-white/20 rounded-lg shadow-xl py-1 z-[9999]"
+        class="fixed w-auto min-w-[180px] max-w-[200px] md:min-w-[200px] md:max-w-[240px] bg-gray-900 border border-white/20 rounded-lg shadow-xl py-1 z-[9999]"
         :style="dropdownStyle"
         role="menu"
       >
@@ -50,14 +50,6 @@
         >
           <span class="text-base md:text-lg flex-shrink-0">🔔</span>
           <span class="truncate">Notifications</span>
-        </button>
-        <button 
-          @click="openPlayers"
-          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
-          role="menuitem"
-        >
-          <span class="text-base md:text-lg flex-shrink-0">👥</span>
-          <span class="truncate">Mes joueurs</span>
         </button>
         <button 
           @click="openHelp"
@@ -90,7 +82,7 @@ const props = defineProps({
   buttonClass: { type: String, default: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
@@ -142,11 +134,6 @@ function openHelp() {
 function openNotifications() {
   isOpen.value = false
   emit('open-notifications')
-}
-
-function openPlayers() {
-  isOpen.value = false
-  emit('open-players')
 }
 
 async function logout() {

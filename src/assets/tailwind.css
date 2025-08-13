@@ -249,6 +249,9 @@
 .max-w-\[70\%\] {
   max-width: 70%;
 }
+.max-w-\[200px\] {
+  max-width: 200px;
+}
 .max-w-full {
   max-width: 100%;
 }
@@ -260,6 +263,9 @@
 }
 .min-w-\[120px\] {
   min-width: 120px;
+}
+.min-w-\[180px\] {
+  min-width: 180px;
 }
 .min-w-\[220px\] {
   min-width: 220px;
