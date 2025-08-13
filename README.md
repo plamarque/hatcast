@@ -1,6 +1,6 @@
-# 🎭 Impro Selector
+# 🎭 HatCast
 
-Une application web simple pour gérer les sélections de joueurs pour des spectacles d’improvisation.  
+Une application web simple pour gérer les sélections de joueurs pour des spectacles d'improvisation.  
 Basée sur Vue 3, Firebase et TailwindCSS.
 
 ## ✨ Fonctionnalités
@@ -15,8 +15,8 @@ Basée sur Vue 3, Firebase et TailwindCSS.
 
 1. Clonez le repo :
    ```bash
-   git clone https://github.com/plamarque/impro-selector.git
-   cd impro-selector
+   git clone https://github.com/plamarque/hatcast.git
+   cd hatcast
    ```
 
 2. Copiez le fichier `.env.example` en `.env.local` et remplissez avec vos clés Firebase :

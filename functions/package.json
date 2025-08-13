@@ -1,5 +1,5 @@
 {
-  "name": "impro-selector-functions",
+  "name": "hatcast-functions",
   "engines": { "node": "18" },
   "type": "commonjs",
   "main": "index.js",

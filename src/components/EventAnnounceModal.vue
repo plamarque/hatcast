@@ -266,7 +266,7 @@ const emailSubject = computed(() => {
 
 const emailFrom = computed(() => {
   // Adresse d'expéditeur pour la prévisualisation
-  return 'impropick@gmail.com'
+  return 'contact@hatcast.app'
 })
 
 const emailHtml = computed(() => {

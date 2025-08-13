@@ -55,7 +55,7 @@
           <p>
             Application <span class="text-white">en cours de développement</span>, <span class="text-white">sans garanties</span> à ce stade. Licence libre <span class="text-white">MIT</span>.
           </p>
-          <p>Contact & retours : <a href="mailto:impropick@gmail.com" class="text-blue-300 underline">impropick@gmail.com</a></p>
+          <p>Contact & retours : <a href="mailto:contact@hatcast.app" class="text-blue-300 underline">contact@hatcast.app</a></p>
         </div>
       </div>
 

@@ -17,17 +17,17 @@
         <div class="container mx-auto">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             
-            <!-- Colonne gauche : Logo Kijoukan et illustration -->
+            <!-- Colonne gauche : Logo HatCast et illustration -->
             <div class="text-center lg:text-left order-2 lg:order-1">
               <div class="hero-content-wrapper">
                 
-                <!-- Logo Kijoukan - Checkmark géométrique en masque -->
-                <div class="kijoukan-logo mb-8 flex justify-center lg:justify-start">
+                <!-- Logo HatCast - Checkmark géométrique en masque -->
+                <div class="hatcast-logo mb-8 flex justify-center lg:justify-start">
                   <div class="relative w-24 h-24 md:w-32 md:h-32">
                     <!-- Logo SVG externe avec gradient signature -->
                     <img 
                       src="/logo.svg" 
-                      alt="Logo Kijoukan - Checkmark qui se transforme en masque" 
+                      alt="Logo HatCast - Checkmark qui se transforme en masque" 
                       class="w-full h-full drop-shadow-2xl transform hover:scale-110 transition-all duration-500 hover:rotate-3"
                     />
                   </div>
@@ -46,7 +46,7 @@
                           <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
                           <div class="w-3 h-3 bg-green-500 rounded-full"></div>
                         </div>
-                        <div class="text-gray-400 text-sm">Kijoukan - Grille des disponibilités</div>
+                        <div class="text-gray-400 text-sm">HatCast - Grille des disponibilités</div>
                       </div>
                       
                       <!-- Screenshot simulé de la grille -->
@@ -347,7 +347,7 @@
         <span>Licence MIT</span>
         <span class="mx-2">•</span>
         <a
-          href="https://github.com/plamarque/impro-selector"
+          href="https://github.com/plamarque/hatcast"
           target="_blank"
           rel="noopener noreferrer"
           class="underline decoration-white/20 hover:decoration-white/40 hover:text-gray-200"

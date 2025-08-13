@@ -1,6 +1,6 @@
 {
-  "name": "Kijoukan - Organisateur de spectacles intelligent",
-  "short_name": "Kijoukan",
+  "name": "HatCast - Organisateur de spectacles intelligent",
+  "short_name": "HatCast",
   "description": "Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. Laissez chacun indiquer ses dispos et le hasard choisir pour vous !",
   "start_url": "/",
   "display": "standalone",

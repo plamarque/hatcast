@@ -19,7 +19,7 @@ export function generateICSFile(event, seasonName = '') {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${event.id}@impro-selector.com`,
+    `UID:${event.id}@hatcast.app`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `DTSTART:${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `DTEND:${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
