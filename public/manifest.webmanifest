@@ -1,15 +1,16 @@
 {
   "name": "HatCast - Organisateur de spectacles intelligent",
   "short_name": "HatCast",
+  "id": "/hatcast-app",
   "description": "Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. Laissez chacun indiquer ses dispos et le hasard choisir pour vous !",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#1e1b4b",
   "theme_color": "#A855F7",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "fr",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -36,7 +37,8 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
+  "categories": ["productivity", "utilities", "entertainment"],
+  "prefer_related_applications": false,
   "screenshots": [
     {
       "src": "/icons/icon-512.png",
