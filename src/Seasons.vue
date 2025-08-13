@@ -203,15 +203,7 @@
         </div>
       </div>
 
-      <!-- Bouton Nouvelle saison (en dessous de la grille) -->
-      <div v-if="!isLoading && seasons.length > 0" class="flex justify-center mt-12">
-        <button 
-          @click="showCreateModal = true"
-          class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105"
-        >
-          ✨ Nouvelle saison
-        </button>
-      </div>
+
 
       <!-- Message si aucune saison -->
       <div v-if="!isLoading && seasons.length === 0" class="text-center py-16">
