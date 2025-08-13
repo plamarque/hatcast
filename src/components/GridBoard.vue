@@ -7,6 +7,8 @@
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="showHowItWorksGlobal = true"
+      @open-notifications="openNotifications"
+      @open-players="openPlayers"
       @logout="handleAccountLogoutDevice"
       @open-login="openAccount"
       @open-account="openAccount"
@@ -1229,6 +1231,19 @@
     @logout-device="handleAccountLogoutDevice"
     @delete-account="handleAccountDeleteAccount"
   />
+  
+  <!-- Modale Notifications -->
+  <NotificationsModal
+    :show="showNotifications"
+    @close="closeNotifications"
+  />
+  
+  <!-- Modale Mes Joueurs -->
+  <PlayersModal
+    :show="showPlayers"
+    @close="closePlayers"
+    @manage-player="onManageAccountPlayer"
+  />
 
   <!-- Auth/Association pour ouvrir Mon compte -->
   <AccountClaimModal
@@ -1476,6 +1491,8 @@ import AccountMenu from './AccountMenu.vue'
 import AccountClaimModal from './AccountClaimModal.vue'
 import AccountLoginModal from './AccountLoginModal.vue'
 import SeasonHeader from './SeasonHeader.vue'
+import NotificationsModal from './NotificationsModal.vue'
+import PlayersModal from './PlayersModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1756,9 +1773,25 @@ const showHowItWorksGlobal = ref(false)
 const showAccountMenu = ref(false)
 const showAccountAuth = ref(false)
 const showAccountLogin = ref(false)
+const showNotifications = ref(false)
+const showPlayers = ref(false)
 const accountAuthPlayer = ref(null)
 function openAccountMenu() { showAccountMenu.value = true }
 function closeAccountMenu() { showAccountMenu.value = false }
+
+function openNotifications() { 
+  showNotifications.value = true 
+}
+function closeNotifications() { 
+  showNotifications.value = false 
+}
+
+function openPlayers() { 
+  showPlayers.value = true
+}
+function closePlayers() { 
+  showPlayers.value = false 
+}
 // Ouvrir compte avec flow d'association si anonyme
 function openAccount() {
   try {

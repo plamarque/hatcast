@@ -28,6 +28,8 @@
             :button-class="buttonClass"
             @open-account-menu="openAccountMenu"
             @open-help="openHelp"
+            @open-notifications="openNotifications"
+            @open-players="openPlayers"
             @logout="logout"
             @open-login="openLogin"
           />
@@ -41,15 +43,18 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { auth } from '../services/firebase.js'
 import AccountDropdown from './AccountDropdown.vue'
+import { useRoute } from 'vue-router'
 
 const props = defineProps({
   isScrolled: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'logout', 'open-login'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login'])
+
+const route = useRoute()
 
 // État de connexion géré localement et de manière cohérente
 const currentUser = ref(null)
@@ -71,8 +76,13 @@ function onAuthStateChanged(user) {
   currentUser.value = user
 }
 
+// Forcer la synchronisation de l'état d'authentification
+function forceAuthSync() {
+  currentUser.value = auth.currentUser
+}
+
 onMounted(() => {
-  // Initialiser l'état de connexion
+  // Initialiser l'état de connexion immédiatement
   currentUser.value = auth.currentUser
   
   // Écouter les changements d'état d'authentification
@@ -80,6 +90,14 @@ onMounted(() => {
   
   // Stocker la fonction de cleanup pour onUnmounted
   window._appHeaderUnsubscribe = unsubscribe
+})
+
+// Forcer la synchronisation quand la route change
+watch(() => route.path, () => {
+  // Petit délai pour laisser le temps à Firebase de se synchroniser
+  setTimeout(() => {
+    forceAuthSync()
+  }, 100)
 })
 
 onUnmounted(() => {
@@ -96,6 +114,14 @@ function openAccountMenu() {
 
 function openHelp() {
   emit('open-help')
+}
+
+function openNotifications() {
+  emit('open-notifications')
+}
+
+function openPlayers() {
+  emit('open-players')
 }
 
 function logout() {

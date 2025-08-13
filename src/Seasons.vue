@@ -5,6 +5,8 @@
           :is-scrolled="isScrolled"
           @open-account-menu="openAccountMenu"
           @open-help="scrollToHelp"
+          @open-notifications="openNotifications"
+          @open-players="openPlayers"
           @logout="handleLogout"
           @open-login="openAccountLogin"
         />
@@ -556,6 +558,19 @@
       @close="closeAccountMenu"
       @logout-device="handleLogout"
     />
+    
+    <!-- Modale Notifications -->
+    <NotificationsModal
+      :show="showNotifications"
+      @close="closeNotifications"
+    />
+    
+    <!-- Modale Mes Joueurs -->
+    <PlayersModal
+      :show="showPlayers"
+      @close="closePlayers"
+      @manage-player="handleManagePlayer"
+    />
   </div>
 </template>
 
@@ -568,6 +583,8 @@ import PinModal from './components/PinModal.vue'
 import AccountLoginModal from './components/AccountLoginModal.vue'
 import AccountMenu from './components/AccountMenu.vue'
 import AppHeader from './components/AppHeader.vue'
+import NotificationsModal from './components/NotificationsModal.vue'
+import PlayersModal from './components/PlayersModal.vue'
 import logger from './services/logger.js'
 import { loadEvents, loadPlayers, loadAvailability, loadSelections, setStorageMode, initializeStorage } from './services/storage.js'
 import { auth } from './services/firebase.js'
@@ -595,6 +612,8 @@ const pinErrorMessage = ref('')
 const currentUser = ref(null)
 const showAccountLogin = ref(false)
 const showAccountMenu = ref(false)
+const showNotifications = ref(false)
+const showPlayers = ref(false)
 
 // État du scroll pour le header sticky
 const isScrolled = ref(false)
@@ -607,6 +626,11 @@ onMounted(async () => {
     // Initialiser le mode de stockage Firebase
     setStorageMode('firebase')
     await initializeStorage()
+    
+    // Forcer la synchronisation de l'état d'authentification
+    if (auth?.currentUser) {
+      currentUser.value = auth.currentUser
+    }
     
     // Charger vite les saisons pour afficher rapidement
     seasons.value = await getSeasons()
@@ -654,9 +678,15 @@ onMounted(async () => {
   
   window.addEventListener('scroll', handleScroll, { passive: true })
   
+  // Écouter les changements d'état d'authentification
+  const unsubscribe = auth.onAuthStateChanged((user) => {
+    currentUser.value = user
+  })
+  
   // Cleanup lors de la destruction du composant
   return () => {
     window.removeEventListener('scroll', handleScroll)
+    if (unsubscribe) unsubscribe()
   }
 })
 
@@ -1106,6 +1136,22 @@ function openAccountMenu() {
 
 function closeAccountMenu() {
   showAccountMenu.value = false
+}
+
+function openNotifications() {
+  showNotifications.value = true
+}
+
+function closeNotifications() {
+  showNotifications.value = false
+}
+
+function openPlayers() {
+  showPlayers.value = true
+}
+
+function closePlayers() {
+  showPlayers.value = false
 }
 
 async function handleLogout() {

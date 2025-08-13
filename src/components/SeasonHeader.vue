@@ -24,11 +24,15 @@
           :button-class="buttonClass"
           @open-account-menu="openAccountMenu"
           @open-help="openHelp"
+          @open-notifications="openNotifications"
+          @open-players="openPlayers"
           @logout="logout"
           @open-login="openLogin"
         />
         
+        <!-- Icône aide seulement quand pas connecté (à côté du bouton connexion) -->
         <button
+          v-if="!isConnected"
           @click="openHelp"
           class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
           title="Kezako ?"
@@ -45,6 +49,8 @@
           :button-class="buttonClass"
           @open-account-menu="openAccountMenu"
           @open-help="openHelp"
+          @open-notifications="openNotifications"
+          @open-players="openPlayers"
           @logout="logout"
           @open-login="openLogin"
         />
@@ -63,7 +69,7 @@ const props = defineProps({
   isScrolled: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'logout', 'open-login', 'open-account'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account'])
 
 // État de connexion géré localement et de manière cohérente
 const currentUser = ref(null)
@@ -120,6 +126,14 @@ function openLogin() {
 
 function openHelp() {
   emit('open-help')
+}
+
+function openNotifications() {
+  emit('open-notifications')
+}
+
+function openPlayers() {
+  emit('open-players')
 }
 
 function logout() {

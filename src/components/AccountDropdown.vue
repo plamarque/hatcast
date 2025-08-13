@@ -31,31 +31,50 @@
     <teleport to="body">
       <div
         v-if="isOpen && isConnected"
-        class="fixed w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl py-1 z-[9999]"
+        class="fixed w-52 md:w-56 bg-gray-900 border border-white/20 rounded-lg shadow-xl py-1 z-[9999]"
         :style="dropdownStyle"
         role="menu"
       >
         <button 
           @click="openAccountMenu"
-          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" 
+          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
         >
-          Mon compte
+          <span class="text-base md:text-lg flex-shrink-0">👤</span>
+          <span class="truncate">Mon compte</span>
+        </button>
+        <button 
+          @click="openNotifications"
+          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
+          role="menuitem"
+        >
+          <span class="text-base md:text-lg flex-shrink-0">🔔</span>
+          <span class="truncate">Notifications</span>
+        </button>
+        <button 
+          @click="openPlayers"
+          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
+          role="menuitem"
+        >
+          <span class="text-base md:text-lg flex-shrink-0">👥</span>
+          <span class="truncate">Mes joueurs</span>
         </button>
         <button 
           @click="openHelp"
-          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" 
+          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
         >
-          Aide
+          <span class="text-base md:text-lg flex-shrink-0">❓</span>
+          <span class="truncate">Aide</span>
         </button>
         <div class="border-t border-white/10 my-1"></div>
         <button 
           @click="logout"
-          class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10" 
+          class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
         >
-          Se déconnecter
+          <span class="text-base md:text-lg flex-shrink-0">🚪</span>
+          <span class="truncate">Se déconnecter</span>
         </button>
       </div>
     </teleport>
@@ -71,27 +90,22 @@ const props = defineProps({
   buttonClass: { type: String, default: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'logout', 'open-login'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
 const dropdownButton = ref(null)
 const dropdownStyle = ref({})
 
-// Réinitialiser isLoading quand isConnected change
+// Réinitialiser isLoading immédiatement quand isConnected change
 watch(() => props.isConnected, (newValue) => {
   // Si l'état de connexion change, on peut afficher le contenu immédiatement
   isLoading.value = false
 }, { immediate: true })
 
-// Attendre un peu avant d'afficher le contenu pour éviter le flash (seulement au premier montage)
+// Pas de délai artificiel - afficher immédiatement
 onMounted(() => {
-  // Si isConnected n'a pas encore de valeur, attendre un peu
-  if (props.isConnected === undefined) {
-    setTimeout(() => {
-      isLoading.value = false
-    }, 100)
-  }
+  isLoading.value = false
 })
 
 function openLogin() {
@@ -123,6 +137,16 @@ function openAccountMenu() {
 function openHelp() {
   isOpen.value = false
   emit('open-help')
+}
+
+function openNotifications() {
+  isOpen.value = false
+  emit('open-notifications')
+}
+
+function openPlayers() {
+  isOpen.value = false
+  emit('open-players')
 }
 
 async function logout() {
