@@ -2,25 +2,36 @@
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeModal">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
-      <div class="relative text-center p-6 pb-4 border-b border-white/10">
-        <button @click="closeModal" class="absolute right-3 top-3 text-white/80 hover:text-white">✖️</button>
-        <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-          <span class="text-2xl md:text-3xl">👤</span>
-        </div>
-        <h2 class="text-2xl md:text-3xl font-bold text-white mb-1">{{ player?.name }}</h2>
+      <div class="relative p-4 md:p-6 border-b border-white/10">
+        <button @click="closeModal" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         
-        <!-- Indicateurs de statut -->
-        <div class="flex items-center justify-center gap-2 mt-2">
-          <!-- Indicateur de protection -->
-          <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
-            <span class="text-yellow-400 text-sm">🔒</span>
-            <span class="text-yellow-300 text-xs font-medium">Protégé</span>
+        <!-- Layout horizontal compact -->
+        <div class="flex items-start gap-4 md:gap-6">
+          <!-- Icône illustrative -->
+          <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex-shrink-0 flex items-center justify-center">
+            <span class="text-xl md:text-2xl">👤</span>
           </div>
           
-          <!-- Indicateur de favori -->
-          <div v-if="isPreferred" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
-            <span class="text-purple-400 text-sm">⭐</span>
-            <span class="text-purple-300 text-xs font-medium">Favori</span>
+          <!-- Informations principales -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 mb-2">
+              <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
+              
+              <!-- Indicateurs de statut compacts -->
+              <div class="flex items-center gap-2">
+                <!-- Indicateur de protection -->
+                <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
+                  <span class="text-yellow-400 text-sm">🔒</span>
+                  <span class="text-yellow-300 text-xs font-medium">Protégé</span>
+                </div>
+                
+                <!-- Indicateur de favori -->
+                <div v-if="isPreferred" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
+                  <span class="text-purple-400 text-sm">⭐</span>
+                  <span class="text-purple-300 text-xs font-medium">Favori</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

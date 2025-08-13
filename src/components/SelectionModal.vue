@@ -1,14 +1,69 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="close">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
-      <div class="relative text-center p-6 pb-4 border-b border-white/10">
+      <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
-        <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-3xl">🎭</span>
+        
+        <!-- Layout horizontal compact -->
+        <div class="flex items-start gap-4 md:gap-6">
+          <!-- Icône illustrative -->
+          <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex-shrink-0 flex items-center justify-center">
+            <span class="text-xl md:text-2xl">🎭</span>
+          </div>
+          
+          <!-- Informations principales -->
+          <div class="flex-1 min-w-0">
+            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Sélection pour {{ event?.title }}</h2>
+            
+            <!-- Date + Badge nombre de joueurs + Statut de sélection -->
+            <div class="flex items-center gap-3">
+              <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(event?.date) }}</p>
+              
+              <!-- Badge nombre de joueurs -->
+              <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
+                <span class="text-blue-300">👥</span>
+                <span class="text-blue-200">{{ event?.playerCount || 6 }} joueurs</span>
+              </div>
+              
+              <!-- Indicateur de statut de sélection -->
+              <div 
+                v-if="getSelectionStatus().type === 'ready'"
+                class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
+                title="Prêt pour la sélection"
+              >
+                <span class="text-blue-300 text-xs">🆕</span>
+                <span class="text-blue-200 text-xs">Nouveau</span>
+              </div>
+              
+              <div 
+                v-else-if="getSelectionStatus().type === 'complete'"
+                class="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center gap-1"
+                title="Sélection complète"
+              >
+                <span class="text-green-300 text-xs">✅</span>
+                <span class="text-green-200 text-xs">Complet</span>
+              </div>
+              
+              <div 
+                v-else-if="getSelectionStatus().type === 'incomplete'"
+                class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded text-sm flex items-center gap-1"
+                title="Sélection incomplète"
+              >
+                <span class="text-orange-300 text-xs">⚠️</span>
+                <span class="text-orange-200 text-xs">À finaliser</span>
+              </div>
+              
+              <div 
+                v-else-if="getSelectionStatus().type === 'insufficient'"
+                class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded text-sm flex items-center gap-1"
+                title="Pas assez de joueurs disponibles"
+              >
+                <span class="text-red-300 text-xs">❌</span>
+                <span class="text-red-200 text-xs">Manque</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <h2 class="text-2xl md:text-3xl font-bold text-white mb-1">Sélection pour {{ event?.title }}</h2>
-        <p class="text-sm md:text-base text-purple-300">{{ formatDateFull(event?.date) }}</p>
-
       </div>
       
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
@@ -96,13 +151,7 @@
           </div>
         </div>
         
-        <!-- 3) Avertissement succinct si sélection incomplète -->
-        <div v-if="hasIncompleteSelection" class="mb-3">
-          <div class="flex items-center space-x-2 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-            <div class="text-yellow-400">⚠️</div>
-            <div class="text-yellow-200 text-sm">Sélection incomplète. Vérifie ci-dessous.</div>
-          </div>
-        </div>
+
 
 
 
@@ -139,7 +188,7 @@
       
       </div>
       <!-- Footer sticky -->
-      <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
+      <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="handleSelection" :disabled="availableCount === 0" class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')">
           ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
         </button>
@@ -147,7 +196,7 @@
         <button @click="openAnnounce" :disabled="!hasSelection" class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
           📣 <span class="hidden sm:inline">Annoncer</span><span class="sm:hidden">Annoncer</span>
         </button>
-        <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gray-700 text-white rounded-lg flex-1 whitespace-nowrap">
+        <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap">
           <span class="hidden sm:inline">Fermer</span><span class="sm:hidden">Fermer</span>
         </button>
       </div>
@@ -289,6 +338,55 @@ const slotsWarning = computed(() => {
 const hasSelection = computed(() => {
   return props.currentSelection && props.currentSelection.length > 0
 })
+
+// Fonction pour déterminer le statut de sélection (même logique que getEventStatus dans GridBoard)
+function getSelectionStatus() {
+  const selectedPlayers = props.currentSelection || []
+  const requiredCount = props.event?.playerCount || 6
+  const availableCount = props.availableCount || 0
+  
+  // Cas 1: Sélection incomplète (sélection existante avec problèmes)
+  if (selectedPlayers.length > 0) {
+    const hasUnavailablePlayers = selectedPlayers.some(playerName => !isPlayerAvailable(playerName))
+    const hasInsufficientPlayers = availableCount < requiredCount
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers) {
+      return {
+        type: 'incomplete',
+        hasUnavailablePlayers,
+        hasInsufficientPlayers,
+        unavailablePlayers: selectedPlayers.filter(playerName => !isPlayerAvailable(playerName)),
+        availableCount,
+        requiredCount
+      }
+    }
+  }
+  
+  // Cas 2: Pas assez de joueurs pour faire une sélection
+  if (availableCount < requiredCount) {
+    return {
+      type: 'insufficient',
+      availableCount,
+      requiredCount
+    }
+  }
+  
+  // Cas 3: Assez de joueurs mais pas de sélection
+  if (selectedPlayers.length === 0) {
+    return {
+      type: 'ready',
+      availableCount,
+      requiredCount
+    }
+  }
+  
+  // Cas 4: Sélection complète (tous les joueurs sélectionnés sont disponibles)
+  return {
+    type: 'complete',
+    availableCount,
+    requiredCount
+  }
+}
 
 const hasIncompleteSelection = computed(() => {
   if (!hasSelection.value) return false
