@@ -45,6 +45,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { auth } from '../services/firebase.js'
+import { currentUser, isConnected, forceSync } from '../services/authState.js'
 import AccountDropdown from './AccountDropdown.vue'
 import { useRoute } from 'vue-router'
 
@@ -56,14 +57,6 @@ const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications'
 
 const route = useRoute()
 
-// État de connexion géré localement et de manière cohérente
-const currentUser = ref(null)
-
-// Vérifier l'état de connexion de manière cohérente
-const isConnected = computed(() => {
-  return !!currentUser.value && !currentUser.value?.isAnonymous
-})
-
 // Style du bouton selon l'état du scroll
 const buttonClass = computed(() => {
   return props.isScrolled 
@@ -71,34 +64,14 @@ const buttonClass = computed(() => {
     : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'
 })
 
-// Gestion de l'état d'authentification
-function onAuthStateChanged(user) {
-  currentUser.value = user
-}
-
-// Forcer la synchronisation de l'état d'authentification
-function forceAuthSync() {
-  currentUser.value = auth.currentUser
-}
-
-onMounted(() => {
-  // Initialiser l'état de connexion immédiatement
-  currentUser.value = auth.currentUser
-  
-  // Écouter les changements d'état d'authentification
-  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
-  
-  // Stocker la fonction de cleanup pour onUnmounted
-  window._appHeaderUnsubscribe = unsubscribe
-})
-
 // Forcer la synchronisation quand la route change
 watch(() => route.path, () => {
-  // Petit délai pour laisser le temps à Firebase de se synchroniser
+  // Synchronisation immédiate puis avec un petit délai pour Firebase
+  forceSync()
   setTimeout(() => {
-    forceAuthSync()
+    forceSync()
   }, 100)
-})
+}, { immediate: true })
 
 onUnmounted(() => {
   // Cleanup de l'écouteur d'authentification

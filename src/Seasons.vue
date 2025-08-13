@@ -575,7 +575,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrder } from './services/seasons.js'
 import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
@@ -589,6 +589,7 @@ import logger from './services/logger.js'
 import { loadEvents, loadPlayers, loadAvailability, loadSelections, setStorageMode, initializeStorage } from './services/storage.js'
 import { auth } from './services/firebase.js'
 import { getLastVisitedSeason } from './services/seasonPreferences.js'
+import { currentUser, forceSync, waitForInitialization, forceInitialize } from './services/authState.js'
 
 const seasons = ref([])
 const isLoading = ref(true)
@@ -609,7 +610,6 @@ const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
 
 // Variables pour la gestion de compte
-const currentUser = ref(null)
 const showAccountLogin = ref(false)
 const showAccountMenu = ref(false)
 const showNotifications = ref(false)
@@ -623,36 +623,81 @@ const isScrolled = ref(false)
 
 onMounted(async () => {
   try {
+    logger.info('Début du chargement des saisons')
+    
     // Initialiser le mode de stockage Firebase
     setStorageMode('firebase')
+    logger.info('Mode de stockage défini sur Firebase')
+    
     await initializeStorage()
+    logger.info('Stockage initialisé')
+    
+    // Attendre que le service d'authentification soit initialisé
+    logger.info('Attente de l\'initialisation du service d\'authentification...')
+    try {
+      // Essayer de forcer l'initialisation si nécessaire
+      forceInitialize()
+      
+      await waitForInitialization()
+      logger.info('Service d\'authentification initialisé')
+    } catch (authError) {
+      logger.warn('Service d\'authentification non initialisé, continuation sans authentification:', authError.message || 'Erreur inconnue')
+      // Continuer quand même
+    }
     
     // Forcer la synchronisation de l'état d'authentification
-    if (auth?.currentUser) {
-      currentUser.value = auth.currentUser
+    try {
+      forceSync()
+      logger.info('Synchronisation forcée effectuée')
+    } catch (syncError) {
+      logger.warn('Erreur lors de la synchronisation forcée:', syncError)
     }
     
     // Charger vite les saisons pour afficher rapidement
-    seasons.value = await getSeasons()
-    logger.info('Saisons chargées', { count: seasons.value?.length || 0 })
+    logger.info('Chargement des saisons...')
+    try {
+      seasons.value = await getSeasons()
+      logger.info('Saisons chargées', { count: seasons.value?.length || 0 })
+    } catch (seasonsError) {
+      logger.error('Erreur lors du chargement des saisons:', seasonsError)
+      throw seasonsError
+    }
     
     // Charger les événements et joueurs pour chaque saison
     if (seasons.value.length > 0) {
+      logger.info('Chargement des données des saisons...')
       const seasonsWithData = await Promise.all(
         seasons.value.map(async (season) => {
           try {
-            const [events, players] = await Promise.all([
-              loadEvents(season.id),
-              loadPlayers(season.id)
-            ])
+            logger.debug(`Chargement des données pour la saison: ${season.name} (ID: ${season.id})`)
+            
+            let events, players
+            
+            try {
+              events = await loadEvents(season.id)
+              logger.debug(`Événements chargés pour ${season.name}:`, events)
+            } catch (eventsError) {
+              logger.warn(`Erreur lors du chargement des événements pour ${season.name}:`, eventsError)
+              events = []
+            }
+            
+            try {
+              players = await loadPlayers(season.id)
+              logger.debug(`Joueurs chargés pour ${season.name}:`, players)
+            } catch (playersError) {
+              logger.warn(`Erreur lors du chargement des joueurs pour ${season.name}:`, playersError)
+              players = []
+            }
+            
             logger.debug(`Saison ${season.name}: ${events?.length || 0} événements, ${players?.length || 0} joueurs`)
+            
             return {
               ...season,
               events: events || [],
               players: players || []
             }
           } catch (error) {
-            logger.warn(`Erreur lors du chargement des données pour la saison ${season.id}`, error)
+            logger.warn(`Erreur lors du chargement des données pour la saison ${season.id}:`, error)
             return {
               ...season,
               events: [],
@@ -663,12 +708,30 @@ onMounted(async () => {
       )
       seasons.value = seasonsWithData
       logger.info('Données des saisons chargées', { count: seasons.value.length })
+      
+      // Log final pour vérifier
+      seasons.value.forEach(season => {
+        logger.info(`Saison finale ${season.name}: ${season.events?.length || 0} événements, ${season.players?.length || 0} joueurs`)
+      })
     }
     
     // Lancer les migrations en arrière-plan
     migrateMissingSortOrders().catch(err => logger.error('Migration sortOrder échouée', err))
+  } catch (error) {
+    logger.error('Erreur lors du chargement initial des saisons:', error)
+    logger.error('Stack trace:', error.stack)
+    
+    // Fallback : essayer de charger les saisons sans attendre l'authentification
+    try {
+      logger.info('Tentative de fallback pour charger les saisons...')
+      seasons.value = await getSeasons()
+      logger.info('Saisons chargées en fallback', { count: seasons.value?.length || 0 })
+    } catch (fallbackError) {
+      logger.error('Échec du fallback pour charger les saisons:', fallbackError)
+    }
   } finally {
     isLoading.value = false
+    logger.info('Chargement terminé, isLoading = false')
   }
 
   // Détecter le scroll pour le header sticky
@@ -678,15 +741,9 @@ onMounted(async () => {
   
   window.addEventListener('scroll', handleScroll, { passive: true })
   
-  // Écouter les changements d'état d'authentification
-  const unsubscribe = auth.onAuthStateChanged((user) => {
-    currentUser.value = user
-  })
-  
   // Cleanup lors de la destruction du composant
   return () => {
     window.removeEventListener('scroll', handleScroll)
-    if (unsubscribe) unsubscribe()
   }
 })
 
@@ -1106,14 +1163,7 @@ async function executePendingOperation(operation) {
   }
 }
 
-// Gestion de l'état de connexion
-function onAuthStateChanged(user) {
-  currentUser.value = user
-  logger.debug('État de connexion changé', { 
-    isLoggedIn: !!user, 
-    email: user?.email || 'non connecté' 
-  })
-}
+// Gestion de l'état de connexion - maintenant géré par le service centralisé
 
 // Fonctions de gestion de compte
 function openAccountLogin() {
@@ -1154,11 +1204,16 @@ function closePlayers() {
   showPlayers.value = false
 }
 
+function handleManagePlayer() {
+  // Fonction pour gérer un joueur (peut être étendue plus tard)
+  logger.debug('Gestion de joueur demandée')
+}
+
 async function handleLogout() {
   try {
     await auth.signOut()
     showAccountMenu.value = false
-    currentUser.value = null
+    // currentUser est géré par le service centralisé, pas besoin de le modifier ici
     logger.info('Utilisateur déconnecté avec succès')
   } catch (error) {
     logger.error('Erreur lors de la déconnexion', error)
@@ -1186,14 +1241,33 @@ async function handlePostLoginNavigation() {
 // Initialisation de l'écouteur d'état d'authentification
 onMounted(() => {
   // Initialiser l'état de connexion
-  currentUser.value = auth.currentUser
-  
-  // Écouter les changements d'état d'authentification
-  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
+  forceSync()
   
   // Cleanup lors de la destruction du composant
   return () => {
-    unsubscribe()
+    // Pas de cleanup nécessaire car géré par le service centralisé
   }
 })
+
+// Forcer la synchronisation lors des changements de route
+watch(() => router.currentRoute.value.path, async (newPath) => {
+  // Si on arrive sur la page d'accueil, forcer la synchronisation
+  if (newPath === '/') {
+    // Synchroniser l'état d'authentification
+    forceSync()
+    
+    // Recharger les saisons si elles ne sont pas encore chargées
+    if (seasons.value.length === 0 && !isLoading.value) {
+      isLoading.value = true
+      try {
+        seasons.value = await getSeasons()
+        logger.info('Saisons rechargées lors du changement de route', { count: seasons.value?.length || 0 })
+      } catch (error) {
+        logger.error('Erreur lors du rechargement des saisons', error)
+      } finally {
+        isLoading.value = false
+      }
+    }
+  }
+}, { immediate: true })
 </script>

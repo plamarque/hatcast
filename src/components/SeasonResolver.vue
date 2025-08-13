@@ -14,6 +14,7 @@ import { useRouter } from 'vue-router'
 import { auth } from '../services/firebase.js'
 import { getSeasons } from '../services/seasons.js'
 import { getLastVisitedSeason, clearLastSeasonPreference, isSeasonValid } from '../services/seasonPreferences.js'
+import { currentUser, forceSync, waitForInitialization } from '../services/authState.js'
 import logger from '../services/logger.js'
 
 const router = useRouter()
@@ -23,15 +24,32 @@ onMounted(async () => {
   try {
     loadingMessage.value = 'Vérification de votre session...'
     
-    // Attendre que Firebase Auth soit initialisé
-    await new Promise(resolve => {
+    // Forcer la synchronisation de l'état d'authentification
+    forceSync()
+    
+    // Attendre que le service d'authentification soit initialisé
+    await waitForInitialization()
+    
+    // Attendre que Firebase Auth soit initialisé avec un timeout
+    const user = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Timeout Firebase Auth'))
+      }, 3000) // 3 secondes max
+      
       const unsubscribe = auth.onAuthStateChanged((user) => {
+        clearTimeout(timeout)
         unsubscribe()
         resolve(user)
       })
+      
+      // Si l'utilisateur est déjà connecté, résoudre immédiatement
+      if (auth.currentUser) {
+        clearTimeout(timeout)
+        unsubscribe()
+        resolve(auth.currentUser)
+      }
     })
 
-    const user = auth.currentUser
     const userEmail = user?.email
 
     // Si pas d'utilisateur connecté, rediriger vers la page des saisons
@@ -82,6 +100,5 @@ onMounted(async () => {
     router.replace('/seasons')
   }
 })
-
 
 </script>

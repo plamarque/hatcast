@@ -1945,6 +1945,11 @@ onMounted(() => {
       updateEventMoreActionsMobilePosition()
     }
   }, { passive: true })
+  
+  // Retourner la fonction de cleanup
+  return () => {
+    window.removeEventListener('scroll', handleScroll)
+  }
 })
 
 // Quand le modal onboarding se ferme, synchroniser la grille
@@ -2252,9 +2257,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', maybeRepositionCoachmark)
   window.removeEventListener('resize', maybeRepositionCoachmark)
-  
-  // Cleanup du scroll pour le header sticky
-  window.removeEventListener('scroll', handleScroll)
 })
 
 // Lancer immédiatement le tutoriel joueur (bouton en haut à droite)

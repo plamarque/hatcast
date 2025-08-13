@@ -86,11 +86,18 @@ export async function initializeStorage() {
 }
 
 export async function loadEvents(seasonId = null) {
-  const events = mode === 'firebase' 
-    ? seasonId 
-      ? (await getDocs(collection(db, 'seasons', seasonId, 'events'))).docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      : (await getDocs(collection(db, 'events'))).docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    : eventList
+  let events
+  if (mode === 'firebase') {
+    if (seasonId) {
+      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
+      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } else {
+      const eventsSnap = await getDocs(collection(db, 'events'))
+      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    }
+  } else {
+    events = eventList
+  }
 
   // Tri des événements par date (croissant) puis par titre (alphabétique)
   return events.sort((a, b) => {
@@ -112,11 +119,18 @@ export async function loadEvents(seasonId = null) {
 }
 
 export async function loadPlayers(seasonId = null) {
-  const players = mode === 'firebase' 
-    ? seasonId
-      ? (await getDocs(collection(db, 'seasons', seasonId, 'players'))).docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      : (await getDocs(collection(db, 'players'))).docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    : playersList
+  let players
+  if (mode === 'firebase') {
+    if (seasonId) {
+      const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
+      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } else {
+      const playersSnap = await getDocs(collection(db, 'players'))
+      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    }
+  } else {
+    players = playersList
+  }
 
   // Tri par order puis par nom
   return players.sort((a, b) => {
