@@ -53,7 +53,7 @@
 #
 # =============================================================================
 
-echo "🎭 Génération des icônes pour Impro Selector..."
+echo "🎭 Génération des icônes pour HatCast..."
 
 # Créer le dossier icons s'il n'existe pas
 mkdir -p public/icons

@@ -6,6 +6,18 @@ import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/fires
 import { queuePushMessage } from './pushService'
 import { buildAvailabilityEmailTemplate } from './emailTemplates.js'
 
+// Configuration centralisée de l'expéditeur
+const DEFAULT_FROM_EMAIL = 'HatCast <impropick@gmail.com>'
+const DEFAULT_REPLY_TO = 'impropick@gmail.com'
+
+// Fonction utilitaire pour configurer l'expéditeur
+function getFromEmailConfig(customFromEmail = null) {
+  return {
+    from: customFromEmail || DEFAULT_FROM_EMAIL,
+    replyTo: customFromEmail || DEFAULT_REPLY_TO
+  }
+}
+
 // Pour utiliser EmailJS, il faut :
 // 1. Créer un compte sur https://www.emailjs.com/
 // 2. Configurer un service d'email (Gmail, Outlook, etc.)
@@ -63,10 +75,11 @@ export async function queueAvailabilityEmail({
     createdAt: serverTimestamp(),
     meta: { reason, eventTitle, eventDate, playerName }
   }
-  if (fromEmail) {
-    docData.from = fromEmail
-    docData.replyTo = fromEmail
-  }
+  
+  // Configurer l'expéditeur (HatCast par défaut)
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
 
   await addDoc(collection(db, 'mail'), docData)
 
@@ -118,10 +131,11 @@ export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'pl
     createdAt: serverTimestamp(),
     meta: { reason: purpose, displayName }
   }
-  if (fromEmail) {
-    docData.from = fromEmail
-    docData.replyTo = fromEmail
-  }
+  
+  // Configurer l'expéditeur (HatCast par défaut)
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
   await addDoc(collection(db, 'mail'), docData)
 }
 
@@ -180,10 +194,11 @@ export async function queueSelectionEmail({
     createdAt: serverTimestamp(),
     meta: { reason: 'selection', eventTitle, eventDate, playerName }
   }
-  if (fromEmail) {
-    docData.from = fromEmail
-    docData.replyTo = fromEmail
-  }
+  
+  // Configurer l'expéditeur (HatCast par défaut)
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
 
   logger.debug('queueSelectionEmail firestore payload ready')
   
@@ -262,10 +277,11 @@ export async function queueDeselectionEmail({
     createdAt: serverTimestamp(),
     meta: { reason: 'deselection', eventTitle, eventDate, playerName, newSelectedPlayers }
   }
-  if (fromEmail) {
-    docData.from = fromEmail
-    docData.replyTo = fromEmail
-  }
+  
+  // Configurer l'expéditeur (HatCast par défaut)
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
 
   await addDoc(collection(db, 'mail'), docData)
 

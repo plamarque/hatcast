@@ -15,11 +15,11 @@ export function generateICSFile(event, seasonName = '') {
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Impro Selector//Calendar Event//FR',
+    'PRODID:-//HatCast//Calendar Event//FR',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${event.id}@hatcast.app`,
+    `UID:${event.id}@impropick.com`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `DTSTART:${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `DTEND:${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
@@ -72,7 +72,7 @@ export function generateGoogleCalendarLink(event, seasonName = '') {
     text: event.title,
     dates: `${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     details: `${event.description || ''}${seasonName ? `\n\nSaison : ${seasonName}` : ''}`,
-    location: 'Impro Selector',
+    location: 'HatCast',
     sf: 'true',
     output: 'xml'
   })
@@ -95,7 +95,7 @@ export function generateOutlookLink(event, seasonName = '') {
     startdt: startDate.toISOString(),
     enddt: endDate.toISOString(),
     body: `${event.description || ''}${seasonName ? `\n\nSaison : ${seasonName}` : ''}`,
-    location: 'Impro Selector',
+    location: 'HatCast',
     allday: 'false'
   })
 

@@ -1,7 +1,7 @@
 // Service de gestion de la session PIN
 // 1 semaine en millisecondes
 const PIN_SESSION_DURATION = 7 * 24 * 60 * 60 * 1000
-const PIN_SESSION_KEY = 'impro_selector_pin_session'
+const PIN_SESSION_KEY = 'hatcast_pin_session'
 
 class PinSessionManager {
   constructor() {

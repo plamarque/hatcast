@@ -23,9 +23,9 @@ export default defineConfig({
         navigateFallback: '/',
       },
       manifest: {
-        name: 'Tu joues quand ? ',
-        short_name: 'Impro',
-        description: "Tu joues quand ? est l'application impro pour vos spectacles.",
+        name: 'HatCast',
+        short_name: 'HatCast',
+        description: "HatCast est l'application pour organiser vos spectacles d'improvisation.",
         start_url: '/',
         scope: '/',
         display: 'standalone',

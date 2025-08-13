@@ -3,7 +3,7 @@
 // uniquement qu'un appareil est "de confiance" pour un playerId pendant une
 // longue période. Les données sont persistées en localStorage.
 
-const TRUST_STORAGE_KEY = 'impro_selector_trusted_players'
+const TRUST_STORAGE_KEY = 'hatcast_trusted_players'
 const TRUST_DURATION = 180 * 24 * 60 * 60 * 1000 // ~6 mois
 
 class PlayerPasswordSessionManager {

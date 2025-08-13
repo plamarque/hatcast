@@ -498,8 +498,8 @@
           <div>
             <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact</h4>
             <div class="space-y-2">
-              <a href="mailto:contact@hatcast.app" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
-                📧 contact@hatcast.app
+              <a href="mailto:impropick@gmail.com" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
+                📧 impropick@gmail.com
               </a>
               <p class="text-gray-500 text-xs">Retours et suggestions bienvenus</p>
             </div>

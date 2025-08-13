@@ -147,7 +147,7 @@ async function sendTestPush() {
   testPushError.value = ''
   testPushSuccess.value = ''
   try {
-    await queuePushMessage({ toEmail: email.value, title: 'Test Impro Selector', body: 'Ceci est un test de notification', data: { url: '/' }, reason: 'manual_test' })
+            await queuePushMessage({ toEmail: email.value, title: 'Test HatCast', body: 'Ceci est un test de notification', data: { url: '/' }, reason: 'manual_test' })
     testPushSuccess.value = 'OK'
   } catch (e) {
     testPushError.value = 'Échec de l\'envoi du test'
