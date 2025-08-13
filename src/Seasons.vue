@@ -1,20 +1,137 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-    <!-- Header avec titre principal -->
-    <div class="text-center py-16 px-4 relative">
+        <!-- Section Hero -->
+    <section class="hero-section relative overflow-hidden">
+      <!-- Bouton d'aide flottant -->
       <button
         @click="showAppHelp = true"
-        class="absolute right-4 top-4 text-white/90 hover:text-white p-2 rounded-full hover:bg-white/10"
+        class="absolute right-4 top-4 z-10 text-white/90 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all duration-200"
         title="Kezako ?"
         aria-label="Kezako ?"
       >
         <span class="text-2xl">❓</span>
       </button>
-      <h1 class="text-6xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent animate-pulse">
-        Tu joues quand ?
-      </h1>
-      <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. Laissez chacun indiquer ses dispos et le hasard choisir pour vous !</p>
-    </div>
+      
+      <!-- Contenu du Hero à 2 colonnes -->
+      <div class="hero-content py-20 md:py-28 px-4 relative z-10">
+        <div class="container mx-auto">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            
+            <!-- Colonne gauche : Grande illustration avec screenshots -->
+            <div class="text-center lg:text-left order-2 lg:order-1">
+              <div class="hero-illustration relative">
+                <!-- Mockup principal avec screenshot de la grille -->
+                <div class="relative mx-auto lg:mx-0 w-full max-w-lg">
+                  <!-- Fond du mockup -->
+                  <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-4 shadow-2xl border border-white/10">
+                    <!-- Barre de titre du mockup -->
+                    <div class="flex items-center gap-3 mb-4">
+                      <div class="flex gap-2">
+                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                      </div>
+                      <div class="text-gray-400 text-sm">Kijoukan - Grille des disponibilités</div>
+                    </div>
+                    
+                    <!-- Screenshot simulé de la grille -->
+                    <div class="bg-gray-700 rounded-2xl p-4 min-h-[300px]">
+                      <!-- En-tête avec événements -->
+                      <div class="grid grid-cols-4 gap-2 mb-4">
+                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">15 Jan</div>
+                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">22 Jan</div>
+                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">29 Jan</div>
+                        <div class="text-center text-xs text-gray-300 bg-gray-600 rounded p-2">5 Fév</div>
+                      </div>
+                      
+                      <!-- Lignes des joueurs -->
+                      <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                          <div class="w-16 text-xs text-gray-300">Marie</div>
+                          <div class="grid grid-cols-4 gap-2 flex-1">
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            <div class="h-6 bg-gray-500/20 border border-gray-500/30 rounded"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-16 text-xs text-gray-300">Pierre</div>
+                          <div class="grid grid-cols-4 gap-2 flex-1">
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <div class="w-16 text-xs text-gray-300">Sophie</div>
+                          <div class="grid grid-cols-4 gap-2 flex-1">
+                            <div class="h-6 bg-red-500/20 border border-red-500/30 rounded"></div>
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                            <div class="h-6 bg-green-500/20 border border-green-500/30 rounded"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Éléments flottants décoratifs -->
+                  <div class="absolute -top-4 -right-4 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-500 rounded-2xl shadow-xl transform rotate-12"></div>
+                  <div class="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl shadow-xl transform -rotate-12"></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Colonne droite : Contenu et CTA -->
+            <div class="text-center lg:text-left order-1 lg:order-2">
+              <!-- Titre principal -->
+              <div class="hero-title mb-6">
+                <h1 class="text-4xl md:text-6xl font-bold text-white mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                  Tu joues quand ?
+                </h1>
+              </div>
+              
+              <!-- Sous-titre -->
+              <div class="hero-subtitle mb-8">
+                <p class="text-xl md:text-2xl text-gray-300 leading-relaxed">
+                  Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. 
+                  Laissez chacun indiquer ses dispos et le hasard choisir pour vous !
+                </p>
+              </div>
+              
+              <!-- Call-to-action principal -->
+              <div class="hero-cta mb-8">
+                <button 
+                  @click="showCreateModal = true"
+                  class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full shadow-2xl hover:shadow-pink-500/25 transition-all duration-300 transform hover:scale-105 text-lg md:text-xl"
+                >
+                  🚀 Démarrez
+                </button>
+              </div>
+              
+              <!-- Indication subtile -->
+              <div class="hero-hint">
+                <div class="inline-flex items-center gap-2 text-gray-400 text-sm">
+                  <span>↓</span>
+                  <span>Vos saisons ci-dessous</span>
+                  <span>↓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Effets visuels du hero -->
+      <div class="hero-background absolute inset-0 z-0">
+        <!-- Cercles décoratifs -->
+        <div class="absolute top-20 left-10 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-20 right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl"></div>
+      </div>
+    </section>
 
     <div class="container mx-auto px-4 pb-16" :aria-busy="isLoading">
       <!-- Grille des saisons (chargement) -->
