@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "hatcast": "impro-selector",
+    "default": "impro-selector"
+  },
+  "targets": {},
+  "etags": {}
+}

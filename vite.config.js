@@ -5,7 +5,9 @@ import fs from 'fs'
 
 const CERT_PATH = process.env.VITE_HTTPS_CERT_PATH
 const KEY_PATH = process.env.VITE_HTTPS_KEY_PATH
-const httpsConfig = (CERT_PATH && KEY_PATH && fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH))
+const FORCE_HTTPS = process.env.VITE_FORCE_HTTPS === 'true'
+
+const httpsConfig = (CERT_PATH && KEY_PATH && fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH) && FORCE_HTTPS)
   ? { cert: fs.readFileSync(CERT_PATH), key: fs.readFileSync(KEY_PATH) }
   : false
 

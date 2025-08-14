@@ -1,6 +1,6 @@
 // FCM push notifications helper
-import { isSupported, getMessaging, getToken, onMessage, deleteToken } from 'firebase/messaging'
-import { app, db, auth } from './firebase'
+import { isSupported, getToken, onMessage, deleteToken } from 'firebase/messaging'
+import { db, auth, getMessaging } from './firebase'
 import { setDoc, doc, serverTimestamp, arrayUnion } from 'firebase/firestore'
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY

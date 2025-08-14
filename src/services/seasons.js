@@ -16,12 +16,13 @@ import {
 const SEASONS_COLLECTION = 'seasons'
 
 // Add a season
-export async function addSeason(name, slug, pinCode, description = '') {
+export async function addSeason(name, slug, pinCode, description = '', logoUrl = '') {
   return await addDoc(collection(db, SEASONS_COLLECTION), {
     name,
     slug,
     pinCode,
     description,
+    logoUrl,
     createdAt: serverTimestamp(),
   })
 }
@@ -81,7 +82,7 @@ export async function updateSeasonName(seasonId, newName) {
   await updateDoc(seasonRef, { name: newName })
 }
 
-// Update season (name and description)
+// Update season (name, description and logo)
 export async function updateSeason(seasonId, updates) {
   const seasonRef = doc(db, SEASONS_COLLECTION, seasonId)
   await updateDoc(seasonRef, updates)

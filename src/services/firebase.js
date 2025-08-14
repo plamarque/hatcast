@@ -1,6 +1,8 @@
 // src/services/firebase.js
 import { initializeApp } from 'firebase/app'
 import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
+import { getStorage } from 'firebase/storage'
+import { getMessaging } from 'firebase/messaging'
 import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -15,6 +17,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
+const storage = getStorage(app)
 const auth = getAuth(app)
 
 // Activer la persistance IndexedDB (accélère les lectures répétées et le hors-ligne)
@@ -82,4 +85,4 @@ export async function updatePlayerPassword(newPassword) {
   }
 }
 
-export { app, db, auth }
+export { db, auth, storage, getMessaging }

@@ -194,8 +194,14 @@
               class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 w-full max-w-sm"
             >
               <div @click="goToSeason(season.slug)" class="text-center cursor-pointer">
-                <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
-                  <span class="text-2xl">🎭</span>
+                <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg overflow-hidden">
+                  <img 
+                    v-if="season.logoUrl" 
+                    :src="season.logoUrl" 
+                    :alt="`Logo de ${season.name}`"
+                    class="w-full h-full object-cover"
+                  >
+                  <span v-else class="text-2xl">🎭</span>
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors">
                   {{ season.name }}
@@ -328,6 +334,9 @@
           ></textarea>
           <p class="text-xs text-gray-400 mt-1">Une brève description de votre saison</p>
         </div>
+        
+
+        
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-300 mb-2">Code PIN (4 chiffres)</label>
           <input
@@ -422,6 +431,70 @@
             placeholder="Ex: Saison 2025-2026 de la troupe d'improvisation La Malice"
           ></textarea>
         </div>
+        
+        <!-- Section Logo de la troupe -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Logo de la troupe (optionnel)</label>
+          
+          <!-- Prévisualisation du logo actuel ou nouveau -->
+          <div v-if="editSeasonLogoPreview || seasonToEdit?.logoUrl" class="mb-4 text-center">
+            <div class="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-2 border-white/20">
+              <img 
+                :src="editSeasonLogoPreview || seasonToEdit?.logoUrl" 
+                :alt="`Logo de ${seasonToEdit?.name}`"
+                class="w-full h-full object-cover"
+              >
+            </div>
+            <button
+              v-if="editSeasonLogoPreview || seasonToEdit?.logoUrl"
+              @click="removeLogo"
+              type="button"
+              class="text-xs text-red-400 hover:text-red-300 transition-colors"
+            >
+              Supprimer le logo
+            </button>
+          </div>
+          
+          <!-- Zone d'upload -->
+          <div :class="[
+            'border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300',
+            isLogoUploading 
+              ? 'border-blue-500 bg-blue-900/20 animate-pulse' 
+              : 'border-gray-600 hover:border-gray-500'
+          ]">
+            <input
+              ref="logoFileInput"
+              type="file"
+              accept="image/*"
+              @change="handleLogoUpload"
+              class="hidden"
+            >
+            <button
+              @click="triggerLogoUpload"
+              type="button"
+              :disabled="isLogoUploading"
+              class="text-gray-300 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div v-if="isLogoUploading" class="text-2xl mb-2 animate-spin">⏳</div>
+              <div v-else class="text-2xl mb-2">📷</div>
+              <div class="text-sm">
+                <span v-if="isLogoUploading">
+                  Upload en cours...
+                </span>
+                <span v-else-if="!editSeasonLogoPreview && !seasonToEdit?.logoUrl">
+                  Cliquez pour ajouter un logo
+                </span>
+                <span v-else>
+                  Cliquez pour changer le logo
+                </span>
+              </div>
+              <div v-if="!isLogoUploading" class="text-xs text-gray-400 mt-1">
+                PNG, JPG, GIF (max 5MB)
+              </div>
+            </button>
+          </div>
+        </div>
+        
         <p class="mb-6 text-sm text-blue-400 bg-blue-900/20 p-3 rounded-lg border border-blue-500/20">
           ℹ️ Le slug de l'URL restera inchangé pour préserver les liens existants.
         </p>
@@ -434,10 +507,14 @@
           </button>
           <button
             @click="confirmEdit"
-            :disabled="!editSeasonName.trim() || (editSeasonName.trim() === seasonToEdit?.name && editSeasonDescription === (seasonToEdit?.description || ''))"
+            :disabled="!editSeasonName.trim() || (editSeasonName.trim() === seasonToEdit?.name && editSeasonDescription === (seasonToEdit?.description || '') && !editSeasonLogo) || isLogoUploading"
             class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-300"
           >
-            Modifier
+            <span v-if="isLogoUploading" class="flex items-center gap-2">
+              <span class="animate-spin">⏳</span>
+              Upload en cours...
+            </span>
+            <span v-else>Modifier</span>
           </button>
         </div>
       </div>
@@ -648,6 +725,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrder, updateSeason } from './services/seasons.js'
+import { uploadImage, deleteImage, isFirebaseStorageUrl } from './services/imageUpload.js'
 import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
@@ -675,10 +753,14 @@ const newSeasonName = ref('')
 const newSeasonSlug = ref('')
 const newSeasonDescription = ref('')
 const newSeasonPin = ref('')
+
 const editSeasonName = ref('')
 const editSeasonDescription = ref('')
+const editSeasonLogo = ref(null)
+const editSeasonLogoPreview = ref('')
 const seasonToDelete = ref(null)
 const seasonToEdit = ref(null)
+const isLogoUploading = ref(false)
 
 // Variables pour la protection par PIN
 const showPinModal = ref(false)
@@ -857,6 +939,8 @@ function openEditModal(season) {
   seasonToEdit.value = season
   editSeasonName.value = season.name
   editSeasonDescription.value = season.description || ''
+  editSeasonLogo.value = null
+  editSeasonLogoPreview.value = season.logoUrl || ''
   showEditModal.value = true
   closeMenu()
 }
@@ -866,6 +950,9 @@ function cancelEdit() {
   seasonToEdit.value = null
   editSeasonName.value = ''
   editSeasonDescription.value = ''
+  editSeasonLogo.value = null
+  editSeasonLogoPreview.value = ''
+  isLogoUploading.value = false
 }
 
 async function confirmEdit() {
@@ -880,8 +967,11 @@ async function confirmEdit() {
       seasonName: seasonToEdit.value.name,
       newName: editSeasonName.value.trim(),
       newDescription: editSeasonDescription.value.trim(),
+      newLogo: editSeasonLogo.value,
+      newLogoPreview: editSeasonLogoPreview.value,
       oldName: seasonToEdit.value.name,
-      oldDescription: seasonToEdit.value.description || ''
+      oldDescription: seasonToEdit.value.description || '',
+      oldLogoUrl: seasonToEdit.value.logoUrl || ''
     }
   })
 }
@@ -899,6 +989,45 @@ function scrollToSeasons() {
     seasonsSection.scrollIntoView({ behavior: 'smooth' })
   }
 }
+
+// Fonctions pour la gestion du logo
+function handleLogoUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    editSeasonLogo.value = file
+    isLogoUploading.value = true
+    
+    // Créer une prévisualisation
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      editSeasonLogoPreview.value = e.target.result
+      isLogoUploading.value = false
+    }
+    reader.onerror = () => {
+      isLogoUploading.value = false
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+function removeLogo() {
+  console.log('removeLogo appelé')
+  editSeasonLogo.value = null
+  editSeasonLogoPreview.value = ''
+  console.log('Logo supprimé')
+}
+
+function triggerLogoUpload() {
+  // Trouver l'input file spécifique à l'édition
+  const fileInput = document.querySelector('input[type="file"][accept="image/*"]')
+  if (fileInput) {
+    fileInput.click()
+  } else {
+    console.error('Input file non trouvé pour triggerLogoUpload')
+  }
+}
+
+
 
 async function migrateMissingSortOrders() {
   // Si aucune saison, rien à faire
@@ -1108,7 +1237,8 @@ async function createSeason() {
       newSeasonName.value.trim(), 
       newSeasonSlug.value.trim(), 
       newSeasonPin.value.trim(),
-      newSeasonDescription.value.trim()
+      newSeasonDescription.value.trim(),
+      ''  // Pas de logo à la création
     )
     seasons.value = await getSeasons() // Recharger la liste
     await migrateMissingSortOrders() // Assigner un ordre si manquant (nouvelles saisons en dernier)
@@ -1280,7 +1410,11 @@ async function executePendingOperation(operation) {
         logger.info('Modification de la saison', { seasonId: data.seasonId })
         
         // Vérifier si des changements ont été effectués
-        if (data.newName === data.oldName && data.newDescription === data.oldDescription) {
+        const hasNameChange = data.newName !== data.oldName
+        const hasDescriptionChange = data.newDescription !== data.oldDescription
+        const hasLogoChange = data.newLogo !== null
+        
+        if (!hasNameChange && !hasDescriptionChange && !hasLogoChange) {
           logger.info('Aucun changement détecté, opération annulée')
           return
         }
@@ -1290,6 +1424,36 @@ async function executePendingOperation(operation) {
         if (data.newName !== data.oldName) updates.name = data.newName
         if (data.newDescription !== data.oldDescription) updates.description = data.newDescription
         
+        // Gérer l'upload du logo si nécessaire
+        if (data.newLogo) {
+          try {
+            isLogoUploading.value = true
+            logger.info('Upload du nouveau logo...')
+            const logoUrl = await uploadImage(data.newLogo, `season-logos/${data.seasonId}`, {
+              resize: true,
+              maxWidth: 64,   // Taille exacte d'affichage
+              maxHeight: 64,
+              quality: 0.6    // Qualité réduite car très petit
+            })
+            updates.logoUrl = logoUrl
+            
+            // Supprimer l'ancien logo s'il existe
+            if (data.oldLogoUrl && isFirebaseStorageUrl(data.oldLogoUrl)) {
+              try {
+                await deleteImage(data.oldLogoUrl)
+                logger.info('Ancien logo supprimé')
+              } catch (deleteError) {
+                logger.warn('Erreur lors de la suppression de l\'ancien logo:', deleteError)
+              }
+            }
+          } catch (uploadError) {
+            logger.error('Erreur lors de l\'upload du logo:', uploadError)
+            throw new Error('Erreur lors de l\'upload du logo: ' + uploadError.message)
+          } finally {
+            isLogoUploading.value = false
+          }
+        }
+        
         // Mettre à jour dans Firestore
         await updateSeason(data.seasonId, updates)
         
@@ -1298,6 +1462,7 @@ async function executePendingOperation(operation) {
         if (seasonIndex !== -1) {
           if (updates.name) seasons.value[seasonIndex].name = data.newName
           if (updates.description !== undefined) seasons.value[seasonIndex].description = data.newDescription
+          if (updates.logoUrl) seasons.value[seasonIndex].logoUrl = updates.logoUrl
         }
         
         logger.info('Saison modifiée avec succès', { 
