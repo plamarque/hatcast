@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic PWA Détaillé - HatCast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background: rgba(34, 197, 94, 0.3); border: 1px solid #22c55e; }
+        .error { background: rgba(239, 68, 68, 0.3); border: 1px solid #ef4444; }
+        .warning { background: rgba(245, 158, 11, 0.3); border: 1px solid #f59e0b; }
+        .info { background: rgba(59, 130, 246, 0.3); border: 1px solid #3b82f6; }
+        
+        .criteria {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .user-agent {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostic PWA Détaillé - HatCast</h1>
+        
+        <div id="summary"></div>
+        
+        <div class="criteria">
+            <h3>📋 Critères d'éligibilité Chrome PWA</h3>
+            <div id="criteria"></div>
+        </div>
+        
+        <div>
+            <button onclick="runFullDiagnostic()">🔍 Diagnostic complet</button>
+            <button onclick="checkInstallability()">📱 Vérifier installabilité</button>
+            <button onclick="clearLog()">🗑️ Effacer les logs</button>
+            <button onclick="location.reload()">🔄 Recharger</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+        
+        <div class="user-agent" id="userAgent"></div>
+    </div>
+
+    <script>
+        let deferredPrompt = null;
+        const summaryDiv = document.getElementById('summary');
+        const criteriaDiv = document.getElementById('criteria');
+        const logDiv = document.getElementById('log');
+        const userAgentDiv = document.getElementById('userAgent');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #9ca3af;">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        function updateSummary(message, type) {
+            summaryDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function updateCriteria(criteria) {
+            criteriaDiv.innerHTML = criteria;
+        }
+        
+        // Afficher User Agent
+        function showUserAgent() {
+            const ua = navigator.userAgent;
+            userAgentDiv.innerHTML = `<strong>User Agent:</strong> ${ua}`;
+            
+            // Détecter Chrome Mobile
+            const isChromeMobile = /Chrome/.test(ua) && /Mobile/.test(ua);
+            const isAndroid = /Android/.test(ua);
+            
+            log(`🌐 User Agent: ${ua}`);
+            log(`📱 Chrome Mobile: ${isChromeMobile ? '✅ Oui' : '❌ Non'}`);
+            log(`🤖 Android: ${isAndroid ? '✅ Oui' : '❌ Non'}`);
+        }
+        
+        // Vérifier les critères d'éligibilité Chrome
+        async function checkChromeCriteria() {
+            log('🔍 Vérification des critères Chrome PWA...');
+            
+            let criteria = '';
+            let allPassed = true;
+            
+            // 1. HTTPS
+            if (location.protocol === 'https:') {
+                criteria += '<div class="status success">✅ HTTPS actif</div>';
+                log('✅ HTTPS actif');
+            } else {
+                criteria += '<div class="status error">❌ HTTPS requis</div>';
+                log('❌ HTTPS requis pour PWA');
+                allPassed = false;
+            }
+            
+            // 2. Manifest valide
+            try {
+                const manifestResponse = await fetch('/manifest.webmanifest');
+                if (manifestResponse.ok) {
+                    const manifest = await manifestResponse.json();
+                    criteria += '<div class="status success">✅ Manifest accessible et valide</div>';
+                    log('✅ Manifest accessible et valide');
+                    
+                    // Vérifier les propriétés requises
+                    const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+                    const missing = required.filter(prop => !manifest[prop]);
+                    
+                    if (missing.length === 0) {
+                        criteria += '<div class="status success">✅ Toutes les propriétés requises présentes</div>';
+                        log('✅ Toutes les propriétés requises présentes');
+                    } else {
+                        criteria += `<div class="status error">❌ Propriétés manquantes: ${missing.join(', ')}</div>`;
+                        log(`❌ Propriétés manquantes: ${missing.join(', ')}`);
+                        allPassed = false;
+                    }
+                    
+                    // Vérifier les icônes
+                    if (manifest.icons && manifest.icons.length > 0) {
+                        const has192 = manifest.icons.some(icon => icon.sizes === '192x192' && icon.purpose && icon.purpose.includes('any'));
+                        const has512 = manifest.icons.some(icon => icon.sizes === '512x512' && icon.purpose && icon.purpose.includes('any'));
+                        
+                        if (has192 && has512) {
+                            criteria += '<div class="status success">✅ Icônes 192x192 et 512x512 présentes</div>';
+                            log('✅ Icônes 192x192 et 512x512 présentes');
+                        } else {
+                            criteria += '<div class="status error">❌ Icônes 192x192 et 512x512 requises</div>';
+                            log('❌ Icônes 192x192 et 512x512 requises');
+                            allPassed = false;
+                        }
+                    } else {
+                        criteria += '<div class="status error">❌ Aucune icône définie</div>';
+                        log('❌ Aucune icône définie');
+                        allPassed = false;
+                    }
+                    
+                    // Vérifier display standalone
+                    if (manifest.display === 'standalone') {
+                        criteria += '<div class="status success">✅ Display standalone</div>';
+                        log('✅ Display standalone');
+                    } else {
+                        criteria += '<div class="status error">❌ Display standalone requis</div>';
+                        log('❌ Display standalone requis');
+                        allPassed = false;
+                    }
+                } else {
+                    criteria += '<div class="status error">❌ Manifest non accessible</div>';
+                    log('❌ Manifest non accessible');
+                    allPassed = false;
+                }
+            } catch (error) {
+                criteria += '<div class="status error">❌ Erreur manifest</div>';
+                log(`❌ Erreur manifest: ${error.message}`);
+                allPassed = false;
+            }
+            
+            // 3. Service Worker
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        criteria += '<div class="status success">✅ Service Worker enregistré</div>';
+                        log('✅ Service Worker enregistré');
+                    } else {
+                        criteria += '<div class="status error">❌ Service Worker non enregistré</div>';
+                        log('❌ Service Worker non enregistré');
+                        allPassed = false;
+                    }
+                } catch (error) {
+                    criteria += '<div class="status error">❌ Erreur Service Worker</div>';
+                    log(`❌ Erreur Service Worker: ${error.message}`);
+                    allPassed = false;
+                }
+            } else {
+                criteria += '<div class="status error">❌ Service Worker non supporté</div>';
+                log('❌ Service Worker non supporté');
+                allPassed = false;
+            }
+            
+            // 4. Navigation engagement
+            const engagement = await checkEngagement();
+            if (engagement) {
+                criteria += '<div class="status success">✅ Engagement utilisateur suffisant</div>';
+                log('✅ Engagement utilisateur suffisant');
+            } else {
+                criteria += '<div class="status warning">⚠️ Engagement utilisateur insuffisant (peut prendre du temps)</div>';
+                log('⚠️ Engagement utilisateur insuffisant (peut prendre du temps)');
+            }
+            
+            updateCriteria(criteria);
+            return allPassed;
+        }
+        
+        // Vérifier l'engagement utilisateur
+        async function checkEngagement() {
+            // Chrome vérifie l'engagement utilisateur (visites répétées, temps passé, etc.)
+            // On ne peut pas le mesurer directement, mais on peut donner des conseils
+            log('📊 Vérification de l\'engagement utilisateur...');
+            
+            // Vérifier si c'est la première visite
+            const visitCount = localStorage.getItem('hatcast-visit-count') || 0;
+            const newCount = parseInt(visitCount) + 1;
+            localStorage.setItem('hatcast-visit-count', newCount);
+            
+            log(`📈 Nombre de visites: ${newCount}`);
+            
+            if (newCount >= 3) {
+                return true;
+            } else {
+                log(`💡 Conseil: Visitez cette page ${3 - newCount} fois de plus pour améliorer l'éligibilité`);
+                return false;
+            }
+        }
+        
+        // Vérifier l'installabilité
+        function checkInstallability() {
+            log('📱 Vérification de l\'installabilité...');
+            
+            if (deferredPrompt) {
+                log('🎉 Événement beforeinstallprompt disponible !');
+                updateSummary('🎉 Installation PWA disponible !', 'success');
+            } else {
+                log('❌ Événement beforeinstallprompt non disponible');
+                updateSummary('❌ Installation PWA non disponible - Vérifiez les critères ci-dessus', 'error');
+            }
+            
+            // Vérifier si déjà installé
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                log('📱 Application déjà installée en mode standalone');
+                updateSummary('📱 Application déjà installée', 'info');
+            }
+        }
+        
+        // Diagnostic complet
+        async function runFullDiagnostic() {
+            clearLog();
+            log('🚀 Démarrage du diagnostic complet...');
+            
+            showUserAgent();
+            
+            const criteriaPassed = await checkChromeCriteria();
+            
+            if (criteriaPassed) {
+                log('✅ Tous les critères techniques sont satisfaits');
+                updateSummary('✅ Critères techniques satisfaits - L\'installation devrait être possible', 'success');
+            } else {
+                log('❌ Certains critères ne sont pas satisfaits');
+                updateSummary('❌ Critères techniques non satisfaits - Corrigez les erreurs ci-dessus', 'error');
+            }
+            
+            checkInstallability();
+        }
+        
+        // Écouter l'événement beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            log('🎉 ÉVÉNEMENT BEFOREINSTALLPROMPT DÉCLENCHÉ !');
+            
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            updateSummary('🎉 Installation PWA disponible !', 'success');
+            checkInstallability();
+        });
+        
+        // Événement quand l'app est installée
+        window.addEventListener('appinstalled', (evt) => {
+            log('✅ Application installée avec succès !');
+            updateSummary('✅ Application installée !', 'success');
+            deferredPrompt = null;
+        });
+        
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🚀 Diagnostic PWA initialisé');
+            showUserAgent();
+            runFullDiagnostic();
+        });
+        
+        // Log des erreurs
+        window.addEventListener('error', (e) => {
+            log(`❌ Erreur: ${e.message}`, 'error');
+        });
+    </script>
+</body>
+</html>
