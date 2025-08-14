@@ -119,36 +119,62 @@
               </template>
             </div>
 
-            <!-- Push preview (closer to Android notification) -->
-            <div v-else-if="activePreviewTab === 'push'" :class="(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact) ? 'text-white' : 'bg-gray-900 border border-gray-700 rounded-xl p-4 text-white'">
+            <!-- Push preview avec style téléphone -->
+            <div v-else-if="activePreviewTab === 'push'" :class="(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact) ? 'text-white' : ''">
               <template v-if="!(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact)">
-              <!-- Header line: app + time + bell -->
-              <div class="flex items-center justify-between text-xs text-white/70">
-                <div class="flex items-center gap-2 min-w-0">
-                  <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">🔔</div>
-                  <div class="truncate">HatCast</div>
-                  <span class="opacity-60">•</span>
-                  <span>il y a 1 min</span>
+                <!-- Mockup de téléphone pour la prévisualisation -->
+                <div class="phone-mockup-preview">
+                  <div class="phone-screen-preview">
+                    <!-- Barre de statut du téléphone -->
+                    <div class="phone-status-bar">
+                      <div class="status-left">
+                        <span class="time">9:41</span>
+                      </div>
+                      <div class="status-right">
+                        <span class="signal">📶</span>
+                        <span class="wifi">📶</span>
+                        <span class="battery">🔋</span>
+                      </div>
+                    </div>
+                    
+                    <!-- Zone de notification -->
+                    <div class="notification-preview-area">
+                      <div class="notification-card">
+                        <!-- Header de la notification -->
+                        <div class="notification-header">
+                          <div class="notification-icon">🔔</div>
+                          <div class="notification-app">HatCast</div>
+                          <div class="notification-time">il y a 1 min</div>
+                        </div>
+                        
+                        <!-- Contenu de la notification -->
+                        <div class="notification-content">
+                          <div class="notification-title">{{ pushTitle }}</div>
+                          <div class="notification-body">{{ pushBody }}</div>
+                        </div>
+                        
+                        <!-- Actions de la notification -->
+                        <div class="notification-actions">
+                          <template v-if="props.mode === 'event'">
+                            <button class="action-btn action-yes">✅ Dispo</button>
+                            <button class="action-btn action-no">❌ Pas dispo</button>
+                          </template>
+                          <template v-else>
+                            <button class="action-btn action-no">❌ Plus dispo</button>
+                          </template>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Contenu de l'app en arrière-plan -->
+                    <div class="phone-app-content">
+                      <div class="app-header">
+                        <h3>📱 HatCast</h3>
+                        <p>Votre application en arrière-plan</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <img src="/icons/manifest-icon-192.maskable.png" alt="App icon" class="w-10 h-10 rounded-full shadow" />
-              </div>
-
-              <!-- Body -->
-              <div class="mt-3">
-                <div class="text-lg font-semibold leading-snug">{{ pushTitle }}</div>
-                <div class="mt-2 text-base whitespace-pre-line text-white/90">{{ pushBody }}</div>
-              </div>
-
-              <!-- Actions (chips) -->
-              <div class="mt-4 flex items-center gap-4 text-base">
-                <template v-if="props.mode === 'event'">
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-600/20 text-green-300 border border-green-600/40">✅ Dispo</span>
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600/20 text-red-300 border border-red-600/40">❌ Pas dispo</span>
-                </template>
-                <template v-else>
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600/20 text-red-300 border border-red-600/40">❌ Plus dispo</span>
-                </template>
-              </div>
               </template>
               <template v-else>
                 <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm mb-2">
@@ -646,3 +672,211 @@ watch(() => props.sending, (now) => {
   }
 })
 </script>
+
+<style scoped>
+/* Styles pour le mockup de téléphone dans la prévisualisation push */
+.phone-mockup-preview {
+  width: 280px;
+  height: 500px;
+  background: #1a1a1a;
+  border-radius: 20px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  border: 2px solid #333;
+  overflow: hidden;
+}
+
+.phone-screen-preview {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.phone-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: #000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  color: white;
+  z-index: 10;
+}
+
+.status-left .time {
+  font-weight: 600;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notification-preview-area {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  z-index: 5;
+}
+
+.notification-card {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 12px;
+  border-left: 4px solid #22c55e;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideInNotification 0.3s ease-out;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.notification-icon {
+  width: 20px;
+  height: 20px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.notification-app {
+  font-weight: 600;
+  font-size: 12px;
+  color: white;
+  flex: 1;
+}
+
+.notification-time {
+  font-size: 10px;
+  color: #888;
+}
+
+.notification-content {
+  margin-bottom: 8px;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.notification-body {
+  font-size: 12px;
+  color: #ccc;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-yes {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.action-yes:hover {
+  background: rgba(34, 197, 94, 0.3);
+}
+
+.action-no {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.action-no:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.phone-app-content {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  padding: 16px;
+  color: white;
+  font-size: 11px;
+  opacity: 0.3;
+}
+
+.app-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #22c55e;
+}
+
+.app-header p {
+  margin: 0;
+  line-height: 1.3;
+  color: #888;
+}
+
+@keyframes slideInNotification {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive pour mobile */
+@media (max-width: 640px) {
+  .phone-mockup-preview {
+    width: 240px;
+    height: 420px;
+  }
+  
+  .notification-card {
+    padding: 10px;
+  }
+  
+  .notification-title {
+    font-size: 13px;
+  }
+  
+  .notification-body {
+    font-size: 11px;
+  }
+}
+</style>

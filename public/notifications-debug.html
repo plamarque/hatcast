@@ -70,6 +70,183 @@
             border-radius: 10px;
             margin: 20px 0;
         }
+
+        /* Style de téléphone pour les notifications */
+        .phone-mockup {
+            width: 300px;
+            height: 600px;
+            background: #1a1a1a;
+            border-radius: 25px;
+            margin: 20px auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 3px solid #333;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border-radius: 22px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 25px;
+            background: #1a1a1a;
+            border-radius: 0 0 15px 15px;
+            z-index: 10;
+        }
+
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 12px;
+            color: white;
+            z-index: 5;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .battery {
+            width: 20px;
+            height: 10px;
+            border: 1px solid white;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .battery::after {
+            content: '';
+            position: absolute;
+            right: -3px;
+            top: 2px;
+            width: 2px;
+            height: 6px;
+            background: white;
+            border-radius: 0 1px 1px 0;
+        }
+
+        .battery-level {
+            width: 70%;
+            height: 100%;
+            background: #22c55e;
+            border-radius: 1px;
+        }
+
+        .notification-area {
+            position: absolute;
+            top: 30px;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .notification-preview {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #22c55e;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .notification-icon {
+            width: 24px;
+            height: 24px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: #888;
+            margin-left: auto;
+        }
+
+        .notification-body {
+            font-size: 13px;
+            color: #ccc;
+            line-height: 1.4;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .phone-content {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            padding: 20px;
+            color: white;
+            font-size: 12px;
+            overflow-y: auto;
+        }
+
+        .phone-content h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            color: #22c55e;
+        }
+
+        .phone-content p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -78,10 +255,41 @@
         
         <div id="summary"></div>
         
+        <!-- Mockup de téléphone pour visualiser les notifications -->
+        <div class="phone-mockup">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+                <div class="status-bar">
+                    <div class="status-left">
+                        <span>9:41</span>
+                    </div>
+                    <div class="status-right">
+                        <span>📶</span>
+                        <span>📶</span>
+                        <span>📶</span>
+                        <div class="battery">
+                            <div class="battery-level"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="notification-area" id="notificationArea">
+                    <!-- Les notifications apparaîtront ici -->
+                </div>
+                
+                <div class="phone-content">
+                    <h3>📱 HatCast</h3>
+                    <p>Cette zone simule l'écran d'un téléphone pour visualiser les notifications push.</p>
+                    <p>Les notifications apparaîtront en haut de l'écran avec une animation de glissement.</p>
+                </div>
+            </div>
+        </div>
+        
         <div class="test-notification">
             <h3>🧪 Test de notification</h3>
-                    <button id="testNotificationBtn">📢 Tester notification locale</button>
-        <button id="testPushNotificationBtn">🚀 Tester notification push</button>
+            <button id="testNotificationBtn">📢 Tester notification locale</button>
+            <button id="testPushNotificationBtn">🚀 Tester notification push</button>
+            <button id="testPhoneNotificationBtn">📱 Tester notification téléphone</button>
         </div>
         
         <div>
@@ -97,6 +305,7 @@
         // Version simplifiée pour le diagnostic (sans Firebase)
         const summaryDiv = document.getElementById('summary');
         const logDiv = document.getElementById('log');
+        const notificationArea = document.getElementById('notificationArea');
         
         function log(message, type = 'info') {
             const timestamp = new Date().toLocaleTimeString();
@@ -113,6 +322,42 @@
         function updateSummary(message, type) {
             summaryDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
         }
+
+        // Fonction pour créer une notification dans le mockup téléphone
+        function createPhoneNotification(title, body, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification-preview';
+            
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '🔔';
+            const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-icon">${icon}</div>
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-time">${time}</div>
+                </div>
+                <div class="notification-body">${body}</div>
+            `;
+            
+            notificationArea.appendChild(notification);
+            
+            // Supprimer la notification après 5 secondes
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(-100%)';
+                    notification.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+            
+            return notification;
+        }
         
         // Test de notification locale
         function testNotification() {
@@ -120,16 +365,19 @@
             
             if (!('Notification' in window)) {
                 log('❌ Notifications non supportées par ce navigateur', 'error');
+                createPhoneNotification('Erreur', 'Notifications non supportées', 'error');
                 return;
             }
             
             if (Notification.permission === 'denied') {
                 log('❌ Permission de notification refusée', 'error');
+                createPhoneNotification('Permission refusée', 'Impossible d\'afficher les notifications', 'error');
                 return;
             }
             
             if (Notification.permission === 'default') {
                 log('⚠️ Permission de notification non demandée', 'warning');
+                createPhoneNotification('Permission requise', 'Veuillez autoriser les notifications', 'warning');
                 return;
             }
             
@@ -142,6 +390,7 @@
                 });
                 
                 log('✅ Notification locale envoyée avec succès', 'success');
+                createPhoneNotification('Test HatCast', 'Ceci est un test de notification locale', 'success');
                 
                 notification.onclick = () => {
                     log('👆 Notification cliquée');
@@ -154,7 +403,25 @@
                 
             } catch (error) {
                 log(`❌ Erreur notification locale: ${error.message}`, 'error');
+                createPhoneNotification('Erreur', `Erreur: ${error.message}`, 'error');
             }
+        }
+
+        // Test de notification dans le mockup téléphone
+        function testPhoneNotification() {
+            log('📱 Test de notification téléphone...');
+            
+            const notifications = [
+                { title: 'HatCast', body: 'Nouvelle saison disponible !', type: 'success' },
+                { title: 'HatCast', body: 'Votre tour arrive dans 5 minutes', type: 'info' },
+                { title: 'HatCast', body: 'Erreur de connexion', type: 'error' },
+                { title: 'HatCast', body: 'Mise à jour disponible', type: 'warning' }
+            ];
+            
+            const randomNotification = notifications[Math.floor(Math.random() * notifications.length)];
+            createPhoneNotification(randomNotification.title, randomNotification.body, randomNotification.type);
+            
+            log(`✅ Notification téléphone créée: ${randomNotification.title} - ${randomNotification.body}`, 'success');
         }
         
         // Test de notification push (version simplifiée)
@@ -166,14 +433,17 @@
                 if (typeof firebase === 'undefined') {
                     log('❌ Firebase non disponible dans cette page', 'error');
                     log('💡 Utilisez la page principale de l\'app pour tester les notifications push', 'info');
+                    createPhoneNotification('Firebase manquant', 'Utilisez la page principale pour tester les notifications push', 'warning');
                     return;
                 }
                 
                 log('✅ Firebase disponible', 'success');
                 log('📱 Pour tester les notifications push, utilisez la page principale de l\'app', 'info');
+                createPhoneNotification('Firebase OK', 'Notifications push disponibles sur la page principale', 'success');
                 
             } catch (error) {
                 log(`❌ Erreur test push: ${error.message}`, 'error');
+                createPhoneNotification('Erreur Push', `Erreur: ${error.message}`, 'error');
             }
         }
         
@@ -183,6 +453,7 @@
             
             if (!('Notification' in window)) {
                 log('❌ Notifications non supportées', 'error');
+                createPhoneNotification('Non supporté', 'Notifications non supportées par ce navigateur', 'error');
                 return;
             }
             
@@ -192,9 +463,13 @@
                 
                 if (permission === 'granted') {
                     log('✅ Permission accordée pour les notifications locales', 'success');
+                    createPhoneNotification('Permission accordée', 'Vous pouvez maintenant recevoir des notifications', 'success');
+                } else {
+                    createPhoneNotification('Permission refusée', 'Les notifications ne seront pas affichées', 'warning');
                 }
             } catch (error) {
                 log(`❌ Erreur demande permission: ${error.message}`, 'error');
+                createPhoneNotification('Erreur', `Erreur: ${error.message}`, 'error');
             }
         }
         
@@ -206,8 +481,10 @@
             // 1. Support des notifications
             if ('Notification' in window) {
                 log('✅ Notifications supportées par le navigateur', 'success');
+                createPhoneNotification('Diagnostic', 'Notifications supportées par le navigateur', 'success');
             } else {
                 log('❌ Notifications non supportées par le navigateur', 'error');
+                createPhoneNotification('Diagnostic', 'Notifications non supportées', 'error');
                 updateSummary('❌ Notifications non supportées', 'error');
                 return;
             }
@@ -216,6 +493,7 @@
             log(`📋 Permission actuelle: ${Notification.permission}`);
             if (Notification.permission === 'denied') {
                 log('❌ Permission refusée - impossible d\'activer les notifications', 'error');
+                createPhoneNotification('Diagnostic', 'Permission refusée - impossible d\'activer les notifications', 'error');
                 updateSummary('❌ Permission refusée', 'error');
                 return;
             }
@@ -227,18 +505,22 @@
                     if (registration) {
                         log('✅ Service Worker enregistré', 'success');
                         log(`📋 État: ${registration.active ? 'Actif' : 'Inactif'}`);
+                        createPhoneNotification('Diagnostic', 'Service Worker enregistré et actif', 'success');
                     } else {
                         log('❌ Service Worker non enregistré', 'error');
+                        createPhoneNotification('Diagnostic', 'Service Worker non enregistré', 'error');
                         updateSummary('❌ Service Worker manquant', 'error');
                         return;
                     }
                 } catch (error) {
                     log(`❌ Erreur Service Worker: ${error.message}`, 'error');
+                    createPhoneNotification('Diagnostic', `Erreur Service Worker: ${error.message}`, 'error');
                     updateSummary('❌ Erreur Service Worker', 'error');
                     return;
                 }
             } else {
                 log('❌ Service Worker non supporté', 'error');
+                createPhoneNotification('Diagnostic', 'Service Worker non supporté', 'error');
                 updateSummary('❌ Service Worker non supporté', 'error');
                 return;
             }
@@ -246,10 +528,12 @@
             // 4. Firebase Messaging (vérification basique)
             if (typeof firebase !== 'undefined') {
                 log('✅ Firebase disponible', 'success');
+                createPhoneNotification('Diagnostic', 'Firebase disponible - notifications push OK', 'success');
                 updateSummary('✅ Notifications locales fonctionnelles', 'success');
             } else {
                 log('⚠️ Firebase non disponible dans cette page', 'warning');
                 log('💡 Pour tester les notifications push, utilisez la page principale de l\'app', 'info');
+                createPhoneNotification('Diagnostic', 'Firebase non disponible - testez sur la page principale', 'warning');
                 updateSummary('⚠️ Notifications locales OK, push à tester sur la page principale', 'warning');
             }
         }
@@ -261,6 +545,7 @@
             // Ajouter les event listeners
             document.getElementById('testNotificationBtn').addEventListener('click', testNotification);
             document.getElementById('testPushNotificationBtn').addEventListener('click', testPushNotification);
+            document.getElementById('testPhoneNotificationBtn').addEventListener('click', testPhoneNotification);
             document.getElementById('runDiagnosticBtn').addEventListener('click', runDiagnostic);
             document.getElementById('requestPermissionBtn').addEventListener('click', requestPermission);
             document.getElementById('clearLogBtn').addEventListener('click', clearLog);
