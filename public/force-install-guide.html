@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Installation Forcée - HatCast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .method {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #22c55e;
+        }
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        .step-number {
+            background: #22c55e;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .screenshot {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+        }
+        .note {
+            background: rgba(245, 158, 11, 0.3);
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success {
+            background: rgba(34, 197, 94, 0.3);
+            border: 1px solid #22c55e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Guide Installation Forcée HatCast</h1>
+        
+        <div class="success">
+            <strong>✅ Votre PWA est prête !</strong><br>
+            Tous les critères techniques sont satisfaits. Voici comment l'installer manuellement.
+        </div>
+        
+        <div class="method">
+            <h3>🔧 Méthode 1 : Menu Chrome Mobile</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Ouvrez <strong>https://selections.la-malice.fr</strong> sur Chrome Mobile</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Appuyez sur le <strong>menu (3 points)</strong> en haut à droite</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Cherchez et appuyez sur <strong>"Ajouter à l'écran d'accueil"</strong> ou <strong>"Installer l'application"</strong></div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div>Confirmez l'installation dans la popup qui apparaît</div>
+            </div>
+            
+            <div class="screenshot">
+                📱 <strong>À quoi ça ressemble :</strong><br>
+                Menu Chrome → "Ajouter à l'écran d'accueil"<br>
+                <small>L'option peut être dans un sous-menu</small>
+            </div>
+        </div>
+        
+        <div class="method">
+            <h3>🎯 Méthode 2 : Chrome Desktop</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Ouvrez <strong>https://selections.la-malice.fr</strong> sur Chrome Desktop</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Appuyez sur <strong>F12</strong> pour ouvrir les DevTools</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Allez dans l'onglet <strong>"Application"</strong></div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div>Dans la section <strong>"Manifest"</strong>, cliquez sur <strong>"Add to homescreen"</strong></div>
+            </div>
+        </div>
+        
+        <div class="method">
+            <h3>⏰ Méthode 3 : Attendre l'événement automatique</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Visitez régulièrement <strong>https://selections.la-malice.fr</strong></div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Utilisez les fonctionnalités du site (navigation, clics, etc.)</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Attendez que Chrome déclenche automatiquement l'événement (peut prendre 24h)</div>
+            </div>
+            
+            <div class="note">
+                <strong>💡 Conseil :</strong> Chrome peut prendre du temps à "faire confiance" au site. 
+                Plus vous l'utilisez, plus vite l'installation sera proposée.
+            </div>
+        </div>
+        
+        <div class="method">
+            <h3>🔍 Vérification de l'installation</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Après installation, cherchez l'icône HatCast sur votre écran d'accueil</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Lancez l'app depuis l'écran d'accueil</div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>L'app devrait s'ouvrir en mode standalone (sans barre d'adresse)</div>
+            </div>
+        </div>
+        
+        <button onclick="window.location.href='/'">🏠 Aller sur HatCast</button>
+        <button onclick="window.location.href='pwa-debug-detailed.html'">🔍 Diagnostic détaillé</button>
+        <button onclick="window.location.href='pwa-engagement-booster.html'">🚀 Booster d'engagement</button>
+        
+        <div class="note">
+            <strong>📋 Pourquoi l'installation automatique ne fonctionne pas ?</strong><br>
+            Chrome a des critères d'engagement utilisateur très stricts. Même avec tous les critères techniques satisfaits, 
+            Chrome peut prendre du temps à déclencher l'événement <code>beforeinstallprompt</code>. 
+            C'est normal et ne signifie pas que votre PWA est mal configurée !
+        </div>
+    </div>
+</body>
+</html>

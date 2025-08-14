@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booster Engagement PWA - HatCast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background: rgba(34, 197, 94, 0.3); border: 1px solid #22c55e; }
+        .info { background: rgba(59, 130, 246, 0.3); border: 1px solid #3b82f6; }
+        .warning { background: rgba(245, 158, 11, 0.3); border: 1px solid #f59e0b; }
+        
+        .progress {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            height: 100%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .tips {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .tip {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        button:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Booster Engagement PWA HatCast</h1>
+        
+        <div class="status info">
+            <strong>💡 Objectif :</strong> Augmenter l'engagement utilisateur pour déclencher l'installation PWA
+        </div>
+        
+        <div class="progress">
+            <h3>📊 Progression de l'engagement</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+            <p>Restez sur cette page pour augmenter votre engagement</p>
+        </div>
+        
+        <div class="tips">
+            <h3>💡 Conseils pour déclencher l'installation PWA</h3>
+            <div class="tip">
+                <strong>⏰ Temps de visite :</strong> Restez au moins 2-3 minutes sur le site
+            </div>
+            <div class="tip">
+                <strong>🔄 Visites répétées :</strong> Revenez plusieurs fois sur le site
+            </div>
+            <div class="tip">
+                <strong>📱 Navigation :</strong> Utilisez les fonctionnalités du site
+            </div>
+            <div class="tip">
+                <strong>🎯 Interaction :</strong> Cliquez sur les boutons et naviguez
+            </div>
+            <div class="tip">
+                <strong>⏳ Patience :</strong> Chrome peut prendre jusqu'à 24h
+            </div>
+        </div>
+        
+        <button onclick="testInstall()" id="installBtn" disabled>📱 Installer l'app (non disponible)</button>
+        <button onclick="goToMainSite()">🏠 Aller sur le site principal</button>
+        <button onclick="refreshPage()">🔄 Recharger la page</button>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let deferredPrompt = null;
+        let startTime = Date.now();
+        let timerInterval;
+        let engagementScore = 0;
+        
+        const progressFill = document.getElementById('progressFill');
+        const timer = document.getElementById('timer');
+        const installBtn = document.getElementById('installBtn');
+        const logDiv = document.getElementById('log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #9ca3af;">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Augmenter l'engagement basé sur le temps
+            if (elapsed < 60) {
+                engagementScore = Math.floor((elapsed / 60) * 30);
+            } else if (elapsed < 180) {
+                engagementScore = 30 + Math.floor(((elapsed - 60) / 120) * 40);
+            } else {
+                engagementScore = 70 + Math.floor(((elapsed - 180) / 120) * 30);
+            }
+            
+            engagementScore = Math.min(engagementScore, 100);
+            progressFill.style.width = `${engagementScore}%`;
+            progressFill.textContent = `${engagementScore}%`;
+            
+            // Log périodique
+            if (elapsed % 30 === 0 && elapsed > 0) {
+                log(`⏰ Engagement: ${engagementScore}% (${minutes}m ${seconds}s)`);
+            }
+        }
+        
+        function testInstall() {
+            if (!deferredPrompt) {
+                log('❌ Aucun prompt d\'installation disponible');
+                return;
+            }
+            
+            log('🚀 Déclenchement de l\'installation...');
+            
+            deferredPrompt.prompt()
+                .then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        log('✅ Installation acceptée !');
+                        installBtn.textContent = '✅ App installée';
+                        installBtn.disabled = true;
+                    } else {
+                        log('❌ Installation refusée');
+                    }
+                    deferredPrompt = null;
+                })
+                .catch((error) => {
+                    log(`❌ Erreur: ${error.message}`);
+                });
+        }
+        
+        function goToMainSite() {
+            window.location.href = '/';
+        }
+        
+        function refreshPage() {
+            location.reload();
+        }
+        
+        // Écouter l'événement beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            log('🎉 ÉVÉNEMENT BEFOREINSTALLPROMPT DÉCLENCHÉ !');
+            
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            installBtn.textContent = '📱 Installer l\'app (disponible)';
+            installBtn.disabled = false;
+            
+            log('✅ Installation PWA maintenant disponible !');
+        });
+        
+        // Événement quand l'app est installée
+        window.addEventListener('appinstalled', (evt) => {
+            log('✅ Application installée avec succès !');
+            installBtn.textContent = '✅ App installée';
+            installBtn.disabled = true;
+            deferredPrompt = null;
+        });
+        
+        // Vérifier si déjà installé
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+            log('📱 Application déjà installée en mode standalone');
+            installBtn.textContent = '✅ App déjà installée';
+            installBtn.disabled = true;
+        }
+        
+        // Démarrer le timer
+        function startTimer() {
+            timerInterval = setInterval(updateTimer, 1000);
+            log('🚀 Booster d\'engagement démarré');
+            log('💡 Restez sur cette page pour augmenter votre engagement');
+        }
+        
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🚀 Booster d\'engagement PWA initialisé');
+            startTimer();
+            
+            // Simuler des interactions pour augmenter l'engagement
+            let interactionCount = 0;
+            
+            // Détecter les clics
+            document.addEventListener('click', () => {
+                interactionCount++;
+                if (interactionCount % 5 === 0) {
+                    log(`👆 Interaction détectée (${interactionCount} clics)`);
+                }
+            });
+            
+            // Détecter le scroll
+            let scrollCount = 0;
+            document.addEventListener('scroll', () => {
+                scrollCount++;
+                if (scrollCount % 10 === 0) {
+                    log(`📜 Scroll détecté (${scrollCount} événements)`);
+                }
+            });
+            
+            // Détecter le focus
+            document.addEventListener('focus', () => {
+                log('🎯 Focus détecté - Engagement augmenté');
+            });
+        });
+        
+        // Nettoyer le timer quand on quitte
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        });
+        
+        // Log des erreurs
+        window.addEventListener('error', (e) => {
+            log(`❌ Erreur: ${e.message}`);
+        });
+    </script>
+</body>
+</html>
