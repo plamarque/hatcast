@@ -25,19 +25,33 @@ export default defineConfig({
         navigateFallback: '/',
       },
       manifest: {
-        name: 'HatCast',
+        name: 'HatCast - Composition d\'équipes d\'impro',
         short_name: 'HatCast',
-        description: "HatCast est l'application pour organiser vos spectacles d'improvisation.",
-        start_url: '/',
+        id: '/hatcast-app',
+        description: 'Facilite la composition d\'équipes de joueurs d\'impro. Laissez chacun indiquer ses disponibilités et le hasard choisit équitablement qui sera sur scène !',
+        start_url: '/?source=pwa',
         scope: '/',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#0ea5e9',
+        orientation: 'portrait-primary',
+        lang: 'fr',
+        version: '3.0.0',
         icons: [
           { src: '/icons/manifest-icon-192.maskable.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icons/manifest-icon-192.maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: '/icons/manifest-icon-512.maskable.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/icons/manifest-icon-512.maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+        ],
+        categories: ['productivity', 'utilities', 'entertainment'],
+        prefer_related_applications: false,
+        screenshots: [
+          {
+            src: '/icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'wide'
+          }
         ]
       }
     })
