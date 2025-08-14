@@ -102,7 +102,7 @@ export function buildSelectionPushPreview({ recipientName, eventTitle, eventDate
  */
 export function buildAvailabilityEmailPreview({ recipientName, eventTitle, eventDate, eventUrl, yesUrl, noUrl }) {
   return {
-    subject: `Disponibilité demandée · ${eventTitle} (${eventDate})`,
+    subject: `🎭 ${eventTitle} · ${eventDate}`,
     from: 'HatCast',
     to: recipientName,
     html: buildAvailabilityEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, yesUrl, noUrl })
@@ -114,7 +114,7 @@ export function buildAvailabilityEmailPreview({ recipientName, eventTitle, event
  */
 export function buildSelectionEmailPreview({ recipientName, eventTitle, eventDate, eventUrl, noUrl }) {
   return {
-    subject: `🎭 Equipe pour ${eventTitle}`,
+    subject: `🎭 Tu es dans la sélection pour ${eventTitle}!`,
     from: 'HatCast',
     to: recipientName,
     html: buildSelectionEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, noUrl })

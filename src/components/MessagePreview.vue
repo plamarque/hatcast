@@ -52,37 +52,33 @@
     </div>
 
     <!-- Aperçu du message -->
-    <div>
+    <div class="relative">
       <label class="block text-sm font-medium text-gray-300 mb-2">Aperçu du message :</label>
-      <!-- Tabs Email/Push/Copy avec libellés explicatifs -->
-      <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
-        <div class="inline-flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700 self-start">
-          <button
-            class="px-3 py-1.5 text-sm transition-colors"
-            :class="activePreviewTab === 'email' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-            @click="activePreviewTab = 'email'"
-            title="Prévisualiser l'email"
-          >📧</button>
-          <button
-            class="px-3 py-1.5 text-sm transition-colors"
-            :class="activePreviewTab === 'push' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-            @click="activePreviewTab = 'push'"
-            title="Prévisualiser la notification push"
-          >🔔</button>
-          <button
-            class="px-3 py-1.5 text-sm transition-colors"
-            :class="activePreviewTab === 'copy' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-            @click="activePreviewTab = 'copy'"
-            title="Prévisualiser le texte à copier"
-            style="font-size: 16px;"
-          >📋</button>
-        </div>
-        
-        <!-- Texte explicatif sur la ligne suivante sur mobile -->
-        <div class="text-sm text-gray-400">
-          <span v-if="activePreviewTab === 'email'">Voici le message que ceux qui ont configuré un email recevront</span>
-          <span v-else-if="activePreviewTab === 'push'">Voici la notification que ceux qui ont installé l'app mobile recevront</span>
-          <span v-else>Voici un texte simple que vous pouvez copier-coller pour annoncer cet événement vous-même où vous voulez (WhatsApp, Email, etc...)</span>
+      
+      <!-- Barre de séparation avec toggle flottant -->
+      <div class="separator-bar">
+        <div class="tabs-floating">
+          <div class="inline-flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700 shadow-lg">
+            <button
+              class="px-3 py-1.5 text-sm transition-colors"
+              :class="activePreviewTab === 'email' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+              @click="activePreviewTab = 'email'"
+              title="Prévisualiser l'email"
+            >📧</button>
+            <button
+              class="px-3 py-1.5 text-sm transition-colors"
+              :class="activePreviewTab === 'push' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+              @click="activePreviewTab = 'push'"
+              title="Prévisualiser la notification push"
+            >📱</button>
+            <button
+              class="px-3 py-1.5 text-sm transition-colors"
+              :class="activePreviewTab === 'copy' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
+              @click="activePreviewTab = 'copy'"
+              title="Prévisualiser le texte à copier"
+              style="font-size: 16px;"
+            >📋</button>
+          </div>
         </div>
       </div>
 
@@ -120,10 +116,10 @@
                 
                 <div class="sender-info-web">
                   <div class="sender-avatar-web">
-                    <div class="avatar-circle">👤</div>
+                    <img src="/logos/hatcast-mask.png" alt="HatCast" class="avatar-logo" />
                   </div>
                   <div class="sender-details-web">
-                    <div class="sender-name-web">{{ emailFrom }}</div>
+                    <div class="sender-name-web">{{ emailFrom }} <span class="sender-email">&lt;noreply@hatcast.app&gt;</span></div>
                     <div class="recipient-info-web">
                       à moi <span class="dropdown-arrow">▼</span>
                     </div>
@@ -604,7 +600,7 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
 .notification-card {
   background: #1a1a1a;
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
   display: flex;
@@ -801,7 +797,7 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
 
 .email-content-web {
   flex: 1;
-  padding: 20px;
+  padding: 20px 20px 8px 20px;
   background: white;
   display: flex;
   flex-direction: column;
@@ -821,7 +817,7 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
 }
 
 .email-subject-web h1 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #202124;
   margin: 0;
@@ -866,6 +862,13 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
   font-size: 16px;
 }
 
+.avatar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
 .sender-details-web {
   flex: 1;
 }
@@ -875,6 +878,12 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
   font-weight: 500;
   color: #202124;
   margin-bottom: 2px;
+}
+
+.sender-email {
+  font-size: 12px;
+  color: #5f6368;
+  font-weight: 400;
 }
 
 .recipient-info-web {
@@ -926,6 +935,22 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
   color: #3b82f6 !important;
 }
 
+/* Barre de séparation */
+.separator-bar {
+  height: 30px;
+  position: relative;
+  margin-bottom: 5px;
+}
+
+/* Tabs flottants par-dessus les previews */
+.tabs-floating {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
 /* Animation pour l'indicateur de copie */
 @keyframes fadeIn {
   from {
@@ -959,7 +984,7 @@ watch(() => [props.selectedPlayers, props.availabilityByPlayer], () => {
   }
   
   .email-subject-web h1 {
-    font-size: 18px;
+    font-size: 14px;
   }
   
   .notification-card {
