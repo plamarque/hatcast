@@ -21,8 +21,8 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: reason === 'availability_reminder' ? '⏰ Rappel disponibilité' : `${eventTitle} (${eventDate})`,
-      body: reason === 'availability_reminder' ? `${recipientName}, ${eventTitle} (${eventDate})` : `${recipientName}, t'es dispo ?`,
+      title: reason === 'availability_reminder' ? '⏰ Rappel disponibilité' : `🎯 Nouveau spectacle !`,
+      body: reason === 'availability_reminder' ? `${recipientName}, ${eventTitle} (${eventDate})` : `🎭 On a besoin de toi pour ${eventTitle} le ${eventDate} !`,
       data: { url: urls.eventUrl, yesUrl: urls.yesUrl, noUrl: urls.noUrl, reason }
     }
     
@@ -46,8 +46,8 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: `🎭 Equipe pour ${eventTitle}`,
-      body: `${recipientName}, tu fais partie de l'équipe pour ${eventTitle} le ${eventDate}!`,
+      title: `🎭 Tu es sélectionné(e) !`,
+      body: `🕺 Prépares-toi à briller pour ${eventTitle} le ${eventDate}!`,
       data: { url: urls.eventUrl, noUrl: urls.noUrl, reason }
     }
     
@@ -82,8 +82,8 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
  */
 export function buildAvailabilityPushPreview({ recipientName, eventTitle, eventDate }) {
   return {
-    title: `${eventTitle} (${eventDate})`,
-    body: `${recipientName}, t'es dispo ?`
+    title: `🎯 Nouveau spectacle !`,
+    body: `🎭 On a besoin de toi pour ${eventTitle} le ${eventDate} !`
   }
 }
 
@@ -92,8 +92,8 @@ export function buildAvailabilityPushPreview({ recipientName, eventTitle, eventD
  */
 export function buildSelectionPushPreview({ recipientName, eventTitle, eventDate }) {
   return {
-    title: `🎭 Equipe pour ${eventTitle}`,
-    body: `${recipientName}, tu fais partie de l'équipe pour ${eventTitle} le ${eventDate}!`
+    title: `🎭 Tu es sélectionné(e) !`,
+    body: `🕺 Prépares-toi à briller pour ${eventTitle} le ${eventDate}!`
   }
 }
 

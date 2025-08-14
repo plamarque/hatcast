@@ -24,16 +24,21 @@
       </div>
       
       <div class="bg-gray-800 border border-gray-600 rounded-lg p-3">
-        <div v-if="allDisplayRecipients.length > 0" class="space-y-2">
-          <div class="text-gray-300 text-sm mb-2">
-            <strong>{{ allDisplayRecipients.length - 1 }}</strong> joueur(s) à notifier
+        <div v-if="allDisplayRecipients.length > 0" class="space-y-3">
+          <!-- Résumé des destinataires -->
+          <div class="text-gray-300 text-sm mb-3">
+            <span class="text-white font-medium">{{ allDisplayRecipients.length - 1 }}</span> personnes à prévenir. 
+            <span class="text-green-400 font-medium">{{ recipientsWithEmail.length }}</span> seront notifiées, 
+            <span class="text-yellow-400 font-medium">{{ nonContactRecipients.length }}</span> devront être prévenues manuellement.
           </div>
+          
+          <!-- Liste des joueurs -->
           <div class="flex flex-wrap gap-2">
             <span
               v-for="player in allDisplayRecipients.filter(p => p.id !== 'ALL')"
               :key="player.id || player.name"
               :class="[
-                'px-3 py-1 rounded text-sm border',
+                'px-3 py-1 rounded text-sm border flex items-center gap-1',
                 player.hasContact
                   ? 'bg-gray-700 border-gray-600 text-white'
                   : 'bg-yellow-900/20 border-yellow-600/40 text-yellow-200 opacity-75'
@@ -41,7 +46,8 @@
               :title="player.hasContact ? 'Peut être notifié automatiquement' : 'Aucun canal actif - notification manuelle requise'"
             >
               {{ player.name }}
-              <span v-if="!player.hasContact" class="ml-1 text-yellow-400">⚠️</span>
+              <span v-if="player.hasContact" class="text-green-400 text-xs">✓</span>
+              <span v-else class="text-yellow-400 text-xs">⚠️</span>
             </span>
           </div>
         </div>
@@ -213,12 +219,9 @@ async function loadRecipientsEmails() {
     )
     console.log('Mode sélection - targetPlayers:', targetPlayers)
   } else {
-    // Mode événement : prendre tous les joueurs dont la dispo est indéfinie
-    targetPlayers = props.players.filter(player => {
-      const status = props.availabilityByPlayer?.[player.name]
-      return typeof status === 'undefined'
-    })
-    console.log('Mode événement - targetPlayers:', targetPlayers)
+    // Mode événement : prendre TOUS les joueurs de la saison
+    targetPlayers = props.players
+    console.log('Mode événement - targetPlayers (tous):', targetPlayers)
   }
   
   const playersWithEmail = []
