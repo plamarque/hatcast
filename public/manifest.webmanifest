@@ -1,8 +1,8 @@
 {
-  "name": "HatCast - Organisateur de spectacles intelligent",
+  "name": "HatCast - Composition d'équipes d'impro",
   "short_name": "HatCast",
   "id": "/hatcast-app",
-  "description": "Arrêtez de vous prendre la tête pour savoir qui sera sur scène quand. Laissez chacun indiquer ses dispos et le hasard choisir pour vous !",
+  "description": "Facilite la composition d'équipes de joueurs d'impro. Laissez chacun indiquer ses disponibilités et le hasard choisit équitablement qui sera sur scène !",
   "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#1e1b4b",
