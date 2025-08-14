@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic PWA - HatCast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostic PWA - HatCast</h1>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="checkPWA()">🔍 Vérifier PWA</button>
+            <button onclick="checkManifest()">📋 Vérifier Manifest</button>
+            <button onclick="checkServiceWorker()">⚙️ Vérifier Service Worker</button>
+            <button onclick="checkInstallability()">📱 Vérifier Installabilité</button>
+        </div>
+    </div>
+
+    <script>
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${title}</strong><br>${content}`;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function checkPWA() {
+            clearResults();
+            
+            // Vérifier HTTPS
+            if (location.protocol === 'https:') {
+                addResult('✅ HTTPS', 'Le site utilise HTTPS (requis pour PWA)', 'success');
+            } else {
+                addResult('❌ HTTPS', 'Le site doit utiliser HTTPS pour être éligible PWA', 'error');
+            }
+
+            // Vérifier le manifest
+            try {
+                const manifestResponse = await fetch('/manifest.webmanifest');
+                if (manifestResponse.ok) {
+                    const manifest = await manifestResponse.json();
+                    addResult('✅ Manifest', 'Le manifest est accessible et valide', 'success');
+                    
+                    // Vérifier les propriétés requises
+                    const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+                    const missing = required.filter(prop => !manifest[prop]);
+                    if (missing.length === 0) {
+                        addResult('✅ Propriétés requises', 'Toutes les propriétés requises sont présentes', 'success');
+                    } else {
+                        addResult('❌ Propriétés manquantes', `Manque: ${missing.join(', ')}`, 'error');
+                    }
+                } else {
+                    addResult('❌ Manifest', 'Le manifest n\'est pas accessible', 'error');
+                }
+            } catch (error) {
+                addResult('❌ Manifest', `Erreur: ${error.message}`, 'error');
+            }
+
+            // Vérifier le service worker
+            if ('serviceWorker' in navigator) {
+                addResult('✅ Service Worker', 'Service Worker supporté par le navigateur', 'success');
+                
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    addResult('✅ Service Worker enregistré', 'Un service worker est actif', 'success');
+                } else {
+                    addResult('⚠️ Service Worker', 'Aucun service worker enregistré', 'warning');
+                }
+            } else {
+                addResult('❌ Service Worker', 'Service Worker non supporté', 'error');
+            }
+
+            // Vérifier l'installabilité
+            if ('BeforeInstallPromptEvent' in window) {
+                addResult('✅ Installabilité', 'L\'événement BeforeInstallPromptEvent est supporté', 'success');
+            } else {
+                addResult('⚠️ Installabilité', 'BeforeInstallPromptEvent non supporté (peut être normal)', 'warning');
+            }
+        }
+
+        async function checkManifest() {
+            clearResults();
+            
+            try {
+                const response = await fetch('/manifest.webmanifest');
+                const manifest = await response.json();
+                
+                addResult('📋 Manifest complet', `<pre>${JSON.stringify(manifest, null, 2)}</pre>`, 'info');
+                
+                // Vérifier les icônes
+                if (manifest.icons && manifest.icons.length > 0) {
+                    addResult('✅ Icônes', `${manifest.icons.length} icône(s) définie(s)`, 'success');
+                    
+                    for (const icon of manifest.icons) {
+                        try {
+                            const iconResponse = await fetch(icon.src);
+                            if (iconResponse.ok) {
+                                addResult('✅ Icône', `${icon.src} - ${icon.sizes} - ${icon.purpose}`, 'success');
+                            } else {
+                                addResult('❌ Icône', `${icon.src} - Non accessible`, 'error');
+                            }
+                        } catch (error) {
+                            addResult('❌ Icône', `${icon.src} - Erreur: ${error.message}`, 'error');
+                        }
+                    }
+                } else {
+                    addResult('❌ Icônes', 'Aucune icône définie dans le manifest', 'error');
+                }
+            } catch (error) {
+                addResult('❌ Manifest', `Erreur: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkServiceWorker() {
+            clearResults();
+            
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                
+                if (registrations.length === 0) {
+                    addResult('⚠️ Service Worker', 'Aucun service worker enregistré', 'warning');
+                } else {
+                    addResult('✅ Service Workers', `${registrations.length} service worker(s) enregistré(s)`, 'success');
+                    
+                    for (const registration of registrations) {
+                        addResult('📋 SW Details', `
+                            Scope: ${registration.scope}<br>
+                            Active: ${registration.active ? 'Oui' : 'Non'}<br>
+                            Waiting: ${registration.waiting ? 'Oui' : 'Non'}<br>
+                            Installing: ${registration.installing ? 'Oui' : 'Non'}
+                        `, 'info');
+                    }
+                }
+            } else {
+                addResult('❌ Service Worker', 'Service Worker non supporté par ce navigateur', 'error');
+            }
+        }
+
+        async function checkInstallability() {
+            clearResults();
+            
+            // Vérifier les critères d'éligibilité
+            const criteria = [
+                { name: 'HTTPS', check: () => location.protocol === 'https:' },
+                { name: 'Manifest valide', check: async () => {
+                    try {
+                        const response = await fetch('/manifest.webmanifest');
+                        return response.ok;
+                    } catch {
+                        return false;
+                    }
+                }},
+                { name: 'Service Worker', check: async () => {
+                    if (!('serviceWorker' in navigator)) return false;
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    return !!registration;
+                }},
+                { name: 'Icônes 192x192', check: async () => {
+                    try {
+                        const response = await fetch('/manifest.webmanifest');
+                        const manifest = await response.json();
+                        return manifest.icons && manifest.icons.some(icon => 
+                            icon.sizes === '192x192' && icon.purpose && icon.purpose.includes('any')
+                        );
+                    } catch {
+                        return false;
+                    }
+                }},
+                { name: 'Icônes 512x512', check: async () => {
+                    try {
+                        const response = await fetch('/manifest.webmanifest');
+                        const manifest = await response.json();
+                        return manifest.icons && manifest.icons.some(icon => 
+                            icon.sizes === '512x512' && icon.purpose && icon.purpose.includes('any')
+                        );
+                    } catch {
+                        return false;
+                    }
+                }},
+                { name: 'Display standalone', check: async () => {
+                    try {
+                        const response = await fetch('/manifest.webmanifest');
+                        const manifest = await response.json();
+                        return manifest.display === 'standalone';
+                    } catch {
+                        return false;
+                    }
+                }}
+            ];
+
+            for (const criterion of criteria) {
+                const result = await criterion.check();
+                if (result) {
+                    addResult(`✅ ${criterion.name}`, 'Critère satisfait', 'success');
+                } else {
+                    addResult(`❌ ${criterion.name}`, 'Critère non satisfait', 'error');
+                }
+            }
+
+            // Vérifier l'événement d'installation
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                addResult('🎉 BeforeInstallPrompt', 'L\'événement d\'installation a été déclenché !', 'success');
+            });
+
+            // Vérifier si déjà installé
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+                addResult('📱 Déjà installé', 'L\'application est déjà installée en mode standalone', 'info');
+            }
+        }
+
+        // Auto-vérification au chargement
+        window.addEventListener('load', () => {
+            addResult('🚀 Diagnostic PWA', 'Cliquez sur les boutons ci-dessous pour diagnostiquer votre PWA', 'info');
+        });
+    </script>
+</body>
+</html>
