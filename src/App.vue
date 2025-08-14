@@ -8,7 +8,7 @@
   >
     <div
       v-if="canInstallPwa && !bannerDismissed"
-      class="fixed top-0 left-0 right-0 z-50 bg-black text-white shadow-lg border-b border-gray-800"
+      class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
       @click="installPwa"
     >
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
