@@ -622,73 +622,43 @@
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-white/10 bg-gradient-to-br from-gray-900/50 to-gray-800/50">
+    <footer class="border-t border-white/10 bg-gradient-to-br from-gray-950 to-black">
       <div class="container mx-auto px-4 py-12">
         <!-- Section principale du footer -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <!-- Logo et description -->
-          <div class="col-span-1 md:col-span-2">
+          <div>
             <div class="flex items-center gap-3 mb-4">
               <div class="relative w-32 h-8">
                 <img 
                   src="/logos/hatcast-logo-mobile.png" 
                   alt="Logo HatCast" 
-                  class="w-full h-full opacity-80"
+                  class="w-full h-full brightness-0 invert"
                 />
               </div>
             </div>
-            <p class="text-gray-400 text-sm leading-relaxed max-w-md">
+            <p class="text-gray-300 text-sm leading-relaxed max-w-md">
               L'appli pour sélectionner vos joueurs d'impro simplement, équitablement et sans prise de tête.
             </p>
           </div>
           
-          <!-- Contact -->
+          <!-- Feedback -->
           <div>
-            <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact</h4>
+            <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Feedback</h4>
             <div class="space-y-2">
-              <a href="mailto:impropick@gmail.com" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
-                📧 impropick@gmail.com
+              <a href="https://github.com/plamarque/hatcast/issues" target="_blank" rel="noopener noreferrer" class="block text-gray-300 hover:text-blue-300 transition-colors text-sm">
+                🐛 Signaler un bug
               </a>
-              <p class="text-gray-500 text-xs">Retours et suggestions bienvenus</p>
-            </div>
-          </div>
-          
-          <!-- Ressources -->
-          <div>
-            <h4 class="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Ressources</h4>
-            <div class="space-y-2">
-              <a href="#" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
-                📚 Guide utilisateur
-              </a>
-              <a href="https://github.com/plamarque/hatcast" target="_blank" rel="noopener noreferrer" class="block text-gray-400 hover:text-blue-300 transition-colors text-sm">
+              <a href="https://github.com/plamarque/hatcast" target="_blank" rel="noopener noreferrer" class="block text-gray-300 hover:text-blue-300 transition-colors text-sm">
                 🔗 Code source
               </a>
-              <p class="text-gray-500 text-xs">Documentation en cours</p>
             </div>
           </div>
         </div>
         
-        <!-- Séparateur -->
-        <div class="border-t border-white/10 mb-6"></div>
-        
-        <!-- Copyright et licence -->
-        <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500">
-          <div class="flex items-center gap-4 mb-4 sm:mb-0">
-            <span>© Patrice Lamarque 2025</span>
-            <span class="hidden sm:inline">•</span>
-            <span>Licence MIT</span>
-          </div>
-          <div class="flex items-center gap-4">
-            <span class="text-gray-600">En cours de développement</span>
-            <a
-              href="https://github.com/plamarque/hatcast"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-gray-400 hover:text-blue-300 transition-colors underline decoration-gray-600 hover:decoration-blue-300"
-            >
-              GitHub
-            </a>
-          </div>
+        <!-- Copyright -->
+        <div class="text-center text-xs text-gray-500 pt-6">
+          <span>© Patrice Lamarque 2025</span>
         </div>
       </div>
     </footer>
