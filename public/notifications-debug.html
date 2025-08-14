@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic Notifications Push - HatCast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background: rgba(34, 197, 94, 0.3); border: 1px solid #22c55e; }
+        .error { background: rgba(239, 68, 68, 0.3); border: 1px solid #ef4444; }
+        .warning { background: rgba(245, 158, 11, 0.3); border: 1px solid #f59e0b; }
+        .info { background: rgba(59, 130, 246, 0.3); border: 1px solid #3b82f6; }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-notification {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Diagnostic Notifications Push HatCast</h1>
+        
+        <div id="summary"></div>
+        
+        <div class="test-notification">
+            <h3>🧪 Test de notification</h3>
+            <button onclick="testNotification()">📢 Tester notification locale</button>
+            <button onclick="testPushNotification()">🚀 Tester notification push</button>
+        </div>
+        
+        <div>
+            <button onclick="runDiagnostic()">🔍 Diagnostic complet</button>
+            <button onclick="requestPermission()">🔐 Demander permission</button>
+            <button onclick="clearLog()">🗑️ Effacer les logs</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script type="module">
+        import { canUsePush, requestAndGetToken, ensurePushNotificationsActive } from './services/notifications.js'
+        
+        const summaryDiv = document.getElementById('summary');
+        const logDiv = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #9ca3af;">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+        
+        function updateSummary(message, type) {
+            summaryDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        // Test de notification locale
+        function testNotification() {
+            log('🧪 Test de notification locale...');
+            
+            if (!('Notification' in window)) {
+                log('❌ Notifications non supportées par ce navigateur', 'error');
+                return;
+            }
+            
+            if (Notification.permission === 'denied') {
+                log('❌ Permission de notification refusée', 'error');
+                return;
+            }
+            
+            if (Notification.permission === 'default') {
+                log('⚠️ Permission de notification non demandée', 'warning');
+                return;
+            }
+            
+            try {
+                const notification = new Notification('Test HatCast', {
+                    body: 'Ceci est un test de notification locale',
+                    icon: '/icons/manifest-icon-192.maskable.png',
+                    badge: '/icons/manifest-icon-192.maskable.png',
+                    tag: 'test-notification'
+                });
+                
+                log('✅ Notification locale envoyée avec succès', 'success');
+                
+                notification.onclick = () => {
+                    log('👆 Notification cliquée');
+                    notification.close();
+                };
+                
+                setTimeout(() => {
+                    notification.close();
+                }, 5000);
+                
+            } catch (error) {
+                log(`❌ Erreur notification locale: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test de notification push
+        async function testPushNotification() {
+            log('🚀 Test de notification push...');
+            
+            try {
+                const status = await ensurePushNotificationsActive();
+                if (status.active) {
+                    log('✅ Notifications push actives', 'success');
+                    log(`📱 Token: ${status.token.substring(0, 20)}...`);
+                } else {
+                    log(`❌ Notifications push inactives: ${status.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Erreur test push: ${error.message}`, 'error');
+            }
+        }
+        
+        // Demander permission
+        async function requestPermission() {
+            log('🔐 Demande de permission...');
+            
+            if (!('Notification' in window)) {
+                log('❌ Notifications non supportées', 'error');
+                return;
+            }
+            
+            try {
+                const permission = await Notification.requestPermission();
+                log(`📋 Permission: ${permission}`, permission === 'granted' ? 'success' : 'warning');
+                
+                if (permission === 'granted') {
+                    // Essayer d'activer les notifications push
+                    const status = await ensurePushNotificationsActive();
+                    if (status.active) {
+                        log('✅ Notifications push activées avec succès', 'success');
+                    } else {
+                        log(`⚠️ Notifications push non activées: ${status.error}`, 'warning');
+                    }
+                }
+            } catch (error) {
+                log(`❌ Erreur demande permission: ${error.message}`, 'error');
+            }
+        }
+        
+        // Diagnostic complet
+        async function runDiagnostic() {
+            clearLog();
+            log('🔍 Démarrage du diagnostic notifications...');
+            
+            // 1. Support des notifications
+            if ('Notification' in window) {
+                log('✅ Notifications supportées par le navigateur', 'success');
+            } else {
+                log('❌ Notifications non supportées par le navigateur', 'error');
+                updateSummary('❌ Notifications non supportées', 'error');
+                return;
+            }
+            
+            // 2. Permission actuelle
+            log(`📋 Permission actuelle: ${Notification.permission}`);
+            if (Notification.permission === 'denied') {
+                log('❌ Permission refusée - impossible d\'activer les notifications', 'error');
+                updateSummary('❌ Permission refusée', 'error');
+                return;
+            }
+            
+            // 3. Support Firebase Messaging
+            try {
+                const canPush = await canUsePush();
+                if (canPush) {
+                    log('✅ Firebase Messaging supporté', 'success');
+                } else {
+                    log('❌ Firebase Messaging non supporté', 'error');
+                    updateSummary('❌ Firebase Messaging non supporté', 'error');
+                    return;
+                }
+            } catch (error) {
+                log(`❌ Erreur vérification Firebase: ${error.message}`, 'error');
+                updateSummary('❌ Erreur Firebase', 'error');
+                return;
+            }
+            
+            // 4. Service Worker
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.getRegistration();
+                    if (registration) {
+                        log('✅ Service Worker enregistré', 'success');
+                        log(`📋 État: ${registration.active ? 'Actif' : 'Inactif'}`);
+                    } else {
+                        log('❌ Service Worker non enregistré', 'error');
+                        updateSummary('❌ Service Worker manquant', 'error');
+                        return;
+                    }
+                } catch (error) {
+                    log(`❌ Erreur Service Worker: ${error.message}`, 'error');
+                    updateSummary('❌ Erreur Service Worker', 'error');
+                    return;
+                }
+            } else {
+                log('❌ Service Worker non supporté', 'error');
+                updateSummary('❌ Service Worker non supporté', 'error');
+                return;
+            }
+            
+            // 5. Test d'activation des notifications push
+            try {
+                log('🚀 Test d\'activation des notifications push...');
+                const status = await ensurePushNotificationsActive();
+                
+                if (status.active) {
+                    log('✅ Notifications push actives', 'success');
+                    log(`📱 Token obtenu: ${status.token ? 'Oui' : 'Non'}`);
+                    updateSummary('✅ Notifications push fonctionnelles', 'success');
+                } else {
+                    log(`❌ Notifications push inactives: ${status.error}`, 'error');
+                    updateSummary(`❌ Notifications push échouées: ${status.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Erreur activation push: ${error.message}`, 'error');
+                updateSummary(`❌ Erreur activation: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialisation
+        window.addEventListener('load', () => {
+            log('🚀 Diagnostic notifications initialisé');
+            runDiagnostic();
+        });
+        
+        // Log des erreurs
+        window.addEventListener('error', (e) => {
+            log(`❌ Erreur: ${e.message}`, 'error');
+        });
+        
+        // Exposer les fonctions globalement
+        window.testNotification = testNotification;
+        window.testPushNotification = testPushNotification;
+        window.requestPermission = requestPermission;
+        window.runDiagnostic = runDiagnostic;
+        window.clearLog = clearLog;
+    </script>
+</body>
+</html>
