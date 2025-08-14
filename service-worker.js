@@ -2,10 +2,10 @@ try {
   self["workbox:core:7.2.0"] && _();
 } catch {
 }
-const T = (n, ...e) => {
+const N = (n, ...e) => {
   let t = n;
   return e.length > 0 && (t += ` :: ${JSON.stringify(e)}`), t;
-}, I = T;
+}, I = N;
 class u extends Error {
   /**
    *
@@ -111,7 +111,7 @@ function W() {
   }
   return y;
 }
-async function M(n, e) {
+async function A(n, e) {
   let t = null;
   if (n.url && (t = new URL(n.url).origin), t !== self.location.origin)
     throw new u("cross-origin-copy-response", { origin: t });
@@ -122,14 +122,14 @@ async function M(n, e) {
   }, i = e ? e(a) : a, r = W() ? s.body : await s.blob();
   return new Response(r, i);
 }
-const S = (n) => new URL(String(n), location.href).href.replace(new RegExp(`^${location.origin}`), "");
+const M = (n) => new URL(String(n), location.href).href.replace(new RegExp(`^${location.origin}`), "");
 function P(n, e) {
   const t = new URL(n);
   for (const s of e)
     t.searchParams.delete(s);
   return t.href;
 }
-async function A(n, e, t, s) {
+async function S(n, e, t, s) {
   const a = P(e.url, t);
   if (e.url === a)
     return n.match(e, s);
@@ -301,12 +301,12 @@ class B {
     const a = await this.getCacheKey(s, "write");
     if (!t)
       throw new u("cache-put-with-no-response", {
-        url: S(a.url)
+        url: M(a.url)
       });
     const i = await this._ensureResponseSafeToCache(t);
     if (!i)
       return !1;
-    const { cacheName: r, matchOptions: c } = this._strategy, o = await self.caches.open(r), l = this.hasCallback("cacheDidUpdate"), h = l ? await A(
+    const { cacheName: r, matchOptions: c } = this._strategy, o = await self.caches.open(r), l = this.hasCallback("cacheDidUpdate"), h = l ? await S(
       // TODO(philipwalton): the `__WB_REVISION__` param is a precaching
       // feature. Consider into ways to only add this behavior if using
       // precaching.
@@ -471,7 +471,7 @@ class B {
     return s || t && t.status !== 200 && (t = void 0), t;
   }
 }
-class V {
+class G {
   /**
    * Creates a new instance of the strategy and sets all documented option
    * properties as public instance properties.
@@ -593,7 +593,7 @@ class V {
       throw r;
   }
 }
-class p extends V {
+class p extends G {
   /**
    *
    * @param {Object} [options]
@@ -691,10 +691,10 @@ p.defaultPrecacheCacheabilityPlugin = {
 };
 p.copyRedirectedCacheableResponsesPlugin = {
   async cacheWillUpdate({ response: n }) {
-    return n.redirected ? await M(n) : n;
+    return n.redirected ? await A(n) : n;
   }
 };
-class G {
+class V {
   /**
    * Create a new PrecacheController.
    *
@@ -892,12 +892,12 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   }
 }
 let k;
-const K = () => (k || (k = new G()), k);
+const K = () => (k || (k = new V()), k);
 try {
   self["workbox:routing:7.2.0"] && _();
 } catch {
 }
-const N = "GET", b = (n) => n && typeof n == "object" ? n : { handle: n };
+const T = "GET", b = (n) => n && typeof n == "object" ? n : { handle: n };
 class m {
   /**
    * Constructor for Route class.
@@ -910,7 +910,7 @@ class m {
    * @param {string} [method='GET'] The HTTP method to match the Route
    * against.
    */
-  constructor(e, t, s = N) {
+  constructor(e, t, s = T) {
     this.handler = b(t), this.match = e, this.method = s;
   }
   /**
@@ -1089,7 +1089,7 @@ class z {
    * @param {string} [method='GET'] The HTTP method to associate with this
    * default handler. Each method has its own default.
    */
-  setDefaultHandler(e, t = N) {
+  setDefaultHandler(e, t = T) {
     this._defaultHandlerMap.set(t, b(e));
   }
   /**
@@ -1224,7 +1224,7 @@ function ie(n, e) {
   ae(n), ee(e);
 }
 self.__WB_DISABLE_DEV_LOGS = !0;
-ie([{"revision":"f64ff44dbdd343b467450754f752d0b1","url":"__/auth/action.html"},{"revision":"369f363c60518722b6a6aed4d3fe009a","url":"404.html"},{"revision":null,"url":"assets/index-11c105ae.css"},{"revision":null,"url":"assets/index-c4496598.js"},{"revision":null,"url":"assets/index.esm-026a9186.js"},{"revision":null,"url":"assets/index.esm-9c3202f1.js"},{"revision":null,"url":"assets/workbox-window.prod.es5-5ffdab76.js"},{"revision":"f028d64d73e889c3740d5c27a5b1e9b2","url":"index.html"},{"revision":"84abf0f2ed0cbd7c9447adef4e1258dd","url":"icons/manifest-icon-192.maskable.png"},{"revision":"3945a5ed3089c67e50d29b79ceb71f62","url":"icons/manifest-icon-512.maskable.png"},{"revision":"d9459e56db1d60729416916090d15055","url":"manifest.webmanifest"}] || []);
+ie([{"revision":"f64ff44dbdd343b467450754f752d0b1","url":"__/auth/action.html"},{"revision":"369f363c60518722b6a6aed4d3fe009a","url":"404.html"},{"revision":null,"url":"assets/index-62db2867.js"},{"revision":null,"url":"assets/index-d8f6923a.css"},{"revision":null,"url":"assets/index.esm-10520933.js"},{"revision":null,"url":"assets/index.esm-5f613cf2.js"},{"revision":null,"url":"assets/workbox-window.prod.es5-5ffdab76.js"},{"revision":"78579bfbee3b94635133a0595cd23e76","url":"index.html"},{"revision":"84abf0f2ed0cbd7c9447adef4e1258dd","url":"icons/manifest-icon-192.maskable.png"},{"revision":"3945a5ed3089c67e50d29b79ceb71f62","url":"icons/manifest-icon-512.maskable.png"},{"revision":"d9459e56db1d60729416916090d15055","url":"manifest.webmanifest"}] || []);
 ne();
 self.skipWaiting();
 self.addEventListener("activate", (n) => {
@@ -1242,7 +1242,13 @@ self.addEventListener("activate", (n) => {
   );
 });
 self.addEventListener("message", (n) => {
-  n.data && n.data.type === "SKIP_WAITING" && self.skipWaiting();
+  n.data && n.data.type === "SKIP_WAITING" && (self.clients.matchAll().then((e) => {
+    e.forEach((t) => {
+      t.postMessage({ type: "SW_UPDATING" });
+    });
+  }), setTimeout(() => {
+    self.skipWaiting();
+  }, 100));
 });
 self.addEventListener("notificationclick", (n) => {
   var i;
