@@ -36,6 +36,49 @@ const router = createRouter({
   routes
 })
 
+
+
+// Gestion de l'installation PWA
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Empêcher l'affichage automatique de la bannière
+  e.preventDefault();
+  // Stocker l'événement pour l'utiliser plus tard
+  deferredPrompt = e;
+  console.log('Événement beforeinstallprompt capturé');
+  
+  // Optionnel : afficher un bouton d'installation personnalisé
+  // showInstallButton();
+});
+
+// Événement quand l'app est installée
+window.addEventListener('appinstalled', (evt) => {
+  console.log('Application installée');
+  // Réinitialiser la variable
+  deferredPrompt = null;
+});
+
+// Fonction pour déclencher l'installation manuellement
+window.triggerInstall = () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('Utilisateur a accepté l\'installation');
+      } else {
+        console.log('Utilisateur a refusé l\'installation');
+      }
+      deferredPrompt = null;
+    });
+  }
+};
+
+// Vérifier si l'app est déjà installée
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  console.log('Application déjà installée en mode standalone');
+}
+
 const app = createApp(App)
 app.use(router)
 app.mount('#app')
