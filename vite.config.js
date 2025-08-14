@@ -3,11 +3,12 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs'
 
-const CERT_PATH = process.env.VITE_HTTPS_CERT_PATH
-const KEY_PATH = process.env.VITE_HTTPS_KEY_PATH
-const FORCE_HTTPS = process.env.VITE_FORCE_HTTPS === 'true'
+// Configuration HTTPS pour le développement local
+const CERT_PATH = process.env.VITE_HTTPS_CERT_PATH || './192.168.1.134.pem'
+const KEY_PATH = process.env.VITE_HTTPS_KEY_PATH || './192.168.1.134-key.pem'
+const FORCE_HTTPS = process.env.VITE_FORCE_HTTPS === 'true' || true
 
-const httpsConfig = (CERT_PATH && KEY_PATH && fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH) && FORCE_HTTPS)
+const httpsConfig = (fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH))
   ? { cert: fs.readFileSync(CERT_PATH), key: fs.readFileSync(KEY_PATH) }
   : false
 

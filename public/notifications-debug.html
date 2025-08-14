@@ -80,22 +80,21 @@
         
         <div class="test-notification">
             <h3>🧪 Test de notification</h3>
-            <button onclick="testNotification()">📢 Tester notification locale</button>
-            <button onclick="testPushNotification()">🚀 Tester notification push</button>
+                    <button id="testNotificationBtn">📢 Tester notification locale</button>
+        <button id="testPushNotificationBtn">🚀 Tester notification push</button>
         </div>
         
         <div>
-            <button onclick="runDiagnostic()">🔍 Diagnostic complet</button>
-            <button onclick="requestPermission()">🔐 Demander permission</button>
-            <button onclick="clearLog()">🗑️ Effacer les logs</button>
+            <button id="runDiagnosticBtn">🔍 Diagnostic complet</button>
+            <button id="requestPermissionBtn">🔐 Demander permission</button>
+            <button id="clearLogBtn">🗑️ Effacer les logs</button>
         </div>
         
         <div class="log" id="log"></div>
     </div>
 
-    <script type="module">
-        import { canUsePush, requestAndGetToken, ensurePushNotificationsActive } from './services/notifications.js'
-        
+    <script>
+        // Version simplifiée pour le diagnostic (sans Firebase)
         const summaryDiv = document.getElementById('summary');
         const logDiv = document.getElementById('log');
         
@@ -158,18 +157,21 @@
             }
         }
         
-        // Test de notification push
+        // Test de notification push (version simplifiée)
         async function testPushNotification() {
             log('🚀 Test de notification push...');
             
             try {
-                const status = await ensurePushNotificationsActive();
-                if (status.active) {
-                    log('✅ Notifications push actives', 'success');
-                    log(`📱 Token: ${status.token.substring(0, 20)}...`);
-                } else {
-                    log(`❌ Notifications push inactives: ${status.error}`, 'error');
+                // Vérifier si Firebase est disponible
+                if (typeof firebase === 'undefined') {
+                    log('❌ Firebase non disponible dans cette page', 'error');
+                    log('💡 Utilisez la page principale de l\'app pour tester les notifications push', 'info');
+                    return;
                 }
+                
+                log('✅ Firebase disponible', 'success');
+                log('📱 Pour tester les notifications push, utilisez la page principale de l\'app', 'info');
+                
             } catch (error) {
                 log(`❌ Erreur test push: ${error.message}`, 'error');
             }
@@ -189,13 +191,7 @@
                 log(`📋 Permission: ${permission}`, permission === 'granted' ? 'success' : 'warning');
                 
                 if (permission === 'granted') {
-                    // Essayer d'activer les notifications push
-                    const status = await ensurePushNotificationsActive();
-                    if (status.active) {
-                        log('✅ Notifications push activées avec succès', 'success');
-                    } else {
-                        log(`⚠️ Notifications push non activées: ${status.error}`, 'warning');
-                    }
+                    log('✅ Permission accordée pour les notifications locales', 'success');
                 }
             } catch (error) {
                 log(`❌ Erreur demande permission: ${error.message}`, 'error');
@@ -224,23 +220,7 @@
                 return;
             }
             
-            // 3. Support Firebase Messaging
-            try {
-                const canPush = await canUsePush();
-                if (canPush) {
-                    log('✅ Firebase Messaging supporté', 'success');
-                } else {
-                    log('❌ Firebase Messaging non supporté', 'error');
-                    updateSummary('❌ Firebase Messaging non supporté', 'error');
-                    return;
-                }
-            } catch (error) {
-                log(`❌ Erreur vérification Firebase: ${error.message}`, 'error');
-                updateSummary('❌ Erreur Firebase', 'error');
-                return;
-            }
-            
-            // 4. Service Worker
+            // 3. Service Worker
             if ('serviceWorker' in navigator) {
                 try {
                     const registration = await navigator.serviceWorker.getRegistration();
@@ -263,28 +243,29 @@
                 return;
             }
             
-            // 5. Test d'activation des notifications push
-            try {
-                log('🚀 Test d\'activation des notifications push...');
-                const status = await ensurePushNotificationsActive();
-                
-                if (status.active) {
-                    log('✅ Notifications push actives', 'success');
-                    log(`📱 Token obtenu: ${status.token ? 'Oui' : 'Non'}`);
-                    updateSummary('✅ Notifications push fonctionnelles', 'success');
-                } else {
-                    log(`❌ Notifications push inactives: ${status.error}`, 'error');
-                    updateSummary(`❌ Notifications push échouées: ${status.error}`, 'error');
-                }
-            } catch (error) {
-                log(`❌ Erreur activation push: ${error.message}`, 'error');
-                updateSummary(`❌ Erreur activation: ${error.message}`, 'error');
+            // 4. Firebase Messaging (vérification basique)
+            if (typeof firebase !== 'undefined') {
+                log('✅ Firebase disponible', 'success');
+                updateSummary('✅ Notifications locales fonctionnelles', 'success');
+            } else {
+                log('⚠️ Firebase non disponible dans cette page', 'warning');
+                log('💡 Pour tester les notifications push, utilisez la page principale de l\'app', 'info');
+                updateSummary('⚠️ Notifications locales OK, push à tester sur la page principale', 'warning');
             }
         }
         
         // Initialisation
         window.addEventListener('load', () => {
             log('🚀 Diagnostic notifications initialisé');
+            
+            // Ajouter les event listeners
+            document.getElementById('testNotificationBtn').addEventListener('click', testNotification);
+            document.getElementById('testPushNotificationBtn').addEventListener('click', testPushNotification);
+            document.getElementById('runDiagnosticBtn').addEventListener('click', runDiagnostic);
+            document.getElementById('requestPermissionBtn').addEventListener('click', requestPermission);
+            document.getElementById('clearLogBtn').addEventListener('click', clearLog);
+            
+            // Lancer le diagnostic automatiquement
             runDiagnostic();
         });
         
@@ -292,13 +273,6 @@
         window.addEventListener('error', (e) => {
             log(`❌ Erreur: ${e.message}`, 'error');
         });
-        
-        // Exposer les fonctions globalement
-        window.testNotification = testNotification;
-        window.testPushNotification = testPushNotification;
-        window.requestPermission = requestPermission;
-        window.runDiagnostic = runDiagnostic;
-        window.clearLog = clearLog;
     </script>
 </body>
 </html>

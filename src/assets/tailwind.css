@@ -108,9 +108,6 @@
 .order-2 {
   order: 2;
 }
-.col-span-1 {
-  grid-column: span 1 / span 1;
-}
 .container {
   width: 100%;
 }
@@ -444,9 +441,6 @@
 .opacity-75 {
   opacity: 75%;
 }
-.opacity-80 {
-  opacity: 80%;
-}
 .ring-2 {
   --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
   box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -529,14 +523,6 @@
     outline-style: none;
   }
 }
-.active\:scale-95 {
-  &:active {
-    --tw-scale-x: 95%;
-    --tw-scale-y: 95%;
-    --tw-scale-z: 95%;
-    scale: var(--tw-scale-x) var(--tw-scale-y);
-  }
-}
 .disabled\:cursor-not-allowed {
   &:disabled {
     cursor: not-allowed;
@@ -617,15 +603,15 @@
 }
 @keyframes iconBounce {
   0% {
-    transform: scale(0.8) rotate(-10deg);
     opacity: 0;
+    transform: scale(0.3) rotate(-180deg);
   }
   50% {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.1) rotate(0deg);
   }
   100% {
-    transform: scale(1) rotate(0deg);
     opacity: 1;
+    transform: scale(1) rotate(0deg);
   }
 }
 .update-banner-enter-active button {
@@ -639,6 +625,53 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+.update-toast-enter-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.update-toast-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.update-toast-enter-from {
+  opacity: 0;
+  transform: translateY(100%) scale(0.95);
+}
+.update-toast-leave-to {
+  opacity: 0;
+  transform: translateY(100%) scale(0.9);
+}
+.update-toast-enter-to {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.update-toast-enter-active .bg-white, .update-toast-enter-active .bg-blue-600 {
+  animation: toastContentSlideIn 0.4s ease-out 0.1s both;
+}
+@keyframes toastContentSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.update-toast-enter-active .w-8 {
+  animation: toastIconBounce 0.5s ease-out 0.2s both;
+}
+@keyframes toastIconBounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-90deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
   }
 }
 .line-clamp-2 {
