@@ -6,16 +6,32 @@
         <div class="flex items-center">
           <a href="/" class="flex items-center">
             <div class="relative w-48 h-12 md:w-56 md:h-14">
-              <img 
-                src="/logos/hatcast-logo-mobile.png" 
-                alt="Logo HatCast - Retour à l'accueil" 
-                class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden"
-              />
-              <img 
-                src="/logos/hatcast-logo-desktop.png" 
-                alt="Logo HatCast - Retour à l'accueil" 
-                class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block"
-              />
+              <!-- Logo avec filtre blanc pour fond transparent (non scrollé) -->
+              <template v-if="!isScrolled">
+                <img 
+                  src="/logos/hatcast-logo-mobile.png" 
+                  alt="Logo HatCast - Retour à l'accueil" 
+                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden brightness-0 invert"
+                />
+                <img 
+                  src="/logos/hatcast-logo-desktop.png" 
+                  alt="Logo HatCast - Retour à l'accueil" 
+                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block brightness-0 invert"
+                />
+              </template>
+              <!-- Logo coloré pour fond blanc (scrollé) -->
+              <template v-else>
+                <img 
+                  src="/logos/hatcast-logo-mobile.png" 
+                  alt="Logo HatCast - Retour à l'accueil" 
+                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden"
+                />
+                <img 
+                  src="/logos/hatcast-logo-desktop.png" 
+                  alt="Logo HatCast - Retour à l'accueil" 
+                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block"
+                />
+              </template>
             </div>
           </a>
         </div>
