@@ -200,6 +200,9 @@
                 <h2 class="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors">
                   {{ season.name }}
                 </h2>
+                <p v-if="season.description" class="text-gray-300 text-sm mb-4 line-clamp-2 leading-relaxed">
+                  {{ season.description }}
+                </p>
                 <div class="w-full bg-gradient-to-r from-transparent via-white/20 to-transparent h-px mb-4"></div>
                 <!-- Statistiques de la saison -->
                 <div class="flex justify-center gap-6 text-sm">
@@ -234,18 +237,27 @@
                     class="absolute right-0 mt-2 w-44 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-1 z-10"
                     role="menu"
                   >
-                    <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10" role="menuitem">
+                    <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                      <span>📊</span>
                       Exporter CSV
                     </button>
                     <div class="border-t border-white/10 my-1"></div>
-                    <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
-                      Monter
+                    <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                      <span>⬆️</span>
+                      Avancer
                     </button>
-                    <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10" role="menuitem">
-                      Descendre
+                    <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                      <span>⬇️</span>
+                      Reculer
                     </button>
                     <div class="border-t border-white/10 my-1"></div>
-                    <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10" role="menuitem">
+                    <button @click="openEditModal(season)" class="w-full text-left px-4 py-2 text-sm text-blue-300 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                      <span>✏️</span>
+                      Modifier
+                    </button>
+                    <div class="border-t border-white/10 my-1"></div>
+                    <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2" role="menuitem">
+                      <span>🗑️</span>
                       Supprimer
                     </button>
                   </div>
@@ -305,6 +317,16 @@
             class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             placeholder="Ex: malice-2025-2026"
           >
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Description (optionnel)</label>
+          <textarea
+            v-model="newSeasonDescription"
+            rows="3"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
+            placeholder="Ex: Saison 2025-2026 de la troupe d'improvisation La Malice"
+          ></textarea>
+          <p class="text-xs text-gray-400 mt-1">Une brève description de votre saison</p>
         </div>
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-300 mb-2">Code PIN (4 chiffres)</label>
@@ -367,6 +389,55 @@
             class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
           >
             Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de modification de saison -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span class="text-2xl">✏️</span>
+          </div>
+          <h2 class="text-2xl font-bold text-white mb-2">Modifier la saison</h2>
+          <p class="text-gray-300">Modifiez les informations de la saison "{{ seasonToEdit?.name }}"</p>
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Nom de la saison</label>
+          <input
+            v-model="editSeasonName"
+            type="text"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+            placeholder="Ex: La Malice 2025-2026"
+          >
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Description (optionnel)</label>
+          <textarea
+            v-model="editSeasonDescription"
+            rows="3"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
+            placeholder="Ex: Saison 2025-2026 de la troupe d'improvisation La Malice"
+          ></textarea>
+        </div>
+        <p class="mb-6 text-sm text-blue-400 bg-blue-900/20 p-3 rounded-lg border border-blue-500/20">
+          ℹ️ Le slug de l'URL restera inchangé pour préserver les liens existants.
+        </p>
+        <div class="flex justify-end space-x-3">
+          <button
+            @click="cancelEdit"
+            class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            @click="confirmEdit"
+            :disabled="!editSeasonName.trim() || (editSeasonName.trim() === seasonToEdit?.name && editSeasonDescription === (seasonToEdit?.description || ''))"
+            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-300"
+          >
+            Modifier
           </button>
         </div>
       </div>
@@ -576,7 +647,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrder } from './services/seasons.js'
+import { getSeasons, addSeason, deleteSeason, verifySeasonPin, setSeasonSortOrder, updateSeason } from './services/seasons.js'
 import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
@@ -599,10 +670,15 @@ const openMenuIndex = ref(null)
 // État des modals
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
+const showEditModal = ref(false)
 const newSeasonName = ref('')
 const newSeasonSlug = ref('')
+const newSeasonDescription = ref('')
 const newSeasonPin = ref('')
+const editSeasonName = ref('')
+const editSeasonDescription = ref('')
 const seasonToDelete = ref(null)
+const seasonToEdit = ref(null)
 
 // Variables pour la protection par PIN
 const showPinModal = ref(false)
@@ -774,6 +850,40 @@ function toggleMenu(index) {
 
 function closeMenu() {
   openMenuIndex.value = null
+}
+
+// -------- Modification de saison --------
+function openEditModal(season) {
+  seasonToEdit.value = season
+  editSeasonName.value = season.name
+  editSeasonDescription.value = season.description || ''
+  showEditModal.value = true
+  closeMenu()
+}
+
+function cancelEdit() {
+  showEditModal.value = false
+  seasonToEdit.value = null
+  editSeasonName.value = ''
+  editSeasonDescription.value = ''
+}
+
+async function confirmEdit() {
+  // Fermer la modale d'édition
+  showEditModal.value = false
+  
+  // Demander le PIN code avant de modifier
+  await requirePin({
+    type: 'editSeason',
+    data: { 
+      seasonId: seasonToEdit.value.id, 
+      seasonName: seasonToEdit.value.name,
+      newName: editSeasonName.value.trim(),
+      newDescription: editSeasonDescription.value.trim(),
+      oldName: seasonToEdit.value.name,
+      oldDescription: seasonToEdit.value.description || ''
+    }
+  })
 }
 
 function scrollToHelp() {
@@ -994,7 +1104,12 @@ async function createSeason() {
   }
 
   try {
-    await addSeason(newSeasonName.value.trim(), newSeasonSlug.value.trim(), newSeasonPin.value.trim())
+    await addSeason(
+      newSeasonName.value.trim(), 
+      newSeasonSlug.value.trim(), 
+      newSeasonPin.value.trim(),
+      newSeasonDescription.value.trim()
+    )
     seasons.value = await getSeasons() // Recharger la liste
     await migrateMissingSortOrders() // Assigner un ordre si manquant (nouvelles saisons en dernier)
     cancelCreate()
@@ -1008,6 +1123,7 @@ function cancelCreate() {
   showCreateModal.value = false
   newSeasonName.value = ''
   newSeasonSlug.value = ''
+  newSeasonDescription.value = ''
   newSeasonPin.value = ''
 }
 
@@ -1058,20 +1174,26 @@ function getPinModalMessage() {
   if (!pendingOperation.value) return 'Veuillez saisir le code PIN à 4 chiffres'
   
   const messages = {
-    deleteSeason: 'Suppression de saison - Code PIN requis'
+    deleteSeason: 'Suppression de saison - Code PIN requis',
+    editSeason: 'Modification de saison - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
 }
 
 async function requirePin(operation) {
+  // Déterminer l'ID de la saison selon le type d'opération
+  const seasonId = operation.type === 'editSeason' 
+    ? operation.data.seasonId 
+    : seasonToDelete.value.id
+  
   // Vérifier si le PIN est déjà en cache pour cette saison
-  if (pinSessionManager.isPinCached(seasonToDelete.value.id)) {
-    const cachedPin = pinSessionManager.getCachedPin(seasonToDelete.value.id)
+  if (pinSessionManager.isPinCached(seasonId)) {
+    const cachedPin = pinSessionManager.getCachedPin(seasonId)
     logger.debug('PIN en cache trouvé, utilisation automatique')
     
     // Vérifier que le PIN est toujours valide
-    const isValid = await verifySeasonPin(seasonToDelete.value.id, cachedPin)
+    const isValid = await verifySeasonPin(seasonId, cachedPin)
     if (isValid) {
       // Exécuter directement l'opération
       await executePendingOperation(operation)
@@ -1153,6 +1275,38 @@ async function executePendingOperation(operation) {
         logger.info('Saison supprimée, rechargement de la liste')
         seasons.value = await getSeasons() // Recharger la liste
         logger.info('Liste des saisons rechargée', { count: seasons.value?.length || 0 })
+        break
+      case 'editSeason':
+        logger.info('Modification de la saison', { seasonId: data.seasonId })
+        
+        // Vérifier si des changements ont été effectués
+        if (data.newName === data.oldName && data.newDescription === data.oldDescription) {
+          logger.info('Aucun changement détecté, opération annulée')
+          return
+        }
+        
+        // Préparer les mises à jour
+        const updates = {}
+        if (data.newName !== data.oldName) updates.name = data.newName
+        if (data.newDescription !== data.oldDescription) updates.description = data.newDescription
+        
+        // Mettre à jour dans Firestore
+        await updateSeason(data.seasonId, updates)
+        
+        // Mettre à jour localement
+        const seasonIndex = seasons.value.findIndex(s => s.id === data.seasonId)
+        if (seasonIndex !== -1) {
+          if (updates.name) seasons.value[seasonIndex].name = data.newName
+          if (updates.description !== undefined) seasons.value[seasonIndex].description = data.newDescription
+        }
+        
+        logger.info('Saison modifiée avec succès', { 
+          seasonId: data.seasonId, 
+          oldName: data.oldName, 
+          newName: data.newName,
+          oldDescription: data.oldDescription,
+          newDescription: data.newDescription
+        })
         break
       default:
         logger.warn('Type d\'opération non reconnu', { type })
