@@ -73,21 +73,20 @@ self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-comp
 self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js')
 
 try {
-  // Config Firebase - les variables seront remplacées au build
-  // Si les variables ne sont pas disponibles, on skip Firebase
+  // Config Firebase - utiliser des valeurs par défaut pour éviter les erreurs
   const firebaseConfig = {
-    apiKey: 'FIREBASE_API_KEY_PLACEHOLDER',
-    authDomain: 'FIREBASE_AUTH_DOMAIN_PLACEHOLDER',
-    projectId: 'FIREBASE_PROJECT_ID_PLACEHOLDER',
-    storageBucket: 'FIREBASE_STORAGE_BUCKET_PLACEHOLDER',
-    messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER',
-    appId: 'FIREBASE_APP_ID_PLACEHOLDER',
-    measurementId: 'FIREBASE_MEASUREMENT_ID_PLACEHOLDER'
+    apiKey: 'demo-key',
+    authDomain: 'demo.firebaseapp.com',
+    projectId: 'demo-project',
+    storageBucket: 'demo-project.appspot.com',
+    messagingSenderId: '123456789',
+    appId: 'demo-app-id',
+    measurementId: 'demo-measurement-id'
   }
   
-  // Vérifier si on a une config valide (pas de placeholders)
+  // Vérifier si on a une config valide (pas de valeurs demo)
   const hasValidConfig = Object.values(firebaseConfig).every(value => 
-    value && !value.includes('PLACEHOLDER')
+    value && !value.includes('demo')
   )
   
   if (hasValidConfig) {
