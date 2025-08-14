@@ -53,22 +53,91 @@
     </div>
   </Transition>
   
-  <!-- Bouton de mise à jour PWA -->
-  <button
-    v-if="updateAvailable && !refreshing"
-    class="fixed bottom-4 right-4 z-50 rounded-full bg-green-600 text-white px-4 py-2 shadow-lg hover:bg-green-700 active:bg-green-800"
-    @click="updateApp"
+  <!-- Bouton de mise à jour PWA - Design centré et élégant -->
+  <Transition
+    name="update-banner"
+    appear
   >
-    🔄 Mettre à jour
-  </button>
+    <div
+      v-if="updateAvailable && !refreshing"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      @click="updateApp"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mx-4 max-w-sm w-full transform hover:scale-105 transition-all duration-300 cursor-pointer">
+        <!-- Icône de mise à jour -->
+        <div class="flex justify-center mb-4">
+          <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Contenu textuel -->
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-2">
+            🎉 Nouvelle version disponible !
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            HatCast a été amélioré avec de nouvelles fonctionnalités et corrections. Mettez à jour maintenant pour profiter des dernières améliorations.
+          </p>
+        </div>
+        
+        <!-- Bouton d'action -->
+        <div class="flex justify-center">
+          <button
+            class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center space-x-2"
+            @click.stop="updateApp"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Mettre à jour maintenant</span>
+          </button>
+        </div>
+        
+        <!-- Indication subtile -->
+        <p class="text-center text-xs text-gray-400 mt-4">
+          Cliquez n'importe où pour fermer
+        </p>
+      </div>
+    </div>
+  </Transition>
   
-  <!-- Indicateur de mise à jour en cours -->
-  <div
-    v-if="refreshing"
-    class="fixed bottom-4 right-4 z-50 rounded-full bg-green-600 text-white px-4 py-2 shadow-lg"
+  <!-- Indicateur de mise à jour en cours - Design centré -->
+  <Transition
+    name="update-progress"
+    appear
   >
-    🔄 Mise à jour...
-  </div>
+    <div
+      v-if="refreshing"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 mx-4 max-w-sm w-full text-center">
+        <!-- Icône animée -->
+        <div class="flex justify-center mb-6">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+            <svg class="w-10 h-10 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Texte de progression -->
+        <h3 class="text-xl font-bold text-gray-900 mb-3">
+          Mise à jour en cours...
+        </h3>
+        <p class="text-gray-600">
+          Veuillez patienter pendant qu'HatCast se met à jour
+        </p>
+        
+        <!-- Barre de progression -->
+        <div class="mt-6 bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -165,12 +234,71 @@ function handleServiceWorkerUpdate() {
 
 function updateApp() {
   refreshing.value = true
-  // Send message to service worker to skip waiting
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.postMessage({ type: 'SKIP_WAITING' })
-  }
-  // Reload the page to apply the update
-  window.location.reload()
+  console.log('🚀 Début de la mise à jour PWA...')
+  
+  // Attendre un peu pour que l'utilisateur voie l'indicateur de progression
+  setTimeout(async () => {
+    try {
+      console.log('📡 Vérification du service worker...')
+      
+      // Send message to service worker to skip waiting
+      if ('serviceWorker' in navigator) {
+        // Obtenir l'enregistrement du service worker
+        const registration = await navigator.serviceWorker.getRegistration()
+        console.log('🔍 Enregistrement SW trouvé:', registration)
+        
+        if (registration && registration.active) {
+          console.log('✅ Service worker actif trouvé, envoi du message SKIP_WAITING...')
+          
+          // Envoyer le message au service worker actif
+          registration.active.postMessage({ type: 'SKIP_WAITING' })
+          console.log('📤 Message SKIP_WAITING envoyé')
+          
+          // Attendre un peu pour que le service worker traite le message
+          await new Promise(resolve => setTimeout(resolve, 500))
+          console.log('⏳ Attente de 500ms terminée')
+          
+          // Vérifier si le service worker a changé
+          if (registration.waiting) {
+            console.log('🔄 Service worker en attente détecté, attente de l\'activation...')
+            
+            // Attendre que le service worker soit activé
+            await new Promise(resolve => {
+              const checkWaiting = () => {
+                if (!registration.waiting) {
+                  console.log('✅ Service worker activé avec succès')
+                  resolve()
+                } else {
+                  console.log('⏳ Service worker toujours en attente, nouvelle vérification dans 100ms...')
+                  setTimeout(checkWaiting, 100)
+                }
+              }
+              checkWaiting()
+            })
+          } else {
+            console.log('ℹ️ Aucun service worker en attente')
+          }
+        } else {
+          console.warn('⚠️ Aucun service worker actif trouvé')
+        }
+      } else {
+        console.warn('⚠️ Service Worker non supporté sur cet appareil')
+      }
+      
+      console.log('🔄 Rechargement de la page...')
+      // Recharger la page pour appliquer la mise à jour
+      window.location.reload()
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour:', error)
+      // En cas d'erreur, remettre l'état et afficher un message
+      refreshing.value = false
+      alert(`Erreur lors de la mise à jour: ${error.message}\n\nVeuillez rafraîchir manuellement la page.`)
+    }
+  }, 1000) // Délai initial pour l'UX
+}
+
+function handlePwaUpdateTest() {
+  updateAvailable.value = true
 }
 
 onMounted(() => {
@@ -189,11 +317,21 @@ onMounted(() => {
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)
   
+  // Écouter l'événement de test de mise à jour PWA
+  window.addEventListener('pwa-update-test', handlePwaUpdateTest)
+  
   // Check for service worker updates
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing.value) return
       updateAvailable.value = true
+    })
+    
+    // Écouter les messages du service worker
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'SW_UPDATING') {
+        console.log('Service worker en cours de mise à jour...')
+      }
     })
     
     // Check for updates every hour
@@ -210,6 +348,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.removeEventListener('appinstalled', handleAppInstalled)
+  window.removeEventListener('pwa-update-test', handlePwaUpdateTest)
 })
 </script>
 

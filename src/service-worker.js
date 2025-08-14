@@ -34,7 +34,17 @@ self.addEventListener('activate', (event) => {
 // Listen for messages from the main thread to check for updates
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
+    // Notifier tous les clients que la mise à jour va commencer
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({ type: 'SW_UPDATING' })
+      })
+    })
+    
+    // Attendre un peu avant de skip waiting pour permettre la notification
+    setTimeout(() => {
+      self.skipWaiting()
+    }, 100)
   }
 })
 

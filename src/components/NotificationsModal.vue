@@ -79,6 +79,12 @@
               <div class="text-xs text-gray-400">Test de notification push</div>
               <button @click="sendTestPush" :disabled="testPushLoading || !email" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ testPushLoading ? 'Envoi…' : 'Envoyer un test' }}</button>
             </div>
+            <div class="flex items-center justify-between pt-2">
+              <div class="text-xs text-gray-400">Test de mise à jour PWA</div>
+              <button @click="testPwaUpdate" class="px-3 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-500 transition-colors">
+                🧪 Simuler maj
+              </button>
+            </div>
             <div v-if="testPushSuccess" class="text-xs text-green-300">Notification test envoyée (vérifiez votre appareil)</div>
             <div v-if="testPushError" class="text-xs text-red-300">{{ testPushError }}</div>
             <div v-if="fcmToken" class="text-[10px] text-gray-400 break-all">FCM token: {{ fcmToken }}</div>
@@ -177,6 +183,21 @@ async function sendTestPush() {
   } finally {
     testPushLoading.value = false
   }
+}
+
+// Fonction pour tester la modal de mise à jour PWA
+function testPwaUpdate() {
+  // Émettre un événement personnalisé pour déclencher la mise à jour
+  const updateEvent = new CustomEvent('pwa-update-test', {
+    detail: { 
+      type: 'test-update',
+      timestamp: Date.now()
+    }
+  })
+  window.dispatchEvent(updateEvent)
+  
+  // Afficher un message de confirmation
+  alert('🧪 Test de mise à jour PWA déclenché !\n\nVérifiez que la modal de mise à jour apparaît dans l\'interface principale.')
 }
 
 async function enablePushOnThisDevice() {
