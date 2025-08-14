@@ -39,7 +39,8 @@ print_result() {
 # 1. Vérifier HTTPS
 echo "1. Vérification HTTPS..."
 if curl -s -I "$BASE_URL" | grep -q "HTTP/2 200\|HTTP/1.1 200"; then
-    if curl -s -I "$BASE_URL" | grep -q "https://"; then
+    # Vérifier que l'URL commence par https://
+    if [[ "$BASE_URL" == https://* ]]; then
         print_result "OK" "HTTPS actif" "Le site est servi en HTTPS"
     else
         print_result "WARN" "HTTPS non détecté" "Vérifiez la configuration du serveur"
@@ -98,13 +99,20 @@ done
 
 # 4. Vérifier le service worker
 echo "4. Vérification du service worker..."
-SW_URL="$BASE_URL/sw.js"
-SW_RESPONSE=$(curl -s -I "$SW_URL" 2>/dev/null)
+SW_URLS=("$BASE_URL/sw.js" "$BASE_URL/service-worker.js")
+SW_FOUND=false
 
-if echo "$SW_RESPONSE" | grep -q "HTTP/.*200"; then
-    print_result "OK" "Service worker accessible" "Le fichier sw.js est accessible"
-else
-    print_result "WARN" "Service worker non trouvé" "Vérifiez que le build PWA a généré sw.js"
+for sw_url in "${SW_URLS[@]}"; do
+    SW_RESPONSE=$(curl -s -I "$sw_url" 2>/dev/null)
+    if echo "$SW_RESPONSE" | grep -q "HTTP/.*200"; then
+        print_result "OK" "Service worker accessible" "Le fichier $(basename "$sw_url") est accessible"
+        SW_FOUND=true
+        break
+    fi
+done
+
+if [ "$SW_FOUND" = false ]; then
+    print_result "WARN" "Service worker non trouvé" "Vérifiez que le build PWA a généré sw.js ou service-worker.js"
 fi
 
 # 5. Vérifier la page de diagnostic
