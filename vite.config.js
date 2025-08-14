@@ -24,6 +24,7 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/',
       },
+
       manifest: {
         name: 'HatCast - Composition d\'équipes d\'impro',
         short_name: 'HatCast',

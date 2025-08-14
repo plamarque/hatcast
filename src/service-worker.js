@@ -73,16 +73,25 @@ self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-comp
 self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js')
 
 try {
-  // Config Firebase injectée au build via import.meta.env
-  firebase.initializeApp({
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-  })
+  // Config Firebase - les variables seront remplacées au build
+  // Si les variables ne sont pas disponibles, on skip Firebase
+  const firebaseConfig = {
+    apiKey: 'FIREBASE_API_KEY_PLACEHOLDER',
+    authDomain: 'FIREBASE_AUTH_DOMAIN_PLACEHOLDER',
+    projectId: 'FIREBASE_PROJECT_ID_PLACEHOLDER',
+    storageBucket: 'FIREBASE_STORAGE_BUCKET_PLACEHOLDER',
+    messagingSenderId: 'FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER',
+    appId: 'FIREBASE_APP_ID_PLACEHOLDER',
+    measurementId: 'FIREBASE_MEASUREMENT_ID_PLACEHOLDER'
+  }
+  
+  // Vérifier si on a une config valide (pas de placeholders)
+  const hasValidConfig = Object.values(firebaseConfig).every(value => 
+    value && !value.includes('PLACEHOLDER')
+  )
+  
+  if (hasValidConfig) {
+    firebase.initializeApp(firebaseConfig)
   const messaging = firebase.messaging()
   messaging.onBackgroundMessage((payload) => {
     const data = payload?.data || {}
@@ -115,8 +124,10 @@ try {
     
     self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl, reason } })
   })
+  }
 } catch (e) {
-  // ignore in dev/preview
+  // ignore in dev/preview or if Firebase config is not available
+  console.log('Firebase Messaging not available in service worker:', e.message)
 }
 
 

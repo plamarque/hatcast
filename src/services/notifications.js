@@ -2,6 +2,7 @@
 import { isSupported, getToken, onMessage, deleteToken } from 'firebase/messaging'
 import { db, auth, getMessaging } from './firebase'
 import { setDoc, doc, serverTimestamp, arrayUnion } from 'firebase/firestore'
+import { getApp } from 'firebase/app'
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
@@ -47,7 +48,7 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   if (!(await canUsePush())) return null
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return null
-  const messaging = getMessaging(app)
+  const messaging = getMessaging(getApp())
   
   // Fallback: si aucune registration n'est passée, attendre un SW actif
   let swReg = serviceWorkerRegistration || await getActiveServiceWorkerRegistration()
@@ -77,7 +78,7 @@ export async function ensurePushNotificationsActive() {
     const existingToken = localStorage.getItem('fcmToken')
     if (existingToken) {
       // Vérifier si le token est toujours valide
-      const messaging = getMessaging(app)
+      const messaging = getMessaging(getApp())
       try {
         // Essayer de récupérer le token actuel
         const currentToken = await getToken(messaging, { vapidKey })
@@ -122,13 +123,13 @@ export function startPushHealthCheck() {
 }
 
 export function onForegroundMessage(callback) {
-  const messaging = getMessaging(app)
+  const messaging = getMessaging(getApp())
   return onMessage(messaging, callback)
 }
 
 export async function revokePushToken() {
   try {
-    const messaging = getMessaging(app)
+    const messaging = getMessaging(getApp())
     await deleteToken(messaging)
   } catch {}
 }
