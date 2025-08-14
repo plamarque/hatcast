@@ -6,7 +6,7 @@
         <button @click="onClose" title="Fermer" class="absolute right-2.5 top-2.5 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         <h2 class="text-xl md:text-2xl font-bold text-white pr-10 flex items-center gap-2">
           <span class="hidden sm:inline">{{ mode === 'selection' ? '📣' : '📢' }}</span>
-          <span>{{ mode === 'selection' ? 'Annoncer la sélection' : 'Annoncer l\'événement' }}</span>
+          <span>{{ mode === 'selection' ? 'Confirmer la sélection' : 'Confirmer l\'événement' }}</span>
         </h2>
         <p class="text-sm text-purple-300 mt-1" v-if="event">{{ event.title }} — {{ formatDateFull(event.date) }}</p>
       </div>
@@ -24,7 +24,6 @@
           :players="players"
           :selected-players="selectedPlayers"
           :availability-by-player="availabilityByPlayer"
-          @update:selected-recipient="updateSelectedRecipient"
         />
 
         <!-- Section Copie supprimée: bouton de copie présent dans le footer -->
@@ -32,16 +31,16 @@
 
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Actions principales: Envoyer + Copier le message -->
+        <!-- Action principale: Confirmer et envoyer -->
         <div class="flex items-center gap-2 w-full">
           <button
-            @click="sendNotifications"
+            @click="confirmAndSend"
             :disabled="computedSending"
             class="h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex-1"
           >
             <span v-if="!computedSending">
-              <span class="hidden sm:inline">🔔 Envoyer les notifications</span>
-              <span class="sm:hidden">🔔 Envoyer</span>
+              <span class="hidden sm:inline">🔔 Confirmer et notifier</span>
+              <span class="sm:hidden">🔔 Confirmer</span>
             </span>
             <span v-else class="inline-flex items-center gap-2">
               <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -50,17 +49,6 @@
               </svg>
               Envoi en cours...
             </span>
-          </button>
-          <button
-            @click="copyToClipboard"
-            class="h-12 px-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300"
-            :title="copyButtonText"
-          >
-            <span v-if="!copied">
-              <span class="hidden sm:inline">📋 Copier le message</span>
-              <span class="sm:hidden">📋 Copier</span>
-            </span>
-            <span v-else>✅ Copié</span>
           </button>
         </div>
         
@@ -97,11 +85,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'notifications-sent', 'send-notifications'])
 
 // État local
-const copied = ref(false)
-const copyButtonText = ref('Copier le message')
 const isSending = ref(false)
 const computedSending = computed(() => props.sending || isSending.value)
-const selectedRecipient = ref(null)
 
 // Onglets supprimés
 
@@ -120,73 +105,32 @@ function formatDateFull(dateValue) {
   return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-function copyToClipboard() {
-  // TODO: Récupérer le message depuis MessagePreview
-  const textToCopy = 'Message à copier depuis MessagePreview'
-  navigator.clipboard.writeText(textToCopy).then(() => {
-    copied.value = true
-    copyButtonText.value = 'Copié !'
-    setTimeout(() => {
-      copied.value = false
-      copyButtonText.value = 'Copier le message'
-    }, 2000)
-  }).catch(err => {
-    // Silence en prod
-    // eslint-disable-next-line no-console
-    console.warn('Erreur lors de la copie du texte')
-    alert('Impossible de copier le message.')
-  })
-}
 
 
 
-function selectRecipient(player) {
-  selectedRecipient.value = player
-}
 
-function updateSelectedRecipient(player) {
-  selectedRecipient.value = player
-}
 
-async function sendNotifications() {
+
+async function confirmAndSend() {
   if (!props.event) return
   
   isSending.value = true
   
   try {
-    const scope = selectedRecipient.value && selectedRecipient.value.id !== 'ALL' ? 'single' : 'all'
-    const recipient = scope === 'single' ? { id: selectedRecipient.value.id, name: selectedRecipient.value.name, email: selectedRecipient.value.email } : null
-    if (props.mode === 'selection') {
-      // Mode sélection : émettre un événement spécifique
-      emit('send-notifications', {
-        eventId: props.event.id,
-        eventData: props.event,
-        reason: 'selection',
-        selectedPlayers: props.selectedPlayers,
-        scope,
-        recipient
-      })
-    } else {
-      // Mode événement : utiliser la logique existante
-      emit('send-notifications', {
-        eventId: props.event.id,
-        eventData: props.event,
-        reason: 'manual',
-        scope,
-        recipient
-      })
-    }
+    // Émettre l'événement pour déclencher l'envoi automatique des notifications
+    emit('send-notifications', {
+      eventId: props.event.id,
+      eventData: props.event,
+      reason: props.mode === 'selection' ? 'selection' : 'event',
+      selectedPlayers: props.selectedPlayers,
+      scope: 'all' // Toujours envoyer à tous les destinataires
+    })
     
-    // Le parent contrôle la fin via la prop `sending`. On ne ferme plus la modale automatiquement.
+    // La modale reste ouverte pour afficher les résultats
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Erreur lors de l\'envoi des notifications')
+    console.error('Erreur lors de l\'envoi des notifications:', error)
     alert('Erreur lors de l\'envoi des notifications. Veuillez réessayer.')
-  } finally {
-    // Remettre isSending à false après un délai pour permettre au parent de traiter
-    setTimeout(() => {
-      isSending.value = false
-    }, 1000)
+    isSending.value = false
   }
 }
 

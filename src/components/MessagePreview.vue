@@ -16,33 +16,33 @@
       <!-- Hint pour les destinataires -->
       <div v-if="showDestinatairesHint" class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-3">
         <p class="text-blue-200 text-sm">
-          Cette liste montre tous les joueurs ciblés: <span class="text-purple-300">« Tous »</span>,
+          Cette liste montre tous les joueurs ciblés: 
           <span class="text-gray-200">ceux notifiables (email/push actifs)</span> et
           <span class="text-yellow-300">ceux en jaune sans canal actif</span>.
-          Les joueurs en jaune ne peuvent pas être notifiés automatiquement. Utilise « Copier le message » pour leur écrire via un autre moyen (l'URL de l'événement est incluse).
+          Les joueurs en jaune ne peuvent pas être notifiés automatiquement. Utilise le message ci-dessous pour les contacter manuellement.
         </p>
       </div>
       
       <div class="bg-gray-800 border border-gray-600 rounded-lg p-3">
         <div v-if="allDisplayRecipients.length > 0" class="space-y-2">
+          <div class="text-gray-300 text-sm mb-2">
+            <strong>{{ allDisplayRecipients.length - 1 }}</strong> joueur(s) à notifier
+          </div>
           <div class="flex flex-wrap gap-2">
-            <button
-              v-for="player in allDisplayRecipients"
+            <span
+              v-for="player in allDisplayRecipients.filter(p => p.id !== 'ALL')"
               :key="player.id || player.name"
-              type="button"
-              @click="selectRecipient(player)"
               :class="[
-                'px-3 py-1 rounded text-sm border transition-colors',
-                selectedRecipient && selectedRecipient.id === player.id
-                  ? 'bg-purple-600 border-purple-500 text-white'
-                  : player.hasContact
-                    ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
-                    : 'bg-yellow-900/20 border-yellow-600/40 text-yellow-200 hover:bg-yellow-900/30 opacity-75 cursor-not-allowed'
+                'px-3 py-1 rounded text-sm border',
+                player.hasContact
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-yellow-900/20 border-yellow-600/40 text-yellow-200 opacity-75'
               ]"
-              :title="player.hasContact ? ('Prévisualiser pour ' + player.name) : (player.missingReason || 'Aucun canal actif')"
+              :title="player.hasContact ? 'Peut être notifié automatiquement' : 'Aucun canal actif - notification manuelle requise'"
             >
               {{ player.name }}
-            </button>
+              <span v-if="!player.hasContact" class="ml-1 text-yellow-400">⚠️</span>
+            </span>
           </div>
         </div>
         <div v-else class="text-amber-400 text-sm">
@@ -51,184 +51,12 @@
       </div>
     </div>
 
-    <!-- Aperçu du message -->
-    <div class="relative">
-      <label class="block text-sm font-medium text-gray-300 mb-2">Aperçu du message :</label>
-      
-      <!-- Barre de séparation avec toggle flottant -->
-      <div class="separator-bar">
-        <div class="tabs-floating">
-          <div class="inline-flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700 shadow-lg">
-            <button
-              class="px-3 py-1.5 text-sm transition-colors"
-              :class="activePreviewTab === 'email' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-              @click="activePreviewTab = 'email'"
-              title="Prévisualiser l'email"
-            >📧</button>
-            <button
-              class="px-3 py-1.5 text-sm transition-colors"
-              :class="activePreviewTab === 'push' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-              @click="activePreviewTab = 'push'"
-              title="Prévisualiser la notification push"
-            >📱</button>
-            <button
-              class="px-3 py-1.5 text-sm transition-colors"
-              :class="activePreviewTab === 'copy' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-700'"
-              @click="activePreviewTab = 'copy'"
-              title="Prévisualiser le texte à copier"
-              style="font-size: 16px;"
-            >📋</button>
-          </div>
-        </div>
-      </div>
+    <!-- Message à copier -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Message à copier pour les contacts manuels :</label>
 
-      <!-- Email preview avec style Gmail web -->
-      <div v-if="activePreviewTab === 'email'" :class="(hasSelectedRecipientContact || selectedRecipient?.id === 'ALL') ? '' : 'space-y-3'">
-        <template v-if="hasSelectedRecipientContact || selectedRecipient?.id === 'ALL'">
-          <!-- Mockup Gmail web -->
-          <div class="gmail-web-mockup">
-            <!-- Barre de titre Gmail -->
-            <div class="gmail-top-bar">
-              <div class="gmail-nav-left">
-                <span class="back-arrow">←</span>
-              </div>
-              <div class="gmail-nav-center">
-                <span class="nav-arrows">←</span>
-                <span class="email-counter">1 sur 1</span>
-                <span class="nav-arrows">→</span>
-              </div>
-              <div class="gmail-nav-right">
-                <span class="action-icon">▼</span>
-                <span class="action-icon">⋮</span>
-              </div>
-            </div>
-            
-            <!-- Contenu de l'email -->
-            <div class="email-content-web">
-              <!-- En-tête de l'email -->
-              <div class="email-header-web">
-                <div class="email-subject-web">
-                  <h1>{{ emailSubject }}</h1>
-                  <div class="inbox-tag-web">
-                    Boîte de réception <span class="close-icon">×</span>
-                  </div>
-                </div>
-                
-                <div class="sender-info-web">
-                  <div class="sender-avatar-web">
-                    <img src="/logos/hatcast-mask.png" alt="HatCast" class="avatar-logo" />
-                  </div>
-                  <div class="sender-details-web">
-                    <div class="sender-name-web">{{ emailFrom }} <span class="sender-email">&lt;noreply@hatcast.app&gt;</span></div>
-                    <div class="recipient-info-web">
-                      à moi <span class="dropdown-arrow">▼</span>
-                    </div>
-                  </div>
-                  <div class="sender-time-web">5:23 PM (il y a 25 minutes)</div>
-                  <div class="email-actions-web">
-                    <span class="action-icon">☆</span>
-                    <span class="action-icon">⋮</span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Corps de l'email -->
-              <div class="email-body-web">
-                <div class="email-text-web" v-html="emailHtml"></div>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template v-else>
-          <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm">
-            Ce joueur n'a pas configuré d'email. Utilise la fonction « Copier le message » et envoie-lui ces informations par un autre canal.
-          </div>
-          <textarea class="w-full mt-2 p-3 bg-gray-900 border border-gray-700 rounded-md text-white text-sm" :value="nonContactCopyText" rows="5" readonly></textarea>
-        </template>
-      </div>
-
-      <!-- Push preview avec style téléphone -->
-      <div v-else-if="activePreviewTab === 'push'" :class="(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact) ? 'text-white' : ''">
-        <template v-if="!(selectedRecipient && selectedRecipient.id !== 'ALL' && !hasSelectedRecipientContact)">
-          <!-- Mockup de téléphone pour la prévisualisation -->
-          <div class="phone-mockup-preview">
-            <div class="phone-screen-preview">
-              <!-- Barre de statut du téléphone -->
-              <div class="phone-status-bar">
-                <div class="status-left">
-                  <span class="time">9:41</span>
-                </div>
-                <div class="status-right">
-                  <span class="signal">📶</span>
-                  <span class="battery">🔋</span>
-                  <span class="notification-dot">🔔</span>
-                </div>
-              </div>
-              
-              <!-- Zone de notification -->
-              <div class="notification-preview-area">
-                <div class="notification-card">
-                  <!-- Header de la notification -->
-                  <div class="notification-header">
-                    <div class="notification-icon">🔔</div>
-                    <div class="notification-source">HatCast • 16 min</div>
-                  </div>
-                  
-                  <!-- Contenu de la notification -->
-                  <div class="notification-content">
-                    <div class="notification-title">
-                      {{ pushTitle }}
-                    </div>
-                    <div class="notification-body">{{ pushBody }}</div>
-                  </div>
-                  
-                  <!-- Actions de la notification -->
-                  <div class="notification-actions">
-                    <template v-if="mode === 'event'">
-                      <div class="action-item">
-                        <span class="action-icon">✅</span>
-                        <span class="action-text">Dispo</span>
-                      </div>
-                      <div class="action-item">
-                        <span class="action-icon">❌</span>
-                        <span class="action-text">Pas dispo</span>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="action-item">
-                        <span class="action-icon">❌</span>
-                        <span class="action-text">Plus dispo</span>
-                      </div>
-                    </template>
-                  </div>
-                  
-                  <!-- Avatar/Compteur à droite -->
-                  <div class="notification-avatar">
-                    <img src="/logos/hatcast-mask.png" alt="HatCast" class="notification-logo" />
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Contenu de l'app en arrière-plan -->
-              <div class="phone-app-content">
-                <div class="app-header">
-                  <h3>📱 HatCast</h3>
-                  <p>Votre application en arrière-plan</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template v-else>
-          <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm mb-2">
-            {{ selectedRecipient?.name }} n'a pas installé l'appli. Envoie-lui ce message manuellement.
-          </div>
-          <textarea class="w-full p-3 bg-gray-800 border border-gray-700 rounded-md text-white text-sm" :value="nonContactCopyText" rows="5" readonly></textarea>
-        </template>
-      </div>
-
-      <!-- Copy preview (pour les joueurs sans compte) -->
-      <div v-else-if="activePreviewTab === 'copy'" class="space-y-3">
+      <!-- Message à copier -->
+      <div class="space-y-3">
         <!-- Indicateur de copie -->
         <div v-if="showCopyIndicator" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in">
           ✅ Copié !
@@ -241,14 +69,15 @@
           <pre class="whitespace-pre-wrap font-sans">{{ copyMessage }}</pre>
         </div>
       </div>
+
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { buildAvailabilityEmailPreview, buildSelectionEmailPreview, buildAvailabilityPushPreview, buildSelectionPushPreview } from '../services/notificationTemplates.js'
-import { buildAvailabilityTextTemplate, buildSelectionTextTemplate, buildNoEmailTemplate } from '../services/emailTemplates.js'
+import { buildAvailabilityTextTemplate, buildSelectionTextTemplate } from '../services/emailTemplates.js'
 
 const props = defineProps({
   mode: {
@@ -282,15 +111,15 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:selectedRecipient'])
+
 
 // État local
 const showDestinatairesHint = ref(false)
-const activePreviewTab = ref('email')
+
 const showCopyIndicator = ref(false)
 const recipientsWithEmail = ref([])
 const recipients = ref([])
-const selectedRecipient = ref(null)
+
 const nonContactRecipients = ref([])
 
 // Computed properties manquantes
@@ -299,17 +128,7 @@ const eventDirectLink = computed(() => {
   return `${window.location.origin}/season/${props.seasonSlug}/event/${props.event.id}`
 })
 
-const deselectMagicLinkText = computed(() => {
-  try {
-    const player = selectedRecipient.value?.id && selectedRecipient.value.id !== 'ALL'
-      ? props.players.find(p => p.id === selectedRecipient.value.id)
-      : null
-    if (!player || !props.event?.id || !props.seasonId) return '[lien désistement]'
-    return `${window.location.origin}/magic?auto=no&season=${encodeURIComponent(props.seasonId)}&player=${encodeURIComponent(player.id)}&event=${encodeURIComponent(props.event.id)}&slug=${encodeURIComponent(props.seasonSlug || '')}`
-  } catch {
-    return '[lien désistement]'
-  }
-})
+
 
 // Computed properties
 const allDisplayRecipients = computed(() => {
@@ -318,31 +137,26 @@ const allDisplayRecipients = computed(() => {
   return [{ id: 'ALL', name: 'Tous', hasContact: true }, ...withFlag.filter(p => p.id !== 'ALL'), ...manual]
 })
 
-const hasSelectedRecipientContact = computed(() => {
-  if (!selectedRecipient.value || selectedRecipient.value.id === 'ALL') return true
-  const rec = allDisplayRecipients.value.find(p => (p.id || p.name) === (selectedRecipient.value.id || selectedRecipient.value.name))
-  return !!rec?.hasContact
-})
+
 
 // Template unifié pour tous les messages
 const unifiedMessage = computed(() => {
   if (!props.event) return ''
   
-  const playerName = selectedRecipient.value?.id === 'ALL' ? '' : (selectedRecipient.value?.name || '[Nom du joueur]')
   const dateStr = formatDateFull(props.event?.date)
   const eventTitle = props.event?.title
   const directLink = eventDirectLink.value
   
   if (props.mode === 'event') {
     return buildAvailabilityTextTemplate({
-      playerName,
+      playerName: '', // Toujours vide pour "Tous"
       eventTitle,
       eventDate: dateStr,
       eventUrl: directLink
     })
   } else {
     return buildSelectionTextTemplate({
-      playerName,
+      playerName: '', // Toujours vide pour "Tous"
       eventTitle,
       eventDate: dateStr,
       eventUrl: directLink
@@ -354,110 +168,20 @@ const copyMessage = computed(() => {
   return unifiedMessage.value
 })
 
-const nonContactCopyText = computed(() => {
-  return unifiedMessage.value
-})
 
-// Email preview content
-const emailSubject = computed(() => {
-  if (!props.event) return ''
-  const dateStr = formatDateFull(props.event?.date)
-  const playerName = selectedRecipient.value?.id === 'ALL' ? '' : (selectedRecipient.value?.name || '[Nom du joueur]')
-  
-  if (props.mode === 'event') {
-    return buildAvailabilityEmailPreview({ 
-      recipientName: playerName, 
-      eventTitle: props.event?.title, 
-      eventDate: dateStr,
-      eventUrl: eventDirectLink.value,
-      yesUrl: `${eventDirectLink.value}?action=available`,
-      noUrl: `${eventDirectLink.value}?action=unavailable`
-    }).subject
-  } else {
-    return buildSelectionEmailPreview({
-      recipientName: playerName,
-      eventTitle: props.event?.title,
-      eventDate: dateStr,
-      eventUrl: eventDirectLink.value,
-      noUrl: deselectMagicLinkText.value
-    }).subject
-  }
-})
 
-const emailFrom = computed(() => {
-  return 'HatCast'
-})
 
-const emailHtml = computed(() => {
-  if (!props.event) return ''
-  const dateStr = formatDateFull(props.event?.date)
-  const playerName = selectedRecipient.value?.id === 'ALL' ? '' : (selectedRecipient.value?.name || '[Nom du joueur]')
-  
-  if (selectedRecipient.value && selectedRecipient.value.id && selectedRecipient.value.id !== 'ALL' && !allDisplayRecipients.value.find(p => p.id === selectedRecipient.value.id)?.hasContact) {
-    return buildNoEmailTemplate({
-      playerName,
-      eventTitle: props.event?.title,
-      eventDate: dateStr,
-      eventUrl: eventDirectLink.value
-    })
-  }
-  
-  if (props.mode === 'event') {
-    return buildAvailabilityEmailPreview({
-      recipientName: playerName,
-      eventTitle: props.event?.title,
-      eventDate: dateStr,
-      eventUrl: eventDirectLink.value,
-      yesUrl: `${eventDirectLink.value}?action=available`,
-      noUrl: `${eventDirectLink.value}?action=unavailable`
-    }).html
-  } else {
-    return buildSelectionEmailPreview({
-      recipientName: playerName,
-      eventTitle: props.event?.title,
-      eventDate: dateStr,
-      eventUrl: eventDirectLink.value,
-      noUrl: deselectMagicLinkText.value
-    }).html
-  }
-})
 
-// Push preview content
-const pushTitle = computed(() => {
-  if (!props.event) return ''
-  const dateStr = formatDateFull(props.event?.date)
-  const playerName = selectedRecipient.value?.id === 'ALL' ? '' : (selectedRecipient.value?.name || '[Nom du joueur]')
-  
-  if (props.mode === 'event') {
-    return buildAvailabilityPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).title
-  } else {
-    return buildSelectionPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).title
-  }
-})
 
-const pushBody = computed(() => {
-  if (!props.event) return ''
-  const dateStr = formatDateFull(props.event?.date)
-  const playerName = selectedRecipient.value?.id === 'ALL' ? '' : (selectedRecipient.value?.name || '[Nom du joueur]')
-  const selected = selectedRecipient.value && selectedRecipient.value.id && selectedRecipient.value.id !== 'ALL'
-  const selectedHasContact = selected ? !!allDisplayRecipients.value.find(p => p.id === selectedRecipient.value.id)?.hasContact : true
-  
-  if (selected && !selectedHasContact) {
-    return unifiedMessage.value
-  }
-  
-  if (props.mode === 'event') {
-    return buildAvailabilityPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).body
-  } else {
-    return buildSelectionPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).body
-  }
-})
+
+
+
+
+
+
 
 // Méthodes
-function selectRecipient(player) {
-  selectedRecipient.value = player
-  emit('update:selectedRecipient', player)
-}
+
 
 function handleCopyTextClick() {
   navigator.clipboard.writeText(copyMessage.value)
