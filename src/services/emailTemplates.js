@@ -32,10 +32,11 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, noUrl }) {
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p><strong>Bonjour ${playerName}</strong>, tu as été sélectionné pour <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le <strong>${eventDate}</strong>!</p>
-      <p style="margin-top: 16px; font-weight: 600;">Actions rapides :</p>
+      <p>Bonjour <strong>${playerName}</strong>,</p>
+      <p>Tu fais partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> (${eventDate}).</p>
+      <p>Un imprévu ?</p>
       <p style="margin-top: 8px;">
-        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
+        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Plus dispo</a>
       </p>
     </div>
   `
@@ -74,9 +75,13 @@ Lien direct: ${eventUrl}`
 }
 
 export function buildSelectionTextTemplate({ playerName, eventTitle, eventDate, eventUrl }) {
-  return `Bonjour ${playerName}, tu as été sélectionné pour ${eventTitle} le ${eventDate}!
+  return `Bonjour ${playerName},
 
-Lien direct: ${eventUrl}
+Tu fais partie de l'équipe pour ${eventTitle} (${eventDate}).
 
-Un imprévu ? Contacte l'organisateur.`
+Un imprévu ?
+
+❌ Plus dispo
+
+Lien direct: ${eventUrl}`
 }

@@ -73,6 +73,7 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { ensurePushNotificationsActive } from './services/notifications.js'
 
 const deferredPrompt = ref(null)
 const canInstallPwa = ref(false)
@@ -175,6 +176,15 @@ function updateApp() {
 onMounted(() => {
   // Vérifier l'état d'installation au chargement
   checkIfAlreadyInstalled()
+  
+  // Vérifier et réactiver automatiquement les notifications push
+  ensurePushNotificationsActive().then(status => {
+    if (status.active) {
+      console.log('Notifications push actives au démarrage')
+    } else {
+      console.log('Notifications push inactives au démarrage:', status.error)
+    }
+  })
   
   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.addEventListener('appinstalled', handleAppInstalled)

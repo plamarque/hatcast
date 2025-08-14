@@ -82,12 +82,28 @@ try {
     const url = data.url || '/'
     const noUrl = data.noUrl
     const yesUrl = data.yesUrl
+    const reason = data.reason || 'generic'
     /** @type {NotificationAction[]} */
     const actions = []
-    if (yesUrl) actions.push({ action: 'yes', title: '✅ Dispo' })
-    if (noUrl) actions.push({ action: 'no', title: '❌ Pas dispo' })
-    actions.push({ action: 'open', title: 'Voir' })
-    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl } })
+    
+    // Actions adaptatives selon le type de notification
+    if (reason === 'selection') {
+      // Notifications de sélection : action de désistement
+      if (noUrl) actions.push({ action: 'no', title: '❌ Plus dispo' })
+      actions.push({ action: 'open', title: 'Voir l\'événement' })
+    } else if (reason === 'availability_request' || reason === 'availability_reminder') {
+      // Notifications de disponibilité : actions oui/non
+      if (yesUrl) actions.push({ action: 'yes', title: '✅ Dispo' })
+      if (noUrl) actions.push({ action: 'no', title: '❌ Pas dispo' })
+      actions.push({ action: 'open', title: 'Voir l\'événement' })
+    } else {
+      // Notifications génériques
+      if (yesUrl) actions.push({ action: 'yes', title: '✅ Dispo' })
+      if (noUrl) actions.push({ action: 'no', title: '❌ Pas dispo' })
+      actions.push({ action: 'open', title: 'Voir' })
+    }
+    
+    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl, reason } })
   })
 } catch (e) {
   // ignore in dev/preview

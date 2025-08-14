@@ -99,11 +99,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { auth, db } from '../services/firebase.js'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { queuePushMessage } from '../services/pushService.js'
-import { canUsePush, requestAndGetToken } from '../services/notifications'
+import { canUsePush, requestAndGetToken, ensurePushNotificationsActive, startPushHealthCheck } from '../services/notifications'
 
 const props = defineProps({
   show: { type: Boolean, default: false }
@@ -123,6 +123,22 @@ const enablePushLoading = ref(false)
 const fcmToken = ref(localStorage.getItem('fcmToken') || '')
 const pushEnabledOnDevice = ref(false)
 const vapidKeyPreview = (function maskKey(key) { try { return key ? (key.length > 20 ? key.slice(0,8) + '…' + key.slice(-6) : key) : '' } catch { return '' } })(import.meta.env?.VITE_FIREBASE_VAPID_KEY)
+
+// Gestionnaire pour les changements d'état des notifications push
+function handlePushStatusChanged(event) {
+  const { active, token } = event.detail
+  if (active && token) {
+    fcmToken.value = token
+    pushEnabledOnDevice.value = true
+    localStorage.setItem('fcmToken', token)
+    console.log('Notifications push réactivées automatiquement')
+  } else {
+    pushEnabledOnDevice.value = false
+    fcmToken.value = ''
+    localStorage.removeItem('fcmToken')
+    console.log('Notifications push désactivées')
+  }
+}
 
 async function loadPrefs() {
   try {
@@ -147,7 +163,14 @@ async function sendTestPush() {
   testPushError.value = ''
   testPushSuccess.value = ''
   try {
-            await queuePushMessage({ toEmail: email.value, title: 'Test HatCast', body: 'Ceci est un test de notification', data: { url: '/' }, reason: 'manual_test' })
+    // Vérifier que les notifications push sont actives avant d'envoyer
+    const pushStatus = await ensurePushNotificationsActive()
+    if (!pushStatus.active) {
+      testPushError.value = 'Notifications push non actives sur cet appareil'
+      return
+    }
+    
+    await queuePushMessage({ toEmail: email.value, title: 'Test HatCast', body: 'Ceci est un test de notification', data: { url: '/' }, reason: 'manual_test' })
     testPushSuccess.value = 'OK'
   } catch (e) {
     testPushError.value = 'Échec de l\'envoi du test'
@@ -164,12 +187,15 @@ async function enablePushOnThisDevice() {
       testPushError.value = 'Push non supporté sur cet appareil'
       return
     }
-    const swReg = window.__swReg
-    const token = await requestAndGetToken(swReg)
-    if (token) {
-      fcmToken.value = token
-      try { localStorage.setItem('fcmToken', token) } catch {}
+    
+    const status = await ensurePushNotificationsActive()
+    if (status.active) {
+      fcmToken.value = status.token
       pushEnabledOnDevice.value = true
+      localStorage.setItem('fcmToken', status.token)
+      console.log('Notifications push activées avec succès')
+    } else {
+      testPushError.value = `Activation impossible: ${status.error}`
     }
   } catch (e) {
     const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unknown'
@@ -203,7 +229,27 @@ onMounted(() => {
   try {
     email.value = auth?.currentUser?.email || ''
     pushEnabledOnDevice.value = (typeof Notification !== 'undefined' && Notification.permission === 'granted' && !!localStorage.getItem('fcmToken'))
+    
+    // Démarrer la vérification automatique des notifications push
+    startPushHealthCheck()
+    
+    // Écouter les changements d'état des notifications push
+    window.addEventListener('push-status-changed', handlePushStatusChanged)
+    
+    // Vérifier l'état actuel des notifications push
+    ensurePushNotificationsActive().then(status => {
+      if (status.active) {
+        fcmToken.value = status.token
+        pushEnabledOnDevice.value = true
+        localStorage.setItem('fcmToken', status.token)
+      }
+    })
   } catch {}
   if (props.show) { loadPrefs() } 
+})
+
+onUnmounted(() => {
+  // Nettoyer les écouteurs d'événements
+  window.removeEventListener('push-status-changed', handlePushStatusChanged)
 })
 </script>

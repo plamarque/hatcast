@@ -109,7 +109,7 @@
                 <div class="text-sm text-gray-300"><span class="font-semibold">De:</span> {{ emailFrom }}</div>
                 <div class="text-sm text-gray-300"><span class="font-semibold">À:</span> {{ selectedRecipient?.id === 'ALL' ? '<joueur>' : (selectedRecipient?.name || '[Nom du joueur]') }}</div>
                 <div class="text-sm text-gray-300"><span class="font-semibold">Objet:</span> {{ emailSubject }}</div>
-                <div class="bg-white text-black rounded-md p-4" v-html="emailHtml"></div>
+                <div class="bg-gray-700 border border-gray-600 text-gray-100 rounded-md p-4 shadow-inner" v-html="emailHtml"></div>
               </template>
               <template v-else>
                 <div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 rounded-md p-3 text-sm">
@@ -146,7 +146,7 @@
                   <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600/20 text-red-300 border border-red-600/40">❌ Pas dispo</span>
                 </template>
                 <template v-else>
-                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-100 text-gray-900 border border-white/20">Ouvrir</span>
+                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600/20 text-red-300 border border-red-600/40">❌ Plus dispo</span>
                 </template>
               </div>
               </template>
@@ -228,7 +228,15 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { buildCopyMessage, buildPreviewText, buildNotificationPayloads } from '../services/notificationTemplates.js'
+import { 
+  buildCopyMessage, 
+  buildPreviewText, 
+  buildNotificationPayloads,
+  buildAvailabilityPushPreview,
+  buildSelectionPushPreview,
+  buildAvailabilityEmailPreview,
+  buildSelectionEmailPreview
+} from '../services/notificationTemplates.js'
 import { buildAvailabilityEmailTemplate, buildSelectionEmailTemplate, buildNoEmailTemplate, buildAvailabilityTextTemplate, buildSelectionTextTemplate } from '../services/emailTemplates.js'
 
 const props = defineProps({
@@ -309,11 +317,28 @@ const copyMessage = computed(() => {
 
 // Email preview content
 const emailSubject = computed(() => {
+  if (!props.event) return ''
   const dateStr = formatDateFull(props.event?.date)
+  const playerName = selectedRecipient.value?.id === 'ALL' ? '<joueur>' : (selectedRecipient.value?.name || '[Nom du joueur]')
+  
   if (props.mode === 'event') {
-    return `${props.event?.title} (${dateStr})`
+    return buildAvailabilityEmailPreview({ 
+      recipientName: playerName, 
+      eventTitle: props.event?.title, 
+      eventDate: dateStr,
+      eventUrl: eventDirectLink.value,
+      yesUrl: `${eventDirectLink.value}?action=available`,
+      noUrl: `${eventDirectLink.value}?action=unavailable`
+    }).subject
+  } else {
+    return buildSelectionEmailPreview({
+      recipientName: playerName,
+      eventTitle: props.event?.title,
+      eventDate: dateStr,
+      eventUrl: eventDirectLink.value,
+      noUrl: deselectMagicLinkText.value
+    }).subject
   }
-  return `🎭 Sélectionné pour ${props.event?.title}`
 })
 
 const emailFrom = computed(() => {
@@ -322,8 +347,9 @@ const emailFrom = computed(() => {
 })
 
 const emailHtml = computed(() => {
-  const playerName = selectedRecipient.value?.id === 'ALL' ? '<joueur>' : (selectedRecipient.value?.name || '[Nom du joueur]')
+  if (!props.event) return ''
   const dateStr = formatDateFull(props.event?.date)
+  const playerName = selectedRecipient.value?.id === 'ALL' ? '<joueur>' : (selectedRecipient.value?.name || '[Nom du joueur]')
   
   // Si le joueur cliqué n'a pas de canal actif, afficher un message de remplacement encourageant la copie
   if (selectedRecipient.value && selectedRecipient.value.id && selectedRecipient.value.id !== 'ALL' && !allDisplayRecipients.value.find(p => p.id === selectedRecipient.value.id)?.hasContact) {
@@ -336,23 +362,23 @@ const emailHtml = computed(() => {
   }
   
   if (props.mode === 'event') {
-    return buildAvailabilityEmailTemplate({
-      playerName,
+    return buildAvailabilityEmailPreview({
+      recipientName: playerName,
       eventTitle: props.event?.title,
       eventDate: dateStr,
       eventUrl: eventDirectLink.value,
       yesUrl: `${eventDirectLink.value}?action=available`,
       noUrl: `${eventDirectLink.value}?action=unavailable`
-    })
+    }).html
+  } else {
+    return buildSelectionEmailPreview({
+      recipientName: playerName,
+      eventTitle: props.event?.title,
+      eventDate: dateStr,
+      eventUrl: eventDirectLink.value,
+      noUrl: deselectMagicLinkText.value
+    }).html
   }
-  
-  return buildSelectionEmailTemplate({
-    playerName,
-    eventTitle: props.event?.title,
-    eventDate: dateStr,
-    eventUrl: eventDirectLink.value,
-    noUrl: '#no'
-  })
 })
 
 const emailTextContent = computed(() => {
@@ -368,23 +394,34 @@ const emailTextContent = computed(() => {
 
 // Push preview content
 const pushTitle = computed(() => {
-  if (props.mode === 'event') return `${props.event?.title} (${formatDateFull(props.event?.date)})`
-  return '🎭 Sélectionné pour'
+  if (!props.event) return ''
+  const dateStr = formatDateFull(props.event?.date)
+  const playerName = selectedRecipient.value?.id === 'ALL' ? '<joueur>' : (selectedRecipient.value?.name || '[Nom du joueur]')
+  
+  if (props.mode === 'event') {
+    return buildAvailabilityPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).title
+  } else {
+    return buildSelectionPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).title
+  }
 })
 
 const pushBody = computed(() => {
+  if (!props.event) return ''
   const dateStr = formatDateFull(props.event?.date)
   const playerName = selectedRecipient.value?.id === 'ALL' ? '<joueur>' : (selectedRecipient.value?.name || '[Nom du joueur]')
   const selected = selectedRecipient.value && selectedRecipient.value.id && selectedRecipient.value.id !== 'ALL'
   const selectedHasContact = selected ? !!allDisplayRecipients.value.find(p => p.id === selectedRecipient.value.id)?.hasContact : true
+  
   if (selected && !selectedHasContact) {
     // Utiliser le template unifié pour les joueurs sans app
     return unifiedMessage.value
   }
+  
   if (props.mode === 'event') {
-    return `${playerName}, t'es dispo ?`
+    return buildAvailabilityPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).body
+  } else {
+    return buildSelectionPushPreview({ recipientName: playerName, eventTitle: props.event?.title, eventDate: dateStr }).body
   }
-  return `${playerName}, tu as été sélectionné pour ${props.event?.title} le ${dateStr}!\n\n[ Afficher les Détails]\n\nUn imprévu ?\n❌ Pas dispo`
 })
 
 const recipientsWithEmail = ref([])
@@ -400,7 +437,19 @@ const allDisplayRecipients = computed(() => {
 const hasSelectedRecipientContact = computed(() => {
   if (!selectedRecipient.value || selectedRecipient.value.id === 'ALL') return true
   const rec = allDisplayRecipients.value.find(p => (p.id || p.name) === (selectedRecipient.value.id || selectedRecipient.value.name))
-  return !!rec?.hasContact
+  const hasContact = !!rec?.hasContact
+  
+  // Log de débogage
+  console.log('hasSelectedRecipientContact debug:', {
+    selectedRecipient: selectedRecipient.value,
+    allDisplayRecipients: allDisplayRecipients.value,
+    foundRecipient: rec,
+    hasContact,
+    recipients: recipients.value,
+    nonContactRecipients: nonContactRecipients.value
+  })
+  
+  return hasContact
 })
 
 const nonContactCopyText = computed(() => {
@@ -435,6 +484,7 @@ async function loadRecipientsEmails() {
     targetPlayers = props.players.filter(player => 
       props.selectedPlayers.includes(player.name)
     )
+    console.log('Mode sélection - targetPlayers:', targetPlayers)
   } else {
     // Mode événement : prendre tous les joueurs dont la dispo est indéfinie,
     // puis on filtrera réellement sur la présence d'un email plus bas.
@@ -442,6 +492,7 @@ async function loadRecipientsEmails() {
       const status = props.availabilityByPlayer?.[player.name]
       return typeof status === 'undefined'
     })
+    console.log('Mode événement - targetPlayers:', targetPlayers)
   }
   
   const playersWithEmail = []
@@ -451,6 +502,7 @@ async function loadRecipientsEmails() {
       // Importer la fonction depuis le service
       const { getPlayerEmail } = await import('../services/playerProtection.js')
       const email = await getPlayerEmail(player.id, props.seasonId)
+      console.log(`Email pour ${player.name}:`, email)
       if (email) {
         playersWithEmail.push({
           ...player,
@@ -462,14 +514,24 @@ async function loadRecipientsEmails() {
     }
   }
   
+  console.log('Players avec email:', playersWithEmail)
+  
   recipientsWithEmail.value = playersWithEmail
   const allOption = { id: 'ALL', name: 'Tous' }
   recipients.value = [allOption, ...playersWithEmail]
+  
   // Calculer les joueurs à joindre manuellement (pas d'email trouvé)
   const playersWithNoEmail = targetPlayers
     .filter(p => !playersWithEmail.find(e => e.id === p.id))
     .map(p => ({ id: p.id, name: p.name }))
   nonContactRecipients.value = playersWithNoEmail
+  
+  console.log('Recipients finaux:', {
+    recipients: recipients.value,
+    nonContactRecipients: nonContactRecipients.value,
+    allDisplayRecipients: allDisplayRecipients.value
+  })
+  
   if (!selectedRecipient.value) {
     selectedRecipient.value = allOption
   }
@@ -541,6 +603,11 @@ async function sendNotifications() {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'envoi des notifications')
     alert('Erreur lors de l\'envoi des notifications. Veuillez réessayer.')
+  } finally {
+    // Remettre isSending à false après un délai pour permettre au parent de traiter
+    setTimeout(() => {
+      isSending.value = false
+    }, 1000)
   }
 }
 

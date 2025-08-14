@@ -4,6 +4,9 @@
  * Centralized templates for multi-channel notifications.
  * Build per-channel payloads from a single input.
  */
+
+import { buildAvailabilityEmailTemplate, buildSelectionEmailTemplate } from './emailTemplates.js'
+
 export function buildNotificationPayloads({ reason, recipientName, eventTitle, eventDate, urls = {}, prefs = {}, extra = {} }) {
   const payloads = { email: null, push: null }
 
@@ -14,33 +17,108 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     payloads.email = {
       enabled: emailEnabled,
       subject: (reason === 'availability_reminder' ? `Rappel disponibilité · ${eventTitle} (${eventDate})` : `Disponibilité demandée · ${eventTitle} (${eventDate})`),
-      // HTML est construit dans emailService.queueAvailabilityEmail pour garder l’implémentation existante
+      // HTML est construit dans emailService.queueAvailabilityEmail pour garder l'implémentation existante
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: reason === 'availability_reminder' ? '⏰ Rappel disponibilité' : '🗓️ Disponibilité demandée',
-      body: `${recipientName}, ${eventTitle} (${eventDate})`,
+      title: reason === 'availability_reminder' ? '⏰ Rappel disponibilité' : `${eventTitle} (${eventDate})`,
+      body: reason === 'availability_reminder' ? `${recipientName}, ${eventTitle} (${eventDate})` : `${recipientName}, t'es dispo ?`,
       data: { url: urls.eventUrl, yesUrl: urls.yesUrl, noUrl: urls.noUrl, reason }
     }
+    
+    // Log de débogage pour les URLs
+    console.log('URLs pour notifications de disponibilité:', {
+      eventUrl: urls.eventUrl,
+      yesUrl: urls.yesUrl,
+      noUrl: urls.noUrl,
+      urls
+    })
   }
 
   if (reason === 'selection') {
     const emailEnabled = prefs?.notifySelection !== false
     const pushEnabled = prefs?.notifySelectionPush !== false
+
     payloads.email = {
       enabled: emailEnabled,
-      subject: `🎭 Sélection confirmée · ${eventTitle}`
-      // HTML sélection géré dans emailService.queueSelectionEmail / batch helper
+      subject: `🎭 Equipe pour ${eventTitle}`
+      // HTML sélection géré dans emailService.queueAvailabilityEmail pour garder l'implémentation existante
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: '🎭 Sélection confirmée',
-      body: `${recipientName}, tu as été sélectionné(e) pour ${eventTitle} (${eventDate}) 🎉`,
-      data: { url: urls.eventUrl }
+      title: `🎭 Equipe pour ${eventTitle}`,
+      body: `${recipientName}, tu fais partie de l'équipe pour ${eventTitle} le ${eventDate}!`,
+      data: { url: urls.eventUrl, noUrl: urls.noUrl, reason }
     }
+    
+    // Log de débogage pour les URLs de sélection
+    console.log('URLs pour notifications de sélection:', {
+      eventUrl: urls.eventUrl,
+      noUrl: urls.noUrl,
+      urls
+    })
   }
 
+  // Log de débogage
+  console.log('buildNotificationPayloads', { 
+    reason, 
+    recipientName, 
+    prefs, 
+    payloads,
+    emailEnabled: payloads.email?.enabled,
+    pushEnabled: payloads.push?.enabled
+  })
+
   return payloads
+}
+
+/**
+ * Templates de preview unifiés - utilisés à la fois pour le preview ET l'envoi
+ * Élimine la duplication de code entre EventAnnounceModal.vue et l'envoi réel
+ */
+
+/**
+ * Preview/Envoi push pour disponibilité
+ */
+export function buildAvailabilityPushPreview({ recipientName, eventTitle, eventDate }) {
+  return {
+    title: `${eventTitle} (${eventDate})`,
+    body: `${recipientName}, t'es dispo ?`
+  }
+}
+
+/**
+ * Preview/Envoi push pour sélection
+ */
+export function buildSelectionPushPreview({ recipientName, eventTitle, eventDate }) {
+  return {
+    title: `🎭 Equipe pour ${eventTitle}`,
+    body: `${recipientName}, tu fais partie de l'équipe pour ${eventTitle} le ${eventDate}!`
+  }
+}
+
+/**
+ * Preview/Envoi email pour disponibilité
+ */
+export function buildAvailabilityEmailPreview({ recipientName, eventTitle, eventDate, eventUrl, yesUrl, noUrl }) {
+  return {
+    subject: `Disponibilité demandée · ${eventTitle} (${eventDate})`,
+    from: 'HatCast',
+    to: recipientName,
+    html: buildAvailabilityEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, yesUrl, noUrl })
+  }
+}
+
+/**
+ * Preview/Envoi email pour sélection
+ */
+export function buildSelectionEmailPreview({ recipientName, eventTitle, eventDate, eventUrl, noUrl }) {
+  return {
+    subject: `🎭 Equipe pour ${eventTitle}`,
+    from: 'HatCast',
+    to: recipientName,
+    html: buildSelectionEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, noUrl })
+  }
 }
 
 /**

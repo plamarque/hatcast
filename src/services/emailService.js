@@ -153,7 +153,8 @@ export async function queueSelectionEmail({
   eventUrl,
   html = undefined,
   subject = undefined,
-  fromEmail = undefined
+  fromEmail = undefined,
+  noUrl = undefined // Ajout de noUrl
 }) {
   // Respecter préférences notification
   try {
@@ -209,16 +210,28 @@ export async function queueSelectionEmail({
       const prefRef = doc(db, 'userPreferences', toEmail)
       const prefSnap = await getDoc(prefRef)
       const prefs = prefSnap.exists() ? prefSnap.data() : {}
+      console.log('Préférences utilisateur pour notifications push', { 
+        toEmail, 
+        prefs, 
+        notifySelectionPush: prefs?.notifySelectionPush,
+        shouldSendPush: prefs?.notifySelectionPush !== false 
+      })
       if (prefs?.notifySelectionPush !== false) {
+        console.log('Envoi notification push de sélection', { toEmail, playerName, eventTitle })
         await queuePushMessage({
           toEmail: toEmail,
           title: '🎭 Sélection confirmée',
           body: `${playerName}, tu as été sélectionné(e) pour ${eventTitle} (${eventDate}) 🎉`,
-          data: { url: eventUrl || window.location.origin },
+          data: { url: eventUrl || window.location.origin, noUrl }, // Ajout de noUrl aux données push
           reason: 'selection'
         })
+        console.log('Notification push de sélection envoyée avec succès')
+      } else {
+        console.log('Notification push de sélection désactivée par préférences utilisateur')
       }
-    } catch {}
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la notification push de sélection', error)
+    }
     logger.info('Email ajouté à la queue Firestore', { playerName })
     return { success: true }
   } catch (error) {
@@ -376,7 +389,8 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
         eventDate: formatDateFull(eventData.date),
         eventUrl,
         html, // Utiliser le HTML personnalisé
-        subject // Utiliser le sujet personnalisé
+        subject, // Utiliser le sujet personnalisé
+        noUrl: notAvailableUrl // Ajouter l'URL de désistement pour les notifications push
       })
       
       emailPromises.push(emailPromise)
