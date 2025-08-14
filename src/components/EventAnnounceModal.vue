@@ -132,8 +132,8 @@
                       </div>
                       <div class="status-right">
                         <span class="signal">📶</span>
-                        <span class="wifi">📶</span>
                         <span class="battery">🔋</span>
+                        <span class="notification-dot">🔔</span>
                       </div>
                     </div>
                     
@@ -149,18 +149,27 @@
                         
                         <!-- Contenu de la notification -->
                         <div class="notification-content">
-                          <div class="notification-title">{{ pushTitle }}</div>
+                          <div class="notification-title">🗓️ {{ pushTitle }}</div>
                           <div class="notification-body">{{ pushBody }}</div>
                         </div>
                         
                         <!-- Actions de la notification -->
                         <div class="notification-actions">
                           <template v-if="props.mode === 'event'">
-                            <button class="action-btn action-yes">✅ Dispo</button>
-                            <button class="action-btn action-no">❌ Pas dispo</button>
+                            <div class="action-item">
+                              <span class="action-icon">✅</span>
+                              <span class="action-text">Dispo</span>
+                            </div>
+                            <div class="action-item">
+                              <span class="action-icon">❌</span>
+                              <span class="action-text">Pas dispo</span>
+                            </div>
                           </template>
                           <template v-else>
-                            <button class="action-btn action-no">❌ Plus dispo</button>
+                            <div class="action-item">
+                              <span class="action-icon">❌</span>
+                              <span class="action-text">Plus dispo</span>
+                            </div>
                           </template>
                         </div>
                       </div>
@@ -676,14 +685,15 @@ watch(() => props.sending, (now) => {
 <style scoped>
 /* Styles pour le mockup de téléphone dans la prévisualisation push */
 .phone-mockup-preview {
-  width: 280px;
-  height: 500px;
+  width: 320px;
+  height: 200px;
   background: #1a1a1a;
-  border-radius: 20px;
+  border-radius: 20px 20px 0 0;
   margin: 0 auto;
   position: relative;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
   border: 2px solid #333;
+  border-bottom: none;
   overflow: hidden;
 }
 
@@ -691,7 +701,7 @@ watch(() => props.sending, (now) => {
   width: 100%;
   height: 100%;
   background: #000;
-  border-radius: 18px;
+  border-radius: 18px 18px 0 0;
   position: relative;
   overflow: hidden;
 }
@@ -732,11 +742,11 @@ watch(() => props.sending, (now) => {
 }
 
 .notification-card {
-  background: #1a1a1a;
-  border-radius: 12px;
+  background: #2a2a2a;
+  border-radius: 16px;
   padding: 12px;
-  border-left: 4px solid #22c55e;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   animation: slideInNotification 0.3s ease-out;
 }
 
@@ -744,46 +754,48 @@ watch(() => props.sending, (now) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .notification-icon {
-  width: 20px;
-  height: 20px;
-  background: #22c55e;
+  width: 24px;
+  height: 24px;
+  background: #666;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
+  color: #333;
 }
 
 .notification-app {
-  font-weight: 600;
-  font-size: 12px;
-  color: white;
+  font-weight: 500;
+  font-size: 13px;
+  color: #ccc;
   flex: 1;
 }
 
 .notification-time {
-  font-size: 10px;
-  color: #888;
+  font-size: 11px;
+  color: #666;
 }
 
 .notification-content {
   margin-bottom: 8px;
+  margin-top: 4px;
 }
 
 .notification-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   color: white;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   line-height: 1.3;
 }
 
 .notification-body {
-  font-size: 12px;
+  font-size: 13px;
   color: #ccc;
   line-height: 1.4;
   white-space: pre-line;
@@ -791,37 +803,24 @@ watch(() => props.sending, (now) => {
 
 .notification-actions {
   display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
 }
 
-.action-btn {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.action-icon {
+  font-size: 14px;
 }
 
-.action-yes {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-.action-yes:hover {
-  background: rgba(34, 197, 94, 0.3);
-}
-
-.action-no {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-.action-no:hover {
-  background: rgba(239, 68, 68, 0.3);
+.action-text {
+  font-size: 13px;
+  color: #ccc;
+  font-weight: 600;
 }
 
 .phone-app-content {
@@ -835,6 +834,7 @@ watch(() => props.sending, (now) => {
   color: white;
   font-size: 11px;
   opacity: 0.3;
+  display: none;
 }
 
 .app-header h3 {
@@ -863,8 +863,8 @@ watch(() => props.sending, (now) => {
 /* Responsive pour mobile */
 @media (max-width: 640px) {
   .phone-mockup-preview {
-    width: 240px;
-    height: 420px;
+    width: 280px;
+    height: 160px;
   }
   
   .notification-card {
