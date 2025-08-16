@@ -143,7 +143,7 @@ onMounted(async () => {
           
           // Redirection immédiate vers la saison pour afficher la modale de succès
           if (slug && eventId) {
-            router.push(`/season/${slug}/event/${eventId}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
+            router.push(`/season/${slug}?event=${eventId}&modal=event_details&notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`)
           } else if (slug) {
             router.push(`/season/${slug}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
           } else {

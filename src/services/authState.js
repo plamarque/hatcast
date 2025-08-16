@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { auth } from './firebase.js'
 import logger from './logger.js'
+import { trackPageVisit, clearNavigationHistory } from './navigationTracker.js'
 
 // État global de l'authentification
 const currentUser = ref(null)
@@ -52,14 +53,34 @@ function initialize() {
     logger.debug('État initial de l\'utilisateur:', currentUser.value?.email || 'non connecté')
     
     // Écouter les changements d'état d'authentification
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      const previousUser = currentUser.value
       currentUser.value = user
       isInitialized.value = true
       isInitializing.value = false
+      
       logger.debug('État d\'authentification changé', { 
         isLoggedIn: !!user, 
         email: user?.email || 'non connecté' 
       })
+      
+      // Tracking de navigation pour les changements d'authentification
+      try {
+        if (user && !previousUser) {
+          // Nouvelle connexion - tracker la page actuelle
+          const currentPath = window.location.pathname
+          if (currentPath && currentPath !== '/') {
+            await trackPageVisit(user.uid, currentPath)
+            logger.debug('Navigation trackée pour nouvelle connexion:', currentPath)
+          }
+        } else if (!user && previousUser) {
+          // Déconnexion - effacer l'historique de navigation
+          await clearNavigationHistory(previousUser.uid)
+          logger.debug('Historique de navigation effacé pour déconnexion')
+        }
+      } catch (error) {
+        logger.error('Erreur lors du tracking de navigation:', error)
+      }
     })
     
     // Stocker la fonction de cleanup

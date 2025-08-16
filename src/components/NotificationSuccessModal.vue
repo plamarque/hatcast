@@ -120,6 +120,15 @@ async function createPassword() {
     
     console.log('🚀 Tentative de création de compte pour:', props.email)
     
+    // Stocker la navigation actuelle dans localStorage avant d'envoyer l'email
+    const currentNavigation = {
+      lastVisitedPage: window.location.pathname + window.location.search,
+      timestamp: Date.now(),
+      email: props.email
+    }
+    localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
+    console.log('💾 Navigation sauvegardée pour redirection après reset:', currentNavigation)
+    
     // 1. Créer l'utilisateur avec un mot de passe temporaire
     const tempPassword = 'TempPass123!' // Mot de passe temporaire sécurisé
     const userCredential = await createUserWithEmailAndPassword(auth, props.email, tempPassword)
@@ -146,6 +155,16 @@ async function createPassword() {
       try {
         console.log('📧 Utilisateur existant, envoi direct de l\'email de réinitialisation...')
         const { sendPasswordResetEmail } = await import('firebase/auth')
+        
+        // Stocker aussi la navigation pour les utilisateurs existants
+        const currentNavigation = {
+          lastVisitedPage: window.location.pathname + window.location.search,
+          timestamp: Date.now(),
+          email: props.email
+        }
+        localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
+        console.log('💾 Navigation sauvegardée pour utilisateur existant:', currentNavigation)
+        
         await sendPasswordResetEmail(auth, props.email)
         
         console.log('✅ Email de réinitialisation envoyé avec succès à', props.email)

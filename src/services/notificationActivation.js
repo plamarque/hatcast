@@ -64,7 +64,8 @@ export async function createNotificationActivationRequest({
       playerName,
       eventTitle,
       eventUrl: `${window.location.origin}/season/${seasonSlug}/event/${eventId}`,
-      activationUrl: magicLink.url
+      activationUrl: magicLink.url,
+      seasonTitle: seasonSlug // Utiliser le slug comme titre de saison pour l'instant
     })
 
     logger.info('Demande d\'activation des notifications créée', {

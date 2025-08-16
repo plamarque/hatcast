@@ -1465,6 +1465,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { trackPageVisit, trackModalInteraction } from '../services/navigationTracker.js'
 import { useRouter, useRoute } from 'vue-router'
 import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
@@ -1909,7 +1910,7 @@ async function onManageAccountPlayer(assoc) {
   // Onboarding créateur (multi-étapes)
   // Onboarding créateur: géré par CreatorOnboardingModal
 // Si l'utilisateur vient du /join, masquer l'onboarding créateur
-onMounted(() => {
+onMounted(async () => {
   try {
     if (seasonId.value) {
       const dismiss = localStorage.getItem(`dismissCreatorOnboarding:${seasonId.value}`)
@@ -1918,6 +1919,26 @@ onMounted(() => {
       }
     }
   } catch {}
+  
+  // Tracking de navigation pour les utilisateurs non connectés
+  try {
+    const currentPath = window.location.pathname
+    if (currentPath && currentPath !== '/') {
+      // Essayer de récupérer l'email depuis l'URL ou localStorage
+      const urlParams = new URLSearchParams(window.location.search)
+      const email = urlParams.get('email') || localStorage.getItem('hatcast_last_email')
+      
+      if (email) {
+        await trackPageVisit(email, currentPath, {
+          seasonSlug: props.slug,
+          source: 'grid_board'
+        })
+        logger.debug('Navigation trackée pour utilisateur non connecté:', { email, path: currentPath })
+      }
+    }
+  } catch (error) {
+    logger.error('Erreur lors du tracking de navigation:', error)
+  }
   
   // Gestionnaire de scroll pour le header sticky
   const handleScroll = () => {
@@ -2852,19 +2873,6 @@ onMounted(async () => {
     console.debug('players (deduplicated)')
     // eslint-disable-next-line no-console
     console.debug('availability loaded')
-    
-    // Gérer le paramètre notificationSuccess
-    if (route.query.notificationSuccess === '1') {
-      notificationSuccessData.value = {
-        email: decodeURIComponent(route.query.email || ''),
-        playerName: decodeURIComponent(route.query.playerName || ''),
-        eventId: route.query.eventId || null
-      }
-      showNotificationSuccess.value = true
-      
-      // Nettoyer l'URL
-      router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
-    }
 
     // init scroll hints
     await nextTick()
@@ -2904,6 +2912,12 @@ onMounted(async () => {
       
       // Utiliser la fonction améliorée de focus
       await focusOnEventFromUrl(eventIdFromUrl, targetEvent)
+      
+      // Si modal=event_details est demandé, ouvrir automatiquement la modal
+      if (route.query.modal === 'event_details') {
+        console.debug('🎯 Ouverture automatique de la modal de détails pour l\'événement:', eventIdFromUrl)
+        showEventDetails(targetEvent)
+      }
     } else {
       // eslint-disable-next-line no-console
       console.warn('Événement non trouvé avec l\'ID')
@@ -2929,6 +2943,72 @@ onMounted(async () => {
         successMessage.value = 'Joueur associé à votre compte.'
         setTimeout(() => { showSuccessMessage.value = false }, 2500)
       }
+    }
+  }
+
+  // Gérer le paramètre notificationSuccess (APRÈS tous les autres traitements d'URL)
+  console.debug('🔍 Vérification des paramètres notificationSuccess:')
+  console.debug('  - route.query:', route.query)
+  console.debug('  - route.query.notificationSuccess:', route.query.notificationSuccess)
+  console.debug('  - route.query.email:', route.query.email)
+  console.debug('  - route.query.playerName:', route.query.playerName)
+  console.debug('  - route.query.eventId:', route.query.eventId)
+  console.debug('  - window.location.search:', window.location.search)
+  
+  if (route.query.notificationSuccess === '1') {
+    console.debug('✅ Paramètres notificationSuccess détectés:', {
+      email: route.query.email,
+      playerName: route.query.playerName,
+      eventId: route.query.eventId
+    })
+    
+    notificationSuccessData.value = {
+      email: decodeURIComponent(route.query.email || ''),
+      playerName: decodeURIComponent(route.query.playerName || ''),
+      eventId: route.query.eventId || null
+    }
+    
+    // Délai pour s'assurer que la modal d'activation soit fermée
+    setTimeout(() => {
+      showNotificationSuccess.value = true
+      console.debug('🎉 Modal de succès affichée avec:', notificationSuccessData.value)
+    }, 100)
+    
+    // Nettoyer l'URL
+    router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
+  } else {
+    console.debug('❌ Pas de paramètres notificationSuccess trouvés')
+    
+    // Fallback : essayer de parser manuellement window.location.search
+    const urlParams = new URLSearchParams(window.location.search)
+    const notificationSuccess = urlParams.get('notificationSuccess')
+    const email = urlParams.get('email')
+    const playerName = urlParams.get('playerName')
+    const eventId = urlParams.get('eventId')
+    
+    console.debug('🔍 Fallback - URLSearchParams:')
+    console.debug('  - notificationSuccess:', notificationSuccess)
+    console.debug('  - email:', email)
+    console.debug('  - playerName:', playerName)
+    console.debug('  - eventId:', eventId)
+    
+    if (notificationSuccess === '1') {
+      console.debug('✅ Paramètres détectés via fallback!')
+      
+      notificationSuccessData.value = {
+        email: decodeURIComponent(email || ''),
+        playerName: decodeURIComponent(playerName || ''),
+        eventId: eventId || null
+      }
+      
+      // Délai pour s'assurer que la modal d'activation soit fermée
+      setTimeout(() => {
+        showNotificationSuccess.value = true
+        console.debug('🎉 Modal de succès affichée via fallback avec:', notificationSuccessData.value)
+      }, 100)
+      
+      // Nettoyer l'URL
+      router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
     }
   }
 
@@ -4086,6 +4166,30 @@ async function showEventDetails(event) {
   editingDescription.value = event.description || ''
   editingArchived.value = !!event.archived
 
+  // 1. Mettre à jour l'URL pour refléter l'état de navigation
+  const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details`
+  router.push(newUrl)
+
+  // 2. Tracker l'état de navigation (pas l'interaction modale)
+  try {
+    const userId = getCurrentUserId()
+    if (userId) {
+      await trackPageVisit(userId, newUrl, {
+        seasonSlug: props.slug,
+        eventId: event.id,
+        eventTitle: event.title,
+        navigationType: 'event_details',
+        context: {
+          currentPage: newUrl,
+          timestamp: new Date().toISOString()
+        }
+      })
+      logger.debug('État de navigation événement tracké:', { eventId: event.id, userId, url: newUrl })
+    }
+  } catch (error) {
+    logger.error('Erreur lors du tracking de l\'état de navigation:', error)
+  }
+
   // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
   try {
     const [newAvailability, newSelections] = await Promise.all([
@@ -4107,12 +4211,38 @@ function closeEventDetails() {
   editingDescription.value = '';
   showEventMoreActions.value = false;
   showEventMoreActionsDesktop.value = false;
+  
   // Fermer les menus d'agenda
   closeCalendarMenu();
   closeCalendarMenuDetails();
+  
   // Nettoyer les styles des dropdowns
   eventMoreActionsStyle.value = { position: 'fixed', top: '0px', left: '0px' };
   eventMoreActionsMobileStyle.value = { position: 'fixed', top: '0px', left: '0px' };
+  
+  // Retourner à l'URL de base de la saison
+  const baseUrl = `/season/${props.slug}`
+  if (route.path !== baseUrl) {
+    router.push(baseUrl)
+    
+    // Tracker le retour à la vue d'ensemble
+    try {
+      const userId = getCurrentUserId()
+      if (userId) {
+        trackPageVisit(userId, baseUrl, {
+          seasonSlug: props.slug,
+          navigationType: 'season_overview',
+          context: {
+            previousPage: route.path,
+            timestamp: new Date().toISOString()
+          }
+        })
+        logger.debug('Retour à la vue d\'ensemble tracké:', { userId, url: baseUrl })
+      }
+    } catch (error) {
+      logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+    }
+  }
 }
 
 // Fonction pour ajouter un événement à l'agenda
@@ -4315,17 +4445,65 @@ function showPlayerDetails(player) {
   selectedPlayer.value = player;
   showPlayerModal.value = true;
 
-    // Avancer le mini-tutoriel joueur (étape 3 -> protection)
-    try {
-      if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 3) {
-        // La suite (mise en avant du bouton Protection) se fera dans le modal
-      }
-    } catch {}
+  // 1. Mettre à jour l'URL pour refléter l'état de navigation
+  const newUrl = `/season/${props.slug}?player=${player.id}&modal=player_details`
+  router.push(newUrl)
+
+  // 2. Tracker l'état de navigation (pas l'interaction modale)
+  try {
+    const userId = getCurrentUserId()
+    if (userId) {
+      trackPageVisit(userId, newUrl, {
+        seasonSlug: props.slug,
+        playerId: player.id,
+        playerName: player.name,
+        navigationType: 'player_details',
+        context: {
+          currentPage: newUrl,
+          timestamp: new Date().toISOString()
+        }
+      })
+      logger.debug('État de navigation joueur tracké:', { playerId: player.id, userId, url: newUrl })
+    }
+  } catch (error) {
+    logger.error('Erreur lors du tracking de l\'état de navigation joueur:', error)
+  }
+
+  // Avancer le mini-tutoriel joueur (étape 3 -> protection)
+  try {
+    if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 3) {
+      // La suite (mise en avant du bouton Protection) se fera dans le modal
+    }
+  } catch {}
 }
 
 function closePlayerModal() {
   showPlayerModal.value = false;
   selectedPlayer.value = null;
+  
+  // Retourner à l'URL de base de la saison
+  const baseUrl = `/season/${props.slug}`
+  if (route.path !== baseUrl) {
+    router.push(baseUrl)
+    
+    // Tracker le retour à la vue d'ensemble
+    try {
+      const userId = getCurrentUserId()
+      if (userId) {
+        trackPageVisit(userId, baseUrl, {
+          seasonSlug: props.slug,
+          navigationType: 'season_overview',
+          context: {
+            previousPage: route.path,
+            timestamp: new Date().toISOString()
+          }
+        })
+        logger.debug('Retour à la vue d\'ensemble tracké:', { userId, url: baseUrl })
+      }
+    } catch (error) {
+      logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+    }
+  }
 }
 
 async function handlePlayerUpdate({ playerId, newName }) {

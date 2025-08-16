@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Collection userNavigation - Sécuriser l'accès aux données de navigation
+    match /userNavigation/{docId} {
+      // Lecture : l'utilisateur peut lire ses propres données de navigation
+      allow read: if request.auth != null && 
+        (docId == request.auth.uid || 
+         docId == 'email_' + request.auth.token.email.replace(/[^a-zA-Z0-9]/g, '_'));
+      
+      // Écriture : l'utilisateur peut écrire ses propres données de navigation
+      allow write: if request.auth != null && 
+        (docId == request.auth.uid || 
+         docId == 'email_' + request.auth.token.email.replace(/[^a-zA-Z0-9]/g, '_'));
+      
+      // Suppression : l'utilisateur peut supprimer ses propres données
+      allow delete: if request.auth != null && 
+        (docId == request.auth.uid || 
+         docId == 'email_' + request.auth.token.email.replace(/[^a-zA-Z0-9]/g, '_'));
+    }
+    
+    // Autres collections existantes (ajouter selon vos besoins)
+    // match /users/{userId} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+    
+    // Par défaut, refuser l'accès
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

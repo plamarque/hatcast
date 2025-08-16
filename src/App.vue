@@ -53,90 +53,136 @@
     </div>
   </Transition>
   
-  <!-- Toast de mise à jour PWA - Design discret et non-intrusif -->
+  <!-- Bouton de mise à jour PWA - Design centré et élégant -->
   <Transition
-    name="update-toast"
+    name="update-banner"
     appear
   >
     <div
       v-if="updateAvailable && !refreshing"
-      class="fixed bottom-4 left-4 right-4 z-[200] max-w-sm mx-auto"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      @click="updateApp"
     >
-      <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-4 flex items-center justify-between">
-        <!-- Contenu principal -->
-        <div class="flex items-center space-x-3 flex-1">
-          <!-- Icône de mise à jour -->
-          <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mx-4 max-w-sm w-full transform hover:scale-105 transition-all duration-300 cursor-pointer">
+        <!-- Icône de mise à jour -->
+        <div class="flex justify-center mb-4">
+          <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </div>
-          
-          <!-- Texte -->
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900 truncate">
-              Nouvelle version disponible
-            </p>
-            <p class="text-xs text-gray-500">
-              Mise à jour rapide disponible
-            </p>
-          </div>
+        </div>
+        
+        <!-- Contenu textuel -->
+        <div class="text-center mb-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-2">
+            🎉 Nouvelle version disponible !
+          </h3>
+          <p class="text-gray-600 leading-relaxed">
+            HatCast a été amélioré avec de nouvelles fonctionnalités et corrections. Mettez à jour maintenant pour profiter des dernières améliorations.
+          </p>
         </div>
         
         <!-- Bouton d'action -->
-        <button
-          @click="updateApp"
-          class="ml-3 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors duration-200 flex items-center space-x-1"
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          <span>Mettre à jour</span>
-        </button>
+        <div class="flex justify-center">
+          <button
+            class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center space-x-2"
+            @click.stop="updateApp"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Mettre à jour maintenant</span>
+          </button>
+        </div>
+        
+        <!-- Indication subtile -->
+        <p class="text-center text-xs text-gray-400 mt-4">
+          Cliquez n'importe où pour fermer
+        </p>
       </div>
     </div>
   </Transition>
   
-  <!-- Toast de mise à jour en cours - Spinner discret -->
+  <!-- Indicateur de mise à jour en cours - Design centré -->
   <Transition
-    name="update-toast"
+    name="update-progress"
     appear
   >
     <div
       v-if="refreshing"
-      class="fixed bottom-4 left-4 right-4 z-[200] max-w-sm mx-auto"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
     >
-      <div class="bg-blue-600 text-white rounded-lg shadow-lg p-4 flex items-center justify-between">
-        <!-- Contenu principal -->
-        <div class="flex items-center space-x-3 flex-1">
-          <!-- Spinner -->
-          <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg class="w-4 h-4 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 mx-4 max-w-sm w-full text-center">
+        <!-- Icône animée -->
+        <div class="flex justify-center mb-6">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+            <svg class="w-10 h-10 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </div>
-          
-          <!-- Texte -->
-          <div class="flex-1">
-            <p class="text-sm font-medium">
-              Mise à jour en cours...
-            </p>
-          </div>
+        </div>
+        
+        <!-- Texte de progression -->
+        <h3 class="text-xl font-bold text-gray-900 mb-3">
+          Mise à jour en cours...
+        </h3>
+        <p class="text-gray-600">
+          Veuillez patienter pendant qu'HatCast se met à jour
+        </p>
+        
+        <!-- Barre de progression -->
+        <div class="mt-6 bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full animate-pulse"></div>
         </div>
       </div>
     </div>
   </Transition>
+  
+
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ensurePushNotificationsActive } from './services/notifications.js'
+import { trackPageVisit, getCurrentUserId } from './services/navigationTracker.js'
 
 const deferredPrompt = ref(null)
 const canInstallPwa = ref(false)
 const updateAvailable = ref(false)
 const refreshing = ref(false)
 const bannerDismissed = ref(false)
+const route = useRoute()
+
+// Tracking de navigation
+watch(() => route.path, async (newPath, oldPath) => {
+  if (newPath !== oldPath) {
+    const userId = getCurrentUserId()
+    if (userId) {
+      // Extraire des informations contextuelles de la route
+      const additionalData = {}
+      
+      // Si on est sur une page de saison, récupérer le slug
+      if (newPath.startsWith('/season/')) {
+        const pathParts = newPath.split('/')
+        if (pathParts.length >= 3) {
+          additionalData.seasonSlug = pathParts[2]
+        }
+      }
+      
+      // Si on est sur une page d'événement, récupérer l'ID
+      if (newPath.includes('/event/')) {
+        const eventMatch = newPath.match(/\/event\/([^\/]+)/)
+        if (eventMatch) {
+          additionalData.eventId = eventMatch[1]
+        }
+      }
+      
+      await trackPageVisit(userId, newPath, additionalData)
+    }
+  }
+}, { immediate: true })
 
 function handleBeforeInstallPrompt(event) {
   event.preventDefault()

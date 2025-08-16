@@ -483,16 +483,18 @@ export async function queueNotificationActivationEmail({
   eventTitle,
   eventUrl,
   activationUrl,
+  seasonTitle,
   fromEmail = undefined
 }) {
   const html = buildNotificationActivationTemplate({
     playerName,
     eventTitle,
     eventUrl,
-    activationUrl
+    activationUrl,
+    seasonTitle
   })
 
-  const subject = `🔔 Active tes notifications pour ${eventTitle}`
+  const subject = `🔔 Active tes notifications pour ${seasonTitle}`
 
   const docData = {
     to: toEmail,

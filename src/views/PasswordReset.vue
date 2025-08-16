@@ -33,20 +33,9 @@
       <!-- Formulaire de réinitialisation -->
       <div v-else-if="oobCode" class="space-y-6">
         <div class="text-center">
-          <p class="text-gray-300 mb-4">Saisis ton email pour continuer</p>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Ton email</label>
-            <input
-              v-model="email"
-              type="email"
-              class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-white placeholder-gray-400"
-              placeholder="ton@email.com"
-              @keydown.enter="resetPassword"
-            >
-          </div>
+          <p class="text-gray-300 mb-4">
+            Réinitialisation pour <span class="font-semibold text-white">{{ email }}</span>
+          </p>
         </div>
 
         <div class="space-y-4">
@@ -99,9 +88,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { confirmPasswordReset, signInWithEmailAndPassword } from 'firebase/auth'
+import { confirmPasswordReset, signInWithEmailAndPassword, verifyPasswordResetCode } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import logger from '../services/logger.js'
+import { getLastVisitedPage, isValidRedirectPath } from '../services/navigationTracker.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -118,8 +108,7 @@ const resetError = ref('')
 const resetSuccess = ref('')
 
 const canResetPassword = computed(() => {
-  return email.value && 
-         newPassword.value && 
+  return newPassword.value && 
          confirmPassword.value && 
          newPassword.value === confirmPassword.value &&
          newPassword.value.length >= 6
@@ -140,9 +129,18 @@ onMounted(async () => {
 
     oobCode.value = token
     
-    // TODO: Récupérer l'email depuis le token Firebase
-    // Pour l'instant, on va demander à l'utilisateur de saisir son email
-    // email.value = 'patrice.lamarque+ron@gmail.com' // Temporaire
+    // Récupérer l'email depuis le token Firebase
+    try {
+      logger.debug('Vérification du token et récupération de l\'email...')
+      const emailFromToken = await verifyPasswordResetCode(auth, token)
+      email.value = emailFromToken
+      logger.info('Email récupéré depuis le token:', emailFromToken)
+    } catch (verifyError) {
+      logger.error('Erreur lors de la vérification du token:', verifyError)
+      error.value = 'Lien de réinitialisation invalide ou expiré'
+      loading.value = false
+      return
+    }
     
     loading.value = false
     
@@ -206,7 +204,49 @@ async function resetPassword() {
   }
 }
 
-function goHome() {
+async function goHome() {
+  try {
+    // 1. Essayer de récupérer la navigation depuis localStorage (priorité haute)
+    const pendingNavigation = localStorage.getItem('pendingPasswordResetNavigation')
+    if (pendingNavigation) {
+      try {
+        const navigationData = JSON.parse(pendingNavigation)
+        const { lastVisitedPage, timestamp, email: storedEmail } = navigationData
+        
+        // Vérifier que c'est récent (moins de 1 heure) et pour le bon email
+        const isRecent = (Date.now() - timestamp) < 3600000 // 1 heure
+        const isCorrectEmail = storedEmail === email.value
+        
+        if (isRecent && isCorrectEmail && isValidRedirectPath(lastVisitedPage)) {
+          logger.info('✅ Redirection vers la page sauvegardée:', lastVisitedPage)
+          localStorage.removeItem('pendingPasswordResetNavigation') // Nettoyer
+          router.push(lastVisitedPage)
+          return
+        } else {
+          logger.info('⚠️ Navigation sauvegardée invalide ou expirée, nettoyage...')
+          localStorage.removeItem('pendingPasswordResetNavigation')
+        }
+      } catch (parseError) {
+        logger.error('Erreur lors du parsing de la navigation sauvegardée:', parseError)
+        localStorage.removeItem('pendingPasswordResetNavigation')
+      }
+    }
+    
+    // 2. Fallback : essayer de récupérer depuis Firestore
+    const navigationData = await getLastVisitedPage(email.value)
+    
+    if (navigationData?.lastVisitedPage && isValidRedirectPath(navigationData.lastVisitedPage)) {
+      logger.info('Redirection vers la dernière page visitée (Firestore):', navigationData.lastVisitedPage)
+      router.push(navigationData.lastVisitedPage)
+    } else {
+      logger.info('Aucune page précédente valide, redirection vers les saisons')
       router.push('/seasons')
+    }
+  } catch (error) {
+    logger.error('Erreur lors de la récupération de la navigation, redirection vers les saisons', error)
+    router.push('/seasons')
+  }
 }
+
+
 </script>

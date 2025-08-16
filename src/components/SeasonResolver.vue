@@ -22,6 +22,16 @@ const loadingMessage = ref('Chargement...')
 
 onMounted(async () => {
   try {
+    // Vérifier s'il y a un paramètre de page spécifique
+    const urlParams = new URLSearchParams(window.location.search)
+    const pageParam = urlParams.get('p')
+    
+    if (pageParam === 'reset-password') {
+      logger.info('Redirection vers la page de reset password')
+      router.replace('/reset-password')
+      return
+    }
+    
     loadingMessage.value = 'Vérification de votre session...'
     
     // Forcer la synchronisation de l'état d'authentification
