@@ -578,11 +578,11 @@
 
 
   <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeEventDetails">
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
-        <button @click="closeEventDetails" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+        <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         
         <!-- Layout horizontal compact -->
         <div class="flex items-start gap-4 md:gap-6">
@@ -4329,32 +4329,6 @@ function closeEventDetails() {
   // Nettoyer les styles des dropdowns
   eventMoreActionsStyle.value = { position: 'fixed', top: '0px', left: '0px' };
   eventMoreActionsMobileStyle.value = { position: 'fixed', top: '0px', left: '0px' };
-  
-  // Retourner à l'URL de base de la saison
-  const baseUrl = `/season/${props.slug}`
-  if (route.path !== baseUrl) {
-    router.push(baseUrl)
-    
-    // Tracker le retour à la vue d'ensemble
-    try {
-      const userId = getCurrentUserId()
-      if (userId) {
-        trackPageVisit(userId, baseUrl, {
-          seasonSlug: props.slug,
-          navigationType: 'season_overview',
-          context: {
-            previousPage: route.path,
-            timestamp: new Date().toISOString()
-          }
-        })
-      }
-    } catch (error) {
-      // Log silencieux pour les erreurs de tracking non critiques
-      if (error.code !== 'permission-denied') {
-        logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
-      }
-    }
-  }
 }
 
 // Fonction pour ajouter un événement à l'agenda
@@ -4392,9 +4366,28 @@ function closeEventDetailsAndUpdateUrl() {
   // Fermer la popup
   closeEventDetails();
   
-  // Mettre à jour l'URL pour revenir à la liste des événements
-  if (route.params.eventId) {
-    router.push(`/season/${props.slug}`);
+  // Forcer la mise à jour de l'URL pour revenir à la vue d'ensemble de la saison
+  const baseUrl = `/season/${props.slug}`
+  router.push(baseUrl)
+  
+  // Tracker le retour à la vue d'ensemble
+  try {
+    const userId = getCurrentUserId()
+    if (userId) {
+      trackPageVisit(userId, baseUrl, {
+        seasonSlug: props.slug,
+        navigationType: 'season_overview',
+        context: {
+          previousPage: route.path,
+          timestamp: new Date().toISOString()
+        }
+      })
+    }
+  } catch (error) {
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+    }
   }
 }
 
