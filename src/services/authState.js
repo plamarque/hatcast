@@ -34,18 +34,11 @@ function forceSync() {
 
 // Fonction pour initialiser le service
 function initialize() {
-  logger.debug('Tentative d\'initialisation du service d\'authentification', {
-    isInitialized: isInitialized.value,
-    isInitializing: isInitializing.value
-  })
-  
   if (isInitialized.value || isInitializing.value) {
-    logger.debug('Service déjà initialisé ou en cours d\'initialisation, sortie')
     return
   }
   
   isInitializing.value = true
-  logger.debug('Marquage du service comme en cours d\'initialisation')
   
   try {
     // Initialiser l'état immédiatement
@@ -59,10 +52,7 @@ function initialize() {
       isInitialized.value = true
       isInitializing.value = false
       
-      logger.debug('État d\'authentification changé', { 
-        isLoggedIn: !!user, 
-        email: user?.email || 'non connecté' 
-      })
+
       
       // Tracking de navigation pour les changements d'authentification
       try {
@@ -71,15 +61,16 @@ function initialize() {
           const currentPath = window.location.pathname
           if (currentPath && currentPath !== '/') {
             await trackPageVisit(user.uid, currentPath)
-            logger.debug('Navigation trackée pour nouvelle connexion:', currentPath)
           }
         } else if (!user && previousUser) {
           // Déconnexion - effacer l'historique de navigation
           await clearNavigationHistory(previousUser.uid)
-          logger.debug('Historique de navigation effacé pour déconnexion')
         }
       } catch (error) {
-        logger.error('Erreur lors du tracking de navigation:', error)
+        // Log silencieux pour les erreurs de tracking non critiques
+        if (error.code !== 'permission-denied') {
+          logger.error('Erreur lors du tracking de navigation:', error)
+        }
       }
     })
     
@@ -106,13 +97,7 @@ function cleanup() {
 // Fonction pour attendre l'initialisation
 function waitForInitialization() {
   return new Promise((resolve, reject) => {
-    logger.debug('waitForInitialization appelé', { 
-      isInitialized: isInitialized.value, 
-      isInitializing: isInitializing.value 
-    })
-    
     if (isInitialized.value) {
-      logger.debug('Service déjà initialisé, résolution immédiate')
       resolve()
       return
     }
@@ -125,14 +110,8 @@ function waitForInitialization() {
     }
     
     const checkInterval = setInterval(() => {
-      logger.debug('Vérification de l\'initialisation...', { 
-        isInitialized: isInitialized.value, 
-        isInitializing: isInitializing.value 
-      })
-      
       if (isInitialized.value) {
         clearInterval(checkInterval)
-        logger.debug('Service initialisé, résolution')
         resolve()
       }
     }, 100)
@@ -148,7 +127,6 @@ function waitForInitialization() {
 
 // Fonction pour forcer l'initialisation
 function forceInitialize() {
-  logger.debug('Initialisation forcée demandée')
   if (!isInitialized.value && !isInitializing.value) {
     autoInitialize()
   }
@@ -156,8 +134,6 @@ function forceInitialize() {
 
 // Initialiser automatiquement avec un délai pour laisser Firebase se charger
 function autoInitialize() {
-  logger.debug('Tentative d\'auto-initialisation du service d\'authentification')
-  
   // Vérifier si Firebase est disponible
   if (typeof auth === 'undefined' || !auth) {
     logger.warn('Firebase auth non disponible, nouvelle tentative dans 500ms')

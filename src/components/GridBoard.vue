@@ -1560,7 +1560,6 @@ const currentUser = ref(null)
 
 // Gestion de l'état d'authentification
 function onAuthStateChanged(user) {
-  console.log('🔄 GridBoard - onAuthStateChanged:', user?.email || 'null')
   currentUser.value = user
   
   // Mettre à jour l'état de surveillance quand l'authentification change
@@ -2044,11 +2043,13 @@ onMounted(async () => {
           seasonSlug: props.slug,
           source: 'grid_board'
         })
-        logger.debug('Navigation trackée pour utilisateur non connecté:', { email, path: currentPath })
       }
     }
   } catch (error) {
-    logger.error('Erreur lors du tracking de navigation:', error)
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors du tracking de navigation:', error)
+    }
   }
   
   // Détection automatique des modales selon l'URL
@@ -2059,7 +2060,6 @@ onMounted(async () => {
     if (urlParams.get('open') === 'account') {
       nextTick(() => {
         showAccountMenu.value = true
-        logger.debug('Ouverture automatique de "Mon Compte" depuis l\'URL')
       })
     }
     
@@ -2070,7 +2070,6 @@ onMounted(async () => {
       if (targetEvent) {
         nextTick(() => {
           showEventDetails(targetEvent)
-          logger.debug('Ouverture automatique des détails d\'événement depuis l\'URL:', eventId)
         })
       }
     }
@@ -2082,7 +2081,6 @@ onMounted(async () => {
       if (targetPlayer) {
         nextTick(() => {
           showPlayerDetails(targetPlayer)
-          logger.debug('Ouverture automatique des détails de joueur depuis l\'URL:', playerId)
         })
       }
     }
@@ -4288,12 +4286,14 @@ async function showEventDetails(event) {
           currentPage: newUrl,
           timestamp: new Date().toISOString()
         }
-      })
-      logger.debug('État de navigation événement tracké:', { eventId: event.id, userId, url: newUrl })
+              })
+      }
+    } catch (error) {
+      // Log silencieux pour les erreurs de tracking non critiques
+      if (error.code !== 'permission-denied') {
+        logger.error('Erreur lors du tracking de l\'état de navigation:', error)
+      }
     }
-  } catch (error) {
-    logger.error('Erreur lors du tracking de l\'état de navigation:', error)
-  }
 
   // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
   try {
@@ -4347,10 +4347,12 @@ function closeEventDetails() {
             timestamp: new Date().toISOString()
           }
         })
-        logger.debug('Retour à la vue d\'ensemble tracké:', { userId, url: baseUrl })
       }
     } catch (error) {
-      logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+      // Log silencieux pour les erreurs de tracking non critiques
+      if (error.code !== 'permission-denied') {
+        logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+      }
     }
   }
 }
@@ -4559,10 +4561,12 @@ function showPlayerDetails(player) {
           timestamp: new Date().toISOString()
         }
       })
-      logger.debug('État de navigation joueur tracké:', { playerId: player.id, userId, url: newUrl })
     }
   } catch (error) {
-    logger.error('Erreur lors du tracking de l\'état de navigation joueur:', error)
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors du tracking de l\'état de navigation joueur:', error)
+    }
   }
 
   // Avancer le mini-tutoriel joueur (étape 3 -> protection)
@@ -4594,10 +4598,12 @@ function closePlayerModal() {
             timestamp: new Date().toISOString()
           }
         })
-        logger.debug('Retour à la vue d\'ensemble tracké:', { userId, url: baseUrl })
       }
     } catch (error) {
-      logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+      // Log silencieux pour les erreurs de tracking non critiques
+      if (error.code !== 'permission-denied') {
+        logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
+      }
     }
   }
 }
@@ -5181,8 +5187,6 @@ async function isEventMonitored(eventId) {
   if (!eventId) return false
   
   try {
-    console.log('🔍 isEventMonitored - currentUser:', currentUser.value?.email || 'null')
-    
     // Utiliser l'état d'authentification réactif du composant
     if (!currentUser.value?.email) return false
     

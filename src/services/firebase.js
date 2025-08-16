@@ -1,6 +1,6 @@
 // src/services/firebase.js
 import { initializeApp } from 'firebase/app'
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
+import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
 import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
@@ -16,23 +16,18 @@ const firebaseConfig = {
 }
 
 const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
+
+// Initialiser Firestore avec la nouvelle approche de cache
+const db = initializeFirestore(app, {
+  cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
+  experimentalForceOwningTab: false // Permettre le partage entre onglets
+})
+
 const storage = getStorage(app)
 const auth = getAuth(app)
 
-// Activer la persistance IndexedDB (accélère les lectures répétées et le hors-ligne)
-try {
-  // Ne pas await ici pour éviter de bloquer l'initialisation
-  // Échouer silencieusement si non supporté ou en cas de multi-onglets
-  // noinspection JSIgnoredPromiseFromCall
-  enableIndexedDbPersistence(db)
-} catch (e) {
-  // Silence: inutile en prod
-}
-
 // Persistance de session durable (navigateur) pour éviter de redemander l'authentification
 try {
-  // Préférer une persistance locale longue (IndexedDB/localStorage selon l'environnement)
   // noinspection JSIgnoredPromiseFromCall
   setPersistence(auth, browserLocalPersistence)
 } catch (_) {}

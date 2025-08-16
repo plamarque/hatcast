@@ -21,7 +21,6 @@ export async function trackPageVisit(userId, path, additionalData = {}) {
     // Ne pas tracker les pages d'authentification ou de reset
     const excludedPaths = ['/reset-password', '/magic', '/join', '/login', '/signup']
     if (excludedPaths.some(excluded => path.startsWith(excluded))) {
-      logger.debug('Page exclue du tracking:', path)
       return
     }
 
@@ -37,10 +36,12 @@ export async function trackPageVisit(userId, path, additionalData = {}) {
     const docId = userId.includes('@') ? `email_${userId.replace(/[^a-zA-Z0-9]/g, '_')}` : userId
     
     await setDoc(doc(db, COLLECTION, docId), navigationData, { merge: true })
-    logger.debug('Navigation trackée dans Firestore:', { userId, path, docId })
     
   } catch (error) {
-    logger.error('Erreur lors du tracking de la navigation', error)
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors du tracking de la navigation', error)
+    }
   }
 }
 
@@ -72,10 +73,12 @@ export async function trackModalInteraction(userId, modalData) {
     const docId = userId.includes('@') ? `email_${userId.replace(/[^a-zA-Z0-9]/g, '_')}` : userId
     
     await setDoc(doc(db, COLLECTION, docId), interactionData, { merge: true })
-    logger.debug('Interaction modale trackée dans Firestore:', { userId, modalData, docId })
     
   } catch (error) {
-    logger.error('Erreur lors du tracking de l\'interaction modale', error)
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors du tracking de l\'interaction modale', error)
+    }
   }
 }
 
@@ -97,10 +100,8 @@ export async function getLastVisitedPage(userId) {
     
     if (docSnap.exists()) {
       const data = docSnap.data()
-      logger.debug('Dernière page visitée récupérée:', data)
       return data
     } else {
-      logger.debug('Aucune navigation trouvée pour:', userId)
       return null
     }
     
@@ -129,12 +130,10 @@ export async function getLastModalInteraction(userId) {
     if (docSnap.exists()) {
       const data = docSnap.data()
       if (data.lastModalInteraction) {
-        logger.debug('Dernière interaction modale récupérée:', data.lastModalInteraction)
         return data.lastModalInteraction
       }
     }
     
-    logger.debug('Aucune interaction modale trouvée pour:', userId)
     return null
     
   } catch (error) {
@@ -166,10 +165,11 @@ export async function updateLastVisitedPage(userId, path, additionalData = {}) {
       ...additionalData
     })
     
-    logger.debug('Navigation mise à jour:', { userId, path })
-    
   } catch (error) {
-    logger.error('Erreur lors de la mise à jour de la navigation', error)
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors de la mise à jour de la navigation', error)
+    }
   }
 }
 
@@ -194,10 +194,11 @@ export async function clearNavigationHistory(userId) {
       cleared: true
     })
     
-    logger.debug('Historique de navigation effacé pour:', userId)
-    
   } catch (error) {
-    logger.error('Erreur lors de l\'effacement de la navigation', error)
+    // Log silencieux pour les erreurs de tracking non critiques
+    if (error.code !== 'permission-denied') {
+      logger.error('Erreur lors de l\'effacement de la navigation', error)
+    }
   }
 }
 

@@ -62,7 +62,6 @@ export async function notifyRecipientAcrossChannels({
 
   // Push
   if (payloads.push && payloads.push.enabled) {
-    logger.debug('Envoi notification push', { reason, recipientEmail, title: payloads.push.title, body: payloads.push.body })
     await queuePushMessage({
       toEmail: recipientEmail,
       title: payloads.push.title,
@@ -75,14 +74,6 @@ export async function notifyRecipientAcrossChannels({
     }).catch((e) => {
       logger.error('notifyRecipientAcrossChannels push error', e)
       results.push({ channel: 'push', success: false })
-    })
-  } else {
-    logger.debug('Notification push désactivée ou non configurée', { 
-      reason, 
-      recipientEmail, 
-      hasPayload: !!payloads.push, 
-      enabled: payloads.push?.enabled,
-      prefs: prefs
     })
   }
 

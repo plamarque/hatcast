@@ -233,7 +233,10 @@ export async function getPlayerProtectionData(playerId, seasonId = null) {
     
     return protectionDoc.data()
   } catch (error) {
-    logger.error('Erreur lors de la récupération des données de protection', error)
+    // Log silencieux pour les erreurs non critiques (ex: document inexistant)
+    if (error.code !== 'not-found' && error.code !== 'permission-denied') {
+      logger.error('Erreur lors de la récupération des données de protection', error)
+    }
     return null
   }
 }
@@ -244,7 +247,10 @@ export async function getPlayerEmail(playerId, seasonId = null) {
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
     return protectionData?.email || ''
   } catch (error) {
-    logger.error('Erreur lors de la récupération de l\'email', error)
+    // Log silencieux pour les erreurs non critiques
+    if (error.code !== 'not-found' && error.code !== 'permission-denied') {
+      logger.error('Erreur lors de la récupération de l\'email', error)
+    }
     return ''
   }
 }
@@ -258,7 +264,10 @@ export async function listProtectedPlayers(seasonId = null) {
     const snap = await getDocs(protectionCollection)
     return snap.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (error) {
-    logger.error('Erreur lors du chargement des protections', error)
+    // Log silencieux pour les erreurs non critiques
+    if (error.code !== 'not-found' && error.code !== 'permission-denied') {
+      logger.error('Erreur lors du chargement des protections', error)
+    }
     return []
   }
 }
@@ -288,7 +297,10 @@ export async function listAssociationsForEmail(email) {
     }
     return results
   } catch (error) {
-    logger.error('Erreur listAssociationsForEmail', error)
+    // Log silencieux pour les erreurs non critiques
+    if (error.code !== 'not-found' && error.code !== 'permission-denied') {
+      logger.error('Erreur listAssociationsForEmail', error)
+    }
     return []
   }
 }
