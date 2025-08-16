@@ -111,9 +111,6 @@
 .z-\[400\] {
   z-index: 400;
 }
-.z-\[9998\] {
-  z-index: 9998;
-}
 .z-\[9999\] {
   z-index: 9999;
 }
@@ -329,9 +326,6 @@
 .justify-items-center {
   justify-items: center;
 }
-.self-start {
-  align-self: flex-start;
-}
 .truncate {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -438,9 +432,6 @@
 .whitespace-nowrap {
   white-space: nowrap;
 }
-.whitespace-pre-line {
-  white-space: pre-line;
-}
 .whitespace-pre-wrap {
   white-space: pre-wrap;
 }
@@ -458,9 +449,6 @@
 }
 .opacity-50 {
   opacity: 50%;
-}
-.opacity-60 {
-  opacity: 60%;
 }
 .opacity-75 {
   opacity: 75%;

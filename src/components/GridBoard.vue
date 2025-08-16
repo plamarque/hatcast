@@ -600,6 +600,8 @@
                  <span class="text-blue-200">{{ selectedEvent?.playerCount || 6 }} joueurs</span>
                </div>
              </div>
+             
+
              <div class="flex items-center gap-3 mb-3">
                <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
                <div class="relative">
@@ -650,6 +652,23 @@
             <!-- Description intégrée dans le header si elle existe -->
             <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
               {{ selectedEvent.description }}
+            </div>
+            
+            <!-- Indicateur de surveillance de l'événement -->
+            <div class="flex items-center gap-2 mt-3">
+              <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/15 border border-blue-400/25 rounded text-sm">
+                <span class="text-blue-300">✅</span>
+                <span class="text-blue-200">Notifications activées</span>
+              </div>
+              <button 
+                v-else 
+                @click="promptForNotifications(selectedEvent)"
+                class="flex items-center gap-2 px-3 py-1.5 bg-gray-500/15 border border-gray-400/25 rounded text-sm hover:bg-gray-500/25 transition-colors duration-200 cursor-pointer"
+                title="Reçois des alertes en temps réel : sélections, changements d'horaires, et plus !"
+              >
+                <span class="text-gray-300">🔔</span>
+                <span class="text-gray-200">Activer les notifications</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1536,6 +1555,38 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 
+// État d'authentification réactif (cohérent avec SeasonHeader)
+const currentUser = ref(null)
+
+// Gestion de l'état d'authentification
+function onAuthStateChanged(user) {
+  console.log('🔄 GridBoard - onAuthStateChanged:', user?.email || 'null')
+  currentUser.value = user
+  
+  // Mettre à jour l'état de surveillance quand l'authentification change
+  nextTick(() => {
+    updateEventMonitoredState()
+  })
+}
+
+// État réactif pour la surveillance des événements
+const isEventMonitoredState = ref(false)
+
+// Fonction pour mettre à jour l'état de surveillance
+async function updateEventMonitoredState() {
+  if (!selectedEvent.value?.id) {
+    isEventMonitoredState.value = false
+    return
+  }
+  
+  try {
+    isEventMonitoredState.value = await isEventMonitored(selectedEvent.value.id)
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'état de surveillance:', error)
+    isEventMonitoredState.value = false
+  }
+}
+
 const seasonSlug = props.slug
 const seasonName = ref('')
 const seasonId = ref('')
@@ -1911,6 +1962,15 @@ async function onManageAccountPlayer(assoc) {
   // Onboarding créateur: géré par CreatorOnboardingModal
 // Si l'utilisateur vient du /join, masquer l'onboarding créateur
 onMounted(async () => {
+  // Initialiser l'état d'authentification
+  currentUser.value = auth.currentUser
+  
+  // Écouter les changements d'état d'authentification
+  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
+  
+  // Stocker la fonction de cleanup pour onUnmounted
+  window._gridBoardUnsubscribe = unsubscribe
+  
   try {
     if (seasonId.value) {
       const dismiss = localStorage.getItem(`dismissCreatorOnboarding:${seasonId.value}`)
@@ -2310,6 +2370,12 @@ onMounted(() => {
   window.addEventListener('resize', maybeRepositionCoachmark)
 })
 onUnmounted(() => {
+  // Cleanup de l'écouteur d'authentification
+  if (window._gridBoardUnsubscribe) {
+    window._gridBoardUnsubscribe()
+    delete window._gridBoardUnsubscribe
+  }
+  
   window.removeEventListener('scroll', maybeRepositionCoachmark)
   window.removeEventListener('resize', maybeRepositionCoachmark)
 })
@@ -4152,6 +4218,11 @@ async function showEventDetails(event) {
   }
 
   showEventDetailsModal.value = true
+  
+  // Mettre à jour l'état de surveillance de l'événement
+  nextTick(() => {
+    updateEventMonitoredState()
+  })
 }
 
 function closeEventDetails() {
@@ -4256,14 +4327,32 @@ async function handleAvailabilityToggle(playerName, eventId) {
   
       // Joueur trouvé
   
-  // Vérifier si l'utilisateur est connecté AVANT de vérifier la protection
-  // D'abord, changer l'état de la disponibilité (visuellement)
-  await toggleAvailability(playerName, eventId);
+  // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
+  const isProtected = isPlayerProtectedInGrid(player.id);
   
-  // Ensuite, vérifier si l'utilisateur est connecté
+  if (isProtected) {
+    // Joueur protégé : vérifier s'il y a une session active
+    const hasCachedPassword = isPlayerPasswordCached(player.id);
+    if (hasCachedPassword) {
+      // Session active, procéder au toggle
+      await toggleAvailability(playerName, eventId);
+    } else {
+      // Pas de session, demander le mot de passe
+      pendingAvailabilityAction.value = { playerName, eventId };
+      passwordVerificationPlayer.value = player;
+      showPasswordVerification.value = true;
+      return; // Attendre la vérification
+    }
+  } else {
+    // Joueur non protégé, procéder directement
+    await toggleAvailability(playerName, eventId);
+  }
+  
+  // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
   if (!auth.currentUser?.email) {
     // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
-    if (shouldPromptForNotifications()) {
+    // MAIS seulement pour les joueurs NON protégés
+    if (!isProtected && shouldPromptForNotifications()) {
       // Afficher la modal d'incitation aux notifications
       notificationPromptData.value = {
         playerName,
@@ -4271,37 +4360,12 @@ async function handleAvailabilityToggle(playerName, eventId) {
         eventId
       }
       showNotificationPrompt.value = true
-    } else {
-      // Ouvrir la modal de connexion classique
+    } else if (!isProtected) {
+      // Ouvrir la modal de connexion classique (seulement pour non protégés)
       showAccountLogin.value = true
     }
-    return;
+    // Si joueur protégé et non connecté, ne rien afficher (attendre la vérification)
   }
-  
-  // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
-  const isProtected = isPlayerProtectedInGrid(player.id);
-        // Joueur protégé
-  
-  if (isProtected) {
-    // Vérifier s'il y a une session active
-    const hasCachedPassword = isPlayerPasswordCached(player.id);
-    if (hasCachedPassword) {
-      // Session active, procéder directement
-      // Session active, procéder au toggle
-      await toggleAvailability(playerName, eventId);
-    } else {
-      // Pas de session, demander le mot de passe
-              // Demande du mot de passe pour joueur protégé
-      pendingAvailabilityAction.value = { playerName, eventId };
-      passwordVerificationPlayer.value = player;
-      showPasswordVerification.value = true;
-    }
-    return;
-  }
-  
-  // Si non protégé, procéder directement
-        // Joueur non protégé, procéder au toggle
-  await toggleAvailability(playerName, eventId);
 }
 
 // Fonction pour vérifier si un joueur est sélectionné pour un événement spécifique
@@ -5020,6 +5084,65 @@ function clearEventFocus() {
   document.querySelectorAll('.focused-event-column-start, .focused-event-column-end').forEach(el => {
     el.classList.remove('focused-event-column-start', 'focused-event-column-end')
   })
+}
+
+// Fonction pour vérifier si un événement est surveillé par l'utilisateur actuel
+async function isEventMonitored(eventId) {
+  if (!eventId) return false
+  
+  try {
+    console.log('🔍 isEventMonitored - currentUser:', currentUser.value?.email || 'null')
+    
+    // Utiliser l'état d'authentification réactif du composant
+    if (!currentUser.value?.email) return false
+    
+    // Récupérer les préférences de notification depuis Firestore
+    const { db } = await import('../services/firebase.js')
+    const { doc, getDoc } = await import('firebase/firestore')
+    
+    const userPrefsDoc = await getDoc(doc(db, 'userPreferences', currentUser.value.email))
+    
+    if (userPrefsDoc.exists()) {
+      const prefs = userPrefsDoc.data()
+      
+      // Vérifier les notifications email (préférences uniquement)
+      const hasEmailNotifications = (
+        prefs.notifyAvailability === true || prefs.notifySelection === true
+      )
+      
+      // Vérifier les notifications push (préférences + FCM token)
+      const hasPushNotifications = (
+        (prefs.notifyAvailabilityPush === true || prefs.notifySelectionPush === true) &&
+        !!localStorage.getItem('fcmToken') // FCM token requis pour le canal push
+      )
+      
+      // Retourner true si au moins un canal est activé
+      return hasEmailNotifications || hasPushNotifications
+    }
+    
+    // Pas de préférences trouvées
+    return false
+  } catch (error) {
+    console.error('Erreur lors de la vérification de surveillance:', error)
+    return false
+  }
+}
+
+// Fonction pour inciter à activer les notifications depuis l'entête de l'événement
+function promptForNotifications(event) {
+  if (!event) return
+  
+  // Préparer les données pour la modal d'incitation
+  notificationPromptData.value = {
+    playerName: 'Vous', // Utilisateur générique
+    eventTitle: event.title || 'ce spectacle',
+    seasonId: seasonId.value,
+    seasonSlug: props.slug,
+    eventId: event.id
+  }
+  
+  // Afficher la modal d'incitation
+  showNotificationPrompt.value = true
 }
 
 // Fonction pour gérer le succès de l'incitation aux notifications

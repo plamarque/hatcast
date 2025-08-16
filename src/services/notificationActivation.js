@@ -34,6 +34,17 @@ export async function createNotificationActivationRequest({
   seasonSlug
 }) {
   try {
+    // Récupérer le nom complet de la saison depuis Firestore
+    let seasonTitle = seasonSlug // Fallback au slug
+    try {
+      const seasonDoc = await getDoc(doc(db, 'seasons', seasonId))
+      if (seasonDoc.exists()) {
+        seasonTitle = seasonDoc.data().title || seasonSlug
+      }
+    } catch (error) {
+      console.warn('Impossible de récupérer le titre de la saison, utilisation du slug:', error)
+    }
+
     // Créer un magic link spécial pour l'activation des notifications
     const magicLink = await createMagicLink({
       seasonId,
@@ -65,7 +76,7 @@ export async function createNotificationActivationRequest({
       eventTitle,
       eventUrl: `${window.location.origin}/season/${seasonSlug}/event/${eventId}`,
       activationUrl: magicLink.url,
-      seasonTitle: seasonSlug // Utiliser le slug comme titre de saison pour l'instant
+      seasonTitle: seasonTitle // Utiliser le nom complet de la saison
     })
 
     logger.info('Demande d\'activation des notifications créée', {

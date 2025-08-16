@@ -141,13 +141,25 @@ onMounted(async () => {
           // Ajouter une proposition de création de mot de passe
           message.value += `\n\n💡 Conseil : Pour une meilleure expérience, tu peux créer un mot de passe pour ton compte et te connecter directement à l'avenir.`
           
-          // Redirection immédiate vers la saison pour afficher la modale de succès
-          if (slug && eventId) {
-            router.push(`/season/${slug}?event=${eventId}&modal=event_details&notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`)
-          } else if (slug) {
-            router.push(`/season/${slug}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
+          // Redirection selon le type d'utilisateur
+          if (result.accountStatus?.created) {
+            // Nouvel utilisateur : afficher la modal de succès avec proposition de mot de passe
+            if (slug && eventId) {
+              router.push(`/season/${slug}?event=${eventId}&modal=event_details&notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`)
+            } else if (slug) {
+              router.push(`/season/${slug}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
+            } else {
+              router.push('/seasons')
+            }
           } else {
-            router.push('/seasons')
+            // Utilisateur existant : redirection directe vers l'événement (pas de modal de succès)
+            if (slug && eventId) {
+              router.push(`/season/${slug}?event=${eventId}&modal=event_details`)
+            } else if (slug) {
+              router.push(`/season/${slug}`)
+            } else {
+              router.push('/seasons')
+            }
           }
         } else {
           throw new Error('Échec de l\'activation des notifications')
