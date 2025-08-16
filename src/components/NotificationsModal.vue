@@ -51,20 +51,8 @@
             Mobile (expérimental)
           </h3>
           <div class="p-3 md:p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
-            <div class="text-xs text-emerald-200 mb-1">Fonctionnalité en test: activable uniquement ici.</div>
+            <!-- Notifications sur cet appareil - déplacé en haut -->
             <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="prefs.notifySelectionPush" class="w-4 h-4">
-                <span class="text-sm text-white">Me notifier lorsque je suis concerné par une sélection</span>
-              </label>
-            </div>
-            <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="prefs.notifyAvailabilityPush" class="w-4 h-4">
-                <span class="text-sm text-white">Me notifier lorsqu'un événement a besoin de joueurs</span>
-              </label>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-white/10">
               <div class="text-xs text-gray-400">Notifications sur cet appareil</div>
               <template v-if="!pushEnabledOnDevice">
                 <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ enablePushLoading ? '...' : 'Activer' }}</button>
@@ -75,20 +63,20 @@
                 </span>
               </template>
             </div>
-            <div class="flex items-center justify-between pt-2">
-              <div class="text-xs text-gray-400">Test de notification push</div>
-              <button @click="sendTestPush" :disabled="testPushLoading || !email" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ testPushLoading ? 'Envoi…' : 'Envoyer un test' }}</button>
+            
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifySelectionPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une sélection</span>
+              </label>
             </div>
-            <div class="flex items-center justify-between pt-2">
-              <div class="text-xs text-gray-400">Test de mise à jour PWA</div>
-              <button @click="testPwaUpdate" class="px-3 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-500 transition-colors">
-                🧪 Simuler maj
-              </button>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" v-model="prefs.notifyAvailabilityPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsqu'un événement a besoin de joueurs</span>
+              </label>
             </div>
-            <div v-if="testPushSuccess" class="text-xs text-green-300">Notification test envoyée (vérifiez votre appareil)</div>
-            <div v-if="testPushError" class="text-xs text-red-300">{{ testPushError }}</div>
-            <div v-if="fcmToken" class="text-[10px] text-gray-400 break-all">FCM token: {{ fcmToken }}</div>
-            <div class="text-[10px] text-gray-500">VAPID: {{ vapidKeyPreview || 'indisponible' }}</div>
+            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic">⚠️ Ces préférences sont désactivées car les notifications de l'application ne sont pas actives sur cet appareil</div>
           </div>
         </div>
 
@@ -122,13 +110,9 @@ const prefs = ref({ notifyAvailability: true, notifySelection: true, notifySelec
 const prefsLoading = ref(false)
 const prefsError = ref('')
 const prefsSuccess = ref('')
-const testPushLoading = ref(false)
-const testPushSuccess = ref('')
-const testPushError = ref('')
 const enablePushLoading = ref(false)
 const fcmToken = ref(localStorage.getItem('fcmToken') || '')
 const pushEnabledOnDevice = ref(false)
-const vapidKeyPreview = (function maskKey(key) { try { return key ? (key.length > 20 ? key.slice(0,8) + '…' + key.slice(-6) : key) : '' } catch { return '' } })(import.meta.env?.VITE_FIREBASE_VAPID_KEY)
 
 // Gestionnaire pour les changements d'état des notifications push
 function handlePushStatusChanged(event) {
@@ -161,43 +145,6 @@ async function loadPrefs() {
       prefs.value = { notifyAvailability: true, notifySelection: true, notifySelectionPush: true, notifyAvailabilityPush: true }
     }
   } catch {}
-}
-
-async function sendTestPush() {
-  if (!email.value) return
-  testPushLoading.value = true
-  testPushError.value = ''
-  testPushSuccess.value = ''
-  try {
-    // Vérifier que les notifications push sont actives avant d'envoyer
-    const pushStatus = await ensurePushNotificationsActive()
-    if (!pushStatus.active) {
-      testPushError.value = 'Notifications push non actives sur cet appareil'
-      return
-    }
-    
-    await queuePushMessage({ toEmail: email.value, title: 'Test HatCast', body: 'Ceci est un test de notification', data: { url: '/' }, reason: 'manual_test' })
-    testPushSuccess.value = 'OK'
-  } catch (e) {
-    testPushError.value = 'Échec de l\'envoi du test'
-  } finally {
-    testPushLoading.value = false
-  }
-}
-
-// Fonction pour tester la modal de mise à jour PWA
-function testPwaUpdate() {
-  // Émettre un événement personnalisé pour déclencher la mise à jour
-  const updateEvent = new CustomEvent('pwa-update-test', {
-    detail: { 
-      type: 'test-update',
-      timestamp: Date.now()
-    }
-  })
-  window.dispatchEvent(updateEvent)
-  
-  // Afficher un message de confirmation
-  alert('🧪 Test de mise à jour PWA déclenché !\n\nVérifiez que la notification toast apparaît en bas à droite de l\'interface.')
 }
 
 async function enablePushOnThisDevice() {

@@ -362,6 +362,25 @@ onMounted(() => {
   // Écouter l'événement de test de mise à jour PWA
   window.addEventListener('pwa-update-test', handlePwaUpdateTest)
   
+  // Écouter l'événement pour déclencher manuellement la barre d'installation PWA
+  window.addEventListener('show-pwa-install-banner', () => {
+    console.log('📱 Déclenchement manuel de la barre d\'installation PWA')
+    
+    // Vérifier si on peut afficher la barre
+    if (deferredPrompt.value && !bannerDismissed.value) {
+      canInstallPwa.value = true
+      bannerDismissed.value = false
+      
+      // Réinitialiser les timestamps pour permettre l'affichage
+      localStorage.removeItem('hatcast-pwa-banner-last-shown')
+      localStorage.removeItem('hatcast-pwa-banner-dismissed')
+      
+      console.log('✅ Barre d\'installation PWA affichée manuellement')
+    } else {
+      console.log('⚠️ Impossible d\'afficher la barre d\'installation PWA (déjà affichée ou non disponible)')
+    }
+  })
+  
   // Check for service worker updates
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -391,6 +410,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
   window.removeEventListener('appinstalled', handleAppInstalled)
   window.removeEventListener('pwa-update-test', handlePwaUpdateTest)
+  window.removeEventListener('show-pwa-install-banner', () => {})
 })
 </script>
 
