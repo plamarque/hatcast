@@ -14,27 +14,26 @@
     @mouseenter="hover = true"
     @mouseleave="hover = false"
   >
-    <div class="flex items-center justify-center">
-      <!-- Afficher le badge au survol en remplacement de l'icône -->
-      <template v-if="shouldShowChance && hover">
-        <span class="text-[11px] md:text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-200"
+    <div class="flex flex-col items-center justify-center">
+      <!-- Texte du statut -->
+      <span v-if="isSelected && isAvailable === true" class="text-center">
+        Joue
+      </span>
+      <span v-else-if="isAvailable === true" class="text-center">
+        Disponible
+      </span>
+      <span v-else-if="isAvailable === false" class="text-center">
+        Pas disponible
+      </span>
+      <span v-else class="text-center text-gray-400">
+        –
+      </span>
+      
+      <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
+      <template v-if="shouldShowChance && isAvailable === true">
+        <span class="text-[10px] md:text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 mt-1"
               :title="tooltipText">
           {{ chancePercent }}%
-        </span>
-      </template>
-      <template v-else>
-        <!-- Texte du statut -->
-        <span v-if="isSelected && isAvailable === true" class="text-center">
-          Joue
-        </span>
-        <span v-else-if="isAvailable === true" class="text-center">
-          Disponible
-        </span>
-        <span v-else-if="isAvailable === false" class="text-center">
-          Pas disponible
-        </span>
-        <span v-else class="text-center text-gray-400">
-          –
         </span>
       </template>
     </div>
@@ -86,7 +85,7 @@ const hover = ref(false)
 const shouldShowChance = computed(() => {
   if (props.chancePercent == null) return false
   if (props.isAvailable !== true) return false
-  if (props.isSelected && !props.showSelectedChance) return false
+  // Toujours afficher le pourcentage pour les joueurs disponibles
   return true
 })
 
