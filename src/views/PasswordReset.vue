@@ -50,8 +50,6 @@
         </div>
 
         <div class="space-y-4">
-
-        <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2">Nouveau mot de passe</label>
             <input
