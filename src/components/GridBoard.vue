@@ -4257,6 +4257,10 @@ async function handleAvailabilityToggle(playerName, eventId) {
       // Joueur trouvé
   
   // Vérifier si l'utilisateur est connecté AVANT de vérifier la protection
+  // D'abord, changer l'état de la disponibilité (visuellement)
+  await toggleAvailability(playerName, eventId);
+  
+  // Ensuite, vérifier si l'utilisateur est connecté
   if (!auth.currentUser?.email) {
     // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
     if (shouldPromptForNotifications()) {
@@ -4267,12 +4271,11 @@ async function handleAvailabilityToggle(playerName, eventId) {
         eventId
       }
       showNotificationPrompt.value = true
-      return
     } else {
       // Ouvrir la modal de connexion classique
       showAccountLogin.value = true
-      return
     }
+    return;
   }
   
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
