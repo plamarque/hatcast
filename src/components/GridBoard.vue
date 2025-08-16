@@ -1862,8 +1862,35 @@ const showAccountLogin = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
 const accountAuthPlayer = ref(null)
-function openAccountMenu() { showAccountMenu.value = true }
-function closeAccountMenu() { showAccountMenu.value = false }
+function openAccountMenu() { 
+  showAccountMenu.value = true
+  
+  // Synchroniser l'URL avec l'état de la modale "Mon Compte"
+  // Éviter la duplication du paramètre open=account
+  const currentPath = `/season/${props.slug}`
+  const currentSearch = new URLSearchParams(window.location.search)
+  
+  // Nettoyer les paramètres existants et ajouter open=account
+  currentSearch.delete('open')
+  currentSearch.set('open', 'account')
+  
+  const newUrl = `${currentPath}?${currentSearch.toString()}`
+  router.push(newUrl)
+}
+function closeAccountMenu() { 
+  showAccountMenu.value = false
+  
+  // Nettoyer l'URL en retirant le paramètre open=account
+  // Préserver les autres paramètres (event, player, etc.)
+  const currentPath = `/season/${props.slug}`
+  const currentSearch = new URLSearchParams(window.location.search)
+  
+  // Supprimer seulement le paramètre open
+  currentSearch.delete('open')
+  
+  const newUrl = currentSearch.toString() ? `${currentPath}?${currentSearch.toString()}` : currentPath
+  router.push(newUrl)
+}
 
 function openNotifications() { 
   showNotifications.value = true 
@@ -1898,6 +1925,18 @@ function openAccount() {
     }
   } catch {}
   showAccountMenu.value = true
+  
+  // Synchroniser l'URL avec l'état de la modale "Mon Compte"
+  // Éviter la duplication du paramètre open=account
+  const currentPath = `/season/${props.slug}`
+  const currentSearch = new URLSearchParams(window.location.search)
+  
+  // Nettoyer les paramètres existants et ajouter open=account
+  currentSearch.delete('open')
+  currentSearch.set('open', 'account')
+  
+  const newUrl = `${currentPath}?${currentSearch.toString()}`
+  router.push(newUrl)
 }
 
 async function handleAccountChangePassword() {
@@ -1920,6 +1959,18 @@ async function handleAccountLogoutDevice() {
   try {
     await signOut(auth)
     closeAccountMenu()
+    
+    // Nettoyer l'URL après déconnexion
+    // Préserver les autres paramètres (event, player, etc.)
+    const currentPath = `/season/${props.slug}`
+    const currentSearch = new URLSearchParams(window.location.search)
+    
+    // Supprimer seulement le paramètre open
+    currentSearch.delete('open')
+    
+    const newUrl = currentSearch.toString() ? `${currentPath}?${currentSearch.toString()}` : currentPath
+    router.push(newUrl)
+    
     showSuccessMessage.value = true
     successMessage.value = 'Déconnecté de cet appareil.'
     setTimeout(() => { showSuccessMessage.value = false }, 2500)
@@ -1998,6 +2049,45 @@ onMounted(async () => {
     }
   } catch (error) {
     logger.error('Erreur lors du tracking de navigation:', error)
+  }
+  
+  // Détection automatique des modales selon l'URL
+  try {
+    const urlParams = new URLSearchParams(window.location.search)
+    
+    // Ouvrir automatiquement "Mon Compte" si demandé
+    if (urlParams.get('open') === 'account') {
+      nextTick(() => {
+        showAccountMenu.value = true
+        logger.debug('Ouverture automatique de "Mon Compte" depuis l\'URL')
+      })
+    }
+    
+    // Ouvrir automatiquement les détails d'événement si demandé
+    if (urlParams.get('modal') === 'event_details' && urlParams.get('event')) {
+      const eventId = urlParams.get('event')
+      const targetEvent = events.value.find(e => e.id === eventId)
+      if (targetEvent) {
+        nextTick(() => {
+          showEventDetails(targetEvent)
+          logger.debug('Ouverture automatique des détails d\'événement depuis l\'URL:', eventId)
+        })
+      }
+    }
+    
+    // Ouvrir automatiquement les détails de joueur si demandé
+    if (urlParams.get('modal') === 'player_details' && urlParams.get('player')) {
+      const playerId = urlParams.get('player')
+      const targetPlayer = players.value.find(p => p.id === playerId)
+      if (targetPlayer) {
+        nextTick(() => {
+          showPlayerDetails(targetPlayer)
+          logger.debug('Ouverture automatique des détails de joueur depuis l\'URL:', playerId)
+        })
+      }
+    }
+  } catch (error) {
+    logger.error('Erreur lors de la détection automatique des modales:', error)
   }
   
   // Gestionnaire de scroll pour le header sticky

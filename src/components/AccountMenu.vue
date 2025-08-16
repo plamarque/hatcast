@@ -215,6 +215,25 @@ async function changePassword() {
   passwordSuccess.value = ''
   
   try {
+    // Sauvegarder le contexte "Mon Compte" avant l'envoi de l'email
+    // Sauvegarder l'état complet des modales et de la navigation
+    const currentPath = window.location.pathname + window.location.search
+    const currentNavigation = {
+      lastVisitedPage: currentPath,
+      timestamp: Date.now(),
+      email: email.value,
+      context: 'account_menu_password_reset',
+      returnToAccountMenu: true,
+      modalState: {
+        accountMenu: true,
+        eventDetails: currentPath.includes('modal=event_details'),
+        playerDetails: currentPath.includes('modal=player_details'),
+        eventId: new URLSearchParams(window.location.search).get('event'),
+        playerId: new URLSearchParams(window.location.search).get('player')
+      }
+    }
+    localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
+    
     await resetPlayerPassword(email.value)
     passwordSuccess.value = 'Email de réinitialisation envoyé. Vérifiez votre boîte de réception.'
   } catch (e) {

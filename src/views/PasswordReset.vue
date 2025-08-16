@@ -220,7 +220,39 @@ async function goHome() {
         if (isRecent && isCorrectEmail && isValidRedirectPath(lastVisitedPage)) {
           logger.info('✅ Redirection vers la page sauvegardée:', lastVisitedPage)
           localStorage.removeItem('pendingPasswordResetNavigation') // Nettoyer
-          router.push(lastVisitedPage)
+          
+          // Si le contexte indique un retour vers "Mon Compte", restaurer l'état complet
+          if (navigationData.returnToAccountMenu) {
+            // Construire l'URL avec tous les paramètres nécessaires
+            const baseUrl = new URL(lastVisitedPage, window.location.origin)
+            const searchParams = new URLSearchParams(baseUrl.search)
+            
+            // Restaurer l'état des modales
+            if (navigationData.modalState) {
+              const { modalState } = navigationData
+              
+              // Restaurer les paramètres d'événement si nécessaire
+              if (modalState.eventId) {
+                searchParams.set('event', modalState.eventId)
+                searchParams.set('modal', 'event_details')
+              }
+              
+              // Restaurer les paramètres de joueur si nécessaire
+              if (modalState.playerId) {
+                searchParams.set('player', modalState.playerId)
+                searchParams.set('modal', 'player_details')
+              }
+              
+              // Ajouter le paramètre pour ouvrir "Mon Compte"
+              searchParams.set('open', 'account')
+            }
+            
+            const redirectUrl = `${baseUrl.pathname}?${searchParams.toString()}`
+            logger.info('🔄 Redirection vers "Mon Compte" avec état complet:', redirectUrl)
+            router.push(redirectUrl)
+          } else {
+            router.push(lastVisitedPage)
+          }
           return
         } else {
           logger.info('⚠️ Navigation sauvegardée invalide ou expirée, nettoyage...')
