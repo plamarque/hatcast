@@ -2445,7 +2445,7 @@ async function confirmDeleteEvent(eventId) {
 async function deleteEventConfirmed(eventId = null) {
   const eventIdToDelete = eventId || eventToDelete.value
   // eslint-disable-next-line no-console
-  console.debug('deleteEventConfirmed')
+  // Suppression d'événement confirmée
   
   if (!eventIdToDelete) {
     console.error('Aucun événement à supprimer')
@@ -2870,9 +2870,7 @@ onMounted(async () => {
     
     // Logs allégés
     // eslint-disable-next-line no-console
-    console.debug('players (deduplicated)')
-    // eslint-disable-next-line no-console
-    console.debug('availability loaded')
+    // Données chargées
 
     // init scroll hints
     await nextTick()
@@ -2907,17 +2905,15 @@ onMounted(async () => {
   if (eventIdFromUrl && events.value.length > 0) {
     const targetEvent = events.value.find(e => e.id === eventIdFromUrl)
     if (targetEvent) {
-      // eslint-disable-next-line no-console
-      console.debug('Événement trouvé depuis l\'URL')
+      // Événement trouvé depuis l'URL
       
       // Utiliser la fonction améliorée de focus
       await focusOnEventFromUrl(eventIdFromUrl, targetEvent)
       
-      // Si modal=event_details est demandé, ouvrir automatiquement la modal
-      if (route.query.modal === 'event_details') {
-        console.debug('🎯 Ouverture automatique de la modal de détails pour l\'événement:', eventIdFromUrl)
-        showEventDetails(targetEvent)
-      }
+              // Si modal=event_details est demandé, ouvrir automatiquement la modal
+        if (route.query.modal === 'event_details') {
+          showEventDetails(targetEvent)
+        }
     } else {
       // eslint-disable-next-line no-console
       console.warn('Événement non trouvé avec l\'ID')
@@ -2947,20 +2943,8 @@ onMounted(async () => {
   }
 
   // Gérer le paramètre notificationSuccess (APRÈS tous les autres traitements d'URL)
-  console.debug('🔍 Vérification des paramètres notificationSuccess:')
-  console.debug('  - route.query:', route.query)
-  console.debug('  - route.query.notificationSuccess:', route.query.notificationSuccess)
-  console.debug('  - route.query.email:', route.query.email)
-  console.debug('  - route.query.playerName:', route.query.playerName)
-  console.debug('  - route.query.eventId:', route.query.eventId)
-  console.debug('  - window.location.search:', window.location.search)
-  
   if (route.query.notificationSuccess === '1') {
-    console.debug('✅ Paramètres notificationSuccess détectés:', {
-      email: route.query.email,
-      playerName: route.query.playerName,
-      eventId: route.query.eventId
-    })
+    console.debug('✅ Paramètres notificationSuccess détectés')
     
     notificationSuccessData.value = {
       email: decodeURIComponent(route.query.email || ''),
@@ -2971,14 +2955,11 @@ onMounted(async () => {
     // Délai pour s'assurer que la modal d'activation soit fermée
     setTimeout(() => {
       showNotificationSuccess.value = true
-      console.debug('🎉 Modal de succès affichée avec:', notificationSuccessData.value)
     }, 100)
     
     // Nettoyer l'URL
     router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
   } else {
-    console.debug('❌ Pas de paramètres notificationSuccess trouvés')
-    
     // Fallback : essayer de parser manuellement window.location.search
     const urlParams = new URLSearchParams(window.location.search)
     const notificationSuccess = urlParams.get('notificationSuccess')
@@ -2986,14 +2967,8 @@ onMounted(async () => {
     const playerName = urlParams.get('playerName')
     const eventId = urlParams.get('eventId')
     
-    console.debug('🔍 Fallback - URLSearchParams:')
-    console.debug('  - notificationSuccess:', notificationSuccess)
-    console.debug('  - email:', email)
-    console.debug('  - playerName:', playerName)
-    console.debug('  - eventId:', eventId)
-    
     if (notificationSuccess === '1') {
-      console.debug('✅ Paramètres détectés via fallback!')
+      console.debug('✅ Paramètres détectés via fallback')
       
       notificationSuccessData.value = {
         email: decodeURIComponent(email || ''),
@@ -3004,7 +2979,6 @@ onMounted(async () => {
       // Délai pour s'assurer que la modal d'activation soit fermée
       setTimeout(() => {
         showNotificationSuccess.value = true
-        console.debug('🎉 Modal de succès affichée via fallback avec:', notificationSuccessData.value)
       }, 100)
       
       // Nettoyer l'URL
@@ -3205,29 +3179,18 @@ async function toggleAvailability(playerName, eventId) {
     const hasCachedPassword = isPlayerPasswordCached(player.id);
     const wasRecentlyVerified = recentlyVerifiedPlayer.value === player.id;
     
-    // eslint-disable-next-line no-console
-    console.debug('Joueur protégé:', { 
-      playerId: player.id, 
-      hasCachedPassword, 
-      wasRecentlyVerified,
-      recentlyVerifiedPlayer: recentlyVerifiedPlayer.value 
-    });
+    // Joueur protégé détecté
     
     if (hasCachedPassword || wasRecentlyVerified) {
       // Session active ou joueur récemment vérifié, procéder directement
-      // eslint-disable-next-line no-console
-      console.debug('Session active ou joueur récemment vérifié, procéder au toggle');
+      // Session active, procéder au toggle
       if (wasRecentlyVerified) {
         // Nettoyer le flag après utilisation
-        // eslint-disable-next-line no-console
-        console.debug('Nettoyage du flag recentlyVerifiedPlayer');
         recentlyVerifiedPlayer.value = null;
       }
       performToggleAvailability(player, eventId);
     } else {
       // Pas de session, demander le mot de passe
-      // eslint-disable-next-line no-console
-      console.debug('Pas de session, affichage de la modal de vérification');
       // Utiliser la même logique que dans handleAvailabilityToggle
       pendingAvailabilityAction.value = { playerName, eventId };
       passwordVerificationPlayer.value = player;
@@ -3243,8 +3206,7 @@ async function toggleAvailability(playerName, eventId) {
 function performToggleAvailability(player, eventId) {
   // Récupérer l'état actuel depuis availability.value
   const current = availability.value[player.name]?.[eventId];
-  // eslint-disable-next-line no-console
-  console.debug('toggleAvailability')
+  // Toggle de disponibilité
   let newValue;
   
   // Logique de basculement : undefined -> true -> false -> undefined
@@ -3346,8 +3308,7 @@ async function tirer(eventId, count = 6) {
   
   if (allSelectedStillAvailable) {
     // Cas exceptionnel : tous les joueurs sont disponibles, on refait un tirage complet
-    // eslint-disable-next-line no-console
-    console.debug('Tous les joueurs sélectionnés sont disponibles, nouveau tirage complet')
+    // Nouveau tirage complet nécessaire
     
     const candidates = players.value.filter(p => isAvailable(p.name, eventId))
 
@@ -3434,10 +3395,8 @@ async function tirer(eventId, count = 6) {
 }
 
 async function tirerProtected(eventId, count = 6) {
-  // eslint-disable-next-line no-console
-  console.debug('tirerProtected appelé')
-  // eslint-disable-next-line no-console
-  console.debug('etat modal selection avant')
+  // Tirage protégé
+  // État de la modal de sélection avant
   
   // Sauvegarder l'état de la popin avant le tirage
   const wasSelectionModalOpen = showSelectionModal.value
@@ -3451,39 +3410,33 @@ async function tirerProtected(eventId, count = 6) {
   
   await tirer(eventId, count)
   
-  // eslint-disable-next-line no-console
-  console.debug('etat modal selection apres')
+  // État de la modal de sélection après
   
   // S'assurer que la popin de sélection reste ouverte si elle était ouverte
   if (wasSelectionModalOpen && !showSelectionModal.value) {
-    // eslint-disable-next-line no-console
-    console.debug('Restauration de la popin de sélection...')
+    // Restauration de la popin de sélection
     showSelectionModal.value = true
     selectionModalEvent.value = events.value.find(e => e.id === selectionModalEventId)
   }
   
   // Mettre à jour les données de la popin de sélection si elle est ouverte
   if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
-    // eslint-disable-next-line no-console
-    console.debug('Popin de sélection ouverte, mise à jour...')
+    // Popin de sélection ouverte, mise à jour
     // Forcer la mise à jour des données
     await nextTick()
     
     // Afficher le message de succès dans la popin de sélection
     if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
-      // eslint-disable-next-line no-console
-      console.debug('Appel de showSuccess sur la popin de sélection')
+      // Appel de showSuccess sur la popin de sélection
       const newSelection = selections.value[eventId] || []
       const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
       const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
       selectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
     } else {
-      // eslint-disable-next-line no-console
-      console.debug('showSuccess indisponible')
+      // showSuccess indisponible
     }
   } else {
-    // eslint-disable-next-line no-console
-    console.debug('Popin de sélection fermée, affichage message global')
+    // Popin de sélection fermée, affichage message global
     // Afficher un message de succès global si la popin n'est pas ouverte
     showSuccessMessage.value = true
     const event = events.value.find(e => e.id === eventId)
@@ -3802,8 +3755,7 @@ async function requirePin(operation) {
   // Vérifier si le PIN est déjà en cache pour cette saison
   if (pinSessionManager.isPinCached(seasonId.value)) {
     const cachedPin = pinSessionManager.getCachedPin(seasonId.value)
-    // eslint-disable-next-line no-console
-    console.debug('PIN en cache trouvé, utilisation automatique')
+    // PIN en cache trouvé, utilisation automatique
     
     // Vérifier que le PIN est toujours valide
     const isValid = await verifySeasonPin(seasonId.value, cachedPin)
@@ -3828,8 +3780,7 @@ async function requirePlayerPassword(operation) {
   // Si un PIN de saison valide est déjà en cache, ne pas redemander
   try {
     if (pinSessionManager.isPinCached(seasonId.value)) {
-      // eslint-disable-next-line no-console
-      console.debug('PIN de saison en cache — saut de la demande de mot de passe joueur')
+              // PIN de saison en cache — saut de la demande de mot de passe joueur
       await executePendingOperation(operation)
       return
     }
@@ -3837,8 +3788,7 @@ async function requirePlayerPassword(operation) {
 
   // Vérifier si le mot de passe du joueur est déjà en cache
   if (isPlayerPasswordCached(playerId)) {
-    // eslint-disable-next-line no-console
-    console.debug('Mot de passe du joueur en cache trouvé, utilisation automatique')
+            // Mot de passe du joueur en cache trouvé, utilisation automatique
     // Exécuter directement l'opération
     await executePendingOperation(operation)
     return
@@ -4064,8 +4014,7 @@ async function executePendingOperation(operation) {
     switch (type) {
       case 'deleteEvent':
         // Afficher la modal de confirmation après validation du PIN
-        // eslint-disable-next-line no-console
-        console.debug('executePendingOperation - data.eventId reçu')
+          // Exécution de l'opération en attente
         eventToDelete.value = data.eventId
         confirmDelete.value = true
         break
@@ -4288,8 +4237,7 @@ function closeEventDetailsAndUpdateUrl() {
 
 // Fonction pour gérer le toggle des disponibilités depuis la popup de détails
 async function handleAvailabilityToggle(playerName, eventId) {
-  // eslint-disable-next-line no-console
-  console.debug('handleAvailabilityToggle appelé')
+  // Gestion du toggle de disponibilité
   
   const player = players.value.find(p => p.name === playerName);
   if (!player) {
@@ -4306,8 +4254,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
     return
   }
   
-  // eslint-disable-next-line no-console
-  console.debug('Joueur trouvé');
+      // Joueur trouvé
   
   // Vérifier si l'utilisateur est connecté AVANT de vérifier la protection
   if (!auth.currentUser?.email) {
@@ -4330,21 +4277,18 @@ async function handleAvailabilityToggle(playerName, eventId) {
   
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
-  // eslint-disable-next-line no-console
-  console.debug('Joueur protégé');
+        // Joueur protégé
   
   if (isProtected) {
     // Vérifier s'il y a une session active
     const hasCachedPassword = isPlayerPasswordCached(player.id);
     if (hasCachedPassword) {
       // Session active, procéder directement
-      // eslint-disable-next-line no-console
-      console.debug('Session active, procéder au toggle');
+      // Session active, procéder au toggle
       await toggleAvailability(playerName, eventId);
     } else {
       // Pas de session, demander le mot de passe
-      // eslint-disable-next-line no-console
-      console.debug('Demande du mot de passe pour joueur protégé');
+              // Demande du mot de passe pour joueur protégé
       pendingAvailabilityAction.value = { playerName, eventId };
       passwordVerificationPlayer.value = player;
       showPasswordVerification.value = true;
@@ -4353,8 +4297,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
   }
   
   // Si non protégé, procéder directement
-  // eslint-disable-next-line no-console
-  console.debug('Joueur non protégé, procéder au toggle');
+        // Joueur non protégé, procéder au toggle
   await toggleAvailability(playerName, eventId);
 }
 
@@ -4366,21 +4309,18 @@ function isPlayerSelected(playerName, eventId) {
 
 // Fonction pour gérer la vérification de mot de passe réussie
 async function handlePasswordVerified(verificationData) {
-  // eslint-disable-next-line no-console
-  console.debug('Mot de passe vérifié');
+        // Mot de passe vérifié
   
   // Marquer le joueur comme récemment vérifié pour éviter la boucle
   if (passwordVerificationPlayer.value) {
     recentlyVerifiedPlayer.value = passwordVerificationPlayer.value.id;
-    // eslint-disable-next-line no-console
-    console.debug('Joueur marqué comme récemment vérifié');
+    // Joueur marqué comme récemment vérifié
   }
   
   // Procéder à l'action de disponibilité en attente
   if (pendingAvailabilityAction.value) {
     const { playerName, eventId } = pendingAvailabilityAction.value;
-    // eslint-disable-next-line no-console
-    console.debug('Exécution de l\'action en attente');
+    // Exécution de l'action en attente
     
     // Procéder au toggle de disponibilité
     await toggleAvailability(playerName, eventId);
@@ -4388,8 +4328,7 @@ async function handlePasswordVerified(verificationData) {
     // Réinitialiser l'action en attente
     pendingAvailabilityAction.value = null;
   } else {
-    // eslint-disable-next-line no-console
-    console.debug('Aucune action en attente trouvée');
+    // Aucune action en attente trouvée
   }
   
   // Fermer la modal de vérification
