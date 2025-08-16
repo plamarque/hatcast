@@ -66,12 +66,12 @@
             <span v-else>Activer les notifications</span>
           </button>
           
-          <!-- Bouton secondaire : Fermer -->
+          <!-- Bouton secondaire : Pas Maintenant -->
           <button
             @click="$emit('close')"
             class="flex-1 px-6 py-3 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-all duration-300 font-medium"
           >
-            Fermer
+            Pas Maintenant
           </button>
         </div>
         
