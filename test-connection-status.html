@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test État Connexion</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background: #22c55e; }
+        .disconnected { background: #ef4444; }
+        .info { background: #3b82f6; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test État Connexion Firebase</h1>
+    
+    <div id="status" class="status disconnected">
+        Chargement...
+    </div>
+    
+    <div id="details" class="status info">
+        Détails en cours de chargement...
+    </div>
+    
+    <script type="module">
+        // Importer Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js'
+        
+        // Configuration Firebase (à adapter selon votre config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            authDomain: "hatcast-XXXXX.firebaseapp.com",
+            projectId: "hatcast-XXXXX",
+            storageBucket: "hatcast-XXXXX.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        }
+        
+        // Initialiser Firebase
+        const app = initializeApp(firebaseConfig)
+        const auth = getAuth(app)
+        
+        const statusDiv = document.getElementById('status')
+        const detailsDiv = document.getElementById('details')
+        
+        // Écouter les changements d'état d'authentification
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                statusDiv.className = 'status connected'
+                statusDiv.textContent = '✅ Connecté'
+                
+                detailsDiv.innerHTML = `
+                    <strong>Utilisateur connecté :</strong><br>
+                    Email: ${user.email}<br>
+                    UID: ${user.uid}<br>
+                    Email vérifié: ${user.emailVerified}<br>
+                    Date de connexion: ${new Date(user.metadata.lastSignInTime).toLocaleString()}
+                `
+            } else {
+                statusDiv.className = 'status disconnected'
+                statusDiv.textContent = '❌ Non connecté'
+                
+                detailsDiv.innerHTML = `
+                    <strong>Aucun utilisateur connecté</strong><br>
+                    Vous devez vous connecter pour tester l'activation directe des notifications.
+                `
+            }
+        })
+        
+        // Test de comparaison d'email
+        const testEmail = 'patrice.lamarque@gmail.com'
+        console.log('🧪 Test de comparaison d\'email:', testEmail)
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const isSameEmail = user.email === testEmail
+                console.log('📧 Comparaison email:', {
+                    userEmail: user.email,
+                    testEmail: testEmail,
+                    isSame: isSameEmail
+                })
+            }
+        })
+    </script>
+</body>
+</html>

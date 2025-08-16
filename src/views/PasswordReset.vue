@@ -31,10 +31,25 @@
       </div>
 
       <!-- Formulaire de réinitialisation -->
-      <div v-else-if="email" class="space-y-6">
+      <div v-else-if="oobCode" class="space-y-6">
         <div class="text-center">
-          <p class="text-gray-300">Email : <span class="font-semibold text-white">{{ email }}</span></p>
+          <p class="text-gray-300 mb-4">Saisis ton email pour continuer</p>
         </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Ton email</label>
+            <input
+              v-model="email"
+              type="email"
+              class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-white placeholder-gray-400"
+              placeholder="ton@email.com"
+              @keydown.enter="resetPassword"
+            >
+          </div>
+        </div>
+
+        <div class="space-y-4">
 
         <div class="space-y-4">
           <div>
@@ -86,7 +101,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { confirmPasswordReset } from 'firebase/auth'
+import { confirmPasswordReset, signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import logger from '../services/logger.js'
 
@@ -105,7 +120,8 @@ const resetError = ref('')
 const resetSuccess = ref('')
 
 const canResetPassword = computed(() => {
-  return newPassword.value && 
+  return email.value && 
+         newPassword.value && 
          confirmPassword.value && 
          newPassword.value === confirmPassword.value &&
          newPassword.value.length >= 6
@@ -126,9 +142,9 @@ onMounted(async () => {
 
     oobCode.value = token
     
-    // Pour l'instant, on va utiliser une approche simplifiée
-    // En production, on pourrait récupérer l'email depuis le token
-    email.value = 'patrice.lamarque+ron@gmail.com' // Temporaire
+    // TODO: Récupérer l'email depuis le token Firebase
+    // Pour l'instant, on va demander à l'utilisateur de saisir son email
+    // email.value = 'patrice.lamarque+ron@gmail.com' // Temporaire
     
     loading.value = false
     
@@ -155,12 +171,28 @@ async function resetPassword() {
     
     // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !
     logger.info('Réinitialisation terminée avec Firebase Auth')
-    resetSuccess.value = 'Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
     
-    // Rediriger vers l'accueil après 3 secondes
-    setTimeout(() => {
-      goHome()
-    }, 3000)
+    // Login automatique avec le nouveau mot de passe
+    try {
+      logger.debug('Tentative de connexion automatique...')
+      const userCredential = await signInWithEmailAndPassword(auth, email.value, newPassword.value)
+      logger.info('Connexion automatique réussie après reset', { uid: userCredential.user.uid })
+      
+      resetSuccess.value = 'Mot de passe réinitialisé et connexion réussie ! Redirection...'
+      
+      // Rediriger vers l'accueil après 2 secondes
+      setTimeout(() => {
+        goHome()
+      }, 2000)
+    } catch (loginError) {
+      logger.error('Erreur lors de la connexion automatique', loginError)
+      resetSuccess.value = 'Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.'
+      
+      // Rediriger vers l'accueil après 3 secondes
+      setTimeout(() => {
+        goHome()
+      }, 3000)
+    }
   } catch (err) {
     logger.error('Erreur lors de la réinitialisation', err)
     

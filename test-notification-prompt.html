@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Modal Incitation Notifications</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test Modal Incitation Notifications</h1>
+        <p>Ce fichier permet de tester l'affichage de la modal d'incitation aux notifications.</p>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h3 class="font-semibold text-blue-800 mb-2">🎯 Cas d'usage ciblé :</h3>
+            <p class="text-blue-700 text-sm">
+                <strong>Utilisateur non connecté</strong> qui arrive via un lien direct vers le détail d'un événement 
+                (partagé par email/message) et qui clique sur une cellule de disponibilité dans la modal de détails.
+            </p>
+        </div>
+        
+        <button class="test-button" onclick="testModal()">
+            🔔 Tester la Modal
+        </button>
+        
+        <div id="status" class="status">
+            Cliquez sur le bouton pour tester la modal
+        </div>
+    </div>
+
+    <script>
+        function testModal() {
+            const status = document.getElementById('status');
+            status.innerHTML = `
+                <strong>✅ Test lancé !</strong><br>
+                La modal devrait s'afficher dans l'application principale.<br>
+                <br>
+                <em>Note : Cette modal ne s'affiche que dans le contexte de l'application HatCast, 
+                lorsqu'un utilisateur non connecté clique sur une cellule de disponibilité.</em>
+            `;
+            
+                    // Simuler un clic sur une cellule de disponibilité
+        console.log('🧪 Test de la modal d\'incitation aux notifications');
+        console.log('📱 Ouvrez l\'application HatCast et suivez ces étapes :');
+        console.log('   1. Assurez-vous de ne pas être connecté');
+        console.log('   2. Ouvrez la modal de détails d\'un événement');
+        console.log('   3. Cliquez sur une cellule de disponibilité dans la modal');
+        console.log('   4. La modal d\'incitation aux notifications devrait s\'afficher');
+        }
+        
+        // Afficher des informations de debug
+        console.log('🧪 Fichier de test chargé');
+        console.log('📋 Composants créés :');
+        console.log('  - NotificationPromptModal.vue');
+        console.log('  - notificationActivation.js');
+        console.log('  - Templates d\'email mis à jour');
+        console.log('  - Intégration dans GridBoard.vue');
+        console.log('  - Support dans MagicLink.vue');
+    </script>
+</body>
+</html>

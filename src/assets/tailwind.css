@@ -45,6 +45,18 @@
 .z-50 {
   z-index: 50;
 }
+.z-80 {
+  z-index: 80;
+}
+.z-100 {
+  z-index: 100;
+}
+.z-150 {
+  z-index: 150;
+}
+.z-200 {
+  z-index: 200;
+}
 .z-\[60\] {
   z-index: 60;
 }
@@ -93,6 +105,9 @@
 .z-\[200\] {
   z-index: 200;
 }
+.z-\[300\] {
+  z-index: 300;
+}
 .z-\[400\] {
   z-index: 400;
 }
@@ -125,6 +140,9 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+.\!inline {
+  display: inline !important;
 }
 .block {
   display: block;

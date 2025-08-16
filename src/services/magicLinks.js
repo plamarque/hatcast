@@ -20,14 +20,20 @@ function randomToken(length = 32) {
   return token
 }
 
-export async function createMagicLink({ seasonId, playerId, eventId, action }) {
+export async function createMagicLink({ seasonId, playerId, eventId, action, slug }) {
   const id = buildId({ seasonId, playerId, eventId, action })
   const token = randomToken(40)
   const ref = doc(db, COLLECTION, id)
   const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
   await setDoc(ref, { seasonId, playerId, eventId, token, action, expiresAt })
   const base = window.location.origin + '/'
-  const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+  let url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+  
+  // Ajouter le slug si fourni
+  if (slug) {
+    url += `&slug=${encodeURIComponent(slug)}`
+  }
+  
   return { id, token, url }
 }
 

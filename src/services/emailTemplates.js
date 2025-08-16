@@ -86,3 +86,53 @@ Tu es sélectionné(e) pour ${eventTitle} le ${eventDate}!
 Un imprévu ?😬 
 Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la sélection du spectacle : ${eventUrl}`
 }
+
+/**
+ * Template pour l'activation des notifications
+ */
+export function buildNotificationActivationTemplate({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
+  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  return `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting},</p>
+      <p>🔔 <strong>Active tes notifications pour ne rien rater !</strong></p>
+      <p>Tu veux être informé(e) en temps réel de <strong>tous tes événements</strong> de la saison <strong>${seasonTitle}</strong> ?</p>
+      <p>🎯 <em>Clique sur le bouton ci-dessous pour activer tes notifications et recevoir des alertes pour tes événements !</em></p>
+      <p style="margin-top: 16px; text-align: center;">
+        <a href="${activationUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #8b5cf6, #ec4899);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(139, 92, 246, 0.3);">🔔 Activer mes notifications</a>
+      </p>
+      <p style="margin-top: 16px; color:#6b7280; font-size: 14px;">
+        <em>En activant tes notifications, tu recevras des alertes pour :</em><br>
+        • Les demandes de disponibilité<br>
+        • Les sélections de joueurs<br>
+        • Les changements d'horaires<br>
+        • Les annonces importantes
+      </p>
+      <p style="margin-top: 16px; color:#6b7280;">Détails de l'événement : <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;">${eventUrl}</a></p>
+    </div>
+  `
+}
+
+/**
+ * Version texte simple du template d'activation des notifications
+ */
+export function buildNotificationActivationTextTemplate({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
+  const greeting = playerName ? `${playerName}` : 'Hello'
+  return `${greeting},
+
+🔔 Active tes notifications pour ne rien rater !
+
+Tu veux être informé(e) en temps réel de tous tes événements de la saison ${seasonTitle} ?
+
+🎯 Clique sur le lien ci-dessous pour activer tes notifications et recevoir des alertes pour tes événements !
+
+🔔 Activer mes notifications : ${activationUrl}
+
+En activant tes notifications, tu recevras des alertes pour :
+• Les demandes de disponibilité
+• Les sélections de joueurs  
+• Les changements d'horaires
+• Les annonces importantes
+
+Détails de l'événement : ${eventUrl}`
+}

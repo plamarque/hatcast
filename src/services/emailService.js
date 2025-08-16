@@ -4,7 +4,7 @@ import { db } from './firebase.js'
 import logger from './logger.js'
 import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore'
 import { queuePushMessage } from './pushService'
-import { buildAvailabilityEmailTemplate } from './emailTemplates.js'
+import { buildAvailabilityEmailTemplate, buildNotificationActivationTemplate } from './emailTemplates.js'
 
 // Configuration centralisée de l'expéditeur
 const DEFAULT_FROM_EMAIL = 'HatCast <impropick@gmail.com>'
@@ -472,4 +472,49 @@ function formatDateFull(dateValue) {
   if (!dateValue) return ''
   const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue.toDate?.() || dateValue
   return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+/**
+ * Envoie un email d'activation des notifications
+ */
+export async function queueNotificationActivationEmail({
+  toEmail,
+  playerName,
+  eventTitle,
+  eventUrl,
+  activationUrl,
+  fromEmail = undefined
+}) {
+  const html = buildNotificationActivationTemplate({
+    playerName,
+    eventTitle,
+    eventUrl,
+    activationUrl
+  })
+
+  const subject = `🔔 Active tes notifications pour ${eventTitle}`
+
+  const docData = {
+    to: toEmail,
+    message: {
+      subject,
+      html
+    },
+    createdAt: serverTimestamp(),
+    meta: { reason: 'notification_activation', eventTitle, playerName }
+  }
+  
+  // Configurer l'expéditeur
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
+
+  try {
+    await addDoc(collection(db, 'mail'), docData)
+    logger.info('Email d\'activation des notifications ajouté à la queue', { toEmail, playerName })
+    return { success: true }
+  } catch (error) {
+    logger.error('Erreur lors de l\'ajout de l\'email d\'activation à la queue', error)
+    throw error
+  }
 }

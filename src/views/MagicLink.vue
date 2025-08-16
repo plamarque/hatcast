@@ -121,6 +121,46 @@ onMounted(async () => {
       return
     }
 
+    if (action === 'activate_notifications') {
+      // Activation des notifications pour un utilisateur non connecté
+      try {
+        const { processNotificationActivation } = await import('../services/notificationActivation.js')
+        const result = await processNotificationActivation(token)
+        
+        if (result.success) {
+          status.value = 'ok'
+          title.value = 'Notifications activées !'
+          
+          // Message personnalisé selon si un compte a été créé
+          if (result.accountStatus?.created) {
+            message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Un compte a été créé avec ton email et tu recevras un email pour définir ton mot de passe.`
+          } else {
+            message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Tu recevras des alertes pour tes événements.`
+          }
+          
+          // Ajouter une proposition de création de mot de passe
+          message.value += `\n\n💡 Conseil : Pour une meilleure expérience, tu peux créer un mot de passe pour ton compte et te connecter directement à l'avenir.`
+          
+          // Redirection immédiate vers la saison pour afficher la modale de succès
+          if (slug && eventId) {
+            router.push(`/season/${slug}/event/${eventId}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
+          } else if (slug) {
+            router.push(`/season/${slug}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
+          } else {
+            router.push('/seasons')
+          }
+        } else {
+          throw new Error('Échec de l\'activation des notifications')
+        }
+      } catch (error) {
+        logger.error('Erreur lors de l\'activation des notifications', error)
+        status.value = 'error'
+        title.value = 'Erreur d\'activation'
+        message.value = 'Impossible d\'activer tes notifications. Veuillez réessayer.'
+      }
+      return
+    }
+
     // Récupérer le nom du joueur pour écrire dans la collection availability (clé = name)
     const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
     const playerSnap = await getDoc(playerRef)

@@ -1245,6 +1245,28 @@
     @manage-player="onManageAccountPlayer"
   />
 
+  <!-- Modal d'incitation aux notifications -->
+  <NotificationPromptModal
+    :show="showNotificationPrompt"
+    :player-name="notificationPromptData?.playerName || ''"
+    :event-title="notificationPromptData?.eventTitle || ''"
+    :season-id="seasonId"
+    :season-slug="seasonSlug"
+    :event-id="notificationPromptData?.eventId || ''"
+    @close="showNotificationPrompt = false"
+    @success="handleNotificationPromptSuccess"
+  />
+  
+  <!-- Modale de succès des notifications -->
+  <NotificationSuccessModal
+    :show="showNotificationSuccess"
+    :player-name="notificationSuccessData?.playerName || ''"
+    :email="notificationSuccessData?.email || ''"
+    :season-slug="seasonSlug"
+    :event-id="notificationSuccessData?.eventId || null"
+    @close="showNotificationSuccess = false"
+  />
+
   <!-- Auth/Association pour ouvrir Mon compte -->
   <AccountClaimModal
     :show="showAccountAuth"
@@ -1471,10 +1493,12 @@ import { createMagicLink } from '../services/magicLinks.js'
 import { sendDeselectionEmailsForEvent } from '../services/emailService.js'
 import { sendAvailabilityNotificationsForEvent, sendSelectionNotificationsForEvent } from '../services/notificationsService.js'
 import { addToCalendar } from '../services/calendarService.js'
+import { shouldPromptForNotifications } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
+import logger from '../services/logger.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import AppHelpModal from './AppHelpModal.vue'
@@ -1493,6 +1517,8 @@ import AccountLoginModal from './AccountLoginModal.vue'
 import SeasonHeader from './SeasonHeader.vue'
 import NotificationsModal from './NotificationsModal.vue'
 import PlayersModal from './PlayersModal.vue'
+import NotificationPromptModal from './NotificationPromptModal.vue'
+import NotificationSuccessModal from './NotificationSuccessModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1585,6 +1611,14 @@ const eventMoreActionsMobileStyle = ref({ position: 'fixed', top: '0px', left: '
 // Variables pour les menus d'agenda
 const openCalendarMenuId = ref(null)
 const showCalendarMenuDetails = ref(false)
+
+// Variables pour l'incitation aux notifications
+const showNotificationPrompt = ref(false)
+const notificationPromptData = ref(null)
+
+// État pour la modale de succès des notifications
+const showNotificationSuccess = ref(false)
+const notificationSuccessData = ref(null)
 
 // Fonctions pour gérer le dropdown des actions d'événements
 function updateEventMoreActionsPosition() {
@@ -2818,6 +2852,19 @@ onMounted(async () => {
     console.debug('players (deduplicated)')
     // eslint-disable-next-line no-console
     console.debug('availability loaded')
+    
+    // Gérer le paramètre notificationSuccess
+    if (route.query.notificationSuccess === '1') {
+      notificationSuccessData.value = {
+        email: decodeURIComponent(route.query.email || ''),
+        playerName: decodeURIComponent(route.query.playerName || ''),
+        eventId: route.query.eventId || null
+      }
+      showNotificationSuccess.value = true
+      
+      // Nettoyer l'URL
+      router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
+    }
 
     // init scroll hints
     await nextTick()
@@ -3067,6 +3114,8 @@ async function toggleAvailability(playerName, eventId) {
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
+
+
   
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
@@ -4130,6 +4179,25 @@ async function handleAvailabilityToggle(playerName, eventId) {
   // eslint-disable-next-line no-console
   console.debug('Joueur trouvé');
   
+  // Vérifier si l'utilisateur est connecté AVANT de vérifier la protection
+  if (!auth.currentUser?.email) {
+    // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
+    if (shouldPromptForNotifications()) {
+      // Afficher la modal d'incitation aux notifications
+      notificationPromptData.value = {
+        playerName,
+        eventTitle: evt?.title || 'cet événement',
+        eventId
+      }
+      showNotificationPrompt.value = true
+      return
+    } else {
+      // Ouvrir la modal de connexion classique
+      showAccountLogin.value = true
+      return
+    }
+  }
+  
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   // eslint-disable-next-line no-console
@@ -4833,6 +4901,28 @@ function clearEventFocus() {
     el.classList.remove('focused-event-column-start', 'focused-event-column-end')
   })
 }
+
+// Fonction pour gérer le succès de l'incitation aux notifications
+function handleNotificationPromptSuccess(data) {
+  showNotificationPrompt.value = false
+  notificationPromptData.value = null
+  
+  // Afficher un message de succès adapté au type d'activation
+  showSuccessMessage.value = true
+  if (data.directActivation) {
+    successMessage.value = `Notifications activées directement pour ${data.playerName} !`
+  } else {
+    successMessage.value = `Email envoyé à ${data.email} pour activer les notifications !`
+  }
+  
+  setTimeout(() => {
+    showSuccessMessage.value = false
+  }, 4000)
+  
+  logger.info('Activation des notifications terminée avec succès', data)
+}
+
+
 
 // end of script setup
 </script>
