@@ -197,7 +197,7 @@ function testPwaUpdate() {
   window.dispatchEvent(updateEvent)
   
   // Afficher un message de confirmation
-  alert('🧪 Test de mise à jour PWA déclenché !\n\nVérifiez que la modal de mise à jour apparaît dans l\'interface principale.')
+  alert('🧪 Test de mise à jour PWA déclenché !\n\nVérifiez que la notification toast apparaît en bas à droite de l\'interface.')
 }
 
 async function enablePushOnThisDevice() {

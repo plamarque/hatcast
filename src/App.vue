@@ -53,87 +53,95 @@
     </div>
   </Transition>
   
-  <!-- Bouton de mise à jour PWA - Design centré et élégant -->
+  <!-- Barre de mise à jour PWA - Réutilise le design de la barre d'installation -->
   <Transition
-    name="update-banner"
+    name="install-banner"
     appear
   >
     <div
       v-if="updateAvailable && !refreshing"
-      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
       @click="updateApp"
     >
-      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mx-4 max-w-sm w-full transform hover:scale-105 transition-all duration-300 cursor-pointer">
-        <!-- Icône de mise à jour -->
-        <div class="flex justify-center mb-4">
-          <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <!-- Logo et contenu principal -->
+        <div class="flex items-center space-x-3 flex-1">
+          <img
+            src="/icons/icon-48x48.png"
+            alt="HatCast"
+            class="w-8 h-8 rounded-lg"
+          />
+          <div class="flex-1">
+            <div class="flex items-center space-x-2">
+              <span class="font-semibold text-lg text-white">HatCast</span>
+            </div>
+            <p class="text-sm text-gray-300 leading-tight">
+              Une nouvelle version est disponible. Mettez à jour pour profiter des dernières améliorations.
+            </p>
           </div>
         </div>
-        
-        <!-- Contenu textuel -->
-        <div class="text-center mb-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">
-            🎉 Nouvelle version disponible !
-          </h3>
-          <p class="text-gray-600 leading-relaxed">
-            HatCast a été amélioré avec de nouvelles fonctionnalités et corrections. Mettez à jour maintenant pour profiter des dernières améliorations.
-          </p>
-        </div>
-        
-        <!-- Bouton d'action -->
-        <div class="flex justify-center">
+
+        <!-- Bouton de mise à jour -->
+        <div class="flex items-center space-x-3">
           <button
-            class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center space-x-2"
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             @click.stop="updateApp"
           >
+            Mettre à jour
+          </button>
+          
+          <!-- Bouton de fermeture -->
+          <button
+            class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
+            @click.stop="updateAvailable = false"
+            aria-label="Fermer la barre de mise à jour"
+          >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            <span>Mettre à jour maintenant</span>
           </button>
         </div>
-        
-        <!-- Indication subtile -->
-        <p class="text-center text-xs text-gray-400 mt-4">
-          Cliquez n'importe où pour fermer
-        </p>
       </div>
     </div>
   </Transition>
   
-  <!-- Indicateur de mise à jour en cours - Design centré -->
+  <!-- Barre de progression de mise à jour - Réutilise le design de la barre d'installation -->
   <Transition
-    name="update-progress"
+    name="install-banner"
     appear
   >
     <div
       v-if="refreshing"
-      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      class="fixed top-0 left-0 right-0 z-[99999] bg-black text-white shadow-lg border-b border-gray-800"
     >
-      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 mx-4 max-w-sm w-full text-center">
-        <!-- Icône animée -->
-        <div class="flex justify-center mb-6">
-          <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-            <svg class="w-10 h-10 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+      <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <!-- Logo et contenu principal -->
+        <div class="flex items-center space-x-3 flex-1">
+          <img
+            src="/icons/icon-48x48.png"
+            alt="HatCast"
+            class="w-8 h-8 rounded-lg"
+          />
+          <div class="flex-1">
+            <div class="flex items-center space-x-2">
+              <span class="font-semibold text-lg text-white">HatCast</span>
+            </div>
+            <p class="text-sm text-gray-300 leading-tight">
+              Mise à jour en cours... Veuillez patienter
+            </p>
           </div>
         </div>
-        
-        <!-- Texte de progression -->
-        <h3 class="text-xl font-bold text-gray-900 mb-3">
-          Mise à jour en cours...
-        </h3>
-        <p class="text-gray-600">
-          Veuillez patienter pendant qu'HatCast se met à jour
-        </p>
-        
-        <!-- Barre de progression -->
-        <div class="mt-6 bg-gray-200 rounded-full h-2 overflow-hidden">
-          <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full animate-pulse"></div>
+
+        <!-- Indicateur de progression -->
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-2">
+            <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg class="w-3 h-3 text-white animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <span class="text-sm text-gray-300">Mise à jour...</span>
+          </div>
         </div>
       </div>
     </div>
