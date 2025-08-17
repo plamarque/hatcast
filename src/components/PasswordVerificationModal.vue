@@ -1,118 +1,122 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4" @click="closeModal">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-2xl">🔐</span>
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[110] p-0 md:p-4" @click="closeModal">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh] md:max-h-none" @click.stop>
+      <!-- En-tête condensé -->
+      <div class="text-center p-4 md:p-6 pb-3 md:pb-4 border-b border-white/10">
+        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full mx-auto mb-2 md:mb-3 flex items-center justify-center">
+          <span class="text-xl md:text-2xl">🔐</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-2">Vérification requise</h2>
-        <p class="text-lg text-gray-300">{{ player?.name }}</p>
-        <p class="text-sm text-gray-400 mt-2">Ce joueur est protégé par mot de passe</p>
+        <h2 class="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">Vérification requise</h2>
+        <p class="text-base md:text-lg text-gray-300">{{ player?.name }}</p>
+        <p class="text-xs md:text-sm text-gray-400 mt-1">Ce joueur est protégé par mot de passe</p>
       </div>
 
-      <!-- Formulaire de vérification -->
-      <div class="mb-6">
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
-            <input
-              v-model="password"
-              type="password"
-              class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-              placeholder="Entrez le mot de passe"
-              @keydown.enter="verifyPassword"
-              ref="passwordInput"
-            >
+      <!-- Contenu scrollable -->
+      <div class="px-4 pt-3 pb-16 md:px-6 md:pt-4 md:pb-20 overflow-y-auto">
+        <!-- Formulaire de vérification -->
+        <div class="mb-4 md:mb-6">
+          <div class="space-y-3 md:space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
+              <input
+                v-model="password"
+                type="password"
+                class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
+                placeholder="Entrez le mot de passe"
+                @keydown.enter="verifyPassword"
+                ref="passwordInput"
+              >
+            </div>
+            <div class="flex items-center gap-2 text-gray-300 text-sm">
+              <input id="staySignedIn" type="checkbox" v-model="staySignedIn" class="w-4 h-4">
+              <label for="staySignedIn">Rester connecté sur cet appareil</label>
+            </div>
           </div>
-          <div class="flex items-center gap-2 text-gray-300 text-sm">
-            <input id="staySignedIn" type="checkbox" v-model="staySignedIn" class="w-4 h-4">
-            <label for="staySignedIn">Rester connecté sur cet appareil</label>
-          </div>
-          
-
         </div>
-        
+
+        <!-- Mot de passe oublié -->
+        <div class="mb-4 md:mb-6 text-center">
+          <button
+            @click="showForgotPassword = true"
+            class="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+          >
+            Mot de passe oublié ?
+          </button>
+        </div>
+
+        <!-- Messages d'erreur -->
+        <div v-if="error" class="mb-4 p-3 md:p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+          <div class="text-red-300 text-sm">{{ error }}</div>
+        </div>
+      </div>
+
+      <!-- Pied (sticky) -->
+      <div class="sticky bottom-0 w-full p-3 md:p-4 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 pb-[env(safe-area-inset-bottom)]">
+        <button
+          @click="closeModal"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 text-sm md:text-base whitespace-nowrap"
+        >
+          Annuler
+        </button>
         <button
           @click="verifyPassword"
           :disabled="!password || loading"
-          class="w-full mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 flex-1 text-sm md:text-base whitespace-nowrap"
         >
           <span v-if="loading" class="animate-spin">⏳</span>
           <span v-else>🔓</span>
           <span>{{ loading ? 'Vérification...' : 'Vérifier' }}</span>
         </button>
       </div>
-
-      <!-- Mot de passe oublié -->
-      <div class="mb-6 text-center">
-        <button
-          @click="showForgotPassword = true"
-          class="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
-        >
-          Mot de passe oublié ?
-        </button>
-      </div>
-
-      <!-- Messages d'erreur -->
-      <div v-if="error" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-        <div class="text-red-300 text-sm">{{ error }}</div>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex justify-center">
-        <button
-          @click="closeModal"
-          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
-        >
-          Annuler
-        </button>
-      </div>
     </div>
   </div>
 
   <!-- Modal mot de passe oublié -->
-  <div v-if="showForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4" @click="showForgotPassword = false">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-2xl">📧</span>
+  <div v-if="showForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[120] p-0 md:p-4" @click="showForgotPassword = false">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh] md:max-h-none" @click.stop>
+      <!-- En-tête condensé -->
+      <div class="text-center p-4 md:p-6 pb-3 md:pb-4 border-b border-white/10">
+        <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-2 md:mb-3 flex items-center justify-center">
+          <span class="text-xl md:text-2xl">📧</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-2">Mot de passe oublié</h2>
-        <p class="text-lg text-gray-300">{{ player?.name }}</p>
+        <h2 class="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">Mot de passe oublié</h2>
+        <p class="text-base md:text-lg text-gray-300">{{ player?.name }}</p>
       </div>
 
-      <div class="mb-6">
-        <p class="text-sm text-gray-300 mb-4">
-          Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
-        </p>
-        
+      <!-- Contenu scrollable -->
+      <div class="px-4 pt-3 pb-16 md:px-6 md:pt-4 md:pb-20 overflow-y-auto">
+        <div class="mb-4 md:mb-6">
+          <p class="text-sm text-gray-300 mb-4">
+            Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
+          </p>
+        </div>
+
+        <!-- Messages -->
+        <div v-if="forgotPasswordError" class="mb-4 p-3 md:p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+          <div class="text-red-300 text-sm">{{ forgotPasswordError }}</div>
+        </div>
+
+        <div v-if="forgotPasswordSuccess" class="mb-4 p-3 md:p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+          <div class="text-green-300 text-sm">{{ forgotPasswordSuccess }}</div>
+        </div>
+      </div>
+
+      <!-- Pied (sticky) -->
+      <div class="sticky bottom-0 w-full p-3 md:p-4 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 pb-[env(safe-area-inset-bottom)]">
+        <button
+          @click="showForgotPassword = false"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 text-sm md:text-base whitespace-nowrap"
+        >
+          Fermer
+        </button>
         <button
           @click="sendResetEmail"
           :disabled="loading"
-          class="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 flex-1 text-sm md:text-base whitespace-nowrap"
         >
           <span v-if="loading" class="animate-spin">⏳</span>
           <span v-else>📧</span>
           <span>{{ loading ? 'Envoi...' : 'Envoyer l\'email' }}</span>
-        </button>
-      </div>
-
-      <!-- Messages -->
-      <div v-if="forgotPasswordError" class="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-        <div class="text-red-300 text-sm">{{ forgotPasswordError }}</div>
-      </div>
-
-      <div v-if="forgotPasswordSuccess" class="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
-        <div class="text-green-300 text-sm">{{ forgotPasswordSuccess }}</div>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex justify-center">
-        <button
-          @click="showForgotPassword = false"
-          class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
-        >
-          Fermer
         </button>
       </div>
     </div>
