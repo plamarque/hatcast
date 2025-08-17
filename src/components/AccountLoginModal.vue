@@ -11,7 +11,6 @@
       </div>
 
       <div class="space-y-4">
-        <AccountBenefitsHint />
         <div>
           <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
           <input v-model="email" type="email" class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400" placeholder="votre@email.com">
@@ -38,6 +37,21 @@
           </button>
           <button @click="$emit('close')" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
         </div>
+        
+        <!-- Séparateur -->
+        <div class="relative my-6">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-600"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-gray-800 text-gray-400">ou</span>
+          </div>
+        </div>
+        
+        <!-- Bouton de création de compte -->
+        <button @click="openAccountCreation" class="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-medium">
+          🚀 Créer un compte
+        </button>
       </div>
     </div>
   </div>
@@ -47,13 +61,12 @@
 import { ref, computed } from 'vue'
 import { signInPlayer, resetPlayerPassword } from '../services/firebase.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
-import AccountBenefitsHint from './AccountBenefitsHint.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['close', 'success'])
+const emit = defineEmits(['close', 'success', 'open-account-creation'])
 
 const email = ref('')
 const password = ref('')
@@ -85,21 +98,26 @@ async function login() {
 
 async function forgotPassword() {
   if (!email.value || !email.value.includes('@')) {
-    error.value = 'Saisissez votre email pour recevoir un lien de réinitialisation'
-    setTimeout(() => { error.value = '' }, 2500)
+    error.value = 'Veuillez d\'abord saisir votre adresse email'
     return
   }
+  
   loading.value = true
   error.value = ''
   success.value = ''
+  
   try {
     await resetPlayerPassword(email.value.trim())
-    success.value = 'Email de réinitialisation envoyé'
+    success.value = 'Un email de réinitialisation a été envoyé à votre adresse email'
   } catch (e) {
     error.value = 'Impossible d\'envoyer l\'email de réinitialisation'
   } finally {
     loading.value = false
   }
+}
+
+function openAccountCreation() {
+  emit('open-account-creation')
 }
 </script>
 

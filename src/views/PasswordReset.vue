@@ -174,7 +174,13 @@ async function resetPassword() {
       const userCredential = await signInWithEmailAndPassword(auth, email.value, newPassword.value)
       logger.info('Connexion automatique réussie après reset', { uid: userCredential.user.uid })
       
-      resetSuccess.value = 'Mot de passe réinitialisé et connexion réussie ! Redirection...'
+      // Message adapté au contexte (création de compte ou réinitialisation)
+      const pendingAccountCreation = localStorage.getItem('pendingAccountCreationNavigation')
+      if (pendingAccountCreation) {
+        resetSuccess.value = 'Compte créé avec succès ! Redirection...'
+      } else {
+        resetSuccess.value = 'Mot de passe réinitialisé et connexion réussie ! Redirection...'
+      }
       
       // Rediriger vers l'accueil après 2 secondes
       setTimeout(() => {
@@ -207,7 +213,15 @@ async function resetPassword() {
 async function goHome() {
   try {
     // 1. Essayer de récupérer la navigation depuis localStorage (priorité haute)
-    const pendingNavigation = localStorage.getItem('pendingPasswordResetNavigation')
+    // Vérifier d'abord la création de compte, puis la réinitialisation de mot de passe
+    let pendingNavigation = localStorage.getItem('pendingAccountCreationNavigation')
+    let isAccountCreation = true
+    
+    if (!pendingNavigation) {
+      pendingNavigation = localStorage.getItem('pendingPasswordResetNavigation')
+      isAccountCreation = false
+    }
+    
     if (pendingNavigation) {
       try {
         const navigationData = JSON.parse(pendingNavigation)
@@ -219,7 +233,15 @@ async function goHome() {
         
         if (isRecent && isCorrectEmail && isValidRedirectPath(lastVisitedPage)) {
           logger.info('✅ Redirection vers la page sauvegardée:', lastVisitedPage)
-          localStorage.removeItem('pendingPasswordResetNavigation') // Nettoyer
+          
+          // Nettoyer le localStorage approprié
+          if (isAccountCreation) {
+            localStorage.removeItem('pendingAccountCreationNavigation')
+            logger.info('🎉 Compte créé avec succès, redirection vers la page d\'origine')
+          } else {
+            localStorage.removeItem('pendingPasswordResetNavigation')
+            logger.info('🔑 Mot de passe réinitialisé, redirection vers la page d\'origine')
+          }
           
           // Si le contexte indique un retour vers "Mon Compte", restaurer l'état complet
           if (navigationData.returnToAccountMenu) {

@@ -70,7 +70,7 @@ const props = defineProps({
   isScrolled: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation'])
 
 // État de connexion géré localement et de manière cohérente
 const currentUser = ref(null)
@@ -123,6 +123,10 @@ function openAccountMenu() {
 
 function openLogin() {
   emit('open-login')
+}
+
+function openAccountCreation() {
+  emit('open-account-creation')
 }
 
 function openHelp() {

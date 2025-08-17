@@ -69,7 +69,7 @@ const props = defineProps({
   isScrolled: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account-creation'])
 
 const route = useRoute()
 
@@ -119,5 +119,9 @@ function logout() {
 
 function openLogin() {
   emit('open-login')
+}
+
+function openAccountCreation() {
+  emit('open-account-creation')
 }
 </script>

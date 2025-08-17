@@ -9,6 +9,7 @@
           @open-players="openPlayers"
           @logout="handleLogout"
           @open-login="openAccountLogin"
+          @open-account-creation="openAccountCreation"
         />
 
     <!-- Section Hero -->
@@ -668,6 +669,14 @@
       :show="showAccountLogin"
       @close="closeAccountLogin"
       @success="onLoginSuccess"
+      @open-account-creation="showAccountCreation = true"
+    />
+
+    <!-- Modal de création de compte -->
+    <AccountCreationModal
+      :show="showAccountCreation"
+      @close="showAccountCreation = false"
+      @success="onAccountCreationSuccess"
     />
 
     <!-- Menu Mon Compte -->
@@ -700,6 +709,7 @@ import pinSessionManager from './services/pinSession.js'
 import { useRouter } from 'vue-router'
 import PinModal from './components/PinModal.vue'
 import AccountLoginModal from './components/AccountLoginModal.vue'
+import AccountCreationModal from './components/AccountCreationModal.vue'
 import AccountMenu from './components/AccountMenu.vue'
 import AppHeader from './components/AppHeader.vue'
 import NotificationsModal from './components/NotificationsModal.vue'
@@ -739,6 +749,7 @@ const pinErrorMessage = ref('')
 
 // Variables pour la gestion de compte
 const showAccountLogin = ref(false)
+const showAccountCreation = ref(false)
 const showAccountMenu = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
@@ -1459,12 +1470,22 @@ function openAccountLogin() {
   showAccountLogin.value = true
 }
 
+function openAccountCreation() {
+  showAccountCreation.value = true
+}
+
 function closeAccountLogin() {
   showAccountLogin.value = false
 }
 
 function onLoginSuccess() {
   showAccountLogin.value = false
+  // Rediriger vers la saison préférée ou scroll vers les saisons
+  handlePostLoginNavigation()
+}
+
+function onAccountCreationSuccess() {
+  showAccountCreation.value = false
   // Rediriger vers la saison préférée ou scroll vers les saisons
   handlePostLoginNavigation()
 }

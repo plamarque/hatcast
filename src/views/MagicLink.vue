@@ -65,7 +65,22 @@ onMounted(async () => {
     if (!token || !action) {
       status.value = 'error'
       title.value = 'Lien invalide'
-      message.value = 'Paramètres manquants.'
+      message.value = 'Paramètres manquants. Vérifiez que le lien est complet.'
+      return
+    }
+
+    // Validation supplémentaire pour les actions qui nécessitent des paramètres spécifiques
+    if (action === 'verify_email' && (!seasonId || !playerId)) {
+      status.value = 'error'
+      title.value = 'Lien invalide'
+      message.value = 'Lien de vérification incomplet : informations de saison ou de joueur manquantes.'
+      return
+    }
+
+    if ((action === 'yes' || action === 'no') && (!seasonId || !playerId || !eventId)) {
+      status.value = 'error'
+      title.value = 'Lien invalide'
+      message.value = 'Lien de disponibilité incomplet : informations manquantes.'
       return
     }
 
@@ -220,7 +235,19 @@ onMounted(async () => {
     logger.error('Magic link error', err)
     status.value = 'error'
     title.value = 'Erreur'
-    message.value = 'Impossible de traiter votre lien.'
+    
+    // Messages d'erreur plus spécifiques selon le type d'erreur
+    if (err.code === 'auth/invalid-action-code') {
+      message.value = 'Ce lien de vérification est invalide ou a expiré.'
+    } else if (err.code === 'auth/expired-action-code') {
+      message.value = 'Ce lien de vérification a expiré. Veuillez demander un nouveau lien.'
+    } else if (err.message && err.message.includes('seasonId')) {
+      message.value = 'Lien de vérification invalide : saison introuvable.'
+    } else if (err.message && err.message.includes('playerId')) {
+      message.value = 'Lien de vérification invalide : joueur introuvable.'
+    } else {
+      message.value = 'Impossible de traiter votre lien. Veuillez vérifier que le lien est complet et valide.'
+    }
   }
 })
 </script>

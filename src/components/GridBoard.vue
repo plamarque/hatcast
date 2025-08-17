@@ -12,6 +12,7 @@
       @logout="handleAccountLogoutDevice"
       @open-login="openAccount"
       @open-account="openAccount"
+      @open-account-creation="openAccountCreation"
     />
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
@@ -1314,6 +1315,14 @@
     :show="showAccountLogin"
     @close="showAccountLogin = false"
     @success="() => { showAccountLogin = false; showAccountMenu = true }"
+    @open-account-creation="showAccountCreation = true"
+  />
+
+  <!-- Modal de création de compte -->
+  <AccountCreationModal
+    :show="showAccountCreation"
+    @close="showAccountCreation = false"
+    @success="() => { showAccountCreation = false; showAccountMenu = true }"
   />
 
   <!-- Modal de prompt pour annoncer après création/modification -->
@@ -1554,6 +1563,7 @@ import NotificationsModal from './NotificationsModal.vue'
 import PlayersModal from './PlayersModal.vue'
 import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
+import AccountCreationModal from './AccountCreationModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1873,6 +1883,7 @@ const showHowItWorksGlobal = ref(false)
 const showAccountMenu = ref(false)
 const showAccountAuth = ref(false)
 const showAccountLogin = ref(false)
+const showAccountCreation = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
 const accountAuthPlayer = ref(null)
@@ -1951,6 +1962,10 @@ function openAccount() {
   
   const newUrl = `${currentPath}?${currentSearch.toString()}`
   router.push(newUrl)
+}
+
+function openAccountCreation() {
+  showAccountCreation.value = true
 }
 
 async function handleAccountChangePassword() {

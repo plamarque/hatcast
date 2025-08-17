@@ -85,7 +85,7 @@ const props = defineProps({
   buttonClass: { type: String, default: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
