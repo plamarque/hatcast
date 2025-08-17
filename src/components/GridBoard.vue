@@ -612,7 +612,7 @@
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
                <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                 <span class="text-blue-300">👥</span>
+                 <span class="text-blue-300 hidden md:inline">👥</span>
                  <span class="text-blue-200">{{ selectedEvent?.playerCount || 6 }} joueurs</span>
                </div>
              </div>
@@ -627,7 +627,7 @@
                    title="Ajouter à votre agenda"
                  >
                    <span>📅</span>
-                   <span>Agenda</span>
+                   <span>Ajouter à l'agenda</span>
                  </button>
                  
                  <!-- Menu déroulant d'agenda pour la modal -->

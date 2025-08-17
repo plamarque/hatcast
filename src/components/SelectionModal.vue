@@ -21,7 +21,7 @@
               
               <!-- Badge nombre de joueurs -->
               <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                <span class="text-blue-300">👥</span>
+                <span class="text-blue-300 hidden md:inline">👥</span>
                 <span class="text-blue-200">{{ event?.playerCount || 6 }} joueurs</span>
               </div>
               
@@ -31,7 +31,7 @@
                 class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
                 title="Prêt pour la sélection"
               >
-                <span class="text-blue-300 text-xs">🆕</span>
+                <span class="text-blue-300 text-xs hidden md:inline">🆕</span>
                 <span class="text-blue-200 text-xs">Nouveau</span>
               </div>
               
@@ -40,7 +40,7 @@
                 class="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center gap-1"
                 title="Sélection complète"
               >
-                <span class="text-green-300 text-xs">✅</span>
+                <span class="text-green-300 text-xs hidden md:inline">✅</span>
                 <span class="text-green-200 text-xs">Complet</span>
               </div>
               
@@ -49,7 +49,7 @@
                 class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded text-sm flex items-center gap-1"
                 title="Sélection incomplète"
               >
-                <span class="text-orange-300 text-xs">⚠️</span>
+                <span class="text-orange-300 text-xs hidden md:inline">⚠️</span>
                 <span class="text-orange-200 text-xs">À finaliser</span>
               </div>
               
@@ -58,7 +58,7 @@
                 class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded text-sm flex items-center gap-1"
                 title="Pas assez de joueurs disponibles"
               >
-                <span class="text-red-300 text-xs">❌</span>
+                <span class="text-red-300 text-xs hidden md:inline">❌</span>
                 <span class="text-red-200 text-xs">Manque</span>
               </div>
             </div>
