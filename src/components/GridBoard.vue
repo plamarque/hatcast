@@ -20,7 +20,8 @@
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
-      <div class="flex items-center justify-center h-full gap-2">
+            <div class="flex flex-col items-center justify-between h-full gap-3">
+              <!-- Bouton ajouter événement -->
               <button
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
@@ -30,6 +31,20 @@
                 <span class="hidden sm:inline">Ajouter un événement</span>
                 <span class="sm:hidden">Événement</span>
               </button>
+              
+              <!-- Icône de la saison -->
+              <div class="flex items-center justify-center p-1 relative z-[90]">
+                <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
+                  <img 
+                    :src="seasonMeta.logoUrl" 
+                    :alt="`Logo de ${seasonName}`"
+                    class="w-full h-full object-cover"
+                  >
+                </div>
+                <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
+              </div>
+              
+
             </div>
           </div>
           <!-- Event headers -->
