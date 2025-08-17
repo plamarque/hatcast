@@ -3426,8 +3426,6 @@ async function toggleAvailability(playerName, eventId) {
     return
   }
 
-
-  
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
@@ -3439,6 +3437,9 @@ async function toggleAvailability(playerName, eventId) {
     if (hasCachedPassword || hasCachedPin) {
       // Session active ou PIN de saison en cache, procéder au toggle
       await performToggleAvailability(player, eventId);
+      
+      // Pour les joueurs protégés, ne pas afficher de popup de connexion
+      return;
     } else {
       // Pas de session, demander le mot de passe
       pendingAvailabilityAction.value = { playerName, eventId };
@@ -3449,25 +3450,23 @@ async function toggleAvailability(playerName, eventId) {
   } else {
     // Joueur non protégé, procéder directement
     await performToggleAvailability(player, eventId);
-  }
-  
-  // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
-  if (!auth.currentUser?.email) {
-    // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
-    // MAIS seulement pour les joueurs NON protégés
-    if (!isProtected && shouldPromptForNotifications()) {
-      // Afficher la modal d'incitation aux notifications
-      notificationPromptData.value = {
-        playerName,
-        eventTitle: eventItem?.title || 'cet événement',
-        eventId
+    
+    // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
+    if (!auth.currentUser?.email) {
+      // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
+      if (shouldPromptForNotifications()) {
+        // Afficher la modal d'incitation aux notifications
+        notificationPromptData.value = {
+          playerName,
+          eventTitle: eventItem?.title || 'cet événement',
+          eventId
+        }
+        showNotificationPrompt.value = true
+      } else {
+        // Ouvrir la modal de connexion classique (seulement pour non protégés)
+        showAccountLogin.value = true
       }
-      showNotificationPrompt.value = true
-    } else if (!isProtected) {
-      // Ouvrir la modal de connexion classique (seulement pour non protégés)
-      showAccountLogin.value = true
     }
-    // Si joueur protégé et non connecté, ne rien afficher (attendre la vérification)
   }
 }
 
@@ -4539,8 +4538,6 @@ async function handleAvailabilityToggle(playerName, eventId) {
     return
   }
   
-      // Joueur trouvé
-  
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
@@ -4552,6 +4549,9 @@ async function handleAvailabilityToggle(playerName, eventId) {
     if (hasCachedPassword || hasCachedPin) {
       // Session active ou PIN de saison en cache, procéder au toggle
       await performToggleAvailability(player, eventId);
+      
+      // Pour les joueurs protégés, ne pas afficher de popup de connexion
+      return;
     } else {
       // Pas de session, demander le mot de passe
       pendingAvailabilityAction.value = { playerName, eventId };
@@ -4562,25 +4562,23 @@ async function handleAvailabilityToggle(playerName, eventId) {
   } else {
     // Joueur non protégé, procéder directement
     await performToggleAvailability(player, eventId);
-  }
-  
-  // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
-  if (!auth.currentUser?.email) {
-    // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
-    // MAIS seulement pour les joueurs NON protégés
-    if (!isProtected && shouldPromptForNotifications()) {
-      // Afficher la modal d'incitation aux notifications
-      notificationPromptData.value = {
-        playerName,
-        eventTitle: evt?.title || 'cet événement',
-        eventId
+    
+    // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
+    if (!auth.currentUser?.email) {
+      // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
+      if (shouldPromptForNotifications()) {
+        // Afficher la modal d'incitation aux notifications
+        notificationPromptData.value = {
+          playerName,
+          eventTitle: evt?.title || 'cet événement',
+          eventId
+        }
+        showNotificationPrompt.value = true
+      } else {
+        // Ouvrir la modal de connexion classique (seulement pour non protégés)
+        showAccountLogin.value = true
       }
-      showNotificationPrompt.value = true
-    } else if (!isProtected) {
-      // Ouvrir la modal de connexion classique (seulement pour non protégés)
-      showAccountLogin.value = true
     }
-    // Si joueur protégé et non connecté, ne rien afficher (attendre la vérification)
   }
 }
 
@@ -4606,7 +4604,10 @@ async function handlePasswordVerified(verificationData) {
     // Exécution de l'action en attente
     
     // Procéder au toggle de disponibilité
-    await performToggleAvailability(player, eventId);
+    const player = players.value.find(p => p.name === playerName);
+    if (player) {
+      await performToggleAvailability(player, eventId);
+    }
     
     // Réinitialiser l'action en attente
     pendingAvailabilityAction.value = null;
