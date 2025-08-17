@@ -4,11 +4,19 @@
 // longue période. Les données sont persistées en localStorage.
 
 const TRUST_STORAGE_KEY = 'hatcast_trusted_players'
-const TRUST_DURATION = 180 * 24 * 60 * 60 * 1000 // ~6 mois
+// Durée de confiance pour les appareils des utilisateurs
+// Configurable via variable d'environnement avec fallback par défaut
+const TRUST_DURATION = parseInt(import.meta.env.VITE_USER_SESSION_DURATION_MONTHS || '6') * 30 * 24 * 60 * 60 * 1000 // 6 mois par défaut (configurable)
 
 class PlayerPasswordSessionManager {
   constructor() {
     this.trustedMap = this.load()
+    
+    // Log de la configuration de la durée de confiance
+    console.log('🔐 Configuration des sessions utilisateur:', {
+      duration: `${TRUST_DURATION / (30 * 24 * 60 * 60 * 1000)} mois`,
+      source: 'variables d\'environnement' + (import.meta.env.VITE_USER_SESSION_DURATION_MONTHS ? ' (personnalisées)' : ' (défaut)')
+    })
   }
 
   load() {

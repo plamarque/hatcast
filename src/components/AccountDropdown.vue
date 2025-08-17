@@ -143,6 +143,19 @@ async function logout() {
   isOpen.value = false
   try {
     await auth.signOut()
+    
+    // EFFACER TOUTES LES SESSIONS LOCALES à la déconnexion
+    try {
+      const { default: pinSessionManager } = await import('../services/pinSession.js')
+      const { default: playerPasswordSessionManager } = await import('../services/playerPasswordSession.js')
+      
+      pinSessionManager.clearSession()
+      playerPasswordSessionManager.clearAllSessions()
+      console.log('Sessions locales effacées à la déconnexion')
+    } catch (sessionError) {
+      console.warn('Erreur lors de l\'effacement des sessions:', sessionError)
+    }
+    
     emit('logout')
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error)

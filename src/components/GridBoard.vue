@@ -1989,6 +1989,8 @@ async function handleAccountLogoutDevice() {
     await signOut(auth)
     closeAccountMenu()
     
+
+    
     // Nettoyer l'URL après déconnexion
     // Préserver les autres paramètres (event, player, etc.)
     const currentPath = `/season/${props.slug}`
@@ -3430,32 +3432,43 @@ async function toggleAvailability(playerName, eventId) {
   const isProtected = isPlayerProtectedInGrid(player.id);
   
   if (isProtected) {
-    // Vérifier s'il y a une session active OU si le joueur vient d'être vérifié
+    // Joueur protégé : vérifier s'il y a une session active
     const hasCachedPassword = isPlayerPasswordCached(player.id);
-    const wasRecentlyVerified = recentlyVerifiedPlayer.value === player.id;
+    const hasCachedPin = pinSessionManager.isPinCached(seasonId.value);
     
-    // Joueur protégé détecté
-    
-    if (hasCachedPassword || wasRecentlyVerified) {
-      // Session active ou joueur récemment vérifié, procéder directement
-      // Session active, procéder au toggle
-      if (wasRecentlyVerified) {
-        // Nettoyer le flag après utilisation
-        recentlyVerifiedPlayer.value = null;
-      }
-      performToggleAvailability(player, eventId);
+    if (hasCachedPassword || hasCachedPin) {
+      // Session active ou PIN de saison en cache, procéder au toggle
+      await performToggleAvailability(player, eventId);
     } else {
       // Pas de session, demander le mot de passe
-      // Utiliser la même logique que dans handleAvailabilityToggle
       pendingAvailabilityAction.value = { playerName, eventId };
       passwordVerificationPlayer.value = player;
       showPasswordVerification.value = true;
+      return; // Attendre la vérification
     }
-    return;
+  } else {
+    // Joueur non protégé, procéder directement
+    await performToggleAvailability(player, eventId);
   }
   
-  // Si non protégé, procéder directement
-  performToggleAvailability(player, eventId);
+  // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
+  if (!auth.currentUser?.email) {
+    // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
+    // MAIS seulement pour les joueurs NON protégés
+    if (!isProtected && shouldPromptForNotifications()) {
+      // Afficher la modal d'incitation aux notifications
+      notificationPromptData.value = {
+        playerName,
+        eventTitle: eventItem?.title || 'cet événement',
+        eventId
+      }
+      showNotificationPrompt.value = true
+    } else if (!isProtected) {
+      // Ouvrir la modal de connexion classique (seulement pour non protégés)
+      showAccountLogin.value = true
+    }
+    // Si joueur protégé et non connecté, ne rien afficher (attendre la vérification)
+  }
 }
 
 function performToggleAvailability(player, eventId) {
@@ -4070,8 +4083,9 @@ async function handlePinSubmit(pinCode) {
     const isValid = await verifySeasonPin(seasonId.value, pinCode)
     
     if (isValid) {
-      // Sauvegarder le PIN en session
-      pinSessionManager.saveSession(seasonId.value, pinCode)
+      // Sauvegarder le PIN en session avec état de connexion
+      const isConnected = !!auth.currentUser?.email
+      pinSessionManager.saveSession(seasonId.value, pinCode, isConnected)
       
       showPinModal.value = false
       const operationToExecute = pendingOperation.value
@@ -4112,8 +4126,9 @@ async function handlePlayerPasswordSubmit(password) {
     const seasonPin = await getSeasonPin(seasonId.value)
     if (password === seasonPin) {
       // PIN de saison accepté
-      // Mémoriser le PIN de saison (session PIN long terme)
-      try { pinSessionManager.saveSession(seasonId.value, password) } catch {}
+      // Mémoriser le PIN de saison (session PIN avec état de connexion)
+      const isConnected = !!auth.currentUser?.email
+      try { pinSessionManager.saveSession(seasonId.value, password, isConnected) } catch {}
       // Optionnel: marquer l'appareil de confiance pour ce joueur
       try { playerPasswordSessionManager.saveSession(pendingPlayerOperation.value.data.playerId) } catch {}
       showPlayerPasswordModal.value = false
@@ -4174,8 +4189,9 @@ async function handleAvailabilityPasswordSubmit(password) {
     const seasonPin = await getSeasonPin(seasonId.value)
     if (password === seasonPin) {
       // PIN de saison accepté
-      // Mémoriser le PIN de saison (session PIN long terme)
-      try { pinSessionManager.saveSession(seasonId.value, password) } catch {}
+      // Mémoriser le PIN de saison (session PIN avec état de connexion)
+      const isConnected = !!auth.currentUser?.email
+      try { pinSessionManager.saveSession(seasonId.value, password, isConnected) } catch {}
       // Optionnel: marquer l'appareil de confiance pour ce joueur
       try { playerPasswordSessionManager.saveSession(pendingAvailabilityOperation.value.data.player.id) } catch {}
       showAvailabilityPasswordModal.value = false
@@ -4531,9 +4547,11 @@ async function handleAvailabilityToggle(playerName, eventId) {
   if (isProtected) {
     // Joueur protégé : vérifier s'il y a une session active
     const hasCachedPassword = isPlayerPasswordCached(player.id);
-    if (hasCachedPassword) {
-      // Session active, procéder au toggle
-      await toggleAvailability(playerName, eventId);
+    const hasCachedPin = pinSessionManager.isPinCached(seasonId.value);
+    
+    if (hasCachedPassword || hasCachedPin) {
+      // Session active ou PIN de saison en cache, procéder au toggle
+      await performToggleAvailability(player, eventId);
     } else {
       // Pas de session, demander le mot de passe
       pendingAvailabilityAction.value = { playerName, eventId };
@@ -4543,7 +4561,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
     }
   } else {
     // Joueur non protégé, procéder directement
-    await toggleAvailability(playerName, eventId);
+    await performToggleAvailability(player, eventId);
   }
   
   // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
@@ -4588,7 +4606,7 @@ async function handlePasswordVerified(verificationData) {
     // Exécution de l'action en attente
     
     // Procéder au toggle de disponibilité
-    await toggleAvailability(playerName, eventId);
+    await performToggleAvailability(player, eventId);
     
     // Réinitialiser l'action en attente
     pendingAvailabilityAction.value = null;

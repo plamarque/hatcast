@@ -1328,8 +1328,9 @@ async function handlePinSubmit(pinCode) {
     logger.debug('PIN validé', { valid: isValid })
     
     if (isValid) {
-      // Sauvegarder le PIN en session
-      pinSessionManager.saveSession(seasonId, pinCode)
+      // Sauvegarder le PIN en session avec état de connexion
+      const isConnected = !!auth.currentUser?.email
+      pinSessionManager.saveSession(seasonId, pinCode, isConnected)
       
       logger.debug('PIN correct, fermeture de la modal et exécution de l\'opération')
       showPinModal.value = false
@@ -1523,6 +1524,17 @@ async function handleLogout() {
   try {
     await auth.signOut()
     showAccountMenu.value = false
+    
+    // EFFACER TOUTES LES SESSIONS LOCALES à la déconnexion
+    try {
+      pinSessionManager.clearSession()
+      // Note: playerPasswordSessionManager n'est pas importé ici
+      // Les sessions joueur seront effacées par le service centralisé
+      logger.info('Session PIN effacée à la déconnexion')
+    } catch (sessionError) {
+      logger.warn('Erreur lors de l\'effacement de la session PIN:', sessionError)
+    }
+    
     // currentUser est géré par le service centralisé, pas besoin de le modifier ici
     logger.info('Utilisateur déconnecté avec succès')
   } catch (error) {

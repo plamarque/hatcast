@@ -57,14 +57,23 @@ print_step "Nettoyage du build précédent..."
 rm -rf dist
 print_success "Build précédent supprimé"
 
-# 4. Build de l'application
-print_step "Build de l'application avec PWA..."
-npm run build
-if [ $? -ne 0 ]; then
-    print_error "Échec du build"
-    exit 1
+# 4. Build de l'application (OPTIONNEL - maintenant géré par GitHub Actions)
+print_step "Build de l'application avec PWA (optionnel)..."
+echo "⚠️  ATTENTION : Le build est maintenant géré par GitHub Actions"
+echo "   Ce build local est optionnel (pour test uniquement)"
+echo ""
+read -p "Voulez-vous faire un build local de test ? (y/N): " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    npm run build
+    if [ $? -ne 0 ]; then
+        print_error "Échec du build"
+        exit 1
+    fi
+    print_success "Build de test terminé avec succès"
+else
+    print_success "Build local ignoré - GitHub Actions s'en charge"
 fi
-print_success "Build terminé avec succès"
 
 # 5. Vérifier que les fichiers PWA sont présents
 print_step "Vérification des fichiers PWA..."

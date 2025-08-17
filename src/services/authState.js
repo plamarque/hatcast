@@ -63,8 +63,21 @@ function initialize() {
             await trackPageVisit(user.uid, currentPath)
           }
         } else if (!user && previousUser) {
-          // Déconnexion - effacer l'historique de navigation
+          // Déconnexion - effacer l'historique de navigation ET les sessions locales
           await clearNavigationHistory(previousUser.uid)
+          
+          // Effacer toutes les sessions locales (PIN et joueurs)
+          try {
+            const { default: pinSessionManager } = await import('./pinSession.js')
+            const { default: playerPasswordSessionManager } = await import('./playerPasswordSession.js')
+            
+            pinSessionManager.clearSession()
+            playerPasswordSessionManager.clearAllSessions()
+            
+            logger.info('Sessions locales effacées par le service centralisé')
+          } catch (sessionError) {
+            logger.warn('Erreur lors de l\'effacement des sessions locales:', sessionError)
+          }
         }
       } catch (error) {
         // Log silencieux pour les erreurs de tracking non critiques

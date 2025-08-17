@@ -129,6 +129,8 @@ import { verifyPlayerPassword, sendPasswordResetEmail } from '../services/player
 import { getSeasonPin } from '../services/seasons.js'
 import logger from '../services/logger.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
+import pinSessionManager from '../services/pinSession.js'
+import { auth } from '../services/firebase.js'
 
 const props = defineProps({
   show: {
@@ -167,7 +169,11 @@ async function verifyPassword() {
     // Vérifier si c'est le PIN de saison
     const seasonPin = await getSeasonPin(props.seasonId)
     if (password.value === seasonPin) {
-      // PIN de saison accepté
+      // PIN de saison accepté - SAUVEGARDER LA SESSION PIN avec état de connexion !
+      const isConnected = !!auth.currentUser?.email
+      pinSessionManager.saveSession(props.seasonId, password.value, isConnected)
+      
+      // Marquer l'appareil de confiance pour ce joueur aussi
       if (staySignedIn.value) {
         try { playerPasswordSessionManager.saveSession(props.player.id) } catch {}
       }
