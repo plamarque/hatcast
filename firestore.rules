@@ -29,5 +29,11 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if false;
     }
+
+    // Collection des rappels automatiques
+    match /reminderQueue/{reminderId} {
+      // Seules les Cloud Functions peuvent lire/écrire
+      allow read, write: if false;
+    }
   }
 }

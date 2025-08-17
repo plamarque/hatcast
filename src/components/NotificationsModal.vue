@@ -1,61 +1,98 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] p-4" @click="close">
-    <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl w-full max-w-xl" @click.stop>
-      <button @click="close" class="absolute right-3 top-3 text-white/80 hover:text-white" aria-label="Fermer" title="Fermer">✖️</button>
-      <!-- Header compact style modales -->
-      <div class="mb-4 md:mb-6">
-        <div class="flex items-start gap-4">
-          <!-- Icône et titre à gauche -->
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-400 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-lg md:text-xl">🔔</span>
-            </div>
-            <div class="space-y-2">
-              <h3 class="text-white font-semibold text-base md:text-lg">Notifications</h3>
-              <p class="text-gray-400 text-xs md:text-sm">Ne ratez rien, soyez le premier prévenu !</p>
-            </div>
-          </div>
-        </div>
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl w-full max-w-2xl">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-white">🔔 Préférences de notifications</h2>
+        <button @click="close" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
       </div>
 
-      <!-- Séparateur -->
-      <div class="border-t border-white/10 mb-4 md:mb-6"></div>
+      <!-- Onglets -->
+      <div class="flex border-b border-white/10 mb-6">
+        <button 
+          @click="activeTab = 'email'"
+          class="px-4 py-2 text-sm font-medium transition-colors duration-200"
+          :class="activeTab === 'email' 
+            ? 'text-blue-400 border-b-2 border-blue-400' 
+            : 'text-gray-400 hover:text-white'"
+        >
+          📧 Emails
+        </button>
+        <button 
+          @click="activeTab = 'mobile'"
+          class="px-4 py-2 text-sm font-medium transition-colors duration-200"
+          :class="activeTab === 'mobile' 
+            ? 'text-emerald-400 border-b-2 border-emerald-400' 
+            : 'text-gray-400 hover:text-white'"
+        >
+          📱 Mobile
+        </button>
+      </div>
 
-      <div class="space-y-4 md:space-y-6">
-        <!-- Section Emails -->
-        <div class="space-y-2 md:space-y-3">
-          <h3 class="text-white font-semibold mb-2 md:mb-3 flex items-center gap-2 text-sm md:text-base">
-            <span class="text-blue-400">📧</span>
-            Emails
-          </h3>
-          <div class="p-3 md:p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
-            <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
-                <span class="text-sm text-white">M'envoyer un email lorsqu'un événement a besoin de joueurs</span>
-              </label>
-            </div>
-            <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="prefs.notifySelection" class="w-4 h-4">
-                <span class="text-sm text-white">M'envoyer un email lorsque je suis concerné par une sélection</span>
-              </label>
+      <!-- Contenu des onglets -->
+      <div class="space-y-6">
+                <!-- Onglet Email -->
+        <div v-if="activeTab === 'email'" class="space-y-4">
+          
+          <!-- Notifications de spectacles -->
+           <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+             <h4 class="text-sm font-medium text-gray-300 mb-3">Spectacles</h4>
+             <div class="space-y-3">
+               <div class="flex items-center justify-between">
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
+                   <span class="text-sm text-white">M'envoyer un email lorsqu'un spectacle a besoin de joueurs</span>
+                 </label>
+               </div>
+               <div class="flex items-center justify-between">
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" v-model="prefs.notifySelection" class="w-4 h-4">
+                   <span class="text-sm text-white">M'envoyer un email lorsque je suis concerné par une sélection</span>
+                 </label>
+               </div>
+             </div>
+           </div>
+
+          <!-- Rappels automatiques -->
+          <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <h4 class="text-sm font-medium text-gray-300 mb-3">Rappels automatiques</h4>
+            <p class="text-xs text-gray-400 italic mb-3">🚧 Bientôt disponible</p>
+            <div class="space-y-3 opacity-50">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-not-allowed">
+                  <input type="checkbox" v-model="prefs.notifyReminder7Days" disabled class="w-4 h-4 cursor-not-allowed">
+                  <span class="text-sm text-gray-400">Rappel automatique 7 jours avant un spectacle</span>
+                </label>
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-not-allowed">
+                  <input type="checkbox" v-model="prefs.notifyReminder1Day" disabled class="w-4 h-4 cursor-not-allowed">
+                  <span class="text-sm text-gray-400">Rappel automatique 1 jour avant un spectacle</span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Section Mobile (expérimental) -->
-        <div class="space-y-2 md:space-y-3">
-          <h3 class="text-white font-semibold mb-2 md:mb-3 flex items-center gap-2 text-sm md:text-base">
-            <span class="text-emerald-400">📱</span>
-            Mobile (expérimental)
-          </h3>
-          <div class="p-3 md:p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
-            <!-- Notifications sur cet appareil - déplacé en haut -->
-            <div class="flex items-center justify-between">
-              <div class="text-xs text-gray-400">Notifications sur cet appareil</div>
+        <!-- Onglet Mobile -->
+        <div v-if="activeTab === 'mobile'" class="space-y-4">
+          
+          <!-- Avertissement expérimental -->
+          <div class="p-3 rounded-lg border border-orange-500/30 bg-orange-500/10">
+            <div class="flex items-center gap-2 text-sm text-orange-300">
+              <span>⚠️</span>
+              <span>Les notifications mobiles sont encore expérimentales</span>
+            </div>
+          </div>
+          
+          <!-- État des notifications sur cet appareil -->
+          <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <h4 class="text-sm font-medium text-gray-300 mb-3">Notifications sur cet appareil</h4>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-white">Statut</span>
               <template v-if="!pushEnabledOnDevice">
-                <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">{{ enablePushLoading ? '...' : 'Activer' }}</button>
+                <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">
+                  {{ enablePushLoading ? '...' : 'Activer' }}
+                </button>
               </template>
               <template v-else>
                 <span class="inline-flex items-center text-xs text-gray-300">
@@ -64,29 +101,64 @@
               </template>
             </div>
             
-            <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="prefs.notifySelectionPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
-                <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une sélection</span>
-              </label>
+            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic">
+              ⚠️ Ces préférences sont désactivées car les notifications de l'application ne sont pas actives sur cet appareil
             </div>
-            <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="prefs.notifyAvailabilityPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
-                <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsqu'un événement a besoin de joueurs</span>
-              </label>
+          </div>
+
+                     <!-- Notifications de spectacles -->
+           <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+             <h4 class="text-sm font-medium text-gray-300 mb-3">Spectacles</h4>
+             <div class="space-y-3">
+               <div class="flex items-center justify-between">
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" v-model="prefs.notifySelectionPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                   <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une sélection</span>
+                 </label>
+               </div>
+               <div class="flex items-center justify-between">
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" v-model="prefs.notifyAvailabilityPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                   <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsqu'un spectacle a besoin de joueurs</span>
+                 </label>
+               </div>
+             </div>
+           </div>
+
+          <!-- Rappels automatiques -->
+          <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
+            <h4 class="text-sm font-medium text-gray-300 mb-3">Rappels automatiques</h4>
+            <p class="text-xs text-gray-400 italic mb-3">🚧 Bientôt disponible</p>
+            <div class="space-y-3 opacity-50">
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-not-allowed">
+                  <input type="checkbox" v-model="prefs.notifyReminder7DaysPush" disabled class="w-4 h-4 cursor-not-allowed">
+                  <span class="text-sm text-gray-400">Rappel 7 jours avant (notifications)</span>
+                </label>
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-not-allowed">
+                  <input type="checkbox" v-model="prefs.notifyReminder1DayPush" disabled class="w-4 h-4 cursor-not-allowed">
+                  <span class="text-sm text-gray-400">Rappel 1 jour avant (notifications)</span>
+                </label>
+              </div>
             </div>
-            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic">⚠️ Ces préférences sont désactivées car les notifications de l'application ne sont pas actives sur cet appareil</div>
           </div>
         </div>
-
-        <div v-if="prefsError" class="text-xs text-red-300">{{ prefsError }}</div>
-        <div v-if="prefsSuccess" class="text-xs text-green-300">{{ prefsSuccess }}</div>
       </div>
 
+      <!-- Messages d'erreur/succès -->
+      <div v-if="prefsError" class="mt-4 text-xs text-red-300">{{ prefsError }}</div>
+      <div v-if="prefsSuccess" class="mt-4 text-xs text-green-300">{{ prefsSuccess }}</div>
+
+      <!-- Boutons d'action -->
       <div class="mt-6 flex justify-between items-center">
-        <button @click="savePrefs" :disabled="prefsLoading" class="px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50">{{ prefsLoading ? '⏳' : 'Sauvegarder' }}</button>
-        <button @click="close" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800">Fermer</button>
+        <button @click="savePrefs" :disabled="prefsLoading" class="px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50">
+          {{ prefsLoading ? '⏳' : 'Sauvegarder' }}
+        </button>
+        <button @click="close" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800">
+          Fermer
+        </button>
       </div>
     </div>
   </div>
@@ -106,13 +178,23 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const email = ref('')
-const prefs = ref({ notifyAvailability: true, notifySelection: true, notifySelectionPush: true, notifyAvailabilityPush: true })
+const prefs = ref({ 
+  notifyAvailability: true, 
+  notifySelection: true, 
+  notifySelectionPush: true, 
+  notifyAvailabilityPush: true,
+  notifyReminder7Days: true,
+  notifyReminder1Day: true,
+  notifyReminder7DaysPush: true,
+  notifyReminder1DayPush: true
+})
 const prefsLoading = ref(false)
 const prefsError = ref('')
 const prefsSuccess = ref('')
 const enablePushLoading = ref(false)
 const fcmToken = ref(localStorage.getItem('fcmToken') || '')
 const pushEnabledOnDevice = ref(false)
+const activeTab = ref('email') // Onglet actif par défaut
 
 // Gestionnaire pour les changements d'état des notifications push
 function handlePushStatusChanged(event) {
@@ -141,8 +223,12 @@ async function loadPrefs() {
       prefs.value.notifySelection = data.notifySelection !== false
       prefs.value.notifySelectionPush = data.notifySelectionPush !== false
       prefs.value.notifyAvailabilityPush = data.notifyAvailabilityPush !== false
+      prefs.value.notifyReminder7Days = data.notifyReminder7Days !== false
+      prefs.value.notifyReminder1Day = data.notifyReminder1Day !== false
+      prefs.value.notifyReminder7DaysPush = data.notifyReminder7DaysPush !== false
+      prefs.value.notifyReminder1DayPush = data.notifyReminder1DayPush !== false
     } else {
-      prefs.value = { notifyAvailability: true, notifySelection: true, notifySelectionPush: true, notifyAvailabilityPush: true }
+      prefs.value = { notifyAvailability: true, notifySelection: true, notifySelectionPush: true, notifyAvailabilityPush: true, notifyReminder7Days: true, notifyReminder1Day: true, notifyReminder7DaysPush: true, notifyReminder1DayPush: true }
     }
   } catch {}
 }
@@ -152,7 +238,7 @@ async function enablePushOnThisDevice() {
     enablePushLoading.value = true
     const supported = await canUsePush()
     if (!supported) {
-      testPushError.value = 'Push non supporté sur cet appareil'
+      prefsError.value = 'Push non supporté sur cet appareil'
       return
     }
     
@@ -163,7 +249,7 @@ async function enablePushOnThisDevice() {
       localStorage.setItem('fcmToken', status.token)
       console.log('Notifications push activées avec succès')
     } else {
-      testPushError.value = `Activation impossible: ${status.error}`
+      prefsError.value = `Activation impossible: ${status.error}`
     }
   } catch (e) {
     const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unknown'

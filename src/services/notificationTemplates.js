@@ -59,6 +59,47 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     })
   }
 
+  // Nouveaux templates pour les rappels automatiques
+  if (reason === 'reminder_7days' || reason === 'reminder_1day') {
+    const emailEnabled = reason === 'reminder_7days' 
+      ? prefs?.notifyReminder7Days !== false
+      : prefs?.notifyReminder1Day !== false
+    
+    const pushEnabled = reason === 'reminder_7days'
+      ? prefs?.notifyReminder7DaysPush !== false
+      : prefs?.notifyReminder1DayPush !== false
+    
+    const is7Days = reason === 'reminder_7days'
+    const daysText = is7Days ? '7 jours' : '1 jour'
+    const emoji = is7Days ? '📅' : '⏰'
+
+    payloads.email = {
+      enabled: emailEnabled,
+      subject: `${emoji} Rappel : ${eventTitle} dans ${daysText}`
+    }
+    
+    payloads.push = {
+      enabled: pushEnabled,
+      title: `${emoji} Rappel spectacle`,
+      body: `${recipientName}, ${eventTitle} dans ${daysText} ! Es-tu prêt(e) ?`,
+      data: { 
+        url: urls.eventUrl, 
+        noUrl: urls.noUrl, 
+        reason,
+        reminderType: reason,
+        eventId: extra.eventId,
+        seasonId: extra.seasonId
+      }
+    }
+    
+    console.log('URLs pour notifications de rappel:', {
+      eventUrl: urls.eventUrl,
+      noUrl: urls.noUrl,
+      reason,
+      reminderType: reason
+    })
+  }
+
   // Log de débogage
   console.log('buildNotificationPayloads', { 
     reason, 

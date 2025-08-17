@@ -2666,7 +2666,76 @@ async function saveEdit() {
       playerCount: playerCount,
       archived: !!editingArchived.value
     }
+    
+    // Récupérer l'ancienne date pour comparer
+    const oldEvent = events.value.find(e => e.id === editingEvent.value)
+    const oldDate = oldEvent?.date
+    const dateChanged = oldDate !== editingDate.value
+    
     await updateEvent(editingEvent.value, eventData, seasonId.value)
+    
+    // Si la date a changé et qu'il y a des joueurs sélectionnés, recréer les rappels
+    if (dateChanged && !eventData.archived) {
+      try {
+        const { createRemindersForSelection, removeRemindersForEvent } = await import('../services/reminderService.js')
+        
+        // Supprimer tous les anciens rappels pour cet événement
+        await removeRemindersForEvent({
+          seasonId: seasonId.value,
+          eventId: editingEvent.value
+        })
+        
+        // Récupérer les joueurs sélectionnés
+        const selectedPlayers = selections.value[editingEvent.value] || []
+        console.log('🔍 Debug sélection:', {
+          editingEventId: editingEvent.value,
+          allSelections: Object.keys(selections.value),
+          selectedPlayersForEvent: selectedPlayers,
+          selectionsValue: selections.value
+        })
+        
+        // Recréer les rappels pour chaque joueur sélectionné
+        const reminderResults = []
+        for (const playerName of selectedPlayers) {
+          try {
+            const player = players.value.find(p => p.name === playerName)
+            if (player?.email) {
+              const result = await createRemindersForSelection({
+                seasonId: seasonId.value,
+                eventId: editingEvent.value,
+                playerEmail: player.email,
+                playerName: player.name,
+                eventTitle: eventData.title,
+                eventDate: eventData.date,
+                seasonSlug: props.slug
+              })
+              if (result.success) {
+                reminderResults.push(...result.results)
+              }
+            }
+          } catch (error) {
+            console.error('Erreur lors de la recréation des rappels pour', playerName, error)
+          }
+        }
+        
+        console.log('🎯 Rappels mis à jour pour la nouvelle date:', {
+          eventId: editingEvent.value,
+          eventTitle: eventData.title,
+          newDate: eventData.date,
+          selectedPlayers: selectedPlayers.length,
+          remindersCreated: reminderResults.filter(r => r.success).length
+        })
+        
+        // Afficher un message de succès plus détaillé pour les rappels
+        if (reminderResults.length > 0) {
+          const successCount = reminderResults.filter(r => r.success).length
+          console.log(`✅ ${successCount} rappels recréés avec succès`)
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour des rappels:', error)
+      }
+    }
+    
     // Après modification, proposer d'annoncer uniquement s'il y a des joueurs protégés
     if (!eventData.archived && players.value.length > 0 && protectedPlayers.value.size > 0) {
       announcePromptEvent.value = { id: editingEvent.value, ...eventData }
@@ -2690,6 +2759,8 @@ async function saveEdit() {
     editingDescription.value = ''
     editingPlayerCount.value = 6
     editingArchived.value = false
+    
+    // Message de succès final
     showSuccessMessage.value = true
     successMessage.value = 'Événement mis à jour avec succès !'
     setTimeout(() => {
@@ -3450,11 +3521,15 @@ function isSelected(player, eventId) {
 }
 
 async function tirer(eventId, count = 6) {
+  console.log('🎲 tirer appelé:', { eventId, count })
   const event = events.value.find(e => e.id === eventId)
   const requiredCount = event?.playerCount || 6
   
+  console.log('📅 Événement trouvé:', { eventTitle: event?.title, requiredCount })
+  
   // Récupérer la sélection actuelle
   const currentSelection = selections.value[eventId] || []
+  console.log('👥 Sélection actuelle:', currentSelection)
   
   // Vérifier si TOUS les joueurs de la sélection sont encore disponibles
   const allSelectedStillAvailable = currentSelection.length > 0 && 
@@ -3543,12 +3618,15 @@ async function tirer(eventId, count = 6) {
     }
   }
 
+  console.log('💾 Sauvegarde de la sélection:', { eventId, players: selections.value[eventId], seasonId: seasonId.value })
   await saveSelection(eventId, selections.value[eventId], seasonId.value)
+  console.log('✅ saveSelection terminé')
   updateAllStats()
   updateAllChances()
 }
 
 async function tirerProtected(eventId, count = 6) {
+  console.log('🛡️ tirerProtected appelé:', { eventId, count })
   // Tirage protégé
   // État de la modal de sélection avant
   
@@ -3562,7 +3640,9 @@ async function tirerProtected(eventId, count = 6) {
   // Sauvegarder l'ancienne sélection pour comparer
   const oldSelection = wasReselection ? [...selections.value[eventId]] : []
   
+  console.log('🎲 Appel de tirer...')
   await tirer(eventId, count)
+  console.log('✅ tirer terminé')
   
   // État de la modal de sélection après
   
@@ -4182,14 +4262,17 @@ async function executePendingOperation(operation) {
         confirmPlayerDelete.value = true
         break
       case 'launchSelection':
+        console.log('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
         // Vérifier si une sélection existe déjà pour afficher la confirmation
         if (selections.value[data.eventId] && selections.value[data.eventId].length > 0) {
+          console.log('🔄 Sélection existante, affichage confirmation')
           // Afficher la modal de confirmation de relance
           eventIdToReselect.value = data.eventId
           confirmReselect.value = true
           // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false
         } else {
+          console.log('🎯 Pas de sélection existante, lancement direct')
           // Lancer directement la sélection
           await tirerProtected(data.eventId, data.count)
           // Fermer seulement la popin de détails, garder la popin de sélection

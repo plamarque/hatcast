@@ -2,6 +2,7 @@
 import { db } from './firebase.js'
 import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
+import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 
 let mode = 'mock' // or 'firebase'
 
@@ -344,11 +345,137 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
 }
 
 export async function saveSelection(eventId, players, seasonId = null) {
-  if (mode === 'firebase') {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
-    await setDoc(selRef, { players })
+  console.log('🔍 saveSelection appelé:', { eventId, players, seasonId })
+  
+  try {
+    if (mode === 'firebase') {
+      console.log('🔥 Mode Firebase activé')
+      
+      const selRef = seasonId
+        ? doc(db, 'seasons', seasonId, 'selections', eventId)
+        : doc(db, 'selections', eventId)
+      
+      console.log('🔍 Référence sélection:', selRef.path)
+      
+      // Récupérer l'ancienne sélection pour comparer
+      console.log('📖 Récupération ancienne sélection...')
+      const oldSelectionDoc = await getDoc(selRef)
+      console.log('📄 Document récupéré:', { 
+        exists: oldSelectionDoc.exists, 
+        hasData: !!oldSelectionDoc.data(),
+        data: oldSelectionDoc.data()
+      })
+      
+      const oldSelection = oldSelectionDoc.exists && oldSelectionDoc.data() 
+        ? (oldSelectionDoc.data().players || []) 
+        : []
+      
+      console.log('🔍 Ancienne sélection:', oldSelection)
+      console.log('🔍 Nouvelle sélection:', players)
+      
+      // Sauvegarder la nouvelle sélection
+      console.log('💾 Sauvegarde...')
+      await setDoc(selRef, { players })
+      console.log('✅ Sélection sauvegardée avec succès')
+      
+      // Gérer les rappels automatiques
+      try {
+        console.log('🔄 Début gestion des rappels automatiques')
+        if (seasonId) {
+          console.log('📅 Récupération des infos événement et saison')
+          // Récupérer les informations de l'événement et de la saison
+          const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
+          const seasonRef = doc(db, 'seasons', seasonId)
+          
+          console.log('🔍 Références:', { eventRef: eventRef.path, seasonRef: seasonRef.path })
+          
+          const [eventSnap, seasonSnap] = await Promise.all([
+            getDoc(eventRef),
+            getDoc(seasonRef)
+          ])
+          
+          console.log('📄 Documents récupérés:', { 
+            eventExists: eventSnap.exists, 
+            seasonExists: seasonSnap.exists 
+          })
+          
+          if (eventSnap.exists && seasonSnap.exists) {
+            const eventData = eventSnap.data()
+            const seasonData = seasonSnap.data()
+            
+            console.log('📊 Données récupérées:', {
+              eventTitle: eventData.title,
+              eventDate: eventData.date,
+              seasonSlug: seasonData.slug
+            })
+            
+            // Supprimer les rappels pour les joueurs désélectionnés
+            const removedPlayers = oldSelection.filter(name => !players.includes(name))
+            console.log('🗑️ Joueurs à désélectionner:', removedPlayers)
+            
+            for (const playerName of removedPlayers) {
+              try {
+                // Récupérer l'email du joueur depuis playerProtection
+                const { getPlayerEmail } = await import('./playerProtection.js')
+                const playerEmail = await getPlayerEmail(playerName, seasonId)
+                if (playerEmail) {
+                  await removeRemindersForPlayer({
+                    seasonId,
+                    eventId,
+                    playerEmail: playerEmail
+                  })
+                }
+              } catch (error) {
+                console.error('Erreur lors de la suppression des rappels pour', playerName, error)
+              }
+            }
+            
+            // Créer les rappels pour les nouveaux joueurs sélectionnés
+            const newPlayers = players.filter(name => !oldSelection.includes(name))
+            console.log('🆕 Nouveaux joueurs sélectionnés:', newPlayers)
+            
+            // Créer les rappels pour les nouveaux joueurs sélectionnés
+            for (const playerName of newPlayers) {
+              try {
+                console.log(`📧 Création rappels pour ${playerName}...`)
+                // Récupérer l'email du joueur depuis playerProtection
+                const { getPlayerEmail } = await import('./playerProtection.js')
+                const playerEmail = await getPlayerEmail(playerName, seasonId)
+                console.log(`📧 Email pour ${playerName}:`, playerEmail ? `✅ ${playerEmail}` : '❌ null')
+                
+                if (playerEmail) {
+                  console.log(`🎯 Création rappels pour ${playerName} (${playerEmail})`)
+                  const result = await createRemindersForSelection({
+                    seasonId,
+                    eventId,
+                    playerEmail: playerEmail,
+                    playerName: playerName,
+                    eventTitle: eventData.title,
+                    eventDate: eventData.date,
+                    seasonSlug: seasonData.slug
+                  })
+                  console.log(`✅ Rappels créés pour ${playerName}:`, result)
+                } else {
+                  console.log(`⚠️ Pas d'email pour ${playerName}, rappels non créés`)
+                }
+              } catch (error) {
+                console.error(`❌ Erreur lors de la création des rappels pour ${playerName}:`, error)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la gestion des rappels automatiques:', error)
+        // Ne pas faire échouer la sauvegarde de la sélection à cause des rappels
+      }
+    } else {
+      console.log('🎭 Mode mock activé')
+    }
+    
+    console.log('✅ saveSelection terminé avec succès')
+  } catch (error) {
+    console.error('❌ Erreur dans saveSelection:', error)
+    throw error
   }
 }
 

@@ -107,6 +107,12 @@ export async function ensurePushNotificationsActive() {
 
 // Vérifier périodiquement l'état des notifications push
 export function startPushHealthCheck() {
+  // DÉSACTIVÉ EN LOCAL pour éviter le spam de logs
+  if (import.meta.env?.DEV) {
+    console.log('🔇 Push health check désactivé en mode développement')
+    return
+  }
+  
   // Vérifier toutes les 5 minutes
   setInterval(async () => {
     try {
