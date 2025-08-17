@@ -618,16 +618,21 @@
              </div>
              
 
-             <div class="flex items-center gap-3 mb-3">
+             <!-- Date sur sa propre ligne -->
+             <div class="mb-3">
                <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
+             </div>
+             
+             <!-- Boutons agenda et notifications sur la même ligne -->
+             <div class="flex items-center gap-3 mb-3 pl-0 md:pl-0">
                <div class="relative">
                  <button 
                    @click="toggleCalendarMenuDetails()"
-                   class="px-3 py-1.5 hover:bg-white/20 rounded text-purple-300 hover:text-green-400 transition-colors duration-200 text-sm flex items-center gap-2 border border-purple-500/30"
+                   class="px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm flex items-center gap-2 hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
                    title="Ajouter à votre agenda"
                  >
-                   <span>📅</span>
-                   <span>Ajouter à l'agenda</span>
+                   <span class="text-purple-300">📅</span>
+                   <span class="text-purple-200">Ajouter à l'agenda</span>
                  </button>
                  
                  <!-- Menu déroulant d'agenda pour la modal -->
@@ -663,29 +668,29 @@
                    </div>
                  </div>
                </div>
+               
+               <!-- Bouton notifications -->
+               <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm">
+                 <span class="text-purple-300">✅</span>
+                 <span class="text-purple-200">Notifications activées</span>
+               </div>
+               <button 
+                 v-else 
+                 @click="promptForNotifications(selectedEvent)"
+                 class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
+                 title="Reçois des alertes en temps réel : sélections, changements d'horaires, et plus !"
+               >
+                 <span class="text-purple-300">🔔</span>
+                 <span class="text-purple-200">Activer les notifications</span>
+               </button>
              </div>
             
             <!-- Description intégrée dans le header si elle existe -->
-            <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
+            <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30 ml-0 md:ml-0">
               {{ selectedEvent.description }}
             </div>
             
-            <!-- Indicateur de surveillance de l'événement -->
-            <div class="flex items-center gap-2 mt-3">
-              <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/15 border border-blue-400/25 rounded text-sm">
-                <span class="text-blue-300">✅</span>
-                <span class="text-blue-200">Notifications activées</span>
-              </div>
-              <button 
-                v-else 
-                @click="promptForNotifications(selectedEvent)"
-                class="flex items-center gap-2 px-3 py-1.5 bg-gray-500/15 border border-gray-400/25 rounded text-sm hover:bg-gray-500/25 transition-colors duration-200 cursor-pointer"
-                title="Reçois des alertes en temps réel : sélections, changements d'horaires, et plus !"
-              >
-                <span class="text-gray-300">🔔</span>
-                <span class="text-gray-200">Activer les notifications</span>
-              </button>
-            </div>
+
           </div>
         </div>
       </div>
@@ -735,8 +740,8 @@
             </select>
           </div>
 
-          <!-- Liste des joueurs (sans contour/table header) -->
-          <div class="space-y-0.5">
+          <!-- Liste des joueurs (2 par ligne) -->
+          <div class="grid grid-cols-2 gap-2">
             <div
               v-for="player in filteredPlayers"
               :key="player.id"
