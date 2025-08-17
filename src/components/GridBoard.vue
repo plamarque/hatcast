@@ -1295,6 +1295,7 @@
     :event-id="notificationPromptData?.eventId || ''"
     @close="showNotificationPrompt = false"
     @success="handleNotificationPromptSuccess"
+    @show-login="handleShowLogin"
   />
   
   <!-- Modale de succès des notifications -->
@@ -1304,6 +1305,7 @@
     :email="notificationSuccessData?.email || ''"
     :season-slug="seasonSlug"
     :event-id="notificationSuccessData?.eventId || null"
+
     @close="showNotificationSuccess = false"
   />
 
@@ -1319,7 +1321,7 @@
   <AccountLoginModal
     :show="showAccountLogin"
     @close="showAccountLogin = false"
-    @success="() => { showAccountLogin = false; showAccountMenu = true }"
+    @success="handleAccountLoginSuccess"
     @open-account-creation="showAccountCreation = true"
   />
 
@@ -1542,7 +1544,7 @@ import { createMagicLink } from '../services/magicLinks.js'
 import { sendDeselectionEmailsForEvent } from '../services/emailService.js'
 import { sendAvailabilityNotificationsForEvent, sendSelectionNotificationsForEvent } from '../services/notificationsService.js'
 import { addToCalendar } from '../services/calendarService.js'
-import { shouldPromptForNotifications } from '../services/notificationActivation.js'
+import { shouldPromptForNotifications, checkEmailExists } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
@@ -3205,8 +3207,22 @@ onMounted(async () => {
   }
 
   // Gérer le paramètre notificationSuccess (APRÈS tous les autres traitements d'URL)
+  console.debug('🔍 Vérification des paramètres notificationSuccess...', {
+    routeQuery: route.query,
+    notificationSuccess: route.query.notificationSuccess,
+    email: route.query.email,
+    playerName: route.query.playerName,
+    eventId: route.query.eventId
+  })
+  
   if (route.query.notificationSuccess === '1') {
-    console.debug('✅ Paramètres notificationSuccess détectés')
+    console.debug('✅ Paramètres notificationSuccess détectés dans route.query')
+    
+    // Fermer d'abord la modal de prompt des notifications si elle est ouverte
+    if (showNotificationPrompt.value) {
+      showNotificationPrompt.value = false
+      console.debug('🔒 Fermeture de NotificationPromptModal avant affichage de NotificationSuccessModal')
+    }
     
     notificationSuccessData.value = {
       email: decodeURIComponent(route.query.email || ''),
@@ -3214,10 +3230,13 @@ onMounted(async () => {
       eventId: route.query.eventId || null
     }
     
-    // Délai pour s'assurer que la modal d'activation soit fermée
+    console.debug('📝 Données de notificationSuccess préparées:', notificationSuccessData.value)
+    
+    // Délai pour s'assurer que la modal d'activation soit fermée et que l'interface soit prête
     setTimeout(() => {
       showNotificationSuccess.value = true
-    }, 100)
+      console.debug('🎉 Ouverture de NotificationSuccessModal')
+    }, 300)
     
     // Nettoyer l'URL
     router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
@@ -3229,8 +3248,21 @@ onMounted(async () => {
     const playerName = urlParams.get('playerName')
     const eventId = urlParams.get('eventId')
     
+    console.debug('🔍 Fallback - Paramètres détectés via window.location.search:', {
+      notificationSuccess,
+      email,
+      playerName,
+      eventId
+    })
+    
     if (notificationSuccess === '1') {
       console.debug('✅ Paramètres détectés via fallback')
+      
+      // Fermer d'abord la modal de prompt des notifications si elle est ouverte
+      if (showNotificationPrompt.value) {
+        showNotificationPrompt.value = false
+        console.debug('🔒 Fermeture de NotificationPromptModal avant affichage de NotificationSuccessModal (fallback)')
+      }
       
       notificationSuccessData.value = {
         email: decodeURIComponent(email || ''),
@@ -3238,10 +3270,13 @@ onMounted(async () => {
         eventId: eventId || null
       }
       
-      // Délai pour s'assurer que la modal d'activation soit fermée
+      console.debug('📝 Données de notificationSuccess préparées (fallback):', notificationSuccessData.value)
+      
+      // Délai pour s'assurer que la modal d'activation soit fermée et que l'interface soit prête
       setTimeout(() => {
         showNotificationSuccess.value = true
-      }, 100)
+        console.debug('🎉 Ouverture de NotificationSuccessModal (fallback)')
+      }, 300)
       
       // Nettoyer l'URL
       router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
@@ -3460,13 +3495,29 @@ async function toggleAvailability(playerName, eventId) {
     if (!auth.currentUser?.email) {
       // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
       if (shouldPromptForNotifications()) {
-        // Afficher la modal d'incitation aux notifications
-        notificationPromptData.value = {
-          playerName,
-          eventTitle: eventItem?.title || 'cet événement',
-          eventId
-        }
-        showNotificationPrompt.value = true
+        // Attendre que le toast de succès disparaisse avant d'afficher la modale
+        setTimeout(async () => {
+          // Préparer les données de notification
+          const notificationData = {
+            playerName,
+            eventTitle: eventItem?.title || 'cet événement',
+            eventId
+          }
+          
+          // Vérifier si l'email existe déjà dans Firebase
+          try {
+            // Pour l'instant, on affiche toujours la modal d'incitation
+            // La vérification de l'email se fera dans la modal elle-même
+            console.log('🎯 Affichage de la modal d\'incitation aux notifications')
+            notificationPromptData.value = notificationData
+            showNotificationPrompt.value = true
+          } catch (error) {
+            console.error('Erreur lors de la préparation de la modal, fallback vers modal d\'incitation', error)
+            // En cas d'erreur, afficher la modal d'incitation par défaut
+            notificationPromptData.value = notificationData
+            showNotificationPrompt.value = true
+          }
+        }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
       } else {
         // Ouvrir la modal de connexion classique (seulement pour non protégés)
         showAccountLogin.value = true
@@ -4572,13 +4623,16 @@ async function handleAvailabilityToggle(playerName, eventId) {
     if (!auth.currentUser?.email) {
       // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
       if (shouldPromptForNotifications()) {
-        // Afficher la modal d'incitation aux notifications
-        notificationPromptData.value = {
-          playerName,
-          eventTitle: evt?.title || 'cet événement',
-          eventId
-        }
-        showNotificationPrompt.value = true
+        // Attendre que le toast de succès disparaisse avant d'afficher la modale
+        setTimeout(() => {
+          // Afficher la modal d'incitation aux notifications
+          notificationPromptData.value = {
+            playerName,
+            eventTitle: evt?.title || 'cet événement',
+            eventId
+          }
+          showNotificationPrompt.value = true
+        }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
       } else {
         // Ouvrir la modal de connexion classique (seulement pour non protégés)
         showAccountLogin.value = true
@@ -5365,8 +5419,10 @@ function promptForNotifications(event) {
     eventId: event.id
   }
   
-  // Afficher la modal d'incitation
-  showNotificationPrompt.value = true
+  // Afficher la modal d'incitation avec un délai pour éviter les conflits visuels
+  setTimeout(() => {
+    showNotificationPrompt.value = true
+  }, 500); // Délai court pour l'entête d'événement
 }
 
 // Fonction pour gérer le succès de l'incitation aux notifications
@@ -5387,6 +5443,91 @@ function handleNotificationPromptSuccess(data) {
   }, 4000)
   
   logger.info('Activation des notifications terminée avec succès', data)
+}
+
+// Fonction pour gérer la demande d'affichage du popup de connexion
+function handleShowLogin(data) {
+  showNotificationPrompt.value = false
+  notificationPromptData.value = null
+  
+  // Stocker les données de notification dans localStorage pour les récupérer après connexion
+  localStorage.setItem('pendingNotificationData', JSON.stringify({
+    email: data.email,
+    playerName: data.playerName,
+    eventId: data.eventId,
+    seasonId: data.seasonId,
+    seasonSlug: data.seasonSlug,
+    eventTitle: data.eventTitle
+  }))
+  
+  // Pré-remplir l'email dans la modal de connexion
+  if (data.email) {
+    localStorage.setItem('prefilledEmail', data.email)
+  }
+  
+  // Afficher la modal de connexion
+  showAccountLogin.value = true
+  
+  logger.info('Affichage du popup de connexion pour utilisateur existant', data)
+}
+
+// Fonction pour gérer le succès de la connexion
+async function handleAccountLoginSuccess(data) {
+  showAccountLogin.value = false
+  
+  // Vérifier s'il y a des données de notification en attente
+  const pendingNotificationData = localStorage.getItem('pendingNotificationData')
+  
+  if (data.action === 'login_success' && pendingNotificationData) {
+    console.log('🎯 Connexion réussie, activation des notifications...')
+    
+    try {
+      // Récupérer les données de notification depuis localStorage
+      const notificationData = JSON.parse(pendingNotificationData)
+      
+      // Activer les notifications pour l'utilisateur connecté
+      const { activateNotificationsForConnectedUser } = await import('../services/notificationActivation.js')
+      const result = await activateNotificationsForConnectedUser({
+        seasonId: notificationData.seasonId,
+        eventId: notificationData.eventId,
+        playerName: notificationData.playerName,
+        email: data.email,
+        eventTitle: notificationData.eventTitle,
+        seasonSlug: notificationData.seasonSlug
+      })
+      
+      console.log('✅ Notifications activées après connexion:', result)
+      
+      // Afficher le toast de succès
+      showSuccessMessage.value = true
+      successMessage.value = `Notifications activées avec succès pour ${notificationData.playerName} !`
+      setTimeout(() => {
+        showSuccessMessage.value = false
+      }, 4000)
+      
+      // Nettoyer localStorage
+      localStorage.removeItem('pendingNotificationData')
+      
+      logger.info('Notifications activées avec succès après connexion', result)
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'activation des notifications après connexion:', error)
+      
+      // Afficher un message d'erreur
+      showErrorMessage.value = true
+      errorMessage.value = 'Erreur lors de l\'activation des notifications. Veuillez réessayer.'
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      
+      // Nettoyer localStorage même en cas d'erreur
+      localStorage.removeItem('pendingNotificationData')
+    }
+  } else {
+    // Connexion normale, afficher le menu du compte
+    console.log('🔐 Connexion normale, affichage du menu du compte')
+    showAccountMenu.value = true
+  }
 }
 
 

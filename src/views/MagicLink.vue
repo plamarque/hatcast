@@ -143,14 +143,23 @@ onMounted(async () => {
         const result = await processNotificationActivation(token)
         
         if (result.success) {
+          console.log('✅ Activation des notifications réussie:', {
+            success: result.success,
+            email: result.email,
+            playerName: result.playerName,
+            accountStatus: result.accountStatus
+          })
+          
           status.value = 'ok'
           title.value = 'Notifications activées !'
           
           // Message personnalisé selon si un compte a été créé
           if (result.accountStatus?.created) {
+            console.log('🎉 Compte créé, affichage du message de création de compte')
             message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Un compte a été créé avec ton email et tu recevras un email pour définir ton mot de passe.`
           } else {
-            message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Tu recevras des alertes pour tes événements.`
+            console.log('ℹ️ Compte existant, pas de modal de succès')
+            message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Tu recevras des alertes pour tes spectacles.`
           }
           
           // Ajouter une proposition de création de mot de passe
@@ -158,12 +167,24 @@ onMounted(async () => {
           
           // Redirection selon le type d'utilisateur
           if (result.accountStatus?.created) {
+            console.log('🎯 Nouvel utilisateur détecté, redirection avec modal de succès...', {
+              slug,
+              eventId,
+              email: result.email,
+              playerName: result.playerName
+            })
+            
             // Nouvel utilisateur : afficher la modal de succès avec proposition de mot de passe
             if (slug && eventId) {
-              router.push(`/season/${slug}?event=${eventId}&modal=event_details&notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`)
+              const redirectUrl = `/season/${slug}?event=${eventId}&modal=event_details&notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`
+              console.log('🔗 Redirection vers:', redirectUrl)
+              router.push(redirectUrl)
             } else if (slug) {
-              router.push(`/season/${slug}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`)
+              const redirectUrl = `/season/${slug}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}`
+              console.log('🔗 Redirection vers:', redirectUrl)
+              router.push(redirectUrl)
             } else {
+              console.log('🔗 Redirection vers /seasons (pas de slug)')
               router.push('/seasons')
             }
           } else {

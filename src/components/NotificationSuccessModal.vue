@@ -29,7 +29,7 @@
           <span class="text-blue-400 text-lg">💡</span>
           <div class="text-left flex-1">
             <p class="text-blue-300 text-sm font-medium mb-3">
-              Psst... tant que tu y es : ajoute un mot de passe pour sécuriser ton compte !
+              Psst... tant que tu y es : crée ton mot de passe pour sécuriser ton compte !
             </p>
             
             <!-- Lien expandable avec contenu factorisé -->
@@ -53,7 +53,7 @@
       
       <!-- Boutons d'action -->
       <div class="flex gap-3">
-        <!-- CTA principal : Créer mot de passe -->
+        <!-- CTA principal : Créer/Réinitialiser mot de passe -->
         <button
           @click="createPassword"
           class="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-medium"
@@ -101,7 +101,8 @@ const props = defineProps({
   eventId: {
     type: String,
     default: null
-  }
+  },
+
 })
 
 const emit = defineEmits(['close', 'createPassword'])
@@ -115,10 +116,10 @@ async function createPassword() {
   passwordLoading.value = true
   
   try {
-    const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth')
+    const { sendPasswordResetEmail } = await import('firebase/auth')
     const { auth } = await import('../services/firebase.js')
     
-    console.log('🚀 Tentative de création de compte pour:', props.email)
+    console.log('🚀 Envoi de l\'email de réinitialisation pour:', props.email)
     
     // Stocker la navigation actuelle dans localStorage avant d'envoyer l'email
     const currentNavigation = {
@@ -129,55 +130,23 @@ async function createPassword() {
     localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
     console.log('💾 Navigation sauvegardée pour redirection après reset:', currentNavigation)
     
-    // 1. Créer l'utilisateur avec un mot de passe temporaire
-    const tempPassword = 'TempPass123!' // Mot de passe temporaire sécurisé
-    const userCredential = await createUserWithEmailAndPassword(auth, props.email, tempPassword)
-    
-    console.log('✅ Compte créé avec succès, UID:', userCredential.user.uid)
-    
-    // 2. Envoyer l'email de réinitialisation
+    // Le compte existe déjà (créé dans processNotificationActivation)
+    // Envoyer directement l'email de réinitialisation
     console.log('📧 Envoi de l\'email de réinitialisation...')
     await sendPasswordResetEmail(auth, props.email)
     
     console.log('✅ Email de réinitialisation envoyé avec succès à', props.email)
     
-    // 3. Se déconnecter (car on était connecté avec le mot de passe temporaire)
-    await auth.signOut()
-    
     // Afficher le feedback de succès
     passwordEmailSent.value = true
     
   } catch (error) {
-    console.error('❌ Erreur lors de la création du compte:', error)
+    console.error('❌ Erreur lors de l\'envoi de l\'email de réinitialisation:', error)
     
-    if (error.code === 'auth/email-already-in-use') {
-      // L'utilisateur existe déjà, essayer d'envoyer directement l'email de réinitialisation
-      try {
-        console.log('📧 Utilisateur existant, envoi direct de l\'email de réinitialisation...')
-        const { sendPasswordResetEmail } = await import('firebase/auth')
-        
-        // Stocker aussi la navigation pour les utilisateurs existants
-        const currentNavigation = {
-          lastVisitedPage: window.location.pathname + window.location.search,
-          timestamp: Date.now(),
-          email: props.email
-        }
-        localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
-        console.log('💾 Navigation sauvegardée pour utilisateur existant:', currentNavigation)
-        
-        await sendPasswordResetEmail(auth, props.email)
-        
-        console.log('✅ Email de réinitialisation envoyé avec succès à', props.email)
-        passwordEmailSent.value = true
-        
-      } catch (resetError) {
-        console.error('❌ Erreur lors de l\'envoi de l\'email de réinitialisation:', resetError)
-        // Gérer l'erreur de réinitialisation
-      }
-    } else if (error.code === 'auth/weak-password') {
-      console.error('❌ Mot de passe temporaire trop faible')
-    } else if (error.code === 'auth/invalid-email') {
-      console.error('❌ Email invalide')
+    if (error.code === 'auth/user-not-found') {
+      console.error('❌ Utilisateur non trouvé, le compte n\'a pas été créé correctement')
+    } else if (error.code === 'auth/too-many-requests') {
+      console.error('❌ Trop de demandes, veuillez attendre avant de réessayer')
     } else {
       console.error('❌ Erreur inconnue:', error.message)
     }

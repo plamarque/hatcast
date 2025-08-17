@@ -15,9 +15,9 @@
         <div class="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-600">
           <span class="text-xl">🔔</span>
         </div>
-        <h2 class="text-xl font-bold text-white mb-2">Ne rates rien !</h2>
+        <h2 class="text-xl font-bold text-white mb-2">Ne rate rien !</h2>
         <p class="text-gray-300 text-sm">
-          <span class="font-medium text-white">{{ playerName }}</span>, active tes notifications pour recevoir des alertes en temps réel sur tes événements.
+          <span class="font-medium text-white">{{ playerName }}</span>, active tes notifications pour recevoir des alertes en temps réel sur les spectacles.
         </p>
       </div>
 
@@ -133,7 +133,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'success'])
+const emit = defineEmits(['close', 'success', 'show-login'])
 
 const email = ref('')
 const loading = ref(false)
@@ -203,7 +203,29 @@ async function sendMagicLink() {
       emit('success', { email: email.value, playerName: props.playerName, directActivation: true })
       
     } else {
-      console.log('📧 Utilisateur non connecté, envoi de l\'email d\'activation...')
+      console.log('📧 Utilisateur non connecté, vérification de l\'email...')
+      
+      // Vérifier si l'email existe déjà dans Firebase
+      const { checkEmailExists } = await import('../services/notificationActivation.js')
+      const emailExists = await checkEmailExists(email.value)
+      
+      if (emailExists) {
+        console.log('🎯 Email existant détecté, affichage du popup de connexion')
+        
+        // Fermer cette modal et émettre un événement pour afficher le popup de connexion
+        emit('close')
+        emit('show-login', { 
+          email: email.value, 
+          playerName: props.playerName,
+          eventId: props.eventId,
+          seasonId: props.seasonId,
+          seasonSlug: props.seasonSlug
+        })
+        
+        return
+      }
+      
+      console.log('📧 Nouvel email, envoi de l\'email d\'activation...')
       
       // Créer la demande d'activation des notifications (avec email)
       const result = await createNotificationActivationRequest({

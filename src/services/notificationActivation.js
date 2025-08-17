@@ -23,6 +23,41 @@ export function shouldPromptForNotifications() {
 }
 
 /**
+ * Vérifie si un email existe déjà dans Firebase Auth
+ * Retourne true si l'email existe, false sinon
+ */
+export async function checkEmailExists(email) {
+  try {
+    const { auth } = await import('./firebase.js')
+    const { createUserWithEmailAndPassword } = await import('firebase/auth')
+    
+    // Essayer de créer un compte temporaire
+    // Si ça échoue avec "email-already-in-use", l'email existe
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, 'temp_check_123')
+      
+      // Si on arrive ici, le compte a été créé, on le supprime immédiatement
+      await userCredential.user.delete()
+      
+      logger.info('Email vérifié : nouveau (compte temporaire supprimé)', { email })
+      return false
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        logger.info('Email vérifié : existant', { email })
+        return true
+      } else {
+        // Autre erreur, on considère que l'email n'existe pas
+        logger.warn('Erreur lors de la vérification de l\'email, considéré comme nouveau', { email, error: error.code })
+        return false
+      }
+    }
+  } catch (error) {
+    logger.error('Erreur lors de la vérification de l\'email', error)
+    return false
+  }
+}
+
+/**
  * Crée une demande d'activation des notifications
  */
 export async function createNotificationActivationRequest({
@@ -86,7 +121,7 @@ export async function createNotificationActivationRequest({
       eventId
     })
 
-    return { success: true, activationId, magicLink }
+    return { success: true, activationId, method: 'firebase_magic_link' }
   } catch (error) {
     logger.error('Erreur lors de la création de la demande d\'activation', error)
     throw error
@@ -338,48 +373,42 @@ export async function activateNotificationsForConnectedUser({
 
 /**
  * Crée automatiquement un compte Firebase Auth si nécessaire
+ * Utilise une méthode plus fiable pour détecter les comptes existants
  */
 async function createUserAccountIfNeeded(email) {
   try {
-    // Vérifier si un compte existe déjà
     const { auth } = await import('./firebase.js')
-    const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth')
+    const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth')
     
+    // Méthode plus fiable : essayer de créer le compte directement
+    // Si ça échoue avec "email-already-in-use", le compte existe
     try {
-      // Essayer de se connecter (compte existe)
-      await signInWithEmailAndPassword(auth, email, 'temp_password_123')
-      logger.info('Compte Firebase Auth existant trouvé', { email })
-      return { created: false, reason: 'already_exists' }
+      // Créer un compte avec un mot de passe temporaire
+      const userCredential = await createUserWithEmailAndPassword(auth, email, 'temp_password_123')
+      
+      // Envoyer un email de réinitialisation de mot de passe
+      await sendPasswordResetEmail(auth, email)
+      
+      logger.info('Compte Firebase Auth créé avec succès', { 
+        email, 
+        uid: userCredential.user.uid 
+      })
+      
+      return { 
+        created: true, 
+        reason: 'new_account_created',
+        uid: userCredential.user.uid,
+        passwordResetSent: true
+      }
     } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        // Compte n'existe pas, le créer
-        try {
-          // Créer un compte avec un mot de passe temporaire
-          const userCredential = await createUserWithEmailAndPassword(auth, email, 'temp_password_123')
-          
-          // Envoyer un email de réinitialisation de mot de passe
-          const { sendPasswordResetEmail } = await import('firebase/auth')
-          await sendPasswordResetEmail(auth, email)
-          
-          logger.info('Compte Firebase Auth créé avec succès', { 
-            email, 
-            uid: userCredential.user.uid 
-          })
-          
-          return { 
-            created: true, 
-            reason: 'new_account_created',
-            uid: userCredential.user.uid,
-            passwordResetSent: true
-          }
-        } catch (createError) {
-          logger.error('Erreur lors de la création du compte Firebase Auth', createError)
-          return { created: false, reason: 'creation_failed', error: createError.message }
-        }
+      if (error.code === 'auth/email-already-in-use') {
+        // Le compte existe déjà
+        logger.info('Compte Firebase Auth existant trouvé', { email })
+        return { created: false, reason: 'already_exists' }
       } else {
-        // Autre erreur (mauvais mot de passe, etc.)
-        logger.warn('Erreur de connexion Firebase Auth', { email, error: error.code })
-        return { created: false, reason: 'auth_error', error: error.code }
+        // Autre erreur lors de la création
+        logger.error('Erreur lors de la création du compte Firebase Auth', error)
+        return { created: false, reason: 'creation_failed', error: error.message }
       }
     }
   } catch (error) {

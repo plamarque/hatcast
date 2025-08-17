@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { signInPlayer, resetPlayerPassword } from '../services/firebase.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 
@@ -75,6 +75,18 @@ const error = ref('')
 const success = ref('')
 const staySignedIn = ref(true)
 
+// Récupérer l'email pré-rempli depuis localStorage quand la modal s'ouvre
+watch(() => props.show, (newShow) => {
+  if (newShow) {
+    const prefilledEmail = localStorage.getItem('prefilledEmail')
+    if (prefilledEmail) {
+      email.value = prefilledEmail
+      // Nettoyer localStorage après utilisation
+      localStorage.removeItem('prefilledEmail')
+    }
+  }
+}, { immediate: true })
+
 const canLogin = computed(() => !!email.value && email.value.includes('@') && !!password.value)
 
 async function login() {
@@ -88,7 +100,10 @@ async function login() {
       // Marquer l'appareil de confiance pour l'email du compte afin d'éviter la re-saisie
       try { playerPasswordSessionManager.saveSession(email.value.trim()) } catch {}
     }
-    emit('success')
+    emit('success', { 
+      email: email.value.trim(),
+      action: 'login_success'
+    })
   } catch (e) {
     error.value = 'Email ou mot de passe incorrect'
   } finally {
