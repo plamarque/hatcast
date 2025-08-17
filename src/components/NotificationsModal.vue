@@ -33,6 +33,11 @@
                 <!-- Onglet Email -->
         <div v-if="activeTab === 'email'" class="space-y-4">
           
+          <!-- Affichage de l'email actuel -->
+          <div class="p-3 rounded-lg border border-blue-500/30 bg-blue-500/10">
+            <div class="text-blue-200 text-sm">Nous enverrons des emails à l'adresse : <span class="text-blue-100 font-semibold">{{ email || 'Non connecté' }}</span></div>
+          </div>
+          
           <!-- Notifications de spectacles -->
            <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
              <h4 class="text-sm font-medium text-gray-300 mb-3">Spectacles</h4>
