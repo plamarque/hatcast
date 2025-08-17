@@ -59,7 +59,9 @@
 
     <!-- Message à copier -->
     <div>
-      <label class="block text-sm font-medium text-gray-300 mb-2">Message à copier pour les contacts manuels :</label>
+      <label class="block text-sm font-medium text-gray-300 mb-2">
+        {{ mode === 'selection' ? 'Message à copier pour annoncer la sélection à tous (WhatsApp) :' : 'Message à copier pour les contacts manuels :' }}
+      </label>
 
       <!-- Message à copier -->
       <div class="space-y-3">
@@ -83,7 +85,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { buildAvailabilityTextTemplate, buildSelectionTextTemplate } from '../services/emailTemplates.js'
+import { buildAvailabilityTextTemplate, buildSelectionTextTemplate, buildGlobalSelectionAnnouncementTemplate } from '../services/emailTemplates.js'
 
 const props = defineProps({
   mode: {
@@ -161,11 +163,12 @@ const unifiedMessage = computed(() => {
       eventUrl: directLink
     })
   } else {
-    return buildSelectionTextTemplate({
-      playerName: '', // Toujours vide pour "Tous"
+    // Mode sélection : utiliser le template d'annonce globale pour WhatsApp
+    return buildGlobalSelectionAnnouncementTemplate({
       eventTitle,
       eventDate: dateStr,
-      eventUrl: directLink
+      eventUrl: directLink,
+      selectedPlayers: props.selectedPlayers
     })
   }
 })

@@ -88,6 +88,28 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 }
 
 /**
+ * Template pour l'annonce globale de sélection (à copier-coller pour WhatsApp)
+ */
+export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, eventUrl, selectedPlayers }) {
+  const playersList = selectedPlayers.length > 0 ? selectedPlayers.join(', ') : 'les joueurs sélectionnés'
+  
+  return `🎭 ANNONCE SÉLECTION 🎭
+
+${eventTitle}
+📅 ${eventDate}
+
+✅ SÉLECTIONNÉS : ${playersList}
+
+🎯 Préparez-vous à briller !
+
+🔗 Détails et désistement : ${eventUrl}
+
+💬 Répondez dans ce groupe pour confirmer votre disponibilité ou signaler un imprévu.
+
+Bonne chance à tous ! 🍀✨`
+}
+
+/**
  * Template pour l'activation des notifications
  */
 export function buildNotificationActivationTemplate({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
