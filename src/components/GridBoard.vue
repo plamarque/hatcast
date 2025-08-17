@@ -14,7 +14,7 @@
       @open-account="openAccount"
     />
 
-    <div class="w-full px-0 md:px-0 pb-0 pt-[72px] md:pt-[80px] -mt-[72px] md:-mt-[80px] bg-gray-900">
+    <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
         <div class="flex items-stretch relative">

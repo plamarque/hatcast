@@ -1,22 +1,23 @@
 <template>
-  <div class="sticky top-0 z-[60] text-center py-4 md:py-6 px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
-    <!-- Flèche de retour -->
+  <div class="sticky top-0 z-[60] text-center py-3 md:py-6 px-2 md:px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10">
+    <!-- Flèche de retour - optimisée pour mobile avec marge réduite -->
     <button 
       @click="goBack"
-      class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+      class="absolute left-1 md:left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-1.5 md:p-2 rounded-full hover:bg-white/10"
       title="Retour aux saisons"
     >
-      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
       </svg>
     </button>
     
-    <h1 class="text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+    <!-- Titre de la saison - optimisé pour mobile avec ellipsis et espacement réduit -->
+    <h1 class="text-2xl md:text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent px-6 md:px-16 truncate max-w-full">
       {{ seasonName ? seasonName : 'Chargement...' }}
     </h1>
     
-    <!-- Actions à droite -->
-    <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+    <!-- Actions à droite - optimisées pour mobile -->
+    <div class="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2">
       <!-- Desktop: actions visibles -->
       <div class="hidden md:flex items-center gap-2">
         <AccountDropdown 

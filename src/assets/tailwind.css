@@ -129,6 +129,9 @@
 .mx-auto {
   margin-inline: auto;
 }
+.-mt-\[64px\] {
+  margin-top: calc(64px * -1);
+}
 .-mt-\[72px\] {
   margin-top: calc(72px * -1);
 }
@@ -401,6 +404,9 @@
 }
 .object-cover {
   object-fit: cover;
+}
+.pt-\[64px\] {
+  padding-top: 64px;
 }
 .pt-\[72px\] {
   padding-top: 72px;
