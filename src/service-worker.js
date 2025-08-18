@@ -54,9 +54,14 @@ self.addEventListener('notificationclick', (event) => {
   const url = data.url || '/'
   const noUrl = data.noUrl
   const yesUrl = data.yesUrl
+  const confirmUrl = data.confirmUrl
+  const declineUrl = data.declineUrl
   event.notification.close()
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Actions spécifiques pour sélection
+      if (event.action === 'confirm' && confirmUrl) return self.clients.openWindow(confirmUrl)
+      if (event.action === 'decline' && declineUrl) return self.clients.openWindow(declineUrl)
       // Actions spécifiques pour disponibilité
       if (event.action === 'no' && noUrl) return self.clients.openWindow(noUrl)
       if (event.action === 'yes' && yesUrl) return self.clients.openWindow(yesUrl)
@@ -100,14 +105,17 @@ try {
     const url = data.url || '/'
     const noUrl = data.noUrl
     const yesUrl = data.yesUrl
+    const confirmUrl = data.confirmUrl
+    const declineUrl = data.declineUrl
     const reason = data.reason || 'generic'
     /** @type {NotificationAction[]} */
     const actions = []
     
     // Actions adaptatives selon le type de notification
     if (reason === 'selection') {
-      // Notifications de sélection : action de désistement
-      if (noUrl) actions.push({ action: 'no', title: '❌ Plus dispo' })
+      // Notifications de sélection : actions de confirmation et déclin
+      if (confirmUrl) actions.push({ action: 'confirm', title: '✅ Confirmer' })
+      if (declineUrl) actions.push({ action: 'decline', title: '❌ Décliner' })
       actions.push({ action: 'open', title: 'Voir l\'événement' })
     } else if (reason === 'availability_request' || reason === 'availability_reminder') {
       // Notifications de disponibilité : actions oui/non
@@ -121,7 +129,7 @@ try {
       actions.push({ action: 'open', title: 'Voir' })
     }
     
-    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl, reason } })
+    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl, confirmUrl, declineUrl, reason } })
   })
   }
 } catch (e) {

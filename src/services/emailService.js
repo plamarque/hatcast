@@ -154,7 +154,9 @@ export async function queueSelectionEmail({
   html = undefined,
   subject = undefined,
   fromEmail = undefined,
-  noUrl = undefined // Ajout de noUrl
+  noUrl = undefined, // Ajout de noUrl (compat)
+  confirmUrl = undefined,
+  declineUrl = undefined
 }) {
   // Respecter préférences notification
   try {
@@ -218,13 +220,19 @@ export async function queueSelectionEmail({
       })
       if (prefs?.notifySelectionPush !== false) {
         console.log('Envoi notification push de sélection', { toEmail, playerName, eventTitle })
-        await queuePushMessage({
-          toEmail: toEmail,
-          title: '🎭 Confirme ta participation !',
-          body: `${playerName}, tu as été sélectionné(e) pour ${eventTitle} (${eventDate}) 🎉`,
-          data: { url: eventUrl || window.location.origin, noUrl }, // Ajout de noUrl aux données push
-          reason: 'selection'
-        })
+        {
+          const pushData = { url: eventUrl || window.location.origin }
+          if (typeof confirmUrl !== 'undefined') pushData.confirmUrl = confirmUrl
+          if (typeof declineUrl !== 'undefined') pushData.declineUrl = declineUrl
+          if (typeof noUrl !== 'undefined') pushData.noUrl = noUrl
+          await queuePushMessage({
+            toEmail: toEmail,
+            title: '🎭 Confirme ta participation !',
+            body: `${playerName}, tu es en lice pour faire partie de l'équipe pour ${eventTitle} (${eventDate}) 🎉`,
+            data: pushData,
+            reason: 'selection'
+          })
+        }
         console.log('Notification push de sélection envoyée avec succès')
       } else {
         console.log('Notification push de sélection désactivée par préférences utilisateur')
@@ -369,17 +377,23 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       
       // Utiliser le nouveau template avec warning important et bouton de confirmation
       let html
+      // Créer un magic link "confirm" pour la confirmation (en dehors du try-catch pour être sûr qu'il soit défini)
+      const confirmMagicLink = await createMagicLink({ 
+        seasonId, 
+        playerId: player.id, 
+        eventId, 
+        action: 'confirm' 
+      })
+      const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
+      
       try {
         const { buildSelectionEmailTemplate } = await import('./emailTemplates.js')
         
-        // Créer un magic link "confirm" pour la confirmation
-        const confirmMagicLink = await createMagicLink({ 
-          seasonId, 
-          playerId: player.id, 
-          eventId, 
-          action: 'confirm' 
+        logger.debug('Magic links générés pour sélection', { 
+          playerName, 
+          confirmUrl: confirmUrl.substring(0, 100) + '...', 
+          declineUrl: declineUrl.substring(0, 100) + '...' 
         })
-        const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
         
         html = buildSelectionEmailTemplate({
           playerName,
@@ -395,15 +409,6 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
         logger.error('Erreur lors de l\'import du template, utilisation du template de fallback', { error: templateError })
         // Template de fallback en cas d'erreur
         const playersList = selectedPlayers.join(', ')
-        // Créer les magic links pour le fallback
-        const { createMagicLink } = await import('./magicLinks.js')
-        const confirmMagicLink = await createMagicLink({ 
-          seasonId, 
-          playerId: player.id, 
-          eventId, 
-          action: 'confirm' 
-        })
-        const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
         html = `
           <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
             <p>Bonjour <strong>${playerName}</strong>,</p>
@@ -431,13 +436,15 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
         eventUrl,
         html, // Utiliser le HTML personnalisé
         subject, // Utiliser le sujet personnalisé
-        noUrl: notAvailableUrl // Ajouter l'URL de désistement pour les notifications push
+        noUrl: declineUrl, // Utiliser l'URL de déclin pour compat push
+        confirmUrl,
+        declineUrl
       })
       
       emailPromises.push(emailPromise)
       logger.info('Email ajouté à la queue', { playerName })
     } catch (error) {
-      logger.error('Erreur lors de l\'envoi de l\'email de sélection', { playerName, error })
+      logger.error('Erreur lors de l\'envoi de l\'email de sélection', { playerName, error: error.message, stack: error.stack })
     }
   }
   
