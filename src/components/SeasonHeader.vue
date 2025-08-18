@@ -11,8 +11,12 @@
       </svg>
     </button>
     
-    <!-- Titre de la saison - optimisé pour mobile avec ellipsis et espacement réduit -->
-    <h1 class="text-2xl md:text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent px-6 md:px-16 truncate max-w-full">
+    <!-- Titre de la saison - cliquable pour rafraîchir -->
+    <h1 
+      @click="refreshSeason"
+      class="text-2xl md:text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent px-6 md:px-16 truncate max-w-full cursor-pointer hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 transition-all duration-200"
+      :title="seasonSlug ? `Cliquer pour rafraîchir ${seasonName}` : seasonName"
+    >
       {{ seasonName ? seasonName : 'Chargement...' }}
     </h1>
     
@@ -67,7 +71,8 @@ import AccountDropdown from './AccountDropdown.vue'
 
 const props = defineProps({
   seasonName: { type: String, default: '' },
-  isScrolled: { type: Boolean, default: false }
+  isScrolled: { type: Boolean, default: false },
+  seasonSlug: { type: String, default: '' }
 })
 
 const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation'])
@@ -87,7 +92,12 @@ const buttonClass = computed(() => {
     : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'
 })
 
-
+// Fonction pour rafraîchir la saison
+function refreshSeason() {
+  if (props.seasonSlug) {
+    window.location.href = `/season/${props.seasonSlug}`
+  }
+}
 
 // Gestion de l'état d'authentification
 function onAuthStateChanged(user) {

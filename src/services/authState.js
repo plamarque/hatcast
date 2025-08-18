@@ -10,7 +10,11 @@ const isInitializing = ref(false)
 
 // Computed properties
 const isConnected = computed(() => {
-  return !!currentUser.value && !currentUser.value?.isAnonymous
+  // Inclure les utilisateurs anonymes qui ont un email associé
+  if (!currentUser.value) return false
+  if (!currentUser.value.isAnonymous) return true
+  // Pour les utilisateurs anonymes, vérifier s'ils ont un email dans localStorage
+  return !!localStorage.getItem('userEmail')
 })
 
 const isAuthenticated = computed(() => {

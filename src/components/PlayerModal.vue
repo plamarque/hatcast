@@ -62,7 +62,7 @@
           <button @click="showProtectionModal = true" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
             <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
             <span>
-              {{ isProtectedForPlayer ? 'Désactiver la protection' : 'C\'est moi!' }}
+              {{ isProtectedForPlayer ? 'Désactiver la protection' : 'Protéger' }}
             </span>
           </button>
           
@@ -112,7 +112,7 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="showProtectionModal = true" class="h-12 px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-[1.4]">
-          {{ isProtectedForPlayer ? '🔓 Désactiver la protection' : '🔒 C\'est moi!' }}
+          {{ isProtectedForPlayer ? '🔓 Désactiver la protection' : '🔒 Protéger' }}
         </button>
         <button @click="togglePlayerMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">
           ⋯

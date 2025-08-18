@@ -122,11 +122,72 @@ onMounted(async () => {
       // Vérification d'email pour protection de joueur
       await markEmailVerifiedForProtection({ playerId, seasonId })
       // Activer la protection si l'email existe déjà (compte existant)
-      try { await finalizeProtectionAfterVerification({ playerId, seasonId }) } catch {}
+      let protectionResult = null
+      try { 
+        protectionResult = await finalizeProtectionAfterVerification({ playerId, seasonId }) 
+      } catch {}
+      
+      // Si la protection a été activée avec succès, connecter l'utilisateur automatiquement sans mot de passe
+      if (protectionResult?.success && protectionResult?.email) {
+        try {
+          const { auth } = await import('../services/firebase.js')
+          const { signInAnonymously, updateProfile } = await import('firebase/auth')
+          
+          // Se connecter anonymement
+          const userCredential = await signInAnonymously(auth)
+          const user = userCredential.user
+          
+          // Mettre à jour le profil avec l'email (pour l'affichage)
+          await updateProfile(user, {
+            displayName: protectionResult.email.split('@')[0], // Utiliser la partie avant @ comme nom
+            photoURL: null
+          })
+          
+          // Stocker l'email dans localStorage pour l'utiliser ailleurs
+          localStorage.setItem('userEmail', protectionResult.email)
+          localStorage.setItem('isAnonymousUser', 'true')
+          
+          console.log('✅ Connexion anonyme réussie avec email associé:', protectionResult.email)
+          
+          // Forcer la synchronisation de l'état d'authentification
+          try {
+            const { forceSync } = await import('../services/authState.js')
+            forceSync()
+            console.log('🔄 Synchronisation forcée de l\'état d\'authentification')
+          } catch (error) {
+            console.warn('Impossible de synchroniser l\'état d\'authentification:', error)
+          }
+          
+          // Stocker les informations de protection pour GridBoard.vue
+          localStorage.setItem('protectionActivated', 'true')
+          localStorage.setItem('protectedPlayerId', playerId)
+          localStorage.setItem('protectedSeasonId', seasonId)
+          // Écrire aussi la clé globale de favoris pour réactivité immédiate
+          try {
+            const existing = localStorage.getItem('seasonPreferredPlayer:global')
+            if (!existing) {
+              localStorage.setItem('seasonPreferredPlayer:global', JSON.stringify([playerId]))
+            } else if (existing.startsWith('[')) {
+              const arr = JSON.parse(existing)
+              if (!arr.includes(playerId)) {
+                arr.push(playerId)
+                localStorage.setItem('seasonPreferredPlayer:global', JSON.stringify(arr))
+              }
+            } else if (existing !== playerId) {
+              localStorage.setItem('seasonPreferredPlayer:global', JSON.stringify([existing, playerId]))
+            }
+          } catch (_) {}
+          
+          console.log('✅ Protection activée, email stocké pour connexion automatique:', protectionResult.email)
+        } catch (error) {
+          console.error('Erreur lors de la préparation de la connexion automatique:', error)
+        }
+      }
+      
       await consumeMagicLink({ seasonId, playerId, eventId: 'protection', action })
       status.value = 'ok'
-      title.value = 'Email vérifié'
-      message.value = 'Merci ! Vous pouvez maintenant définir votre mot de passe.'
+      title.value = 'Protection activée !'
+      message.value = 'Merci ! Votre compte est maintenant protégé et vous êtes connecté automatiquement.'
       // Renvoyer vers la saison de départ
       if (slug) {
         setTimeout(() => router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`), 800)

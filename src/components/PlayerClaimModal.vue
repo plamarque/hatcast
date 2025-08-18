@@ -63,7 +63,7 @@
           @click="showAccountClaim = true"
           class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300"
         >
-          Associer un compte
+          C'est moi !
         </button>
         <button
           v-else
@@ -107,7 +107,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
+import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached, getPlayerProtectionData } from '../services/playerProtection.js'
 import { useRoute } from 'vue-router'
 import AccountClaimModal from './AccountClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
@@ -135,10 +135,37 @@ const showPasswordVerification = ref(false)
 const validEmail = computed(() => false)
 const passwordsValid = computed(() => false)
 
-function handleClaimSuccess() {
-            success.value = 'Compte créé et personne associée !'
+async function handleClaimSuccess(data) {
+  success.value = 'Compte créé et personne associée !'
   isProtected.value = true
   showAccountClaim.value = false
+  
+  // Connecter automatiquement l'utilisateur après l'association
+  if (data?.email && data?.password) {
+    try {
+      // Stocker l'email pour pré-remplir dans la modale "Ne rate rien"
+      localStorage.setItem('prefilledEmail', data.email)
+      
+      // Connecter l'utilisateur avec Firebase Auth
+      const { signInWithEmailAndPassword } = await import('firebase/auth')
+      const { auth } = await import('../services/firebase.js')
+      
+      await signInWithEmailAndPassword(auth, data.email, data.password)
+      
+      // Émettre un événement pour informer le parent que l'utilisateur est connecté
+      emit('update', { 
+        action: 'protection_activated',
+        email: data.email,
+        playerId: props.player?.id
+      })
+      
+      console.log('✅ Utilisateur connecté automatiquement après activation de la protection')
+    } catch (error) {
+      console.error('Erreur lors de la connexion automatique:', error)
+      // En cas d'erreur, on continue normalement
+    }
+  }
+  
   emit('update')
 }
 

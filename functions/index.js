@@ -4,6 +4,45 @@ const admin = require('firebase-admin')
 admin.initializeApp()
 const db = admin.firestore()
 
+// Callable: crée un custom token Firebase pour un email et le renvoie
+exports.createCustomTokenForEmail = functions.https.onCall(async (data, context) => {
+  try {
+    const email = (data && data.email || '').trim()
+    if (!email) {
+      return { success: false, error: 'missing_email' }
+    }
+    
+    // Vérifier si l'utilisateur existe
+    let user = null
+    try {
+      user = await admin.auth().getUserByEmail(email)
+    } catch (e) {
+      if (e.code === 'auth/user-not-found') {
+        // Créer un utilisateur avec un mot de passe temporaire
+        const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'
+        user = await admin.auth().createUser({ 
+          email,
+          password: tempPassword,
+          emailVerified: true
+        })
+      } else {
+        throw e
+      }
+    }
+    
+    // Créer un custom token
+    const token = await admin.auth().createCustomToken(user.uid, {
+      email: user.email,
+      email_verified: user.emailVerified
+    })
+    
+    return { success: true, token, uid: user.uid }
+  } catch (error) {
+    console.error('createCustomTokenForEmail error', error)
+    return { success: false, error: error.message || 'unknown_error' }
+  }
+})
+
 exports.processPushQueue = functions.firestore
   .document('pushQueue/{pushId}')
   .onCreate(async (snap, context) => {

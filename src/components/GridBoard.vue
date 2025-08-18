@@ -4,6 +4,7 @@
     <SeasonHeader 
       :season-name="seasonName"
       :is-scrolled="isScrolled"
+      :season-slug="props.slug"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="showHowItWorksGlobal = true"
@@ -33,8 +34,12 @@
                 <span class="sm:hidden">Spectacle</span>
               </button>
               
-              <!-- Icône de la saison -->
-              <div class="flex items-center justify-center p-1 relative z-[102]">
+              <!-- Icône de la saison - cliquable pour rafraîchir -->
+              <div 
+                @click="refreshSeason"
+                class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
+                :title="`Cliquer pour rafraîchir ${seasonName}`"
+              >
                 <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
                   <img 
                     :src="seasonMeta.logoUrl" 
@@ -1281,6 +1286,15 @@
     @success="handleNotificationPromptSuccess"
     @show-login="handleShowLogin"
   />
+
+  <!-- Modal de protection des saisies -->
+  <PlayerClaimModal
+    :show="showPlayerClaim"
+    :player="playerClaimData?.player || null"
+    :season-id="seasonId"
+    @close="showPlayerClaim = false"
+    @update="handlePlayerClaimUpdate"
+  />
   
   <!-- Modale de succès des notifications -->
   <NotificationSuccessModal
@@ -1699,6 +1713,10 @@ const notificationPromptData = ref(null)
 const showNotificationSuccess = ref(false)
 const notificationSuccessData = ref(null)
 
+// Variables pour la modale de protection des saisies
+const showPlayerClaim = ref(false)
+const playerClaimData = ref(null)
+
 // Fonctions pour gérer le dropdown des actions d'événements
 function updateEventMoreActionsPosition() {
   try {
@@ -2086,6 +2104,17 @@ onMounted(async () => {
       })
     }
     
+    // Ouvrir automatiquement la protection si demandé (sauf si on vient de vérifier l'email)
+    if (urlParams.get('open') === 'protection' && urlParams.get('player') && !urlParams.get('verified')) {
+      const playerId = urlParams.get('player')
+      const targetPlayer = players.value.find(p => p.id === playerId)
+      if (targetPlayer) {
+        nextTick(() => {
+          showPlayerDetails(targetPlayer)
+        })
+      }
+    }
+    
     // Ouvrir automatiquement les détails d'événement si demandé
     if (urlParams.get('modal') === 'event_details' && urlParams.get('event')) {
       const eventId = urlParams.get('event')
@@ -2097,14 +2126,66 @@ onMounted(async () => {
       }
     }
     
-    // Ouvrir automatiquement les détails de joueur si demandé
-    if (urlParams.get('modal') === 'player_details' && urlParams.get('player')) {
+    // Ouvrir automatiquement les détails de joueur si demandé (sauf si on vient de vérifier l'email)
+    if (urlParams.get('modal') === 'player_details' && urlParams.get('player') && !urlParams.get('verified')) {
       const playerId = urlParams.get('player')
       const targetPlayer = players.value.find(p => p.id === playerId)
       if (targetPlayer) {
         nextTick(() => {
           showPlayerDetails(targetPlayer)
         })
+      }
+    }
+    
+    // Gestion de la protection activée après vérification d'email
+    if (urlParams.get('verified') === '1' && urlParams.get('player')) {
+      const playerId = urlParams.get('player')
+      const protectionActivated = localStorage.getItem('protectionActivated')
+      const protectedPlayerId = localStorage.getItem('protectedPlayerId')
+      
+      if (protectionActivated === 'true' && protectedPlayerId === playerId) {
+        // Protection activée avec succès, ajouter le joueur en favoris
+        try {
+          const { addPreferredPlayerLocal } = await import('../services/playerProtection.js')
+          // Utiliser la saison courante si disponible, sinon fallback à la saison protégée ou globale
+          const sid = seasonId.value || localStorage.getItem('protectedSeasonId') || 'global'
+          await addPreferredPlayerLocal(sid, playerId)
+          
+          // Mettre à jour l'état des favoris pour déclencher la réactivité
+          updatePreferredPlayersSet()
+          console.log('🔄 Mise à jour des favoris effectuée, état actuel:', Array.from(preferredPlayerIdsSet.value))
+          
+                            // Afficher un message de succès
+                  showSuccessMessage.value = true
+                  const playerName = players.value.find(p => p.id === playerId)?.name || 'le joueur'
+                  successMessage.value = `Protection activée ! ${playerName} est maintenant dans vos ⭐️ favoris`
+                  setTimeout(() => {
+                    showSuccessMessage.value = false
+                  }, 5000)
+          
+          // Nettoyer le localStorage
+          localStorage.removeItem('protectionActivated')
+          localStorage.removeItem('protectedPlayerId')
+          localStorage.removeItem('protectedSeasonId')
+          
+          console.log('✅ Joueur ajouté en favoris après activation de la protection:', playerId)
+          
+          // Si l'URL contient aussi open=protection, ouvrir les détails du joueur après un délai
+          if (urlParams.get('open') === 'protection') {
+            const targetPlayer = players.value.find(p => p.id === playerId)
+            if (targetPlayer) {
+              setTimeout(() => {
+                showPlayerDetails(targetPlayer)
+              }, 1000) // Délai pour laisser le temps au message de succès de s'afficher
+            }
+          }
+          
+          // Note: La connexion automatique se fait maintenant directement dans MagicLink.vue
+          // via la Cloud Function createCustomTokenForEmail, donc pas besoin d'afficher
+          // la modale de connexion ici
+        } catch (error) {
+          console.error('Erreur lors de l\'ajout en favoris:', error)
+        }
       }
     }
   } catch (error) {
@@ -3145,6 +3226,9 @@ onMounted(async () => {
         protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
       }
       protectedPlayers.value = protSet
+      
+      // Initialiser les joueurs préférés
+      updatePreferredPlayersSet()
     }
     
     // Déplacer les calculs lourds en idle
@@ -3410,20 +3494,41 @@ const sortedPlayers = computed(() => {
 })
 
 // Exposer l'ensemble des joueurs préférés pour la surbrillance légère
-const preferredPlayerIdsSet = computed(() => {
+const preferredPlayerIdsSet = ref(new Set())
+
+// Fonction pour mettre à jour les joueurs préférés depuis localStorage
+function updatePreferredPlayersSet() {
   try {
     if (seasonId.value) {
-      const raw = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
-      if (!raw) return new Set()
+      let raw = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
+      // Fallback immédiat: si pas encore écrit pour la saison, regarder la clé globale
+      if (!raw) {
+        raw = localStorage.getItem(`seasonPreferredPlayer:global`)
+      }
+      console.log('🔄 updatePreferredPlayersSet - raw localStorage:', raw)
+      if (!raw) {
+        preferredPlayerIdsSet.value = new Set()
+        console.log('🔄 updatePreferredPlayersSet - aucun favori trouvé')
+        return
+      }
       if (raw.startsWith('[')) {
         const arr = JSON.parse(raw)
-        return new Set(Array.isArray(arr) ? arr : [])
+        preferredPlayerIdsSet.value = new Set(Array.isArray(arr) ? arr : [])
+      } else {
+        preferredPlayerIdsSet.value = new Set([raw])
       }
-      return new Set([raw])
+      console.log('🔄 updatePreferredPlayersSet - favoris mis à jour:', Array.from(preferredPlayerIdsSet.value))
     }
-  } catch (_) {}
-  return new Set()
-})
+  } catch (error) {
+    console.error('🔄 updatePreferredPlayersSet - erreur:', error)
+    preferredPlayerIdsSet.value = new Set()
+  }
+}
+
+// Fonction helper pour vérifier si l'utilisateur est connecté (y compris les utilisateurs anonymes avec email)
+function isUserConnected() {
+  return !!auth.currentUser?.email || !!localStorage.getItem('userEmail')
+}
 
 const sortedEvents = computed(() => {
   // Tri chronologique gauche→droite, puis titre en cas d'égalité
@@ -3535,36 +3640,29 @@ async function toggleAvailability(playerName, eventId) {
     await performToggleAvailability(player, eventId);
     
     // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
-    if (!auth.currentUser?.email) {
-      // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
-      if (shouldPromptForNotifications()) {
-        // Attendre que le toast de succès disparaisse avant d'afficher la modale
-        setTimeout(async () => {
-          // Préparer les données de notification
-          const notificationData = {
-            playerName,
+    if (!isUserConnected()) {
+      // Utilisateur non connecté : vérifier si le joueur est protégé (éviter le masquage de l'import)
+      const isProtectedForThisPlayer = await isPlayerProtected(player.id, seasonId.value);
+      
+      setTimeout(() => {
+        if (isProtectedForThisPlayer) {
+          // Joueur protégé : afficher la modale de notifications
+          notificationPromptData.value = {
+            playerName: player.name,
             eventTitle: eventItem?.title || 'cet événement',
             eventId
           }
-          
-          // Vérifier si l'email existe déjà dans Firebase
-          try {
-            // Pour l'instant, on affiche toujours la modal d'incitation
-            // La vérification de l'email se fera dans la modal elle-même
-            console.log('🎯 Affichage de la modal d\'incitation aux notifications')
-            notificationPromptData.value = notificationData
-            showNotificationPrompt.value = true
-          } catch (error) {
-            console.error('Erreur lors de la préparation de la modal, fallback vers modal d\'incitation', error)
-            // En cas d'erreur, afficher la modal d'incitation par défaut
-            notificationPromptData.value = notificationData
-            showNotificationPrompt.value = true
+          showNotificationPrompt.value = true
+        } else {
+          // Joueur non protégé : afficher la modale de protection des saisies
+          playerClaimData.value = {
+            player: player,
+            eventTitle: eventItem?.title || 'cet événement',
+            eventId
           }
-        }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
-      } else {
-        // Ouvrir la modal de connexion classique (seulement pour non protégés)
-        showAccountLogin.value = true
-      }
+          showPlayerClaim.value = true
+        }
+      }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
     }
   }
 }
@@ -4671,6 +4769,10 @@ function goBack() {
   router.push('/seasons')
 }
 
+function refreshSeason() {
+  window.location.href = `/season/${props.slug}`
+}
+
 // Nettoyage listeners
 onUnmounted(() => {
   const el = gridboardRef.value
@@ -4850,22 +4952,28 @@ async function handleAvailabilityToggle(playerName, eventId) {
     
     // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
     if (!auth.currentUser?.email) {
-      // Utilisateur non connecté : vérifier s'il faut inciter à activer les notifications
-      if (shouldPromptForNotifications()) {
-        // Attendre que le toast de succès disparaisse avant d'afficher la modale
-        setTimeout(() => {
-          // Afficher la modal d'incitation aux notifications
+      // Utilisateur non connecté : vérifier si le joueur est protégé (éviter le masquage de l'import)
+      const isProtectedForThisPlayer = await isPlayerProtected(player.id, seasonId.value);
+      
+      setTimeout(() => {
+        if (isProtectedForThisPlayer) {
+          // Joueur protégé : afficher la modale de notifications
           notificationPromptData.value = {
-            playerName,
-            eventTitle: evt?.title || 'cet événement',
+            playerName: player.name,
+            eventTitle: eventItem?.title || 'cet événement',
             eventId
           }
           showNotificationPrompt.value = true
-        }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
-      } else {
-        // Ouvrir la modal de connexion classique (seulement pour non protégés)
-        showAccountLogin.value = true
-      }
+        } else {
+          // Joueur non protégé : afficher la modale de protection des saisies
+          playerClaimData.value = {
+            player: player,
+            eventTitle: eventItem?.title || 'cet événement',
+            eventId
+          }
+          showPlayerClaim.value = true
+        }
+      }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
     }
   }
 }
@@ -5959,7 +6067,25 @@ async function handleAccountLoginSuccess(data) {
   }
 }
 
-
+// Fonction pour gérer la mise à jour de la protection des saisies
+function handlePlayerClaimUpdate(data) {
+  showPlayerClaim.value = false
+  playerClaimData.value = null
+  
+  // Afficher un message de succès
+  showSuccessMessage.value = true
+  if (data?.action === 'protection_activated') {
+    successMessage.value = 'Protection activée et compte connecté !'
+    logger.info('Protection activée et utilisateur connecté automatiquement', data)
+  } else {
+    successMessage.value = 'Protection activée avec succès !'
+    logger.info('Protection des saisies activée avec succès', data)
+  }
+  
+  setTimeout(() => {
+    showSuccessMessage.value = false
+  }, 4000)
+}
 
 // end of script setup
 </script>

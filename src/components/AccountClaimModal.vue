@@ -145,7 +145,11 @@ async function activateProtection() {
   error.value = ''
   try {
     await protectPlayer(props.player.id, email.value.trim(), password.value, props.seasonId)
-    emit('success')
+    // Émettre les données de connexion pour permettre la connexion automatique
+    emit('success', {
+      email: email.value.trim(),
+      password: password.value
+    })
   } catch (e) {
     error.value = e?.message || 'Erreur lors de l\'association'
   } finally {

@@ -1,6 +1,7 @@
 // src/services/firebase.js
 import { initializeApp } from 'firebase/app'
 import { getFirestore, initializeFirestore } from 'firebase/firestore'
+import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
 import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
@@ -25,6 +26,7 @@ const db = initializeFirestore(app, {
 
 const storage = getStorage(app)
 const auth = getAuth(app)
+const functions = getFunctions(app)
 
 // Persistance de session durable (navigateur) pour éviter de redemander l'authentification
 try {
@@ -80,4 +82,4 @@ export async function updatePlayerPassword(newPassword) {
   }
 }
 
-export { db, auth, storage, getMessaging }
+export { db, auth, storage, getMessaging, functions }

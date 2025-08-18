@@ -23,7 +23,7 @@ function getPreferredPlayerStorageKey(seasonId) {
 }
 
 // Utilitaires de persistance multi-préférés (compat: accepte ancien format string)
-function addPreferredPlayerLocal(seasonId, playerId) {
+export function addPreferredPlayerLocal(seasonId, playerId) {
   try {
     const key = getPreferredPlayerStorageKey(seasonId)
     const raw = localStorage.getItem(key)
@@ -45,7 +45,7 @@ function addPreferredPlayerLocal(seasonId, playerId) {
   } catch (_) {}
 }
 
-function removePreferredPlayerLocal(seasonId, playerId) {
+export function removePreferredPlayerLocal(seasonId, playerId) {
   try {
     const key = getPreferredPlayerStorageKey(seasonId)
     const raw = localStorage.getItem(key)
@@ -367,7 +367,12 @@ export async function finalizeProtectionAfterVerification({ playerId, seasonId =
   // Si l'email est présent et vérifié, activer la protection
   if (data?.email) {
     await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
-    return { success: true }
+    return { 
+      success: true, 
+      email: data.email,
+      playerId: playerId,
+      seasonId: seasonId
+    }
   }
   throw new Error('Email non défini pour cette protection')
 }
