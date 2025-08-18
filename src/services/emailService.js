@@ -107,20 +107,18 @@ export async function queueAvailabilityEmail({
 // Nouveau: email de vérification générique (protection joueur ou mise à jour email compte)
 export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'player_protection', displayName = 'utilisateur', fromEmail = undefined }) {
   const isAccount = purpose === 'account_email_update'
-  const title = isAccount ? 'Vérification de votre nouvelle adresse email' : 'Vérification de votre email'
-  const line1 = `Bonjour ${displayName},`
+  const greeting = displayName && displayName !== 'utilisateur' ? `Salut ${displayName} !` : 'Salut !'
   const body = isAccount
-    ? "Pour sécuriser votre compte, merci de confirmer que vous avez accès à cette nouvelle adresse email."
-    : "Pour sécuriser votre joueur, merci de confirmer que vous avez accès à cette adresse email."
-  const cta = isAccount ? 'Confirmer mon adresse email' : 'Vérifier mon email'
-  const subject = isAccount ? 'Confirmez votre nouvelle adresse email' : 'Confirmez votre email pour activer la protection'
+    ? "Pour sécuriser ton compte, on a besoin de vérifier que tu as bien accès à cette adresse email."
+    : "Pour protéger tes saisies de disponibilités, on a besoin de vérifier que tu as bien accès à cette adresse email."
+  const cta = isAccount ? 'Confirmer mon email' : 'Vérifier mon email'
+  const subject = isAccount ? 'Confirme ton email' : '🔒 Vérifie ton email pour protéger tes saisies'
   const html = `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <h2>${title}</h2>
-      <p>${line1}</p>
+      <p>${greeting}</p>
       <p>${body}</p>
       <p>
-        <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;">${cta}</a>
+        <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);">${cta}</a>
       </p>
       <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans 7 jours.</p>
     </div>

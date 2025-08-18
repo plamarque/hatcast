@@ -14,8 +14,7 @@
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span class="text-2xl">🔒</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-2">{{ isProtected ? 'Déverrouiller cette personne' : 'Verrouiller cette personne' }}</h2>
-        <p class="text-lg text-gray-300">{{ player?.name }}</p>
+        <h2 class="text-2xl font-bold text-white mb-2">{{ isProtected ? 'Désactiver la protection' : 'Protège tes saisies' }}</h2>
       </div>
 
       <!-- État d'association / compte -->
@@ -26,13 +25,13 @@
             <div>
               <div class="font-semibold text-white">
                 {{ isProtected
-                              ? (isOwner ? 'Personne associée à votre compte' : 'Cette personne est associée à un compte utilisateur')
-            : 'Personne sans compte' }}
+                              ? (isOwner ? `${player?.name} est associée à votre compte` : `${player?.name} est associée à un compte utilisateur`)
+            : `${player?.name} n'a pas de compte` }}
               </div>
               <div class="text-sm text-gray-300">
                 {{ isProtected
                   ? (isOwner ? 'Seul vous pouvez modifier' : 'Seul le titulaire peut modifier les disponibilités')
-                  : 'Tout le monde peut modifier les disponibilités' }}
+                  : 'Tout le monde peut modifier ses disponibilités 😱' }}
               </div>
             </div>
           </div>
@@ -42,7 +41,7 @@
       
       <!-- CTA vers la création de compte -->
       <div v-if="!isProtected" class="mb-6">
-        <div class="text-sm text-gray-300">Vous pouvez protéger vos saisies de disponibilités avec un compte utilisateur.</div>
+        <div class="text-sm text-gray-300">Si tu es bien {{ player?.name }}, tu peux protéger tes saisies à l'aide d'un compte utilisateur.</div>
       </div>
 
       <!-- Dissocier: le formulaire s'affiche à la demande -->
@@ -72,13 +71,13 @@
           :disabled="loading"
           class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
         >
-          🔓 Dissocier
+          🔓 Continuer
         </button>
         <button
           @click="closeModal"
           class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
         >
-          Fermer
+          Annuler
         </button>
       </div>
 

@@ -62,7 +62,7 @@
           <button @click="showProtectionModal = true" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
             <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
             <span>
-              {{ isProtectedForPlayer ? 'Déverrouiller' : 'Verrouiller' }}
+              {{ isProtectedForPlayer ? 'Désactiver la protection' : 'C\'est moi!' }}
             </span>
           </button>
           
@@ -73,7 +73,7 @@
               class="px-5 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
               title="Plus d'actions"
             >
-              <span>⋯</span><span>Plus</span>
+              <span>⋯</span>
             </button>
           </div>
           
@@ -112,7 +112,7 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="showProtectionModal = true" class="h-12 px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-[1.4]">
-          {{ isProtectedForPlayer ? '🔓 Déverrouiller' : '🔒 Verrouiller' }}
+          {{ isProtectedForPlayer ? '🔓 Désactiver la protection' : '🔒 C\'est moi!' }}
         </button>
         <button @click="togglePlayerMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">
           ⋯
