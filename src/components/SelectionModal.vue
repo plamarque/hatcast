@@ -159,10 +159,18 @@
         </div>
         
         <!-- Message d'information pour sélection à confirmer -->
-        <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
             <span><strong>Sélection temporaire verrouillée :</strong> Les joueurs sélectionnés doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que tous auront validé. Pensez à l'annoncer !</span>
+          </div>
+        </div>
+
+        <!-- Message d'information pour sélection avec joueurs déclinés -->
+        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <div class="flex items-center gap-2 text-orange-200 text-sm">
+            <span>⚠️</span>
+            <span><strong>Sélection incomplète :</strong> Certains joueurs ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la sélection et remplacer les joueurs manquants.</span>
           </div>
         </div>
 
@@ -233,9 +241,9 @@
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
-        <!-- Bouton Annoncer (visible seulement si organisateur a validé) -->
+        <!-- Bouton Annoncer (visible seulement si organisateur a validé ET on peut annoncer) -->
         <button 
-          v-if="hasSelection && isSelectionConfirmedByOrganizer" 
+          v-if="hasSelection && isSelectionConfirmedByOrganizer && canAnnounce" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Annoncer la sélection validée par l'organisateur"
@@ -514,6 +522,29 @@ const hasIncompleteSelection = computed(() => {
   const hasInsufficientPlayers = props.availableCount < requiredCount
   
   return hasUnavailablePlayers || hasInsufficientPlayers
+})
+
+// Vérifier si des joueurs ont décliné leur participation
+const hasDeclinedPlayers = computed(() => {
+  if (!props.currentSelection || typeof props.currentSelection !== 'object' || !props.currentSelection.playerStatuses) {
+    return false
+  }
+  
+  // Utiliser Object.entries pour éviter les problèmes avec les Proxy Vue
+  const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerName, status]) => status === 'declined')
+  return hasDeclined
+})
+
+// Vérifier si la sélection est complète (assez de joueurs pour l'événement)
+const isSelectionComplete = computed(() => {
+  const selectedPlayers = getSelectedPlayersArray()
+  const requiredCount = props.event?.playerCount || 6
+  return selectedPlayers.length >= requiredCount
+})
+
+// Vérifier si on peut annoncer (sélection complète ET pas de joueurs déclinés)
+const canAnnounce = computed(() => {
+  return isSelectionComplete.value && !hasDeclinedPlayers.value
 })
 
 const incompleteSelectionMessage = computed(() => {
