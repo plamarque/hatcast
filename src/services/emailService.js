@@ -387,29 +387,34 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
           eventDate: formatDateFull(eventData.date),
           eventUrl,
           declineUrl: declineUrl, // Magic link de déclin
-          confirmUrl: confirmUrl // Magic link de confirmation
+          confirmUrl: confirmUrl, // Magic link de confirmation
+          selectedPlayers: selectedPlayers // Liste des joueurs sélectionnés
         })
         logger.debug('HTML généré avec le nouveau template')
       } catch (templateError) {
         logger.error('Erreur lors de l\'import du template, utilisation du template de fallback', { error: templateError })
         // Template de fallback en cas d'erreur
+        const playersList = selectedPlayers.join(', ')
+        // Créer les magic links pour le fallback
+        const { createMagicLink } = await import('./magicLinks.js')
+        const confirmMagicLink = await createMagicLink({ 
+          seasonId, 
+          playerId: player.id, 
+          eventId, 
+          action: 'confirm' 
+        })
+        const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
         html = `
           <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
             <p>Bonjour <strong>${playerName}</strong>,</p>
-            <p>Tu as été sélectionné(e) pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}).</p>
+            <p>Tu es en lice pour faire partie de l'équipe pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}).</p>
+            <p>Voici la sélection temporaire : <strong>${playersList}</strong></p>
             <p>⚠️ IMPORTANT : Tu dois confirmer ta participation !</p>
             <p>L'équipe ne sera confirmée que lorsque tous les joueurs sélectionnés auront confirmé leur disponibilité.</p>
-            <p>🕺 Prépares-toi à briller, toute l'équipe compte sur toi!</p>
             <p>
-              <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
+              <a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
+              <a href="${declineUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #dc2626, #b91c1c);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(220, 38, 38, 0.3);margin-right: 10px;">❌ Décliner</a>
               <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;font-weight:500;">📋 Afficher les détails</a>
-            </p>
-            <p style="margin-top: 20px; padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px;">
-              <strong>Un imprévu ? 😬</strong><br>
-              Pas de souci, signales vite ton indisponibilité pour qu'on relance la sélection du spectacle :
-            </p>
-            <p style="margin-top: 8px; text-align: center;">
-              <a href="${notAvailableUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Je ne suis plus disponible</a>
             </p>
           </div>
         `

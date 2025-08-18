@@ -28,13 +28,14 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 /**
  * Template pour les notifications de sélection
  */
-export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl }) {
+export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayers }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  const playersList = selectedPlayers ? selectedPlayers.join(', ') : ''
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting}, tu as été sélectionné(e) pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      <p>${greeting}, tu es en lice pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
       
-      <p>🕺 Prépares-toi à briller, toute l'équipe compte sur toi!</p>
+      <p>Voici la sélection temporaire : <strong>${playersList}</strong></p>
       
       <p style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
         <strong>⚠️ IMPORTANT : Tu dois confirmer ta participation !</strong><br>
