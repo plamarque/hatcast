@@ -13,7 +13,7 @@
           
           <!-- Informations principales -->
           <div class="flex-1 min-w-0">
-            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Sélection pour {{ event?.title }}</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Sélection de l'équipe pour {{ event?.title }}</h2>
             
             <!-- Date + Badge nombre de joueurs + Statut de sélection -->
             <div class="flex items-center gap-3">
@@ -46,11 +46,11 @@
               
               <div 
                 v-else-if="getSelectionStatus().type === 'confirmed'"
-                class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
-                title="Sélection confirmée et verrouillée"
+                class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded text-sm flex items-center gap-1"
+                title="Sélection à confirmer - En attente de confirmation des joueurs"
               >
-                <span class="text-blue-300 text-xs hidden md:inline">🔒</span>
-                <span class="text-blue-200 text-xs">Confirmée</span>
+                <span class="text-orange-300 text-xs hidden md:inline">⏳</span>
+                <span class="text-orange-200 text-xs">À confirmer</span>
               </div>
               
               <div 
@@ -59,7 +59,7 @@
                 title="Sélection incomplète"
               >
                 <span class="text-orange-300 text-xs hidden md:inline">⚠️</span>
-                <span class="text-orange-200 text-xs">À finaliser</span>
+                <span class="text-orange-200 text-xs">Incomplète</span>
               </div>
               
               <div 
@@ -99,15 +99,7 @@
             <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la sélection automatique ?">
               <span class="text-sm">❓</span>
             </button>
-            <!-- Indicateur de verrouillage -->
-            <div 
-              v-if="isSelectionConfirmed" 
-              class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs text-blue-200 flex items-center gap-1"
-              title="Sélection verrouillée - Modifications désactivées"
-            >
-              <span>🔒</span>
-              <span>Verrouillée</span>
-            </div>
+
           </div>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-0">
             <div
@@ -172,11 +164,11 @@
           </div>
         </div>
         
-        <!-- Message d'information pour sélection verrouillée -->
-        <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <!-- Message d'information pour sélection à confirmer -->
+        <div v-if="isSelectionConfirmedByOrganizer" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
-            <span>🔒</span>
-            <span><strong>Sélection verrouillée :</strong> Les modifications ne sont plus possibles. Utilisez le bouton "Déverrouiller" pour permettre les changements.</span>
+            <span>⏳</span>
+            <span><strong>Sélection temporaire verrouillée :</strong> Les joueurs sélectionnés doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que tous auront validé. N'oubliez pas de les annoncer !</span>
           </div>
         </div>
 
@@ -208,9 +200,9 @@
       </div>
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Bouton Sélection Auto (visible seulement si sélection non confirmée) -->
+        <!-- Bouton Sélection Auto (visible seulement si organisateur n'a pas encore validé) -->
         <button 
-          v-if="!isSelectionConfirmed"
+          v-if="!isSelectionConfirmedByOrganizer"
           @click="handleSelection" 
           :disabled="availableCount === 0" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
@@ -219,32 +211,32 @@
           ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <!-- Bouton Déverrouiller (visible seulement si sélection confirmée) -->
+        <!-- Bouton Déverrouiller (visible seulement si organisateur a validé) -->
         <button 
-          v-if="isSelectionConfirmed" 
+          v-if="isSelectionConfirmedByOrganizer" 
           @click="handleUnconfirmSelection" 
-          class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-all duration-300 flex-1 whitespace-nowrap"
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
           title="Déverrouiller la sélection pour permettre les modifications"
         >
           🔓 <span class="hidden sm:inline">Déverrouiller</span><span class="sm:hidden">Déverrouiller</span>
         </button>
 
-        <!-- Bouton Confirmer (visible seulement si sélection complète et non confirmée) -->
+        <!-- Bouton Valider (visible seulement si sélection complète et organisateur n'a pas encore validé) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmed" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer" 
           @click="handleConfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Confirmer et verrouiller cette sélection"
+          title="Valider la sélection et demander confirmation aux joueurs"
         >
-          🔒 <span class="hidden sm:inline">Confirmer</span><span class="sm:hidden">Confirmer</span>
+          ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
-        <!-- Bouton Annoncer (visible seulement si sélection confirmée) -->
+        <!-- Bouton Annoncer (visible seulement si organisateur a validé) -->
         <button 
-          v-if="hasSelection && isSelectionConfirmed" 
+          v-if="hasSelection && isSelectionConfirmedByOrganizer" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Annoncer la sélection confirmée"
+          title="Annoncer la sélection validée par l'organisateur"
         >
           📣 <span class="hidden sm:inline">Annoncer</span><span class="sm:hidden">Annoncer</span>
         </button>
@@ -268,6 +260,8 @@
     @close="showAnnounce = false"
     @send-notifications="handleSendNotifications"
   />
+  
+
 
   <!-- Popin Comment ça marche -->
   <HowItWorksModal :show="showHowItWorks" @close="showHowItWorks = false" />
@@ -322,6 +316,11 @@ const props = defineProps({
   isSelectionConfirmed: {
     type: Boolean,
     default: false
+  },
+  // Nouvelle prop pour distinguer la validation organisateur de la confirmation joueurs
+  isSelectionConfirmedByOrganizer: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -360,8 +359,8 @@ function availableOptionsForSlot(index) {
 }
 
 function startEditSlot(index) {
-  // Ne pas permettre l'édition si la sélection est confirmée
-  if (props.isSelectionConfirmed) return
+  // Ne pas permettre l'édition si l'organisateur a validé la sélection
+  if (props.isSelectionConfirmedByOrganizer) return
   editingSlotIndex.value = index
 }
 
@@ -370,8 +369,8 @@ function cancelEditSlot() {
 }
 
 async function onChooseForSlot(event, index) {
-  // Ne pas permettre la modification si la sélection est confirmée
-  if (props.isSelectionConfirmed) return
+  // Ne pas permettre la modification si l'organisateur a validé la sélection
+  if (props.isSelectionConfirmedByOrganizer) return
   
   const value = event?.target?.value || ''
   if (value) {
@@ -383,8 +382,8 @@ async function onChooseForSlot(event, index) {
 }
 
 async function clearSlot(index) {
-  // Ne pas permettre la suppression si la sélection est confirmée
-  if (props.isSelectionConfirmed) return
+  // Ne pas permettre la suppression si l'organisateur a validé la sélection
+  if (props.isSelectionConfirmedByOrganizer) return
   
   slots.value[index] = null
   // Sauvegarde automatique immédiate
@@ -574,16 +573,11 @@ async function handleConfirmSelection() {
     // Émettre l'événement de confirmation vers le parent
     emit('confirm-selection')
     
-    // Afficher un message de succès
-    showSuccessMessage.value = true
-    successMessageText.value = 'Sélection confirmée et verrouillée !'
-    setTimeout(() => {
-      showSuccessMessage.value = false
-    }, 3000)
+    // Le toast de succès est affiché par le parent (GridBoard.vue)
   } catch (error) {
     console.error('Erreur lors de la confirmation de la sélection:', error)
     showSuccessMessage.value = true
-    successMessageText.value = 'Erreur lors de la confirmation de la sélection'
+    successMessageText.value = 'Erreur lors de la validation de la sélection'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -595,12 +589,7 @@ async function handleUnconfirmSelection() {
     // Émettre l'événement de déverrouillage vers le parent
     emit('unconfirm-selection')
     
-    // Afficher un message de succès
-    showSuccessMessage.value = true
-    successMessageText.value = 'Sélection déverrouillée !'
-    setTimeout(() => {
-      showSuccessMessage.value = false
-    }, 3000)
+    // Le toast de succès est affiché par le parent (GridBoard.vue)
   } catch (error) {
     console.error('Erreur lors de la déverrouillage de la sélection:', error)
     showSuccessMessage.value = true
@@ -615,8 +604,8 @@ async function handleUnconfirmSelection() {
 async function autoSaveSelection() {
   if (!props.event?.id || !props.seasonId) return
   
-  // Ne pas sauvegarder automatiquement si la sélection est confirmée
-  if (props.isSelectionConfirmed) return
+  // Ne pas sauvegarder automatiquement si l'organisateur a validé la sélection
+  if (props.isSelectionConfirmedByOrganizer) return
   
   try {
     const players = slots.value.filter(Boolean)
@@ -713,7 +702,7 @@ function showSuccess(reselection = false, isPartialUpdate = false) {
       successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
     }
   } else {
-    successMessageText.value = 'Sélection effectuée avec succès !'
+            successMessageText.value = 'Sélection effectuée avec succès ! Cliquez sur "Valider" pour notifier les joueurs.'
   }
   
   showSuccessMessage.value = true

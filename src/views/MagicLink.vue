@@ -220,9 +220,11 @@ onMounted(async () => {
       return
     }
 
-    // Appliquer la disponibilité directement (bypass protections)
-    const newValue = action === 'yes' ? true : false
-    await setSingleAvailability({ seasonId, playerName, eventId, value: newValue })
+    // Appliquer la disponibilité directement (bypass protections) - sauf pour 'confirm'
+    if (action !== 'confirm') {
+      const newValue = action === 'yes' ? true : false
+      await setSingleAvailability({ seasonId, playerName, eventId, value: newValue })
+    }
 
     // Si le joueur se déclare indisponible, le retirer de la sélection le cas échéant
     if (action === 'no') {
@@ -238,13 +240,31 @@ onMounted(async () => {
         }
       } catch (_) {}
     }
+    
+    // Si le joueur confirme sa participation à la sélection
+    if (action === 'confirm') {
+      try {
+        // Mettre à jour le statut du joueur dans la sélection
+        const { updatePlayerSelectionStatus } = await import('../services/storage.js')
+        await updatePlayerSelectionStatus(eventId, playerName, 'confirmed', seasonId)
+        console.log('✅ Statut du joueur mis à jour : confirmed')
+      } catch (error) {
+        console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
+      }
+    }
     await consumeMagicLink({ seasonId, playerId, eventId, action })
 
     status.value = 'ok'
     title.value = 'Merci !'
-    message.value = action === 'yes'
-      ? 'Votre disponibilité a été enregistrée: Disponible.'
-      : 'Votre disponibilité a été enregistrée: Non disponible. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
+    
+    // Messages selon l'action
+    if (action === 'confirm') {
+      message.value = 'Votre participation a été confirmée ! Vous êtes maintenant "Joue" dans cette sélection.'
+    } else if (action === 'yes') {
+      message.value = 'Votre disponibilité a été enregistrée: Disponible.'
+    } else if (action === 'no') {
+      message.value = 'Votre disponibilité a été enregistrée: Non disponible. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
+    }
 
     // Redirection vers la page de l'événement pour afficher les détails
     if (slug) {

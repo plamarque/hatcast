@@ -28,13 +28,30 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 /**
  * Template pour les notifications de sélection
  */
-export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, noUrl }) {
+export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, noUrl, confirmUrl }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting}, tu es sélectionné(e) pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      <p>${greeting}, tu as été sélectionné(e) pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      
       <p>🕺 Prépares-toi à briller, toute l'équipe compte sur toi!</p>
-      <p>Un imprévu ?😬 Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la sélection du spectacle :</p>
+      
+      <p style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+        <strong>⚠️ IMPORTANT : Tu dois confirmer ta participation !</strong><br>
+        L'équipe ne sera confirmée que lorsque <strong>tous les joueurs sélectionnés auront confirmé</strong> leur disponibilité.
+      </p>
+      
+      <div style="margin: 20px 0; text-align: center;">
+        <a href="${confirmUrl || eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
+        
+        <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;font-weight:500;">📋 Afficher les détails</a>
+      </div>
+      
+      <p style="margin-top: 20px; padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px;">
+        <strong>Un imprévu ? 😬</strong><br>
+        Pas de souci, signales vite ton indisponibilité pour qu'on relance la sélection du spectacle :
+      </p>
+      
       <p style="margin-top: 8px; text-align: center;">
         <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Je ne suis plus disponible</a>
       </p>
@@ -75,13 +92,19 @@ Es-tu dispo le ${eventDate} pour ${eventTitle} ?
 Lien direct : ${eventUrl}`
 }
 
-export function buildSelectionTextTemplate({ playerName, eventTitle, eventDate, eventUrl }) {
+export function buildSelectionTextTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmUrl }) {
   const greeting = playerName ? `Bonjour ${playerName}` : 'Hello'
   return `${greeting},
 
 Tu es sélectionné(e) pour ${eventTitle} le ${eventDate}!
 
 🕺 Prépares-toi à briller, toute l'équipe compte sur toi!
+
+⚠️ IMPORTANT : Tu dois confirmer ta participation !
+L'équipe ne sera confirmée que lorsque tous les joueurs sélectionnés auront confirmé leur disponibilité.
+
+✅ Confirmer ma participation : ${confirmUrl || eventUrl}
+📋 Détails : ${eventUrl}
 
 Un imprévu ?😬 
 Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la sélection du spectacle : ${eventUrl}`
@@ -102,11 +125,10 @@ ${eventTitle}
 
 🎯 Préparez-vous à briller !
 
-🔗 Détails et désistement : ${eventUrl}
+⚠️ PRÉSÉLECTION TEMPORAIRE ⚠️
+Cette sélection sera définitive uniquement lorsque tous les joueurs sélectionnés auront confirmé leur participation.
 
-💬 Répondez dans ce groupe pour confirmer votre disponibilité ou signaler un imprévu.
-
-Bonne chance à tous ! 🍀✨`
+🔗 Détails et confirmations : ${eventUrl}`
 }
 
 /**

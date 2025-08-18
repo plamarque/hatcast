@@ -6,7 +6,7 @@
         <button @click="onClose" title="Fermer" class="absolute right-2.5 top-2.5 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         <h2 class="text-xl md:text-2xl font-bold text-white pr-10 flex items-center gap-2">
           <span class="hidden sm:inline">{{ mode === 'selection' ? '📣' : '📢' }}</span>
-          <span>{{ mode === 'selection' ? 'Confirmer la sélection' : 'Confirmer l\'événement' }}</span>
+          <span>{{ mode === 'selection' ? 'Annoncer la sélection' : 'Confirmer l\'événement' }}</span>
         </h2>
         <p class="text-sm text-purple-300 mt-1" v-if="event">{{ event.title }} — {{ formatDateFull(event.date) }}</p>
       </div>

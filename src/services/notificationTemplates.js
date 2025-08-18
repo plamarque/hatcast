@@ -46,7 +46,7 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: `🎭 Tu es sélectionné(e) !`,
+      title: `🎭 Confirme ta participation !`,
       body: `🕺 Prépares-toi à briller pour ${eventTitle} le ${eventDate}!`,
       data: { url: urls.eventUrl, noUrl: urls.noUrl, reason }
     }
@@ -133,7 +133,7 @@ export function buildAvailabilityPushPreview({ recipientName, eventTitle, eventD
  */
 export function buildSelectionPushPreview({ recipientName, eventTitle, eventDate }) {
   return {
-    title: `🎭 Tu es sélectionné(e) !`,
+    title: `🎭 Confirme ta participation !`,
     body: `🕺 Prépares-toi à briller pour ${eventTitle} le ${eventDate}!`
   }
 }
@@ -153,12 +153,12 @@ export function buildAvailabilityEmailPreview({ recipientName, eventTitle, event
 /**
  * Preview/Envoi email pour sélection
  */
-export function buildSelectionEmailPreview({ recipientName, eventTitle, eventDate, eventUrl, noUrl }) {
+export function buildSelectionEmailPreview({ recipientName, eventTitle, eventDate, eventUrl, noUrl, confirmUrl }) {
   return {
     subject: `🎭 Tu es dans la sélection pour ${eventTitle}!`,
     from: 'HatCast',
     to: recipientName,
-    html: buildSelectionEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, noUrl })
+    html: buildSelectionEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, noUrl, confirmUrl })
   }
 }
 

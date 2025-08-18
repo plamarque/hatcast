@@ -155,8 +155,10 @@ const unifiedMessage = computed(() => {
   const eventTitle = props.event?.title
   const directLink = eventDirectLink.value
   
-  if (props.mode === 'event') {
-    return buildAvailabilityTextTemplate({
+  
+  
+      if (props.mode === 'event') {
+      return buildAvailabilityTextTemplate({
       playerName: '', // Toujours vide pour "Tous"
       eventTitle,
       eventDate: dateStr,
@@ -220,11 +222,9 @@ async function loadRecipientsEmails() {
     targetPlayers = props.players.filter(player => 
       props.selectedPlayers.includes(player.name)
     )
-    console.log('Mode sélection - targetPlayers:', targetPlayers)
   } else {
     // Mode événement : prendre TOUS les joueurs de la saison
     targetPlayers = props.players
-    console.log('Mode événement - targetPlayers (tous):', targetPlayers)
   }
   
   const playersWithEmail = []
@@ -234,7 +234,6 @@ async function loadRecipientsEmails() {
       // Importer la fonction depuis le service
       const { getPlayerEmail } = await import('../services/playerProtection.js')
       const email = await getPlayerEmail(player.id, props.seasonId)
-      console.log(`Email pour ${player.name}:`, email)
       if (email) {
         playersWithEmail.push({
           ...player,
@@ -246,8 +245,6 @@ async function loadRecipientsEmails() {
     }
   }
   
-  console.log('Players avec email:', playersWithEmail)
-  
   recipientsWithEmail.value = playersWithEmail
   const allOption = { id: 'ALL', name: 'Tous' }
   recipients.value = [allOption, ...playersWithEmail]
@@ -258,11 +255,7 @@ async function loadRecipientsEmails() {
     .map(p => ({ id: p.id, name: p.name }))
   nonContactRecipients.value = playersWithNoEmail
   
-  console.log('Recipients finaux:', {
-    recipients: recipients.value,
-    nonContactRecipients: nonContactRecipients.value,
-    allDisplayRecipients: allDisplayRecipients.value
-  })
+
 }
 
 // Charger les destinataires au montage

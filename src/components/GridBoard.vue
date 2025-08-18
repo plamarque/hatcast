@@ -146,7 +146,17 @@
                     @click.stop="openSelectionModal(event)"
                   >
                     <span class="text-xs text-green-300 font-medium group-hover:text-green-200">✅</span>
-                    <span class="text-xs text-green-200 font-medium ml-1 group-hover:text-green-100">Complet</span>
+                    <span class="text-xs text-green-200 font-medium ml-1 group-hover:text-green-100">Complète</span>
+                  </div>
+                  
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'pending_confirmation'"
+                    class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-orange-500/30 transition-colors duration-200 cursor-pointer group"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-orange-300 font-medium group-hover:text-orange-200">⏳</span>
+                    <span class="text-xs text-orange-200 font-medium ml-1 group-hover:text-orange-100">À confirmer</span>
                   </div>
                   
                   <div 
@@ -155,7 +165,7 @@
                     :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
                     @click.stop="openSelectionModal(event)"
                   >
-                    <span class="text-xs text-purple-300 font-medium group-hover:text-purple-200">🔒</span>
+                    <span class="text-xs text-purple-300 font-medium group-hover:text-purple-200">✅</span>
                     <span class="text-xs text-purple-200 font-medium ml-1 group-hover:text-purple-100">Confirmée</span>
                   </div>
                   
@@ -166,7 +176,7 @@
                     @click.stop="openSelectionModal(event)"
                   >
                     <span class="text-xs text-orange-300 font-medium group-hover:text-orange-200">⚠️</span>
-                    <span class="text-xs text-orange-200 font-medium ml-1 group-hover:text-orange-100">À finaliser</span>
+                    <span class="text-xs text-orange-200 font-medium ml-1 group-hover:text-orange-100">Incomplète</span>
                   </div>
                   
                   <div 
@@ -349,12 +359,16 @@
                   :player-name="player.name"
                   :event-id="event.id"
                   :is-available="isAvailable(player.name, event.id)"
-                   :is-selected="isSelected(player.name, event.id)"
-                   :is-selection-confirmed="isSelectionConfirmed(event.id)"
-                   :chance-percent="chances[player.name]?.[event.id] ?? null"
-                   :show-selected-chance="isSelectionComplete(event.id)"
-                   :disabled="event.archived === true"
-                   @toggle="toggleAvailability"
+                  :is-selected="isSelected(player.name, event.id)"
+                  :is-selection-confirmed="isSelectionConfirmed(event.id)"
+                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
+                  :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
+                  :season-id="seasonId"
+                  :chance-percent="chances[player.name]?.[event.id] ?? null"
+                  :show-selected-chance="isSelectionComplete(event.id)"
+                  :disabled="event.archived === true"
+                  @toggle="toggleAvailability"
+                  @toggle-selection-status="handlePlayerSelectionStatusToggle"
                 />
               </td>
               <td class="p-3 md:p-4"></td>
@@ -788,11 +802,15 @@
                   :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
                   :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
                   :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                  :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                  :season-id="seasonId"
                   :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
                   :show-selected-chance="isSelectionComplete(selectedEvent.id)"
                   :disabled="selectedEvent?.archived === true"
                   :compact="true"
                   @toggle="handleAvailabilityToggle"
+                  @toggle-selection-status="handlePlayerSelectionStatusToggle"
                 />
               </div>
             </div>
@@ -803,7 +821,7 @@
         <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
           <!-- Boutons principaux -->
           <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
-            <span>🎭</span><span>Sélectionner</span>
+            <span>🎭</span><span>Équipe</span>
           </button>
           <button 
             @click="openEventAnnounceModal(selectedEvent)" 
@@ -864,7 +882,7 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélectionner</button>
+        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Équipe</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
         <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
@@ -1251,6 +1269,7 @@
     :season-slug="seasonSlug"
     :players="enrichedPlayers"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
+    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
@@ -2741,12 +2760,6 @@ async function saveEdit() {
         
         // Récupérer les joueurs sélectionnés
         const selectedPlayers = selections.value[editingEvent.value] || []
-        console.log('🔍 Debug sélection:', {
-          editingEventId: editingEvent.value,
-          allSelections: Object.keys(selections.value),
-          selectedPlayersForEvent: selectedPlayers,
-          selectionsValue: selections.value
-        })
         
         // Recréer les rappels pour chaque joueur sélectionné
         const reminderResults = []
@@ -2783,7 +2796,6 @@ async function saveEdit() {
         // Afficher un message de succès plus détaillé pour les rappels
         if (reminderResults.length > 0) {
           const successCount = reminderResults.filter(r => r.success).length
-          console.log(`✅ ${successCount} rappels recréés avec succès`)
         }
       } catch (error) {
         console.error('Erreur lors de la mise à jour des rappels:', error)
@@ -3124,7 +3136,35 @@ onMounted(async () => {
       loadingProgress.value = 85
       const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
       const selObj = {}
-      selSnap.docs.forEach(doc => { selObj[doc.id] = doc.data().players || [] })
+      
+      selSnap.docs.forEach(doc => { 
+        const data = doc.data()
+        
+        // Préserver la nouvelle structure complète ou migrer l'ancienne
+        if (data.players && Array.isArray(data.players)) {
+          // Nouvelle structure avec playerStatuses, confirmed, etc.
+          selObj[doc.id] = data
+        } else if (Array.isArray(data)) {
+          // Ancienne structure : migrer vers la nouvelle
+          selObj[doc.id] = {
+            players: data,
+            confirmed: false,
+            confirmedByAllPlayers: false,
+            playerStatuses: {},
+            updatedAt: new Date()
+          }
+        } else {
+          // Structure inconnue, utiliser un tableau vide
+          selObj[doc.id] = {
+            players: [],
+            confirmed: false,
+            confirmedByAllPlayers: false,
+            playerStatuses: {},
+            updatedAt: new Date()
+          }
+        }
+      })
+      
       selections.value = selObj
 
       const protections = await listProtectedPlayers(seasonId.value)
@@ -3219,6 +3259,22 @@ onMounted(async () => {
         setTimeout(() => { showSuccessMessage.value = false }, 2500)
       }
     }
+  }
+
+  // Détecter si on arrive depuis un magic link (pour forcer le rechargement des données)
+  const urlParams = new URLSearchParams(window.location.search)
+  const magicLinkAction = urlParams.get('a') || route.query.a
+  const magicLinkEventId = urlParams.get('eid') || route.query.eid
+  
+  if (magicLinkAction === 'confirm' && magicLinkEventId) {
+    console.debug('🔄 Détection d\'un magic link de confirmation, rechargement des données...')
+    // Forcer le rechargement des sélections pour cet événement
+    await loadSelections(seasonId.value)
+    // Mettre à jour les sélections locales
+    selections.value = await loadSelections(seasonId.value)
+    console.debug('✅ Sélections rechargées après magic link')
+    // Nettoyer l'URL
+    router.replace({ query: { ...route.query, a: undefined, eid: undefined } })
   }
 
   // Gérer le paramètre notificationSuccess (APRÈS tous les autres traitements d'URL)
@@ -3623,6 +3679,70 @@ onUnmounted(() => {
     });
 }
 
+// Fonction pour gérer le changement de statut individuel d'un joueur dans une sélection
+async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus, seasonId) {
+  try {
+    // Mettre à jour le statut dans le stockage
+    const { updatePlayerSelectionStatus } = await import('../services/storage.js')
+    const result = await updatePlayerSelectionStatus(eventId, playerName, newStatus, seasonId)
+    
+    // Mettre à jour la structure locale
+    if (selections.value[eventId]) {
+      if (selections.value[eventId].playerStatuses) {
+        selections.value[eventId].playerStatuses[playerName] = newStatus
+      } else {
+        selections.value[eventId].playerStatuses = { [playerName]: newStatus }
+      }
+      
+      // Mettre à jour l'état global de la sélection
+      if (typeof result.confirmedByAllPlayers === 'boolean') {
+        selections.value[eventId].confirmedByAllPlayers = result.confirmedByAllPlayers
+      }
+      
+      // Forcer la réactivité en restructurant l'objet
+      const updatedSelection = { ...selections.value[eventId] }
+      selections.value[eventId] = updatedSelection
+    }
+    
+    // Afficher un message de succès avec l'état global
+    let successMessageText = `Statut de ${playerName} mis à jour : ${getStatusDisplayText(newStatus)}`
+    if (result.confirmedByAllPlayers) {
+      successMessageText += ' - Tous les joueurs ont confirmé ! 🎉'
+    }
+    
+    showSuccessMessage.value = true
+    successMessage.value = successMessageText
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
+    
+    // Afficher un message d'erreur
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors de la mise à jour du statut. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 3000)
+  }
+}
+
+// Fonction helper pour afficher le texte du statut
+function getStatusDisplayText(status) {
+  switch (status) {
+    case 'pending':
+      return 'À confirmer'
+    case 'confirmed':
+      return 'Confirmé'
+    case 'declined':
+      return 'Décliné'
+    default:
+      return 'Inconnu'
+  }
+}
+
 function isAvailable(player, eventId) {
   return availability.value[player]?.[eventId]
 }
@@ -3749,7 +3869,7 @@ async function tirer(eventId, count = 6) {
 
   console.log('💾 Sauvegarde de la sélection:', { eventId, players: selections.value[eventId].players, seasonId: seasonId.value })
   await saveSelection(eventId, selections.value[eventId].players, seasonId.value)
-  console.log('✅ saveSelection terminé')
+  
   
   updateAllStats()
   updateAllChances()
@@ -3772,7 +3892,7 @@ async function tirerProtected(eventId, count = 6) {
   
   console.log('🎲 Appel de tirer...')
   await tirer(eventId, count)
-  console.log('✅ tirer terminé')
+  
   
   // État de la modal de sélection après
   
@@ -4980,7 +5100,8 @@ function getEventStatus(eventId) {
   const event = events.value.find(e => e.id === eventId)
   const requiredCount = event?.playerCount || 6
   const availableCount = countAvailablePlayers(eventId)
-  const isConfirmed = isSelectionConfirmed(eventId)
+  const isConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
+  const isConfirmedByAllPlayers = isSelectionConfirmed(eventId)
   
   // Cas 1: Sélection incomplète (sélection existante avec problèmes)
   if (selectedPlayers.length > 0) {
@@ -4995,7 +5116,8 @@ function getEventStatus(eventId) {
         unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
         availableCount,
         requiredCount,
-        isConfirmed
+        isConfirmedByOrganizer,
+        isConfirmedByAllPlayers
       }
     }
   }
@@ -5006,7 +5128,8 @@ function getEventStatus(eventId) {
       type: 'insufficient',
       availableCount,
       requiredCount,
-      isConfirmed: false
+      isConfirmedByOrganizer: false,
+      isConfirmedByAllPlayers: false
     }
   }
   
@@ -5016,26 +5139,40 @@ function getEventStatus(eventId) {
       type: 'ready',
       availableCount,
       requiredCount,
-      isConfirmed: false
+      isConfirmedByOrganizer: false,
+      isConfirmedByAllPlayers: false
     }
   }
   
-  // Cas 4: Sélection complète et confirmée
-  if (isConfirmed) {
+  // Cas 4: Sélection confirmée par l'organisateur ET par tous les joueurs
+  if (isConfirmedByAllPlayers) {
     return {
       type: 'confirmed',
       availableCount,
       requiredCount,
-      isConfirmed
+      isConfirmedByOrganizer,
+      isConfirmedByAllPlayers
     }
   }
   
-  // Cas 5: Sélection complète mais non confirmée
+  // Cas 5: Sélection confirmée par l'organisateur mais pas encore par tous les joueurs
+  if (isConfirmedByOrganizer) {
+    return {
+      type: 'pending_confirmation',
+      availableCount,
+      requiredCount,
+      isConfirmedByOrganizer,
+      isConfirmedByAllPlayers
+    }
+  }
+  
+  // Cas 6: Sélection complète mais non confirmée par l'organisateur
   return {
     type: 'complete',
     availableCount,
     requiredCount,
-    isConfirmed
+    isConfirmedByOrganizer,
+    isConfirmedByAllPlayers
   }
 }
 
@@ -5064,8 +5201,10 @@ function getEventTooltip(eventId) {
       return `Prêt pour la sélection : ${status.availableCount} joueurs disponibles`
     case 'complete':
       return `Sélection complète : ${status.availableCount} joueurs disponibles (non confirmée)`
+    case 'pending_confirmation':
+      return `Sélection à confirmer : ${status.availableCount} joueurs disponibles (en attente de confirmation des joueurs)`
     case 'confirmed':
-      return `Sélection confirmée : ${status.availableCount} joueurs disponibles (verrouillée)`
+      return `Sélection confirmée : ${status.availableCount} joueurs disponibles (tous ont confirmé)`
     default:
       return ''
   }
@@ -5130,10 +5269,10 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
   isSendingNotifications.value = true
   try {
     if (reason === 'selection') {
-      // Vérifier que la sélection est confirmée avant d'envoyer les notifications
-      if (!isSelectionConfirmed(eventId)) {
+      // Vérifier que l'organisateur a validé la sélection avant d'envoyer les notifications
+      if (!isSelectionConfirmedByOrganizer(eventId)) {
         showSuccessMessage.value = true
-        successMessage.value = 'Impossible d\'envoyer les notifications : la sélection n\'est pas encore confirmée'
+        successMessage.value = 'Impossible d\'envoyer les notifications : la sélection n\'est pas encore validée par l\'organisateur'
         setTimeout(() => { showSuccessMessage.value = false }, 3000)
         return
       }
@@ -5222,7 +5361,10 @@ function getPlayerAvailabilityForEvent(eventId) {
 // Fonction helper pour extraire les joueurs d'une sélection
 function getSelectionPlayers(eventId) {
   const selection = selections.value[eventId]
-  if (!selection) return []
+  
+  if (!selection) {
+    return []
+  }
   
   // Si c'est la nouvelle structure avec confirmed
   if (selection.players && Array.isArray(selection.players)) {
@@ -5242,6 +5384,30 @@ function isSelectionConfirmed(eventId) {
   const selection = selections.value[eventId]
   if (!selection) return false
   
+  // Si c'est la nouvelle structure avec confirmedByAllPlayers
+  if (typeof selection.confirmedByAllPlayers === 'boolean') {
+    // Utiliser le champ pré-calculé pour de meilleures performances
+    return selection.confirmedByAllPlayers
+  }
+  
+  // Fallback pour l'ancienne structure ou si confirmedByAllPlayers n'existe pas
+  if (typeof selection.confirmed === 'boolean' && selection.confirmed && selection.playerStatuses && selection.players) {
+    // Vérifier que tous les joueurs ont le statut 'confirmed'
+    const allPlayersConfirmed = selection.players.every(playerName => 
+      selection.playerStatuses[playerName] === 'confirmed'
+    )
+    return allPlayersConfirmed
+  }
+  
+  // Si c'est l'ancienne structure, considérer comme non confirmée
+  return false
+}
+
+// Fonction helper pour vérifier si l'organisateur a confirmé la sélection (sans vérifier les confirmations individuelles)
+function isSelectionConfirmedByOrganizer(eventId) {
+  const selection = selections.value[eventId]
+  if (!selection) return false
+  
   // Si c'est la nouvelle structure avec confirmed
   if (typeof selection.confirmed === 'boolean') {
     return selection.confirmed
@@ -5249,6 +5415,23 @@ function isSelectionConfirmed(eventId) {
   
   // Si c'est l'ancienne structure, considérer comme non confirmée
   return false
+}
+
+// Fonction helper pour obtenir le statut individuel d'un joueur dans une sélection
+function getPlayerSelectionStatus(playerName, eventId) {
+  const selection = selections.value[eventId]
+  
+  if (!selection) {
+    return 'pending'
+  }
+  
+  // Si c'est la nouvelle structure avec playerStatuses
+  if (selection.playerStatuses && selection.playerStatuses[playerName]) {
+    return selection.playerStatuses[playerName]
+  }
+  
+  // Si c'est l'ancienne structure ou pas de statut, retourner 'pending'
+  return 'pending'
 }
 
 // Fonctions pour la nouvelle popin de sélection
@@ -5343,9 +5526,12 @@ async function handleConfirmSelectionFromModal() {
       }
     }
     
-    closeSelectionModal()
+    // Ne pas fermer la modale, la laisser ouverte pour afficher les nouveaux boutons
+    // closeSelectionModal()
+    
+    // Afficher un message de succès
     showSuccessMessage.value = true
-    successMessage.value = 'Sélection confirmée et verrouillée !'
+    successMessage.value = 'Sélection validée !'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -5711,7 +5897,7 @@ async function handleAccountLoginSuccess(data) {
         seasonSlug: notificationData.seasonSlug
       })
       
-      console.log('✅ Notifications activées après connexion:', result)
+  
       
       // Afficher le toast de succès
       showSuccessMessage.value = true

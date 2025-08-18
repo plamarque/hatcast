@@ -315,7 +315,9 @@ export async function loadSelections(seasonId = null) {
         players: data.players || [],
         confirmed: data.confirmed || false,
         confirmedAt: data.confirmedAt || null,
-        updatedAt: data.updatedAt || null
+        updatedAt: data.updatedAt || null,
+        playerStatuses: data.playerStatuses || {},
+        confirmedByAllPlayers: data.confirmedByAllPlayers || false
       }
     })
     return res
@@ -381,9 +383,18 @@ export async function saveSelection(eventId, players, seasonId = null) {
       
       // Sauvegarder la nouvelle sélection avec confirmed = false par défaut
       console.log('💾 Sauvegarde...')
+      
+      // Initialiser les statuts individuels des joueurs
+      const playerStatuses = {}
+      players.forEach(playerName => {
+        playerStatuses[playerName] = 'pending' // Tous commencent en attente de confirmation
+      })
+      
       const selectionData = { 
         players,
         confirmed: false, // Nouvelle sélection = non confirmée
+        confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
+        playerStatuses, // Statuts individuels des joueurs
         updatedAt: serverTimestamp()
       }
       await setDoc(selRef, selectionData)
@@ -502,9 +513,23 @@ export async function confirmSelection(eventId, seasonId = null) {
         ? doc(db, 'seasons', seasonId, 'selections', eventId)
         : doc(db, 'selections', eventId)
       
+      // Récupérer la sélection actuelle pour initialiser les statuts des joueurs
+      const selectionDoc = await getDoc(selRef)
+      const currentSelection = selectionDoc.exists ? selectionDoc.data() : { players: [] }
+      
+      // Initialiser les statuts individuels des joueurs si pas encore fait
+      const playerStatuses = currentSelection.playerStatuses || {}
+      currentSelection.players.forEach(playerName => {
+        if (!playerStatuses[playerName]) {
+          playerStatuses[playerName] = 'pending' // En attente de confirmation
+        }
+      })
+      
       await updateDoc(selRef, { 
         confirmed: true,
-        confirmedAt: serverTimestamp()
+        confirmedAt: serverTimestamp(),
+        confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
+        playerStatuses
       })
       
       console.log('✅ Sélection confirmée avec succès')
@@ -635,5 +660,106 @@ export async function setEventArchived(eventId, archived, seasonId = null) {
     if (idx !== -1) {
       eventList[idx] = { ...eventList[idx], archived: !!archived }
     }
+  }
+}
+
+/**
+ * Mettre à jour le statut individuel d'un joueur dans une sélection
+ * @param {string} eventId - ID de l'événement
+ * @param {string} playerName - Nom du joueur
+ * @param {string} status - Statut: 'pending', 'confirmed', 'declined'
+ * @param {string} seasonId - ID de la saison (optionnel)
+ */
+export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId = null) {
+  console.log('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
+  
+  try {
+    if (mode === 'firebase') {
+      const selRef = seasonId
+        ? doc(db, 'seasons', seasonId, 'selections', eventId)
+        : doc(db, 'selections', eventId)
+      
+      // Récupérer la sélection actuelle pour vérifier l'état global
+      const selectionDoc = await getDoc(selRef)
+      if (!selectionDoc.exists) {
+        throw new Error('Sélection non trouvée')
+      }
+      
+      const selectionData = selectionDoc.data()
+      const { players = [], playerStatuses = {} } = selectionData
+      
+      // Mettre à jour le statut du joueur
+      const updatedPlayerStatuses = { ...playerStatuses, [playerName]: status }
+      
+      // Vérifier si tous les joueurs ont maintenant confirmé
+      const allPlayersConfirmed = players.every(playerName => 
+        updatedPlayerStatuses[playerName] === 'confirmed'
+      )
+      
+      console.log('🔍 Vérification état global:', { 
+        players, 
+        updatedPlayerStatuses, 
+        allPlayersConfirmed 
+      })
+      
+      // Mettre à jour le statut du joueur ET l'état global de la sélection
+      await updateDoc(selRef, {
+        [`playerStatuses.${playerName}`]: status,
+        confirmedByAllPlayers: allPlayersConfirmed,
+        updatedAt: serverTimestamp()
+      })
+      
+      console.log('✅ Statut du joueur et état global mis à jour avec succès:', { 
+        playerName, 
+        status, 
+        confirmedByAllPlayers: allPlayersConfirmed 
+      })
+      
+      return { confirmedByAllPlayers: allPlayersConfirmed }
+    } else {
+      console.log('🎭 Mode mock activé')
+      return { confirmedByAllPlayers: false }
+    }
+  } catch (error) {
+    console.error('❌ Erreur dans updatePlayerSelectionStatus:', error)
+    throw error
+  }
+}
+
+/**
+ * Vérifier si tous les joueurs d'une sélection ont confirmé leur participation
+ * @param {string} eventId - ID de l'événement
+ * @param {string} seasonId - ID de la saison (optionnel)
+ * @returns {Promise<boolean>} - true si tous ont confirmé
+ */
+export async function isAllPlayersConfirmed(eventId, seasonId = null) {
+  console.log('🔍 isAllPlayersConfirmed appelé:', { eventId, seasonId })
+  
+  try {
+    if (mode === 'firebase') {
+      const selRef = seasonId
+        ? doc(db, 'seasons', seasonId, 'selections', eventId)
+        : doc(db, 'selections', eventId)
+      
+      const selectionDoc = await getDoc(selRef)
+      if (!selectionDoc.exists) {
+        console.log('❌ Sélection non trouvée')
+        return false
+      }
+      
+      const selectionData = selectionDoc.data()
+      const { confirmedByAllPlayers = false } = selectionData
+      
+      // Utiliser le champ pré-calculé pour de meilleures performances
+      console.log('🔍 État global de la sélection:', { confirmedByAllPlayers })
+      
+      return confirmedByAllPlayers
+    } else {
+      console.log('🎭 Mode mock activé')
+      return false
+    }
+  } catch (error) {
+    console.error('❌ Erreur dans isAllPlayersConfirmed:', error)
+    return false
   }
 }
