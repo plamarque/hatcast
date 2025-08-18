@@ -15,7 +15,7 @@
         
         <div class="space-y-3">
           <label class="block text-left text-sm font-medium text-gray-300">
-            Nom du joueur sélectionné
+            Nom de la personne sélectionnée
           </label>
           <select 
             v-model="selectedPlayerName" 
@@ -143,7 +143,7 @@ async function confirmDesistement() {
   errorMessage.value = ''
   
   try {
-    // Marquer le joueur comme indisponible pour cet événement
+            // Marquer la personne comme indisponible pour cet événement
     await setSingleAvailability({
       seasonId: props.seasonId,
       playerName: selectedPlayerName.value,

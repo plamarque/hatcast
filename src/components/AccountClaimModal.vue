@@ -48,7 +48,7 @@
         <button @click="activateProtection" :disabled="!passwordsValid || loading" class="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
           <span v-if="loading" class="animate-spin">⏳</span>
           <span v-else>🔒</span>
-          <span>{{ loading ? 'Association...' : 'Associer ce joueur' }}</span>
+                          <span>{{ loading ? 'Association...' : 'Associer cette personne' }}</span>
         </button>
       </div>
 
@@ -102,7 +102,7 @@ async function sendVerificationEmail() {
     const res = await startEmailVerificationForProtection({ playerId: props.player.id, email: email.value.trim(), seasonId: props.seasonId })
     const slug = route.params?.slug
     const verifyUrl = `${res.url}${slug ? `&slug=${encodeURIComponent(slug)}` : ''}&player=${encodeURIComponent(props.player.id)}&open=protection`
-    await queueProtectionVerificationEmail({ toEmail: email.value, playerName: props.player?.name || 'joueur', verifyUrl })
+            await queueProtectionVerificationEmail({ toEmail: email.value, playerName: props.player?.name || 'personne', verifyUrl })
     verificationSent.value = true
   } catch (e) {
     // En cas d'erreur non bloquante, afficher un message générique

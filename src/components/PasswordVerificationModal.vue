@@ -8,7 +8,7 @@
         </div>
         <h2 class="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">Vérification requise</h2>
         <p class="text-base md:text-lg text-gray-300">{{ player?.name }}</p>
-        <p class="text-xs md:text-sm text-gray-400 mt-1">Ce joueur est protégé par mot de passe</p>
+        <p class="text-xs md:text-sm text-gray-400 mt-1">Cette personne est protégée par mot de passe</p>
       </div>
 
       <!-- Contenu scrollable -->
@@ -17,7 +17,7 @@
         <div class="mb-4 md:mb-6">
           <div class="space-y-3 md:space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
+              <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe de la personne</label>
               <input
                 v-model="password"
                 type="password"
@@ -87,7 +87,7 @@
       <div class="px-4 pt-3 pb-16 md:px-6 md:pt-4 md:pb-20 overflow-y-auto">
         <div class="mb-4 md:mb-6">
           <p class="text-sm text-gray-300 mb-4">
-            Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
+            Un email de réinitialisation sera envoyé à l'adresse associée à cette personne.
           </p>
         </div>
 

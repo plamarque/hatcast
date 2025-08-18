@@ -41,9 +41,9 @@
             <p class="text-xs text-blue-300">Astuce: “Copier le message” ajoute le lien direct vers l'événement pour faciliter l'envoi manuel.</p>
           </div>
 
-          <!-- Joueurs à joindre manuellement -->
+          <!-- Personnes à joindre manuellement -->
           <div v-if="manualRecipients && manualRecipients.length > 0" class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-            <p class="text-yellow-200 text-sm mb-2">Joueurs à joindre manuellement (pas de canal actif):</p>
+            <p class="text-yellow-200 text-sm mb-2">Personnes à joindre manuellement (pas de canal actif):</p>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="p in manualRecipients"

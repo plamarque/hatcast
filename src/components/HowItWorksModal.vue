@@ -15,13 +15,13 @@
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto space-y-4 text-gray-200">
         <div class="bg-white/5 border border-white/10 rounded-lg p-4">
           <h3 class="text-white font-semibold mb-2">En bref</h3>
-          <p>On tire au sort uniquement parmi les joueurs <span class="text-green-300">disponibles</span>. Ceux qui ont <span class="text-purple-300">moins joué</span> ont plus de chances d'être tirés. À long terme, tout le monde joue à peu près autant.</p>
+          <p>On tire au sort uniquement parmi les personnes <span class="text-green-300">disponibles</span>. Ceux qui ont <span class="text-purple-300">moins joué</span> ont plus de chances d'être tirés. À long terme, tout le monde joue à peu près autant.</p>
         </div>
 
         <div class="space-y-3">
           <h3 class="text-white font-semibold">Détails du tirage</h3>
           <ol class="list-decimal list-inside space-y-2 text-gray-300">
-            <li><span class="text-white">Qui participe ?</span> Tous les joueurs marqués « ✅ Disponible » pour l’événement.</li>
+            <li><span class="text-white">Qui participe ?</span> Toutes les personnes marquées « ✅ Disponible » pour l’événement.</li>
             <li><span class="text-white">Un coup de pouce aux moins joués</span> : si vous avez moins joué récemment, le tirage vous favorise un peu plus.</li>
             <li><span class="text-white">Comment se fait le tirage ?</span> On tire un nom au hasard en tenant compte de cet avantage, on le met de côté, puis on recommence jusqu’à avoir assez de joueurs.</li>
             <li><span class="text-white">Si on relance</span> : on garde les joueurs encore disponibles et on complète seulement les places manquantes.</li>

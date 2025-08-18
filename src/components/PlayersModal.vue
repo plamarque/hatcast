@@ -6,19 +6,19 @@
         <div class="w-16 h-16 bg-gradient-to-br from-indigo-400 to-cyan-500 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span class="text-2xl">👥</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-1">Mes joueurs</h2>
-        <p class="text-sm text-gray-300">Gérez vos associations de joueurs</p>
+              <h2 class="text-2xl font-bold text-white mb-1">Mes personnes</h2>
+      <p class="text-sm text-gray-300">Gérez vos associations de personnes</p>
       </div>
 
       <div class="space-y-3">
-        <h3 class="text-white font-semibold mb-2">Mes joueurs associés</h3>
-        <div v-if="associations.length === 0" class="text-sm text-gray-400">Aucun joueur associé pour le moment.</div>
+        <h3 class="text-white font-semibold mb-2">Mes personnes associées</h3>
+        <div v-if="associations.length === 0" class="text-sm text-gray-400">Aucune personne associée pour le moment.</div>
         <ul v-else class="space-y-2">
           <li v-for="assoc in associations" :key="assocKey(assoc)" class="p-3 rounded-lg border border-white/10 bg-white/5 text-sm text-gray-300">
             <div class="flex items-center justify-between gap-3">
               <div class="truncate">
                 <div class="text-white font-semibold">{{ assoc.seasonName || assoc.seasonId || '—' }}</div>
-                <div class="text-gray-400 text-xs">Joueur : {{ assoc.playerName || '—' }}</div>
+                <div class="text-gray-400 text-xs">Personne : {{ assoc.playerName || '—' }}</div>
               </div>
               <button @click="managePlayer(assoc)" class="px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 text-xs">Gérer</button>
             </div>

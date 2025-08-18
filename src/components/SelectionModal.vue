@@ -22,7 +22,7 @@
               <!-- Badge nombre de joueurs -->
               <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
                 <span class="text-blue-300 hidden md:inline">👥</span>
-                <span class="text-blue-200">{{ event?.playerCount || 6 }} joueurs</span>
+                <span class="text-blue-200">{{ event?.playerCount || 6 }} personnes</span>
               </div>
               
               <!-- Indicateur de statut de sélection -->
@@ -46,7 +46,7 @@
               <div 
                 v-else-if="getSelectionStatus().type === 'insufficient'"
                 class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded text-sm flex items-center gap-1"
-                title="Pas assez de joueurs disponibles"
+                title="Pas assez de personnes disponibles"
               >
                 <span class="text-red-300 text-xs hidden md:inline">❌</span>
                 <span class="text-red-200 text-xs">Manque</span>
@@ -124,7 +124,7 @@
                   v-if="!isSelectionConfirmedByOrganizer"
                   @click="clearSlot(i)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
-                  title="Retirer ce joueur"
+                  title="Retirer cette personne"
                 >
                   ×
                 </button>
@@ -147,7 +147,7 @@
                   v-else-if="!isSelectionConfirmedByOrganizer"
                   @click="startEditSlot(i)"
                   class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
-                  title="Ajouter un joueur"
+                  title="Ajouter une personne"
                 >
                   <span class="text-lg">＋</span>
                   <span class="text-sm">Ajouter</span>
@@ -162,7 +162,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Sélection temporaire verrouillée :</strong> Les joueurs sélectionnés doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que tous auront validé. Pensez à l'annoncer !</span>
+            <span><strong>Sélection temporaire verrouillée :</strong> Les personnes sélectionnées doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que toutes auront validé. Pensez à l'annoncer !</span>
           </div>
         </div>
 
@@ -170,7 +170,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-orange-200 text-sm">
             <span>⚠️</span>
-            <span><strong>Sélection incomplète :</strong> Certains joueurs ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la sélection et remplacer les joueurs manquants.</span>
+            <span><strong>Sélection incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la sélection et remplacer les personnes manquantes.</span>
           </div>
         </div>
 
@@ -216,7 +216,7 @@
           @click="handleSelection" 
           :disabled="availableCount === 0" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')"
+          :title="availableCount === 0 ? 'Aucune personne disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')"
         >
           ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
         </button>
@@ -236,7 +236,7 @@
           v-if="hasSelection && !isSelectionConfirmedByOrganizer" 
           @click="handleConfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Valider la sélection et demander confirmation aux joueurs"
+          title="Valider la sélection et demander confirmation aux personnes"
         >
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
@@ -565,10 +565,10 @@ const incompleteSelectionMessage = computed(() => {
     if (unavailablePlayers.length === 1) {
       return `${unavailablePlayers[0]} n'est plus disponible. Veuillez relancer la sélection.`
     } else {
-      return `${unavailablePlayers.length} joueurs ne sont plus disponibles. Veuillez relancer la sélection.`
+      return `${unavailablePlayers.length} personnes ne sont plus disponibles. Veuillez relancer la sélection.`
     }
   } else if (props.availableCount < requiredCount) {
-    return `Seulement ${props.availableCount} joueurs disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de joueurs à sélectionner.`
+    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à sélectionner.`
   }
   
   return 'Sélection incomplète'
@@ -810,9 +810,9 @@ function getInvitationTitle() {
   const requiredCount = props.event?.playerCount || 6
   
   if (props.availableCount === 0) {
-    return 'Aucun joueur disponible'
+    return 'Aucune personne disponible'
   } else if (props.availableCount < requiredCount) {
-    return 'Pas assez de joueurs disponibles'
+    return 'Pas assez de personnes disponibles'
   } else {
     return 'Aucune sélection effectuée'
   }
@@ -822,11 +822,11 @@ function getInvitationMessage() {
   const requiredCount = props.event?.playerCount || 6
   
   if (props.availableCount === 0) {
-    return 'Aucun joueur n\'est disponible pour cet événement. Veuillez d\'abord indiquer les disponibilités.'
+    return 'Aucune personne n\'est disponible pour cet événement. Veuillez d\'abord indiquer les disponibilités.'
   } else if (props.availableCount < requiredCount) {
-    return `Seulement ${props.availableCount} joueurs disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de joueurs à sélectionner.`
+    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à sélectionner.`
   } else {
-    return 'Cliquez sur "Sélection Auto" pour lancer le tirage automatique des joueurs'
+    return 'Cliquez sur "Sélection Auto" pour lancer le tirage automatique des personnes'
   }
 }
 
@@ -844,7 +844,7 @@ function showSuccess(reselection = false, isPartialUpdate = false) {
       successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
     }
   } else {
-            successMessageText.value = 'Sélection effectuée avec succès ! Cliquez sur "Valider" pour notifier les joueurs.'
+            successMessageText.value = 'Sélection effectuée avec succès ! Cliquez sur "Valider" pour notifier les personnes.'
   }
   
   showSuccessMessage.value = true

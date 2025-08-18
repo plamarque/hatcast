@@ -146,13 +146,13 @@ const tooltip = computed(() => {
     case 'complete':
       return 'Sélection complète (non confirmée)'
     case 'pending_confirmation':
-      return 'Sélection à confirmer - En attente de confirmation des joueurs'
+      return 'Sélection à confirmer - En attente de confirmation des personnes'
     case 'confirmed':
-      return 'Sélection confirmée - Tous les joueurs ont confirmé'
+              return 'Sélection confirmée - Toutes les personnes ont confirmé'
     case 'incomplete':
       return 'Sélection incomplète - Problèmes détectés'
     case 'insufficient':
-      return 'Pas assez de joueurs disponibles'
+              return 'Pas assez de personnes disponibles'
     case 'ready':
       return 'Prêt pour la sélection'
     default:

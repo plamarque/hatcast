@@ -15,7 +15,7 @@
         </template>
         <template v-else-if="step === 2">
           <button @click="handleAddPlayer" class="px-5 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all">
-            👤 Ajouter un joueur
+            👤 Ajouter une personne
           </button>
         </template>
         <template v-else-if="step === 3">
@@ -80,15 +80,15 @@ watch(step, (s) => { showModal.value = s > 0 })
 const titleText = computed(() => {
   switch (step.value) {
     case 1: return 'Commençons par créer votre premier événement'
-    case 2: return 'Super ! Ajoutez votre premier joueur'
-    case 3: return 'Vous y êtes presque! Maintenant, invitez vos joueurs.'
+            case 2: return 'Super ! Ajoutez votre première personne'
+            case 3: return 'Vous y êtes presque! Maintenant, invitez vos personnes.'
     default: return ''
   }
 })
 const subtitleText = computed(() => {
   switch (step.value) {
     case 1: return 'Un titre, une date... et c\’est parti.'
-    case 2: return 'Ajoutez au moins un joueur pour commencer à saisir des disponibilités.'
+            case 2: return 'Ajoutez au moins une personne pour commencer à saisir des disponibilités.'
     case 3: return 'Laissez vos membres s’inscrire eux-même et indiquer leurs disponibilités en leur envoyant le lien direct.'
     default: return ''
   }

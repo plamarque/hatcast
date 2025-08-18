@@ -16,10 +16,10 @@
       <!-- Hint pour les destinataires -->
       <div v-if="showDestinatairesHint" class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-3">
         <p class="text-blue-200 text-sm">
-          Cette liste montre tous les joueurs ciblés: 
+          Cette liste montre toutes les personnes ciblées: 
           <span class="text-gray-200">ceux notifiables (email/push actifs)</span> et
           <span class="text-yellow-300">ceux en jaune sans canal actif</span>.
-          Les joueurs en jaune ne peuvent pas être notifiés automatiquement. Utilise le message ci-dessous pour les contacter manuellement.
+          Les personnes en jaune ne peuvent pas être notifiées automatiquement. Utilise le message ci-dessous pour les contacter manuellement.
         </p>
       </div>
       
@@ -32,7 +32,7 @@
             <span class="text-yellow-400 font-medium">{{ nonContactRecipients.length }}</span> devront être prévenues manuellement.
           </div>
           
-          <!-- Liste des joueurs -->
+          <!-- Liste des personnes -->
           <div class="flex flex-wrap gap-2">
             <span
               v-for="player in allDisplayRecipients.filter(p => p.id !== 'ALL')"

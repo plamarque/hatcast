@@ -45,7 +45,7 @@
                <div class="flex items-center justify-between">
                  <label class="flex items-center gap-2">
                    <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
-                   <span class="text-sm text-white">M'envoyer un email lorsqu'un spectacle a besoin de joueurs</span>
+                   <span class="text-sm text-white">M'envoyer un email lorsqu'un spectacle a besoin de personnes</span>
                  </label>
                </div>
                <div class="flex items-center justify-between">

@@ -14,7 +14,7 @@
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span class="text-2xl">🔒</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-2">{{ isProtected ? 'Déverrouiller ce joueur' : 'Verrouiller ce joueur' }}</h2>
+        <h2 class="text-2xl font-bold text-white mb-2">{{ isProtected ? 'Déverrouiller cette personne' : 'Verrouiller cette personne' }}</h2>
         <p class="text-lg text-gray-300">{{ player?.name }}</p>
       </div>
 
@@ -26,8 +26,8 @@
             <div>
               <div class="font-semibold text-white">
                 {{ isProtected
-                  ? (isOwner ? 'Joueur associé à votre compte' : 'Ce joueur est associé à un compte utilisateur')
-                  : 'Joueur sans compte' }}
+                              ? (isOwner ? 'Personne associée à votre compte' : 'Cette personne est associée à un compte utilisateur')
+            : 'Personne sans compte' }}
               </div>
               <div class="text-sm text-gray-300">
                 {{ isProtected
@@ -137,7 +137,7 @@ const validEmail = computed(() => false)
 const passwordsValid = computed(() => false)
 
 function handleClaimSuccess() {
-  success.value = 'Compte créé et joueur associé !'
+            success.value = 'Compte créé et personne associée !'
   isProtected.value = true
   showAccountClaim.value = false
   emit('update')
@@ -163,7 +163,7 @@ async function sendVerificationEmail() {
     const res = await startEmailVerificationForProtection({ playerId: props.player.id, email: email.value.trim(), seasonId: props.seasonId })
     const slug = route.params?.slug
     const verifyUrl = `${res.url}${slug ? `&slug=${encodeURIComponent(slug)}` : ''}&player=${encodeURIComponent(props.player.id)}&open=protection`
-    await queueProtectionVerificationEmail({ toEmail: email.value, playerName: props.player?.name || 'joueur', verifyUrl })
+            await queueProtectionVerificationEmail({ toEmail: email.value, playerName: props.player?.name || 'personne', verifyUrl })
     verificationSent.value = true
   } catch (e) {
     logger.error('Erreur envoi email de vérification protection', e)
@@ -205,7 +205,7 @@ async function activateProtection() {
     try { if (props.onboarding) emit('onboarding-finished') } catch {}
   } catch (err) {
     logger.error('Erreur lors de l\'activation de la protection', err)
-    if (err.message && err.message.includes('email')) error.value = 'Cette adresse email est déjà utilisée par un autre joueur.'
+            if (err.message && err.message.includes('email')) error.value = 'Cette adresse email est déjà utilisée par une autre personne.'
     else error.value = 'Erreur lors de l\'activation de la protection. Veuillez réessayer.'
   } finally {
     loading.value = false
@@ -231,7 +231,7 @@ async function performUnprotect() {
   success.value = ''
   try {
     const result = await unprotectPlayer(props.player.id, props.seasonId)
-    success.value = 'Joueur déverrouillé!'
+            success.value = 'Protection désactivée!'
     isProtected.value = false
     if (result.email) { email.value = result.email }
     emit('update')

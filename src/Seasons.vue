@@ -219,7 +219,7 @@
                   </div>
                   <div class="text-center">
                     <div class="text-white font-semibold">{{ season.players?.length || 0 }}</div>
-                    <div class="text-gray-400 text-xs">Joueurs</div>
+                    <div class="text-gray-400 text-xs">Personnes</div>
                   </div>
                 </div>
 
@@ -541,7 +541,7 @@
               Qu'est-ce que HatCast ?
             </h2>
             <p class="text-xl text-purple-300 max-w-3xl mx-auto">
-              L'appli pour sélectionner vos joueurs d'impro simplement, équitablement et sans prise de tête
+              L'appli pour sélectionner vos équipes d'impro simplement, équitablement et sans prise de tête
             </p>
           </div>
 
@@ -554,7 +554,7 @@
               </div>
               <h3 class="text-xl font-bold text-white mb-3">Gestion des saisons</h3>
               <p class="text-gray-300 text-sm leading-relaxed">
-                Déclarez tous vos spectacles et indiquez combien de joueurs vous aurez besoin. 
+                Déclarez tous vos spectacles et indiquez combien de personnes vous aurez besoin. 
                 Organisez votre saison d'impro de A à Z.
               </p>
             </div>
@@ -566,7 +566,7 @@
               </div>
               <h3 class="text-xl font-bold text-white mb-3">Sondage de disponibilités</h3>
               <p class="text-gray-300 text-sm leading-relaxed">
-                Créez des sondages pour vos événements. Chaque joueur indique ses disponibilités 
+                Créez des sondages pour vos événements. Chaque personne indique ses disponibilités 
                 et HatCast optimise la composition des équipes.
               </p>
             </div>
@@ -639,7 +639,7 @@
               </div>
             </div>
             <p class="text-gray-300 text-sm leading-relaxed max-w-md">
-              L'appli pour sélectionner vos joueurs d'impro simplement, équitablement et sans prise de tête.
+              L'appli pour sélectionner vos équipes d'impro simplement, équitablement et sans prise de tête.
             </p>
           </div>
           

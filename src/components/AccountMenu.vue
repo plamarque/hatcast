@@ -30,11 +30,11 @@
                 <button 
                   @click="associations.length === 1 ? openPlayerModal(associations[0]) : showPlayersList = true" 
                   class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs md:text-sm hover:bg-blue-500/30 transition-colors cursor-pointer"
-                  :title="associations.length === 1 ? `Voir ${associations[0].playerName}` : 'Gérer mes joueurs'"
+                  :title="associations.length === 1 ? `Voir ${associations[0].playerName}` : 'Gérer mes personnes'"
                 >
                   <span class="text-blue-300">⭐</span>
                   <span class="text-blue-200">
-                    {{ associations.length === 1 ? associations[0].playerName : `${associations.length} joueurs` }}
+                    {{ associations.length === 1 ? associations[0].playerName : `${associations.length} personnes` }}
                   </span>
                 </button>
               </div>
@@ -164,14 +164,14 @@
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
             <span class="text-yellow-400">⭐</span>
-            {{ associations.length <= 1 ? 'Mon joueur' : 'Mes joueurs' }}
+            {{ associations.length <= 1 ? 'Ma personne' : 'Mes personnes' }}
           </h3>
           <button @click="showPlayersList = false" class="text-white/80 hover:text-white">✖️</button>
         </div>
         
         <div class="space-y-3">
           <div v-if="associations.length === 0" class="text-sm text-gray-400 text-center py-4">
-            Aucun joueur associé pour le moment.
+            Aucune personne associée pour le moment.
           </div>
           <div v-else class="space-y-2">
             <div v-for="assoc in associations" :key="assocKey(assoc)" class="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
@@ -185,8 +185,8 @@
               <button 
                 @click="dissociatePlayer(assoc)" 
                 class="p-1.5 rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 hover:text-red-300 transition-colors duration-200 flex-shrink-0"
-                title="Dissocier ce joueur"
-                aria-label="Dissocier ce joueur"
+                title="Dissocier cette personne"
+                aria-label="Dissocier cette personne"
               >
                 🗑️
               </button>
@@ -337,7 +337,7 @@ async function loadPlayerAssociations() {
 }
 
 async function dissociatePlayer(assoc) {
-  if (!confirm(`Êtes-vous sûr de vouloir dissocier le joueur "${assoc.playerName}" de votre compte ?`)) {
+  if (!confirm(`Êtes-vous sûr de vouloir dissocier la personne "${assoc.playerName}" de votre compte ?`)) {
     return
   }
   
@@ -376,7 +376,7 @@ async function dissociatePlayer(assoc) {
     await loadPlayerAssociations()
     
     // Message de succès temporaire
-    const successMsg = `Joueur "${assoc.playerName}" dissocié avec succès`
+    const successMsg = `Personne "${assoc.playerName}" dissociée avec succès`
     // On pourrait ajouter un état de succès ici si on veut l'afficher
     
   } catch (error) {

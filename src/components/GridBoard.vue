@@ -174,7 +174,7 @@
       >
         <!-- Coachmarks d'onboarding (mini-fenêtres contextuelles) -->
         <div v-if="playerTourStep === 1" class="pointer-events-none">
-          <!-- Étape 1: coachmark bouton Ajouter un joueur -->
+                      <!-- Étape 1: coachmark bouton Ajouter une personne -->
           <div
             v-if="addPlayerCoachmark.position"
             class="fixed z-[400]"
@@ -182,7 +182,7 @@
           >
             <div id="coachmark-add" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative" :class="{ 'coachmark-right': addPlayerCoachmark.side === 'right', 'coachmark-left': addPlayerCoachmark.side === 'left' }">
               <div class="text-lg md:text-base font-semibold mb-1">Ajoutez votre nom</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur "Ajouter un joueur" pour vous inscrire</div>
+              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur "Ajouter une personne" pour vous inscrire</div>
               <div class="flex items-center justify-between">
                 <span class="text-purple-300 text-base md:text-sm">Étape 1/4</span>
                 <button @click="dismissCoachmarkStep(0)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant ></button>
@@ -249,14 +249,14 @@
                   <span 
                     v-if="preferredPlayerIdsSet.has(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
-                    title="Mon joueur"
+                    title="Ma personne"
                   >
                     ⭐
                   </span>
                   <span 
                     v-else-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
-                    title="Joueur protégé par mot de passe"
+                    title="Personne protégée par mot de passe"
                   >
                     🔒
                   </span>
@@ -299,19 +299,19 @@
               </td>
               <td class="p-3 md:p-4"></td>
             </tr>
-            <!-- Dernière ligne: ajouter un joueur (toujours visible pour éviter blocage quand 0 joueur) -->
+            <!-- Dernière ligne: ajouter une personne (toujours visible pour éviter blocage quand 0 personne) -->
             <tr class="border-t border-white/10">
               <td class="px-0 py-4 md:py-5 sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 flex items-center">
                   <button
                     @click="newPlayerForm = true"
                     class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
-                    title="Ajouter un nouveau joueur"
+                    title="Ajouter une nouvelle personne"
                     data-onboarding="add-player"
                   >
                     <span class="text-lg">➕</span>
-                    <span class="hidden sm:inline">Ajouter un joueur</span>
-                    <span class="sm:hidden">Joueur</span>
+                    <span class="hidden sm:inline">Ajouter une personne</span>
+                    <span class="sm:hidden">Personne</span>
                   </button>
                 </div>
               </td>
@@ -420,7 +420,7 @@
         <label for="new-archived" class="text-sm font-medium text-gray-300">Créer comme archivé</label>
       </div>
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de personnes à sélectionner</label>
         <input
           v-model="newEventPlayerCount"
           type="number"
@@ -450,14 +450,14 @@
   <!-- Modale de création de joueur -->
   <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouveau joueur</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nom</label>
         <input
           v-model="newPlayerName"
           type="text"
           class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-          placeholder="Nom du joueur"
+          placeholder="Nom de la personne"
         >
       </div>
       <div class="flex justify-end space-x-3">
@@ -512,7 +512,7 @@
           <span class="text-2xl">⚠️</span>
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
-        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer ce joueur ?</p>
+        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer cette personne ?</p>
       </div>
       <div class="flex justify-end space-x-3">
         <button @click="cancelPlayerDelete" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
@@ -531,7 +531,7 @@
         <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
         <p class="text-gray-300">
           <span v-if="eventIdToReselect && getSelectionPlayers(eventIdToReselect).every(playerName => isAvailable(playerName, eventIdToReselect))">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles.</span>
-          <span v-else>La sélection sera mise à jour : les joueurs disponibles seront conservés, les slots vides seront complétés.</span>
+          <span v-else>La sélection sera mise à jour : les personnes disponibles seront conservées, les slots vides seront complétés.</span>
         </p>
       </div>
 
@@ -564,7 +564,7 @@
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
                <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
                  <span class="text-blue-300 hidden md:inline">👥</span>
-                 <span class="text-blue-200">{{ selectedEvent?.playerCount || 6 }} joueurs</span>
+                 <span class="text-blue-200">{{ selectedEvent?.playerCount || 6 }} personnes</span>
                </div>
              </div>
              
@@ -710,14 +710,14 @@
                 <span
                   v-if="preferredPlayerIdsSet.has(player.id)"
                   class="text-yellow-400 mr-1 text-xs"
-                  title="Mon joueur"
+                  title="Ma personne"
                 >
                   ⭐
                 </span>
                 <span
                   v-else-if="isPlayerProtectedInGrid(player.id)"
                   class="text-yellow-400 mr-1 text-xs"
-                  title="Joueur protégé par mot de passe"
+                  title="Personne protégée par mot de passe"
                 >
                   🔒
                 </span>
@@ -758,7 +758,7 @@
             @click="openEventAnnounceModal(selectedEvent)" 
             :disabled="selectedEvent?.archived"
             class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
-            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux joueurs (email, copie, WhatsApp)'"
+            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
           >
             <span>📢</span><span>Annoncer</span>
           </button>
@@ -844,7 +844,7 @@
         @click="openEventAnnounceModal(selectedEvent); showEventMoreActions = false" 
         :disabled="selectedEvent?.archived"
         class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-        :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux joueurs (email, copie, WhatsApp)'"
+        :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
       >
         <span>📢</span><span>Annoncer</span>
       </button>
@@ -918,7 +918,7 @@
         <label for="edit-archived" class="text-sm font-medium text-gray-300">Archiver ce spectacle</label>
       </div>
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de personnes à sélectionner</label>
         <input
           v-model="editingPlayerCount"
           type="number"
@@ -963,15 +963,15 @@
           <span class="text-2xl">🔐</span>
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Vérification requise</h2>
-        <p class="text-lg text-gray-300">Suppression de joueur protégé</p>
-        <p class="text-sm text-gray-400 mt-2">Ce joueur est protégé par mot de passe</p>
+        <p class="text-lg text-gray-300">Suppression de personne protégée</p>
+        <p class="text-sm text-gray-400 mt-2">Cette personne est protégée par mot de passe</p>
       </div>
 
       <!-- Formulaire de vérification -->
       <div class="mb-6">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe de la personne</label>
             <input
               v-model="playerPasswordInput"
               type="password"
@@ -1033,14 +1033,14 @@
         </div>
         <h2 class="text-2xl font-bold text-white mb-1">Vérification requise</h2>
         <p class="text-base text-gray-300">Modification de disponibilité</p>
-        <p class="text-sm text-gray-400 mt-1">Ce joueur est protégé par mot de passe</p>
+        <p class="text-sm text-gray-400 mt-1">Cette personne est protégée par mot de passe</p>
       </div>
 
       <!-- Contenu scrollable -->
       <div class="px-4 pt-3 pb-16 md:px-6 md:pt-4 md:pb-20 overflow-y-auto">
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe du joueur</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Mot de passe de la personne</label>
             <input
               v-model="availabilityPasswordInput"
               type="password"
@@ -1104,7 +1104,7 @@
 
       <div class="mb-6">
         <p class="text-sm text-gray-300 mb-4">
-          Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
+          Un email de réinitialisation sera envoyé à l'adresse associée à cette personne.
         </p>
         
         <button
@@ -1147,12 +1147,12 @@
           <span class="text-2xl">📧</span>
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Mot de passe oublié</h2>
-        <p class="text-lg text-gray-300">Suppression de joueur protégé</p>
+        <p class="text-lg text-gray-300">Suppression de personne protégée</p>
       </div>
 
       <div class="mb-6">
         <p class="text-sm text-gray-300 mb-4">
-          Un email de réinitialisation sera envoyé à l'adresse associée à ce joueur.
+          Un email de réinitialisation sera envoyé à l'adresse associée à cette personne.
         </p>
         
         <button
@@ -1320,7 +1320,7 @@
   <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
               <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer ce spectacle ?</h3>
-      <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux joueurs pour qu'ils indiquent leur disponibilité</p>
+              <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux personnes pour qu'elles indiquent leur disponibilité</p>
       
       <div class="flex gap-3">
         <button
@@ -1809,7 +1809,7 @@ function evaluatePlayerTourStart() {
       // Toujours démarrer par l'étape 1 (ajout) même si un joueur existe déjà
       playerTourStep.value = 1
       localStorage.removeItem(`startPlayerTour:${seasonId.value}`)
-      // Positionner le coachmark près du bouton Ajouter un joueur (scroll si hors vue)
+      // Positionner le coachmark près du bouton Ajouter une personne (scroll si hors vue)
       nextTick(() => {
         const addBtn = document.querySelector('button[data-onboarding="add-player"]')
         if (addBtn) {
@@ -2414,7 +2414,7 @@ function highlightPlayer(playerId) {
     row.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
   showSuccessMessage.value = true
-  successMessage.value = 'Nouveau joueur ajouté !'
+          successMessage.value = 'Nouvelle personne ajoutée !'
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
@@ -2683,7 +2683,7 @@ async function saveEdit() {
 
   const playerCount = parseInt(editingPlayerCount.value)
   if (isNaN(playerCount) || playerCount < 1 || playerCount > 20) {
-    alert('Le nombre de joueurs doit être un nombre entier entre 1 et 20')
+    alert('Le nombre de personnes doit être un nombre entier entre 1 et 20')
     return
   }
 
@@ -2798,7 +2798,7 @@ async function saveEdit() {
 
 
 async function confirmDeletePlayer(playerId) {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return
+      if (!confirm('Êtes-vous sûr de vouloir supprimer cette personne ?')) return
 
   try {
     await deletePlayer(playerId, seasonId.value)
@@ -2817,14 +2817,14 @@ async function confirmDeletePlayer(playerId) {
       loadProtectedPlayers()
     })
     showSuccessMessage.value = true
-    successMessage.value = 'Joueur supprimé avec succès !'
+    successMessage.value = 'Personne supprimée avec succès !'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de la suppression du joueur')
-    alert('Erreur lors de la suppression du joueur. Veuillez réessayer.')
+    alert('Erreur lors de la suppression de la personne. Veuillez réessayer.')
   }
 }
 
@@ -2879,7 +2879,7 @@ async function addNewPlayer() {
 
       // Afficher le message de succès
       showSuccessMessage.value = true
-      successMessage.value = 'Joueur ajouté avec succès ! Vous pouvez maintenant indiquer sa disponibilité.'
+      successMessage.value = 'Personne ajoutée avec succès ! Vous pouvez maintenant indiquer sa disponibilité.'
       setTimeout(() => {
         showSuccessMessage.value = false
       }, 3000)     // Masquer le message après 5 secondes
@@ -2894,7 +2894,7 @@ async function addNewPlayer() {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'ajout du joueur')
-    alert('Erreur lors de l\'ajout du joueur. Veuillez réessayer.')
+    alert('Erreur lors de l\'ajout de la personne. Veuillez réessayer.')
   }
 }
 
@@ -2926,7 +2926,7 @@ async function createEvent() {
 
   const playerCount = parseInt(newEventPlayerCount.value)
   if (isNaN(playerCount) || playerCount < 1 || playerCount > 20) {
-    alert('Le nombre de joueurs doit être un nombre entier entre 1 et 20')
+    alert('Le nombre de personnes doit être un nombre entier entre 1 et 20')
     return
   }
 
@@ -3211,7 +3211,7 @@ onMounted(async () => {
       // Si retour depuis verification email (verified=1), afficher un toast de succès
       if (route.query.verified === '1') {
         showSuccessMessage.value = true
-        successMessage.value = 'Joueur associé à votre compte.'
+        successMessage.value = 'Personne associée à votre compte.'
         setTimeout(() => { showSuccessMessage.value = false }, 2500)
       }
     }
@@ -4121,14 +4121,14 @@ async function deletePlayerConfirmed(playerId = null) {
     playerToDelete.value = null
     
     showSuccessMessage.value = true
-    successMessage.value = 'Joueur supprimé avec succès !'
+            successMessage.value = 'Personne supprimée avec succès !'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de la suppression du joueur')
-    alert("Erreur lors de la suppression du joueur. Veuillez réessayer.")
+            alert("Erreur lors de la suppression de la personne. Veuillez réessayer.")
   }
 }
 

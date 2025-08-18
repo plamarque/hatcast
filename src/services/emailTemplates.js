@@ -39,7 +39,7 @@ export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate,
       
       <p style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
         <strong>⚠️ IMPORTANT : Tu dois confirmer ta participation !</strong><br>
-        L'équipe ne sera confirmée que lorsque <strong>tous les joueurs sélectionnés auront confirmé</strong> leur disponibilité.
+        L'équipe ne sera confirmée que lorsque <strong>toutes les personnes sélectionnées auront confirmé</strong> leur disponibilité.
       </p>
       
       <div style="margin: 20px 0; text-align: center;">
@@ -95,7 +95,7 @@ Tu es sélectionné(e) pour ${eventTitle} le ${eventDate}!
 🕺 Prépares-toi à briller, toute l'équipe compte sur toi!
 
 ⚠️ IMPORTANT : Tu dois confirmer ta participation !
-L'équipe ne sera confirmée que lorsque tous les joueurs sélectionnés auront confirmé leur disponibilité.
+L'équipe ne sera confirmée que lorsque toutes les personnes sélectionnées auront confirmé leur disponibilité.
 
 ✅ Confirmer ma participation : ${confirmUrl || eventUrl}
 📋 Détails : ${eventUrl}
@@ -108,7 +108,7 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
  * Template pour l'annonce globale de sélection (à copier-coller pour WhatsApp)
  */
 export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, eventUrl, selectedPlayers }) {
-  const playersList = selectedPlayers.length > 0 ? selectedPlayers.join(', ') : 'les joueurs sélectionnés'
+  const playersList = selectedPlayers.length > 0 ? selectedPlayers.join(', ') : 'les personnes sélectionnées'
   
   return `🎭 ANNONCE SÉLECTION 🎭
 

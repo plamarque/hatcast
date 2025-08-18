@@ -145,7 +145,7 @@
   <!-- Modal d'édition du nom -->
   <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Renommer le joueur</h2>
+              <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Renommer la personne</h2>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nom</label>
         <input
@@ -174,7 +174,7 @@
     </div>
   </div>
 
-  <!-- Modal d'association du joueur -->
+        <!-- Modal d'association de la personne -->
 <PlayerClaimModal
   :show="showProtectionModal"
   :player="player"
