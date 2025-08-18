@@ -1583,6 +1583,18 @@ function onAuthStateChanged(user) {
   nextTick(() => {
     updateEventMonitoredState()
   })
+  
+  // Forcer la mise à jour de l'interface pour les joueurs protégés
+  // quand l'état d'authentification change
+  nextTick(() => {
+    // Forcer la réactivité en déclenchant un changement sur protectedPlayers
+    // Cela va faire que isPlayerProtectedInGrid() retourne le bon état
+    const currentProtected = new Set(protectedPlayers.value)
+    protectedPlayers.value = new Set()
+    nextTick(() => {
+      protectedPlayers.value = currentProtected
+    })
+  })
 }
 
 // État réactif pour la surveillance des événements
@@ -2539,6 +2551,10 @@ function hideHighlight() {
 
 // Fonction pour vérifier si un joueur est protégé
 function isPlayerProtectedInGrid(playerId) {
+  // Si l'utilisateur n'est pas connecté, aucun joueur n'est considéré comme protégé
+  if (!auth.currentUser?.email) {
+    return false
+  }
   return protectedPlayers.value.has(playerId)
 }
 
