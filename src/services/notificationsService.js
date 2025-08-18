@@ -140,7 +140,12 @@ export async function sendAvailabilityNotificationsForEvent({
  * This function delegates to email service for now, keeping a single source of truth.
  */
 export async function sendSelectionNotificationsForEvent(args) {
-  return sendSelectionEmailsViaEmail(args)
+  // Ajouter le paramètre isConfirmedTeam si pas déjà présent
+  const argsWithConfirmedTeam = {
+    ...args,
+    isConfirmedTeam: args.isConfirmedTeam || false
+  }
+  return sendSelectionEmailsViaEmail(argsWithConfirmedTeam)
 }
 
 function formatDateFull(dateValue) {

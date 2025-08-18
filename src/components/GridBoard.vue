@@ -5267,7 +5267,8 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
           selectedPlayers: [recipient.name],
           seasonId: seasonId.value,
           seasonSlug: seasonSlug,
-          players: enrichedPlayers.value
+          players: enrichedPlayers.value,
+          isConfirmedTeam: isSelectionConfirmed(eventId)
         })
       } else {
         // Batch pour tous les sélectionnés
@@ -5277,15 +5278,19 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
           selectedPlayers,
           seasonId: seasonId.value,
           seasonSlug: seasonSlug,
-          players: enrichedPlayers.value
+          players: enrichedPlayers.value,
+          isConfirmedTeam: isSelectionConfirmed(eventId)
         })
       }
       
       success = true
       showSuccessMessage.value = true
+      const isConfirmedTeam = isSelectionConfirmed(eventId)
       successMessage.value = scope === 'single'
         ? `Notification envoyée à ${recipient?.name || '1 joueur'}`
-        : 'Notifications de sélection envoyées à tous les joueurs sélectionnés !'
+        : isConfirmedTeam 
+          ? 'Notifications d\'équipe confirmée envoyées à tous les joueurs !'
+          : 'Notifications de sélection envoyées à tous les joueurs sélectionnés !'
       setTimeout(() => { showSuccessMessage.value = false }, 3000)
     } else {
       // Mode événement : envoi multi-canal

@@ -159,10 +159,18 @@
         </div>
         
         <!-- Message d'information pour sélection à confirmer -->
-        <div v-if="isSelectionConfirmedByOrganizer" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
             <span><strong>Sélection temporaire verrouillée :</strong> Les joueurs sélectionnés doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que tous auront validé. Pensez à l'annoncer !</span>
+          </div>
+        </div>
+
+        <!-- Message d'information pour sélection définitive -->
+        <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+          <div class="flex items-center gap-2 text-green-200 text-sm">
+            <span>✅</span>
+            <span><strong>Sélection définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la sélection.</span>
           </div>
         </div>
 

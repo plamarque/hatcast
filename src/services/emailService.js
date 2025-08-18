@@ -225,10 +225,18 @@ export async function queueSelectionEmail({
           if (typeof confirmUrl !== 'undefined') pushData.confirmUrl = confirmUrl
           if (typeof declineUrl !== 'undefined') pushData.declineUrl = declineUrl
           if (typeof noUrl !== 'undefined') pushData.noUrl = noUrl
+          
+          // Déterminer le titre et le message selon le type de notification
+          const isConfirmedTeam = subject.includes('Équipe confirmée')
+          const pushTitle = isConfirmedTeam ? '🎉 Équipe confirmée !' : '🎭 Confirme ta participation !'
+          const pushBody = isConfirmedTeam 
+            ? selectedPlayers.join(', ')
+            : `${playerName}, tu es en lice pour faire partie de l'équipe pour ${eventTitle} (${eventDate}) 🎉`
+          
           await queuePushMessage({
             toEmail: toEmail,
-            title: '🎭 Confirme ta participation !',
-            body: `${playerName}, tu es en lice pour faire partie de l'équipe pour ${eventTitle} (${eventDate}) 🎉`,
+            title: pushTitle,
+            body: pushBody,
             data: pushData,
             reason: 'selection'
           })
@@ -328,7 +336,7 @@ export async function queueDeselectionEmail({
 }
 
 // Fonction pour envoyer des emails de notification de sélection pour un événement
-export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, seasonId, seasonSlug, players }) {
+export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, seasonId, seasonSlug, players, isConfirmedTeam = false }) {
   logger.info('sendSelectionEmailsForEvent', { eventId, seasonId, seasonSlug, playersCount: players?.length, selectedCount: selectedPlayers?.length })
   
   if (!eventData || !selectedPlayers || selectedPlayers.length === 0) {
@@ -342,7 +350,9 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
   // Créer la liste des joueurs sélectionnés
   const playersList = selectedPlayers.join(', ')
   
-  const subject = `🎭 Confirme ta participation pour · ${eventData.title}`
+  const subject = isConfirmedTeam 
+    ? `🎉 Équipe confirmée pour · ${eventData.title}`
+    : `🎭 Confirme ta participation pour · ${eventData.title}`
 
   // Envoyer un email personnalisé à chaque joueur sélectionné
   const emailPromises = []
@@ -387,7 +397,7 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
       
       try {
-        const { buildSelectionEmailTemplate } = await import('./emailTemplates.js')
+        const { buildSelectionEmailTemplate, buildConfirmedTeamEmailTemplate } = await import('./emailTemplates.js')
         
         logger.debug('Magic links générés pour sélection', { 
           playerName, 
@@ -395,34 +405,63 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
           declineUrl: declineUrl.substring(0, 100) + '...' 
         })
         
-        html = buildSelectionEmailTemplate({
-          playerName,
-          eventTitle: eventData.title,
-          eventDate: formatDateFull(eventData.date),
-          eventUrl,
-          declineUrl: declineUrl, // Magic link de déclin
-          confirmUrl: confirmUrl, // Magic link de confirmation
-          selectedPlayers: selectedPlayers // Liste des joueurs sélectionnés
-        })
-        logger.debug('HTML généré avec le nouveau template')
+        // Utiliser le template approprié selon le type de notification
+        if (isConfirmedTeam) {
+          html = buildConfirmedTeamEmailTemplate({
+            playerName,
+            eventTitle: eventData.title,
+            eventDate: formatDateFull(eventData.date),
+            eventUrl,
+            confirmedPlayers: selectedPlayers // Liste des joueurs confirmés
+          })
+        } else {
+          html = buildSelectionEmailTemplate({
+            playerName,
+            eventTitle: eventData.title,
+            eventDate: formatDateFull(eventData.date),
+            eventUrl,
+            declineUrl: declineUrl, // Magic link de déclin
+            confirmUrl: confirmUrl, // Magic link de confirmation
+            selectedPlayers: selectedPlayers // Liste des joueurs sélectionnés
+          })
+        }
+        logger.debug('HTML généré avec le template approprié')
       } catch (templateError) {
         logger.error('Erreur lors de l\'import du template, utilisation du template de fallback', { error: templateError })
         // Template de fallback en cas d'erreur
         const playersList = selectedPlayers.join(', ')
-        html = `
-          <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-            <p>Bonjour <strong>${playerName}</strong>,</p>
-            <p>Tu es en lice pour faire partie de l'équipe pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}).</p>
-            <p>Voici la sélection temporaire : <strong>${playersList}</strong></p>
-            <p>⚠️ IMPORTANT : Tu dois confirmer ta participation !</p>
-            <p>L'équipe ne sera confirmée que lorsque tous les joueurs sélectionnés auront confirmé leur disponibilité.</p>
-            <p>
-              <a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
-              <a href="${declineUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #dc2626, #b91c1c);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(220, 38, 38, 0.3);margin-right: 10px;">❌ Décliner</a>
-              <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;font-weight:500;">📋 Afficher les détails</a>
-            </p>
-          </div>
-        `
+        if (isConfirmedTeam) {
+          html = `
+            <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+              <p>Bonjour <strong>${playerName}</strong>,</p>
+              <p>🎉 <strong>Félicitations ! L'équipe est confirmée !</strong></p>
+              <p>L'équipe pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}) est maintenant <strong>définitive</strong> !</p>
+              <div style="margin: 20px 0; padding: 15px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; color: white;">
+                <h3 style="margin: 0 0 10px 0; color: white;">✅ ÉQUIPE CONFIRMÉE</h3>
+                <p style="margin: 0; color: white;"><strong>${playersList}</strong></p>
+              </div>
+              <p>🎭 <em>Préparez-vous à briller sur scène ! ✨</em></p>
+              <p style="text-align: center;">
+                <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);">📋 Voir les détails du spectacle</a>
+              </p>
+            </div>
+          `
+        } else {
+          html = `
+            <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+              <p>Bonjour <strong>${playerName}</strong>,</p>
+              <p>Tu es en lice pour faire partie de l'équipe pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}).</p>
+              <p>Voici la sélection temporaire : <strong>${playersList}</strong></p>
+              <p>⚠️ IMPORTANT : Tu dois confirmer ta participation !</p>
+              <p>L'équipe ne sera confirmée que lorsque tous les joueurs sélectionnés auront confirmé leur disponibilité.</p>
+              <p>
+                <a href="${confirmUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
+                <a href="${declineUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #dc2626, #b91c1c);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(220, 38, 38, 0.3);margin-right: 10px;">❌ Décliner</a>
+                <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;font-weight:500;">📋 Afficher les détails</a>
+              </p>
+            </div>
+          `
+        }
         logger.debug('HTML généré avec le template de fallback')
       }
       logger.debug('HTML généré pour joueur')

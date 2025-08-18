@@ -24,6 +24,7 @@
           :players="players"
           :selected-players="selectedPlayers"
           :availability-by-player="availabilityByPlayer"
+          :is-selection-confirmed-by-all-players="isSelectionConfirmedByAllPlayers"
         />
 
         <!-- Section Copie supprimée: bouton de copie présent dans le footer -->

@@ -39,16 +39,21 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     const emailEnabled = prefs?.notifySelection !== false
     const pushEnabled = prefs?.notifySelectionPush !== false
 
+    // Déterminer si c'est une équipe confirmée ou une sélection temporaire
+    const isConfirmedTeam = extra.isConfirmedTeam || false
+
     payloads.email = {
       enabled: emailEnabled,
-      subject: `🎭 Equipe pour ${eventTitle}`
+      subject: isConfirmedTeam ? `🎉 Équipe confirmée pour ${eventTitle}` : `🎭 Equipe pour ${eventTitle}`
       // HTML sélection géré dans emailService.queueAvailabilityEmail pour garder l'implémentation existante
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: `🎭 Confirme ta participation !`,
-      body: `🕺 Prépares-toi à briller pour ${eventTitle} le ${eventDate}!`,
-      data: { url: urls.eventUrl, noUrl: urls.noUrl, reason }
+      title: isConfirmedTeam ? `🎉 Équipe confirmée !` : `🎭 Confirme ta participation !`,
+      body: isConfirmedTeam 
+        ? extra.confirmedPlayers?.join(', ') || 'Équipe confirmée'
+        : `🕺 Prépares-toi à briller pour ${eventTitle} le ${eventDate}!`,
+      data: { url: urls.eventUrl, noUrl: urls.noUrl, reason, isConfirmedTeam }
     }
     
     // Log de débogage pour les URLs de sélection

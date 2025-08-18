@@ -85,7 +85,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { buildAvailabilityTextTemplate, buildSelectionTextTemplate, buildGlobalSelectionAnnouncementTemplate } from '../services/emailTemplates.js'
+import { buildAvailabilityTextTemplate, buildSelectionTextTemplate, buildGlobalSelectionAnnouncementTemplate, buildGlobalConfirmedTeamAnnouncementTemplate } from '../services/emailTemplates.js'
 
 const props = defineProps({
   mode: {
@@ -116,6 +116,11 @@ const props = defineProps({
   availabilityByPlayer: {
     type: Object,
     default: () => ({})
+  },
+  // Pour le mode sélection, indique si tous les joueurs ont confirmé
+  isSelectionConfirmedByAllPlayers: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -165,13 +170,24 @@ const unifiedMessage = computed(() => {
       eventUrl: directLink
     })
   } else {
-    // Mode sélection : utiliser le template d'annonce globale pour WhatsApp
-    return buildGlobalSelectionAnnouncementTemplate({
-      eventTitle,
-      eventDate: dateStr,
-      eventUrl: directLink,
-      selectedPlayers: props.selectedPlayers
-    })
+    // Mode sélection : utiliser le template approprié selon l'état de confirmation
+    if (props.isSelectionConfirmedByAllPlayers) {
+      // Équipe confirmée : utiliser le template d'équipe confirmée
+      return buildGlobalConfirmedTeamAnnouncementTemplate({
+        eventTitle,
+        eventDate: dateStr,
+        eventUrl: directLink,
+        confirmedPlayers: props.selectedPlayers
+      })
+    } else {
+      // Sélection temporaire : utiliser le template d'annonce de sélection
+      return buildGlobalSelectionAnnouncementTemplate({
+        eventTitle,
+        eventDate: dateStr,
+        eventUrl: directLink,
+        selectedPlayers: props.selectedPlayers
+      })
+    }
   }
 })
 

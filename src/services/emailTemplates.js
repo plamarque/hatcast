@@ -245,3 +245,82 @@ export function buildReminderEmailTemplate({
     </html>
   `
 }
+
+/**
+ * Template pour l'annonce de l'équipe confirmée (quand tous les joueurs ont confirmé)
+ */
+export function buildConfirmedTeamEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmedPlayers }) {
+  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  const playersList = confirmedPlayers ? confirmedPlayers.join(', ') : ''
+  return `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting},</p>
+      <p>🎉 <strong>Félicitations ! L'équipe est confirmée !</strong></p>
+      <p>L'équipe pour <a href="${eventUrl}" style="color:#10b981;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate} est maintenant <strong>définitive</strong> !</p>
+      
+      <div style="margin: 20px 0; padding: 15px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; color: white;">
+        <h3 style="margin: 0 0 10px 0; color: white;">✅ ÉQUIPE CONFIRMÉE</h3>
+        <p style="margin: 0; color: white;"><strong>${playersList}</strong></p>
+      </div>
+      
+      <p>🎭 <em>Préparez-vous à briller sur scène ! ✨</em></p>
+      
+      <div style="margin: 20px 0; text-align: center;">
+        <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);">📋 Voir les détails du spectacle</a>
+      </div>
+    </div>
+  `
+}
+
+/**
+ * Version texte simple pour l'équipe confirmée (à copier-coller)
+ */
+export function buildConfirmedTeamTextTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmedPlayers }) {
+  const greeting = playerName ? `Bonjour ${playerName}` : 'Hello'
+  const playersList = confirmedPlayers ? confirmedPlayers.join(', ') : ''
+  return `${greeting},
+
+🎉 FÉLICITATIONS ! L'ÉQUIPE EST CONFIRMÉE !
+
+L'équipe pour ${eventTitle} le ${eventDate} est maintenant DÉFINITIVE !
+
+✅ ÉQUIPE CONFIRMÉE : ${playersList}
+
+🎭 Préparez-vous à briller sur scène ! ✨
+
+📋 Détails du spectacle : ${eventUrl}`
+}
+
+/**
+ * Template pour l'annonce globale de l'équipe confirmée (à copier-coller pour WhatsApp)
+ */
+export function buildGlobalConfirmedTeamAnnouncementTemplate({ eventTitle, eventDate, eventUrl, confirmedPlayers }) {
+  const playersList = confirmedPlayers.length > 0 ? confirmedPlayers.join(', ') : 'l\'équipe'
+  
+  return `🎉 ÉQUIPE CONFIRMÉE ! 🎉
+
+${eventTitle}
+📅 ${eventDate}
+
+✅ ÉQUIPE DÉFINITIVE : ${playersList}
+
+🎭 Préparez-vous à briller sur scène ! ✨
+
+🔗 Détails du spectacle : ${eventUrl}`
+}
+
+/**
+ * Template pour les notifications push de l'équipe confirmée
+ */
+export function buildConfirmedTeamPushTemplate({ playerName, eventTitle, eventDate, confirmedPlayers }) {
+  const playersList = confirmedPlayers ? confirmedPlayers.join(', ') : 'l\'équipe'
+  return {
+    title: '🎉 Équipe confirmée !',
+    body: playersList,
+    data: {
+      confirmedPlayers,
+      eventTitle,
+      eventDate
+    }
+  }
+}
