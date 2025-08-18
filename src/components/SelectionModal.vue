@@ -162,7 +162,7 @@
         <div v-if="isSelectionConfirmedByOrganizer" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Sélection temporaire verrouillée :</strong> Les joueurs sélectionnés doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que tous auront validé. N'oubliez pas de les annoncer !</span>
+            <span><strong>Sélection temporaire verrouillée :</strong> Les joueurs sélectionnés doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que tous auront validé. Pensez à l'annoncer !</span>
           </div>
         </div>
 
@@ -251,6 +251,7 @@
     :players="players"
     mode="selection"
     :selected-players="getSelectedPlayersArray()"
+    :sending="sending"
     :is-selection-confirmed-by-all-players="isSelectionConfirmed"
     @close="showAnnounce = false"
     @send-notifications="handleSendNotifications"
@@ -307,6 +308,11 @@ const props = defineProps({
   players: {
     type: Array,
     default: () => []
+  },
+  // Nouvelle prop: état d'envoi des notifications (contrôlé par le parent)
+  sending: {
+    type: Boolean,
+    default: false
   },
   // Nouvelle prop pour le statut de confirmation
   isSelectionConfirmed: {
@@ -455,8 +461,8 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 4: Sélection complète et confirmée par l'organisateur (en attente de confirmation des joueurs)
-  if (props.isSelectionConfirmedByOrganizer) {
+  // Cas 4: Tous les joueurs ont confirmé → Confirmée (définitive)
+  if (props.isSelectionConfirmed) {
     return {
       type: 'confirmed',
       availableCount,
@@ -464,7 +470,16 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 5: Sélection complète mais non confirmée par l'organisateur
+  // Cas 5: Confirmée par l'organisateur uniquement → À confirmer (en attente des joueurs)
+  if (props.isSelectionConfirmedByOrganizer) {
+    return {
+      type: 'pending_confirmation',
+      availableCount,
+      requiredCount
+    }
+  }
+  
+  // Cas 6: Sélection complète mais non confirmée par l'organisateur
   return {
     type: 'complete',
     availableCount,
@@ -780,7 +795,7 @@ function showSuccess(reselection = false, isPartialUpdate = false) {
   
   if (reselection) {
     const eventDate = formatDateFull(props.event.date)
-    const playersList = props.currentSelection.join(', ')
+    const playersList = getSelectedPlayersArray().join(', ')
     
     if (isPartialUpdate) {
       successMessageText.value = `Sélection mise à jour pour ${props.event.title} du ${eventDate} : ${playersList}`
@@ -811,4 +826,11 @@ function handleSendNotifications(data) {
   // Émettre l'événement vers le parent (GridBoard)
   emit('send-notifications', data)
 }
+
+// Fermer automatiquement la modale d'annonce quand l'envoi se termine côté parent
+watch(() => props.sending, (now, prev) => {
+  if (prev && !now) {
+    showAnnounce.value = false
+  }
+})
 </script>

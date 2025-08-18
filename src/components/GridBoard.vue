@@ -1236,6 +1236,7 @@
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedPlayers"
+    :sending="isSendingNotifications"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
     @close="closeSelectionModal"
@@ -4195,12 +4196,18 @@ async function handleTirage(eventId, count = null) {
 }
 async function confirmTirage() {
   if (eventIdToReselect.value) {
-    // Lancer directement la sélection (le PIN a déjà été validé)
-    const event = events.value.find(e => e.id === eventIdToReselect.value)
-    const count = event?.playerCount || 6
-    await tirerProtected(eventIdToReselect.value, count)
-    confirmReselect.value = false
-    eventIdToReselect.value = null
+    try {
+      // Lancer directement la sélection (le PIN a déjà été validé)
+      const event = events.value.find(e => e.id === eventIdToReselect.value)
+      const count = event?.playerCount || 6
+      await tirerProtected(eventIdToReselect.value, count)
+    } catch (error) {
+      console.error('Erreur lors de la confirmation du tirage:', error)
+    } finally {
+      // Toujours fermer le dialogue de confirmation, même en cas d'erreur
+      confirmReselect.value = false
+      eventIdToReselect.value = null
+    }
     // Ne pas fermer la popin de sélection, elle restera ouverte avec la nouvelle sélection
   }
 }
@@ -5240,6 +5247,7 @@ const isSendingNotifications = ref(false)
 
 async function handleSendNotifications({ eventId, eventData, reason, selectedPlayers, scope = 'all', recipient = null }) {
   isSendingNotifications.value = true
+  let success = false
   try {
     if (reason === 'selection') {
       // Vérifier que l'organisateur a validé la sélection avant d'envoyer les notifications
@@ -5247,6 +5255,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
         showSuccessMessage.value = true
         successMessage.value = 'Impossible d\'envoyer les notifications : la sélection n\'est pas encore validée par l\'organisateur'
         setTimeout(() => { showSuccessMessage.value = false }, 3000)
+        isSendingNotifications.value = false
         return
       }
       
@@ -5272,6 +5281,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
         })
       }
       
+      success = true
       showSuccessMessage.value = true
       successMessage.value = scope === 'single'
         ? `Notification envoyée à ${recipient?.name || '1 joueur'}`
@@ -5304,6 +5314,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
         })
       }
       
+      success = true
       showSuccessMessage.value = true
       successMessage.value = scope === 'single'
         ? `Notification envoyée à ${recipient?.name || '1 joueur'}`
@@ -5316,8 +5327,15 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
     showSuccessMessage.value = true
     successMessage.value = 'Erreur lors de l\'envoi des notifications'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
+  } finally {
+    isSendingNotifications.value = false
+    // Fermer automatiquement la modale après un envoi réussi
+    if (success) {
+      setTimeout(() => {
+        closeEventAnnounceModal()
+      }, 1000) // Délai pour laisser le temps de voir le message de succès
+    }
   }
-  isSendingNotifications.value = false
 }
 
 function getPlayerAvailabilityForEvent(eventId) {

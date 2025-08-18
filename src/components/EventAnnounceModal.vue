@@ -39,8 +39,8 @@
             class="h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex-1"
           >
             <span v-if="!computedSending">
-              <span class="hidden sm:inline">🔔 Confirmer et notifier</span>
-              <span class="sm:hidden">🔔 Confirmer</span>
+              <span class="hidden sm:inline">🔔 Notifier</span>
+              <span class="sm:hidden">🔔 Notifier</span>
             </span>
             <span v-else class="inline-flex items-center gap-2">
               <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -86,9 +86,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'notifications-sent', 'send-notifications'])
 
-// État local
-const isSending = ref(false)
-const computedSending = computed(() => props.sending || isSending.value)
+// État local - on utilise seulement l'état parent
+const computedSending = computed(() => props.sending)
 
 // Onglets supprimés
 
@@ -126,8 +125,6 @@ function formatDateFull(dateValue) {
 async function confirmAndSend() {
   if (!props.event) return
   
-  isSending.value = true
-  
   try {
     // Émettre l'événement pour déclencher l'envoi automatique des notifications
     emit('send-notifications', {
@@ -142,16 +139,10 @@ async function confirmAndSend() {
   } catch (error) {
     console.error('Erreur lors de l\'envoi des notifications:', error)
     alert('Erreur lors de l\'envoi des notifications. Veuillez réessayer.')
-    isSending.value = false
   }
 }
 
-// Synchroniser le spinner local avec l'état parent
-watch(() => props.sending, (now) => {
-  if (!now) {
-    isSending.value = false
-  }
-})
+// Plus besoin de watcher - on utilise seulement l'état parent
 </script>
 
 <style scoped>
