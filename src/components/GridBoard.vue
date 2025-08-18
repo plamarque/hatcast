@@ -22,15 +22,15 @@
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter événement -->
+              <!-- Bouton ajouter spectacle -->
               <button
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
-                title="Ajouter un nouvel événement"
+                title="Ajouter un nouveau spectacle"
               >
                 <span class="text-lg">➕</span>
-                <span class="hidden sm:inline">Ajouter un événement</span>
-                <span class="sm:hidden">Événement</span>
+                <span class="hidden sm:inline">Ajouter un spectacle</span>
+                <span class="sm:hidden">Spectacle</span>
               </button>
               
               <!-- Icône de la saison -->
@@ -147,6 +147,16 @@
                   >
                     <span class="text-xs text-green-300 font-medium group-hover:text-green-200">✅</span>
                     <span class="text-xs text-green-200 font-medium ml-1 group-hover:text-green-100">Complet</span>
+                  </div>
+                  
+                  <div 
+                    v-else-if="getEventStatus(event.id).type === 'confirmed'"
+                    class="px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer group"
+                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
+                    @click.stop="openSelectionModal(event)"
+                  >
+                    <span class="text-xs text-purple-300 font-medium group-hover:text-purple-200">🔒</span>
+                    <span class="text-xs text-purple-200 font-medium ml-1 group-hover:text-purple-100">Confirmée</span>
                   </div>
                   
                   <div 
@@ -340,6 +350,7 @@
                   :event-id="event.id"
                   :is-available="isAvailable(player.name, event.id)"
                    :is-selected="isSelected(player.name, event.id)"
+                   :is-selection-confirmed="isSelectionConfirmed(event.id)"
                    :chance-percent="chances[player.name]?.[event.id] ?? null"
                    :show-selected-chance="isSelectionComplete(event.id)"
                    :disabled="event.archived === true"
@@ -437,14 +448,14 @@
   <!-- Modales -->
   <div v-if="newEventForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvel événement</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouveau spectacle</h2>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
         <input
           v-model="newEventTitle"
           type="text"
           class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-          placeholder="Titre de l'événement"
+          placeholder="Titre du spectacle"
         >
       </div>
       <div class="mb-6">
@@ -461,7 +472,7 @@
           v-model="newEventDescription"
           class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
           rows="3"
-          placeholder="Description de l'événement (optionnel)"
+          placeholder="Description du spectacle (optionnel)"
         ></textarea>
       </div>
       <div class="mb-6 flex items-center gap-3">
@@ -534,7 +545,7 @@
           <span class="text-2xl">⚠️</span>
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
-        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer cet événement ?</p>
+        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer ce spectacle ?</p>
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -579,7 +590,7 @@
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
         <p class="text-gray-300">
-          <span v-if="eventIdToReselect && selections[eventIdToReselect] && selections[eventIdToReselect].every(playerName => isAvailable(playerName, eventIdToReselect))">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles.</span>
+          <span v-if="eventIdToReselect && getSelectionPlayers(eventIdToReselect).every(playerName => isAvailable(playerName, eventIdToReselect))">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles.</span>
           <span v-else>La sélection sera mise à jour : les joueurs disponibles seront conservés, les slots vides seront complétés.</span>
         </p>
       </div>
@@ -776,6 +787,7 @@
                   :event-id="selectedEvent.id"
                   :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
                   :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                  :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
                   :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
                   :show-selected-chance="isSelectionComplete(selectedEvent.id)"
                   :disabled="selectedEvent?.archived === true"
@@ -902,7 +914,7 @@
   <!-- Modal d'édition d'événement -->
   <div v-if="editingEvent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier l'événement</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier le spectacle</h2>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
         <input
@@ -930,13 +942,13 @@
           v-model="editingDescription"
           class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
           rows="3"
-          placeholder="Description de l'événement (optionnel)"
+          placeholder="Description du spectacle (optionnel)"
           @keydown.esc="cancelEdit"
         ></textarea>
       </div>
       <div class="mb-6 flex items-center gap-3">
         <input id="edit-archived" type="checkbox" v-model="editingArchived" class="w-4 h-4" />
-        <label for="edit-archived" class="text-sm font-medium text-gray-300">Archiver cet événement</label>
+        <label for="edit-archived" class="text-sm font-medium text-gray-300">Archiver ce spectacle</label>
       </div>
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de joueurs à sélectionner</label>
@@ -1231,19 +1243,22 @@
     ref="selectionModalRef"
     :show="showSelectionModal"
     :event="selectionModalEvent"
-    :current-selection="selections[selectionModalEvent?.id] || []"
+    :current-selection="getSelectionPlayers(selectionModalEvent?.id)"
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
     :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedPlayers"
+    :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
     @send-notifications="handleSendNotifications"
-    @update-selection="handleUpdateSelectionFromModal"
-  />
+              @update-selection="handleUpdateSelectionFromModal"
+          @confirm-selection="handleConfirmSelectionFromModal"
+          @unconfirm-selection="handleUnconfirmSelectionFromModal"
+        />
 
   <!-- Modal d'annonce d'événement -->
   <EventAnnounceModal
@@ -1335,7 +1350,7 @@
   <!-- Modal de prompt pour annoncer après création/modification -->
   <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
-      <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer cet événement ?</h3>
+              <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer ce spectacle ?</h3>
       <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux joueurs pour qu'ils indiquent leur disponibilité</p>
       
       <div class="flex gap-3">
@@ -3410,7 +3425,7 @@ function toggleShowArchived() {
   const filteredPlayers = computed(() => {
     if (!selectedEvent.value) return sortedPlayers.value
     const eventId = selectedEvent.value.id
-    const selectionSet = new Set((selections.value?.[eventId] || []))
+    const selectionSet = new Set(getSelectionPlayers(eventId))
 
     return sortedPlayers.value.filter(player => {
       const name = player.name
@@ -3613,7 +3628,7 @@ function isAvailable(player, eventId) {
 }
 
 function isSelected(player, eventId) {
-  const selected = selections.value[eventId] || []
+  const selected = getSelectionPlayers(eventId)
   const avail = availability.value[player]?.[eventId]
   return selected.includes(player) && avail === true
 }
@@ -3626,7 +3641,7 @@ async function tirer(eventId, count = 6) {
   console.log('📅 Événement trouvé:', { eventTitle: event?.title, requiredCount })
   
   // Récupérer la sélection actuelle
-  const currentSelection = selections.value[eventId] || []
+  const currentSelection = getSelectionPlayers(eventId)
   console.log('👥 Sélection actuelle:', currentSelection)
   
   // Vérifier si TOUS les joueurs de la sélection sont encore disponibles
@@ -3666,7 +3681,13 @@ async function tirer(eventId, count = 6) {
       }
     }
 
-    selections.value[eventId] = tirage
+    // Utiliser la nouvelle structure de données
+    selections.value[eventId] = {
+      players: tirage,
+      confirmed: false,
+      confirmedAt: null,
+      updatedAt: new Date()
+    }
   } else {
     // Logique normale : garder les joueurs disponibles et compléter
     const keepSelectedPlayers = currentSelection.filter(playerName => isAvailable(playerName, eventId))
@@ -3676,7 +3697,12 @@ async function tirer(eventId, count = 6) {
     
     if (remainingSlots <= 0) {
       // Si on a déjà assez de joueurs sélectionnés et disponibles, on garde la sélection actuelle
-      selections.value[eventId] = keepSelectedPlayers
+      selections.value[eventId] = {
+        players: keepSelectedPlayers,
+        confirmed: false,
+        confirmedAt: null,
+        updatedAt: new Date()
+      }
     } else {
       // Tirage pour les places manquantes
       const alreadySelected = new Set(keepSelectedPlayers)
@@ -3712,13 +3738,19 @@ async function tirer(eventId, count = 6) {
       }
 
       // Combiner les joueurs gardés et les nouveaux tirés
-      selections.value[eventId] = [...keepSelectedPlayers, ...newTirage]
+      selections.value[eventId] = {
+        players: [...keepSelectedPlayers, ...newTirage],
+        confirmed: false,
+        confirmedAt: null,
+        updatedAt: new Date()
+      }
     }
   }
 
-  console.log('💾 Sauvegarde de la sélection:', { eventId, players: selections.value[eventId], seasonId: seasonId.value })
-  await saveSelection(eventId, selections.value[eventId], seasonId.value)
+  console.log('💾 Sauvegarde de la sélection:', { eventId, players: selections.value[eventId].players, seasonId: seasonId.value })
+  await saveSelection(eventId, selections.value[eventId].players, seasonId.value)
   console.log('✅ saveSelection terminé')
+  
   updateAllStats()
   updateAllChances()
 }
@@ -3733,10 +3765,10 @@ async function tirerProtected(eventId, count = 6) {
   const selectionModalEventId = selectionModalEvent.value?.id
   
   // Vérifier si c'est une reselection avant de faire le tirage
-  const wasReselection = selections.value[eventId] && selections.value[eventId].length > 0
+  const wasReselection = getSelectionPlayers(eventId).length > 0
   
   // Sauvegarder l'ancienne sélection pour comparer
-  const oldSelection = wasReselection ? [...selections.value[eventId]] : []
+  const oldSelection = wasReselection ? [...getSelectionPlayers(eventId)] : []
   
   console.log('🎲 Appel de tirer...')
   await tirer(eventId, count)
@@ -3760,7 +3792,7 @@ async function tirerProtected(eventId, count = 6) {
     // Afficher le message de succès dans la popin de sélection
     if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
       // Appel de showSuccess sur la popin de sélection
-      const newSelection = selections.value[eventId] || []
+      const newSelection = getSelectionPlayers(eventId)
       const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
       const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
       selectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
@@ -3772,7 +3804,7 @@ async function tirerProtected(eventId, count = 6) {
     // Afficher un message de succès global si la popin n'est pas ouverte
     showSuccessMessage.value = true
     const event = events.value.find(e => e.id === eventId)
-    const selectedPlayers = selections.value[eventId] || []
+    const selectedPlayers = getSelectionPlayers(eventId)
     
     if (wasReselection) {
       successMessage.value = 'Sélection mise à jour avec succès !'
@@ -3873,7 +3905,10 @@ function formatDateFull(dateValue) {
 }
 
 function countSelections(player) {
-  return Object.values(selections.value).filter(sel => sel.includes(player)).length
+  return Object.keys(selections.value).filter(eventId => {
+    const players = getSelectionPlayers(eventId)
+    return players.includes(player)
+  }).length
 }
 
 function countAvailability(player) {
@@ -3890,14 +3925,16 @@ function countAvailablePlayers(eventId) {
 
 function countSelectedPlayers(eventId) {
   if (!eventId) return 0;
-  const eventSelections = selections.value[eventId] || [];
+  const eventSelections = getSelectionPlayers(eventId);
   return eventSelections.length;
 }
 
 function isSelectionComplete(eventId) {
   const event = events.value.find(e => e.id === eventId)
   const required = event?.playerCount || 6
-  return countSelectedPlayers(eventId) >= required
+  const hasEnoughPlayers = countSelectedPlayers(eventId) >= required
+  const isConfirmed = isSelectionConfirmed(eventId)
+  return hasEnoughPlayers && isConfirmed
 }
 
 function ratioSelection(player) {
@@ -4036,7 +4073,7 @@ async function handleTirage(eventId, count = null) {
     count = event?.playerCount || 6
   }
   
-  if (selections.value[eventId] && selections.value[eventId].length > 0) {
+  if (getSelectionPlayers(eventId).length > 0) {
     // Demander le PIN code avant d'afficher la confirmation de relance
     await requirePin({
       type: 'launchSelection',
@@ -4365,7 +4402,7 @@ async function executePendingOperation(operation) {
       case 'launchSelection':
         console.log('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
         // Vérifier si une sélection existe déjà pour afficher la confirmation
-        if (selections.value[data.eventId] && selections.value[data.eventId].length > 0) {
+        if (getSelectionPlayers(data.eventId).length > 0) {
           console.log('🔄 Sélection existante, affichage confirmation')
           // Afficher la modal de confirmation de relance
           eventIdToReselect.value = data.eventId
@@ -4399,10 +4436,32 @@ async function executePendingOperation(operation) {
         {
           const { eventId, players } = data
           // Détecter les joueurs retirés avant de sauvegarder
-          const oldSelection = [...(selections.value[eventId] || [])]
+          const oldSelection = [...getSelectionPlayers(eventId)]
           const nextSelection = Array.isArray(players) ? players : []
           await saveSelection(eventId, nextSelection, seasonId.value)
-          selections.value[eventId] = nextSelection
+          
+          // Mettre à jour la structure locale
+          if (selections.value[eventId]) {
+            if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
+              selections.value[eventId].players = nextSelection
+              selections.value[eventId].updatedAt = new Date()
+            } else {
+              // Migration de l'ancienne structure
+              selections.value[eventId] = {
+                players: nextSelection,
+                confirmed: false,
+                confirmedAt: null,
+                updatedAt: new Date()
+              }
+            }
+          } else {
+            selections.value[eventId] = {
+              players: nextSelection,
+              confirmed: false,
+              confirmedAt: null,
+              updatedAt: new Date()
+            }
+          }
           // Emails de désélection si applicable
           try {
             const removedPlayers = oldSelection.filter(name => !nextSelection.includes(name))
@@ -4423,6 +4482,46 @@ async function executePendingOperation(operation) {
           try {
             selectionModalRef.value?.showSuccess(true, true)
           } catch {}
+        }
+        break
+      case 'unconfirmSelection':
+        // Déverrouiller une sélection confirmée (admin uniquement)
+        {
+          const { eventId } = data
+          try {
+            const { unconfirmSelection } = await import('../services/storage.js')
+            await unconfirmSelection(eventId, seasonId.value)
+            
+            // Mettre à jour la structure locale
+            if (selections.value[eventId]) {
+              if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
+                selections.value[eventId].confirmed = false
+                selections.value[eventId].confirmedAt = null
+              } else {
+                // Migration de l'ancienne structure
+                const players = Array.isArray(selections.value[eventId]) ? selections.value[eventId] : []
+                selections.value[eventId] = {
+                  players,
+                  confirmed: false,
+                  confirmedAt: null,
+                  updatedAt: new Date()
+                }
+              }
+            }
+            
+            showSuccessMessage.value = true
+            successMessage.value = 'Sélection déverrouillée !'
+            setTimeout(() => {
+              showSuccessMessage.value = false
+            }, 3000)
+          } catch (error) {
+            console.error('Erreur lors du déverrouillage de la sélection:', error)
+            showSuccessMessage.value = true
+            successMessage.value = 'Erreur lors du déverrouillage de la sélection'
+            setTimeout(() => {
+              showSuccessMessage.value = false
+            }, 3000)
+          }
         }
         break
     }
@@ -4643,7 +4742,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
 
 // Fonction pour vérifier si un joueur est sélectionné pour un événement spécifique
 function isPlayerSelected(playerName, eventId) {
-  const selected = selections.value[eventId] || [];
+  const selected = getSelectionPlayers(eventId);
   return selected.includes(playerName);
 }
 
@@ -4877,10 +4976,11 @@ function getPlayerStats(player) {
 
 // Fonctions pour détecter l'état des événements
 function getEventStatus(eventId) {
-  const selectedPlayers = selections.value[eventId] || []
+  const selectedPlayers = getSelectionPlayers(eventId)
   const event = events.value.find(e => e.id === eventId)
   const requiredCount = event?.playerCount || 6
   const availableCount = countAvailablePlayers(eventId)
+  const isConfirmed = isSelectionConfirmed(eventId)
   
   // Cas 1: Sélection incomplète (sélection existante avec problèmes)
   if (selectedPlayers.length > 0) {
@@ -4894,7 +4994,8 @@ function getEventStatus(eventId) {
         hasInsufficientPlayers,
         unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
         availableCount,
-        requiredCount
+        requiredCount,
+        isConfirmed
       }
     }
   }
@@ -4904,7 +5005,8 @@ function getEventStatus(eventId) {
     return {
       type: 'insufficient',
       availableCount,
-      requiredCount
+      requiredCount,
+      isConfirmed: false
     }
   }
   
@@ -4913,15 +5015,27 @@ function getEventStatus(eventId) {
     return {
       type: 'ready',
       availableCount,
-      requiredCount
+      requiredCount,
+      isConfirmed: false
     }
   }
   
-  // Cas 4: Sélection complète (tous les joueurs sélectionnés sont disponibles)
+  // Cas 4: Sélection complète et confirmée
+  if (isConfirmed) {
+    return {
+      type: 'confirmed',
+      availableCount,
+      requiredCount,
+      isConfirmed
+    }
+  }
+  
+  // Cas 5: Sélection complète mais non confirmée
   return {
     type: 'complete',
     availableCount,
-    requiredCount
+    requiredCount,
+    isConfirmed
   }
 }
 
@@ -4949,7 +5063,9 @@ function getEventTooltip(eventId) {
     case 'ready':
       return `Prêt pour la sélection : ${status.availableCount} joueurs disponibles`
     case 'complete':
-      return `Sélection complète : ${status.availableCount} joueurs disponibles`
+      return `Sélection complète : ${status.availableCount} joueurs disponibles (non confirmée)`
+    case 'confirmed':
+      return `Sélection confirmée : ${status.availableCount} joueurs disponibles (verrouillée)`
     default:
       return ''
   }
@@ -5014,6 +5130,14 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
   isSendingNotifications.value = true
   try {
     if (reason === 'selection') {
+      // Vérifier que la sélection est confirmée avant d'envoyer les notifications
+      if (!isSelectionConfirmed(eventId)) {
+        showSuccessMessage.value = true
+        successMessage.value = 'Impossible d\'envoyer les notifications : la sélection n\'est pas encore confirmée'
+        setTimeout(() => { showSuccessMessage.value = false }, 3000)
+        return
+      }
+      
       if (scope === 'single' && recipient?.email) {
         // Envoi ciblé pour un joueur sélectionné
         await sendSelectionNotificationsForEvent({
@@ -5095,8 +5219,40 @@ function getPlayerAvailabilityForEvent(eventId) {
   return availabilityMap
 }
 
+// Fonction helper pour extraire les joueurs d'une sélection
+function getSelectionPlayers(eventId) {
+  const selection = selections.value[eventId]
+  if (!selection) return []
+  
+  // Si c'est la nouvelle structure avec confirmed
+  if (selection.players && Array.isArray(selection.players)) {
+    return selection.players
+  }
+  
+  // Si c'est l'ancienne structure (array direct)
+  if (Array.isArray(selection)) {
+    return selection
+  }
+  
+  return []
+}
+
+// Fonction helper pour vérifier si une sélection est confirmée
+function isSelectionConfirmed(eventId) {
+  const selection = selections.value[eventId]
+  if (!selection) return false
+  
+  // Si c'est la nouvelle structure avec confirmed
+  if (typeof selection.confirmed === 'boolean') {
+    return selection.confirmed
+  }
+  
+  // Si c'est l'ancienne structure, considérer comme non confirmée
+  return false
+}
+
 // Fonctions pour la nouvelle popin de sélection
- function openSelectionModal(event) {
+function openSelectionModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
     successMessage.value = 'Impossible d\'ouvrir la sélection sur un événement archivé'
@@ -5151,13 +5307,72 @@ async function handleSelectionFromModal() {
   })
 }
 
-function handlePerfectFromModal() {
+async function handlePerfectFromModal() {
   closeSelectionModal()
   showSuccessMessage.value = true
   successMessage.value = 'Sélection validée !'
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
+}
+
+async function handleConfirmSelectionFromModal() {
+  if (!selectionModalEvent.value) return
+  
+  const eventId = selectionModalEvent.value.id
+  
+  try {
+    // Confirmer la sélection
+    const { confirmSelection } = await import('../services/storage.js')
+    await confirmSelection(eventId, seasonId.value)
+    
+    // Mettre à jour la structure locale
+    if (selections.value[eventId]) {
+      if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
+        selections.value[eventId].confirmed = true
+        selections.value[eventId].confirmedAt = new Date()
+      } else {
+        // Migration de l'ancienne structure
+        const players = Array.isArray(selections.value[eventId]) ? selections.value[eventId] : []
+        selections.value[eventId] = {
+          players,
+          confirmed: true,
+          confirmedAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+    }
+    
+    closeSelectionModal()
+    showSuccessMessage.value = true
+    successMessage.value = 'Sélection confirmée et verrouillée !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('Erreur lors de la confirmation de la sélection:', error)
+    showSuccessMessage.value = true
+    successMessage.value = 'Erreur lors de la confirmation de la sélection'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
+}
+
+async function handleUnconfirmSelectionFromModal() {
+  if (!selectionModalEvent.value) return
+  
+  const eventId = selectionModalEvent.value.id
+  
+  try {
+    // Demander le PIN code avant de déverrouiller la sélection
+    await requirePin({
+      type: 'unconfirmSelection',
+      data: { eventId }
+    })
+  } catch (error) {
+    console.error('Erreur lors de la demande de déverrouillage:', error)
+  }
 }
 
 // Sauvegarde d'une sélection manuelle via PIN

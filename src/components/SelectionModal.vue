@@ -41,7 +41,16 @@
                 title="Sélection complète"
               >
                 <span class="text-green-300 text-xs hidden md:inline">✅</span>
-                <span class="text-green-200 text-xs">Complet</span>
+                <span class="text-green-200 text-xs">Complète</span>
+              </div>
+              
+              <div 
+                v-else-if="getSelectionStatus().type === 'confirmed'"
+                class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
+                title="Sélection confirmée et verrouillée"
+              >
+                <span class="text-blue-300 text-xs hidden md:inline">🔒</span>
+                <span class="text-blue-200 text-xs">Confirmée</span>
               </div>
               
               <div 
@@ -83,13 +92,22 @@
           </div>
         </div>
 
-        <!-- 2) Joueurs sélectionnés (avec édition inline et slots vides) -->
+        <!-- 2) Équipe sélectionnée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-2">
-            <h3 class="text-base md:text-lg font-semibold text-white">Joueurs sélectionnés</h3>
+            <h3 class="text-base md:text-lg font-semibold text-white">Équipe sélectionnée</h3>
             <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la sélection automatique ?">
               <span class="text-sm">❓</span>
             </button>
+            <!-- Indicateur de verrouillage -->
+            <div 
+              v-if="isSelectionConfirmed" 
+              class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs text-blue-200 flex items-center gap-1"
+              title="Sélection verrouillée - Modifications désactivées"
+            >
+              <span>🔒</span>
+              <span>Verrouillée</span>
+            </div>
           </div>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-0">
             <div
@@ -117,12 +135,14 @@
                   {{ slot }}
                 </div>
                 <button
+                  v-if="!isSelectionConfirmed"
                   @click="clearSlot(i)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer ce joueur"
                 >
                   ×
                 </button>
+                <div v-else class="w-6 h-6"></div>
               </div>
 
               <!-- Slot vide -->
@@ -138,7 +158,7 @@
                   </select>
                 </template>
                 <button
-                  v-else
+                  v-else-if="!isSelectionConfirmed"
                   @click="startEditSlot(i)"
                   class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
                   title="Ajouter un joueur"
@@ -146,22 +166,21 @@
                   <span class="text-lg">＋</span>
                   <span class="text-sm">Ajouter</span>
                 </button>
+                <div v-else class="text-white/40 text-sm">Verrouillé</div>
               </div>
             </div>
           </div>
         </div>
         
-
-
-
-
-        <!-- 5) Warning après changement de sélection -->
-        <div v-if="hasSelection" class="mb-3">
-          <div class="flex items-center space-x-2 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-            <div class="text-yellow-400">⚠️</div>
-            <div class="text-yellow-200 text-sm">Pensez à prévenir les gens de vos changements !</div>
+        <!-- Message d'information pour sélection verrouillée -->
+        <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div class="flex items-center gap-2 text-blue-200 text-sm">
+            <span>🔒</span>
+            <span><strong>Sélection verrouillée :</strong> Les modifications ne sont plus possibles. Utilisez le bouton "Déverrouiller" pour permettre les changements.</span>
           </div>
         </div>
+
+
 
         <!-- 6) Message de succès après sélection -->
         <div v-if="showSuccessMessage" class="mb-3">
@@ -189,13 +208,47 @@
       </div>
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="handleSelection" :disabled="availableCount === 0" class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')">
+        <!-- Bouton Sélection Auto (visible seulement si sélection non confirmée) -->
+        <button 
+          v-if="!isSelectionConfirmed"
+          @click="handleSelection" 
+          :disabled="availableCount === 0" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
+          :title="availableCount === 0 ? 'Aucun joueur disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')"
+        >
           ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <button @click="openAnnounce" :disabled="!hasSelection" class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+        <!-- Bouton Déverrouiller (visible seulement si sélection confirmée) -->
+        <button 
+          v-if="isSelectionConfirmed" 
+          @click="handleUnconfirmSelection" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-all duration-300 flex-1 whitespace-nowrap"
+          title="Déverrouiller la sélection pour permettre les modifications"
+        >
+          🔓 <span class="hidden sm:inline">Déverrouiller</span><span class="sm:hidden">Déverrouiller</span>
+        </button>
+
+        <!-- Bouton Confirmer (visible seulement si sélection complète et non confirmée) -->
+        <button 
+          v-if="hasSelection && !isSelectionConfirmed" 
+          @click="handleConfirmSelection" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
+          title="Confirmer et verrouiller cette sélection"
+        >
+          🔒 <span class="hidden sm:inline">Confirmer</span><span class="sm:hidden">Confirmer</span>
+        </button>
+
+        <!-- Bouton Annoncer (visible seulement si sélection confirmée) -->
+        <button 
+          v-if="hasSelection && isSelectionConfirmed" 
+          @click="openAnnounce" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
+          title="Annoncer la sélection confirmée"
+        >
           📣 <span class="hidden sm:inline">Annoncer</span><span class="sm:hidden">Annoncer</span>
         </button>
+
         <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap">
           <span class="hidden sm:inline">Fermer</span><span class="sm:hidden">Fermer</span>
         </button>
@@ -264,10 +317,15 @@ const props = defineProps({
   players: {
     type: Array,
     default: () => []
+  },
+  // Nouvelle prop pour le statut de confirmation
+  isSelectionConfirmed: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -302,6 +360,8 @@ function availableOptionsForSlot(index) {
 }
 
 function startEditSlot(index) {
+  // Ne pas permettre l'édition si la sélection est confirmée
+  if (props.isSelectionConfirmed) return
   editingSlotIndex.value = index
 }
 
@@ -310,6 +370,9 @@ function cancelEditSlot() {
 }
 
 async function onChooseForSlot(event, index) {
+  // Ne pas permettre la modification si la sélection est confirmée
+  if (props.isSelectionConfirmed) return
+  
   const value = event?.target?.value || ''
   if (value) {
     slots.value[index] = value
@@ -320,6 +383,9 @@ async function onChooseForSlot(event, index) {
 }
 
 async function clearSlot(index) {
+  // Ne pas permettre la suppression si la sélection est confirmée
+  if (props.isSelectionConfirmed) return
+  
   slots.value[index] = null
   // Sauvegarde automatique immédiate
   await autoSaveSelection()
@@ -380,7 +446,16 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 4: Sélection complète (tous les joueurs sélectionnés sont disponibles)
+  // Cas 4: Sélection complète et confirmée
+  if (props.isSelectionConfirmed) {
+    return {
+      type: 'confirmed',
+      availableCount,
+      requiredCount
+    }
+  }
+  
+  // Cas 5: Sélection complète mais non confirmée
   return {
     type: 'complete',
     availableCount,
@@ -494,10 +569,54 @@ function handlePerfect() {
   emit('perfect')
 }
 
+async function handleConfirmSelection() {
+  try {
+    // Émettre l'événement de confirmation vers le parent
+    emit('confirm-selection')
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessageText.value = 'Sélection confirmée et verrouillée !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('Erreur lors de la confirmation de la sélection:', error)
+    showSuccessMessage.value = true
+    successMessageText.value = 'Erreur lors de la confirmation de la sélection'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
+}
+
+async function handleUnconfirmSelection() {
+  try {
+    // Émettre l'événement de déverrouillage vers le parent
+    emit('unconfirm-selection')
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessageText.value = 'Sélection déverrouillée !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('Erreur lors de la déverrouillage de la sélection:', error)
+    showSuccessMessage.value = true
+    successMessageText.value = 'Erreur lors de la déverrouillage de la sélection'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
+}
 
 
 async function autoSaveSelection() {
   if (!props.event?.id || !props.seasonId) return
+  
+  // Ne pas sauvegarder automatiquement si la sélection est confirmée
+  if (props.isSelectionConfirmed) return
   
   try {
     const players = slots.value.filter(Boolean)
@@ -589,9 +708,9 @@ function showSuccess(reselection = false, isPartialUpdate = false) {
     const playersList = props.currentSelection.join(', ')
     
     if (isPartialUpdate) {
-      successMessageText.value = `Sélection mise à jour pour ${props.event.title} du ${eventDate} : ${playersList}. Pensez à prévenir les joueurs via le bouton "Annoncer" !`
+      successMessageText.value = `Sélection mise à jour pour ${props.event.title} du ${eventDate} : ${playersList}`
     } else {
-      successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}. Pensez à prévenir les joueurs via le bouton "Annoncer" !`
+      successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
     }
   } else {
     successMessageText.value = 'Sélection effectuée avec succès !'

@@ -310,7 +310,13 @@ export async function loadSelections(seasonId = null) {
       : await getDocs(collection(db, 'selections'))
     const res = {}
     selSnap.forEach(doc => {
-      res[doc.id] = doc.data().players || []
+      const data = doc.data()
+      res[doc.id] = {
+        players: data.players || [],
+        confirmed: data.confirmed || false,
+        confirmedAt: data.confirmedAt || null,
+        updatedAt: data.updatedAt || null
+      }
     })
     return res
   } else {
@@ -373,9 +379,14 @@ export async function saveSelection(eventId, players, seasonId = null) {
       console.log('🔍 Ancienne sélection:', oldSelection)
       console.log('🔍 Nouvelle sélection:', players)
       
-      // Sauvegarder la nouvelle sélection
+      // Sauvegarder la nouvelle sélection avec confirmed = false par défaut
       console.log('💾 Sauvegarde...')
-      await setDoc(selRef, { players })
+      const selectionData = { 
+        players,
+        confirmed: false, // Nouvelle sélection = non confirmée
+        updatedAt: serverTimestamp()
+      }
+      await setDoc(selRef, selectionData)
       console.log('✅ Sélection sauvegardée avec succès')
       
       // Gérer les rappels automatiques
@@ -475,6 +486,60 @@ export async function saveSelection(eventId, players, seasonId = null) {
     console.log('✅ saveSelection terminé avec succès')
   } catch (error) {
     console.error('❌ Erreur dans saveSelection:', error)
+    throw error
+  }
+}
+
+/**
+ * Confirmer une sélection (la verrouille)
+ */
+export async function confirmSelection(eventId, seasonId = null) {
+  console.log('🔒 confirmSelection appelé:', { eventId, seasonId })
+  
+  try {
+    if (mode === 'firebase') {
+      const selRef = seasonId
+        ? doc(db, 'seasons', seasonId, 'selections', eventId)
+        : doc(db, 'selections', eventId)
+      
+      await updateDoc(selRef, { 
+        confirmed: true,
+        confirmedAt: serverTimestamp()
+      })
+      
+      console.log('✅ Sélection confirmée avec succès')
+    } else {
+      console.log('🎭 Mode mock activé')
+    }
+  } catch (error) {
+    console.error('❌ Erreur dans confirmSelection:', error)
+    throw error
+  }
+}
+
+/**
+ * Annuler la confirmation d'une sélection (admin uniquement)
+ */
+export async function unconfirmSelection(eventId, seasonId = null) {
+  console.log('🔓 unconfirmSelection appelé:', { eventId, seasonId })
+  
+  try {
+    if (mode === 'firebase') {
+      const selRef = seasonId
+        ? doc(db, 'seasons', seasonId, 'selections', eventId)
+        : doc(db, 'selections', eventId)
+      
+      await updateDoc(selRef, { 
+        confirmed: false,
+        confirmedAt: null
+      })
+      
+      console.log('✅ Confirmation de sélection annulée avec succès')
+    } else {
+      console.log('🎭 Mode mock activé')
+    }
+  } catch (error) {
+    console.error('❌ Erreur dans unconfirmSelection:', error)
     throw error
   }
 }
