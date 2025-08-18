@@ -788,9 +788,6 @@
         <!-- Actions desktop -->
         <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
           <!-- Boutons principaux -->
-          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
-            <span>🎭</span><span>Sélection Équipe</span>
-          </button>
           <button 
             @click="openEventAnnounceModal(selectedEvent)" 
             :disabled="selectedEvent?.archived"
@@ -798,6 +795,9 @@
             :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux joueurs (email, copie, WhatsApp)'"
           >
             <span>📢</span><span>Annoncer</span>
+          </button>
+          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
+            <span>🎭</span><span>Sélection Équipe</span>
           </button>
           
           <!-- Menu 3-points pour actions secondaires -->
@@ -807,7 +807,7 @@
               class="px-5 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
               title="Plus d'actions"
             >
-              <span>⋯</span><span>Plus</span>
+              <span>⋯</span>
             </button>
           </div>
           
@@ -836,6 +836,13 @@
                 <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
               </button>
               <button 
+                @click="handleResetEventSelection(selectedEvent?.id); showEventMoreActionsDesktop = false" 
+                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
+                title="Supprimer complètement la sélection et remettre le statut à 'Nouveau'"
+              >
+                <span>🔄</span><span>Réinitialiser</span>
+              </button>
+              <button 
                 @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActionsDesktop = false" 
                 class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
               >
@@ -850,6 +857,7 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
+        <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">📢 Annoncer</button>
         <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélection Équipe</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
         <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
@@ -881,6 +889,13 @@
       </button>
       <button @click="toggleEventArchived(); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10">
         <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+      </button>
+      <button 
+        @click="handleResetEventSelection(selectedEvent?.id); showEventMoreActions = false" 
+        class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
+        title="Supprimer complètement la sélection et remettre le statut à 'Nouveau'"
+      >
+        <span>🔄</span><span>Réinitialiser</span>
       </button>
       <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2">
         <span>🗑️</span><span>Supprimer</span>
@@ -1243,9 +1258,9 @@
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
     @send-notifications="handleSendNotifications"
-              @update-selection="handleUpdateSelectionFromModal"
-          @confirm-selection="handleConfirmSelectionFromModal"
-          @unconfirm-selection="handleUnconfirmSelectionFromModal"
+    @update-selection="handleUpdateSelectionFromModal"
+    @confirm-selection="handleConfirmSelectionFromModal"
+    @unconfirm-selection="handleUnconfirmSelectionFromModal"
         />
 
   <!-- Modal d'annonce d'événement -->
@@ -2635,6 +2650,24 @@ async function confirmDeleteEvent(eventId) {
   // Demander le PIN code avant d'afficher la confirmation
   await requirePin({
     type: 'deleteEvent',
+    data: { eventId }
+  })
+}
+
+async function handleResetEventSelection(eventId) {
+  // Vérifier s'il y a une sélection existante
+  if (!selections.value[eventId]) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Aucune sélection à réinitialiser pour cet événement'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    return
+  }
+  
+  // Demander le PIN code avant de réinitialiser la sélection
+  await requirePin({
+    type: 'resetSelection',
     data: { eventId }
   })
 }
@@ -4227,7 +4260,9 @@ function getPinModalMessage() {
     deletePlayer: 'Suppression de joueur - Code PIN requis',
     launchSelection: 'Lancement de sélection - Code PIN requis',
     toggleArchive: 'Archivage d\'événement - Code PIN requis',
-    updateSelection: 'Mise à jour de sélection - Code PIN requis'
+    updateSelection: 'Mise à jour de sélection - Code PIN requis',
+    resetSelection: 'Réinitialisation de sélection - Code PIN requis',
+    unconfirmSelection: 'Déverrouillage de sélection - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -4618,6 +4653,33 @@ async function executePendingOperation(operation) {
             console.error('Erreur lors du déverrouillage de la sélection:', error)
             showSuccessMessage.value = true
             successMessage.value = 'Erreur lors du déverrouillage de la sélection'
+            setTimeout(() => {
+              showSuccessMessage.value = false
+            }, 3000)
+          }
+        }
+        break
+      case 'resetSelection':
+        // Réinitialiser complètement une sélection (admin uniquement)
+        {
+          const { eventId } = data
+          try {
+            const { deleteSelection, loadSelections } = await import('../services/storage.js')
+            await deleteSelection(eventId, seasonId.value)
+            
+            // Recharger les sélections depuis Firestore pour avoir les données à jour
+            const newSelections = await loadSelections(seasonId.value)
+            selections.value = newSelections
+            
+            showSuccessMessage.value = true
+            successMessage.value = 'Sélection réinitialisée ! Le statut est maintenant "Nouveau"'
+            setTimeout(() => {
+              showSuccessMessage.value = false
+            }, 3000)
+          } catch (error) {
+            console.error('Erreur lors de la réinitialisation de la sélection:', error)
+            showSuccessMessage.value = true
+            successMessage.value = 'Erreur lors de la réinitialisation de la sélection'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
@@ -5083,6 +5145,17 @@ function getEventStatus(eventId) {
   const isConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
   const isConfirmedByAllPlayers = isSelectionConfirmed(eventId)
   
+  // Cas 0: Aucune sélection → afficher "Nouveau" (prioritaire)
+  if (selectedPlayers.length === 0) {
+    return {
+      type: 'ready',
+      availableCount,
+      requiredCount,
+      isConfirmedByOrganizer: false,
+      isConfirmedByAllPlayers: false
+    }
+  }
+
   // Cas 1: Sélection incomplète (sélection existante avec problèmes)
   if (selectedPlayers.length > 0) {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isAvailable(playerName, eventId))
@@ -5102,21 +5175,10 @@ function getEventStatus(eventId) {
     }
   }
   
-  // Cas 2: Pas assez de joueurs pour faire une sélection
+  // Cas 2: Pas assez de joueurs pour faire une sélection (si une sélection existe)
   if (availableCount < requiredCount) {
     return {
       type: 'insufficient',
-      availableCount,
-      requiredCount,
-      isConfirmedByOrganizer: false,
-      isConfirmedByAllPlayers: false
-    }
-  }
-  
-  // Cas 3: Assez de joueurs mais pas de sélection
-  if (selectedPlayers.length === 0) {
-    return {
-      type: 'ready',
       availableCount,
       requiredCount,
       isConfirmedByOrganizer: false,
@@ -5567,6 +5629,8 @@ async function handleUpdateSelectionFromModal(payload) {
     data: { eventId, players }
   })
 }
+
+
 
 // Fonction pour gérer le focus sur un événement spécifique depuis l'URL
 async function focusOnEventFromUrl(eventId, targetEvent) {

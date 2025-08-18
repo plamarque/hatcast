@@ -735,6 +735,8 @@ async function handleUnconfirmSelection() {
 }
 
 
+
+
 async function autoSaveSelection() {
   if (!props.event?.id || !props.seasonId) return
   

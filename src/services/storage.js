@@ -592,6 +592,33 @@ export async function unconfirmSelection(eventId, seasonId = null) {
   }
 }
 
+/**
+ * Supprimer complètement une sélection (remet le statut à "Nouveau")
+ * @param {string} eventId - ID de l'événement
+ * @param {string} seasonId - ID de la saison (optionnel)
+ */
+export async function deleteSelection(eventId, seasonId = null) {
+  console.log('🗑️ deleteSelection appelé:', { eventId, seasonId })
+  
+  try {
+    if (mode === 'firebase') {
+      const selRef = seasonId
+        ? doc(db, 'seasons', seasonId, 'selections', eventId)
+        : doc(db, 'selections', eventId)
+      
+      // Supprimer complètement le document de sélection
+      await deleteDoc(selRef)
+      
+      console.log('✅ Sélection supprimée avec succès')
+    } else {
+      console.log('🎭 Mode mock activé')
+    }
+  } catch (error) {
+    console.error('❌ Erreur dans deleteSelection:', error)
+    throw error
+  }
+}
+
 export async function deleteEvent(eventId, seasonId = null) {
   logger.info('Suppression de l\'événement', { eventId })
   
