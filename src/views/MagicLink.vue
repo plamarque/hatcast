@@ -220,8 +220,8 @@ onMounted(async () => {
       return
     }
 
-    // Appliquer la disponibilité directement (bypass protections) - sauf pour 'confirm'
-    if (action !== 'confirm') {
+    // Appliquer la disponibilité directement (bypass protections) - sauf pour 'confirm' et 'decline'
+    if (action !== 'confirm' && action !== 'decline') {
       const newValue = action === 'yes' ? true : false
       await setSingleAvailability({ seasonId, playerName, eventId, value: newValue })
     }
@@ -239,6 +239,18 @@ onMounted(async () => {
           }
         }
       } catch (_) {}
+    }
+    
+    // Si le joueur décline sa participation à la sélection
+    if (action === 'decline') {
+      try {
+        // Mettre à jour le statut du joueur dans la sélection
+        const { updatePlayerSelectionStatus } = await import('../services/storage.js')
+        await updatePlayerSelectionStatus(eventId, playerName, 'declined', seasonId)
+        console.log('✅ Statut du joueur mis à jour : declined')
+      } catch (error) {
+        console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
+      }
     }
     
     // Si le joueur confirme sa participation à la sélection
@@ -260,6 +272,8 @@ onMounted(async () => {
     // Messages selon l'action
     if (action === 'confirm') {
       message.value = 'Votre participation a été confirmée ! Vous êtes maintenant "Joue" dans cette sélection.'
+    } else if (action === 'decline') {
+      message.value = 'Votre participation a été déclinée. Vous êtes maintenant "Décliné" dans cette sélection.'
     } else if (action === 'yes') {
       message.value = 'Votre disponibilité a été enregistrée: Disponible.'
     } else if (action === 'no') {

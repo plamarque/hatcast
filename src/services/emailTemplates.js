@@ -28,7 +28,7 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 /**
  * Template pour les notifications de sélection
  */
-export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, noUrl, confirmUrl }) {
+export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
@@ -44,17 +44,10 @@ export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate,
       <div style="margin: 20px 0; text-align: center;">
         <a href="${confirmUrl || eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
         
+        <a href="${declineUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #dc2626, #b91c1c);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(220, 38, 38, 0.3);margin-right: 10px;">❌ Décliner</a>
+        
         <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;font-weight:500;">📋 Afficher les détails</a>
       </div>
-      
-      <p style="margin-top: 20px; padding: 15px; background-color: #fee2e2; border-left: 4px solid #dc2626; border-radius: 4px;">
-        <strong>Un imprévu ? 😬</strong><br>
-        Pas de souci, signales vite ton indisponibilité pour qu'on relance la sélection du spectacle :
-      </p>
-      
-      <p style="margin-top: 8px; text-align: center;">
-        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Je ne suis plus disponible</a>
-      </p>
     </div>
   `
 }

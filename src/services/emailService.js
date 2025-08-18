@@ -358,14 +358,14 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       }
       logger.debug('Email trouvé pour joueur')
       
-      // Créer un magic link "no" pour le désistement
-      const noMagicLink = await createMagicLink({ 
+      // Créer un magic link "decline" pour le déclin de la sélection
+      const declineMagicLink = await createMagicLink({ 
         seasonId, 
         playerId: player.id, 
         eventId, 
-        action: 'no' 
+        action: 'decline' 
       })
-      const notAvailableUrl = `${noMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
+      const declineUrl = `${declineMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
       
       // Utiliser le nouveau template avec warning important et bouton de confirmation
       let html
@@ -386,7 +386,7 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
           eventTitle: eventData.title,
           eventDate: formatDateFull(eventData.date),
           eventUrl,
-          noUrl: notAvailableUrl,
+          declineUrl: declineUrl, // Magic link de déclin
           confirmUrl: confirmUrl // Magic link de confirmation
         })
         logger.debug('HTML généré avec le nouveau template')
