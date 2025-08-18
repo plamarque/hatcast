@@ -6,7 +6,7 @@
         <button @click="onClose" title="Fermer" class="absolute right-2.5 top-2.5 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         <h2 class="text-xl md:text-2xl font-bold text-white pr-10 flex items-center gap-2">
           <span class="hidden sm:inline">{{ mode === 'selection' ? '📣' : '📢' }}</span>
-          <span>{{ mode === 'selection' ? 'Annoncer la sélection' : 'Confirmer l\'événement' }}</span>
+          <span>{{ getModalTitle() }}</span>
         </h2>
         <p class="text-sm text-purple-300 mt-1" v-if="event">{{ event.title }} — {{ formatDateFull(event.date) }}</p>
       </div>
@@ -79,7 +79,9 @@ const props = defineProps({
   // Contrôle du spinner depuis le parent pendant l'envoi
   sending: { type: Boolean, default: false },
   // Map des disponibilités pour l'événement courant: { [playerName]: true|false|undefined }
-  availabilityByPlayer: { type: Object, default: () => ({}) }
+  availabilityByPlayer: { type: Object, default: () => ({}) },
+  // Pour le mode sélection, indique si tous les joueurs ont confirmé
+  isSelectionConfirmedByAllPlayers: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['close', 'notifications-sent', 'send-notifications'])
@@ -97,6 +99,16 @@ const computedSending = computed(() => props.sending || isSending.value)
 // Functions
 function onClose() {
   emit('close')
+}
+
+function getModalTitle() {
+  if (props.mode === 'selection') {
+    // Mode sélection : titre selon l'état de confirmation
+    return props.isSelectionConfirmedByAllPlayers ? 'Annoncer l\'équipe' : 'Annoncer la sélection'
+  } else {
+    // Mode événement : titre classique
+    return 'Confirmer l\'événement'
+  }
 }
 
 function formatDateFull(dateValue) {

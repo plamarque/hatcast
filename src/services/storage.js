@@ -518,11 +518,13 @@ export async function confirmSelection(eventId, seasonId = null) {
       const currentSelection = selectionDoc.exists ? selectionDoc.data() : { players: [] }
       
       // Initialiser les statuts individuels des joueurs si pas encore fait
+      // Préserver les statuts "declined" existants
       const playerStatuses = currentSelection.playerStatuses || {}
       currentSelection.players.forEach(playerName => {
         if (!playerStatuses[playerName]) {
           playerStatuses[playerName] = 'pending' // En attente de confirmation
         }
+        // Ne pas écraser un statut "declined" existant
       })
       
       await updateDoc(selRef, { 
@@ -554,9 +556,30 @@ export async function unconfirmSelection(eventId, seasonId = null) {
         ? doc(db, 'seasons', seasonId, 'selections', eventId)
         : doc(db, 'selections', eventId)
       
+      // Préserver les statuts "declined" lors du déverrouillage
+      const currentSelection = await getDoc(selRef)
+      const currentData = currentSelection.data()
+      const preservedPlayerStatuses = {}
+      
+      if (currentData && currentData.playerStatuses) {
+        // Garder seulement les statuts "declined", réinitialiser les autres à 'pending'
+        Object.entries(currentData.playerStatuses).forEach(([playerName, status]) => {
+          if (status === 'declined') {
+            preservedPlayerStatuses[playerName] = 'declined'
+          }
+        })
+      }
+      
+      // Retirer des slots les joueurs ayant décliné
+      const currentPlayers = Array.isArray(currentData?.players) ? currentData.players : []
+      const filteredPlayers = currentPlayers.filter((name) => preservedPlayerStatuses[name] !== 'declined')
+      
       await updateDoc(selRef, { 
         confirmed: false,
-        confirmedAt: null
+        confirmedAt: null,
+        players: filteredPlayers,
+        playerStatuses: preservedPlayerStatuses,
+        confirmedByAllPlayers: false
       })
       
       console.log('✅ Confirmation de sélection annulée avec succès')

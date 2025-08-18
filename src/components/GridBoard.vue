@@ -139,55 +139,15 @@
                     <span class="text-xs text-blue-200 font-medium ml-1 group-hover:text-blue-100">Nouveau</span>
                   </div>
                   
-                  <div 
-                    v-else-if="getEventStatus(event.id).type === 'complete'"
-                    class="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-green-500/30 transition-colors duration-200 cursor-pointer group"
+                  <SelectionStatusBadge
+                    v-else-if="getEventStatus(event.id).type"
+                    :status="getEventStatus(event.id).type"
+                    :show="true"
+                    :clickable="true"
+                    class="mx-auto cursor-pointer group"
                     :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
                     @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-green-300 font-medium group-hover:text-green-200">✅</span>
-                    <span class="text-xs text-green-200 font-medium ml-1 group-hover:text-green-100">Complète</span>
-                  </div>
-                  
-                  <div 
-                    v-else-if="getEventStatus(event.id).type === 'pending_confirmation'"
-                    class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-orange-500/30 transition-colors duration-200 cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-orange-300 font-medium group-hover:text-orange-200">⏳</span>
-                    <span class="text-xs text-orange-200 font-medium ml-1 group-hover:text-orange-100">À confirmer</span>
-                  </div>
-                  
-                  <div 
-                    v-else-if="getEventStatus(event.id).type === 'confirmed'"
-                    class="px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-purple-300 font-medium group-hover:text-purple-200">✅</span>
-                    <span class="text-xs text-purple-200 font-medium ml-1 group-hover:text-purple-100">Confirmée</span>
-                  </div>
-                  
-                  <div 
-                    v-else-if="getEventStatus(event.id).type === 'incomplete'"
-                    class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-orange-500/30 transition-colors duration-200 cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-orange-300 font-medium group-hover:text-orange-200">⚠️</span>
-                    <span class="text-xs text-orange-200 font-medium ml-1 group-hover:text-orange-100">Incomplète</span>
-                  </div>
-                  
-                  <div 
-                    v-else-if="getEventStatus(event.id).type === 'insufficient'"
-                    class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-red-500/30 transition-colors duration-200 cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  >
-                    <span class="text-xs text-red-300 font-medium group-hover:text-red-200">❌</span>
-                    <span class="text-xs text-red-200 font-medium ml-1 group-hover:text-red-100">Manque</span>
-                  </div>
+                  />
                 </div>
               </div>
             </div>
@@ -596,7 +556,7 @@
   </div>
 
   <!-- Modale de confirmation de relance de sélection -->
-  <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[95] p-4">
+  <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -740,17 +700,25 @@
 
         <!-- Section des disponibilités des joueurs (style allégé, filtres) -->
         <div v-if="selectedEvent" class="mb-4 md:mb-6">
-          <!-- Alerte + Filtres -->
-          <div class="mb-3 flex items-center">
+          <!-- Alerte + Filtres + Badge statut -->
+          <div class="mb-3 flex items-center gap-3">
             <div
               v-if="hasEventWarningForSelectedEvent"
-              class="flex items-center gap-2 px-2 py-1 rounded-md border text-[11px] md:text-xs max-w-[70%] truncate"
+              class="flex items-center gap-2 px-2 py-1 rounded-md border text-[11px] md:text-xs max-w-[50%] truncate"
               :class="eventStatus?.type === 'incomplete' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-200' : 'bg-orange-500/10 border-orange-500/30 text-orange-200'"
               :title="eventWarningText"
             >
               <span>⚠️</span>
               <span class="truncate">{{ eventWarningText }}</span>
             </div>
+
+            <!-- Badge statut de la sélection -->
+            <SelectionStatusBadge
+              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
+              :status="eventStatus?.type"
+              :show="true"
+              :clickable="false"
+            />
 
             <select
               v-model="availabilityFilter"
@@ -821,7 +789,7 @@
         <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
           <!-- Boutons principaux -->
           <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
-            <span>🎭</span><span>Équipe</span>
+            <span>🎭</span><span>Sélection Équipe</span>
           </button>
           <button 
             @click="openEventAnnounceModal(selectedEvent)" 
@@ -882,7 +850,7 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Équipe</button>
+        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélection Équipe</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
         <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
@@ -1261,7 +1229,7 @@
     ref="selectionModalRef"
     :show="showSelectionModal"
     :event="selectionModalEvent"
-    :current-selection="getSelectionPlayers(selectionModalEvent?.id)"
+    :current-selection="selections[selectionModalEvent?.id] || []"
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
     :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
@@ -1605,6 +1573,7 @@ import PlayersModal from './PlayersModal.vue'
 import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
+import SelectionStatusBadge from './SelectionStatusBadge.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -2758,8 +2727,8 @@ async function saveEdit() {
           eventId: editingEvent.value
         })
         
-        // Récupérer les joueurs sélectionnés
-        const selectedPlayers = selections.value[editingEvent.value] || []
+        // Récupérer les joueurs sélectionnés (toujours un tableau)
+        const selectedPlayers = getSelectionPlayers(editingEvent.value)
         
         // Recréer les rappels pour chaque joueur sélectionné
         const reminderResults = []
@@ -3743,6 +3712,16 @@ function getStatusDisplayText(status) {
   }
 }
 
+// Fonction helper pour récupérer les joueurs qui ont décliné
+function getDeclinedPlayers(eventId) {
+  const selection = selections.value[eventId]
+  if (!selection || !selection.playerStatuses) return []
+  
+  return Object.entries(selection.playerStatuses)
+    .filter(([playerName, status]) => status === 'declined')
+    .map(([playerName]) => playerName)
+}
+
 function isAvailable(player, eventId) {
   return availability.value[player]?.[eventId]
 }
@@ -3772,7 +3751,11 @@ async function tirer(eventId, count = 6) {
     // Cas exceptionnel : tous les joueurs sont disponibles, on refait un tirage complet
     // Nouveau tirage complet nécessaire
     
-    const candidates = players.value.filter(p => isAvailable(p.name, eventId))
+    // Exclure les joueurs qui ont décliné cette sélection
+    const declinedPlayers = getDeclinedPlayers(eventId)
+    const candidates = players.value.filter(p => 
+      isAvailable(p.name, eventId) && !declinedPlayers.includes(p.name)
+    )
 
     // Tirage pondéré : moins sélectionné = plus de chances
     const weightedCandidates = candidates.map(player => {
@@ -3826,8 +3809,11 @@ async function tirer(eventId, count = 6) {
     } else {
       // Tirage pour les places manquantes
       const alreadySelected = new Set(keepSelectedPlayers)
+      const declinedPlayers = getDeclinedPlayers(eventId)
       const candidates = players.value.filter(p => 
-        isAvailable(p.name, eventId) && !alreadySelected.has(p.name)
+        isAvailable(p.name, eventId) && 
+        !alreadySelected.has(p.name) && 
+        !declinedPlayers.includes(p.name)
       )
 
       // Tirage pondéré : moins sélectionné = plus de chances
@@ -4609,25 +4595,12 @@ async function executePendingOperation(operation) {
         {
           const { eventId } = data
           try {
-            const { unconfirmSelection } = await import('../services/storage.js')
+            const { unconfirmSelection, loadSelections } = await import('../services/storage.js')
             await unconfirmSelection(eventId, seasonId.value)
             
-            // Mettre à jour la structure locale
-            if (selections.value[eventId]) {
-              if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
-                selections.value[eventId].confirmed = false
-                selections.value[eventId].confirmedAt = null
-              } else {
-                // Migration de l'ancienne structure
-                const players = Array.isArray(selections.value[eventId]) ? selections.value[eventId] : []
-                selections.value[eventId] = {
-                  players,
-                  confirmed: false,
-                  confirmedAt: null,
-                  updatedAt: new Date()
-                }
-              }
-            }
+            // Recharger les sélections depuis Firestore pour avoir les données à jour
+            const newSelections = await loadSelections(seasonId.value)
+            selections.value = newSelections
             
             showSuccessMessage.value = true
             successMessage.value = 'Sélection déverrouillée !'

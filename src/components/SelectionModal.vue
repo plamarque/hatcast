@@ -35,32 +35,13 @@
                 <span class="text-blue-200 text-xs">Nouveau</span>
               </div>
               
-              <div 
-                v-else-if="getSelectionStatus().type === 'complete'"
-                class="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded text-sm flex items-center gap-1"
-                title="Sélection complète"
-              >
-                <span class="text-green-300 text-xs hidden md:inline">✅</span>
-                <span class="text-green-200 text-xs">Complète</span>
-              </div>
-              
-              <div 
-                v-else-if="getSelectionStatus().type === 'confirmed'"
-                class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded text-sm flex items-center gap-1"
-                title="Sélection à confirmer - En attente de confirmation des joueurs"
-              >
-                <span class="text-orange-300 text-xs hidden md:inline">⏳</span>
-                <span class="text-orange-200 text-xs">À confirmer</span>
-              </div>
-              
-              <div 
-                v-else-if="getSelectionStatus().type === 'incomplete'"
-                class="px-2 py-1 bg-orange-500/20 border border-orange-400/30 rounded text-sm flex items-center gap-1"
-                title="Sélection incomplète"
-              >
-                <span class="text-orange-300 text-xs hidden md:inline">⚠️</span>
-                <span class="text-orange-200 text-xs">Incomplète</span>
-              </div>
+              <SelectionStatusBadge
+                v-else-if="getSelectionStatus().type"
+                :status="getSelectionStatus().type"
+                :show="true"
+                :clickable="false"
+                class="text-sm"
+              />
               
               <div 
                 v-else-if="getSelectionStatus().type === 'insufficient'"
@@ -109,25 +90,38 @@
               :class="slot
                 ? [
                     'bg-gradient-to-r',
-                    isPlayerUnavailable(slot)
-                      ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
-                      : (!isPlayerAvailable(slot)
-                          ? 'from-red-500/20 to-red-600/20 border-red-500/30'
-                          : 'from-green-500/20 to-emerald-500/20 border-green-500/30')
+                    // Statuts de confirmation individuelle (priorité sur la disponibilité)
+                    isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'declined'
+                      ? 'from-red-500/20 to-orange-500/20 border-red-500/30'
+                      : isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'confirmed'
+                        ? 'from-purple-500/20 to-pink-500/20 border-purple-500/30'
+                        : isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'pending'
+                          ? 'from-orange-500/20 to-yellow-500/20 border-orange-500/30'
+                          // Statuts de disponibilité classique
+                          : isPlayerUnavailable(slot)
+                            ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+                            : (!isPlayerAvailable(slot)
+                                ? 'from-red-500/20 to-red-600/20 border-red-500/30'
+                                : 'from-green-500/20 to-emerald-500/20 border-green-500/30')
                   ]
                 : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
             >
               <!-- Slot rempli -->
               <div v-if="slot" class="flex items-center justify-between gap-2">
-                <div class="flex-1 text-white font-medium truncate" :title="slot">
-                  <span v-if="isInSavedSelectionAndAvailable(slot)" class="text-purple-400 mr-2">🎭</span>
+                <div class="flex-1 text-white font-medium truncate" :title="getPlayerSlotTooltip(slot)">
+                  <!-- Statut de confirmation individuel du joueur -->
+                  <span v-if="isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'confirmed'" class="text-purple-400 mr-2">✅</span>
+                  <span v-else-if="isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'declined'" class="text-red-400 mr-2">❌</span>
+                  <span v-else-if="isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'pending'" class="text-orange-400 mr-2">⏳</span>
+                  <!-- Statut de disponibilité classique -->
+                  <span v-else-if="isInSavedSelectionAndAvailable(slot)" class="text-purple-400 mr-2">🎭</span>
                   <span v-else-if="isPlayerAvailable(slot)" class="text-green-400 mr-2">✅</span>
                   <span v-else-if="isPlayerUnavailable(slot)" class="text-red-400 mr-2">❌</span>
                   <span v-else class="text-gray-400 mr-2">–</span>
                   {{ slot }}
                 </div>
                 <button
-                  v-if="!isSelectionConfirmed"
+                  v-if="!isSelectionConfirmedByOrganizer"
                   @click="clearSlot(i)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer ce joueur"
@@ -150,7 +144,7 @@
                   </select>
                 </template>
                 <button
-                  v-else-if="!isSelectionConfirmed"
+                  v-else-if="!isSelectionConfirmedByOrganizer"
                   @click="startEditSlot(i)"
                   class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
                   title="Ajouter un joueur"
@@ -256,7 +250,8 @@
     :season-slug="seasonSlug"
     :players="players"
     mode="selection"
-    :selected-players="currentSelection"
+    :selected-players="getSelectedPlayersArray()"
+    :is-selection-confirmed-by-all-players="isSelectionConfirmed"
     @close="showAnnounce = false"
     @send-notifications="handleSendNotifications"
   />
@@ -271,6 +266,7 @@
 import { ref, computed, watch } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
+import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import { saveSelection } from '../services/storage.js'
 
 const props = defineProps({
@@ -283,7 +279,7 @@ const props = defineProps({
     default: null
   },
   currentSelection: {
-    type: Array,
+    type: [Array, Object],
     default: () => []
   },
   availableCount: {
@@ -401,12 +397,26 @@ const slotsWarning = computed(() => {
 
 // Computed properties
 const hasSelection = computed(() => {
-  return props.currentSelection && props.currentSelection.length > 0
+  // Si currentSelection est un tableau (ancienne structure)
+  if (Array.isArray(props.currentSelection)) {
+    return props.currentSelection && props.currentSelection.length > 0
+  }
+  // Si currentSelection est un objet (nouvelle structure)
+  if (props.currentSelection && typeof props.currentSelection === 'object') {
+    return props.currentSelection.players && props.currentSelection.players.length > 0
+  }
+  return false
 })
 
 // Fonction pour déterminer le statut de sélection (même logique que getEventStatus dans GridBoard)
 function getSelectionStatus() {
-  const selectedPlayers = props.currentSelection || []
+  // Extraire le tableau de joueurs selon la structure
+  let selectedPlayers = []
+  if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection || []
+  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+    selectedPlayers = props.currentSelection.players || []
+  }
   const requiredCount = props.event?.playerCount || 6
   const availableCount = props.availableCount || 0
   
@@ -445,8 +455,8 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 4: Sélection complète et confirmée
-  if (props.isSelectionConfirmed) {
+  // Cas 4: Sélection complète et confirmée par l'organisateur (en attente de confirmation des joueurs)
+  if (props.isSelectionConfirmedByOrganizer) {
     return {
       type: 'confirmed',
       availableCount,
@@ -454,7 +464,7 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 5: Sélection complète mais non confirmée
+  // Cas 5: Sélection complète mais non confirmée par l'organisateur
   return {
     type: 'complete',
     availableCount,
@@ -465,8 +475,16 @@ function getSelectionStatus() {
 const hasIncompleteSelection = computed(() => {
   if (!hasSelection.value) return false
   
+  // Extraire le tableau de joueurs selon la structure
+  let selectedPlayers = []
+  if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection || []
+  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+    selectedPlayers = props.currentSelection.players || []
+  }
+  
   // Vérifier si des joueurs sélectionnés ne sont plus disponibles
-  const hasUnavailablePlayers = props.currentSelection.some(player => !isPlayerAvailable(player))
+  const hasUnavailablePlayers = selectedPlayers.some(player => !isPlayerAvailable(player))
   
   // Vérifier s'il y a assez de joueurs disponibles pour compléter la sélection
   const requiredCount = props.event?.playerCount || 6
@@ -478,7 +496,15 @@ const hasIncompleteSelection = computed(() => {
 const incompleteSelectionMessage = computed(() => {
   if (!hasIncompleteSelection.value) return ''
   
-  const unavailablePlayers = props.currentSelection.filter(player => !isPlayerAvailable(player))
+  // Extraire le tableau de joueurs selon la structure
+  let selectedPlayers = []
+  if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection || []
+  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+    selectedPlayers = props.currentSelection.players || []
+  }
+  
+  const unavailablePlayers = selectedPlayers.filter(player => !isPlayerAvailable(player))
   const requiredCount = props.event?.playerCount || 6
   
   if (unavailablePlayers.length > 0) {
@@ -494,11 +520,55 @@ const incompleteSelectionMessage = computed(() => {
   return 'Sélection incomplète'
 })
 
+// Fonction helper pour récupérer le statut de confirmation d'un joueur
+function getPlayerSelectionStatus(playerName) {
+  // Si currentSelection est un objet avec playerStatuses (nouvelle structure)
+  if (props.currentSelection && typeof props.currentSelection === 'object' && !Array.isArray(props.currentSelection) && props.currentSelection.playerStatuses) {
+    return props.currentSelection.playerStatuses[playerName] || 'pending'
+  }
+  // Si currentSelection est un tableau simple (ancienne structure) ou pas de playerStatuses
+  return 'pending'
+}
+
+// Fonction helper pour générer le tooltip d'un slot de joueur
+function getPlayerSlotTooltip(playerName) {
+  if (props.isSelectionConfirmedByOrganizer) {
+    const status = getPlayerSelectionStatus(playerName)
+    switch (status) {
+      case 'confirmed':
+        return `${playerName} a confirmé sa participation`
+      case 'declined':
+        return `${playerName} a décliné sa participation`
+      case 'pending':
+        return `${playerName} doit encore confirmer sa participation`
+      default:
+        return playerName
+    }
+  } else {
+    // Tooltip classique basé sur la disponibilité
+    if (isPlayerAvailable(playerName)) {
+      return `${playerName} est disponible`
+    } else if (isPlayerUnavailable(playerName)) {
+      return `${playerName} n'est pas disponible`
+    } else {
+      return `${playerName} - disponibilité non indiquée`
+    }
+  }
+}
+
 const selectionMessage = computed(() => {
   if (!props.event || !hasSelection.value) return ''
   
+  // Extraire le tableau de joueurs selon la structure
+  let selectedPlayers = []
+  if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection || []
+  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+    selectedPlayers = props.currentSelection.players || []
+  }
+  
   const eventDate = formatDateFull(props.event.date)
-  const playersList = props.currentSelection.join(', ')
+  const playersList = selectedPlayers.join(', ')
   return `Sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
 })
 
@@ -512,7 +582,12 @@ watch(() => props.show, (newValue) => {
     isReselection.value = false
     showAnnounce.value = false
     // Initialize slots from current selection and requiredCount
-    const filled = Array.isArray(props.currentSelection) ? [...props.currentSelection] : []
+    let filled = []
+    if (Array.isArray(props.currentSelection)) {
+      filled = [...props.currentSelection]
+    } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+      filled = [...(props.currentSelection.players || [])]
+    }
     const len = requiredCount.value
     slots.value = Array.from({ length: len }, (_, i) => filled[i] || null)
     editingSlotIndex.value = null
@@ -522,7 +597,12 @@ watch(() => props.show, (newValue) => {
 // Rebuild slots when playerCount changes while open
 watch([requiredCount, () => props.currentSelection, () => props.event?.id], () => {
   if (!props.show) return
-  const filled = Array.isArray(props.currentSelection) ? [...props.currentSelection] : []
+  let filled = []
+  if (Array.isArray(props.currentSelection)) {
+    filled = [...props.currentSelection]
+  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+    filled = [...(props.currentSelection.players || [])]
+  }
   const len = requiredCount.value
   // keep existing chosen values in order where possible
   const next = Array.from({ length: len }, (_, i) => filled[i] || slots.value[i] || null)
@@ -642,13 +722,19 @@ function isPlayerUnavailable(playerName) {
   return props.playerAvailability[playerName] === false
 }
 
+function getSelectedPlayersArray() {
+  if (Array.isArray(props.currentSelection)) return props.currentSelection
+  if (props.currentSelection && typeof props.currentSelection === 'object') return props.currentSelection.players || []
+  return []
+}
+
 function isPlayerSelected(playerName) {
   // Un joueur est "sélectionné" s'il est dans la sélection actuelle ET disponible
-  return props.currentSelection.includes(playerName) && isPlayerAvailable(playerName)
+  return getSelectedPlayersArray().includes(playerName) && isPlayerAvailable(playerName)
 }
 
 function isInSavedSelectionAndAvailable(playerName) {
-  return props.currentSelection.includes(playerName) && isPlayerAvailable(playerName)
+  return getSelectedPlayersArray().includes(playerName) && isPlayerAvailable(playerName)
 }
 
 // Fonctions pour l'invitation à la sélection
