@@ -17,10 +17,10 @@
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[80] bg-gray-900 overflow-hidden">
+      <div ref="headerBarRef" class="sticky top-0 z-[100] bg-gray-900 overflow-hidden">
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[81] bg-gray-900 h-full">
+          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter spectacle -->
               <button
@@ -34,7 +34,7 @@
               </button>
               
               <!-- Icône de la saison -->
-              <div class="flex items-center justify-center p-1 relative z-[90]">
+              <div class="flex items-center justify-center p-1 relative z-[102]">
                 <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
                   <img 
                     :src="seasonMeta.logoUrl" 
@@ -73,44 +73,10 @@
                   
                   <div class="relative">
                     <div 
-                      @click.stop="toggleCalendarMenu(event.id)"
-                      class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 cursor-pointer hover:bg-white/10 px-2 py-1 rounded" 
-                      :title="formatDateFull(event.date) + ' - Cliquez pour ajouter à votre agenda'"
+                      class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
+                      :title="formatDateFull(event.date)"
                     >
                       {{ formatDate(event.date) }}
-                    </div>
-                    
-                    <!-- Menu déroulant d'agenda -->
-                    <div 
-                      v-if="openCalendarMenuId === event.id"
-                      class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[9999] overflow-hidden"
-                    >
-                      <div class="p-2">
-                        <button 
-                          @click.stop="handleAddToCalendar('google', event); closeCalendarMenu()"
-                          class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
-                          title="Ouvrir dans Google Calendar"
-                        >
-                          <span>🌐</span>
-                          <span>Google Calendar</span>
-                        </button>
-                        <button 
-                          @click.stop="handleAddToCalendar('outlook', event); closeCalendarMenu()"
-                          class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
-                          title="Ouvrir dans Outlook"
-                        >
-                          <span>📧</span>
-                          <span>Outlook</span>
-                        </button>
-                        <button 
-                          @click.stop="handleAddToCalendar('ics', event); closeCalendarMenu()"
-                          class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm border-t border-white/10 pt-2 mt-2"
-                          title="Télécharger un fichier .ics compatible avec tous les agendas"
-                        >
-                          <span>📥</span>
-                          <span>Télécharger (.ics)</span>
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -153,7 +119,7 @@
             </div>
           </div>
           <!-- Right spacer (keeps end alignment) -->
-          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[81] bg-gray-900 h-full"></div>
+          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] bg-gray-900 h-full"></div>
 
           <!-- Toggle archived events (top-right, above right chevron) -->
           <button
@@ -623,7 +589,7 @@
                  <!-- Menu déroulant d'agenda pour la modal -->
                  <div 
                    v-if="showCalendarMenuDetails"
-                   class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[9999] overflow-hidden"
+                   class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[99999] overflow-hidden"
                  >
                    <div class="p-2">
                      <button 
@@ -1711,7 +1677,6 @@ const eventMoreActionsMobileDropdownRef = ref(null)
 const eventMoreActionsMobileStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
 
 // Variables pour les menus d'agenda
-const openCalendarMenuId = ref(null)
 const showCalendarMenuDetails = ref(false)
 
 // Variables pour l'incitation aux notifications
@@ -1789,18 +1754,6 @@ function toggleEventMoreActionsMobile() {
 }
 
 // Fonctions pour gérer les menus d'agenda
-function toggleCalendarMenu(eventId) {
-  if (openCalendarMenuId.value === eventId) {
-    openCalendarMenuId.value = null
-  } else {
-    openCalendarMenuId.value = eventId
-  }
-}
-
-function closeCalendarMenu() {
-  openCalendarMenuId.value = null
-}
-
 function toggleCalendarMenuDetails() {
   showCalendarMenuDetails.value = !showCalendarMenuDetails.value
 }
@@ -4768,7 +4721,6 @@ function closeEventDetails() {
   showEventMoreActionsDesktop.value = false;
   
   // Fermer les menus d'agenda
-  closeCalendarMenu();
   closeCalendarMenuDetails();
   
   // Nettoyer les styles des dropdowns
