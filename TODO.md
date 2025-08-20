@@ -9,6 +9,8 @@
 - [ ] Rappel de confirmation
 - [ ] Déclenchement de sélection auto à J-X jours
 - [ ] Bouton feedback/aide
+- [ ] Si connexion depuis home > lister saisons concernées
+- [ ] Bug: se déconnecter sur home > icône compte reste
 
 ---
 
