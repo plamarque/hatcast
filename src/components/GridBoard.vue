@@ -3655,12 +3655,13 @@ async function toggleAvailability(playerName, eventId) {
           showNotificationPrompt.value = true
         } else {
           // Joueur non protégé : afficher la modale de protection des saisies
-          playerClaimData.value = {
-            player: player,
-            eventTitle: eventItem?.title || 'cet événement',
-            eventId
-          }
-          showPlayerClaim.value = true
+          // TEMPORAIREMENT DÉSACTIVÉ - Réintroduction prévue plus tard
+          // playerClaimData.value = {
+          //   player: player,
+          //   eventTitle: eventItem?.title || 'cet événement',
+          //   eventId
+          // }
+          // showPlayerClaim.value = true
         }
       }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
     }
@@ -4966,12 +4967,13 @@ async function handleAvailabilityToggle(playerName, eventId) {
           showNotificationPrompt.value = true
         } else {
           // Joueur non protégé : afficher la modale de protection des saisies
-          playerClaimData.value = {
-            player: player,
-            eventTitle: eventItem?.title || 'cet événement',
-            eventId
-          }
-          showPlayerClaim.value = true
+          // TEMPORAIREMENT DÉSACTIVÉ - Réintroduction prévue plus tard
+          // playerClaimData.value = {
+          //   player: player,
+          //   eventTitle: eventItem?.title || 'cet événement',
+          //   eventId
+          // }
+          // showPlayerClaim.value = true
         }
       }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
     }
