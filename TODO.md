@@ -4,6 +4,11 @@
 
 - [ ] Audit trail
 - [ ] Bouton Install toujours visible
+- [ ] Rappels dispo
+- [ ] Rappels spectacle aux sélectionnés
+- [ ] Rappel de confirmation
+- [ ] Déclenchement de sélection auto à J-X jours
+- [ ] Bouton feedback/aide
 
 ---
 
