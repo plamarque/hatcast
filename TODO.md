@@ -19,6 +19,6 @@
 
 ## Migration Firebase Dynamic Links (avant août 2025)
 
-- [ ] Mettre à jour les SDK Firebase vers les dernières versions
+- [x] Mettre à jour les SDK Firebase vers les dernières versions
 - [ ] Migrer vers App Links/Universal Links si nécessaire
 - [ ] Tester les nouvelles fonctionnalités d'authentification
