@@ -1609,6 +1609,48 @@ function onAuthStateChanged(user) {
       protectedPlayers.value = currentProtected
     })
   })
+  
+  // Synchroniser les favoris avec l'état de connexion Firebase
+  nextTick(async () => {
+    await syncFavoritesWithAuthState(user)
+  })
+}
+
+// Fonction pour synchroniser les favoris avec l'état de connexion Firebase
+async function syncFavoritesWithAuthState(user) {
+  try {
+    if (seasonId.value) {
+      const key = `seasonPreferredPlayer:${seasonId.value}`
+      
+      if (user?.email) {
+        // Utilisateur connecté : charger les associations réelles depuis Firebase
+        console.log('🔄 Synchronisation des favoris pour utilisateur connecté:', user.email)
+        const assocs = await listAssociationsForEmail(user.email)
+        const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
+        
+        if (seasonal.length > 0) {
+          // Mettre à jour les favoris avec les associations réelles
+          const playerIds = seasonal.map(a => a.playerId)
+          localStorage.setItem(key, JSON.stringify(playerIds))
+          console.log('✅ Favoris synchronisés avec Firebase:', playerIds)
+        } else {
+          // Aucune association pour cette saison, effacer les favoris
+          localStorage.removeItem(key)
+          console.log('✅ Favoris effacés (aucune association pour cette saison)')
+        }
+      } else {
+        // Utilisateur déconnecté : effacer tous les favoris
+        console.log('🔄 Utilisateur déconnecté, effacement des favoris')
+        localStorage.removeItem(key)
+        console.log('✅ Favoris effacés (utilisateur déconnecté)')
+      }
+      
+      // Mettre à jour l'état réactif des favoris
+      updatePreferredPlayersSet()
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors de la synchronisation des favoris:', error)
+  }
 }
 
 // État réactif pour la surveillance des événements
