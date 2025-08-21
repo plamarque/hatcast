@@ -1,10 +1,7 @@
-# HatCast
+# 🎭 HatCast
 
-Application de gestion de sélections pour spectacles.
-
-## Test de déploiement
-
-Test du nouveau workflow GitHub Pages - $(date)
+Une application web simple pour organiser et gérer vos spectacles d'improvisation avec HatCast.  
+Basée sur Vue 3, Firebase et TailwindCSS.
 
 ## ✨ Fonctionnalités
 
@@ -13,6 +10,7 @@ Test du nouveau workflow GitHub Pages - $(date)
 - Sélection automatique équitable et pondérée (selon les participations passées)
 - Sauvegarde dans Firebase (Firestore)
 - Interface responsive avec TailwindCSS
+- **Audit trail complet** : Traçabilité de toutes les actions utilisateur ([voir documentation](./AUDIT.md))
 
 ## 🚀 Installation
 
@@ -51,14 +49,21 @@ Déployable sur [Netlify](https://netlify.com), [Vercel](https://vercel.com) ou 
 
 ```
 src/
-  components/     # (à venir)
+  components/     # Composants Vue
   services/
     firebase.js   # Connexion Firebase
     storage.js    # Accès Firestore abstrait
   views/
     Grille.vue    # Vue principale
+functions/
+  auditService.js    # Service d'audit centralisé
+  auditTriggers.js   # Triggers Firestore pour l'audit
+  auditQueries.js    # Fonctions de requête d'audit
+scripts/
+  audit-cli.js       # CLI pour consulter l'audit trail
 ```
 
+---
 
 ### License
 

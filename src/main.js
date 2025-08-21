@@ -79,6 +79,34 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   console.log('Application déjà installée en mode standalone');
 }
 
+// Gestionnaire d'erreurs global pour l'audit
+window.addEventListener('error', async (event) => {
+  try {
+    const { default: AuditClient } = await import('./services/auditClient.js')
+    await AuditClient.logError(event.error, { 
+      context: 'global_error',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno
+    })
+  } catch (auditError) {
+    console.warn('Erreur audit global error:', auditError)
+  }
+})
+
+// Gestionnaire d'erreurs non gérées pour l'audit
+window.addEventListener('unhandledrejection', async (event) => {
+  try {
+    const { default: AuditClient } = await import('./services/auditClient.js')
+    await AuditClient.logError(event.reason, { 
+      context: 'unhandled_rejection',
+      promise: event.promise
+    })
+  } catch (auditError) {
+    console.warn('Erreur audit unhandled rejection:', auditError)
+  }
+})
+
 const app = createApp(App)
 app.use(router)
 app.mount('#app')

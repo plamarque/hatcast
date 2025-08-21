@@ -33,7 +33,7 @@ export async function trackPageVisit(userId, path, additionalData = {}) {
     }
 
     // Utiliser l'email comme clé si pas d'UID (pour les utilisateurs non connectés)
-    const docId = userId.includes('@') ? `email_${userId.replace(/[^a-zA-Z0-9]/g, '_')}` : userId
+    const docId = userId.includes('@') ? `email_${userId}` : userId
     
     await setDoc(doc(db, COLLECTION, docId), navigationData, { merge: true })
     
@@ -70,7 +70,7 @@ export async function trackModalInteraction(userId, modalData) {
     }
 
     // Utiliser l'email comme clé si pas d'UID
-    const docId = userId.includes('@') ? `email_${userId.replace(/[^a-zA-Z0-9]/g, '_')}` : userId
+    const docId = userId.includes('@') ? `email_${userId}` : userId
     
     await setDoc(doc(db, COLLECTION, docId), interactionData, { merge: true })
     
@@ -94,7 +94,7 @@ export async function getLastVisitedPage(userId) {
       return null
     }
 
-    const docId = userId.includes('@') ? `email_${userId.replace(/[^a-zA-Z0-9]/g, '_')}` : userId
+    const docId = userId.includes('@') ? `email_${userId}` : userId
     const docRef = doc(db, COLLECTION, docId)
     const docSnap = await getDoc(docRef)
     

@@ -527,6 +527,7 @@
       :message="getPinModalMessage()"
       :error="pinErrorMessage"
       :session-info="getSessionInfo()"
+      :season-slug="pendingOperation?.data?.seasonId || seasonToDelete?.id"
       @submit="handlePinSubmit"
       @cancel="handlePinCancel"
     />

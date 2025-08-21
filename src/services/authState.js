@@ -58,17 +58,26 @@ function initialize() {
       
 
       
-      // Tracking de navigation pour les changements d'authentification
+      // Tracking de navigation et audit pour les changements d'authentification
       try {
         if (user && !previousUser) {
-          // Nouvelle connexion - tracker la page actuelle
+          // Nouvelle connexion - tracker la page actuelle et logger l'audit
           const currentPath = window.location.pathname
           if (currentPath && currentPath !== '/') {
             await trackPageVisit(user.uid, currentPath)
           }
+          
+          // Logger la connexion
+          const { default: AuditClient } = await import('./auditClient.js')
+          await AuditClient.logLogin(user.email, 'firebase_auth')
+          
         } else if (!user && previousUser) {
           // Déconnexion - effacer l'historique de navigation ET les sessions locales
           await clearNavigationHistory(previousUser.uid)
+          
+          // Logger la déconnexion
+          const { default: AuditClient } = await import('./auditClient.js')
+          await AuditClient.logLogout(previousUser.email)
           
           // Effacer toutes les sessions locales (PIN et joueurs)
           try {

@@ -61,6 +61,7 @@
 import { ref, computed, watch } from 'vue'
 import { signInPlayer, resetPlayerPassword } from '../services/firebase.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
+import AuditClient from '../services/auditClient.js'
 
 const props = defineProps({
   show: { type: Boolean, default: false }
@@ -100,12 +101,31 @@ async function login() {
       // Marquer l'appareil de confiance pour l'email du compte afin d'éviter la re-saisie
       try { playerPasswordSessionManager.saveSession(email.value.trim()) } catch {}
     }
+    
+    // Logger l'audit de connexion
+    try {
+      await AuditClient.logLogin(email.value.trim(), 'email_password')
+    } catch (auditError) {
+      console.warn('Erreur audit login:', auditError)
+    }
+    
     emit('success', { 
       email: email.value.trim(),
       action: 'login_success'
     })
   } catch (e) {
     error.value = 'Email ou mot de passe incorrect'
+    
+    // Logger l'erreur d'audit
+    console.log('🔍 Tentative de logging d\'erreur d\'audit...')
+    try {
+      console.log('🔍 Appel de logError avec:', e, { context: 'login_attempt', email: email.value.trim() })
+      await AuditClient.logError(e, { context: 'login_attempt', email: email.value.trim() })
+      console.log('🔍 LogError terminé avec succès')
+    } catch (auditError) {
+      console.error('❌ Erreur audit error:', auditError)
+      console.error('❌ Stack trace:', auditError.stack)
+    }
   } finally {
     loading.value = false
   }
@@ -124,8 +144,32 @@ async function forgotPassword() {
   try {
     await resetPlayerPassword(email.value.trim())
     success.value = 'Un email de réinitialisation a été envoyé à votre adresse email'
+    
+    // Logger l'audit de reset de mot de passe
+    try {
+      await AuditClient.logUserAction({
+        type: 'password_reset_requested',
+        category: 'auth',
+        severity: 'info',
+        data: {
+          email: AuditClient.obfuscateEmail(email.value.trim()),
+          timestamp: new Date().toISOString()
+        },
+        success: true,
+        tags: ['auth', 'password_reset']
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit password reset:', auditError)
+    }
   } catch (e) {
     error.value = 'Impossible d\'envoyer l\'email de réinitialisation'
+    
+    // Logger l'erreur d'audit
+    try {
+      await AuditClient.logError(e, { context: 'password_reset_attempt', email: email.value.trim() })
+    } catch (auditError) {
+      console.warn('Erreur audit password reset error:', auditError)
+    }
   } finally {
     loading.value = false
   }

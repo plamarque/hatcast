@@ -7,17 +7,59 @@ service cloud.firestore {
       // Lecture : l'utilisateur peut lire ses propres données de navigation
       allow read: if request.auth != null && 
         (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email.replace(/[^a-zA-Z0-9]/g, '_'));
+         docId == 'email_' + request.auth.token.email);
       
       // Écriture : l'utilisateur peut écrire ses propres données de navigation
       allow write: if request.auth != null && 
         (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email.replace(/[^a-zA-Z0-9]/g, '_'));
+         docId == 'email_' + request.auth.token.email);
       
       // Suppression : l'utilisateur peut supprimer ses propres données
       allow delete: if request.auth != null && 
         (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email.replace(/[^a-zA-Z0-9]/g, '_'));
+         docId == 'email_' + request.auth.token.email);
+    }
+    
+    // Collection des saisons - Lecture et écriture publiques
+    match /seasons/{seasonId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des événements - Lecture et écriture publiques
+    match /seasons/{seasonId}/events/{eventId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des joueurs - Lecture et écriture publiques
+    match /seasons/{seasonId}/players/{playerName} {
+      allow read, write: if true;
+    }
+    
+    // Collection des disponibilités - Lecture et écriture publiques
+    match /seasons/{seasonId}/availabilities/{playerName} {
+      allow read, write: if true;
+    }
+    
+    // Collection des sélections - Lecture et écriture publiques
+    match /seasons/{seasonId}/selections/{eventId} {
+      allow read, write: if true;
+    }
+    
+    // Collection de protection des joueurs - Lecture et écriture publiques
+    match /seasons/{seasonId}/playerProtection/{playerId} {
+      allow read, write: if true;
+    }
+    
+    // Collection de protection des joueurs globale - Lecture et écriture publiques
+    match /playerProtection/{playerId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des préférences utilisateur
+    match /userPreferences/{docId} {
+      allow read, write: if request.auth != null && 
+        (docId == request.auth.uid || 
+         docId == 'email_' + request.auth.token.email);
     }
     
     // Autres collections existantes (ajouter selon vos besoins)
@@ -34,6 +76,19 @@ service cloud.firestore {
     match /reminderQueue/{reminderId} {
       // Seules les Cloud Functions peuvent lire/écrire
       allow read, write: if false;
+    }
+    
+    // Collection des logs d'audit
+    match /auditLogs/{logId} {
+      // Lecture : admins seulement
+      allow read: if request.auth != null && 
+        request.auth.token.email.matches('.*@hatcast\\.app');
+      
+      // Écriture : tout le monde (pour le logging client)
+      allow write: if true;
+      
+      // Suppression : jamais
+      allow delete: if false;
     }
   }
 }

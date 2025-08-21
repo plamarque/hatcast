@@ -956,6 +956,7 @@
     :message="getPinModalMessage()"
     :error="pinErrorMessage"
     :session-info="getSessionInfo()"
+    :season-slug="props.slug"
     @submit="handlePinSubmit"
     @cancel="handlePinCancel"
   />
@@ -1938,8 +1939,16 @@ const showAccountCreation = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
 const accountAuthPlayer = ref(null)
-function openAccountMenu() { 
+async function openAccountMenu() {
   showAccountMenu.value = true
+  
+  // Logger l'audit d'ouverture de modale
+  try {
+    const { default: AuditClient } = await import('../services/auditClient.js')
+    await AuditClient.logModalOpen('account_menu', { seasonSlug: props.slug })
+  } catch (auditError) {
+    console.warn('Erreur audit modal:', auditError)
+  }
   
   // Synchroniser l'URL avec l'état de la modale "Mon Compte"
   // Éviter la duplication du paramètre open=account
@@ -1968,15 +1977,31 @@ function closeAccountMenu() {
   router.push(newUrl)
 }
 
-function openNotifications() { 
-  showNotifications.value = true 
+async function openNotifications() {
+  showNotifications.value = true
+  
+  // Logger l'audit d'ouverture de modale
+  try {
+    const { default: AuditClient } = await import('../services/auditClient.js')
+    await AuditClient.logModalOpen('notifications', { seasonSlug: props.slug })
+  } catch (auditError) {
+    console.warn('Erreur audit modal:', auditError)
+  }
 }
 function closeNotifications() { 
   showNotifications.value = false 
 }
 
-function openPlayers() { 
+async function openPlayers() {
   showPlayers.value = true
+  
+  // Logger l'audit d'ouverture de modale
+  try {
+    const { default: AuditClient } = await import('../services/auditClient.js')
+    await AuditClient.logModalOpen('players', { seasonSlug: props.slug })
+  } catch (auditError) {
+    console.warn('Erreur audit modal:', auditError)
+  }
 }
 function closePlayers() { 
   showPlayers.value = false 
@@ -3710,7 +3735,7 @@ async function toggleAvailability(playerName, eventId) {
   }
 }
 
-function performToggleAvailability(player, eventId) {
+async function performToggleAvailability(player, eventId) {
   // Récupérer l'état actuel depuis availability.value
   const current = availability.value[player.name]?.[eventId];
   // Toggle de disponibilité
@@ -3724,6 +3749,30 @@ function performToggleAvailability(player, eventId) {
   } else {
     // État undefined -> passe à true
     newValue = true;
+  }
+  
+  // Logger l'audit de modification de disponibilité
+  try {
+    const { default: AuditClient } = await import('../services/auditClient.js')
+    const event = events.value.find(e => e.id === eventId)
+    await AuditClient.logUserAction({
+      type: 'availability_changed',
+      category: 'availability',
+      severity: 'info',
+      data: {
+        playerName: player.name,
+        eventTitle: event?.title || 'Unknown',
+        seasonSlug: props.slug,
+        eventId: eventId,
+        oldValue: current,
+        newValue: newValue,
+        action: 'toggle_availability'
+      },
+      success: true,
+      tags: ['availability', 'toggle']
+    })
+  } catch (auditError) {
+    console.warn('Erreur audit toggleAvailability:', auditError)
   }
   
   // Mettre à jour availability.value
@@ -3798,6 +3847,27 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
     // Mettre à jour le statut dans le stockage
     const { updatePlayerSelectionStatus } = await import('../services/storage.js')
     const result = await updatePlayerSelectionStatus(eventId, playerName, newStatus, seasonId)
+    
+    // Logger l'audit de confirmation de participation
+    try {
+      const { default: AuditClient } = await import('../services/auditClient.js')
+      const event = events.value.find(e => e.id === eventId)
+      
+      if (newStatus === 'confirmed') {
+        await AuditClient.logPlayerConfirmed(playerName, event?.title || 'Unknown', seasonSlug, {
+          eventId,
+          status: newStatus,
+          confirmedByAllPlayers: result.confirmedByAllPlayers
+        })
+      } else if (newStatus === 'declined') {
+        await AuditClient.logPlayerWithdrawn(playerName, event?.title || 'Unknown', seasonSlug, {
+          eventId,
+          status: newStatus
+        })
+      }
+    } catch (auditError) {
+      console.warn('Erreur audit playerSelectionStatus:', auditError)
+    }
     
     // Mettre à jour la structure locale
     if (selections.value[eventId]) {
@@ -4659,6 +4729,21 @@ async function executePendingOperation(operation) {
         break
       case 'launchSelection':
         console.log('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
+        
+        // Logger l'audit de sélection automatique
+        try {
+          const { default: AuditClient } = await import('../services/auditClient.js')
+          const event = events.value.find(e => e.id === data.eventId)
+          await AuditClient.logAutoSelectionTriggered(seasonSlug, {
+            eventId: data.eventId,
+            eventTitle: event?.title || 'Unknown',
+            count: data.count,
+            hasExistingSelection: getSelectionPlayers(data.eventId).length > 0
+          })
+        } catch (auditError) {
+          console.warn('Erreur audit launchSelection:', auditError)
+        }
+        
         // Vérifier si une sélection existe déjà pour afficher la confirmation
         if (getSelectionPlayers(data.eventId).length > 0) {
           console.log('🔄 Sélection existante, affichage confirmation')
@@ -4776,6 +4861,21 @@ async function executePendingOperation(operation) {
           try {
             const { deleteSelection, loadSelections } = await import('../services/storage.js')
             await deleteSelection(eventId, seasonId.value)
+            
+            // Logger l'audit de réinitialisation
+            try {
+              const { default: AuditClient } = await import('../services/auditClient.js')
+              const event = events.value.find(e => e.id === eventId)
+              if (event) {
+                await AuditClient.logEventReset(event.title, props.slug, {
+                  eventId: eventId,
+                  action: 'reset_selection',
+                  timestamp: new Date().toISOString()
+                })
+              }
+            } catch (auditError) {
+              console.warn('Erreur audit resetSelection:', auditError)
+            }
             
             // Recharger les sélections depuis Firestore pour avoir les données à jour
             const newSelections = await loadSelections(seasonId.value)
@@ -5088,6 +5188,26 @@ async function toggleEventArchived() {
     const eventIndex = events.value.findIndex(e => e.id === selectedEvent.value.id);
     if (eventIndex !== -1) {
       events.value[eventIndex].archived = newArchivedState;
+    }
+    
+    // Logger l'audit
+    try {
+      const { default: AuditClient } = await import('../services/auditClient.js')
+      if (newArchivedState) {
+        await AuditClient.logEventArchived(selectedEvent.value.title, props.slug, {
+          eventId: selectedEvent.value.id,
+          action: 'archive',
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        await AuditClient.logEventUnarchived(selectedEvent.value.title, props.slug, {
+          eventId: selectedEvent.value.id,
+          action: 'unarchive',
+          timestamp: new Date().toISOString()
+        })
+      }
+    } catch (auditError) {
+      console.warn('Erreur audit toggleEventArchived:', auditError)
     }
     
     showSuccessMessage.value = true;
@@ -5687,6 +5807,21 @@ async function handleConfirmSelectionFromModal() {
     const { confirmSelection } = await import('../services/storage.js')
     await confirmSelection(eventId, seasonId.value)
     
+    // Logger l'audit de validation de sélection
+    try {
+      const { default: AuditClient } = await import('../services/auditClient.js')
+      const event = events.value.find(e => e.id === eventId)
+      const selectedPlayers = getSelectionPlayers(eventId)
+      await AuditClient.logSelectionValidated(seasonSlug, {
+        eventId,
+        eventTitle: event?.title || 'Unknown',
+        selectedPlayers,
+        playerCount: selectedPlayers.length
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit confirmSelection:', auditError)
+    }
+    
     // Mettre à jour la structure locale
     if (selections.value[eventId]) {
       if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
@@ -6007,9 +6142,21 @@ function promptForNotifications(event) {
 }
 
 // Fonction pour gérer le succès de l'incitation aux notifications
-function handleNotificationPromptSuccess(data) {
+async function handleNotificationPromptSuccess(data) {
   showNotificationPrompt.value = false
   notificationPromptData.value = null
+  
+  // Logger l'audit de notification
+  try {
+    const { default: AuditClient } = await import('../services/auditClient.js')
+    await AuditClient.logNotificationAction('sent', data.playerName, data.eventTitle, props.slug, {
+      eventId: data.eventId,
+      email: data.email,
+      directActivation: data.directActivation
+    })
+  } catch (auditError) {
+    console.warn('Erreur audit notification:', auditError)
+  }
   
   // Afficher un message de succès adapté au type d'activation
   showSuccessMessage.value = true

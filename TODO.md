@@ -2,7 +2,7 @@
 
 ## Fonctionnalités à implémenter
 
-- [ ] Audit trail
+- [x] Audit trail
 - [ ] Bouton Install toujours visible
 - [ ] Rappels dispo
 - [ ] Rappels spectacle aux sélectionnés
@@ -11,6 +11,10 @@
 - [ ] Bouton feedback/aide
 - [ ] Si connexion depuis home > lister saisons concernées
 - [ ] Bug: se déconnecter sur home > icône compte reste
+
+## Bugs à corriger
+
+- [ ] **Fonction de réinitialisation de sélection** : La fonction `handleResetEventSelection` ne fonctionne plus correctement. L'audit est implémenté mais la fonction elle-même n'a pas d'effet. À corriger plus tard.
 
 ---
 

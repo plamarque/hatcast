@@ -79,6 +79,10 @@ const props = defineProps({
   sessionInfo: {
     type: Object,
     default: null
+  },
+  seasonSlug: {
+    type: String,
+    default: null
   }
 })
 
@@ -109,8 +113,20 @@ function validatePinInput() {
   }
 }
 
-function submit() {
+async function submit() {
   if (pinCode.value.length === 4) {
+    // Logger l'audit de saisie de PIN
+    try {
+      const { default: AuditClient } = await import('../services/auditClient.js')
+      await AuditClient.logPinEntered(props.seasonSlug, {
+        pinLength: pinCode.value.length,
+        message: props.message,
+        hasSessionInfo: !!props.sessionInfo
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit submit PIN:', auditError)
+    }
+    
     emit('submit', pinCode.value)
   }
 }

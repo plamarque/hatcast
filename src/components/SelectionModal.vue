@@ -392,7 +392,31 @@ async function onChooseForSlot(event, index) {
   
   const value = event?.target?.value || ''
   if (value) {
+    const previousValue = slots.value[index]
     slots.value[index] = value
+    
+    // Logger l'audit de resélection
+    try {
+      const { default: AuditClient } = await import('../services/auditClient.js')
+      await AuditClient.logUserAction({
+        type: 'player_reselected',
+        category: 'selection',
+        severity: 'info',
+        data: {
+          eventTitle: props.event?.title || 'Unknown',
+          seasonSlug: props.event?.seasonSlug || 'unknown',
+          playerName: value,
+          slotIndex: index,
+          previousPlayer: previousValue || null,
+          action: 'manual_selection'
+        },
+        success: true,
+        tags: ['selection', 'manual', 'reselection']
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit onChooseForSlot:', auditError)
+    }
+    
     // Sauvegarde automatique immédiate
     await autoSaveSelection()
   }
@@ -403,7 +427,32 @@ async function clearSlot(index) {
   // Ne pas permettre la suppression si l'organisateur a validé la sélection
   if (props.isSelectionConfirmedByOrganizer) return
   
+  const removedPlayer = slots.value[index]
   slots.value[index] = null
+  
+  // Logger l'audit de désélection
+  if (removedPlayer) {
+    try {
+      const { default: AuditClient } = await import('../services/auditClient.js')
+      await AuditClient.logUserAction({
+        type: 'player_deselected',
+        category: 'selection',
+        severity: 'info',
+        data: {
+          eventTitle: props.event?.title || 'Unknown',
+          seasonSlug: props.event?.seasonSlug || 'unknown',
+          playerName: removedPlayer,
+          slotIndex: index,
+          action: 'manual_deselection'
+        },
+        success: true,
+        tags: ['selection', 'manual', 'deselection']
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit clearSlot:', auditError)
+    }
+  }
+  
   // Sauvegarde automatique immédiate
   await autoSaveSelection()
 }

@@ -4,6 +4,11 @@ const admin = require('firebase-admin')
 admin.initializeApp()
 const db = admin.firestore()
 
+// Import des services d'audit
+const AuditService = require('./auditService')
+const auditTriggers = require('./auditTriggers')
+const auditQueries = require('./auditQueries')
+
 // Callable: crée un custom token Firebase pour un email et le renvoie
 exports.createCustomTokenForEmail = functions.https.onCall(async (data, context) => {
   try {
@@ -42,6 +47,23 @@ exports.createCustomTokenForEmail = functions.https.onCall(async (data, context)
     return { success: false, error: error.message || 'unknown_error' }
   }
 })
+
+// ===== FONCTIONS D'AUDIT =====
+
+// Triggers d'audit
+exports.auditAvailabilityChanges = auditTriggers.auditAvailabilityChanges
+exports.auditSelectionChanges = auditTriggers.auditSelectionChanges
+exports.auditEventChanges = auditTriggers.auditEventChanges
+exports.auditPlayerChanges = auditTriggers.auditPlayerChanges
+
+// Requêtes d'audit
+exports.getAuditLogs = auditQueries.getAuditLogs
+exports.searchAuditLogs = auditQueries.searchAuditLogs
+exports.getAuditStats = auditQueries.getAuditStats
+exports.getEventHistory = auditQueries.getEventHistory
+exports.getPlayerHistory = auditQueries.getPlayerHistory
+
+// ===== FONCTIONS EXISTANTES =====
 
 exports.processPushQueue = functions.firestore
   .document('pushQueue/{pushId}')

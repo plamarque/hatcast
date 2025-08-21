@@ -82,6 +82,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { auth } from '../services/firebase.js'
+import AuditClient from '../services/auditClient.js'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
@@ -145,7 +146,16 @@ function openNotifications() {
 async function logout() {
   isOpen.value = false
   try {
+    const userEmail = auth.currentUser?.email
+    
     await auth.signOut()
+    
+    // Logger l'audit de déconnexion
+    try {
+      await AuditClient.logLogout(userEmail)
+    } catch (auditError) {
+      console.warn('Erreur audit logout:', auditError)
+    }
     
     // EFFACER TOUTES LES SESSIONS LOCALES à la déconnexion
     try {
@@ -162,6 +172,13 @@ async function logout() {
     emit('logout')
   } catch (error) {
     console.error('Erreur lors de la déconnexion:', error)
+    
+    // Logger l'erreur d'audit
+    try {
+      await AuditClient.logError(error, { context: 'logout_attempt' })
+    } catch (auditError) {
+      console.warn('Erreur audit error:', auditError)
+    }
   }
 }
 
