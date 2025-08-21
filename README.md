@@ -1,7 +1,10 @@
-# 🎭 HatCast
+# HatCast
 
-Une application web simple pour organiser et gérer vos spectacles d'improvisation avec HatCast.  
-Basée sur Vue 3, Firebase et TailwindCSS.
+Application de gestion de sélections pour spectacles.
+
+## Test de déploiement
+
+Test du nouveau workflow GitHub Pages - $(date)
 
 ## ✨ Fonctionnalités
 
