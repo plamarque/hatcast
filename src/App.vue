@@ -1,5 +1,7 @@
 <template>
-  <router-view />
+  <div data-testid="app-loaded">
+    <router-view />
+  </div>
 
   <!-- Barre d'installation PWA moderne -->
   <Transition

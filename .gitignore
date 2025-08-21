@@ -33,3 +33,12 @@ dist-ssr
 *.sln
 *.sw?
 .env.local
+
+# Test outputs and reports
+test-output/
+playwright-report/
+test-results/
+tests/emails/
+
+# Local Playwright configuration (contains personal IPs)
+playwright.config.local.js

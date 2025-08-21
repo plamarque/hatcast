@@ -6,7 +6,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && gh-pages -d dist --dotfiles",
-    "tailwind:init": "tailwindcss init"
+    "tailwind:init": "tailwindcss init",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:email": "node tests/email-interceptor.js",
+    "test:full": "node tests/run-tests.js",
+    "test:cleanup": "node tests/run-tests.js --cleanup",
+    "test:show-emails": "node tests/run-tests.js --show-emails",
+    "test:cleanup-files": "./tests/cleanup-tests.sh",
+    "test:cleanup-auto": "CLEANUP_TESTS=true playwright test",
+    "test:ci": "BASE_URL=http://localhost:5173 playwright test",
+    "test:manual": "node tests/run-manual.js",
+    "test:local": "playwright test"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.10",
@@ -15,6 +27,7 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4.1.10",
     "@vitejs/plugin-vue": "^4.0.0",
     "autoprefixer": "^10.4.21",

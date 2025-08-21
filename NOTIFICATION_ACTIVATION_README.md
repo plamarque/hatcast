@@ -141,7 +141,7 @@ Cette hiérarchie garantit une expérience utilisateur cohérente sans problème
 5. Tester le processus complet d'activation
 
 ### Fichier de test
-- `test-notification-prompt.html` : Page de test simple
+- Tests Playwright automatisés dans `tests/` : Tests complets de l'interface
 - Console avec informations de debug
 
 ## Dépannage

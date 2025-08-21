@@ -6,6 +6,7 @@
     <!-- Bouton Connexion si non connecté et chargement terminé -->
     <button
       v-else-if="!isConnected"
+      data-testid="login-btn"
       @click="openLogin"
       class="px-2.5 py-1 md:px-4 md:py-2 text-xs md:text-base rounded-lg transition-all duration-300 border transition-colors"
       :class="buttonClass"
@@ -19,6 +20,7 @@
     <!-- Icône avec dropdown si connecté et chargement terminé -->
     <button
       v-else
+      data-testid="user-menu"
       @click="toggleDropdown"
       class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
       title="Mon compte"
@@ -64,6 +66,7 @@
         </button>
         <div class="border-t border-white/10 my-1"></div>
         <button 
+          data-testid="logout-btn"
           @click="logout"
           class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"

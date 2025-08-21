@@ -1,10 +1,10 @@
 <template>
-  <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg' : 'bg-transparent'">
+  <header data-testid="app-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg' : 'bg-transparent'">
     <nav class="container mx-auto px-4 py-4">
       <div class="flex items-center justify-between">
         <!-- Logo HatCast à gauche -->
         <div class="flex items-center">
-          <a href="/" class="flex items-center">
+          <a href="/" data-testid="home-link" class="flex items-center">
             <div class="relative w-48 h-12 md:w-56 md:h-14">
               <!-- Logo avec filtre blanc pour fond transparent (non scrollé) -->
               <template v-if="!isScrolled">
