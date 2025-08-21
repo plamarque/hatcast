@@ -179,14 +179,43 @@ function obfuscateEmail(email) {
 // Formater un timestamp
 function formatTimestamp(timestamp) {
   if (!timestamp) return 'N/A'
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
-  return date.toLocaleString('fr-FR', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
+  
+  let date
+  try {
+    // Gérer les timestamps Firestore serverTimestamp non encore traités
+    if (timestamp && timestamp._methodName === 'serverTimestamp') {
+      return '⏳ En cours...'
+    }
+    
+    // Gérer les timestamps Firestore
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate()
+    } else if (timestamp && timestamp.seconds) {
+      // Timestamp Firestore en format {seconds, nanoseconds}
+      date = new Date(timestamp.seconds * 1000)
+    } else if (timestamp instanceof Date) {
+      date = timestamp
+    } else {
+      // Essayer de parser comme string ou number
+      date = new Date(timestamp)
+    }
+    
+    // Vérifier que la date est valide
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date'
+    }
+    
+    return date.toLocaleString('fr-FR', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  } catch (error) {
+    console.error('Erreur formatage timestamp:', error, 'timestamp:', timestamp)
+    return 'Invalid Date'
+  }
 }
 
 // Afficher un log d'audit en format tabulaire
