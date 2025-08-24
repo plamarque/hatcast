@@ -3926,12 +3926,11 @@ async function tirer(eventId, count = 6) {
   const currentSelection = getSelectionPlayers(eventId)
   console.log('👥 Sélection actuelle:', currentSelection)
   
-  // Vérifier si TOUS les joueurs de la sélection sont encore disponibles
-  const allSelectedStillAvailable = currentSelection.length > 0 && 
-    currentSelection.every(playerName => isAvailable(playerName, eventId))
+  // Vérifier si la sélection est complète (tous les slots remplis)
+  const isSelectionComplete = currentSelection.length >= requiredCount
   
-  if (allSelectedStillAvailable) {
-    // Cas exceptionnel : tous les joueurs sont disponibles, on refait un tirage complet
+  if (isSelectionComplete) {
+    // Cas : sélection complète, on refait un tirage complet
     // Nouveau tirage complet nécessaire
     
     // Exclure les joueurs qui ont décliné cette sélection
@@ -3975,14 +3974,15 @@ async function tirer(eventId, count = 6) {
       updatedAt: new Date()
     }
   } else {
-    // Logique normale : garder les joueurs disponibles et compléter
-    const keepSelectedPlayers = currentSelection.filter(playerName => isAvailable(playerName, eventId))
+    // Logique normale : garder les joueurs existants et compléter les slots vides
+    // On garde simplement les joueurs existants et on ajoute les nouveaux à la fin
+    const keepSelectedPlayers = [...currentSelection] // Garder TOUS les joueurs déjà sélectionnés
     
     // Calculer combien de places il reste à pourvoir
     const remainingSlots = requiredCount - keepSelectedPlayers.length
     
     if (remainingSlots <= 0) {
-      // Si on a déjà assez de joueurs sélectionnés et disponibles, on garde la sélection actuelle
+      // Si on a déjà assez de joueurs sélectionnés, on garde la sélection actuelle
       selections.value[eventId] = {
         players: keepSelectedPlayers,
         confirmed: false,
@@ -4027,8 +4027,10 @@ async function tirer(eventId, count = 6) {
       }
 
       // Combiner les joueurs gardés et les nouveaux tirés
+      const finalSelection = [...keepSelectedPlayers, ...newTirage]
+      
       selections.value[eventId] = {
-        players: [...keepSelectedPlayers, ...newTirage],
+        players: finalSelection,
         confirmed: false,
         confirmedAt: null,
         updatedAt: new Date()
@@ -4713,17 +4715,20 @@ async function executePendingOperation(operation) {
           console.warn('Erreur audit launchSelection:', auditError)
         }
         
-        // Vérifier si une sélection existe déjà pour afficher la confirmation
-        if (getSelectionPlayers(data.eventId).length > 0) {
-          console.log('🔄 Sélection existante, affichage confirmation')
-          // Afficher la modal de confirmation de relance
+        // Vérifier si une sélection complète existe déjà pour afficher la confirmation
+        const currentSelection = getSelectionPlayers(data.eventId)
+        const event = events.value.find(e => e.id === data.eventId)
+        const requiredCount = event?.playerCount || 6
+        const isSelectionComplete = currentSelection.length >= requiredCount
+        
+        if (isSelectionComplete) {
+          // Afficher la modal de confirmation de relance complète
           eventIdToReselect.value = data.eventId
           confirmReselect.value = true
           // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false
         } else {
-          console.log('🎯 Pas de sélection existante, lancement direct')
-          // Lancer directement la sélection
+          // Lancer directement la sélection pour compléter les slots vides
           await tirerProtected(data.eventId, data.count)
           // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false

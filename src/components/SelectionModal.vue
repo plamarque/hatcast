@@ -216,7 +216,7 @@
           @click="handleSelection" 
           :disabled="availableCount === 0" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="availableCount === 0 ? 'Aucune personne disponible' : (hasSelection ? 'Relancer la sélection automatique' : 'Lancer la sélection automatique')"
+          :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la sélection' : 'Compléter les slots vides')"
         >
           ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
         </button>
@@ -700,6 +700,7 @@ watch(() => props.show, (newValue) => {
 // Rebuild slots when playerCount changes while open
 watch([requiredCount, () => props.currentSelection, () => props.event?.id], () => {
   if (!props.show) return
+  
   let filled = []
   if (Array.isArray(props.currentSelection)) {
     filled = [...props.currentSelection]
@@ -707,8 +708,10 @@ watch([requiredCount, () => props.currentSelection, () => props.event?.id], () =
     filled = [...(props.currentSelection.players || [])]
   }
   const len = requiredCount.value
-  // keep existing chosen values in order where possible
-  const next = Array.from({ length: len }, (_, i) => filled[i] || slots.value[i] || null)
+  
+  // Nettoyer complètement les slots et les remplir avec les nouvelles données
+  // Ne pas conserver les anciennes valeurs résiduelles
+  const next = Array.from({ length: len }, (_, i) => filled[i] || null)
   slots.value = next.slice(0, len)
 })
 
@@ -875,7 +878,7 @@ function getInvitationMessage() {
   } else if (props.availableCount < requiredCount) {
     return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à sélectionner.`
   } else {
-    return 'Cliquez sur "Sélection Auto" pour lancer le tirage automatique des personnes'
+            return 'Cliquez sur "Sélection Auto" pour constituer une équipe automatiquement'
   }
 }
 

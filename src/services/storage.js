@@ -311,6 +311,7 @@ export async function loadSelections(seasonId = null) {
     const res = {}
     selSnap.forEach(doc => {
       const data = doc.data()
+      
       res[doc.id] = {
         players: data.players || [],
         confirmed: data.confirmed || false,
@@ -353,36 +354,20 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
 }
 
 export async function saveSelection(eventId, players, seasonId = null) {
-  console.log('🔍 saveSelection appelé:', { eventId, players, seasonId })
-  
   try {
     if (mode === 'firebase') {
-      console.log('🔥 Mode Firebase activé')
-      
       const selRef = seasonId
         ? doc(db, 'seasons', seasonId, 'selections', eventId)
         : doc(db, 'selections', eventId)
       
-      console.log('🔍 Référence sélection:', selRef.path)
-      
       // Récupérer l'ancienne sélection pour comparer
-      console.log('📖 Récupération ancienne sélection...')
       const oldSelectionDoc = await getDoc(selRef)
-      console.log('📄 Document récupéré:', { 
-        exists: oldSelectionDoc.exists, 
-        hasData: !!oldSelectionDoc.data(),
-        data: oldSelectionDoc.data()
-      })
       
       const oldSelection = oldSelectionDoc.exists && oldSelectionDoc.data() 
         ? (oldSelectionDoc.data().players || []) 
         : []
       
-      console.log('🔍 Ancienne sélection:', oldSelection)
-      console.log('🔍 Nouvelle sélection:', players)
-      
       // Sauvegarder la nouvelle sélection avec confirmed = false par défaut
-      console.log('💾 Sauvegarde...')
       
       // Initialiser les statuts individuels des joueurs
       const playerStatuses = {}
@@ -398,42 +383,25 @@ export async function saveSelection(eventId, players, seasonId = null) {
         updatedAt: serverTimestamp()
       }
       await setDoc(selRef, selectionData)
-      console.log('✅ Sélection sauvegardée avec succès')
       
       // Gérer les rappels automatiques
       try {
-        console.log('🔄 Début gestion des rappels automatiques')
         if (seasonId) {
-          console.log('📅 Récupération des infos événement et saison')
           // Récupérer les informations de l'événement et de la saison
           const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
           const seasonRef = doc(db, 'seasons', seasonId)
-          
-          console.log('🔍 Références:', { eventRef: eventRef.path, seasonRef: seasonRef.path })
           
           const [eventSnap, seasonSnap] = await Promise.all([
             getDoc(eventRef),
             getDoc(seasonRef)
           ])
           
-          console.log('📄 Documents récupérés:', { 
-            eventExists: eventSnap.exists, 
-            seasonExists: seasonSnap.exists 
-          })
-          
           if (eventSnap.exists && seasonSnap.exists) {
             const eventData = eventSnap.data()
             const seasonData = seasonSnap.data()
             
-            console.log('📊 Données récupérées:', {
-              eventTitle: eventData.title,
-              eventDate: eventData.date,
-              seasonSlug: seasonData.slug
-            })
-            
             // Supprimer les rappels pour les joueurs désélectionnés
             const removedPlayers = oldSelection.filter(name => !players.includes(name))
-            console.log('🗑️ Joueurs à désélectionner:', removedPlayers)
             
             for (const playerName of removedPlayers) {
               try {
@@ -454,20 +422,16 @@ export async function saveSelection(eventId, players, seasonId = null) {
             
             // Créer les rappels pour les nouveaux joueurs sélectionnés
             const newPlayers = players.filter(name => !oldSelection.includes(name))
-            console.log('🆕 Nouveaux joueurs sélectionnés:', newPlayers)
             
             // Créer les rappels pour les nouveaux joueurs sélectionnés
             for (const playerName of newPlayers) {
               try {
-                console.log(`📧 Création rappels pour ${playerName}...`)
                 // Récupérer l'email du joueur depuis playerProtection
                 const { getPlayerEmail } = await import('./playerProtection.js')
                 const playerEmail = await getPlayerEmail(playerName, seasonId)
-                console.log(`📧 Email pour ${playerName}:`, playerEmail ? `✅ ${playerEmail}` : '❌ null')
                 
                 if (playerEmail) {
-                  console.log(`🎯 Création rappels pour ${playerName} (${playerEmail})`)
-                  const result = await createRemindersForSelection({
+                  await createRemindersForSelection({
                     seasonId,
                     eventId,
                     playerEmail: playerEmail,
@@ -476,9 +440,6 @@ export async function saveSelection(eventId, players, seasonId = null) {
                     eventDate: eventData.date,
                     seasonSlug: seasonData.slug
                   })
-                  console.log(`✅ Rappels créés pour ${playerName}:`, result)
-                } else {
-                  console.log(`⚠️ Pas d'email pour ${playerName}, rappels non créés`)
                 }
               } catch (error) {
                 console.error(`❌ Erreur lors de la création des rappels pour ${playerName}:`, error)
@@ -493,8 +454,6 @@ export async function saveSelection(eventId, players, seasonId = null) {
     } else {
       console.log('🎭 Mode mock activé')
     }
-    
-    console.log('✅ saveSelection terminé avec succès')
   } catch (error) {
     console.error('❌ Erreur dans saveSelection:', error)
     throw error
@@ -505,8 +464,6 @@ export async function saveSelection(eventId, players, seasonId = null) {
  * Confirmer une sélection (la verrouille)
  */
 export async function confirmSelection(eventId, seasonId = null) {
-  console.log('🔒 confirmSelection appelé:', { eventId, seasonId })
-  
   try {
     if (mode === 'firebase') {
       const selRef = seasonId
@@ -520,7 +477,7 @@ export async function confirmSelection(eventId, seasonId = null) {
       // Initialiser les statuts individuels des joueurs si pas encore fait
       // Préserver les statuts "declined" existants
       const playerStatuses = currentSelection.playerStatuses || {}
-      currentSelection.players.forEach(playerName => {
+      currentSelection.players.forEach((playerName, index) => {
         if (!playerStatuses[playerName]) {
           playerStatuses[playerName] = 'pending' // En attente de confirmation
         }
@@ -533,8 +490,6 @@ export async function confirmSelection(eventId, seasonId = null) {
         confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
         playerStatuses
       })
-      
-      console.log('✅ Sélection confirmée avec succès')
     } else {
       console.log('🎭 Mode mock activé')
     }
@@ -548,8 +503,6 @@ export async function confirmSelection(eventId, seasonId = null) {
  * Annuler la confirmation d'une sélection (admin uniquement)
  */
 export async function unconfirmSelection(eventId, seasonId = null) {
-  console.log('🔓 unconfirmSelection appelé:', { eventId, seasonId })
-  
   try {
     if (mode === 'firebase') {
       const selRef = seasonId
@@ -579,8 +532,6 @@ export async function unconfirmSelection(eventId, seasonId = null) {
         playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
         confirmedByAllPlayers: false
       })
-      
-      console.log('✅ Confirmation de sélection annulée avec succès')
     } else {
       console.log('🎭 Mode mock activé')
     }
