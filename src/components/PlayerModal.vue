@@ -343,10 +343,20 @@ function performDelete() {
   emit('delete', props.player?.id)
 }
 
-function handleProtectionUpdate() {
-  // Rafraîchir les données si nécessaire
-  // Pas besoin d'émettre d'événement, la modal se fermera et les données seront rechargées
-  // ou on peut émettre un événement spécifique pour le rafraîchissement
+async function handleProtectionUpdate() {
+  // Recharger complètement l'état de protection depuis le backend
+  if (props.player?.id) {
+    try {
+      console.log('🔄 Rechargement de l\'état de protection depuis le backend...')
+      const { isPlayerProtected } = await import('../services/playerProtection.js')
+      isProtectedForPlayer.value = await isPlayerProtected(props.player.id, props.seasonId)
+      console.log('✅ État de protection rechargé:', isProtectedForPlayer.value)
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour de l\'état de protection:', error)
+    }
+  }
+  
+  // Émettre l'événement de rafraîchissement pour la grille
   emit('refresh')
 }
 

@@ -41,7 +41,13 @@
       
       <!-- CTA vers la création de compte -->
       <div v-if="!isProtected" class="mb-6">
-        <div class="text-sm text-gray-300">Si tu es bien {{ player?.name }}, tu peux protéger tes saisies à l'aide d'un compte utilisateur.</div>
+        <div v-if="isUserConnected" class="text-sm text-gray-300">
+          Tu es connecté en tant que <strong>{{ currentUserEmail }}</strong>. 
+          Si tu es bien {{ player?.name }}, tu peux l'associer directement à ton compte.
+        </div>
+        <div v-else class="text-sm text-gray-300">
+          Si tu es bien {{ player?.name }}, tu peux protéger tes saisies à l'aide d'un compte utilisateur.
+        </div>
       </div>
 
       <!-- Dissocier: le formulaire s'affiche à la demande -->
@@ -59,7 +65,17 @@
       <!-- Actions -->
       <div class="flex justify-center gap-3">
         <button
-          v-if="!isProtected"
+          v-if="!isProtected && isUserConnected"
+          @click="associatePlayerDirectly"
+          :disabled="loading"
+          class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300"
+        >
+          <span v-if="loading" class="animate-spin">⏳</span>
+          <span v-else>🔒</span>
+          Associer à mon compte
+        </button>
+        <button
+          v-else-if="!isProtected && !isUserConnected"
           @click="showAccountClaim = true"
           class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300"
         >
@@ -109,6 +125,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached, getPlayerProtectionData } from '../services/playerProtection.js'
 import { useRoute } from 'vue-router'
+import { currentUser } from '../services/authState.js'
 import AccountClaimModal from './AccountClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 
@@ -121,6 +138,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'update', 'onboarding-finished'])
+
+// État d'authentification
+const isUserConnected = computed(() => !!currentUser.value?.email)
+const currentUserEmail = computed(() => currentUser.value?.email || '')
 
 const isProtected = ref(false)
 const isOwner = ref(false)
@@ -167,6 +188,69 @@ async function handleClaimSuccess(data) {
   }
   
   emit('update')
+}
+
+async function associatePlayerDirectly() {
+  console.log('🔒 Début de associatePlayerDirectly')
+  console.log('isUserConnected:', isUserConnected.value)
+  console.log('player.id:', props.player?.id)
+  console.log('seasonId:', props.seasonId)
+  console.log('currentUserEmail:', currentUserEmail.value)
+  
+  if (!isUserConnected.value || !props.player?.id || !props.seasonId) {
+    console.log('❌ Conditions non remplies pour l\'association')
+    return
+  }
+  
+  loading.value = true
+  error.value = ''
+  success.value = ''
+  
+  try {
+    console.log('🔒 Association directe du joueur à l\'utilisateur connecté')
+    
+    // Créer l'association dans la collection playerProtection (pas playerAssociations)
+    const { doc, setDoc } = await import('firebase/firestore')
+    const { db } = await import('../services/firebase.js')
+    
+    console.log('🆔 Création de l\'association dans playerProtection')
+    
+    const associationData = {
+      playerId: props.player.id,
+      email: currentUserEmail.value,
+      isProtected: true,
+      associatedAt: new Date(),
+      source: 'direct_association'
+    }
+    console.log('📝 Données d\'association:', associationData)
+    
+    // Créer dans la collection playerProtection de la saison
+    await setDoc(doc(db, 'seasons', props.seasonId, 'playerProtection', props.player.id), associationData)
+    
+    console.log('✅ Association créée avec succès dans Firestore')
+    
+    // Afficher le message de succès
+    success.value = `${props.player.name} est maintenant associé à ton compte !`
+    
+    // Émettre l'événement de mise à jour pour déclencher le rechargement depuis le backend
+    console.log('📤 Émission de l\'événement update')
+    emit('update', { 
+      action: 'protection_activated',
+      email: currentUserEmail.value,
+      playerId: props.player.id
+    })
+    
+    // Fermer le modal après un délai plus long pour lire le message
+    setTimeout(() => {
+      closeModal()
+    }, 5000)
+    
+  } catch (err) {
+    console.error('❌ Erreur lors de l\'association directe:', err)
+    error.value = 'Erreur lors de l\'association. Veuillez réessayer.'
+  } finally {
+    loading.value = false
+  }
 }
 
 async function checkProtectionStatus() {

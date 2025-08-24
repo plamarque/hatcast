@@ -1519,6 +1519,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
 import { auth } from '../services/firebase.js'
+import { currentUser } from '../services/authState.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { signOut } from 'firebase/auth'
 import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
@@ -1587,12 +1588,9 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 
-// État d'authentification réactif (cohérent avec SeasonHeader)
-const currentUser = ref(null)
-
 // Gestion de l'état d'authentification
 function onAuthStateChanged(user) {
-  currentUser.value = user
+  // currentUser est maintenant importé depuis authState.js
   
   // Mettre à jour l'état de surveillance quand l'authentification change
   nextTick(() => {
@@ -3538,13 +3536,13 @@ const preferredPlayerIdsSet = ref(new Set())
 async function updatePreferredPlayersSet() {
   try {
     // Seulement si l'utilisateur est connecté
-    if (!auth.currentUser?.email || !seasonId.value) {
+    if (!currentUser.value?.email || !seasonId.value) {
       preferredPlayerIdsSet.value = new Set()
       return
     }
     
     // Charger les associations depuis Firebase
-    const assocs = await listAssociationsForEmail(auth.currentUser.email)
+    const assocs = await listAssociationsForEmail(currentUser.value.email)
     const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
     
     if (seasonal.length > 0) {
@@ -5253,26 +5251,33 @@ async function handlePlayerUpdate({ playerId, newName }) {
 async function handlePlayerRefresh() {
   try {
     // Recharger les données
-    await Promise.all([
+    const [newPlayers, newAvailability, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
       loadSelections(seasonId.value)
-    ]).then(([newPlayers, newAvailability, newSelections]) => {
-      players.value = newPlayers;
-      availability.value = newAvailability;
-      selections.value = newSelections;
-      
-      // Recharger l'état de protection des joueurs
-      loadProtectedPlayers()
-      
-      // Mettre à jour le selectedPlayer dans le modal
-      if (selectedPlayer.value) {
-        const updatedPlayer = newPlayers.find(p => p.id === selectedPlayer.value.id);
-        if (updatedPlayer) {
-          selectedPlayer.value = updatedPlayer;
-        }
+    ]);
+    
+    players.value = newPlayers;
+    availability.value = newAvailability;
+    selections.value = newSelections;
+    
+    // Recharger l'état de protection des joueurs
+    loadProtectedPlayers()
+    
+    // Recharger les favoris si l'utilisateur est connecté
+    if (currentUser.value?.email) {
+      console.log('🔄 Rechargement des favoris dans handlePlayerRefresh...')
+      await updatePreferredPlayersSet()
+      console.log('✅ Favoris rechargés dans handlePlayerRefresh')
+    }
+    
+    // Mettre à jour le selectedPlayer dans le modal
+    if (selectedPlayer.value) {
+      const updatedPlayer = newPlayers.find(p => p.id === selectedPlayer.value.id);
+      if (updatedPlayer) {
+        selectedPlayer.value = updatedPlayer;
       }
-    });
+    }
     
     showSuccessMessage.value = true;
     successMessage.value = 'Données mises à jour !';
