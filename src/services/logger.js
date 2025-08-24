@@ -5,6 +5,11 @@ const SENSITIVE_KEYS = [
   'apiKey', 'apikey', 'key', 'secret', 'authorization', 'auth', 'bearer'
 ]
 
+// Clés qui ne doivent jamais être masquées même si elles contiennent des mots sensibles
+const SAFE_KEYS = [
+  'eventType', 'eventCategory', 'type', 'category', 'severity', 'tags'
+]
+
 function getLogLevel() {
   // Default: debug in development, warn in production unless overridden
   const defaultLevel = (import.meta?.env?.MODE === 'development') ? 'debug' : 'warn'
@@ -35,6 +40,8 @@ function maskString(str) {
 
 function isLikelySensitiveKey(key) {
   if (!key) return false
+  // Ne jamais masquer les clés de métadonnées d'audit
+  if (SAFE_KEYS.includes(key)) return false
   const lower = String(key).toLowerCase()
   return SENSITIVE_KEYS.some(s => lower.includes(s.toLowerCase()))
 }
@@ -53,6 +60,13 @@ function sanitizeValue(value) {
         : `${domainParts[0].slice(0, 2)}••`
       return `${maskedName}@${maskedDomain}.${domainParts.slice(1).join('.')}`
     }
+    
+    // Ne pas masquer les types d'événements d'audit même s'ils sont longs
+    if (value.includes('_') && (value.startsWith('client_') || value.startsWith('user_') || 
+        value.startsWith('player_') || value.startsWith('event_') || value.startsWith('notification_'))) {
+      return value
+    }
+    
     // Heuristic: mask strings that look like tokens (long, no spaces)
     const isTokenish = value.length >= 12 && !/\s/.test(value)
     return isTokenish ? maskString(value) : value
