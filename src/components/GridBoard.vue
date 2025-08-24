@@ -1621,33 +1621,15 @@ function onAuthStateChanged(user) {
 async function syncFavoritesWithAuthState(user) {
   try {
     if (seasonId.value) {
-      const key = `seasonPreferredPlayer:${seasonId.value}`
-      
       if (user?.email) {
-        // Utilisateur connecté : charger les associations réelles depuis Firebase
-        console.log('🔄 Synchronisation des favoris pour utilisateur connecté:', user.email)
-        const assocs = await listAssociationsForEmail(user.email)
-        const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
-        
-        if (seasonal.length > 0) {
-          // Mettre à jour les favoris avec les associations réelles
-          const playerIds = seasonal.map(a => a.playerId)
-          localStorage.setItem(key, JSON.stringify(playerIds))
-          console.log('✅ Favoris synchronisés avec Firebase:', playerIds)
-        } else {
-          // Aucune association pour cette saison, effacer les favoris
-          localStorage.removeItem(key)
-          console.log('✅ Favoris effacés (aucune association pour cette saison)')
-        }
+        // Utilisateur connecté : charger les favoris depuis Firebase
+        console.log('🔄 Chargement des favoris pour utilisateur connecté:', user.email)
+        await updatePreferredPlayersSet()
       } else {
-        // Utilisateur déconnecté : effacer tous les favoris
+        // Utilisateur déconnecté : vider les favoris
         console.log('🔄 Utilisateur déconnecté, effacement des favoris')
-        localStorage.removeItem(key)
-        console.log('✅ Favoris effacés (utilisateur déconnecté)')
+        preferredPlayerIdsSet.value = new Set()
       }
-      
-      // Mettre à jour l'état réactif des favoris
-      updatePreferredPlayersSet()
     }
   } catch (error) {
     console.error('❌ Erreur lors de la synchronisation des favoris:', error)
@@ -2211,16 +2193,11 @@ onMounted(async () => {
       const protectedPlayerId = localStorage.getItem('protectedPlayerId')
       
       if (protectionActivated === 'true' && protectedPlayerId === playerId) {
-        // Protection activée avec succès, ajouter le joueur en favoris
+        // Protection activée avec succès, mettre à jour les favoris
         try {
-          const { addPreferredPlayerLocal } = await import('../services/playerProtection.js')
-          // Utiliser la saison courante si disponible, sinon fallback à la saison protégée ou globale
-          const sid = seasonId.value || localStorage.getItem('protectedSeasonId') || 'global'
-          await addPreferredPlayerLocal(sid, playerId)
-          
           // Mettre à jour l'état des favoris pour déclencher la réactivité
-          updatePreferredPlayersSet()
-          console.log('🔄 Mise à jour des favoris effectuée, état actuel:', Array.from(preferredPlayerIdsSet.value))
+          await updatePreferredPlayersSet()
+          console.log('🔄 Favoris mis à jour après activation de la protection')
           
                             // Afficher un message de succès
                   showSuccessMessage.value = true
@@ -3192,7 +3169,7 @@ watch(() => auth.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
     console.log('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
     await loadProtectedPlayers()
-    updatePreferredPlayersSet()
+    await updatePreferredPlayersSet()
   }
 })
 
@@ -3301,8 +3278,10 @@ onMounted(async () => {
       }
       protectedPlayers.value = protSet
       
-      // Initialiser les joueurs préférés
-      updatePreferredPlayersSet()
+      // Initialiser les joueurs préférés si l'utilisateur est connecté
+      if (auth.currentUser?.email) {
+        await updatePreferredPlayersSet()
+      }
     }
     
     // Déplacer les calculs lourds en idle
@@ -3540,79 +3519,44 @@ function toDateObject(value) {
 
 
 const sortedPlayers = computed(() => {
-  // Charger la(les) préférence(s) locale(s): joueurs privilégiés pour cette saison
-  let preferredRaw = null
-  try {
-    if (seasonId.value) {
-      preferredRaw = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
-    }
-  } catch (_) {}
-
   const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
   
-  // Si pas de préférences locales, vérifier s'il y a des joueurs protégés
-  if (!preferredRaw) {
-    // Pour les utilisateurs connectés, remonter leurs joueurs protégés en haut
-    if (auth.currentUser?.email && protectedPlayers.value.size > 0) {
-      const protectedFirst = base.filter(p => protectedPlayers.value.has(p.id))
-      const rest = base.filter(p => !protectedPlayers.value.has(p.id))
-      return [...protectedFirst, ...rest]
-    }
-    return base
+  // Pour les utilisateurs connectés, remonter leurs joueurs protégés en haut
+  if (auth.currentUser?.email && protectedPlayers.value.size > 0) {
+    const protectedFirst = base.filter(p => protectedPlayers.value.has(p.id))
+    const rest = base.filter(p => !protectedPlayers.value.has(p.id))
+    return [...protectedFirst, ...rest]
   }
-
-  // Support compat: soit un ID simple, soit un tableau JSON d'IDs
-  let preferredIds = []
-  try {
-    if (preferredRaw.startsWith('[')) preferredIds = JSON.parse(preferredRaw)
-    else if (preferredRaw) preferredIds = [preferredRaw]
-  } catch (_) {
-    preferredIds = []
-  }
-  const preferredSet = new Set(preferredIds)
-  if (preferredSet.size === 0) {
-    // Même logique que ci-dessus pour les joueurs protégés
-    if (auth.currentUser?.email && protectedPlayers.value.size > 0) {
-      const protectedFirst = base.filter(p => protectedPlayers.value.has(p.id))
-      const rest = base.filter(p => !protectedPlayers.value.has(p.id))
-      return [...protectedFirst, ...rest]
-    }
-    return base
-  }
-
-  const preferredFirst = base.filter(p => preferredSet.has(p.id))
-  const rest = base.filter(p => !preferredSet.has(p.id))
-  return [...preferredFirst, ...rest]
+  
+  return base
 })
 
 // Exposer l'ensemble des joueurs préférés pour la surbrillance légère
 const preferredPlayerIdsSet = ref(new Set())
 
-// Fonction pour mettre à jour les joueurs préférés depuis localStorage
-function updatePreferredPlayersSet() {
+// Fonction pour mettre à jour les joueurs préférés depuis Firebase
+async function updatePreferredPlayersSet() {
   try {
-    if (seasonId.value) {
-      let raw = localStorage.getItem(`seasonPreferredPlayer:${seasonId.value}`)
-      // Fallback immédiat: si pas encore écrit pour la saison, regarder la clé globale
-      if (!raw) {
-        raw = localStorage.getItem(`seasonPreferredPlayer:global`)
-      }
-      console.log('🔄 updatePreferredPlayersSet - raw localStorage:', raw)
-      if (!raw) {
-        preferredPlayerIdsSet.value = new Set()
-        console.log('🔄 updatePreferredPlayersSet - aucun favori trouvé')
-        return
-      }
-      if (raw.startsWith('[')) {
-        const arr = JSON.parse(raw)
-        preferredPlayerIdsSet.value = new Set(Array.isArray(arr) ? arr : [])
-      } else {
-        preferredPlayerIdsSet.value = new Set([raw])
-      }
-      console.log('🔄 updatePreferredPlayersSet - favoris mis à jour:', Array.from(preferredPlayerIdsSet.value))
+    // Seulement si l'utilisateur est connecté
+    if (!auth.currentUser?.email || !seasonId.value) {
+      preferredPlayerIdsSet.value = new Set()
+      return
+    }
+    
+    // Charger les associations depuis Firebase
+    const assocs = await listAssociationsForEmail(auth.currentUser.email)
+    const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
+    
+    if (seasonal.length > 0) {
+      const playerIds = seasonal.map(a => a.playerId)
+      preferredPlayerIdsSet.value = new Set(playerIds)
+      console.log('✅ Favoris chargés depuis Firebase:', playerIds)
+    } else {
+      preferredPlayerIdsSet.value = new Set()
+      console.log('ℹ️ Aucun favori trouvé pour cette saison')
     }
   } catch (error) {
-    console.error('🔄 updatePreferredPlayersSet - erreur:', error)
+    console.error('❌ Erreur lors du chargement des favoris:', error)
     preferredPlayerIdsSet.value = new Set()
   }
 }
