@@ -3519,11 +3519,19 @@ function toDateObject(value) {
 const sortedPlayers = computed(() => {
   const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
   
-  // Pour les utilisateurs connectés, remonter leurs joueurs protégés en haut
-  if (auth.currentUser?.email && protectedPlayers.value.size > 0) {
-    const protectedFirst = base.filter(p => protectedPlayers.value.has(p.id))
-    const rest = base.filter(p => !protectedPlayers.value.has(p.id))
-    return [...protectedFirst, ...rest]
+  // Pour les utilisateurs connectés, remonter leurs joueurs favoris en haut
+  if (currentUser.value?.email && preferredPlayerIdsSet.value.size > 0) {
+    console.log('🔄 Tri des joueurs avec favoris en premier')
+    const favoritesFirst = base.filter(p => preferredPlayerIdsSet.value.has(p.id))
+    const rest = base.filter(p => !preferredPlayerIdsSet.value.has(p.id))
+    
+    // Trier les favoris par ordre alphabétique
+    const sortedFavorites = favoritesFirst.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+    
+    console.log('⭐ Favoris en premier:', sortedFavorites.map(p => p.name))
+    console.log('📝 Reste des joueurs:', rest.map(p => p.name))
+    
+    return [...sortedFavorites, ...rest]
   }
   
   return base
