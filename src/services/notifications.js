@@ -17,6 +17,12 @@ export async function canUsePush() {
 async function getActiveServiceWorkerRegistration() {
   if (typeof navigator === 'undefined' || !navigator.serviceWorker) return null
   
+  // En mode développement, ne pas essayer d'enregistrer le SW
+  if (import.meta.env?.DEV) {
+    console.log('🔇 Service Worker désactivé en mode développement')
+    return null
+  }
+  
   // Essayer de récupérer une registration existante
   const existingReg = await navigator.serviceWorker.getRegistration()
   if (existingReg && existingReg.active) {
@@ -73,6 +79,12 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
 
 // Fonction pour vérifier et réactiver automatiquement les notifications push
 export async function ensurePushNotificationsActive() {
+  // En mode développement, désactiver les notifications push
+  if (import.meta.env?.DEV) {
+    console.log('🔇 Notifications push désactivées en mode développement')
+    return { active: false, error: 'Notifications désactivées en développement' }
+  }
+  
   try {
     // Vérifier si on a déjà un token valide
     const existingToken = localStorage.getItem('fcmToken')
