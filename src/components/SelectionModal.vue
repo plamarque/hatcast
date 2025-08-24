@@ -91,13 +91,13 @@
                 ? [
                     'bg-gradient-to-r',
                     // Statuts de confirmation individuelle (priorité sur la disponibilité)
-                    isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'declined'
+                    getPlayerSelectionStatus(slot) === 'declined'
                       ? 'from-red-500/20 to-orange-500/20 border-red-500/30'
-                      : isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'confirmed'
+                      : getPlayerSelectionStatus(slot) === 'confirmed'
                         ? 'from-purple-500/20 to-pink-500/20 border-purple-500/30'
-                        : isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'pending'
+                        : getPlayerSelectionStatus(slot) === 'pending'
                           ? 'from-orange-500/20 to-yellow-500/20 border-orange-500/30'
-                          // Statuts de disponibilité classique
+                          // Statuts de disponibilité classique (seulement si pas de statut individuel)
                           : isPlayerUnavailable(slot)
                             ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
                             : (!isPlayerAvailable(slot)
@@ -110,9 +110,9 @@
               <div v-if="slot" class="flex items-center justify-between gap-2">
                 <div class="flex-1 text-white font-medium truncate" :title="getPlayerSlotTooltip(slot)">
                   <!-- Statut de confirmation individuel du joueur -->
-                  <span v-if="isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'confirmed'" class="text-purple-400 mr-2">✅</span>
-                  <span v-else-if="isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'declined'" class="text-red-400 mr-2">❌</span>
-                  <span v-else-if="isSelectionConfirmedByOrganizer && getPlayerSelectionStatus(slot) === 'pending'" class="text-orange-400 mr-2">⏳</span>
+                  <span v-if="getPlayerSelectionStatus(slot) === 'confirmed'" class="text-purple-400 mr-2">✅</span>
+                  <span v-else-if="getPlayerSelectionStatus(slot) === 'declined'" class="text-red-400 mr-2">❌</span>
+                  <span v-else-if="getPlayerSelectionStatus(slot) === 'pending'" class="text-orange-400 mr-2">⏳</span>
                   <!-- Statut de disponibilité classique -->
                   <span v-else-if="isInSavedSelectionAndAvailable(slot)" class="text-purple-400 mr-2">🎭</span>
                   <span v-else-if="isPlayerAvailable(slot)" class="text-green-400 mr-2">✅</span>

@@ -556,29 +556,27 @@ export async function unconfirmSelection(eventId, seasonId = null) {
         ? doc(db, 'seasons', seasonId, 'selections', eventId)
         : doc(db, 'selections', eventId)
       
-      // Préserver les statuts "declined" lors du déverrouillage
+      // Préserver TOUS les statuts des joueurs lors du déverrouillage
       const currentSelection = await getDoc(selRef)
       const currentData = currentSelection.data()
       const preservedPlayerStatuses = {}
       
       if (currentData && currentData.playerStatuses) {
-        // Garder seulement les statuts "declined", réinitialiser les autres à 'pending'
+        // Préserver tous les statuts existants pour garder l'historique visuel
         Object.entries(currentData.playerStatuses).forEach(([playerName, status]) => {
-          if (status === 'declined') {
-            preservedPlayerStatuses[playerName] = 'declined'
-          }
+          // Garder le statut actuel (confirmed, declined, pending)
+          preservedPlayerStatuses[playerName] = status
         })
       }
       
-      // Retirer des slots les joueurs ayant décliné
+      // Garder TOUS les joueurs dans les slots pour préserver l'information visuelle
       const currentPlayers = Array.isArray(currentData?.players) ? currentData.players : []
-      const filteredPlayers = currentPlayers.filter((name) => preservedPlayerStatuses[name] !== 'declined')
       
       await updateDoc(selRef, { 
         confirmed: false,
         confirmedAt: null,
-        players: filteredPlayers,
-        playerStatuses: preservedPlayerStatuses,
+        players: currentPlayers, // Garder tous les joueurs
+        playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
         confirmedByAllPlayers: false
       })
       
