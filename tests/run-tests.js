@@ -26,10 +26,16 @@ const env = {
 };
 
 // Fonction pour lancer les tests
-function runTests() {
-  console.log('🚀 Lancement des tests Playwright...');
+function runTests(headed = false) {
+  console.log('🚀 Lancement de TOUS les tests Playwright (incluant la protection des joueurs)...');
   
-  const testProcess = spawn('npx', ['playwright', 'test', '--headed'], {
+  // Arguments de base pour Playwright
+  const testArgs = ['playwright', 'test'];
+  if (headed) {
+    testArgs.push('--headed');
+  }
+  
+  const testProcess = spawn('npx', testArgs, {
     stdio: 'inherit',
     env: env,
     cwd: process.cwd()
@@ -117,5 +123,10 @@ if (args.includes('--show-emails')) {
   process.exit(0);
 }
 
-// Lancer les tests par défaut
-runTests();
+if (args.includes('--headed')) {
+  console.log('🔒 Lancement des tests en mode visible');
+  runTests(true);
+} else {
+  // Lancer les tests par défaut
+  runTests(false);
+}

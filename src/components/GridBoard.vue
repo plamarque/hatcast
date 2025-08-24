@@ -261,9 +261,9 @@
                   <span 
                     v-else-if="isPlayerProtectedInGrid(player.id)"
                     class="text-yellow-400 mr-1 text-sm"
-                    title="Personne protégée par mot de passe"
+                    :title="preferredPlayerIdsSet.has(player.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
                   >
-                    🔒
+                    {{ preferredPlayerIdsSet.has(player.id) ? '⭐' : '🔒' }}
                   </span>
                                     <div 
                     @click="showPlayerDetails(player)" 
@@ -2699,10 +2699,8 @@ function hideHighlight() {
 
 // Fonction pour vérifier si un joueur est protégé
 function isPlayerProtectedInGrid(playerId) {
-  // Si l'utilisateur n'est pas connecté, aucun joueur n'est considéré comme protégé
-  if (!auth.currentUser?.email) {
-    return false
-  }
+  // Retourner true si le joueur est dans la liste des joueurs protégés
+  // Peu importe si l'utilisateur est connecté ou non
   return protectedPlayers.value.has(playerId)
 }
 
@@ -3189,6 +3187,15 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
   evaluatePlayerTourStart()
 })
 
+// Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
+watch(() => auth.currentUser?.email, async (newEmail, oldEmail) => {
+  if (newEmail !== oldEmail && seasonId.value) {
+    console.log('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
+    await loadProtectedPlayers()
+    updatePreferredPlayersSet()
+  }
+})
+
 // Initialiser les données au montage
 onMounted(async () => {
   try {
@@ -3542,7 +3549,17 @@ const sortedPlayers = computed(() => {
   } catch (_) {}
 
   const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
-  if (!preferredRaw) return base
+  
+  // Si pas de préférences locales, vérifier s'il y a des joueurs protégés
+  if (!preferredRaw) {
+    // Pour les utilisateurs connectés, remonter leurs joueurs protégés en haut
+    if (auth.currentUser?.email && protectedPlayers.value.size > 0) {
+      const protectedFirst = base.filter(p => protectedPlayers.value.has(p.id))
+      const rest = base.filter(p => !protectedPlayers.value.has(p.id))
+      return [...protectedFirst, ...rest]
+    }
+    return base
+  }
 
   // Support compat: soit un ID simple, soit un tableau JSON d'IDs
   let preferredIds = []
@@ -3553,7 +3570,15 @@ const sortedPlayers = computed(() => {
     preferredIds = []
   }
   const preferredSet = new Set(preferredIds)
-  if (preferredSet.size === 0) return base
+  if (preferredSet.size === 0) {
+    // Même logique que ci-dessus pour les joueurs protégés
+    if (auth.currentUser?.email && protectedPlayers.value.size > 0) {
+      const protectedFirst = base.filter(p => protectedPlayers.value.has(p.id))
+      const rest = base.filter(p => !protectedPlayers.value.has(p.id))
+      return [...protectedFirst, ...rest]
+    }
+    return base
+  }
 
   const preferredFirst = base.filter(p => preferredSet.has(p.id))
   const rest = base.filter(p => !preferredSet.has(p.id))

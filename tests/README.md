@@ -7,9 +7,9 @@ Tests automatisés complets pour HatCast incluant tests UI avec Playwright et in
 ```
 hatcast/
 ├── tests/                    # Code source des tests
-│   ├── *.spec.js            # Tests Playwright
+│   ├── *.spec.js            # Tests Playwright standards
 │   ├── email-interceptor.js # Intercepteur d'emails
-│   ├── run-tests.js         # Script de lancement
+│   ├── run-tests.js         # Script de lancement principal
 │   ├── cleanup-tests.sh     # Script de nettoyage
 │   └── README.md            # Documentation (ce fichier)
 ├── test-output/             # Fichiers générés (ignoré par git)
@@ -24,12 +24,14 @@ hatcast/
 
 ### **Tests principaux :**
 ```bash
-npm run test                 # Tous les tests (configuration locale ou localhost)
+npm run test                 # Tests Playwright standards
 npm run test:local           # Même que test (pour compatibilité)
 npm run test:ci              # Force localhost pour CI/CD
 npm run test:ui             # Interface UI
 npm run test:headed         # Mode visible
 npm run test:full           # Tests complets avec emails
+npm run test:all            # TOUS les tests
+npm run test:all:headed     # Tous les tests en mode visible
 ```
 
 ### **Gestion des fichiers :**
@@ -39,6 +41,10 @@ npm run test:cleanup-auto   # Tests avec nettoyage automatique
 ./tests/cleanup-tests.sh    # Script de nettoyage manuel
 npm run test:show-emails    # Afficher emails interceptés
 ```
+
+## 🔒 Tests de Protection des Joueurs
+
+Tests automatisés pour la fonctionnalité de protection des joueurs, incluant la vérification des icônes de protection, des modals et de la logique de tri.
 
 ## 📧 Intercepteur d'emails
 
