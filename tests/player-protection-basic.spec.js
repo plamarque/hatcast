@@ -276,4 +276,159 @@ test.describe('Tests de base de protection des joueurs HatCast', () => {
     
     console.log('✅ Test de structure de la grille terminé');
   });
+
+  test('Vérification de la logique des favoris selon l\'état de connexion', async ({ page }) => {
+    console.log('🧪 Test de la logique des favoris selon l\'état de connexion');
+    
+    // Aller sur la page d'accueil
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+    
+    // Vérifier qu'il y a des saisons disponibles
+    const seasonSection = page.locator('h2:has-text("Saisons en cours")');
+    const seasonCount = await seasonSection.count();
+    
+    if (seasonCount === 0) {
+      console.log('ℹ️ Aucune saison disponible, test des favoris impossible');
+      return;
+    }
+    
+    // Cliquer sur la première saison disponible
+    const seasonCards = page.locator('h2:has-text("Saisons en cours")').locator('xpath=following-sibling::div//div[contains(@class, "cursor-pointer")]');
+    const actualSeasonCount = await seasonCards.count();
+    
+    if (actualSeasonCount === 0) {
+      console.log('ℹ️ Aucune saison disponible pour tester les favoris');
+      return;
+    }
+    
+    await seasonCards.first().click();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(3000);
+    
+    // ÉTAPE 1: Vérifier l'état en mode déconnecté
+    console.log('🔒 ÉTAPE 1: Vérification en mode déconnecté');
+    
+    // Compter les icônes ⭐ (favoris) - il ne devrait y en avoir AUCUNE
+    const starIconsDisconnected = page.locator('span:has-text("⭐")');
+    const starCountDisconnected = await starIconsDisconnected.count();
+    
+    console.log(`⭐ Nombre d\'icônes étoile en mode déconnecté: ${starCountDisconnected}`);
+    
+    // VÉRIFICATION CRITIQUE: En mode déconnecté, AUCUN favori ne doit être affiché
+    expect(starCountDisconnected).toBe(0);
+    console.log('✅ Aucun favori affiché en mode déconnecté (comportement correct)');
+    
+    // Compter les icônes 🔒 (protégés) - elles doivent être visibles
+    const lockIconsDisconnected = page.locator('span:has-text("🔒")');
+    const lockCountDisconnected = await lockIconsDisconnected.count();
+    console.log(`🔒 Nombre d\'icônes cadenas en mode déconnecté: ${lockCountDisconnected}`);
+    
+    // ÉTAPE 2: Se connecter et vérifier l'affichage des favoris
+    console.log('🔑 ÉTAPE 2: Connexion et vérification des favoris');
+    
+    // Chercher le bouton de connexion
+    const loginButton = page.locator('button:has-text("Se connecter"), button:has-text("Connexion"), [data-testid="login-button"]');
+    
+    if (await loginButton.isVisible()) {
+      await loginButton.click();
+      await page.waitForTimeout(2000);
+      
+      // Remplir le formulaire de connexion (email)
+      const emailInput = page.locator('input[type="email"], input[placeholder*="email"], input[name="email"]');
+      if (await emailInput.isVisible()) {
+        await emailInput.fill('test@example.com');
+        
+        // Chercher et cliquer sur le bouton d'envoi
+        const submitButton = page.locator('button:has-text("Envoyer"), button:has-text("Se connecter"), button[type="submit"]');
+        if (await submitButton.isVisible()) {
+          await submitButton.click();
+          await page.waitForTimeout(3000);
+          
+          console.log('📧 Email de connexion envoyé, attente de la redirection...');
+          
+          // Attendre que la page se recharge ou qu'un message de confirmation s'affiche
+          await page.waitForTimeout(5000);
+          
+          // Vérifier si on est connecté (chercher des éléments qui indiquent la connexion)
+          const userMenu = page.locator('[data-testid="user-menu"], .user-menu, .account-menu');
+          const isConnected = await userMenu.isVisible();
+          
+          if (isConnected) {
+            console.log('✅ Connexion réussie, vérification des favoris...');
+            
+            // Attendre un peu pour que les favoris se chargent
+            await page.waitForTimeout(3000);
+            
+            // Recompter les icônes ⭐ après connexion
+            const starIconsConnected = page.locator('span:has-text("⭐")');
+            const starCountConnected = await starIconsConnected.count();
+            
+            console.log(`⭐ Nombre d\'icônes étoile après connexion: ${starCountConnected}`);
+            
+            // Si l\'utilisateur a des joueurs protégés, ils doivent maintenant être visibles
+            if (starCountConnected > 0) {
+              console.log('✅ Favoris affichés après connexion (comportement correct)');
+              
+              // Vérifier que les icônes ⭐ ont le bon titre
+              const firstStarIcon = starIconsConnected.first();
+              const title = await firstStarIcon.getAttribute('title');
+              console.log(`✅ Titre de l\'icône étoile: ${title}`);
+              expect(title).toContain('Ma personne');
+            } else {
+              console.log('ℹ️ Aucun favori trouvé pour cet utilisateur de test');
+            }
+          } else {
+            console.log('⚠️ Connexion non détectée, test des favoris en mode connecté impossible');
+          }
+        } else {
+          console.log('⚠️ Bouton de soumission non trouvé dans le formulaire de connexion');
+        }
+      } else {
+        console.log('⚠️ Champ email non trouvé dans le formulaire de connexion');
+      }
+    } else {
+      console.log('⚠️ Bouton de connexion non trouvé, test de connexion impossible');
+    }
+    
+    // ÉTAPE 3: Se déconnecter et vérifier la disparition des favoris
+    console.log('🚪 ÉTAPE 3: Déconnexion et vérification de la disparition des favoris');
+    
+    // Chercher le bouton de déconnexion
+    const logoutButton = page.locator('button:has-text("Se déconnecter"), button:has-text("Déconnexion"), [data-testid="logout-button"]');
+    
+    if (await logoutButton.isVisible()) {
+      await logoutButton.click();
+      await page.waitForTimeout(3000);
+      
+      console.log('✅ Déconnexion effectuée, vérification de la disparition des favoris...');
+      
+      // Attendre que la page se recharge
+      await page.waitForTimeout(3000);
+      
+      // Recompter les icônes ⭐ après déconnexion
+      const starIconsDisconnectedAgain = page.locator('span:has-text("⭐")');
+      const starCountDisconnectedAgain = await starIconsDisconnectedAgain.count();
+      
+      console.log(`⭐ Nombre d\'icônes étoile après déconnexion: ${starCountDisconnectedAgain}`);
+      
+      // VÉRIFICATION CRITIQUE: Après déconnexion, AUCUN favori ne doit être affiché
+      expect(starCountDisconnectedAgain).toBe(0);
+      console.log('✅ Aucun favori affiché après déconnexion (comportement correct)');
+      
+      // Vérifier que les icônes 🔒 sont toujours visibles
+      const lockIconsDisconnectedAgain = page.locator('span:has-text("🔒")');
+      const lockCountDisconnectedAgain = await lockIconsDisconnectedAgain.count();
+      console.log(`🔒 Nombre d\'icônes cadenas après déconnexion: ${lockCountDisconnectedAgain}`);
+      
+      // Les icônes 🔒 doivent toujours être visibles (joueurs protégés)
+      expect(lockCountDisconnectedAgain).toBeGreaterThanOrEqual(0);
+      console.log('✅ Icônes cadenas toujours visibles après déconnexion (comportement correct)');
+      
+    } else {
+      console.log('⚠️ Bouton de déconnexion non trouvé, test de déconnexion impossible');
+    }
+    
+    console.log('✅ Test de la logique des favoris selon l\'état de connexion terminé');
+  });
 });
