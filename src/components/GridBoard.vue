@@ -3706,32 +3706,7 @@ async function toggleAvailability(playerName, eventId) {
     // Joueur non protégé, procéder directement
     await performToggleAvailability(player, eventId);
     
-    // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
-    if (!isUserConnected()) {
-      // Utilisateur non connecté : vérifier si le joueur est protégé (éviter le masquage de l'import)
-      const isProtectedForThisPlayer = await isPlayerProtected(player.id, seasonId.value);
-      
-      setTimeout(() => {
-        if (isProtectedForThisPlayer) {
-          // Joueur protégé : afficher la modale de notifications
-          notificationPromptData.value = {
-            playerName: player.name,
-            eventTitle: eventItem?.title || 'cet événement',
-            eventId
-          }
-          showNotificationPrompt.value = true
-        } else {
-          // Joueur non protégé : afficher la modale de protection des saisies
-          // TEMPORAIREMENT DÉSACTIVÉ - Réintroduction prévue plus tard
-          // playerClaimData.value = {
-          //   player: player,
-          //   eventTitle: eventItem?.title || 'cet événement',
-          //   eventId
-          // }
-          // showPlayerClaim.value = true
-        }
-      }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
-    }
+    
   }
 }
 
@@ -5093,32 +5068,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
     // Joueur non protégé, procéder directement
     await performToggleAvailability(player, eventId);
     
-    // APRÈS le changement de disponibilité, vérifier si l'utilisateur est connecté
-    if (!auth.currentUser?.email) {
-      // Utilisateur non connecté : vérifier si le joueur est protégé (éviter le masquage de l'import)
-      const isProtectedForThisPlayer = await isPlayerProtected(player.id, seasonId.value);
-      
-      setTimeout(() => {
-        if (isProtectedForThisPlayer) {
-          // Joueur protégé : afficher la modale de notifications
-          notificationPromptData.value = {
-            playerName: player.name,
-            eventTitle: eventItem?.title || 'cet événement',
-            eventId
-          }
-          showNotificationPrompt.value = true
-        } else {
-          // Joueur non protégé : afficher la modale de protection des saisies
-          // TEMPORAIREMENT DÉSACTIVÉ - Réintroduction prévue plus tard
-          // playerClaimData.value = {
-          //   player: player,
-          //   eventTitle: eventItem?.title || 'cet événement',
-          //   eventId
-          // }
-          // showPlayerClaim.value = true
-        }
-      }, 3500); // 3.5 secondes pour laisser le temps au toast de disparaître
-    }
+
   }
 }
 

@@ -17,7 +17,7 @@
         </div>
         <h2 class="text-xl font-bold text-white mb-2">Ne rate rien !</h2>
         <p class="text-gray-300 text-sm">
-          <span class="font-medium text-white">{{ playerName }}</span>, active tes notifications pour recevoir des alertes en temps réel sur les spectacles.
+          Crée un compte pour recevoir des alertes en temps réel sur les spectacles.
         </p>
       </div>
 
