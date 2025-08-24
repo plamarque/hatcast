@@ -276,25 +276,49 @@ export async function listProtectedPlayers(seasonId = null) {
 export async function listAssociationsForEmail(email) {
   try {
     const results = []
-    // Requête globale (sans saison)
-    const globalQ = query(collection(db, 'playerProtection'), where('email', '==', email))
-    const globalSnap = await getDocs(globalQ)
-    globalSnap.forEach((d) => {
-      const data = d.data()
-      if (data?.isProtected) results.push({ seasonId: null, playerId: d.id, ...data })
-    })
-
+    
     // Rechercher dans toutes les saisons connues via la collection seasons
     const seasonsSnap = await getDocs(collection(db, 'seasons'))
+    logger.debug(`listAssociationsForEmail: Recherche dans ${seasonsSnap.docs.length} saisons pour ${email}`)
+    
     for (const s of seasonsSnap.docs) {
       const sid = s.id
-      const qProt = query(collection(db, 'seasons', sid, 'playerProtection'), where('email', '==', email))
-      const protSnap = await getDocs(qProt)
-      protSnap.forEach((d) => {
-        const data = d.data()
-        if (data?.isProtected) results.push({ seasonId: sid, seasonName: s.data()?.name, playerId: d.id, ...data })
-      })
+      const seasonName = s.data()?.name || sid
+      logger.debug(`listAssociationsForEmail: Vérification de la saison ${sid} (${seasonName})`)
+      
+      try {
+        const qProt = query(collection(db, 'seasons', sid, 'playerProtection'), where('email', '==', email))
+        const protSnap = await getDocs(qProt)
+        logger.debug(`listAssociationsForEmail: ${protSnap.docs.length} documents de protection trouvés dans ${sid}`)
+        
+        protSnap.forEach((d) => {
+          const data = d.data()
+          logger.debug(`listAssociationsForEmail: Document ${d.id} dans ${sid}:`, { 
+            email: data.email, 
+            isProtected: data.isProtected, 
+            firebaseUid: data.firebaseUid 
+          })
+          
+          if (data?.isProtected) {
+            results.push({ 
+              seasonId: sid, 
+              seasonName: seasonName, 
+              playerId: d.id, 
+              ...data 
+            })
+            logger.debug(`listAssociationsForEmail: Association ajoutée pour ${sid}/${d.id}`)
+          }
+        })
+      } catch (seasonError) {
+        // Log silencieux pour les erreurs de saison individuelle
+        if (seasonError.code !== 'not-found' && seasonError.code !== 'permission-denied') {
+          logger.warn(`Erreur lors de la lecture de la saison ${sid}:`, seasonError)
+        }
+        continue // Continuer avec la saison suivante
+      }
     }
+    
+    logger.debug(`listAssociationsForEmail: ${results.length} associations trouvées pour ${email}`)
     return results
   } catch (error) {
     // Log silencieux pour les erreurs non critiques
@@ -356,7 +380,7 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
     return false
   }
 }
-// Finaliser l'association après vérification de l'email (sans création de compte)
+// Finaliser l'association après vérification de l'email et créer un compte Firebase Auth
 export async function finalizeProtectionAfterVerification({ playerId, seasonId = null }) {
   const ref = seasonId
     ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
@@ -364,14 +388,123 @@ export async function finalizeProtectionAfterVerification({ playerId, seasonId =
   const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Protection introuvable')
   const data = snap.data()
+  
   // Si l'email est présent et vérifié, activer la protection
   if (data?.email) {
-    await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
-    return { 
-      success: true, 
-      email: data.email,
-      playerId: playerId,
-      seasonId: seasonId
+    try {
+      // Créer un compte Firebase Auth pour cet email
+      const { createUserWithEmailAndPassword } = await import('firebase/auth')
+      const { auth } = await import('./firebase.js')
+      
+      // Générer un mot de passe sécurisé
+      const password = Math.random().toString(36).slice(-12) + 'A1!'
+      
+      // Créer le compte Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, password)
+      logger.info('Compte Firebase Auth créé après vérification d\'email', { uid: userCredential.user.uid })
+      
+      // Mettre à jour Firestore avec le firebaseUid et activer la protection
+      logger.info('Mise à jour du document playerProtection avec firebaseUid', { 
+        ref: ref.path, 
+        firebaseUid: userCredential.user.uid,
+        playerId,
+        seasonId 
+      })
+      
+      await updateDoc(ref, { 
+        isProtected: true, 
+        firebaseUid: userCredential.user.uid,
+        updatedAt: new Date() 
+      })
+      
+      return { 
+        success: true, 
+        email: data.email,
+        playerId: playerId,
+        seasonId: seasonId,
+        firebaseUid: userCredential.user.uid,
+        password: password // Pour la connexion automatique
+      }
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        logger.info('Email déjà utilisé, connexion automatique via magic link')
+        
+        // 🎯 NOUVEAU : Connexion automatique pour les utilisateurs existants via magic link
+        try {
+          // Récupérer l'utilisateur existant par email
+          const { getAuth, fetchSignInMethodsForEmail } = await import('firebase/auth')
+          const { auth } = await import('./firebase.js')
+          
+          // Vérifier que l'email existe et a des méthodes de connexion
+          const signInMethods = await fetchSignInMethodsForEmail(auth, data.email)
+          if (signInMethods.length > 0) {
+            logger.info('Utilisateur existant trouvé, envoi de magic link Firebase pour connexion auto')
+            
+            // 🎯 NOUVEAU : Envoyer un vrai magic link Firebase pour la connexion auto
+            try {
+              const { sendSignInLinkToEmail } = await import('firebase/auth')
+              
+              // Créer l'URL de redirection après connexion
+              const actionCodeSettings = {
+                url: `${window.location.origin}/magic?action=signin&playerId=${playerId}&seasonId=${seasonId}`,
+                handleCodeInApp: true
+              }
+              
+              // Envoyer le magic link Firebase
+              await sendSignInLinkToEmail(auth, data.email, actionCodeSettings)
+              logger.info('Magic link Firebase envoyé pour connexion automatique')
+              
+              // Activer la protection
+              await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              
+              return { 
+                success: true, 
+                email: data.email,
+                playerId: playerId,
+                seasonId: seasonId,
+                existingAccount: true,
+                magicLinkAuth: true,
+                firebaseMagicLinkSent: true
+              }
+              
+            } catch (magicLinkError) {
+              logger.warn('Échec de l\'envoi du magic link Firebase:', magicLinkError)
+              
+              // Fallback : activation de la protection sans connexion auto
+              await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              
+              return { 
+                success: true, 
+                email: data.email,
+                playerId: playerId,
+                seasonId: seasonId,
+                existingAccount: true,
+                magicLinkAuth: true,
+                autoLoginFailed: true
+              }
+            }
+          } else {
+            logger.warn('Email sans méthodes de connexion Firebase')
+            throw new Error('Email sans compte Firebase valide')
+          }
+        } catch (autoLoginError) {
+          logger.warn('Échec de la connexion automatique pour utilisateur existant', autoLoginError)
+          
+          // Fallback : activation de la protection sans connexion auto
+          await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+          
+          return { 
+            success: true, 
+            email: data.email,
+            playerId: playerId,
+            seasonId: seasonId,
+            existingAccount: true,
+            autoLoginFailed: true
+          }
+        }
+      } else {
+        throw error
+      }
     }
   }
   throw new Error('Email non défini pour cette protection')

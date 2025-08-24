@@ -3560,6 +3560,25 @@ async function updatePreferredPlayersSet() {
     } else {
       preferredPlayerIdsSet.value = new Set()
       console.log('ℹ️ Aucun favori trouvé pour cette saison')
+      
+      // Si on vient de vérifier un email et qu'on n'a pas trouvé de favoris,
+      // réessayer après un délai (problème de propagation Firestore)
+      if (localStorage.getItem('protectionActivated') === 'true') {
+        console.log('🔄 Retry après 1s pour la propagation Firestore...')
+        setTimeout(async () => {
+          try {
+            const retryAssocs = await listAssociationsForEmail(currentUser.value.email)
+            const retrySeasonal = retryAssocs.filter(a => a.seasonId === seasonId.value)
+            if (retrySeasonal.length > 0) {
+              const retryPlayerIds = retrySeasonal.map(a => a.playerId)
+              preferredPlayerIdsSet.value = new Set(retryPlayerIds)
+              console.log('✅ Favoris trouvés au retry:', retryPlayerIds)
+            }
+          } catch (retryError) {
+            console.warn('❌ Erreur lors du retry:', retryError)
+          }
+        }, 1000)
+      }
     }
   } catch (error) {
     console.error('❌ Erreur lors du chargement des favoris:', error)

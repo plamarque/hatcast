@@ -72,7 +72,7 @@
         >
           <span v-if="loading" class="animate-spin">⏳</span>
           <span v-else>🔒</span>
-          Associer à mon compte
+          Protéger
         </button>
         <button
           v-else-if="!isProtected && !isUserConnected"
@@ -93,7 +93,7 @@
           @click="closeModal"
           class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
         >
-          Annuler
+          Fermer
         </button>
       </div>
 

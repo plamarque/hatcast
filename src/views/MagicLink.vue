@@ -127,73 +127,135 @@ onMounted(async () => {
         protectionResult = await finalizeProtectionAfterVerification({ playerId, seasonId }) 
       } catch {}
       
-      // Si la protection a été activée avec succès, connecter l'utilisateur automatiquement sans mot de passe
+      // Si la protection a été activée avec succès, connecter l'utilisateur automatiquement
       if (protectionResult?.success && protectionResult?.email) {
         try {
-          const { auth } = await import('../services/firebase.js')
-          const { signInAnonymously, updateProfile } = await import('firebase/auth')
-          
-          // Se connecter anonymement
-          const userCredential = await signInAnonymously(auth)
-          const user = userCredential.user
-          
-          // Mettre à jour le profil avec l'email (pour l'affichage)
-          await updateProfile(user, {
-            displayName: protectionResult.email.split('@')[0], // Utiliser la partie avant @ comme nom
-            photoURL: null
-          })
-          
-          // Stocker l'email dans localStorage pour l'utiliser ailleurs
-          localStorage.setItem('userEmail', protectionResult.email)
-          localStorage.setItem('isAnonymousUser', 'true')
-          
-          console.log('✅ Connexion anonyme réussie avec email associé:', protectionResult.email)
-          
-          // Forcer la synchronisation de l'état d'authentification
-          try {
-            const { forceSync } = await import('../services/authState.js')
-            forceSync()
-            console.log('🔄 Synchronisation forcée de l\'état d\'authentification')
-          } catch (error) {
-            console.warn('Impossible de synchroniser l\'état d\'authentification:', error)
+          if (protectionResult.password) {
+            // Compte créé ou existant avec mot de passe temporaire
+            const { auth } = await import('../services/firebase.js')
+            const { signInWithEmailAndPassword } = await import('firebase/auth')
+            
+            // Se connecter avec le compte (nouveau ou existant)
+            const userCredential = await signInWithEmailAndPassword(auth, protectionResult.email, protectionResult.password)
+            console.log('✅ Connexion automatique réussie avec le compte:', protectionResult.email)
+            
+            // Stocker les informations de protection pour GridBoard.vue
+            localStorage.setItem('protectionActivated', 'true')
+            localStorage.setItem('protectedPlayerId', playerId)
+            localStorage.setItem('protectedSeasonId', seasonId)
+            
+            // Forcer la synchronisation de l'état d'authentification
+            try {
+              const { forceSync } = await import('../services/authState.js')
+              forceSync()
+              console.log('🔄 Synchronisation forcée de l\'état d\'authentification')
+            } catch (error) {
+              console.warn('Impossible de synchroniser l\'état d\'authentification:', error)
+            }
+            
+          } else if (protectionResult.firebaseMagicLinkSent) {
+            // Compte existant avec magic link Firebase envoyé
+            console.log('✅ Protection activée pour compte existant avec magic link Firebase envoyé:', protectionResult.email)
+            localStorage.setItem('protectionActivated', 'true')
+            localStorage.setItem('protectedPlayerId', playerId)
+            localStorage.setItem('protectedSeasonId', seasonId)
+            
+            // 🎯 NOUVEAU : Magic link Firebase envoyé, l'utilisateur doit cliquer dessus
+            console.log('📧 Magic link Firebase envoyé pour connexion automatique')
+            console.log('ℹ️ L\'utilisateur doit cliquer sur le lien dans l\'email pour se connecter')
+            
+          } else if (protectionResult.magicLinkAuth) {
+            // Compte existant avec authentification via magic link
+            console.log('✅ Protection activée pour compte existant avec auth magic link:', protectionResult.email)
+            localStorage.setItem('protectionActivated', 'true')
+            localStorage.setItem('protectedPlayerId', playerId)
+            localStorage.setItem('protectedSeasonId', seasonId)
+            
+            // 🎯 NOUVEAU : Connexion automatique via magic link Firebase pour utilisateur existant
+            try {
+              const { auth } = await import('../services/firebase.js')
+              const { isSignInWithEmailLink, signInWithEmailLink } = await import('firebase/auth')
+              
+              // Vérifier si l'URL actuelle est un magic link Firebase
+              if (isSignInWithEmailLink(auth, window.location.href)) {
+                console.log('🔗 Magic link Firebase détecté, tentative de connexion automatique')
+                
+                // Se connecter via le magic link Firebase (sans mot de passe)
+                const userCredential = await signInWithEmailLink(auth, protectionResult.email)
+                console.log('✅ Connexion automatique réussie via magic link Firebase pour compte existant:', protectionResult.email)
+                
+                // Forcer la synchronisation de l'état d'authentification
+                try {
+                  const { forceSync } = await import('../services/authState.js')
+                  forceSync()
+                  console.log('🔄 Synchronisation forcée de l\'état d\'authentification')
+                } catch (error) {
+                  console.warn('Impossible de synchroniser l\'état d\'authentification:', error)
+                }
+                
+              } else {
+                console.log('⚠️ URL actuelle n\'est pas un magic link Firebase valide')
+              }
+              
+            } catch (magicLinkError) {
+              console.warn('Échec de la connexion via magic link Firebase:', magicLinkError)
+              // L'utilisateur devra se connecter manuellement
+            }
+            
+          } else if (protectionResult.autoLoginFailed) {
+            // Compte existant mais échec de la connexion automatique
+            console.log('✅ Protection activée pour compte existant (connexion auto échouée):', protectionResult.email)
+            localStorage.setItem('protectionActivated', 'true')
+            localStorage.setItem('protectedPlayerId', playerId)
+            localStorage.setItem('protectedSeasonId', seasonId)
+            
+            console.log('⚠️ Échec de la connexion automatique, connexion manuelle requise')
+            
+          } else {
+            // Compte existant avec connexion automatique réussie
+            console.log('✅ Protection activée pour compte existant avec connexion auto:', protectionResult.email)
+            localStorage.setItem('protectionActivated', 'true')
+            localStorage.setItem('protectedPlayerId', playerId)
+            localStorage.setItem('protectedSeasonId', seasonId)
+            
+            // L'utilisateur est maintenant connecté automatiquement !
+            console.log('✅ Connexion automatique réussie pour compte existant')
           }
           
-          // Stocker les informations de protection pour GridBoard.vue
-          localStorage.setItem('protectionActivated', 'true')
-          localStorage.setItem('protectedPlayerId', playerId)
-          localStorage.setItem('protectedSeasonId', seasonId)
-          // Écrire aussi la clé globale de favoris pour réactivité immédiate
-          try {
-            const existing = localStorage.getItem('seasonPreferredPlayer:global')
-            if (!existing) {
-              localStorage.setItem('seasonPreferredPlayer:global', JSON.stringify([playerId]))
-            } else if (existing.startsWith('[')) {
-              const arr = JSON.parse(existing)
-              if (!arr.includes(playerId)) {
-                arr.push(playerId)
-                localStorage.setItem('seasonPreferredPlayer:global', JSON.stringify(arr))
-              }
-            } else if (existing !== playerId) {
-              localStorage.setItem('seasonPreferredPlayer:global', JSON.stringify([existing, playerId]))
-            }
-          } catch (_) {}
-          
-          console.log('✅ Protection activée, email stocké pour connexion automatique:', protectionResult.email)
         } catch (error) {
-          console.error('Erreur lors de la préparation de la connexion automatique:', error)
+          console.error('Erreur lors de la connexion automatique:', error)
         }
       }
       
       await consumeMagicLink({ seasonId, playerId, eventId: 'protection', action })
       status.value = 'ok'
-      title.value = 'Protection activée !'
-      message.value = 'Merci ! Votre compte est maintenant protégé et vous êtes connecté automatiquement.'
-      // Renvoyer vers la saison de départ
-      if (slug) {
-        setTimeout(() => router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`), 800)
+      
+      if (protectionResult?.firebaseMagicLinkSent) {
+        title.value = 'Protection activée !'
+        message.value = 'Merci ! Votre compte est maintenant protégé. Un email de connexion automatique a été envoyé. Cliquez sur le lien pour vous connecter.'
+      } else if (protectionResult?.magicLinkAuth) {
+        title.value = 'Protection activée !'
+        message.value = 'Merci ! Votre compte est maintenant protégé et vous êtes connecté automatiquement via le lien de vérification.'
+      } else if (protectionResult?.autoLoginFailed) {
+        title.value = 'Protection activée !'
+        message.value = 'Merci ! Votre compte est maintenant protégé. Veuillez vous connecter manuellement pour voir vos favoris.'
+      } else if (protectionResult?.existingAccount) {
+        title.value = 'Protection activée !'
+        message.value = 'Merci ! Votre compte est maintenant protégé et vous êtes connecté automatiquement.'
       } else {
-        setTimeout(() => router.push('/seasons'), 800)
+        title.value = 'Protection activée !'
+        message.value = 'Merci ! Votre compte est maintenant protégé et vous êtes connecté automatiquement.'
       }
+                // Attendre un peu pour que Firestore propage les changements
+          console.log('⏳ Attente de la propagation Firestore...')
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          
+          // Renvoyer vers la saison de départ
+          if (slug) {
+            router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`)
+          } else {
+            router.push('/seasons')
+          }
       return
     }
 

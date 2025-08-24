@@ -13,11 +13,10 @@
         <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span class="text-2xl">👤</span>
         </div>
-        <h2 class="text-2xl font-bold text-white mb-1">Associer un compte</h2>
+        <h2 class="text-2xl font-bold text-white mb-1">Associer un Email à {{ player?.name || 'ce joueur' }}</h2>
         <p class="text-sm text-gray-300">Pour sécuriser les saisies de {{ player?.name }}</p>
         
-        <!-- Explication: pourquoi créer un compte ? -->
-        <AccountBenefitsHint />
+
       </div>
 
       <div v-if="step === 1" class="space-y-4">
@@ -58,7 +57,7 @@
         <button v-if="step === 1" @click="sendVerificationEmail" :disabled="!validEmail || loading" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
           <span v-if="loading" class="animate-spin">⏳</span>
           <span v-else>✉️</span>
-          <span>{{ loading ? 'Envoi...' : 'Envoyer le lien de vérification' }}</span>
+          <span>{{ loading ? 'Envoi...' : (verificationSent ? 'Renvoyer le lien de vérification' : 'Envoyer le lien de vérification') }}</span>
         </button>
         <button @click="$emit('close')" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
       </div>
@@ -71,7 +70,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { startEmailVerificationForProtection, protectPlayer, getPlayerProtectionData, clearEmailVerificationForProtection } from '../services/playerProtection.js'
 import { queueProtectionVerificationEmail } from '../services/emailService.js'
 import { useRoute } from 'vue-router'
-import AccountBenefitsHint from './AccountBenefitsHint.vue'
+
 
 const props = defineProps({
   show: { type: Boolean, default: false },

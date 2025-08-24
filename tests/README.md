@@ -34,6 +34,108 @@ npm run test:all            # TOUS les tests
 npm run test:all:headed     # Tous les tests en mode visible
 ```
 
+### **Tests de Protection des Joueurs :**
+Les tests de protection sont **intégrés dans la suite complète** et s'exécutent automatiquement avec :
+```bash
+npm run test:all           # Tous les tests (incluant protection)
+npm run test:all:headed    # Tous les tests en mode visible
+npm run test               # Tests Playwright standards
+```
+
+#### **🎯 3 Scénarios de Protection Testés :**
+
+**1. Cas 1 : Protection par utilisateur déjà connecté**
+- ✅ Connexion de l'utilisateur
+- ✅ Navigation vers une saison
+- ✅ Recherche d'un joueur non protégé
+- ✅ Clic sur "Protéger" → "Associer à mon compte"
+- ✅ Vérification que le joueur devient favori (⭐)
+- ✅ Vérification du tri (joueur remonté en haut)
+
+**2. Cas 2 : Protection par utilisateur non connecté avec email existant**
+- ✅ Navigation vers une saison (mode déconnecté)
+- ✅ Recherche d'un joueur non protégé
+- ✅ Clic sur "Protéger" → "Protéger mes saisies"
+- ✅ Saisie d'un email existant
+- ✅ Envoi du lien de vérification
+- ✅ **🎯 SIMULATION DU MAGIC LINK** (extraction + navigation)
+- ✅ Vérification de la page de vérification
+- ✅ Attente de la fin de la vérification
+- ✅ Vérification du résultat (protection activée, connexion manuelle requise)
+- ✅ **🔑 CONNEXION MANUELLE** (envoi email de connexion + simulation magic link)
+- ✅ Navigation vers la saison après connexion
+- ✅ Validation que le joueur est maintenant en favori (⭐)
+
+**3. Cas 3 : Protection par utilisateur non connecté avec nouvel email**
+- ✅ Navigation vers une saison (mode déconnecté)
+- ✅ Recherche d'un joueur non protégé
+- ✅ Clic sur "Protéger" → "Protéger mes saisies"
+- ✅ Saisie d'un nouvel email (généré aléatoirement)
+- ✅ Envoi du lien de vérification
+- ✅ **🎯 SIMULATION DU MAGIC LINK** (extraction + navigation)
+- ✅ Vérification de la page de vérification
+- ✅ Attente de la fin de la vérification
+- ✅ Vérification de la connexion automatique
+- ✅ Retour à la saison et validation des favoris (⭐)
+
+#### **🔍 Différence Clé entre Cas 2 et Cas 3 :**
+
+**Cas 2 (Email existant) :**
+- ❌ **PAS de connexion automatique** (mot de passe inconnu)
+- ✅ Protection activée, mais **connexion manuelle requise**
+- 🔑 **Processus en 2 étapes** : Protection → Connexion manuelle → Favoris
+
+**Cas 3 (Nouvel email) :**
+- ✅ **Connexion automatique** (nouveau compte créé)
+- ✅ Protection activée **ET** connexion en une seule étape
+- 🚀 **Processus en 1 étape** : Protection + Connexion → Favoris
+
+#### **Interception d'Emails dans les Tests de Protection :**
+Les tests de protection utilisent l'intercepteur d'emails pour :
+- ✅ **Intercepter les emails de vérification** envoyés lors de la protection
+- ✅ **Extraire les liens de vérification** des emails interceptés
+- ✅ **Simuler le processus complet** de vérification d'email
+- ✅ **Tester sans envoi réel** d'emails (mode bouchon)
+
+**🎯 NOUVEAU : Simulation Complète du Magic Link !**
+Les tests simulent maintenant **réellement** le clic sur le magic link :
+- ✅ **Navigation vers le lien** extrait de l'email
+- ✅ **Vérification de la page** de vérification
+- ✅ **Attente de la fin** du processus de vérification
+- ✅ **Vérification du résultat** (connexion auto ou message de succès)
+- ✅ **Retour à la saison** pour vérifier la protection
+- ✅ **Validation finale** que le joueur est protégé/en favori
+
+**Exemple d'utilisation :**
+```javascript
+// Dans les tests de protection
+const { emailInterceptor } = require('./email-interceptor');
+const latestEmail = emailInterceptor.getLatestEmail();
+
+if (latestEmail) {
+  const verificationLink = emailInterceptor.extractAllLinks(latestEmail)[0];
+  
+  // 🎯 SIMULATION COMPLÈTE DU MAGIC LINK !
+  await page.goto(verificationLink);
+  await page.waitForTimeout(3000);
+  
+  // Vérifier la page de vérification
+  const verificationPage = page.locator('h1, h2, h3, p')
+    .filter({ hasText: /Vérification|Verification|Email|Email vérifié/ });
+  
+  if (await verificationPage.isVisible()) {
+    // Attendre la fin de la vérification
+    await page.waitForTimeout(5000);
+    
+    // Vérifier le résultat (connexion auto ou succès)
+    const userMenu = page.locator('[data-testid="user-menu"]');
+    if (await userMenu.isVisible()) {
+      console.log('✅ Utilisateur connecté automatiquement !');
+    }
+  }
+}
+```
+
 ### **Gestion des fichiers :**
 ```bash
 npm run test:cleanup-files  # Nettoyer fichiers générés (script manuel)
@@ -45,6 +147,29 @@ npm run test:show-emails    # Afficher emails interceptés
 ## 🔒 Tests de Protection des Joueurs
 
 Tests automatisés pour la fonctionnalité de protection des joueurs, incluant la vérification des icônes de protection, des modals et de la logique de tri.
+
+### **Tests de Base (`player-protection-basic.spec.js`) :**
+- ✅ Affichage des icônes (⭐ vs 🔒) selon l'état de connexion
+- ✅ Navigation et structure de la grille
+- ✅ Vérification des titres des icônes
+- ✅ Logique des favoris selon l'état de connexion
+
+### **Tests Fonctionnels (`player-protection.spec.js`) :**
+- ✅ Affichage des icônes pour utilisateur déconnecté
+- ✅ Affichage des icônes pour utilisateur connecté
+- ✅ Tri des joueurs protégés
+- ✅ Modals de détail des joueurs
+- ✅ Vérification de mot de passe pour joueurs protégés
+
+### **Tests du Flux Complet (`player-protection-flow.spec.js`) :**
+- ✅ **Cas 1** : Protection par utilisateur déjà connecté
+  - Connexion → Clic sur "Protéger" → Bouton "Associer à mon compte" → Association directe
+- ✅ **Cas 2** : Protection par utilisateur non connecté avec email existant
+  - Clic sur "Protéger" → Bouton "Protéger mes saisies" → Formulaire email → Envoi lien → **Interception d'email** ✅
+- ✅ **Cas 3** : Protection par utilisateur non connecté avec nouvel email
+  - Clic sur "Protéger" → Bouton "Protéger mes saisies" → Formulaire email → Envoi lien → **Interception d'email** ✅
+- ✅ Vérification de la logique des favoris selon l'état de connexion
+- ✅ **Test complet avec vérification d'email (simulation)** - Utilise l'intercepteur d'emails
 
 ## 📧 Intercepteur d'emails
 
@@ -73,6 +198,7 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **Gestion d'erreurs** - Messages d'erreur, identifiants incorrects
 - ✅ **PWA** - Installation, offline, cache, responsive
 - ✅ **Emails** - Interception et extraction de liens
+- ✅ **Protection des joueurs** - 3 cas de figure, icônes, modals, flux complet
 
 ## 🔧 Configuration
 
