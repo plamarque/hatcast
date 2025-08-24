@@ -33,14 +33,14 @@ export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate,
   const playersList = selectedPlayers ? selectedPlayers.join(', ') : ''
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting}, tu es en lice pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      <p>${greeting}, tu es <strong>PRÉSÉLECTIONNÉ(E)</strong> pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
       
-      <p>Voici la sélection temporaire : <strong>${playersList}</strong></p>
+      <p>Voici la <strong>présélection temporaire</strong> : <strong>${playersList}</strong></p>
       
-      <p style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
-        <strong>⚠️ IMPORTANT : Tu dois confirmer ta participation !</strong><br>
-        L'équipe ne sera confirmée que lorsque <strong>toutes les personnes sélectionnées auront confirmé</strong> leur disponibilité.
-      </p>
+      <div style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+        <strong>⚠️ IMPORTANT</strong><br>
+        ⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
+      </div>
       
       <div style="margin: 20px 0; text-align: center;">
         <a href="${confirmUrl || eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);margin-right: 10px;">✅ Confirmer ma participation</a>
@@ -90,12 +90,10 @@ export function buildSelectionTextTemplate({ playerName, eventTitle, eventDate, 
   const greeting = playerName ? `Bonjour ${playerName}` : 'Hello'
   return `${greeting},
 
-Tu es sélectionné(e) pour ${eventTitle} le ${eventDate}!
+Tu es PRÉSÉLECTIONNÉ(E) pour ${eventTitle} le ${eventDate}!
 
-🕺 Prépares-toi à briller, toute l'équipe compte sur toi!
-
-⚠️ IMPORTANT : Tu dois confirmer ta participation !
-L'équipe ne sera confirmée que lorsque toutes les personnes sélectionnées auront confirmé leur disponibilité.
+⚠️ IMPORTANT
+⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
 
 ✅ Confirmer ma participation : ${confirmUrl || eventUrl}
 📋 Détails : ${eventUrl}
@@ -110,19 +108,15 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, eventUrl, selectedPlayers }) {
   const playersList = selectedPlayers.length > 0 ? selectedPlayers.join(', ') : 'les personnes sélectionnées'
   
-  return `🎭 ANNONCE SÉLECTION 🎭
+  return `🎭 PRÉSÉLECTION À CONFIRMER pour ${eventTitle} 🎭
 
-${eventTitle}
 📅 ${eventDate}
 
-✅ SÉLECTIONNÉS : ${playersList}
+Équipe proposée : ${playersList}
 
-🎯 Préparez-vous à briller !
+⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
 
-⚠️ PRÉSÉLECTION TEMPORAIRE ⚠️
-Cette sélection sera définitive uniquement lorsque tous les joueurs sélectionnés auront confirmé leur participation.
-
-🔗 Détails et confirmations : ${eventUrl}`
+🔗 Pour confirmer ou suivre les confirmations : ${eventUrl}`
 }
 
 /**

@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="relative p-5 pb-4 border-b border-white/10">
         <button @click="onClose" title="Fermer" class="absolute right-2.5 top-2.5 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
-        <h2 class="text-xl md:text-2xl font-bold text-white pr-10">Annoncer la sélection</h2>
+        <h2 class="text-xl md:text-2xl font-bold text-white pr-10">Demander confirmation</h2>
         <p class="text-sm text-purple-300 mt-1" v-if="event">{{ event.title }} — {{ formatDateFull(event.date) }}</p>
       </div>
 

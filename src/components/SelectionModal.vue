@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="close">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[120] p-0 md:p-4" @click="close">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
@@ -162,7 +162,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Sélection temporaire verrouillée :</strong> Les personnes sélectionnées doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que toutes auront validé. Pensez à l'annoncer !</span>
+            <span><strong>Sélection temporaire verrouillée :</strong> Les personnes sélectionnées doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que toutes auront validé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
           </div>
         </div>
 
@@ -241,14 +241,14 @@
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
-        <!-- Bouton Annoncer (visible seulement si organisateur a validé ET on peut annoncer) -->
+        <!-- Bouton Demander confirmation (visible seulement si organisateur a validé ET on peut annoncer) -->
         <button 
           v-if="hasSelection && isSelectionConfirmedByOrganizer && canAnnounce" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Annoncer la sélection validée par l'organisateur"
+          title="Demander confirmation aux personnes sélectionnées"
         >
-          📣 <span class="hidden sm:inline">Annoncer</span><span class="sm:hidden">Annoncer</span>
+          ⏳ <span class="hidden sm:inline">Demander confirmation</span><span class="sm:hidden">Confirmation</span>
         </button>
 
         <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap">
@@ -591,7 +591,7 @@ const isSelectionComplete = computed(() => {
   return selectedPlayers.length >= requiredCount
 })
 
-// Vérifier si on peut annoncer (sélection complète ET pas de joueurs déclinés)
+// Vérifier si on peut demander confirmation (sélection complète ET pas de joueurs déclinés)
 const canAnnounce = computed(() => {
   return isSelectionComplete.value && !hasDeclinedPlayers.value
 })

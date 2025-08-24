@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[90] p-0 md:p-4" @click="onClose">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[130] p-0 md:p-4" @click="onClose">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-5 pb-4 border-b border-white/10">
@@ -40,8 +40,8 @@
             class="h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex-1"
           >
             <span v-if="!computedSending">
-              <span class="hidden sm:inline">🔔 Notifier</span>
-              <span class="sm:hidden">🔔 Notifier</span>
+              <span class="hidden sm:inline">{{ mode === 'selection' ? '⏳ Demander confirmation' : '🔔 Notifier' }}</span>
+              <span class="sm:hidden">{{ mode === 'selection' ? '⏳ Confirmation' : '🔔 Notifier' }}</span>
             </span>
             <span v-else class="inline-flex items-center gap-2">
               <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@ function onClose() {
 function getModalTitle() {
   if (props.mode === 'selection') {
     // Mode sélection : titre selon l'état de confirmation
-    return props.isSelectionConfirmedByAllPlayers ? 'Annoncer l\'équipe' : 'Annoncer la sélection'
+    return props.isSelectionConfirmedByAllPlayers ? 'Annoncer l\'équipe' : 'Demander confirmation'
   } else {
     // Mode événement : titre classique
     return 'Confirmer l\'événement'

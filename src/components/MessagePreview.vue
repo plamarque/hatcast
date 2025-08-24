@@ -59,9 +59,9 @@
 
     <!-- Message à copier -->
     <div>
-      <label class="block text-sm font-medium text-gray-300 mb-2">
-        {{ mode === 'selection' ? 'Message à copier pour annoncer la sélection à tous (WhatsApp) :' : 'Message à copier pour les contacts manuels :' }}
-      </label>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+          {{ mode === 'selection' ? 'Message à copier pour présélection à confirmer (WhatsApp) :' : 'Message à copier pour les contacts manuels :' }}
+        </label>
 
       <!-- Message à copier -->
       <div class="space-y-3">
