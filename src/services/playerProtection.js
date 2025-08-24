@@ -200,6 +200,11 @@ export async function unprotectPlayer(playerId, seasonId = null) {
 }
 
 export async function isPlayerProtected(playerId, seasonId = null) {
+  // Vérifier que les paramètres sont valides
+  if (!playerId || typeof playerId !== 'string') {
+    return false
+  }
+  
   try {
     const protectionRef = seasonId
       ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
@@ -214,12 +219,25 @@ export async function isPlayerProtected(playerId, seasonId = null) {
     const protectionData = protectionDoc.data()
     return protectionData.isProtected === true
   } catch (error) {
-    logger.error('Erreur lors de la vérification de protection', error)
+    // Log silencieux pour les erreurs non critiques
+    if (error.code !== 'not-found' && error.code !== 'permission-denied') {
+      logger.warn('Erreur lors de la vérification de protection', {
+        playerId,
+        seasonId,
+        errorCode: error.code,
+        errorMessage: error.message
+      })
+    }
     return false
   }
 }
 
 export async function getPlayerProtectionData(playerId, seasonId = null) {
+  // Vérifier que les paramètres sont valides
+  if (!playerId || typeof playerId !== 'string') {
+    return null
+  }
+  
   try {
     const protectionRef = seasonId
       ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
@@ -235,7 +253,12 @@ export async function getPlayerProtectionData(playerId, seasonId = null) {
   } catch (error) {
     // Log silencieux pour les erreurs non critiques (ex: document inexistant)
     if (error.code !== 'not-found' && error.code !== 'permission-denied') {
-      logger.error('Erreur lors de la récupération des données de protection', error)
+      logger.warn('Erreur lors de la récupération des données de protection', {
+        playerId,
+        seasonId,
+        errorCode: error.code,
+        errorMessage: error.message
+      })
     }
     return null
   }

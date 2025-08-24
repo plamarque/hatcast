@@ -93,7 +93,10 @@ const validEmail = computed(() => email.value && email.value.includes('@'))
 const passwordsValid = computed(() => password.value && confirmPassword.value && password.value === confirmPassword.value && password.value.length >= 6)
 
 async function sendVerificationEmail() {
-  if (!validEmail.value || !props.player?.id) return
+  if (!validEmail.value || !props.player?.id || !props.seasonId) {
+    return
+  }
+  
   loading.value = true
   error.value = ''
   try {
@@ -112,6 +115,10 @@ async function sendVerificationEmail() {
 }
 
 async function restartEmailStep() {
+  if (!props.player?.id || !props.seasonId) {
+    return
+  }
+  
   try {
     await clearEmailVerificationForProtection({ playerId: props.player.id, seasonId: props.seasonId })
   } catch {}
@@ -123,23 +130,41 @@ async function restartEmailStep() {
 }
 
 async function refreshVerificationStatus() {
+  // Vérifier que les paramètres requis sont valides
+  if (!props.player?.id || !props.seasonId) {
+    return
+  }
+  
   try {
-    const data = await getPlayerProtectionData(props.player?.id, props.seasonId)
+    const data = await getPlayerProtectionData(props.player.id, props.seasonId)
     if (data?.email && data?.emailVerifiedAt) {
       step.value = 2
     } else {
       step.value = 1
     }
-  } catch {
+  } catch (error) {
     step.value = 1
   }
 }
 
-onMounted(() => { refreshVerificationStatus() })
-watch(() => props.show, (v) => { if (v) refreshVerificationStatus() })
+onMounted(() => { 
+  // Ne vérifier que si les props sont disponibles
+  if (props.player?.id && props.seasonId) {
+    refreshVerificationStatus() 
+  }
+})
+
+watch(() => props.show, (v) => { 
+  if (v && props.player?.id && props.seasonId) { 
+    refreshVerificationStatus() 
+  } 
+})
 
 async function activateProtection() {
-  if (!passwordsValid.value) return
+  if (!passwordsValid.value || !props.player?.id || !props.seasonId) {
+    return
+  }
+  
   loading.value = true
   error.value = ''
   try {

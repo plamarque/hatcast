@@ -503,7 +503,7 @@ function parseArgs() {
   
   if (!command || command === 'help') {
     showHelp()
-    return
+    return null
   }
   
   const options = {}
@@ -524,7 +524,10 @@ function parseArgs() {
 // Main
 async function main() {
   try {
-    const { command, options, args } = parseArgs()
+    const parsed = parseArgs()
+    if (!parsed) return // Si help a été affiché
+    
+    const { command, options, args } = parsed
     
     if (!command) return
     
