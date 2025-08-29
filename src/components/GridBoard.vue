@@ -3999,6 +3999,21 @@ function isAvailable(player, eventId) {
   return availabilityData
 }
 
+// Nouvelle fonction pour vérifier si un joueur est disponible pour le rôle "Joueur"
+function isAvailableForPlayerRole(player, eventId) {
+  const availabilityData = availability.value[player]?.[eventId]
+  
+  // Gestion du nouveau format avec rôles
+  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
+    // Le joueur doit être disponible ET avoir le rôle "Joueur"
+    return availabilityData.available && availabilityData.roles && availabilityData.roles.includes('player')
+  }
+  
+  // Fallback pour l'ancien format (boolean direct)
+  // Dans l'ancien format, true signifiait "disponible en tant que joueur"
+  return availabilityData === true
+}
+
 function getAvailabilityData(player, eventId) {
   const availabilityData = availability.value[player]?.[eventId]
   
@@ -4042,7 +4057,7 @@ async function tirer(eventId, count = 6) {
     // Exclure les joueurs qui ont décliné cette sélection
     const declinedPlayers = getDeclinedPlayers(eventId)
     const candidates = players.value.filter(p => 
-      isAvailable(p.name, eventId) && !declinedPlayers.includes(p.name)
+      isAvailableForPlayerRole(p.name, eventId) && !declinedPlayers.includes(p.name)
     )
 
     // Tirage pondéré : moins sélectionné = plus de chances
@@ -4100,7 +4115,7 @@ async function tirer(eventId, count = 6) {
       const alreadySelected = new Set(keepSelectedPlayers)
       const declinedPlayers = getDeclinedPlayers(eventId)
       const candidates = players.value.filter(p => 
-        isAvailable(p.name, eventId) && 
+        isAvailableForPlayerRole(p.name, eventId) && 
         !alreadySelected.has(p.name) && 
         !declinedPlayers.includes(p.name)
       )
@@ -4315,8 +4330,8 @@ function countAvailability(player) {
 
 function countAvailablePlayers(eventId) {
   if (!eventId) return 0;
-  return Object.values(availability.value).filter(playerAvail => 
-    playerAvail[eventId] === true
+  return players.value.filter(player => 
+    isAvailableForPlayerRole(player.name, eventId)
   ).length;
 }
 
@@ -4353,7 +4368,7 @@ function updateAllStats() {
 }
 
 function chanceToBeSelected(playerName, eventId, count = null) {
-  const availablePlayers = players.value.filter(p => isAvailable(p.name, eventId) === true)
+  const availablePlayers = players.value.filter(p => isAvailableForPlayerRole(p.name, eventId))
 
   if (!availablePlayers.find(p => p.name === playerName)) return 0
 
@@ -4383,7 +4398,7 @@ function updateAllChances() {
   const chanceMap = {}
   events.value.forEach(event => {
     const eventPlayerCount = event.playerCount || 6
-    const availablePlayers = players.value.filter(p => isAvailable(p.name, event.id) === true)
+    const availablePlayers = players.value.filter(p => isAvailableForPlayerRole(p.name, event.id))
     const weights = availablePlayers.map(p => {
       const pastSelections = countSelections(p.name)
       return {
@@ -5728,7 +5743,9 @@ function getPlayerAvailabilityForEvent(eventId) {
   
   const availabilityMap = {}
   players.value.forEach(player => {
-    availabilityMap[player.name] = isAvailable(player.name, eventId)
+    // Utiliser isAvailableForPlayerRole pour la sélection manuelle
+    // Seuls les joueurs disponibles pour le rôle "Joueur" peuvent être sélectionnés
+    availabilityMap[player.name] = isAvailableForPlayerRole(player.name, eventId)
   })
   
   return availabilityMap
