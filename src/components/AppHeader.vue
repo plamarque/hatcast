@@ -4,33 +4,44 @@
       <div class="flex items-center justify-between">
         <!-- Logo HatCast à gauche -->
         <div class="flex items-center">
-          <a href="/" data-testid="home-link" class="flex items-center">
+          <a href="/" data-testid="home-link" class="flex items-center" title="Retour à l'accueil HatCast">
             <div class="relative w-48 h-12 md:w-56 md:h-14">
-              <!-- Logo avec filtre blanc pour fond transparent (non scrollé) -->
-              <template v-if="!isScrolled">
+              <!-- Logo personnalisé si fourni -->
+              <template v-if="customLogo">
                 <img 
-                  src="/logos/hatcast-logo-mobile.png" 
+                  :src="customLogo" 
                   alt="Logo HatCast - Retour à l'accueil" 
-                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden brightness-0 invert"
-                />
-                <img 
-                  src="/logos/hatcast-logo-desktop.png" 
-                  alt="Logo HatCast - Retour à l'accueil" 
-                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block brightness-0 invert"
+                  class="w-auto h-full max-w-full object-contain drop-shadow-lg transform hover:scale-105 transition-all duration-300"
                 />
               </template>
-              <!-- Logo coloré pour fond blanc (scrollé) -->
+              <!-- Logo par défaut sinon -->
               <template v-else>
-                <img 
-                  src="/logos/hatcast-logo-mobile.png" 
-                  alt="Logo HatCast - Retour à l'accueil" 
-                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden"
-                />
-                <img 
-                  src="/logos/hatcast-logo-desktop.png" 
-                  alt="Logo HatCast - Retour à l'accueil" 
-                  class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block"
-                />
+                <!-- Logo avec filtre blanc pour fond transparent (non scrollé) -->
+                <template v-if="!isScrolled">
+                  <img 
+                    src="/logos/hatcast-logo-mobile.png" 
+                    alt="Logo HatCast - Retour à l'accueil" 
+                    class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden brightness-0 invert"
+                  />
+                  <img 
+                    src="/logos/hatcast-logo-desktop.png" 
+                    alt="Logo HatCast - Retour à l'accueil" 
+                    class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block brightness-0 invert"
+                  />
+                </template>
+                <!-- Logo coloré pour fond blanc (scrollé) -->
+                <template v-else>
+                  <img 
+                    src="/logos/hatcast-logo-mobile.png" 
+                    alt="Logo HatCast - Retour à l'accueil" 
+                    class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 md:hidden"
+                  />
+                  <img 
+                    src="/logos/hatcast-logo-desktop.png" 
+                    alt="Logo HatCast - Retour à l'accueil" 
+                    class="w-full h-full drop-shadow-lg transform hover:scale-105 transition-all duration-300 hidden md:block"
+                  />
+                </template>
               </template>
             </div>
           </a>
@@ -66,7 +77,8 @@ import AccountDropdown from './AccountDropdown.vue'
 import { useRoute } from 'vue-router'
 
 const props = defineProps({
-  isScrolled: { type: Boolean, default: false }
+  isScrolled: { type: Boolean, default: false },
+  customLogo: { type: String, default: null }
 })
 
 const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account-creation'])

@@ -3,6 +3,7 @@
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
+      custom-logo="/logos/hatcast-mask.png"
       @open-account-menu="openAccountMenu"
       @open-help="openHelp"
       @open-notifications="openNotifications"
@@ -14,10 +15,10 @@
 
     <!-- Contenu principal -->
     <main class="relative z-10">
-      <div class="container mx-auto px-4 py-8">
+      <div class="container mx-auto px-4 py-4">
         <!-- Titre de la page -->
         <div class="text-center mb-12">
-          <h2 class="text-4xl font-bold text-white mb-4">Saisons en cours</h2>
+          <h2 class="text-4xl font-bold text-white mb-4">Saisons</h2>
           <p class="text-xl text-gray-300">Rejoins une saison existante ou crée la tienne</p>
         </div>
 
