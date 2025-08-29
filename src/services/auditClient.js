@@ -65,11 +65,18 @@ class AuditClient {
     // Désactiver l'audit en mode test pour éviter la pollution
     const isTest = this.isTestEnvironment()
     
-    // Passe-droit temporaire pour tester l'audit sur /season/test
-    const isTestingSeason = typeof window !== 'undefined' && 
-                           window.location.pathname.includes('/season/test')
+    // Permettre l'audit en développement local (localhost ou IP locale)
+    const isLocalDev = typeof window !== 'undefined' && 
+                      (window.location.hostname === 'localhost' || 
+                       window.location.hostname === '192.168.1.134')
     
-    if (isTest && !isTestingSeason) {
+    // Passe-droit temporaire pour tester l'audit sur /season/test et malice-2025-2026
+    const isTestingSeason = typeof window !== 'undefined' && 
+                           (window.location.pathname.includes('/season/test') ||
+                            window.location.pathname.includes('/season/malice-2025-2026'))
+    
+    // Permettre l'audit si on est en dev local OU si c'est une saison de test
+    if (isTest && !isLocalDev && !isTestingSeason) {
       return
     }
     
@@ -77,6 +84,7 @@ class AuditClient {
       const user = auth?.currentUser
       
       const auditData = {
+        action: actionData?.type || 'unknown',
         eventType: actionData?.type || 'unknown',
         eventCategory: actionData?.category || 'user_action',
         severity: actionData?.severity || 'info',
