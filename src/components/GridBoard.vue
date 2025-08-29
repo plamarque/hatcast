@@ -298,8 +298,13 @@
                   :chance-percent="chances[player.name]?.[event.id] ?? null"
                   :show-selected-chance="isSelectionComplete(event.id)"
                   :disabled="event.archived === true"
+                  :availability-data="getAvailabilityData(player.name, event.id)"
+                  :event-title="event.title"
+                  :event-date="event.date"
+                  :is-protected="isPlayerProtectedInGrid(player.id)"
                   @toggle="toggleAvailability"
                   @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                  @show-availability-modal="openAvailabilityModal"
                 />
               </td>
               <td class="p-3 md:p-4"></td>
@@ -748,8 +753,13 @@
                   :show-selected-chance="isSelectionComplete(selectedEvent.id)"
                   :disabled="selectedEvent?.archived === true"
                   :compact="true"
+                  :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                  :event-title="selectedEvent.title"
+                  :event-date="selectedEvent.date"
+                  :is-protected="isPlayerProtectedInGrid(player.id)"
                   @toggle="handleAvailabilityToggle"
                   @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                  @show-availability-modal="openAvailabilityModal"
                 />
               </div>
             </div>
@@ -1354,6 +1364,25 @@
     </div>
   </div>
 
+  <!-- Modal de disponibilité avec rôles -->
+          <AvailabilityModal
+          :show="showAvailabilityModal"
+          :player-name="availabilityModalData.playerName"
+          :event-id="availabilityModalData.eventId"
+          :event-title="availabilityModalData.eventTitle"
+          :event-date="availabilityModalData.eventDate"
+          :current-availability="availabilityModalData.availabilityData"
+          :is-read-only="availabilityModalData.isReadOnly"
+          :season-id="seasonId"
+          :chance-percent="availabilityModalData.chancePercent"
+          :is-protected="availabilityModalData.isProtected"
+          @close="showAvailabilityModal = false"
+          @save="handleAvailabilitySave"
+          @not-available="handleAvailabilityNotAvailable"
+          @clear="handleAvailabilityClear"
+          @request-edit="handleAvailabilityRequestEdit"
+        />
+
   
 </template>
 
@@ -1572,6 +1601,7 @@ import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
+import AvailabilityModal from './AvailabilityModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1919,6 +1949,22 @@ const showAccountCreation = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
 const accountAuthPlayer = ref(null)
+
+// Variables pour la modale de disponibilité avec rôles
+const showAvailabilityModal = ref(false)
+const availabilityModalData = ref({
+  playerName: '',
+  eventId: '',
+  eventTitle: '',
+  eventDate: '',
+  availabilityData: {
+    available: false,
+    roles: [],
+    comment: null
+  },
+  isReadOnly: false,
+  chancePercent: null
+})
 async function openAccountMenu() {
   showAccountMenu.value = true
   
@@ -3678,30 +3724,52 @@ async function toggleAvailability(playerName, eventId) {
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
-  if (isProtected) {
-    // Joueur protégé : vérifier s'il y a une session active
-    const hasCachedPassword = isPlayerPasswordCached(player.id);
-    const hasCachedPin = pinSessionManager.isPinCached(seasonId.value);
-    
-    if (hasCachedPassword || hasCachedPin) {
-      // Session active ou PIN de saison en cache, procéder au toggle
-      await performToggleAvailability(player, eventId);
-      
-      // Pour les joueurs protégés, ne pas afficher de popup de connexion
+  // Vérifier si le joueur est sélectionné ET la sélection est confirmée par l'organisateur
+  const playerIsSelected = isSelected(playerName, eventId)
+  const playerIsAvailable = isAvailable(playerName, eventId)
+  const playerSelectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
+  
+  if (playerIsSelected && playerIsAvailable === true && playerSelectionConfirmedByOrganizer) {
+    // Cycle de confirmation : pending → confirmed → declined → pending
+    if (isProtected) {
+      // Joueur protégé : toujours ouvrir la modale en lecture seule
+      openAvailabilityModalForPlayer(player, eventItem);
       return;
     } else {
-      // Pas de session, demander le mot de passe
-      pendingAvailabilityAction.value = { playerName, eventId };
-      passwordVerificationPlayer.value = player;
-      showPasswordVerification.value = true;
-      return; // Attendre la vérification
+      // Joueur non protégé, basculer directement le statut
+      const currentStatus = getPlayerSelectionStatus(playerName, eventId)
+      const nextStatus = getNextSelectionStatus(currentStatus)
+      await handlePlayerSelectionStatusToggle(playerName, eventId, nextStatus, seasonId.value)
+      return
     }
-  } else {
-    // Joueur non protégé, procéder directement
-    await performToggleAvailability(player, eventId);
-    
-    
   }
+
+  // Sinon, gérer la disponibilité normale
+  if (isProtected) {
+    // Joueur protégé : toujours ouvrir la modale en lecture seule
+    openAvailabilityModalForPlayer(player, eventItem);
+    return;
+  } else {
+    // Joueur non protégé, ouvrir directement la modale
+    openAvailabilityModalForPlayer(player, eventItem);
+  }
+}
+
+function openAvailabilityModalForPlayer(player, eventItem) {
+  const currentAvailabilityData = getAvailabilityData(player.name, eventItem.id)
+  const playerChancePercent = chances.value[player.name]?.[eventItem.id] ?? null
+  const isProtected = isPlayerProtectedInGrid(player.id)
+  
+  openAvailabilityModal({
+    playerName: player.name,
+    eventId: eventItem.id,
+    eventTitle: eventItem.title,
+    eventDate: eventItem.date,
+    availabilityData: currentAvailabilityData,
+    isReadOnly: isProtected, // Toujours en lecture seule si protégé
+    chancePercent: playerChancePercent,
+    isProtected: isProtected
+  })
 }
 
 async function performToggleAvailability(player, eventId) {
@@ -3905,13 +3973,51 @@ function getDeclinedPlayers(eventId) {
     .map(([playerName]) => playerName)
 }
 
+// Fonction helper pour obtenir le prochain statut de confirmation
+function getNextSelectionStatus(currentStatus) {
+  switch (currentStatus) {
+    case 'pending':
+      return 'confirmed'
+    case 'confirmed':
+      return 'declined'
+    case 'declined':
+      return 'pending'
+    default:
+      return 'pending'
+  }
+}
+
 function isAvailable(player, eventId) {
-  return availability.value[player]?.[eventId]
+  const availabilityData = availability.value[player]?.[eventId]
+  
+  // Gestion du nouveau format avec rôles
+  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
+    return availabilityData.available
+  }
+  
+  // Fallback pour l'ancien format (boolean direct)
+  return availabilityData
+}
+
+function getAvailabilityData(player, eventId) {
+  const availabilityData = availability.value[player]?.[eventId]
+  
+  // Gestion du nouveau format avec rôles
+  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
+    return availabilityData
+  }
+  
+  // Fallback pour l'ancien format (boolean direct)
+  return {
+    available: !!availabilityData,
+    roles: availabilityData ? ['player'] : [],
+    comment: null
+  }
 }
 
 function isSelected(player, eventId) {
   const selected = getSelectionPlayers(eventId)
-  const avail = availability.value[player]?.[eventId]
+  const avail = isAvailable(player, eventId)
   return selected.includes(player) && avail === true
 }
 
@@ -5041,33 +5147,38 @@ async function handleAvailabilityToggle(playerName, eventId) {
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
-  
+
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
-  if (isProtected) {
-    // Joueur protégé : vérifier s'il y a une session active
-    const hasCachedPassword = isPlayerPasswordCached(player.id);
-    const hasCachedPin = pinSessionManager.isPinCached(seasonId.value);
-    
-    if (hasCachedPassword || hasCachedPin) {
-      // Session active ou PIN de saison en cache, procéder au toggle
-      await performToggleAvailability(player, eventId);
-      
-      // Pour les joueurs protégés, ne pas afficher de popup de connexion
+  // Vérifier si le joueur est sélectionné ET la sélection est confirmée par l'organisateur
+  const playerIsSelected = isSelected(playerName, eventId)
+  const playerIsAvailable = isAvailable(playerName, eventId)
+  const playerSelectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
+  
+  if (playerIsSelected && playerIsAvailable === true && playerSelectionConfirmedByOrganizer) {
+    // Cycle de confirmation : pending → confirmed → declined → pending
+    if (isProtected) {
+      // Joueur protégé : toujours ouvrir la modale en lecture seule
+      openAvailabilityModalForPlayer(player, evt);
       return;
     } else {
-      // Pas de session, demander le mot de passe
-      pendingAvailabilityAction.value = { playerName, eventId };
-      passwordVerificationPlayer.value = player;
-      showPasswordVerification.value = true;
-      return; // Attendre la vérification
+      // Joueur non protégé, basculer directement le statut
+      const currentStatus = getPlayerSelectionStatus(playerName, eventId)
+      const nextStatus = getNextSelectionStatus(currentStatus)
+      await handlePlayerSelectionStatusToggle(playerName, eventId, nextStatus, seasonId.value)
+      return
     }
+  }
+  
+  // Sinon, gérer la disponibilité normale
+  if (isProtected) {
+    // Joueur protégé : toujours ouvrir la modale en lecture seule
+    openAvailabilityModalForPlayer(player, evt);
+    return;
   } else {
-    // Joueur non protégé, procéder directement
-    await performToggleAvailability(player, eventId);
-    
-
+    // Joueur non protégé, ouvrir directement la modale
+    openAvailabilityModalForPlayer(player, evt);
   }
 }
 
@@ -5087,15 +5198,26 @@ async function handlePasswordVerified(verificationData) {
     // Joueur marqué comme récemment vérifié
   }
   
-  // Procéder à l'action de disponibilité en attente
+  // Procéder à l'action en attente
   if (pendingAvailabilityAction.value) {
-    const { playerName, eventId } = pendingAvailabilityAction.value;
-    // Exécution de l'action en attente
+    const { playerName, eventId, action } = pendingAvailabilityAction.value;
     
-    // Procéder au toggle de disponibilité
     const player = players.value.find(p => p.name === playerName);
-    if (player) {
-      await performToggleAvailability(player, eventId);
+    const event = events.value.find(e => e.id === eventId);
+    
+    if (player && event) {
+      if (action === 'toggleSelectionStatus') {
+        // Basculer le statut de confirmation
+        const currentStatus = getPlayerSelectionStatus(playerName, eventId)
+        const nextStatus = getNextSelectionStatus(currentStatus)
+        await handlePlayerSelectionStatusToggle(playerName, eventId, nextStatus, seasonId.value)
+      } else if (action === 'openAvailabilityModal') {
+        // Ouvrir la modale de disponibilité
+        openAvailabilityModalForPlayer(player, event)
+      } else if (action === 'enableEditMode') {
+        // Basculer la modale en mode édition
+        availabilityModalData.value.isReadOnly = false
+      }
     }
     
     // Réinitialiser l'action en attente
@@ -6232,6 +6354,168 @@ function handlePlayerClaimUpdate(data) {
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 4000)
+}
+
+// Fonctions pour la modale de disponibilité avec rôles
+function openAvailabilityModal(data) {
+  console.log('🔍 openAvailabilityModal - data:', data)
+  availabilityModalData.value = {
+    playerName: data.playerName,
+    eventId: data.eventId,
+    eventTitle: data.eventTitle,
+    eventDate: data.eventDate,
+    availabilityData: data.availabilityData,
+    isReadOnly: data.isReadOnly || false,
+    chancePercent: data.chancePercent,
+    isProtected: data.isProtected || false
+  }
+  console.log('🔍 openAvailabilityModal - availabilityModalData:', availabilityModalData.value)
+  
+  showAvailabilityModal.value = true
+}
+
+async function handleAvailabilitySave(availabilityData) {
+  try {
+    const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+    await saveAvailabilityWithRoles({
+      seasonId: seasonId.value,
+      playerName: availabilityModalData.value.playerName,
+      eventId: availabilityModalData.value.eventId,
+      available: availabilityData.available,
+      roles: availabilityData.roles,
+      comment: availabilityData.comment
+    })
+    
+    // Mettre à jour les données locales
+    if (!availability.value[availabilityModalData.value.playerName]) {
+      availability.value[availabilityModalData.value.playerName] = {}
+    }
+    availability.value[availabilityModalData.value.playerName][availabilityModalData.value.eventId] = availabilityData
+    
+    showAvailabilityModal.value = false
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Disponibilité mise à jour avec succès !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la disponibilité:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors de la sauvegarde. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+async function handleAvailabilityNotAvailable(availabilityData) {
+  try {
+    const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+    await saveAvailabilityWithRoles({
+      seasonId: seasonId.value,
+      playerName: availabilityModalData.value.playerName,
+      eventId: availabilityModalData.value.eventId,
+      available: false,
+      roles: [],
+      comment: null
+    })
+    
+    // Mettre à jour les données locales
+    if (!availability.value[availabilityModalData.value.playerName]) {
+      availability.value[availabilityModalData.value.playerName] = {}
+    }
+    availability.value[availabilityModalData.value.playerName][availabilityModalData.value.eventId] = {
+      available: false,
+      roles: [],
+      comment: null
+    }
+    
+    showAvailabilityModal.value = false
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Disponibilité mise à jour avec succès !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la disponibilité:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors de la sauvegarde. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+async function handleAvailabilityClear(availabilityData) {
+  try {
+    const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+    await saveAvailabilityWithRoles({
+      seasonId: seasonId.value,
+      playerName: availabilityModalData.value.playerName,
+      eventId: availabilityModalData.value.eventId,
+      available: undefined,
+      roles: [],
+      comment: null
+    })
+    
+    // Mettre à jour les données locales - supprimer la disponibilité
+    if (availability.value[availabilityModalData.value.playerName]) {
+      delete availability.value[availabilityModalData.value.playerName][availabilityModalData.value.eventId]
+    }
+    
+    showAvailabilityModal.value = false
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Disponibilité effacée avec succès !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+  } catch (error) {
+    console.error('Erreur lors de l\'effacement de la disponibilité:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors de l\'effacement. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+
+
+// Fonction pour gérer la demande de modification depuis la modale en lecture seule
+async function handleAvailabilityRequestEdit() {
+  const playerName = availabilityModalData.value.playerName
+  const eventId = availabilityModalData.value.eventId
+  
+  // Trouver le joueur et l'événement
+  const player = players.value.find(p => p.name === playerName)
+  const event = events.value.find(e => e.id === eventId)
+  
+  if (!player || !event) {
+    console.error('Joueur ou événement non trouvé')
+    return
+  }
+  
+  // Vérifier si le joueur est protégé
+  const isProtected = isPlayerProtectedInGrid(player.id)
+  
+  if (isProtected) {
+    // Demander la vérification du mot de passe ou PIN
+    pendingAvailabilityAction.value = { playerName, eventId, action: 'enableEditMode' }
+    passwordVerificationPlayer.value = player
+    showPasswordVerification.value = true
+  } else {
+    // Joueur non protégé, basculer directement en mode édition
+    availabilityModalData.value.isReadOnly = false
+  }
 }
 
 // end of script setup

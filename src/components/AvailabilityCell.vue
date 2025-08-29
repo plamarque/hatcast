@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 rounded font-medium text-white mx-0.5 my-0.25"
+    class="flex items-center justify-center transition-all duration-200 rounded font-medium text-white mx-0.5 my-0.25 relative"
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'min-h-0 p-1 md:p-2 text-xs' : 'min-h-20 p-2 md:p-3 text-sm',
@@ -38,11 +38,54 @@
       </span>
       
       <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
-      <template v-if="shouldShowChance && isAvailable === true">
-        <span class="text-[10px] md:text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 mt-1"
-              :title="tooltipText">
-          {{ chancePercent }}%
-        </span>
+      <!-- Supprimé : déplacé dans la modale de disponibilité -->
+      
+      <!-- Afficher tous les rôles et l'icône de commentaire -->
+      <template v-if="isAvailable === true && !compact">
+        <div class="flex items-center gap-1 mt-1">
+          <!-- Tous les rôles -->
+          <div class="flex items-center gap-0.5">
+            <span 
+              v-for="(role, index) in displayRoles" 
+              :key="role"
+              class="text-lg md:text-base"
+              :title="`Rôle: ${ROLE_LABELS[role]}`"
+            >
+              {{ ROLE_EMOJIS[role] }}
+            </span>
+            <span 
+              v-if="hasMoreRoles" 
+              class="text-base md:text-sm text-gray-400"
+              :title="`Et ${hiddenRolesCount} autre(s) rôle(s)`"
+            >
+              ...
+            </span>
+          </div>
+          
+          <!-- Icône commentaire -->
+          <span 
+            v-if="hasComment" 
+            class="text-base md:text-sm cursor-pointer hover:text-yellow-300 transition-colors ml-1"
+            @click.stop="showCommentModal"
+            title="Voir le commentaire"
+          >
+            📝
+          </span>
+        </div>
+      </template>
+      
+      <!-- Debug des computed properties -->
+      <template v-if="isAvailable === true && !compact && false">
+        <div class="text-xs text-gray-400 mt-1">
+          AllRoles: {{ allRoles.length }} | DisplayRoles: {{ displayRoles.length }} | Roles: {{ JSON.stringify(props.availabilityData?.roles) }}
+        </div>
+      </template>
+      
+      <!-- Debug: afficher les données pour vérifier -->
+      <template v-if="isAvailable === true && !compact && false">
+        <div class="text-xs text-gray-400 mt-1">
+          Debug: {{ JSON.stringify(props.availabilityData) }}
+        </div>
       </template>
     </div>
   </div>
@@ -50,6 +93,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER } from '../services/storage.js'
 
 const props = defineProps({
   playerName: {
@@ -99,12 +143,65 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  // Nouvelles props pour le format avec rôles
+  availabilityData: {
+    type: Object,
+    default: () => ({
+      available: false,
+      roles: [],
+      comment: null
+    })
+  },
+  eventTitle: {
+    type: String,
+    default: ''
+  },
+  eventDate: {
+    type: String,
+    default: ''
+  },
+  isProtected: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['toggle', 'toggleSelectionStatus'])
+const emit = defineEmits(['toggle', 'toggleSelectionStatus', 'show-availability-modal'])
 
 const hover = ref(false)
+
+// Computed properties pour le nouveau format
+const allRoles = computed(() => {
+  // Vérifier si on a des données de disponibilité avec rôles
+  if (!props.availabilityData || !props.availabilityData.roles) {
+    return []
+  }
+  
+  // Si c'est un tableau, le trier selon l'ordre d'affichage
+  if (Array.isArray(props.availabilityData.roles)) {
+    return ROLE_DISPLAY_ORDER.filter(role => props.availabilityData.roles.includes(role))
+  }
+  
+  return []
+})
+
+const displayRoles = computed(() => {
+  // Afficher maximum 3 rôles pour éviter l'encombrement
+  return allRoles.value.slice(0, 3)
+})
+
+const hasMoreRoles = computed(() => {
+  return allRoles.value.length > 3
+})
+
+const hiddenRolesCount = computed(() => {
+  return Math.max(0, allRoles.value.length - 3)
+})
+
+const hasComment = computed(() => {
+  return props.availabilityData?.comment && props.availabilityData.comment.trim() !== ''
+})
 
 const shouldShowChance = computed(() => {
   if (props.chancePercent == null) return false
@@ -172,5 +269,18 @@ function getNextSelectionStatus(currentStatus) {
     default:
       return 'pending'
   }
+}
+
+function showCommentModal() {
+  console.log('🔍 showCommentModal - isProtected:', props.isProtected, 'playerName:', props.playerName)
+  emit('show-availability-modal', {
+    playerName: props.playerName,
+    eventId: props.eventId,
+    eventTitle: props.eventTitle,
+    eventDate: props.eventDate,
+    availabilityData: props.availabilityData,
+    isReadOnly: props.isProtected, // Suivre la même logique que le clic sur la cellule
+    isProtected: props.isProtected // Transmettre aussi isProtected pour la cohérence
+  })
 }
 </script>

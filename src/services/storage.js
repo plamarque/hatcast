@@ -32,6 +32,52 @@ let eventList = [
   { id: 'event5', title: 'Impro Plage', date: '2026-03-10', description: 'Improvisation en plein air avec vue sur la plage' }
 ]
 
+// Constantes pour les rôles et leurs emojis
+export const ROLES = {
+  PLAYER: 'player',
+  VOLUNTEER: 'volunteer', 
+  MC: 'mc',
+  DJ: 'dj',
+  REFEREE: 'referee',
+  ASSISTANT_REFEREE: 'assistant_referee',
+  LIGHTING: 'lighting',
+  COACH: 'coach'
+}
+
+export const ROLE_EMOJIS = {
+  [ROLES.PLAYER]: '🎭',
+  [ROLES.VOLUNTEER]: '🤝',
+  [ROLES.MC]: '🎤',
+  [ROLES.DJ]: '🎧',
+  [ROLES.REFEREE]: '🙅',
+  [ROLES.ASSISTANT_REFEREE]: '💁',
+  [ROLES.LIGHTING]: '🔦',
+  [ROLES.COACH]: '🧢'
+}
+
+export const ROLE_LABELS = {
+  [ROLES.PLAYER]: 'Joueur',
+  [ROLES.VOLUNTEER]: 'Volontaire',
+  [ROLES.MC]: 'MC',
+  [ROLES.DJ]: 'DJ',
+  [ROLES.REFEREE]: 'Arbitre',
+  [ROLES.ASSISTANT_REFEREE]: 'Assistant',
+  [ROLES.LIGHTING]: 'Lumière',
+  [ROLES.COACH]: 'Coach'
+}
+
+// Ordre d'affichage des rôles
+export const ROLE_DISPLAY_ORDER = [
+  ROLES.PLAYER,
+  ROLES.DJ,
+  ROLES.MC,
+  ROLES.VOLUNTEER,
+  ROLES.REFEREE,
+  ROLES.ASSISTANT_REFEREE,
+  ROLES.LIGHTING,
+  ROLES.COACH
+]
+
 export function setStorageMode(value) {
   mode = value
 }
@@ -275,27 +321,88 @@ export async function loadAvailability(players, events, seasonId = null) {
       : await getDocs(collection(db, 'availability'))
     const availability = {}
     availabilitySnap.forEach(doc => {
-      availability[doc.id] = doc.data()
+      const data = doc.data()
+      const migratedData = {}
+      
+      // Migration des anciennes disponibilités vers le nouveau format
+      Object.keys(data).forEach(eventId => {
+        const value = data[eventId]
+        if (eventId === 'updatedAt') {
+          migratedData[eventId] = value
+        } else {
+          // Migration : ancien format (boolean) vers nouveau format (objet)
+          if (typeof value === 'boolean' || value === null || value === undefined) {
+            // Ancien format : juste un boolean
+            migratedData[eventId] = {
+              available: value === true,
+              roles: value === true ? [ROLES.PLAYER] : [],
+              comment: null
+            }
+          } else if (typeof value === 'object' && value !== null) {
+            // Nouveau format : déjà migré
+            migratedData[eventId] = {
+              available: value.available ?? (value.roles && value.roles.length > 0),
+              roles: value.roles || [],
+              comment: value.comment || null
+            }
+          } else {
+            // Fallback pour les cas inattendus
+            migratedData[eventId] = {
+              available: false,
+              roles: [],
+              comment: null
+            }
+          }
+        }
+      })
+      
+      availability[doc.id] = migratedData
     })
     return availability
   } else {
-    // Random mock generation
+    // Random mock generation avec nouveau format
     const availability = {}
     players.forEach(p => {
       availability[p.name] = {}
       events.forEach(e => {
-        availability[p.name][e.id] = undefined
+        availability[p.name][e.id] = {
+          available: undefined,
+          roles: [],
+          comment: null
+        }
       })
     })
 
     events.forEach(event => {
       const shuffled = [...players].sort(() => 0.5 - Math.random())
       shuffled.slice(0, 4).forEach(p => {
-        availability[p.name][event.id] = true
+        availability[p.name][event.id] = {
+          available: true,
+          roles: [ROLES.PLAYER],
+          comment: null
+        }
       })
       shuffled.slice(4).forEach(p => {
         const rand = Math.random()
-        availability[p.name][event.id] = rand < 0.4 ? true : rand < 0.8 ? false : undefined
+        if (rand < 0.4) {
+          availability[p.name][event.id] = {
+            available: true,
+            roles: [ROLES.PLAYER],
+            comment: null
+          }
+        } else if (rand < 0.8) {
+          availability[p.name][event.id] = {
+            available: false,
+            roles: [],
+            comment: null
+          }
+        } else {
+          availability[p.name][event.id] = {
+            available: undefined,
+            roles: [],
+            comment: null
+          }
+        }
       })
     })
 
@@ -336,6 +443,31 @@ export async function saveAvailability(player, availabilityMap, seasonId = null)
   }
 }
 
+// Nouvelle fonction pour sauvegarder une disponibilité avec rôles et commentaire
+export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId, available, roles = [], comment = null }) {
+  if (mode !== 'firebase') return
+  
+  const availRef = seasonId
+    ? doc(db, 'seasons', seasonId, 'availability', playerName)
+    : doc(db, 'availability', playerName)
+  
+  const snap = await getDoc(availRef)
+  const current = snap.exists() ? snap.data() : {}
+  const next = { ...current }
+  
+  if (available === undefined) {
+    delete next[eventId]
+  } else {
+    next[eventId] = {
+      available: !!available,
+      roles: Array.isArray(roles) ? roles : [],
+      comment: comment || null
+    }
+  }
+  
+  await setDoc(availRef, next)
+}
+
 // Mise à jour ciblée d'une disponibilité pour un joueur/événement (utilisé par magic links)
 export async function setSingleAvailability({ seasonId, playerName, eventId, value }) {
   if (mode !== 'firebase') return
@@ -345,10 +477,20 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
   const snap = await getDoc(availRef)
   const current = snap.exists() ? snap.data() : {}
   const next = { ...current }
+  
   if (value === undefined) {
     delete next[eventId]
   } else {
-    next[eventId] = value
+    // Migration automatique vers le nouveau format si nécessaire
+    if (typeof value === 'boolean') {
+      next[eventId] = {
+        available: value,
+        roles: value ? [ROLES.PLAYER] : [],
+        comment: null
+      }
+    } else {
+      next[eventId] = value
+    }
   }
   await setDoc(availRef, next)
 }
@@ -617,16 +759,31 @@ export async function deleteEvent(eventId, seasonId = null) {
 }
 
 export async function saveEvent(eventData, seasonId = null) {
+  // Ajouter la structure des rôles par défaut si elle n'existe pas
+  const eventWithRoles = {
+    ...eventData,
+    roles: eventData.roles || {
+      [ROLES.PLAYER]: { count: eventData.playerCount || 6, selected: [] },
+      [ROLES.VOLUNTEER]: { count: 3, selected: [] },
+      [ROLES.MC]: { count: 1, selected: [] },
+      [ROLES.DJ]: { count: 1, selected: [] },
+      [ROLES.REFEREE]: { count: 2, selected: [] },
+      [ROLES.ASSISTANT_REFEREE]: { count: 2, selected: [] },
+      [ROLES.LIGHTING]: { count: 1, selected: [] },
+      [ROLES.COACH]: { count: 1, selected: [] }
+    }
+  }
+  
   if (mode === 'firebase') {
     const newDocRef = seasonId
       ? doc(collection(db, 'seasons', seasonId, 'events'))
       : doc(collection(db, 'events'))
-    await setDoc(newDocRef, eventData)
+    await setDoc(newDocRef, eventWithRoles)
     return newDocRef.id
   } else {
     // Pour le mode mock, on génère un nouvel ID
     const newId = `event${eventList.length + 1}`
-    eventList.push({ id: newId, ...eventData })
+    eventList.push({ id: newId, ...eventWithRoles })
     return newId
   }
 }

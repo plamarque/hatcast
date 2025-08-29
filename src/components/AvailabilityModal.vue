@@ -1,0 +1,295 @@
+<template>
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg max-w-sm w-full max-h-[80vh] overflow-y-auto">
+      <!-- Header -->
+      <div class="p-4 border-b border-gray-700">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-white">
+            {{ isReadOnly ? 'Détails de disponibilité' : 'Préciser ma disponibilité' }}
+          </h2>
+          <button 
+            @click="$emit('close')"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Informations de l'événement -->
+        <div class="mt-3 text-sm text-gray-300">
+          <div class="font-medium text-white">{{ eventTitle }}</div>
+          <div>{{ formatDate(eventDate) }}</div>
+        </div>
+      </div>
+
+      <!-- Contenu -->
+      <div class="p-4">
+        <!-- Rôles disponibles -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-300 mb-3">
+            {{ isReadOnly ? 'Rôles sélectionnés' : 'Pour quels rôles es-tu disponible ?' }}
+          </label>
+          
+          <div class="space-y-2">
+            <!-- Premiers rôles (toujours visibles) -->
+            <div class="grid grid-cols-2 gap-2">
+              <label 
+                v-for="role in visibleRoles" 
+                :key="role"
+                class="flex items-center p-3 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors relative"
+                :class="{ 'border-purple-500 bg-purple-500/10': selectedRoles.includes(role) }"
+              >
+                <input
+                  type="checkbox"
+                  :value="role"
+                  v-model="selectedRoles"
+                  :disabled="isReadOnly"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                >
+                <span class="ml-3 text-lg">{{ ROLE_EMOJIS[role] }}</span>
+                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS[role] }}</span>
+                
+                <!-- Pourcentage pour le rôle Joueur -->
+                <span 
+                  v-if="role === 'player' && chancePercent !== null"
+                  class="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200"
+                  :title="`~${chancePercent}% de chances d'être sélectionné`"
+                >
+                  {{ chancePercent }}%
+                </span>
+                
+
+                
+                <!-- Debug pourcentage -->
+                <!-- Désactivé temporairement pour debug -->
+              </label>
+            </div>
+            
+            <!-- Rôles supplémentaires (révélés par "Plus...") -->
+            <div v-if="showAllRoles" class="grid grid-cols-2 gap-2">
+              <label 
+                v-for="role in hiddenRoles" 
+                :key="role"
+                class="flex items-center p-3 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors"
+                :class="{ 'border-purple-500 bg-purple-500/10': selectedRoles.includes(role) }"
+              >
+                <input
+                  type="checkbox"
+                  :value="role"
+                  v-model="selectedRoles"
+                  :disabled="isReadOnly"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                >
+                <span class="ml-3 text-lg">{{ ROLE_EMOJIS[role] }}</span>
+                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS[role] }}</span>
+              </label>
+            </div>
+            
+            <!-- Bouton "Plus..." -->
+            <div v-if="!showAllRoles && hiddenRoles.length > 0" class="text-center pt-2">
+              <button
+                @click="showAllRoles = true"
+                class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+              >
+                Plus de rôles...
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Commentaire -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-300 mb-2">
+            Commentaire (optionnel)
+          </label>
+          <textarea
+            v-model="comment"
+            :disabled="isReadOnly"
+            placeholder="Ex: Dispo à partir de 16H pour monter le plateau..."
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white resize-none"
+            rows="2"
+          ></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3">
+          <button
+            @click="handleSave"
+            :disabled="selectedRoles.length === 0"
+            class="px-4 py-3 bg-green-500/60 text-white rounded-lg hover:bg-green-500/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Disponible
+          </button>
+          <button
+            @click="handleNotAvailable"
+            class="px-4 py-3 bg-red-500/60 text-white rounded-lg hover:bg-red-500/80 transition-colors"
+          >
+            Pas dispo
+          </button>
+          <button
+            @click="handleClear"
+            class="px-4 py-3 bg-gray-500/40 text-white rounded-lg hover:bg-gray-500/60 transition-colors"
+            title="Remettre à l'état initial (aucune disponibilité)"
+          >
+            Effacer
+          </button>
+          <button
+            @click="$emit('close')"
+            class="px-4 py-3 bg-gray-500/40 text-white rounded-lg hover:bg-gray-500/60 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+        
+        <div v-else class="flex justify-end gap-3">
+          <button
+            v-if="isProtected"
+            @click="$emit('requestEdit')"
+            class="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Modifier
+          </button>
+          <button
+            @click="$emit('close')"
+            class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER } from '../services/storage.js'
+
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false
+  },
+  playerName: {
+    type: String,
+    required: true
+  },
+  eventId: {
+    type: String,
+    required: true
+  },
+  eventTitle: {
+    type: String,
+    required: true
+  },
+  eventDate: {
+    type: String,
+    required: true
+  },
+  currentAvailability: {
+    type: Object,
+    default: () => ({
+      available: false,
+      roles: [],
+      comment: null
+    })
+  },
+  isReadOnly: {
+    type: Boolean,
+    default: false
+  },
+  seasonId: {
+    type: String,
+    default: null
+  },
+  chancePercent: {
+    type: Number,
+    default: null
+  },
+  isProtected: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['close', 'save', 'not-available', 'clear', 'requestEdit'])
+
+const selectedRoles = ref([])
+const comment = ref('')
+const showAllRoles = ref(false)
+
+// Computed properties pour gérer l'affichage des rôles
+const visibleRoles = computed(() => {
+  return ROLE_DISPLAY_ORDER.slice(0, 4) // Premiers 4 rôles (2 lignes de 2)
+})
+
+const hiddenRoles = computed(() => {
+  return ROLE_DISPLAY_ORDER.slice(4) // Rôles restants
+})
+
+// Initialiser les valeurs quand la modale s'ouvre
+watch(() => props.show, (newShow) => {
+  if (newShow) {
+    // Si aucune disponibilité n'a été saisie, pré-cocher "Joueur"
+    if (!props.currentAvailability.available && props.currentAvailability.roles.length === 0) {
+      selectedRoles.value = [ROLES.PLAYER]
+    } else {
+      selectedRoles.value = [...props.currentAvailability.roles]
+    }
+    comment.value = props.currentAvailability.comment || ''
+    showAllRoles.value = false // Réinitialiser l'affichage des rôles
+  }
+})
+
+// Initialiser aussi quand currentAvailability change
+watch(() => props.currentAvailability, (newAvailability) => {
+  if (props.show) {
+    // Si aucune disponibilité n'a été saisie, pré-cocher "Joueur"
+    if (!newAvailability.available && (!newAvailability.roles || newAvailability.roles.length === 0)) {
+      selectedRoles.value = [ROLES.PLAYER]
+    } else {
+      selectedRoles.value = [...(newAvailability.roles || [])]
+    }
+    comment.value = newAvailability.comment || ''
+  }
+}, { deep: true })
+
+function formatDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+function handleSave() {
+  if (selectedRoles.value.length === 0) return
+  
+  emit('save', {
+    available: true,
+    roles: selectedRoles.value,
+    comment: comment.value.trim() || null
+  })
+}
+
+function handleNotAvailable() {
+  emit('not-available', {
+    available: false,
+    roles: [],
+    comment: null
+  })
+}
+
+function handleClear() {
+  emit('clear', {
+    available: undefined,
+    roles: [],
+    comment: null
+  })
+}
+</script>
