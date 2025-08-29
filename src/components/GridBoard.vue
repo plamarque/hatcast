@@ -73,7 +73,6 @@
                     <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
                       {{ event.title || 'Sans titre' }}
                     </div>
-                    <div v-if="event.archived" class="mt-1 text-xs text-gray-400">(Archivé)</div>
                   </div>
                   
                   <div class="relative">
@@ -127,18 +126,61 @@
           <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] bg-gray-900 h-full"></div>
 
           <!-- Toggle archived events (top-right, above right chevron) -->
-          <button
-            @click="toggleShowArchived"
-            class="absolute right-2 top-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[86] backdrop-blur-sm"
-            :title="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
-            :aria-label="showArchived ? 'Masquer les événements archivés' : 'Afficher les événements archivés'"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12c1.5-4 5.25-7.5 9.75-7.5S20.25 8 21.75 12c-1.5 4-5.25 7.5-9.75 7.5S3.75 16 2.25 12z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              <path v-if="!showArchived" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/>
-            </svg>
-          </button>
+          <div class="absolute right-2 top-2 z-[150]">
+            <!-- Bouton de filtres -->
+            <button
+              @click="toggleFiltersDropdown"
+              data-filters-button
+              class="w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 relative"
+              :class="{ 'bg-white/20 border-white/40': showFiltersDropdown }"
+              title="Filtres d'affichage"
+              aria-label="Filtres d'affichage"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+              </svg>
+              
+              <!-- Indicateur de filtres actifs -->
+              <div
+                v-if="showArchived || showPast"
+                class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-gray-900"
+              ></div>
+            </button>
+
+            <!-- Dropdown des filtres -->
+            <div
+              v-if="showFiltersDropdown"
+              data-filters-dropdown
+              class="fixed w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[200] overflow-hidden"
+              :style="filtersDropdownStyle"
+            >
+              <div class="p-3 border-b border-white/10">
+                <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
+              </div>
+              
+              <!-- Option Archivés -->
+              <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
+                <input
+                  v-model="showArchived"
+                  type="checkbox"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                >
+                <span class="ml-3 text-sm text-white">Archivés</span>
+                <span class="ml-auto text-xs text-gray-400">📁</span>
+              </label>
+              
+              <!-- Option Passés -->
+              <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
+                <input
+                  v-model="showPast"
+                  type="checkbox"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                >
+                <span class="ml-3 text-sm text-white">Passés</span>
+                <span class="ml-auto text-xs text-gray-400">📅</span>
+              </label>
+            </div>
+          </div>
 
           <!-- Horizontal scroll chevrons -->
           <button
@@ -1209,7 +1251,7 @@
     :show="showPlayerModal"
     :player="selectedPlayer"
     :stats="getPlayerStats(selectedPlayer)"
-    :seasonId="seasonId"
+    :season-id="seasonId"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
     :is-protected="selectedPlayer ? protectedPlayers.has(selectedPlayer.id) : false"
@@ -3671,14 +3713,71 @@ const sortedEvents = computed(() => {
 
 // Affichage conditionnel des évènements archivés
 const showArchived = ref(false)
+const showPast = ref(false)
+const showFiltersDropdown = ref(false)
+
 const displayedEvents = computed(() => {
   const list = sortedEvents.value
-  return showArchived.value ? list : list.filter(e => !e.archived)
+  return list.filter(e => {
+    const eventDate = toDateObject(e.date)
+    const isArchived = !!e.archived
+    const isPast = eventDate && eventDate < new Date()
+    
+    // Si les deux filtres sont cochés, afficher tout
+    if (showArchived.value && showPast.value) {
+      return true
+    }
+    // Si seulement Archivés est coché, afficher les archivés
+    else if (showArchived.value) {
+      return isArchived
+    }
+    // Si seulement Passés est coché, afficher les passés
+    else if (showPast.value) {
+      return isPast
+    }
+    // Par défaut (aucun coché) : afficher ni archivés ni passés
+    else {
+      return !isArchived && !isPast
+    }
+  })
 })
 
-function toggleShowArchived() {
-  showArchived.value = !showArchived.value
+function toggleFiltersDropdown() {
+  showFiltersDropdown.value = !showFiltersDropdown.value
 }
+
+// Calculer la position du dropdown des filtres
+const filtersDropdownStyle = computed(() => {
+  if (!showFiltersDropdown.value) return {}
+  
+  // Trouver le bouton de filtres
+  const button = document.querySelector('[data-filters-button]')
+  if (!button) return {}
+  
+  const rect = button.getBoundingClientRect()
+  return {
+    top: `${rect.bottom + 8}px`,
+    right: `${window.innerWidth - rect.right}px`
+  }
+})
+
+// Fermer le dropdown si on clique ailleurs
+function closeFiltersDropdown() {
+  showFiltersDropdown.value = false
+}
+
+// Gérer le clic en dehors du dropdown
+onMounted(() => {
+  document.addEventListener('click', (event) => {
+    const filtersButton = document.querySelector('[data-filters-button]')
+    const filtersDropdown = document.querySelector('[data-filters-dropdown]')
+    
+    if (filtersButton && !filtersButton.contains(event.target) && 
+        filtersDropdown && !filtersDropdown.contains(event.target)) {
+      closeFiltersDropdown()
+    }
+  })
+})
 
   // Filtre pour la liste de disponibilités dans le détail d'événement
   const availabilityFilter = ref('selected') // selected | available | unavailable | unknown | all
