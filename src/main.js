@@ -4,7 +4,8 @@ import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { registerSW } from 'virtual:pwa-register'
 import SeasonResolver from './components/SeasonResolver.vue'
-import Seasons from './Seasons.vue'
+import HomePage from './views/HomePage.vue'
+import SeasonsPage from './views/SeasonsPage.vue'
 import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
@@ -22,8 +23,9 @@ if (import.meta.env && import.meta.env.PROD) {
 }
 
 const routes = [
-  { path: '/', component: SeasonResolver },
-  { path: '/seasons', component: Seasons },
+  { path: '/', component: HomePage },
+  { path: '/redirect', component: SeasonResolver },
+  { path: '/seasons', component: SeasonsPage },
   { path: '/season/:slug', component: GridBoard, props: true },
   { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
   { path: '/season/:slug/join', component: JoinSeason, props: true },

@@ -303,76 +303,11 @@
     </section>
 
     <!-- Modal de création de saison -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle saison</h2>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Nom de la saison</label>
-          <input
-            v-model="newSeasonName"
-            type="text"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="Ex: La Malice 2025-2026"
-            @input="generateSlug"
-          >
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Slug (URL)</label>
-          <input
-            v-model="newSeasonSlug"
-            type="text"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="Ex: malice-2025-2026"
-          >
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Description (optionnel)</label>
-          <textarea
-            v-model="newSeasonDescription"
-            rows="3"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
-            placeholder="Ex: Saison 2025-2026 de la troupe d'improvisation La Malice"
-          ></textarea>
-          <p class="text-xs text-gray-400 mt-1">Une brève description de votre saison</p>
-        </div>
-        
-
-        
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Code PIN (4 chiffres)</label>
-          <input
-            v-model="newSeasonPin"
-            type="text"
-            inputmode="numeric"
-            maxlength="4"
-            pattern="[0-9]{4}"
-            autocomplete="off"
-            autocorrect="off"
-            autocapitalize="off"
-            spellcheck="false"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="1234"
-            @input="validatePin"
-          >
-          <p class="text-xs text-gray-400 mt-1">Ce code protégera les opérations sensibles (suppressions, sélections)</p>
-        </div>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="cancelCreate"
-            class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            @click="createSeason"
-            :disabled="!newSeasonName.trim() || !newSeasonSlug.trim() || !newSeasonPin.trim() || newSeasonPin.length !== 4"
-            class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-300"
-          >
-            Créer
-          </button>
-        </div>
-      </div>
-    </div>
+    <CreateSeasonModal 
+      :show="showCreateModal"
+      @close="cancelCreate"
+      @season-created="handleSeasonCreated"
+    />
 
     <!-- Modal de confirmation de suppression -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -715,6 +650,7 @@ import AccountMenu from './components/AccountMenu.vue'
 import AppHeader from './components/AppHeader.vue'
 import NotificationsModal from './components/NotificationsModal.vue'
 import PlayersModal from './components/PlayersModal.vue'
+import CreateSeasonModal from './components/CreateSeasonModal.vue'
 import logger from './services/logger.js'
 import { loadEvents, loadPlayers, loadAvailability, loadSelections, setStorageMode, initializeStorage } from './services/storage.js'
 import { auth } from './services/firebase.js'
@@ -1202,32 +1138,28 @@ function validatePin() {
   }
 }
 
-// Création de saison
+// Création de saison (maintenant gérée par le composant CreateSeasonModal)
 async function createSeason() {
-  if (!newSeasonName.value.trim() || !newSeasonSlug.value.trim() || !newSeasonPin.value.trim()) {
-    alert('Veuillez remplir tous les champs, y compris le code PIN à 4 chiffres')
-    return
-  }
+  // Cette fonction n'est plus utilisée, la création est gérée par le composant
+  console.warn('createSeason() est déprécié, utilisez le composant CreateSeasonModal')
+}
 
-  if (newSeasonPin.value.length !== 4) {
-    alert('Le code PIN doit contenir exactement 4 chiffres')
-    return
-  }
-
+// Gérer la création d'une saison depuis le composant
+async function handleSeasonCreated(newSeason) {
   try {
-    await addSeason(
-      newSeasonName.value.trim(), 
-      newSeasonSlug.value.trim(), 
-      newSeasonPin.value.trim(),
-      newSeasonDescription.value.trim(),
-      ''  // Pas de logo à la création
-    )
-    seasons.value = await getSeasons() // Recharger la liste
+    // Recharger la liste des saisons
+    seasons.value = await getSeasons()
     await migrateMissingSortOrders() // Assigner un ordre si manquant (nouvelles saisons en dernier)
+    
+    logger.info('Saison créée avec succès via le composant', { 
+      name: newSeason.name, 
+      slug: newSeason.slug 
+    })
+    
+    // Fermer la modale
     cancelCreate()
   } catch (error) {
-    logger.error('Erreur lors de la création de la saison', error)
-    alert('Erreur lors de la création de la saison. Veuillez réessayer.')
+    logger.error('Erreur lors du rechargement après création', error)
   }
 }
 

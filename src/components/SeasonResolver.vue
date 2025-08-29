@@ -62,10 +62,10 @@ onMounted(async () => {
 
     const userEmail = user?.email
 
-    // Si pas d'utilisateur connecté, rediriger vers la page des saisons
+    // Si pas d'utilisateur connecté, rediriger vers la page d'accueil
     if (!userEmail) {
-      logger.info('Utilisateur non connecté, redirection vers /seasons')
-      router.replace('/seasons')
+      logger.info('Utilisateur non connecté, redirection vers la page d\'accueil')
+      router.replace('/')
       return
     }
 
@@ -74,10 +74,10 @@ onMounted(async () => {
     // Récupérer la dernière saison visitée
     const lastSeasonSlug = await getLastVisitedSeason()
 
-    // Si aucune saison mémorisée, rediriger vers la page des saisons
+    // Si aucune saison mémorisée, rediriger vers la page d'accueil
     if (!lastSeasonSlug) {
-      logger.info('Aucune saison mémorisée, redirection vers /seasons')
-      router.replace('/seasons')
+      logger.info('Aucune saison mémorisée, redirection vers la page d\'accueil')
+      router.replace('/')
       return
     }
 
@@ -89,15 +89,15 @@ onMounted(async () => {
       const seasonExists = isSeasonValid(lastSeasonSlug, seasons)
       
       if (!seasonExists) {
-        logger.info('Saison mémorisée n\'existe plus, redirection vers /seasons')
+        logger.info('Saison mémorisée n\'existe plus, redirection vers la page d\'accueil')
         // Nettoyer la préférence invalide
         await clearLastSeasonPreference(userEmail)
-        router.replace('/seasons')
+        router.replace('/')
         return
       }
     } catch (error) {
       logger.error('Erreur lors de la vérification des saisons', error)
-      router.replace('/seasons')
+      router.replace('/')
       return
     }
 
@@ -107,7 +107,7 @@ onMounted(async () => {
 
   } catch (error) {
     logger.error('Erreur lors de la résolution de la saison', error)
-    router.replace('/seasons')
+    router.replace('/')
   }
 })
 

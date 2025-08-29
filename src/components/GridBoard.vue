@@ -3637,6 +3637,26 @@ function isUserConnected() {
   return !!auth.currentUser?.email || !!localStorage.getItem('userEmail')
 }
 
+// Fonction helper pour vérifier si un joueur appartient à l'utilisateur connecté
+async function isPlayerOwnedByCurrentUser(playerId) {
+  // Si pas d'utilisateur connecté, retourner false
+  if (!currentUser.value?.email) return false
+  
+  try {
+    // Vérifier directement si ce joueur est protégé par l'utilisateur connecté
+    const { getPlayerProtectionData } = await import('../services/playerProtection.js')
+    const protectionData = await getPlayerProtectionData(playerId, seasonId.value)
+    
+    // Le joueur appartient à l'utilisateur si :
+    // 1. Il est protégé
+    // 2. L'email de protection correspond à l'email de l'utilisateur connecté
+    return protectionData?.isProtected && protectionData?.email === currentUser.value.email
+  } catch (error) {
+    console.warn('Erreur lors de la vérification de propriété du joueur:', error)
+    return false
+  }
+}
+
 const sortedEvents = computed(() => {
   // Tri chronologique gauche→droite, puis titre en cas d'égalité
   return [...events.value].sort((a, b) => {
@@ -3733,7 +3753,7 @@ async function toggleAvailability(playerName, eventId) {
     // Cycle de confirmation : pending → confirmed → declined → pending
     if (isProtected) {
       // Joueur protégé : toujours ouvrir la modale en lecture seule
-      openAvailabilityModalForPlayer(player, eventItem);
+      await openAvailabilityModalForPlayer(player, eventItem);
       return;
     } else {
       // Joueur non protégé, basculer directement le statut
@@ -3751,14 +3771,19 @@ async function toggleAvailability(playerName, eventId) {
     return;
   } else {
     // Joueur non protégé, ouvrir directement la modale
-    openAvailabilityModalForPlayer(player, eventItem);
+    await openAvailabilityModalForPlayer(player, eventItem);
   }
 }
 
-function openAvailabilityModalForPlayer(player, eventItem) {
+async function openAvailabilityModalForPlayer(player, eventItem) {
   const currentAvailabilityData = getAvailabilityData(player.name, eventItem.id)
   const playerChancePercent = chances.value[player.name]?.[eventItem.id] ?? null
   const isProtected = isPlayerProtectedInGrid(player.id)
+  const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
+  
+  // Si c'est le joueur de l'utilisateur connecté, ouvrir directement en mode édition
+  // Sinon, suivre la logique de protection normale
+  const shouldBeReadOnly = isProtected && !isOwnedByCurrentUser
   
   openAvailabilityModal({
     playerName: player.name,
@@ -3766,7 +3791,7 @@ function openAvailabilityModalForPlayer(player, eventItem) {
     eventTitle: eventItem.title,
     eventDate: eventItem.date,
     availabilityData: currentAvailabilityData,
-    isReadOnly: isProtected, // Toujours en lecture seule si protégé
+    isReadOnly: shouldBeReadOnly,
     chancePercent: playerChancePercent,
     isProtected: isProtected
   })
@@ -5175,7 +5200,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
     // Cycle de confirmation : pending → confirmed → declined → pending
     if (isProtected) {
       // Joueur protégé : toujours ouvrir la modale en lecture seule
-      openAvailabilityModalForPlayer(player, evt);
+      await openAvailabilityModalForPlayer(player, evt);
       return;
     } else {
       // Joueur non protégé, basculer directement le statut
@@ -5193,7 +5218,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
     return;
   } else {
     // Joueur non protégé, ouvrir directement la modale
-    openAvailabilityModalForPlayer(player, evt);
+    await openAvailabilityModalForPlayer(player, evt);
   }
 }
 
@@ -5228,7 +5253,7 @@ async function handlePasswordVerified(verificationData) {
         await handlePlayerSelectionStatusToggle(playerName, eventId, nextStatus, seasonId.value)
       } else if (action === 'openAvailabilityModal') {
         // Ouvrir la modale de disponibilité
-        openAvailabilityModalForPlayer(player, event)
+        await openAvailabilityModalForPlayer(player, event)
       } else if (action === 'enableEditMode') {
         // Basculer la modale en mode édition
         availabilityModalData.value.isReadOnly = false
