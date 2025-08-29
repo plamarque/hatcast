@@ -5,7 +5,7 @@ const AuditService = require('./auditService')
  * Trigger pour les changements de disponibilités
  */
 exports.auditAvailabilityChanges = functions.firestore
-  .document('seasons/{seasonId}/availabilities/{playerName}')
+  .document('seasons/{seasonId}/availability/{playerName}')
   .onWrite(async (change, context) => {
     const { seasonId, playerName } = context.params
     const before = change.before.exists ? change.before.data() : null
