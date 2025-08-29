@@ -192,7 +192,7 @@
             @touchstart.prevent="startHoldScroll(-1, $event)"
             @touchend="stopHoldScroll($event)"
             @touchcancel="stopHoldScroll($event)"
-            class="absolute left-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[85] backdrop-blur-sm"
+            class="absolute left-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[110] backdrop-blur-sm"
             title="Événements précédents — cliquez pour défiler"
           >
             ‹
@@ -206,7 +206,7 @@
             @touchstart.prevent="startHoldScroll(1, $event)"
             @touchend="stopHoldScroll($event)"
             @touchcancel="stopHoldScroll($event)"
-            class="absolute right-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[85] backdrop-blur-sm"
+            class="absolute right-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[110] backdrop-blur-sm"
             title="Événements suivants — cliquez pour défiler"
           >
             ›

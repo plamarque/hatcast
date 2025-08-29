@@ -7,10 +7,12 @@ Ce dossier contient la documentation technique et utilisateur du projet HatCast.
 ### 🎭 Interface utilisateur
 - **[Documentation Utilisateur](user/README.md)** - Guide complet pour les utilisateurs finaux
 - **[Système de Filtres d'Affichage](user/filters.md)** - Guide d'utilisation du nouveau système de filtres de la grille
+- **[Navigation dans la Grille](user/navigation.md)** - Guide d'utilisation des chevrons de scroll horizontal
 
 ### 🔧 Documentation technique
 - **[Documentation Technique](technical/README.md)** - Guides techniques et d'implémentation
 - **[Implémentation des Filtres](technical/filters-implementation.md)** - Détails techniques du système de filtres
+- **[Système de Scroll Horizontal](technical/scroll-system.md)** - Architecture et implémentation du système de navigation
 - **[AUDIT.md](../AUDIT.md)** - Système d'audit et de logs
 - **[STORAGE_SETUP.md](../STORAGE_SETUP.md)** - Configuration du stockage
 - **[PWA_TROUBLESHOOTING.md](../PWA_TROUBLESHOOTING.md)** - Résolution des problèmes PWA
