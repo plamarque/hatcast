@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[140] p-0 md:p-4" @click="close">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[700] p-0 md:p-4" @click="close">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
@@ -19,11 +19,7 @@
             <div class="flex items-center gap-3">
               <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(event?.date) }}</p>
               
-              <!-- Badge nombre de joueurs -->
-              <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                <span class="text-blue-300 hidden md:inline">👥</span>
-                <span class="text-blue-200">{{ event?.playerCount || 6 }} personnes</span>
-              </div>
+
               
               <!-- Indicateur de statut de sélection -->
               <div 
@@ -57,26 +53,17 @@
       </div>
       
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <!-- 1) Statistiques (harmonisées avec les autres modales) -->
-        <div class="grid grid-cols-3 gap-3 md:gap-4 mb-4">
-          <div class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 p-3 md:p-4 rounded-lg border border-yellow-500/30 text-center">
-            <div class="text-xl md:text-2xl font-bold text-yellow-300">{{ Math.max((event?.playerCount || 6) - selectedCount, 0) }}</div>
-            <div class="text-xs md:text-sm text-yellow-300">Manquants</div>
-          </div>
-          <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
-            <div class="text-xl md:text-2xl font-bold text-white">{{ availableCount }}</div>
-            <div class="text-xs md:text-sm text-gray-300">Disponibles</div>
-          </div>
-          <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
-            <div class="text-xl md:text-2xl font-bold text-white">{{ selectedCount }}</div>
-            <div class="text-xs md:text-sm text-gray-300">Sélectionnés</div>
-          </div>
-        </div>
-
-        <!-- 2) Équipe sélectionnée (avec édition inline et slots vides) -->
+        <!-- Équipe sélectionnée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-2">
-            <h3 class="text-base md:text-lg font-semibold text-white">Équipe sélectionnée</h3>
+            <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
+            
+            <!-- Badge nombre de personnes -->
+            <div class="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs">
+              <span class="text-blue-300">👥</span>
+              <span class="text-blue-200">{{ getTotalTeamSize() }} personnes</span>
+            </div>
+            
             <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la sélection automatique ?">
               <span class="text-sm">❓</span>
             </button>
@@ -84,45 +71,48 @@
           </div>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-0">
             <div
-              v-for="(slot, i) in slots"
-              :key="'sel-slot-'+i"
+              v-for="slot in teamSlots"
+              :key="'sel-slot-'+slot.index"
               class="relative p-3 rounded-lg border text-center transition-colors"
-              :class="slot
+              :class="slot.player
                 ? [
                     'bg-gradient-to-r',
                     // Statuts de confirmation individuelle (priorité sur la disponibilité)
-                    getPlayerSelectionStatus(slot) === 'declined'
+                    getPlayerSelectionStatus(slot.player) === 'declined'
                       ? 'from-red-500/20 to-orange-500/20 border-red-500/30'
-                      : getPlayerSelectionStatus(slot) === 'confirmed'
+                      : getPlayerSelectionStatus(slot.player) === 'confirmed'
                         ? 'from-purple-500/20 to-pink-500/20 border-purple-500/30'
-                        : getPlayerSelectionStatus(slot) === 'pending'
+                        : getPlayerSelectionStatus(slot.player) === 'pending'
                           ? 'from-orange-500/20 to-yellow-500/20 border-orange-500/30'
                           // Statuts de disponibilité classique (seulement si pas de statut individuel)
-                          : isPlayerUnavailable(slot)
+                          : isPlayerUnavailable(slot.player)
                             ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
-                            : (!isPlayerAvailable(slot)
+                            : (!isPlayerAvailable(slot.player)
                                 ? 'from-red-500/20 to-red-600/20 border-red-500/30'
                                 : 'from-green-500/20 to-emerald-500/20 border-green-500/30')
                   ]
                 : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
             >
               <!-- Slot rempli -->
-              <div v-if="slot" class="flex items-center justify-between gap-2">
-                <div class="flex-1 text-white font-medium truncate" :title="getPlayerSlotTooltip(slot)">
+              <div v-if="slot.player" class="flex items-center justify-between gap-2">
+                <div class="flex-1 text-white font-medium truncate" :title="getPlayerSlotTooltip(slot.player)">
                   <!-- Statut de confirmation individuel du joueur -->
-                  <span v-if="getPlayerSelectionStatus(slot) === 'confirmed'" class="text-purple-400 mr-2">✅</span>
-                  <span v-else-if="getPlayerSelectionStatus(slot) === 'declined'" class="text-red-400 mr-2">❌</span>
-                  <span v-else-if="getPlayerSelectionStatus(slot) === 'pending'" class="text-orange-400 mr-2">⏳</span>
+                  <span v-if="getPlayerSelectionStatus(slot.player) === 'confirmed'" class="text-purple-400 mr-2">✅</span>
+                  <span v-else-if="getPlayerSelectionStatus(slot.player) === 'declined'" class="text-red-400 mr-2">❌</span>
+                  <span v-else-if="getPlayerSelectionStatus(slot.player) === 'pending'" class="text-orange-400 mr-2">⏳</span>
                   <!-- Statut de disponibilité classique -->
-                  <span v-else-if="isInSavedSelectionAndAvailable(slot)" class="text-purple-400 mr-2">🎭</span>
-                  <span v-else-if="isPlayerAvailable(slot)" class="text-green-400 mr-2">✅</span>
-                  <span v-else-if="isPlayerUnavailable(slot)" class="text-red-400 mr-2">❌</span>
+                  <span v-else-if="isInSavedSelectionAndAvailable(slot.player)" class="text-purple-400 mr-2">🎭</span>
+                  <span v-else-if="isPlayerAvailable(slot.player)" class="text-green-400 mr-2">✅</span>
+                  <span v-else-if="isPlayerUnavailable(slot.player)" class="text-red-400 mr-2">❌</span>
                   <span v-else class="text-gray-400 mr-2">–</span>
-                  {{ slot }}
+                  
+                  <!-- Nom du joueur + emoji du rôle -->
+                  <span class="mr-2">{{ slot.player }}</span>
+                  <span class="text-lg">{{ slot.roleEmoji }}</span>
                 </div>
                 <button
                   v-if="!isSelectionConfirmedByOrganizer"
-                  @click="clearSlot(i)"
+                  @click="clearSlot(slot.index)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer cette personne"
                 >
@@ -133,24 +123,25 @@
 
               <!-- Slot vide -->
               <div v-else class="flex items-center justify-center">
-                <template v-if="editingSlotIndex === i">
+                <template v-if="editingSlotIndex === slot.index">
                   <select
                     class="w-full bg-gray-800 text-white rounded-md p-2 border border-white/20 focus:outline-none"
-                    @change="onChooseForSlot($event, i)"
+                    @change="onChooseForSlot($event, slot.index)"
                     @blur="cancelEditSlot()"
                   >
                     <option value="">— Choisir —</option>
-                    <option v-for="name in availableOptionsForSlot(i)" :key="name" :value="name">{{ name }}</option>
+                    <option v-for="name in availableOptionsForSlot(slot.index)" :key="name" :value="name">{{ name }}</option>
                   </select>
                 </template>
                 <button
                   v-else-if="!isSelectionConfirmedByOrganizer"
-                  @click="startEditSlot(i)"
+                  @click="startEditSlot(slot.index)"
                   class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
-                  title="Ajouter une personne"
+                  title="Ajouter un {{ slot.roleLabel.toLowerCase() }}"
                 >
                   <span class="text-lg">＋</span>
-                  <span class="text-sm">Ajouter</span>
+                  <span class="text-sm">{{ slot.roleLabel }}</span>
+                  <span class="text-sm">{{ slot.roleEmoji }}</span>
                 </button>
                 <div v-else class="text-white/40 text-sm">Verrouillé</div>
               </div>
@@ -285,6 +276,7 @@ import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import { saveSelection } from '../services/storage.js'
+import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 
 const props = defineProps({
   show: {
@@ -357,6 +349,68 @@ const requiredCount = computed(() => props.event?.playerCount || 6)
 const slots = ref([])
 const editingSlotIndex = ref(null)
 
+// Nouvelle logique pour les slots multi-rôles
+const teamSlots = computed(() => {
+  if (!props.event?.roles) {
+    // Fallback pour les anciens événements sans rôles
+    return generateSlotsForLegacyEvent()
+  }
+  
+  return generateSlotsForMultiRoleEvent()
+})
+
+function generateSlotsForLegacyEvent() {
+  // Ancienne logique : slots simples basés sur playerCount
+  const filled = []
+  if (Array.isArray(props.currentSelection)) {
+    filled = [...props.currentSelection]
+  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
+    filled = [...(props.currentSelection.players || [])]
+  }
+  
+  const len = requiredCount.value
+  return Array.from({ length: len }, (_, i) => ({
+    index: i,
+    player: filled[i] || null,
+    role: 'player',
+    roleEmoji: '🎭',
+    roleLabel: 'Comédien',
+    isEmpty: !filled[i],
+    isLegacy: true
+  }))
+}
+
+function generateSlotsForMultiRoleEvent() {
+  const roles = props.event.roles
+  const slots = []
+  let slotIndex = 0
+  
+  // Parcourir les rôles dans l'ordre d'affichage
+  for (const role of ROLE_DISPLAY_ORDER) {
+    const count = roles[role] || 0
+    if (count > 0) {
+      // Récupérer les joueurs déjà sélectionnés pour ce rôle
+      const selectedPlayers = props.currentSelection?.roles?.[role] || []
+      
+      // Créer les slots pour ce rôle
+      for (let i = 0; i < count; i++) {
+        const player = selectedPlayers[i] || null
+        slots.push({
+          index: slotIndex++,
+          player: player,
+          role: role,
+          roleEmoji: ROLE_EMOJIS[role],
+          roleLabel: ROLE_LABELS_SINGULAR[role],
+          isEmpty: !player,
+          isLegacy: false
+        })
+      }
+    }
+  }
+  
+  return slots
+}
+
 
 
 
@@ -369,10 +423,20 @@ const allAvailableNames = computed(() => {
 })
 
 function availableOptionsForSlot(index) {
-  const used = new Set(slots.value.filter(Boolean))
-  // If editing a slot that already had a value (rare here since editor opens for empty), allow keeping it
-  const current = slots.value[index]
-  if (current) used.delete(current)
+  // Récupérer tous les joueurs déjà utilisés dans tous les slots
+  const used = new Set()
+  teamSlots.value.forEach(slot => {
+    if (slot.player) {
+      used.add(slot.player)
+    }
+  })
+  
+  // Si on édite un slot qui a déjà une valeur, permettre de la garder
+  const currentSlot = teamSlots.value.find(s => s.index === index)
+  if (currentSlot && currentSlot.player) {
+    used.delete(currentSlot.player)
+  }
+  
   return allAvailableNames.value.filter(name => !used.has(name))
 }
 
@@ -392,8 +456,18 @@ async function onChooseForSlot(event, index) {
   
   const value = event?.target?.value || ''
   if (value) {
-    const previousValue = slots.value[index]
-    slots.value[index] = value
+    const currentSlot = teamSlots.value.find(s => s.index === index)
+    const previousValue = currentSlot?.player || null
+    
+    // Mettre à jour le slot dans teamSlots
+    if (currentSlot) {
+      currentSlot.player = value
+    }
+    
+    // Mettre à jour aussi l'ancien système de slots pour la compatibilité
+    if (slots.value[index] !== undefined) {
+      slots.value[index] = value
+    }
     
     // Logger l'audit de resélection
     try {
@@ -427,8 +501,20 @@ async function clearSlot(index) {
   // Ne pas permettre la suppression si l'organisateur a validé la sélection
   if (props.isSelectionConfirmedByOrganizer) return
   
-  const removedPlayer = slots.value[index]
-  slots.value[index] = null
+  // Trouver le slot dans teamSlots
+  const currentSlot = teamSlots.value.find(s => s.index === index)
+  const removedPlayer = currentSlot?.player || slots.value[index]
+  
+  // Vider le slot dans teamSlots
+  if (currentSlot) {
+    currentSlot.player = null
+    currentSlot.isEmpty = true
+  }
+  
+  // Vider aussi dans l'ancien système pour la compatibilité
+  if (slots.value[index] !== undefined) {
+    slots.value[index] = null
+  }
   
   // Logger l'audit de désélection
   if (removedPlayer) {
@@ -796,13 +882,23 @@ async function autoSaveSelection() {
   if (props.isSelectionConfirmedByOrganizer) return
   
   try {
-    const players = slots.value.filter(Boolean)
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
     
-    // Sauvegarde directe sans PIN (changements mineurs)
-    await saveSelection(props.event.id, players, props.seasonId)
+    teamSlots.value.forEach(slot => {
+      if (slot.player) {
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.player)
+      }
+    })
+    
+    // Sauvegarde avec la nouvelle structure par rôle
+    await saveSelection(props.event.id, roles, props.seasonId)
     
     // Feedback visuel subtil (optionnel)
-    console.debug('Sélection sauvegardée automatiquement')
+    console.debug('Sélection sauvegardée automatiquement avec structure par rôle')
   } catch (error) {
     console.error('Erreur lors de la sauvegarde automatique:', error)
     // En cas d'erreur, on peut afficher un message discret
@@ -843,6 +939,17 @@ function isPlayerSelected(playerName) {
 
 function isInSavedSelectionAndAvailable(playerName) {
   return getSelectedPlayersArray().includes(playerName) && isPlayerAvailable(playerName)
+}
+
+// Fonction pour calculer la taille totale de l'équipe
+function getTotalTeamSize() {
+  if (props.event?.roles) {
+    // Nouveau format avec rôles
+    return Object.values(props.event.roles).reduce((total, count) => total + (count || 0), 0)
+  } else {
+    // Ancien format (fallback)
+    return props.event?.playerCount || 6
+  }
 }
 
 // Fonctions pour l'invitation à la sélection

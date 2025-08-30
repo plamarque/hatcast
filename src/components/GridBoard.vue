@@ -224,7 +224,7 @@
                       <!-- Étape 1: coachmark bouton Ajouter une personne -->
           <div
             v-if="addPlayerCoachmark.position"
-            class="fixed z-[400]"
+            class="fixed z-[600]"
             :style="{ left: addPlayerCoachmark.position.x + 'px', top: addPlayerCoachmark.position.y + 'px' }"
           >
             <div id="coachmark-add" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative" :class="{ 'coachmark-right': addPlayerCoachmark.side === 'right', 'coachmark-left': addPlayerCoachmark.side === 'left' }">
@@ -242,7 +242,7 @@
           <!-- Étape 2: coachmark cellule disponibilité -->
           <div
             v-if="availabilityCoachmark.position"
-            class="fixed z-[400]"
+            class="fixed z-[600]"
             :style="{ position: 'absolute', left: availabilityCoachmark.position.x + 'px', top: availabilityCoachmark.position.y + 'px' }"
           >
             <div id="coachmark-avail" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-pink-500/40 rounded-xl shadow-2xl p-3 text-white relative">
@@ -260,7 +260,7 @@
           <!-- Étape 3: coachmark nom joueur -->
           <div
             v-if="playerNameCoachmark.position"
-            class="fixed z-[400]"
+            class="fixed z-[600]"
             :style="{ position: 'absolute', left: playerNameCoachmark.position.x + 'px', top: playerNameCoachmark.position.y + 'px' }"
           >
             <div id="coachmark-name" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-yellow-500/40 rounded-xl shadow-2xl p-3 text-white relative">
@@ -438,7 +438,7 @@
   </div>
 
   <!-- Modales -->
-  <div v-if="newEventForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+  <div v-if="newEventForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouveau spectacle</h2>
       <div class="mb-6">
@@ -472,15 +472,56 @@
         <label for="new-archived" class="text-sm font-medium text-gray-300">Créer comme archivé</label>
       </div>
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de personnes à sélectionner</label>
-        <input
-          v-model="newEventPlayerCount"
-          type="number"
-          min="1"
-          max="20"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-          placeholder="6"
-        >
+        <label class="block text-sm font-medium text-gray-300 mb-3">Équipe</label>
+        
+        <!-- Premiers rôles (toujours visibles) -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div v-for="role in visibleRoles" :key="role" class="flex items-center gap-2">
+            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
+            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
+            <input
+              v-model="newEventRoles[role]"
+              type="number"
+              min="0"
+              max="20"
+              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+            >
+          </div>
+        </div>
+        
+        <!-- Rôles supplémentaires (révélés par "Plus de rôles") -->
+        <div v-if="showAllRoles" class="grid grid-cols-2 gap-3 mb-3">
+          <div v-for="role in hiddenRoles" :key="role" class="flex items-center gap-2">
+            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
+            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
+            <input
+              v-model="newEventRoles[role]"
+              type="number"
+              min="0"
+              max="20"
+              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+            >
+          </div>
+        </div>
+        
+        <!-- Bouton "Plus de rôles" -->
+        <div v-if="!showAllRoles && hiddenRoles.length > 0" class="text-center">
+          <button
+            @click="showAllRoles = true"
+            type="button"
+            class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+          >
+            Plus de rôles...
+          </button>
+        </div>
+        
+        <!-- Total de l'équipe -->
+        <div class="mt-3 pt-3 border-t border-gray-600">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-gray-300">Total de l'équipe :</span>
+            <span class="text-white font-medium">{{ totalTeamSize }}</span>
+          </div>
+        </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -500,7 +541,7 @@
   </div>
 
   <!-- Modale de création de joueur -->
-  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
       <div class="mb-6">
@@ -530,7 +571,7 @@
   </div>
 
   <!-- Modale de confirmation de suppression -->
-  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[600] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -574,7 +615,7 @@
   </div>
 
   <!-- Modale de confirmation de relance de sélection -->
-          <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[240] p-4">
+          <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[750] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -597,7 +638,7 @@
 
 
   <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[500] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
@@ -614,10 +655,6 @@
            <div class="flex-1 min-w-0">
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
-               <div class="flex items-center gap-2 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm">
-                 <span class="text-blue-300 hidden md:inline">👥</span>
-                 <span class="text-blue-200">{{ selectedEvent?.playerCount || 6 }} personnes</span>
-               </div>
              </div>
              
 
@@ -635,7 +672,7 @@
                    title="Ajouter à votre agenda"
                  >
                    <span class="text-purple-300">📅</span>
-                   <span class="text-purple-200">Ajouter à l'agenda</span>
+                   <span class="text-purple-200">Ajouter à mon Agenda</span>
                  </button>
                  
                  <!-- Menu déroulant d'agenda pour la modal -->
@@ -684,7 +721,7 @@
                  title="Reçois des alertes en temps réel : sélections, changements d'horaires, et plus !"
                >
                  <span class="text-purple-300">🔔</span>
-                 <span class="text-purple-200">Activer les notifications</span>
+                 <span class="text-purple-200">Notifiez-moi</span>
                </button>
              </div>
             
@@ -700,25 +737,55 @@
 
         <!-- Content scrollable -->
   <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-    <!-- Stats directes sans titre -->
-        <div class="grid grid-cols-3 gap-3 md:gap-4 mb-2 md:mb-4">
-          <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
-            <div class="text-xl md:text-2xl font-bold text-white">{{ countAvailablePlayers(selectedEvent?.id) }}</div>
-            <div class="text-xs md:text-sm text-gray-300">Disponibles</div>
+    <!-- Section Équipe à Constituer -->
+        <div class="mb-4 md:mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
+              <span>🎭</span>
+              <span>Équipe à Constituer</span>
+            </h3>
+            <button 
+              @click="showRoleDetails = !showRoleDetails"
+              class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
+              title="Cliquer pour voir le détail des rôles"
+            >
+              <span class="text-blue-300">👥</span>
+              <span class="text-blue-200">{{ selectedEventTotalTeamSize }} personnes</span>
+            </button>
           </div>
-          <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
-            <div class="text-xl md:text-2xl font-bold text-white">{{ countSelectedPlayers(selectedEvent?.id) }}</div>
-            <div class="text-xs md:text-sm text-gray-300">Sélectionnés</div>
-          </div>
-          <div class="p-3 md:p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-center">
-            <div class="text-xl md:text-2xl font-bold text-yellow-300">{{ Math.max((selectedEvent?.playerCount || 6) - countSelectedPlayers(selectedEvent?.id), 0) }}</div>
-            <div class="text-xs md:text-sm text-yellow-300">Manquants</div>
+          
+          <!-- Détails des rôles -->
+          <div v-if="showRoleDetails" class="text-sm text-gray-400">
+            <div v-if="selectedEvent?.roles">
+              <span v-for="(role, index) in Object.keys(selectedEvent.roles)" :key="role">
+                <span>{{ ROLE_LABELS[role] }}: </span>
+                <span 
+                  class="font-semibold"
+                  :class="{
+                    'text-cyan-400': role === 'player',
+                    'text-purple-400': role === 'dj',
+                    'text-pink-400': role === 'mc',
+                    'text-orange-400': role === 'volunteer',
+                    'text-yellow-400': role === 'referee',
+                    'text-green-400': role === 'assistant_referee',
+                    'text-blue-400': role === 'lighting',
+                    'text-indigo-400': role === 'coach'
+                  }"
+                >
+                  {{ selectedEvent.roles[role] }}
+                </span>
+                <span v-if="index < Object.keys(selectedEvent.roles).length - 1">, </span>
+              </span>
+            </div>
+            <div v-else>
+              <span class="text-cyan-400 font-semibold">{{ selectedEvent?.playerCount || 6 }}</span> comédiens
+            </div>
           </div>
         </div>
 
-        <!-- Section des disponibilités des joueurs (style allégé, filtres) -->
+        <!-- Section des disponibilités des joueurs (style allégé, sans filtres) -->
         <div v-if="selectedEvent" class="mb-4 md:mb-6">
-          <!-- Alerte + Filtres + Badge statut -->
+          <!-- Alerte + Badge statut -->
           <div class="mb-3 flex items-center gap-3">
             <div
               v-if="hasEventWarningForSelectedEvent"
@@ -737,24 +804,12 @@
               :show="true"
               :clickable="false"
             />
-
-            <select
-              v-model="availabilityFilter"
-              class="ml-auto bg-gray-800 text-white rounded-md px-3 py-2 border border-white/10 focus:outline-none text-sm"
-              title="Filtrer les joueurs par statut"
-            >
-              <option value="selected">Sélectionnés</option>
-              <option value="available">Disponibles</option>
-              <option value="unavailable">Non Disponibles</option>
-              <option value="unknown">Pas de réponse</option>
-              <option value="all">Tous</option>
-            </select>
           </div>
 
-          <!-- Liste des joueurs (2 par ligne) -->
+          <!-- Liste des joueurs (2 par ligne) - Toutes les personnes qui ont répondu -->
           <div class="grid grid-cols-2 gap-2">
             <div
-              v-for="player in filteredPlayers"
+              v-for="player in sortedPlayers"
               :key="player.id"
               class="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-gray-800/40 transition-colors"
             >
@@ -785,7 +840,7 @@
                 <AvailabilityCell
                   :player-name="player.name"
                   :event-id="selectedEvent.id"
-                  :is-available="getPlayerAvailabilityForEvent(selectedEvent.id)[player.name]"
+                  :is-available="isAvailable(player.name, selectedEvent.id)"
                   :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
                   :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
                   :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
@@ -842,7 +897,7 @@
             <div 
               v-if="showEventMoreActionsDesktop"
               ref="eventMoreActionsDropdownRef"
-              class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[400] overflow-hidden"
+              class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[1000] overflow-hidden"
               :style="eventMoreActionsStyle"
             >
               <button 
@@ -880,8 +935,8 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">📢 Annoncer</button>
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">🎭 Sélection Équipe</button>
+        <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">Annoncer</button>
+        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">Sélection</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
         <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
@@ -893,7 +948,7 @@
     <div 
       v-if="showEventMoreActions"
       ref="eventMoreActionsMobileDropdownRef"
-      class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[400] overflow-hidden md:hidden"
+      class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[1000] overflow-hidden md:hidden"
       :style="eventMoreActionsMobileStyle"
     >
       <!-- Boutons principaux en premier -->
@@ -936,7 +991,7 @@
   />
 
   <!-- Modal d'édition d'événement -->
-  <div v-if="editingEvent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
+  <div v-if="editingEvent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier le spectacle</h2>
       <div class="mb-6">
@@ -975,15 +1030,58 @@
         <label for="edit-archived" class="text-sm font-medium text-gray-300">Archiver ce spectacle</label>
       </div>
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Nombre de personnes à sélectionner</label>
-        <input
-          v-model="editingPlayerCount"
-          type="number"
-          min="1"
-          max="20"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-          @keydown.esc="cancelEdit"
-        >
+        <label class="block text-sm font-medium text-gray-300 mb-3">Équipe</label>
+        
+        <!-- Premiers rôles (toujours visibles) -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div v-for="role in visibleRoles" :key="role" class="flex items-center gap-2">
+            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
+            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
+            <input
+              v-model="editingRoles[role]"
+              type="number"
+              min="0"
+              max="20"
+              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+              @keydown.esc="cancelEdit"
+            >
+          </div>
+        </div>
+        
+        <!-- Rôles supplémentaires (révélés par "Plus de rôles") -->
+        <div v-if="editingShowAllRoles" class="grid grid-cols-2 gap-3 mb-3">
+          <div v-for="role in hiddenRoles" :key="role" class="flex items-center gap-2">
+            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
+            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
+            <input
+              v-model="editingRoles[role]"
+              type="number"
+              min="0"
+              max="20"
+              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+              @keydown.esc="cancelEdit"
+            >
+          </div>
+        </div>
+        
+        <!-- Bouton "Plus de rôles" -->
+        <div v-if="!editingShowAllRoles && hiddenRoles.length > 0" class="text-center">
+          <button
+            @click="editingShowAllRoles = true"
+            type="button"
+            class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+          >
+            Plus de rôles...
+          </button>
+        </div>
+        
+        <!-- Total de l'équipe -->
+        <div class="mt-3 pt-3 border-t border-gray-600">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-gray-300">Total de l'équipe :</span>
+            <span class="text-white font-medium">{{ editingTotalTeamSize }}</span>
+          </div>
+        </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -1014,7 +1112,7 @@
   />
 
   <!-- Modal de vérification du mot de passe du joueur -->
-          <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[220] p-4">
+  <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[220] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -1039,8 +1137,6 @@
               ref="playerPasswordInputRef"
             >
           </div>
-          
-
         </div>
         
         <button
@@ -1082,7 +1178,7 @@
   </div>
 
   <!-- Modal de vérification du mot de passe pour les disponibilités -->
-          <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[220] p-0 md:p-4">
+  <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[220] p-0 md:p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh]">
       <!-- En-tête -->
       <div class="text-center p-6 pb-4 border-b border-white/10">
@@ -1384,7 +1480,7 @@
   />
 
   <!-- Modal de prompt pour annoncer après création/modification -->
-  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
+  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
               <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer ce spectacle ?</h3>
               <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux personnes pour qu'elles indiquent leur disponibilité</p>
@@ -1407,23 +1503,24 @@
   </div>
 
   <!-- Modal de disponibilité avec rôles -->
-          <AvailabilityModal
-          :show="showAvailabilityModal"
-          :player-name="availabilityModalData.playerName"
-          :event-id="availabilityModalData.eventId"
-          :event-title="availabilityModalData.eventTitle"
-          :event-date="availabilityModalData.eventDate"
-          :current-availability="availabilityModalData.availabilityData"
-          :is-read-only="availabilityModalData.isReadOnly"
-          :season-id="seasonId"
-          :chance-percent="availabilityModalData.chancePercent"
-          :is-protected="availabilityModalData.isProtected"
-          @close="showAvailabilityModal = false"
-          @save="handleAvailabilitySave"
-          @not-available="handleAvailabilityNotAvailable"
-          @clear="handleAvailabilityClear"
-          @request-edit="handleAvailabilityRequestEdit"
-        />
+  <AvailabilityModal
+    :show="showAvailabilityModal"
+    :player-name="availabilityModalData.playerName"
+    :event-id="availabilityModalData.eventId"
+    :event-title="availabilityModalData.eventTitle"
+    :event-date="availabilityModalData.eventDate"
+    :current-availability="availabilityModalData.availabilityData"
+    :is-read-only="availabilityModalData.isReadOnly"
+    :season-id="seasonId"
+    :chance-percent="availabilityModalData.chancePercent"
+    :is-protected="availabilityModalData.isProtected"
+    :event-roles="availabilityModalData.eventRoles"
+    @close="showAvailabilityModal = false"
+    @save="handleAvailabilitySave"
+    @not-available="handleAvailabilityNotAvailable"
+    @clear="handleAvailabilityClear"
+    @request-edit="handleAvailabilityRequestEdit"
+  />
 
   
 </template>
@@ -1608,7 +1705,11 @@ import {
   saveEvent,
   saveAvailability,
   updatePlayer,
-  saveSelection
+  saveSelection,
+  ROLES,
+  ROLE_EMOJIS,
+  ROLE_LABELS,
+  ROLE_DISPLAY_ORDER
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
@@ -1738,6 +1839,17 @@ const editingEvent = ref(null)
 const editingTitle = ref('')
 const editingDate = ref('')
 const editingPlayerCount = ref(6)
+const editingRoles = ref({
+  [ROLES.PLAYER]: 6,
+  [ROLES.DJ]: 1,
+  [ROLES.MC]: 1,
+  [ROLES.VOLUNTEER]: 5,
+  [ROLES.REFEREE]: 1,
+  [ROLES.ASSISTANT_REFEREE]: 2,
+  [ROLES.LIGHTING]: 0,
+  [ROLES.COACH]: 0
+})
+const editingShowAllRoles = ref(false)
 
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
@@ -1828,7 +1940,7 @@ function updateEventMoreActionsPosition() {
         position: 'fixed',
         top: `${top}px`,
         left: `${left}px`,
-        zIndex: 400
+        zIndex: 1000
       }
     } else {
       // Sur mobile, positionner en dessous (pull-up style)
@@ -1838,7 +1950,7 @@ function updateEventMoreActionsPosition() {
         position: 'fixed',
         top: `${top}px`,
         left: `${left}px`,
-        zIndex: 400
+        zIndex: 1000
       }
     }
   } catch {}
@@ -1859,7 +1971,7 @@ function updateEventMoreActionsMobilePosition() {
       position: 'fixed',
       top: `${top}px`,
       left: `${left}px`,
-      zIndex: 400
+      zIndex: 1000
     }
   } catch {}
 }
@@ -2901,14 +3013,52 @@ function startEditing(event) {
   editingDate.value = event.date
   editingDescription.value = event.description || ''
   editingArchived.value = !!event.archived
+  
+  // Initialiser les rôles avec les valeurs existantes ou par défaut
+  if (event.roles) {
+    editingRoles.value = {
+      [ROLES.PLAYER]: event.roles[ROLES.PLAYER] ?? event.playerCount ?? 6,
+      [ROLES.DJ]: event.roles[ROLES.DJ] ?? 1,
+      [ROLES.MC]: event.roles[ROLES.MC] ?? 1,
+      [ROLES.VOLUNTEER]: event.roles[ROLES.VOLUNTEER] ?? 5,
+      [ROLES.REFEREE]: event.roles[ROLES.REFEREE] ?? 1,
+      [ROLES.ASSISTANT_REFEREE]: event.roles[ROLES.ASSISTANT_REFEREE] ?? 2,
+      [ROLES.LIGHTING]: event.roles[ROLES.LIGHTING] ?? 0,
+      [ROLES.COACH]: event.roles[ROLES.COACH] ?? 0,
+      [ROLES.STAGE_MANAGER]: event.roles[ROLES.STAGE_MANAGER] ?? 1
+    }
+  } else {
+    // Fallback pour les anciens événements sans rôles
+    editingRoles.value = {
+      [ROLES.PLAYER]: event.playerCount ?? 6,
+      [ROLES.DJ]: 1,
+      [ROLES.MC]: 1,
+      [ROLES.VOLUNTEER]: 5,
+      [ROLES.REFEREE]: 1,
+      [ROLES.ASSISTANT_REFEREE]: 2,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 1
+    }
+  }
+  
+  editingShowAllRoles.value = false
 }
 
 async function saveEdit() {
   if (!editingEvent.value || !editingTitle.value.trim() || !editingDate.value) return
 
-  const playerCount = parseInt(editingPlayerCount.value)
-  if (isNaN(playerCount) || playerCount < 1 || playerCount > 20) {
-    alert('Le nombre de personnes doit être un nombre entier entre 1 et 20')
+  // Calculer le total des rôles et vérifier qu'il y a au moins un comédien
+  const totalRoles = Object.values(editingRoles.value).reduce((sum, count) => sum + count, 0)
+  const playerCount = editingRoles.value[ROLES.PLAYER] || 0
+  
+  if (totalRoles === 0) {
+    alert('Veuillez définir au moins un rôle pour l\'équipe')
+    return
+  }
+  
+  if (playerCount === 0) {
+    alert('Il doit y avoir au moins un comédien dans l\'équipe')
     return
   }
 
@@ -2917,7 +3067,8 @@ async function saveEdit() {
       title: editingTitle.value.trim(),
       date: editingDate.value,
       description: editingDescription.value.trim() || '',
-      playerCount: playerCount,
+      playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
+      roles: editingRoles.value, // Nouveau champ pour les rôles
       archived: !!editingArchived.value
     }
     
@@ -3006,6 +3157,18 @@ async function saveEdit() {
     editingDescription.value = ''
     editingPlayerCount.value = 6
     editingArchived.value = false
+    editingRoles.value = {
+      [ROLES.PLAYER]: 6,
+      [ROLES.DJ]: 1,
+      [ROLES.MC]: 1,
+      [ROLES.VOLUNTEER]: 5,
+      [ROLES.REFEREE]: 1,
+      [ROLES.ASSISTANT_REFEREE]: 2,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 1
+    }
+    editingShowAllRoles.value = false
     
     // Message de succès final
     showSuccessMessage.value = true
@@ -3129,6 +3292,18 @@ function cancelEdit() {
   editingDate.value = ''
   editingDescription.value = ''
   editingPlayerCount.value = 6
+  editingRoles.value = {
+    [ROLES.PLAYER]: 6,
+    [ROLES.DJ]: 1,
+    [ROLES.MC]: 1,
+    [ROLES.VOLUNTEER]: 5,
+    [ROLES.REFEREE]: 1,
+    [ROLES.ASSISTANT_REFEREE]: 2,
+    [ROLES.LIGHTING]: 0,
+    [ROLES.COACH]: 0,
+    [ROLES.STAGE_MANAGER]: 1
+  }
+  editingShowAllRoles.value = false
 }
 
 const isHovered = ref(null)
@@ -3139,6 +3314,50 @@ const newEventDate = ref('')
 const newEventDescription = ref('')
 const newEventPlayerCount = ref(6)
 const newEventArchived = ref(false)
+const newEventRoles = ref({
+  [ROLES.PLAYER]: 6,
+  [ROLES.DJ]: 1,
+  [ROLES.MC]: 1,
+  [ROLES.VOLUNTEER]: 5,
+  [ROLES.REFEREE]: 1,
+  [ROLES.ASSISTANT_REFEREE]: 2,
+  [ROLES.LIGHTING]: 0,
+  [ROLES.COACH]: 0,
+  [ROLES.STAGE_MANAGER]: 1
+})
+const showAllRoles = ref(false)
+
+// Computed properties pour l'affichage des rôles
+const visibleRoles = computed(() => {
+  return ROLE_DISPLAY_ORDER.slice(0, 4) // Premiers 4 rôles (2 lignes de 2)
+})
+
+const hiddenRoles = computed(() => {
+  return ROLE_DISPLAY_ORDER.slice(4) // Rôles restants
+})
+
+const totalTeamSize = computed(() => {
+  return Object.values(newEventRoles.value).reduce((sum, count) => sum + count, 0)
+})
+
+const editingTotalTeamSize = computed(() => {
+  return Object.values(editingRoles.value).reduce((sum, count) => sum + count, 0)
+})
+
+// Calculer le total de l'équipe pour un événement existant
+const selectedEventTotalTeamSize = computed(() => {
+  if (!selectedEvent.value) return 0
+  if (selectedEvent.value.roles) {
+    // Si l'événement a des rôles définis, calculer le total
+    return Object.values(selectedEvent.value.roles).reduce((sum, count) => sum + count, 0)
+  } else {
+    // Fallback vers l'ancien système (playerCount)
+    return selectedEvent.value.playerCount || 6
+  }
+})
+
+// État pour afficher/masquer les détails des rôles
+const showRoleDetails = ref(false)
 
 // Fonction pour annuler la création d'événement
 
@@ -3149,9 +3368,17 @@ async function createEvent() {
     return
   }
 
-  const playerCount = parseInt(newEventPlayerCount.value)
-  if (isNaN(playerCount) || playerCount < 1 || playerCount > 20) {
-    alert('Le nombre de personnes doit être un nombre entier entre 1 et 20')
+  // Calculer le total des rôles et vérifier qu'il y a au moins un joueur
+  const totalRoles = Object.values(newEventRoles.value).reduce((sum, count) => sum + count, 0)
+  const playerCount = newEventRoles.value[ROLES.PLAYER] || 0
+  
+  if (totalRoles === 0) {
+    alert('Veuillez définir au moins un rôle pour l\'équipe')
+    return
+  }
+  
+  if (playerCount === 0) {
+    alert('Il doit y avoir au moins un comédien dans l\'équipe')
     return
   }
 
@@ -3159,7 +3386,8 @@ async function createEvent() {
     title: newEventTitle.value.trim(),
     date: newEventDate.value,
     description: newEventDescription.value.trim() || '',
-    playerCount: playerCount,
+    playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
+    roles: newEventRoles.value, // Nouveau champ pour les rôles
     archived: !!newEventArchived.value
   }
 
@@ -3191,6 +3419,18 @@ async function createEventProtected(eventData) {
     newEventDescription.value = ''
     newEventPlayerCount.value = 6
     newEventArchived.value = false
+    newEventRoles.value = {
+      [ROLES.PLAYER]: 6,
+      [ROLES.DJ]: 1,
+      [ROLES.MC]: 1,
+      [ROLES.VOLUNTEER]: 5,
+      [ROLES.REFEREE]: 1,
+      [ROLES.ASSISTANT_REFEREE]: 2,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 1
+    }
+    showAllRoles.value = false
     newEventForm.value = false
     
     // Forcer la mise à jour de l'interface
@@ -3218,6 +3458,18 @@ function cancelNewEvent() {
   newEventDate.value = ''
   newEventDescription.value = ''
   newEventPlayerCount.value = 6
+  newEventRoles.value = {
+    [ROLES.PLAYER]: 6,
+    [ROLES.DJ]: 1,
+    [ROLES.MC]: 1,
+    [ROLES.VOLUNTEER]: 5,
+    [ROLES.REFEREE]: 1,
+    [ROLES.ASSISTANT_REFEREE]: 2,
+    [ROLES.LIGHTING]: 0,
+    [ROLES.COACH]: 0,
+    [ROLES.STAGE_MANAGER]: 1
+  }
+  showAllRoles.value = false
   newEventForm.value = false
 }
 
@@ -3779,33 +4031,7 @@ onMounted(() => {
   })
 })
 
-  // Filtre pour la liste de disponibilités dans le détail d'événement
-  const availabilityFilter = ref('selected') // selected | available | unavailable | unknown | all
-  const filteredPlayers = computed(() => {
-    if (!selectedEvent.value) return sortedPlayers.value
-    const eventId = selectedEvent.value.id
-    const selectionSet = new Set(getSelectionPlayers(eventId))
 
-    return sortedPlayers.value.filter(player => {
-      const name = player.name
-      const avail = availability.value[name]?.[eventId]
-      const isSel = selectionSet.has(name)
-
-      switch (availabilityFilter.value) {
-        case 'selected':
-          return isSel
-        case 'available':
-          return avail === true && !isSel
-        case 'unavailable':
-          return avail === false
-        case 'unknown':
-          return avail !== true && avail !== false
-        case 'all':
-        default:
-          return true
-      }
-    })
-  })
 
   // Avertissements pour l'événement sélectionné
   const eventStatus = computed(() => selectedEvent.value ? getEventStatus(selectedEvent.value.id) : null)
@@ -4138,15 +4364,58 @@ function isAvailableForPlayerRole(player, eventId) {
   return availabilityData === true
 }
 
+// Fonction pour vérifier si un joueur est disponible pour un rôle spécifique
+function isAvailableForRole(playerName, role, eventId) {
+  const availabilityData = availability.value[playerName]?.[eventId]
+  
+  // Gestion du nouveau format avec rôles
+  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
+    // Le joueur doit être disponible ET avoir le rôle demandé
+    return availabilityData.available && availabilityData.roles && availabilityData.roles.includes(role)
+  }
+  
+  // Fallback pour l'ancien format (boolean direct)
+  // Dans l'ancien format, true signifiait "disponible en tant que joueur"
+  // Donc on ne peut vérifier que pour le rôle "player"
+  if (role === 'player') {
+    return availabilityData === true
+  }
+  
+  // Pour les autres rôles, on ne peut pas vérifier dans l'ancien format
+  return false
+}
+
 function getAvailabilityData(player, eventId) {
   const availabilityData = availability.value[player]?.[eventId]
   
   // Gestion du nouveau format avec rôles
   if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
+    // Si le joueur est sélectionné, on ne retourne que le rôle de sélection
+    const selectionRole = getPlayerSelectionRole(player, eventId)
+    if (selectionRole) {
+      return {
+        ...availabilityData,
+        // Remplacer les rôles de disponibilité par le seul rôle de sélection
+        roles: [selectionRole],
+        // Indiquer que c'est un affichage de sélection
+        isSelectionDisplay: true
+      }
+    }
+    
     return availabilityData
   }
   
   // Fallback pour l'ancien format (boolean direct)
+  const selectionRole = getPlayerSelectionRole(player, eventId)
+  if (selectionRole) {
+    return {
+      available: !!availabilityData,
+      roles: [selectionRole],
+      comment: null,
+      isSelectionDisplay: true
+    }
+  }
+  
   return {
     available: !!availabilityData,
     roles: availabilityData ? ['player'] : [],
@@ -4160,139 +4429,140 @@ function isSelected(player, eventId) {
   return selected.includes(player) && avail === true
 }
 
-async function tirer(eventId, count = 6) {
-  console.log('🎲 tirer appelé:', { eventId, count })
+async function drawMultiRoles(eventId) {
+  console.log('🎲 drawMultiRoles appelé:', { eventId })
   const event = events.value.find(e => e.id === eventId)
-  const requiredCount = event?.playerCount || 6
   
-  console.log('📅 Événement trouvé:', { eventTitle: event?.title, requiredCount })
+  if (!event) {
+    console.error('❌ Événement non trouvé:', eventId)
+    return
+  }
+  
+  // Récupérer les rôles attendus pour cet événement
+  const roles = event.roles || { player: event.playerCount || 6 }
+  console.log('📅 Événement trouvé:', { eventTitle: event.title, roles })
   
   // Récupérer la sélection actuelle
-  const currentSelection = getSelectionPlayers(eventId)
+  const currentSelection = selections.value[eventId]
   console.log('👥 Sélection actuelle:', currentSelection)
   
-  // Vérifier si la sélection est complète (tous les slots remplis)
-  const isSelectionComplete = currentSelection.length >= requiredCount
+  // Nouvelle structure de sélection par rôle
+  const newSelections = {}
   
-  if (isSelectionComplete) {
-    // Cas : sélection complète, on refait un tirage complet
-    // Nouveau tirage complet nécessaire
+  // Pour chaque rôle dans l'ordre d'affichage
+  for (const role of ROLE_DISPLAY_ORDER) {
+    const requiredCount = roles[role] || 0
     
-    // Exclure les joueurs qui ont décliné cette sélection
-    const declinedPlayers = getDeclinedPlayers(eventId)
-    const candidates = players.value.filter(p => 
-      isAvailableForPlayerRole(p.name, eventId) && !declinedPlayers.includes(p.name)
-    )
-
-    // Tirage pondéré : moins sélectionné = plus de chances
-    const weightedCandidates = candidates.map(player => {
-      const s = countSelections(player.name)
-      return {
-        name: player.name,
-        weight: 1 / (1 + s) // poids inverse du nombre de sélections
-      }
-    })
-
-    const tirage = []
-    const pool = [...weightedCandidates]
-
-    while (tirage.length < requiredCount && pool.length > 0) {
-      const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
-      let r = Math.random() * totalWeight
-
-      const chosenIndex = pool.findIndex(p => {
-        r -= p.weight
-        return r <= 0
-      })
-
-      if (chosenIndex >= 0) {
-        tirage.push(pool[chosenIndex].name)
-        pool.splice(chosenIndex, 1)
-      }
-    }
-
-    // Utiliser la nouvelle structure de données
-    selections.value[eventId] = {
-      players: tirage,
-      confirmed: false,
-      confirmedAt: null,
-      updatedAt: new Date()
-    }
-  } else {
-    // Logique normale : garder les joueurs existants et compléter les slots vides
-    // On garde simplement les joueurs existants et on ajoute les nouveaux à la fin
-    const keepSelectedPlayers = [...currentSelection] // Garder TOUS les joueurs déjà sélectionnés
-    
-    // Calculer combien de places il reste à pourvoir
-    const remainingSlots = requiredCount - keepSelectedPlayers.length
-    
-    if (remainingSlots <= 0) {
-      // Si on a déjà assez de joueurs sélectionnés, on garde la sélection actuelle
-      selections.value[eventId] = {
-        players: keepSelectedPlayers,
-        confirmed: false,
-        confirmedAt: null,
-        updatedAt: new Date()
-      }
-    } else {
-      // Tirage pour les places manquantes
-      const alreadySelected = new Set(keepSelectedPlayers)
-      const declinedPlayers = getDeclinedPlayers(eventId)
-      const candidates = players.value.filter(p => 
-        isAvailableForPlayerRole(p.name, eventId) && 
-        !alreadySelected.has(p.name) && 
-        !declinedPlayers.includes(p.name)
-      )
-
-      // Tirage pondéré : moins sélectionné = plus de chances
-      const weightedCandidates = candidates.map(player => {
-        const s = countSelections(player.name)
-        return {
-          name: player.name,
-          weight: 1 / (1 + s) // poids inverse du nombre de sélections
-        }
-      })
-
-      const newTirage = []
-      const pool = [...weightedCandidates]
-
-      while (newTirage.length < remainingSlots && pool.length > 0) {
-        const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
-        let r = Math.random() * totalWeight
-
-        const chosenIndex = pool.findIndex(p => {
-          r -= p.weight
-          return r <= 0
-        })
-
-        if (chosenIndex >= 0) {
-          newTirage.push(pool[chosenIndex].name)
-          pool.splice(chosenIndex, 1)
-        }
-      }
-
-      // Combiner les joueurs gardés et les nouveaux tirés
-      const finalSelection = [...keepSelectedPlayers, ...newTirage]
+    if (requiredCount > 0) {
+      console.log(`🎭 Draw pour le rôle ${role}: ${requiredCount} personnes`)
       
-      selections.value[eventId] = {
-        players: finalSelection,
-        confirmed: false,
-        confirmedAt: null,
-        updatedAt: new Date()
+      // Récupérer les joueurs déjà sélectionnés pour ce rôle
+      const currentRoleSelection = currentSelection?.roles?.[role] || []
+      
+      // Récupérer TOUS les joueurs déjà sélectionnés pour TOUS les rôles
+      const allAlreadySelected = Object.values(newSelections).flat().filter(Boolean)
+      
+      // Déterminer si on refait un tirage complet ou si on complète
+      const isRoleComplete = currentRoleSelection.length >= requiredCount
+      
+      if (isRoleComplete) {
+        // Draw complet pour ce rôle
+        newSelections[role] = await drawForRole(role, requiredCount, eventId, allAlreadySelected)
+      } else {
+        // Garder les joueurs existants et compléter
+        const remainingSlots = requiredCount - currentRoleSelection.length
+        if (remainingSlots > 0) {
+          // Combiner les joueurs gardés et les nouveaux
+          const newPlayers = await drawForRole(role, remainingSlots, eventId, [...currentRoleSelection, ...allAlreadySelected])
+          newSelections[role] = [...currentRoleSelection, ...newPlayers]
+        } else {
+          newSelections[role] = [...currentRoleSelection]
+        }
       }
     }
   }
-
-  console.log('💾 Sauvegarde de la sélection:', { eventId, players: selections.value[eventId].players, seasonId: seasonId.value })
-  await saveSelection(eventId, selections.value[eventId].players, seasonId.value)
   
+  // Sauvegarder la nouvelle sélection
+  const allPlayers = Object.values(newSelections).flat().filter(Boolean)
+  selections.value[eventId] = {
+    // Ancien format (rétrocompatible)
+    players: allPlayers,
+    
+    // Nouveau format (par rôle)
+    roles: newSelections,
+    
+    confirmed: false,
+    confirmedAt: null,
+    updatedAt: new Date()
+  }
+  
+  console.log('💾 Nouvelle sélection sauvegardée:', selections.value[eventId])
+  console.log('👥 Nombre total de joueurs:', allPlayers.length)
+  console.log('🎭 Rôles et joueurs:', newSelections)
+  
+  // Sauvegarder en base
+  await saveSelection(eventId, newSelections, seasonId.value)
   
   updateAllStats()
   updateAllChances()
 }
 
-async function tirerProtected(eventId, count = 6) {
-  console.log('🛡️ tirerProtected appelé:', { eventId, count })
+
+// Fonction helper pour draw des joueurs pour un rôle spécifique
+async function drawForRole(role, count, eventId, alreadySelected = []) {
+  console.log(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected })
+  
+  // Exclure les joueurs qui ont décliné cette sélection
+  const declinedPlayers = getDeclinedPlayers(eventId)
+  
+  // Filtrer les candidats disponibles pour ce rôle
+  const candidates = players.value.filter(p => {
+    // Vérifier la disponibilité pour ce rôle spécifique
+    const isAvailable = isAvailableForRole(p.name, role, eventId)
+    const notDeclined = !declinedPlayers.includes(p.name)
+    const notAlreadySelected = !alreadySelected.includes(p.name)
+    
+    return isAvailable && notDeclined && notAlreadySelected
+  })
+  
+  if (candidates.length === 0) {
+    console.log(`⚠️ Aucun candidat disponible pour le rôle ${role}`)
+    return []
+  }
+  
+  // Draw pondéré : moins sélectionné = plus de chances
+  const weightedCandidates = candidates.map(player => {
+    const s = countSelections(player.name)
+    return {
+      name: player.name,
+      weight: 1 / (1 + s) // poids inverse du nombre de sélections
+    }
+  })
+  
+  const draw = []
+  const pool = [...weightedCandidates]
+  
+  while (draw.length < count && pool.length > 0) {
+    const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
+    let r = Math.random() * totalWeight
+    
+    const chosenIndex = pool.findIndex(p => {
+      r -= p.weight
+      return r <= 0
+    })
+    
+    if (chosenIndex >= 0) {
+      draw.push(pool[chosenIndex].name)
+      pool.splice(chosenIndex, 1)
+    }
+  }
+  
+  console.log(`✅ Draw pour le rôle ${role}:`, draw)
+  return draw
+}
+
+async function drawProtected(eventId) {
+  console.log('🛡️ drawProtected appelé:', { eventId })
   // Tirage protégé
   // État de la modal de sélection avant
   
@@ -4300,14 +4570,14 @@ async function tirerProtected(eventId, count = 6) {
   const wasSelectionModalOpen = showSelectionModal.value
   const selectionModalEventId = selectionModalEvent.value?.id
   
-  // Vérifier si c'est une reselection avant de faire le tirage
+  // Vérifier si c'est une reselection avant de faire le draw
   const wasReselection = getSelectionPlayers(eventId).length > 0
   
   // Sauvegarder l'ancienne sélection pour comparer
   const oldSelection = wasReselection ? [...getSelectionPlayers(eventId)] : []
   
-  console.log('🎲 Appel de tirer...')
-  await tirer(eventId, count)
+  console.log('🎲 Appel de drawMultiRoles...')
+  await drawMultiRoles(eventId)
   
   
   // État de la modal de sélection après
@@ -4627,9 +4897,7 @@ async function confirmTirage() {
   if (eventIdToReselect.value) {
     try {
       // Lancer directement la sélection (le PIN a déjà été validé)
-      const event = events.value.find(e => e.id === eventIdToReselect.value)
-      const count = event?.playerCount || 6
-      await tirerProtected(eventIdToReselect.value, count)
+      await drawProtected(eventIdToReselect.value)
     } catch (error) {
       console.error('Erreur lors de la confirmation du tirage:', error)
     } finally {
@@ -4974,7 +5242,7 @@ async function executePendingOperation(operation) {
           showEventDetailsModal.value = false
         } else {
           // Lancer directement la sélection pour compléter les slots vides
-          await tirerProtected(data.eventId, data.count)
+          await drawProtected(data.eventId)
           // Fermer seulement la popin de détails, garder la popin de sélection
           showEventDetailsModal.value = false
         }
@@ -5375,7 +5643,37 @@ function startEditingFromDetails() {
   editingTitle.value = selectedEvent.value.title;
   editingDate.value = selectedEvent.value.date;
   editingDescription.value = selectedEvent.value.description || '';
-  editingPlayerCount.value = selectedEvent.value.playerCount || 6;
+  editingArchived.value = !!selectedEvent.value.archived;
+  
+  // Initialiser les rôles avec les valeurs existantes ou par défaut
+  if (selectedEvent.value.roles) {
+    editingRoles.value = {
+      [ROLES.PLAYER]: selectedEvent.value.roles[ROLES.PLAYER] ?? selectedEvent.value.playerCount ?? 6,
+      [ROLES.DJ]: selectedEvent.value.roles[ROLES.DJ] ?? 1,
+      [ROLES.MC]: selectedEvent.value.roles[ROLES.MC] ?? 1,
+      [ROLES.VOLUNTEER]: selectedEvent.value.roles[ROLES.VOLUNTEER] ?? 5,
+      [ROLES.REFEREE]: selectedEvent.value.roles[ROLES.REFEREE] ?? 1,
+      [ROLES.ASSISTANT_REFEREE]: selectedEvent.value.roles[ROLES.ASSISTANT_REFEREE] ?? 2,
+      [ROLES.LIGHTING]: selectedEvent.value.roles[ROLES.LIGHTING] ?? 0,
+      [ROLES.COACH]: selectedEvent.value.roles[ROLES.COACH] ?? 0,
+      [ROLES.STAGE_MANAGER]: selectedEvent.value.roles[ROLES.STAGE_MANAGER] ?? 1
+    }
+  } else {
+    // Fallback pour les anciens événements sans rôles
+    editingRoles.value = {
+      [ROLES.PLAYER]: selectedEvent.value.playerCount ?? 6,
+      [ROLES.DJ]: 1,
+      [ROLES.MC]: 1,
+      [ROLES.VOLUNTEER]: 5,
+      [ROLES.REFEREE]: 1,
+      [ROLES.ASSISTANT_REFEREE]: 2,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 1
+    }
+  }
+  
+  editingShowAllRoles.value = false;
   showEventDetailsModal.value = false; // Fermer le popin
 }
 
@@ -5880,19 +6178,39 @@ function getSelectionPlayers(eventId) {
   const selection = selections.value[eventId]
   
   if (!selection) {
+    console.log('🔍 getSelectionPlayers: pas de sélection pour', eventId)
     return []
   }
   
+  console.log('🔍 getSelectionPlayers: sélection trouvée:', selection)
+  
   // Si c'est la nouvelle structure avec confirmed
   if (selection.players && Array.isArray(selection.players)) {
+    console.log('🔍 getSelectionPlayers: utilisant selection.players:', selection.players)
     return selection.players
   }
   
   // Si c'est l'ancienne structure (array direct)
   if (Array.isArray(selection)) {
+    console.log('🔍 getSelectionPlayers: utilisant selection (array):', selection)
     return selection
   }
   
+  // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
+  if (selection.roles && typeof selection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(selection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    // Retourner un tableau unique (sans doublons)
+    const uniquePlayers = [...new Set(allPlayers)]
+    console.log('🔍 getSelectionPlayers: utilisant selection.roles, joueurs extraits:', uniquePlayers)
+    return uniquePlayers
+  }
+  
+  console.log('🔍 getSelectionPlayers: aucun format reconnu, retour vide')
   return []
 }
 
@@ -5949,6 +6267,24 @@ function getPlayerSelectionStatus(playerName, eventId) {
   
   // Si c'est l'ancienne structure ou pas de statut, retourner 'pending'
   return 'pending'
+}
+
+// Fonction helper pour obtenir le rôle de sélection d'un joueur
+function getPlayerSelectionRole(playerName, eventId) {
+  const selection = selections.value[eventId]
+  
+  if (!selection || !selection.roles) {
+    return null
+  }
+  
+  // Chercher dans quel rôle le joueur a été sélectionné
+  for (const [role, players] of Object.entries(selection.roles)) {
+    if (Array.isArray(players) && players.includes(playerName)) {
+      return role
+    }
+  }
+  
+  return null
 }
 
 // Fonctions pour la nouvelle popin de sélection
@@ -6499,7 +6835,15 @@ function handlePlayerClaimUpdate(data) {
 
 // Fonctions pour la modale de disponibilité avec rôles
 function openAvailabilityModal(data) {
-  console.log('🔍 openAvailabilityModal - data:', data)
+  // Récupérer les rôles attendus pour ce spectacle
+  let eventRoles = {}
+  if (data.eventId) {
+    const event = events.value.find(e => e.id === data.eventId)
+    if (event && event.roles) {
+      eventRoles = event.roles
+    }
+  }
+  
   availabilityModalData.value = {
     playerName: data.playerName,
     eventId: data.eventId,
@@ -6508,9 +6852,9 @@ function openAvailabilityModal(data) {
     availabilityData: data.availabilityData,
     isReadOnly: data.isReadOnly || false,
     chancePercent: data.chancePercent,
-    isProtected: data.isProtected || false
+    isProtected: data.isProtected || false,
+    eventRoles: eventRoles
   }
-  console.log('🔍 openAvailabilityModal - availabilityModalData:', availabilityModalData.value)
   
   showAvailabilityModal.value = true
 }

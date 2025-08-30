@@ -19,7 +19,7 @@
     <div class="flex flex-col items-center justify-center">
       <!-- Texte du statut -->
       <span v-if="isSelected && isAvailable === true && playerSelectionStatus === 'confirmed'" class="text-center">
-        Joue
+        {{ getConfirmedRoleLabel() }}
       </span>
       <span v-else-if="isSelected && isAvailable === true && playerSelectionStatus === 'pending'" class="text-center">
         À confirmer
@@ -41,21 +41,22 @@
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
       <!-- Afficher tous les rôles et l'icône de commentaire -->
-      <template v-if="isAvailable === true && !compact">
+      <template v-if="isAvailable === true">
         <div class="flex items-center gap-1 mt-1">
-          <!-- Tous les rôles -->
+          <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de sélection) -->
           <div class="flex items-center gap-0.5">
             <span 
               v-for="(role, index) in displayRoles" 
               :key="role"
-              class="text-lg md:text-base"
-              :title="`Rôle: ${ROLE_LABELS[role]}`"
+              :class="compact ? 'text-sm' : 'text-lg md:text-base'"
+              :title="isSelectionDisplay ? `Sélectionné comme ${ROLE_LABELS_SINGULAR[role]}` : `Rôle: ${ROLE_LABELS_SINGULAR[role]}`"
             >
               {{ ROLE_EMOJIS[role] }}
             </span>
             <span 
-              v-if="hasMoreRoles" 
-              class="text-base md:text-sm text-gray-400"
+              v-if="hasMoreRoles && !isSelectionDisplay" 
+              :class="compact ? 'text-xs' : 'text-base md:text-sm'"
+              class="text-gray-400"
               :title="`Et ${hiddenRolesCount} autre(s) rôle(s)`"
             >
               ...
@@ -65,7 +66,8 @@
           <!-- Icône commentaire -->
           <span 
             v-if="hasComment" 
-            class="text-base md:text-sm cursor-pointer hover:text-yellow-300 transition-colors ml-1"
+            :class="compact ? 'text-xs' : 'text-base md:text-sm'"
+            class="cursor-pointer hover:text-yellow-300 transition-colors ml-1"
             @click.stop="showCommentModal"
             title="Voir le commentaire"
           >
@@ -93,7 +95,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER } from '../services/storage.js'
+import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER } from '../services/storage.js'
 
 const props = defineProps({
   playerName: {
@@ -150,7 +152,8 @@ const props = defineProps({
     default: () => ({
       available: false,
       roles: [],
-      comment: null
+      comment: null,
+      isSelectionDisplay: false
     })
   },
   eventTitle: {
@@ -202,6 +205,21 @@ const hiddenRolesCount = computed(() => {
 const hasComment = computed(() => {
   return props.availabilityData?.comment && props.availabilityData.comment.trim() !== ''
 })
+
+const isSelectionDisplay = computed(() => {
+  return props.availabilityData?.isSelectionDisplay === true
+})
+
+// Fonction pour obtenir le libellé du rôle confirmé
+function getConfirmedRoleLabel() {
+  if (!props.availabilityData?.roles || props.availabilityData.roles.length === 0) {
+    return 'Joue' // Fallback si pas de rôle
+  }
+  
+  // Prendre le premier rôle (normalement il n'y en a qu'un en cas de sélection)
+  const role = props.availabilityData.roles[0]
+  return ROLE_LABELS_SINGULAR[role] || 'Joue'
+}
 
 const shouldShowChance = computed(() => {
   if (props.chancePercent == null) return false

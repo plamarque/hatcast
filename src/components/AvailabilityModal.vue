@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[600] p-4">
     <div class="bg-gray-900 border border-gray-700 rounded-lg max-w-sm w-full max-h-[80vh] overflow-y-auto">
       <!-- Header -->
       <div class="p-4 border-b border-gray-700">
@@ -32,7 +32,11 @@
             {{ isReadOnly ? 'Rôles sélectionnés' : 'Pour quels rôles es-tu disponible ?' }}
           </label>
           
-          <div class="space-y-2">
+          <div v-if="availableRoles.length === 0" class="text-center py-4 text-gray-400">
+            <p>Aucun rôle n'est attendu pour ce spectacle.</p>
+          </div>
+          
+          <div v-else class="space-y-2">
             <!-- Premiers rôles (toujours visibles) -->
             <div class="grid grid-cols-2 gap-2">
               <label 
@@ -49,9 +53,9 @@
                   class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                 >
                 <span class="ml-3 text-lg">{{ ROLE_EMOJIS[role] }}</span>
-                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS[role] }}</span>
+                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS_SINGULAR[role] }}</span>
                 
-                <!-- Pourcentage pour le rôle Joueur -->
+                <!-- Pourcentage pour le rôle Comédien -->
                 <span 
                   v-if="role === 'player' && chancePercent !== null"
                   class="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200"
@@ -68,7 +72,7 @@
             </div>
             
             <!-- Rôles supplémentaires (révélés par "Plus...") -->
-            <div v-if="showAllRoles" class="grid grid-cols-2 gap-2">
+            <div v-if="showAllRoles && hiddenRoles.length > 0" class="grid grid-cols-2 gap-2">
               <label 
                 v-for="role in hiddenRoles" 
                 :key="role"
@@ -83,7 +87,7 @@
                   class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                 >
                 <span class="ml-3 text-lg">{{ ROLE_EMOJIS[role] }}</span>
-                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS[role] }}</span>
+                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS_SINGULAR[role] }}</span>
               </label>
             </div>
             
@@ -165,7 +169,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER } from '../services/storage.js'
 
 const props = defineProps({
   show: {
@@ -211,6 +215,10 @@ const props = defineProps({
   isProtected: {
     type: Boolean,
     default: false
+  },
+  eventRoles: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -221,20 +229,40 @@ const comment = ref('')
 const showAllRoles = ref(false)
 
 // Computed properties pour gérer l'affichage des rôles
+const availableRoles = computed(() => {
+  // Filtrer les rôles pour ne garder que ceux attendus (nombre > 0)
+  return ROLE_DISPLAY_ORDER.filter(role => {
+    const count = props.eventRoles[role] || 0
+    return count > 0
+  })
+})
+
 const visibleRoles = computed(() => {
-  return ROLE_DISPLAY_ORDER.slice(0, 4) // Premiers 4 rôles (2 lignes de 2)
+  return availableRoles.value.slice(0, 4) // Premiers 4 rôles (2 lignes de 2)
 })
 
 const hiddenRoles = computed(() => {
-  return ROLE_DISPLAY_ORDER.slice(4) // Rôles restants
+  return availableRoles.value.slice(4) // Rôles restants
 })
 
 // Initialiser les valeurs quand la modale s'ouvre
 watch(() => props.show, (newShow) => {
   if (newShow) {
-    // Si aucune disponibilité n'a été saisie, pré-cocher "Joueur"
+    // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
     if (!props.currentAvailability.available && props.currentAvailability.roles.length === 0) {
-      selectedRoles.value = [ROLES.PLAYER]
+      // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
+      const defaultRoles = []
+      if (props.eventRoles[ROLES.PLAYER] > 0) {
+        defaultRoles.push(ROLES.PLAYER)
+      }
+      if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+        defaultRoles.push(ROLES.VOLUNTEER)
+      }
+      // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
+      if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+        defaultRoles.push(availableRoles.value[0])
+      }
+      selectedRoles.value = defaultRoles
     } else {
       selectedRoles.value = [...props.currentAvailability.roles]
     }
@@ -246,9 +274,21 @@ watch(() => props.show, (newShow) => {
 // Initialiser aussi quand currentAvailability change
 watch(() => props.currentAvailability, (newAvailability) => {
   if (props.show) {
-    // Si aucune disponibilité n'a été saisie, pré-cocher "Joueur"
+    // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
     if (!newAvailability.available && (!newAvailability.roles || newAvailability.roles.length === 0)) {
-      selectedRoles.value = [ROLES.PLAYER]
+      // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
+      const defaultRoles = []
+      if (props.eventRoles[ROLES.PLAYER] > 0) {
+        defaultRoles.push(ROLES.PLAYER)
+      }
+      if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+        defaultRoles.push(ROLES.VOLUNTEER)
+      }
+      // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
+      if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+        defaultRoles.push(availableRoles.value[0])
+      }
+      selectedRoles.value = defaultRoles
     } else {
       selectedRoles.value = [...(newAvailability.roles || [])]
     }

@@ -41,7 +41,8 @@ export const ROLES = {
   REFEREE: 'referee',
   ASSISTANT_REFEREE: 'assistant_referee',
   LIGHTING: 'lighting',
-  COACH: 'coach'
+  COACH: 'coach',
+  STAGE_MANAGER: 'stage_manager'
 }
 
 export const ROLE_EMOJIS = {
@@ -52,18 +53,33 @@ export const ROLE_EMOJIS = {
   [ROLES.REFEREE]: '🙅',
   [ROLES.ASSISTANT_REFEREE]: '💁',
   [ROLES.LIGHTING]: '🔦',
-  [ROLES.COACH]: '🧢'
+  [ROLES.COACH]: '🧢',
+  [ROLES.STAGE_MANAGER]: '🎬'
 }
 
 export const ROLE_LABELS = {
-  [ROLES.PLAYER]: 'Joueur',
+  [ROLES.PLAYER]: 'Comédiens',
+  [ROLES.VOLUNTEER]: 'Volontaires',
+  [ROLES.MC]: 'MC',
+  [ROLES.DJ]: 'DJ',
+  [ROLES.REFEREE]: 'Arbitre',
+  [ROLES.ASSISTANT_REFEREE]: 'Assistant',
+  [ROLES.LIGHTING]: 'Lumière',
+  [ROLES.COACH]: 'Coach',
+  [ROLES.STAGE_MANAGER]: 'Régisseur'
+}
+
+// Labels au singulier pour les modales de disponibilité (individuelles)
+export const ROLE_LABELS_SINGULAR = {
+  [ROLES.PLAYER]: 'Comédien',
   [ROLES.VOLUNTEER]: 'Volontaire',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
   [ROLES.REFEREE]: 'Arbitre',
   [ROLES.ASSISTANT_REFEREE]: 'Assistant',
   [ROLES.LIGHTING]: 'Lumière',
-  [ROLES.COACH]: 'Coach'
+  [ROLES.COACH]: 'Coach',
+  [ROLES.STAGE_MANAGER]: 'Régisseur'
 }
 
 // Ordre d'affichage des rôles
@@ -75,7 +91,8 @@ export const ROLE_DISPLAY_ORDER = [
   ROLES.REFEREE,
   ROLES.ASSISTANT_REFEREE,
   ROLES.LIGHTING,
-  ROLES.COACH
+  ROLES.COACH,
+  ROLES.STAGE_MANAGER
 ]
 
 export function setStorageMode(value) {
@@ -419,8 +436,16 @@ export async function loadSelections(seasonId = null) {
     selSnap.forEach(doc => {
       const data = doc.data()
       
+      // Migration automatique vers le nouveau format si nécessaire
+      let roles = data.roles
+      if (!roles && data.players && Array.isArray(data.players)) {
+        // Ancien format : créer la structure par rôle
+        roles = { player: data.players }
+      }
+      
       res[doc.id] = {
         players: data.players || [],
+        roles: roles || {},
         confirmed: data.confirmed || false,
         confirmedAt: data.confirmedAt || null,
         updatedAt: data.updatedAt || null,
@@ -505,20 +530,42 @@ export async function saveSelection(eventId, players, seasonId = null) {
       // Récupérer l'ancienne sélection pour comparer
       const oldSelectionDoc = await getDoc(selRef)
       
+      // Déterminer le format des données d'entrée
+      let isNewFormat = false
+      let allPlayers = []
+      let roles = {}
+      
+      if (Array.isArray(players)) {
+        // Ancien format : array de noms
+        allPlayers = players
+        roles = { player: players } // Migration automatique vers le nouveau format
+      } else if (players && typeof players === 'object') {
+        // Nouveau format : objet avec rôles
+        isNewFormat = true
+        roles = players
+        // Extraire tous les joueurs de tous les rôles
+        allPlayers = Object.values(players).flat().filter(Boolean)
+      } else {
+        throw new Error('Format de données invalide pour saveSelection')
+      }
+      
       const oldSelection = oldSelectionDoc.exists && oldSelectionDoc.data() 
         ? (oldSelectionDoc.data().players || []) 
         : []
       
-      // Sauvegarder la nouvelle sélection avec confirmed = false par défaut
-      
       // Initialiser les statuts individuels des joueurs
       const playerStatuses = {}
-      players.forEach(playerName => {
+      allPlayers.forEach(playerName => {
         playerStatuses[playerName] = 'pending' // Tous commencent en attente de confirmation
       })
       
       const selectionData = { 
-        players,
+        // Ancien format (rétrocompatible)
+        players: allPlayers,
+        
+        // Nouveau format (par rôle)
+        roles: isNewFormat ? roles : { player: allPlayers },
+        
         confirmed: false, // Nouvelle sélection = non confirmée
         confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
         playerStatuses, // Statuts individuels des joueurs
@@ -763,14 +810,15 @@ export async function saveEvent(eventData, seasonId = null) {
   const eventWithRoles = {
     ...eventData,
     roles: eventData.roles || {
-      [ROLES.PLAYER]: { count: eventData.playerCount || 6, selected: [] },
-      [ROLES.VOLUNTEER]: { count: 3, selected: [] },
-      [ROLES.MC]: { count: 1, selected: [] },
-      [ROLES.DJ]: { count: 1, selected: [] },
-      [ROLES.REFEREE]: { count: 2, selected: [] },
-      [ROLES.ASSISTANT_REFEREE]: { count: 2, selected: [] },
-      [ROLES.LIGHTING]: { count: 1, selected: [] },
-      [ROLES.COACH]: { count: 1, selected: [] }
+      [ROLES.PLAYER]: eventData.playerCount || 6,
+      [ROLES.VOLUNTEER]: 3,
+      [ROLES.MC]: 1,
+      [ROLES.DJ]: 1,
+      [ROLES.REFEREE]: 2,
+      [ROLES.ASSISTANT_REFEREE]: 2,
+      [ROLES.LIGHTING]: 1,
+      [ROLES.COACH]: 1,
+      [ROLES.STAGE_MANAGER]: 1
     }
   }
   
@@ -918,4 +966,69 @@ export async function isAllPlayersConfirmed(eventId, seasonId = null) {
     console.error('❌ Erreur dans isAllPlayersConfirmed:', error)
     return false
   }
+}
+
+/**
+ * Fonctions helper pour la nouvelle structure multi-rôles
+ */
+
+/**
+ * Extraire tous les joueurs d'une sélection (tous rôles confondus)
+ * @param {Object} selection - Objet de sélection
+ * @returns {Array} - Array de noms de joueurs
+ */
+export function getAllPlayersFromSelection(selection) {
+  if (!selection) return []
+  
+  if (selection.roles && typeof selection.roles === 'object') {
+    // Nouveau format : extraire de tous les rôles
+    return Object.values(selection.roles).flat().filter(Boolean)
+  }
+  
+  // Ancien format ou fallback
+  return selection.players || []
+}
+
+/**
+ * Extraire les joueurs d'un rôle spécifique
+ * @param {Object} selection - Objet de sélection
+ * @param {string} role - Rôle recherché
+ * @returns {Array} - Array de noms de joueurs pour ce rôle
+ */
+export function getPlayersForRole(selection, role) {
+  if (!selection || !selection.roles) return []
+  
+  return selection.roles[role] || []
+}
+
+/**
+ * Vérifier si un joueur est sélectionné pour un rôle spécifique
+ * @param {Object} selection - Objet de sélection
+ * @param {string} playerName - Nom du joueur
+ * @param {string} role - Rôle recherché
+ * @returns {boolean} - true si le joueur est sélectionné pour ce rôle
+ */
+export function isPlayerSelectedForRole(selection, playerName, role) {
+  if (!selection || !selection.roles) return false
+  
+  const rolePlayers = selection.roles[role] || []
+  return rolePlayers.includes(playerName)
+}
+
+/**
+ * Obtenir le rôle d'un joueur dans une sélection
+ * @param {Object} selection - Objet de sélection
+ * @param {string} playerName - Nom du joueur
+ * @returns {string|null} - Rôle du joueur ou null si non trouvé
+ */
+export function getPlayerRole(selection, playerName) {
+  if (!selection || !selection.roles) return null
+  
+  for (const [role, players] of Object.entries(selection.roles)) {
+    if (players.includes(playerName)) {
+      return role
+    }
+  }
+  
+  return null
 }
