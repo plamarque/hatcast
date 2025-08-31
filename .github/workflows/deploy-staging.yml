@@ -40,7 +40,8 @@ jobs:
         npm install -g firebase-tools
         echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}' > service-account.json
         export GOOGLE_APPLICATION_CREDENTIALS="$PWD/service-account.json"
-        firebase deploy --only functions --project impro-selector
+        cd functions && npm install
+        cd .. && firebase deploy --only functions --project impro-selector
         
     - name: Deploy Firestore Rules
       run: |
