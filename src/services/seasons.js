@@ -34,9 +34,19 @@ export async function deleteSeason(seasonId) {
 
 // List all seasons (sorted by creation date desc)
 export async function getSeasons() {
-  const q = query(collection(db, SEASONS_COLLECTION), orderBy('createdAt', 'desc'))
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  try {
+    const q = query(collection(db, SEASONS_COLLECTION), orderBy('createdAt', 'desc'))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    // Gestion robuste des erreurs : collection inexistante = base vide
+    if (error.code === 'permission-denied' || error.code === 'not-found') {
+      console.log('🔍 Collection seasons non trouvée ou vide, retour d\'un tableau vide')
+      return []
+    }
+    console.error('Erreur lors du chargement des saisons:', error)
+    return []
+  }
 }
 
 // Get season by slug

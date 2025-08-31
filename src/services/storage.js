@@ -170,61 +170,111 @@ export function setStorageMode(value) {
 export async function migrateToSeasons() {
   if (mode !== 'firebase') return
 
-  // Vérifier si la collection 'seasons' est vide
-  const seasonsSnap = await getDocs(collection(db, 'seasons'))
-  if (!seasonsSnap.empty) return // Déjà migré
+  try {
+    // Vérifier si la collection 'seasons' est vide
+    const seasonsSnap = await getDocs(collection(db, 'seasons'))
+    if (!seasonsSnap.empty) return // Déjà migré
 
-  // Créer la saison 'Malice 2025-2026'
-  const seasonRef = doc(collection(db, 'seasons'))
-  await setDoc(seasonRef, {
-    name: 'Malice 2025-2026',
-    slug: 'malice-2025-2026',
-    createdAt: serverTimestamp(),
-  })
+    // Créer la saison 'Malice 2025-2026'
+    const seasonRef = doc(collection(db, 'seasons'))
+    await setDoc(seasonRef, {
+      name: 'Malice 2025-2026',
+      slug: 'malice-2025-2026',
+      createdAt: serverTimestamp(),
+    })
 
-  // Copier les joueurs
-  const playersSnap = await getDocs(collection(db, 'players'))
-  for (const playerDoc of playersSnap.docs) {
-    await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
+    // Copier les joueurs
+    const playersSnap = await getDocs(collection(db, 'players'))
+    for (const playerDoc of playersSnap.docs) {
+      await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
+    }
+
+    // Copier les événements
+    const eventsSnap = await getDocs(collection(db, 'events'))
+    for (const eventDoc of eventsSnap.docs) {
+      await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
+    }
+
+    // Copier les disponibilités
+    const availSnap = await getDocs(collection(db, 'availability'))
+    for (const availDoc of availSnap.docs) {
+      await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
+    }
+
+    // Copier les sélections
+    const selSnap = await getDocs(collection(db, 'selections'))
+    for (const selDoc of selSnap.docs) {
+      await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
+    }
+
+    // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
+  } catch (error) {
+    console.warn('⚠️ Erreur lors de la migration des données:', error)
   }
+}
 
-  // Copier les événements
-  const eventsSnap = await getDocs(collection(db, 'events'))
-  for (const eventDoc of eventsSnap.docs) {
-    await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
+// Initialisation automatique pour base vide (staging/development)
+export async function initializeEmptyDatabase() {
+  if (mode !== 'firebase') return
+
+  try {
+    // Vérifier si la collection 'seasons' est vide
+    const seasonsSnap = await getDocs(collection(db, 'seasons'))
+    if (!seasonsSnap.empty) return // Déjà des données
+
+    console.log('🌱 Base vide détectée, création d\'une saison de test...')
+    
+    // Créer une saison de test pour staging/development
+    const seasonRef = doc(collection(db, 'seasons'))
+    await setDoc(seasonRef, {
+      name: 'Saison de Test',
+      slug: 'saison-test',
+      description: 'Saison créée automatiquement pour tester l\'application',
+      createdAt: serverTimestamp(),
+      sortOrder: 1
+    })
+
+    console.log('✅ Saison de test créée avec succès')
+  } catch (error) {
+    console.warn('⚠️ Erreur lors de l\'initialisation de la base vide:', error)
   }
-
-  // Copier les disponibilités
-  const availSnap = await getDocs(collection(db, 'availability'))
-  for (const availDoc of availSnap.docs) {
-    await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
-  }
-
-  // Copier les sélections
-  const selSnap = await getDocs(collection(db, 'selections'))
-  for (const selDoc of selSnap.docs) {
-    await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
-  }
-
-  // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
 }
 
 // Appeler la migration au démarrage si firebase
 export async function initializeStorage() {
   if (mode === 'firebase') {
-    await migrateToSeasons()
+    try {
+      // Essayer d'abord la migration des données existantes
+      await migrateToSeasons()
+      
+      // Si la base est vide, initialiser avec des données de test
+      await initializeEmptyDatabase()
+    } catch (error) {
+      console.warn('⚠️ Erreur lors de l\'initialisation du stockage:', error)
+    }
   }
 }
 
 export async function loadEvents(seasonId = null) {
   let events
   if (mode === 'firebase') {
-    if (seasonId) {
-      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
-      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    } else {
-      const eventsSnap = await getDocs(collection(db, 'events'))
-      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    try {
+      if (seasonId) {
+        const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
+        events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      } else {
+        const eventsSnap = await getDocs(collection(db, 'events'))
+        events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      }
+    } catch (error) {
+      // Gestion robuste des erreurs : collection inexistante = base vide
+      if (error.code === 'permission-denied' || error.code === 'not-found') {
+        console.log('🔍 Collection events non trouvée ou vide, retour d\'un tableau vide')
+        events = []
+      } else {
+        console.error('Erreur lors du chargement des événements:', error)
+        events = []
+      }
     }
   } else {
     events = eventList
@@ -252,12 +302,23 @@ export async function loadEvents(seasonId = null) {
 export async function loadPlayers(seasonId = null) {
   let players
   if (mode === 'firebase') {
-    if (seasonId) {
-      const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
-      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    } else {
-      const playersSnap = await getDocs(collection(db, 'players'))
-      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    try {
+      if (seasonId) {
+        const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
+        players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      } else {
+        const playersSnap = await getDocs(collection(db, 'players'))
+        players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      }
+    } catch (error) {
+      // Gestion robuste des erreurs : collection inexistante = base vide
+      if (error.code === 'permission-denied' || error.code === 'not-found') {
+        console.log('🔍 Collection players non trouvée ou vide, retour d\'un tableau vide')
+        players = []
+      } else {
+        console.error('Erreur lors du chargement des joueurs:', error)
+        players = []
+      }
     }
   } else {
     players = playersList
@@ -496,31 +557,37 @@ export async function loadAvailability(players, events, seasonId = null) {
 
 export async function loadSelections(seasonId = null) {
   if (mode === 'firebase') {
-    const selSnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'selections'))
-      : await getDocs(collection(db, 'selections'))
-    const res = {}
-    selSnap.forEach(doc => {
-      const data = doc.data()
-      
-      // Migration automatique vers le nouveau format si nécessaire
-      let roles = data.roles
-      if (!roles && data.players && Array.isArray(data.players)) {
-        // Ancien format : créer la structure par rôle
-        roles = { player: data.players }
-      }
-      
-      res[doc.id] = {
-        players: data.players || [],
-        roles: roles || {},
-        confirmed: data.confirmed || false,
-        confirmedAt: data.confirmedAt || null,
-        updatedAt: data.updatedAt || null,
-        playerStatuses: data.playerStatuses || {},
-        confirmedByAllPlayers: data.confirmedByAllPlayers || false
-      }
-    })
-    return res
+    try {
+      const selSnap = seasonId
+        ? await getDocs(collection(db, 'seasons', seasonId, 'selections'))
+        : await getDocs(collection(db, 'selections'))
+      const res = {}
+      selSnap.forEach(doc => {
+        const data = doc.data()
+        
+        // Migration automatique vers le nouveau format si nécessaire
+        let roles = data.roles
+        if (!roles && data.players && Array.isArray(data.players)) {
+          // Ancien format : créer la structure par rôle
+          roles = { player: data.players }
+        }
+        
+        res[doc.id] = {
+          players: data.players || [],
+          roles: roles || {},
+          confirmed: data.confirmed || false,
+          confirmedAt: data.confirmedAt || null,
+          updatedAt: data.updatedAt || null,
+          playerStatuses: data.playerStatuses || {},
+          confirmedByAllPlayers: data.confirmedByAllPlayers || false
+        }
+      })
+      return res
+    } catch (error) {
+      // Si la collection n'existe pas encore, retourner un objet vide
+      console.log('🔍 loadSelections - Collection selections non trouvée, utilisation de la structure vide')
+      return {}
+    }
   } else {
     return {} // initially empty
   }
