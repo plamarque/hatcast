@@ -33,11 +33,26 @@ try {
   
   console.log('🌍 Initialisation Firestore avec la base:', database);
   
+  // Forcer la fermeture de toutes les connexions existantes
+  if (window.firebaseDbInstance) {
+    try {
+      window.firebaseDbInstance.terminate();
+      console.log('🔄 Fermeture des connexions Firestore existantes');
+    } catch (error) {
+      console.warn('⚠️ Erreur lors de la fermeture des connexions:', error);
+    }
+  }
+  
   db = initializeFirestore(app, {
     cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
     experimentalForceOwningTab: false, // Permettre le partage entre onglets
     databaseId: database // Spécifier la base de données
   });
+  
+  // Stocker l'instance pour pouvoir la fermer plus tard
+  window.firebaseDbInstance = db;
+  
+  console.log('✅ Firestore initialisé avec la base:', database);
 } catch (error) {
   console.warn('⚠️ Erreur lors de l\'initialisation de la base spécifique, utilisation de la base par défaut:', error);
   db = initializeFirestore(app, {
