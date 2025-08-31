@@ -18,11 +18,33 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-// Initialiser Firestore avec la nouvelle approche de cache
-const db = initializeFirestore(app, {
-  cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
-  experimentalForceOwningTab: false // Permettre le partage entre onglets
-})
+// Initialiser Firestore avec la base de données de l'environnement
+let db;
+try {
+  // Détecter l'environnement depuis l'URL
+  const hostname = window.location.hostname;
+  let database = 'default'; // production par défaut
+  
+  if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
+    database = 'staging';
+  } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134')) {
+    database = 'development';
+  }
+  
+  console.log('🌍 Initialisation Firestore avec la base:', database);
+  
+  db = initializeFirestore(app, {
+    cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
+    experimentalForceOwningTab: false, // Permettre le partage entre onglets
+    databaseId: database // Spécifier la base de données
+  });
+} catch (error) {
+  console.warn('⚠️ Erreur lors de l\'initialisation de la base spécifique, utilisation de la base par défaut:', error);
+  db = initializeFirestore(app, {
+    cacheSizeBytes: 50 * 1024 * 1024,
+    experimentalForceOwningTab: false
+  });
+}
 
 const storage = getStorage(app)
 const auth = getAuth(app)
