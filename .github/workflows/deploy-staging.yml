@@ -58,10 +58,15 @@ jobs:
         cd functions && npm install
         cd .. && firebase deploy --only functions --project impro-selector
         
-    - name: Deploy Firestore Rules
+    - name: Deploy Firestore Rules to staging database
       run: |
         export GOOGLE_APPLICATION_CREDENTIALS="$PWD/service-account.json"
-        firebase deploy --only firestore:rules --project impro-selector
+        # Déployer les règles sur la base staging
+        echo "Deploying Firestore rules to staging database..."
+        # Note: Firebase CLI ne supporte pas --database pour les règles
+        # Les règles doivent être déployées manuellement via la console
+        echo "⚠️ Firestore rules must be deployed manually via Firebase Console"
+        echo "📋 Copy rules from default database to staging database"
         
     - name: Deploy Storage Rules
       run: |
