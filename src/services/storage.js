@@ -4,7 +4,7 @@ import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 
-let mode = 'mock' // or 'firebase'
+let mode = 'firebase' // or 'mock'
 
 let playersList = [
   { id: 'p1', name: 'Alice' },
@@ -170,111 +170,61 @@ export function setStorageMode(value) {
 export async function migrateToSeasons() {
   if (mode !== 'firebase') return
 
-  try {
-    // Vérifier si la collection 'seasons' est vide
-    const seasonsSnap = await getDocs(collection(db, 'seasons'))
-    if (!seasonsSnap.empty) return // Déjà migré
+  // Vérifier si la collection 'seasons' est vide
+  const seasonsSnap = await getDocs(collection(db, 'seasons'))
+  if (!seasonsSnap.empty) return // Déjà migré
 
-    // Créer la saison 'Malice 2025-2026'
-    const seasonRef = doc(collection(db, 'seasons'))
-    await setDoc(seasonRef, {
-      name: 'Malice 2025-2026',
-      slug: 'malice-2025-2026',
-      createdAt: serverTimestamp(),
-    })
+  // Créer la saison 'Malice 2025-2026'
+  const seasonRef = doc(collection(db, 'seasons'))
+  await setDoc(seasonRef, {
+    name: 'Malice 2025-2026',
+    slug: 'malice-2025-2026',
+    createdAt: serverTimestamp(),
+  })
 
-    // Copier les joueurs
-    const playersSnap = await getDocs(collection(db, 'players'))
-    for (const playerDoc of playersSnap.docs) {
-      await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
-    }
-
-    // Copier les événements
-    const eventsSnap = await getDocs(collection(db, 'events'))
-    for (const eventDoc of eventsSnap.docs) {
-      await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
-    }
-
-    // Copier les disponibilités
-    const availSnap = await getDocs(collection(db, 'availability'))
-    for (const availDoc of availSnap.docs) {
-      await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
-    }
-
-    // Copier les sélections
-    const selSnap = await getDocs(collection(db, 'selections'))
-    for (const selDoc of selSnap.docs) {
-      await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
-    }
-
-    // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
-  } catch (error) {
-    console.warn('⚠️ Erreur lors de la migration des données:', error)
+  // Copier les joueurs
+  const playersSnap = await getDocs(collection(db, 'players'))
+  for (const playerDoc of playersSnap.docs) {
+    await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
   }
-}
 
-// Initialisation automatique pour base vide (staging/development)
-export async function initializeEmptyDatabase() {
-  if (mode !== 'firebase') return
-
-  try {
-    // Vérifier si la collection 'seasons' est vide
-    const seasonsSnap = await getDocs(collection(db, 'seasons'))
-    if (!seasonsSnap.empty) return // Déjà des données
-
-    console.log('🌱 Base vide détectée, création d\'une saison de test...')
-    
-    // Créer une saison de test pour staging/development
-    const seasonRef = doc(collection(db, 'seasons'))
-    await setDoc(seasonRef, {
-      name: 'Saison de Test',
-      slug: 'saison-test',
-      description: 'Saison créée automatiquement pour tester l\'application',
-      createdAt: serverTimestamp(),
-      sortOrder: 1
-    })
-
-    console.log('✅ Saison de test créée avec succès')
-  } catch (error) {
-    console.warn('⚠️ Erreur lors de l\'initialisation de la base vide:', error)
+  // Copier les événements
+  const eventsSnap = await getDocs(collection(db, 'events'))
+  for (const eventDoc of eventsSnap.docs) {
+    await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
   }
+
+  // Copier les disponibilités
+  const availSnap = await getDocs(collection(db, 'availability'))
+  for (const availDoc of availSnap.docs) {
+    await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
+  }
+
+  // Copier les sélections
+  const selSnap = await getDocs(collection(db, 'selections'))
+  for (const selDoc of selSnap.docs) {
+    await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
+  }
+
+  // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
 }
 
 // Appeler la migration au démarrage si firebase
 export async function initializeStorage() {
   if (mode === 'firebase') {
-    try {
-      // Essayer d'abord la migration des données existantes
-      await migrateToSeasons()
-      
-      // Si la base est vide, initialiser avec des données de test
-      await initializeEmptyDatabase()
-    } catch (error) {
-      console.warn('⚠️ Erreur lors de l\'initialisation du stockage:', error)
-    }
+    await migrateToSeasons()
   }
 }
 
 export async function loadEvents(seasonId = null) {
   let events
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
-        events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      } else {
-        const eventsSnap = await getDocs(collection(db, 'events'))
-        events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      }
-    } catch (error) {
-      // Gestion robuste des erreurs : collection inexistante = base vide
-      if (error.code === 'permission-denied' || error.code === 'not-found') {
-        console.log('🔍 Collection events non trouvée ou vide, retour d\'un tableau vide')
-        events = []
-      } else {
-        console.error('Erreur lors du chargement des événements:', error)
-        events = []
-      }
+    if (seasonId) {
+      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
+      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } else {
+      const eventsSnap = await getDocs(collection(db, 'events'))
+      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     }
   } else {
     events = eventList
@@ -302,23 +252,12 @@ export async function loadEvents(seasonId = null) {
 export async function loadPlayers(seasonId = null) {
   let players
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
-        players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      } else {
-        const playersSnap = await getDocs(collection(db, 'players'))
-        players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      }
-    } catch (error) {
-      // Gestion robuste des erreurs : collection inexistante = base vide
-      if (error.code === 'permission-denied' || error.code === 'not-found') {
-        console.log('🔍 Collection players non trouvée ou vide, retour d\'un tableau vide')
-        players = []
-      } else {
-        console.error('Erreur lors du chargement des joueurs:', error)
-        players = []
-      }
+    if (seasonId) {
+      const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
+      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } else {
+      const playersSnap = await getDocs(collection(db, 'players'))
+      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     }
   } else {
     players = playersList

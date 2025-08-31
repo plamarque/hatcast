@@ -429,21 +429,54 @@ async function exportSeasonAvailabilityCsv(season) {
       loadEvents(season.id),
       loadPlayers(season.id)
     ])
+    
+    // Filtrer les événements non archivés (même logique que sur les cartes)
+    const activeEvents = events.filter(event => !event.archived)
+    
+    // Debug: afficher le nombre d'événements et de joueurs chargés
+    console.log('Export CSV - Données chargées:', {
+      seasonId: season.id,
+      eventsCount: events.length,
+      activeEventsCount: activeEvents.length,
+      playersCount: players.length,
+      events: events.map(e => ({ id: e.id, title: e.title, date: e.date, archived: e.archived })),
+      activeEvents: activeEvents.map(e => ({ id: e.id, title: e.title, date: e.date, archived: e.archived })),
+      players: players.map(p => ({ id: p.id, name: p.name, order: p.order }))
+    })
+    
     const [availability, selections] = await Promise.all([
-      loadAvailability(players, events, season.id),
+      loadAvailability(players, activeEvents, season.id),
       loadSelections(season.id)
     ])
 
-    // Construire l'en-tête
-    const header = ['Joueur', ...events.map(e => formatCsvHeaderForEvent(e))]
+    // Debug: afficher les données de disponibilité et sélections
+    console.log('Export CSV - Données de disponibilité et sélections:', {
+      availabilityKeys: Object.keys(availability || {}),
+      selectionsKeys: Object.keys(selections || {}),
+      availabilitySample: Object.entries(availability || {}).slice(0, 3),
+      selectionsSample: Object.entries(selections || {}).slice(0, 3)
+    })
+
+    // Construire l'en-tête avec les événements actifs uniquement
+    const header = ['Joueur', ...activeEvents.map(e => formatCsvHeaderForEvent(e))]
+    console.log('Export CSV - En-tête généré:', header)
 
     // Lignes
     const rows = []
+    console.log('Export CSV - Début génération des lignes pour', players.length, 'joueurs')
+    
     for (const player of players) {
       const name = player?.name || ''
       const availMap = availability?.[name] || {}
-      const line = [name, ...events.map(e => cellValue(availMap[e.id], selections?.[e.id], name))]
+      console.log(`Export CSV - Traitement joueur "${name}":`, { availMap })
+      
+      const line = [name, ...activeEvents.map(e => {
+        const cellVal = cellValueNew(availMap[e.id], selections, name, e.id)
+        console.log(`Export CSV - Cellule pour joueur "${name}" événement "${e.title}":`, cellVal)
+        return cellVal
+      })]
       rows.push(line)
+      console.log(`Export CSV - Ligne générée pour "${name}":`, line)
     }
 
     // Générer CSV (avec BOM pour Excel)
@@ -710,4 +743,123 @@ onMounted(() => {
     window.removeEventListener('scroll', handleScroll)
   }
 })
+
+// -------- Nouvelles fonctions pour le format status:roles --------
+
+// Nouvelle fonction pour formater les rôles en CSV
+function formatRolesForCsv(roles) {
+  if (!Array.isArray(roles) || roles.length === 0) {
+    return ''
+  }
+  
+  // Mapper les rôles vers leurs labels en français
+  const roleLabels = {
+    'player': 'Comédien',
+    'dj': 'DJ',
+    'mc': 'MC',
+    'volunteer': 'Volontaire',
+    'referee': 'Arbitre',
+    'assistant_referee': 'Assistant',
+    'lighting': 'Éclairagiste',
+    'coach': 'Coach',
+    'stage_manager': 'Régisseur'
+  }
+  
+  return roles.map(role => roleLabels[role] || role).join(',')
+}
+
+// Nouvelle fonction pour obtenir le statut de sélection d'un joueur
+function getPlayerSelectionStatus(playerName, selections, eventId) {
+  if (!selections || !selections[eventId]) {
+    return null
+  }
+  
+  const selection = selections[eventId]
+  if (selection.playerStatuses && selection.playerStatuses[playerName]) {
+    return selection.playerStatuses[playerName]
+  }
+  
+  return null
+}
+
+// Nouvelle fonction pour vérifier si un joueur est sélectionné
+function isPlayerSelected(playerName, selections, eventId) {
+  if (!selections || !selections[eventId]) {
+    return false
+  }
+  
+  const selection = selections[eventId]
+  if (Array.isArray(selection.players)) {
+    return selection.players.includes(playerName)
+  }
+  
+  return false
+}
+
+// Nouvelle fonction cellValue adaptée au format status:roles
+function cellValueNew(availabilityValue, selections, playerName, eventId) {
+  // Debug temporaire
+  console.log('cellValue debug:', { availabilityValue, selections, playerName, eventId })
+  
+  // Vérifier d'abord le statut de sélection
+  const selectionStatus = getPlayerSelectionStatus(playerName, selections, eventId)
+  const isSelected = isPlayerSelected(playerName, selections, eventId)
+  
+  // Si le joueur est sélectionné, afficher le statut de confirmation
+  if (isSelected && selectionStatus) {
+    const roles = getPlayerSelectionRoles(playerName, selections, eventId)
+    const rolesText = formatRolesForCsv(roles)
+    
+    switch (selectionStatus) {
+      case 'confirmed':
+        return rolesText ? `confirmé:${rolesText}` : 'confirmé'
+      case 'declined':
+        return rolesText ? `décliné:${rolesText}` : 'décliné'
+      case 'pending':
+        return rolesText ? `à confirmer:${rolesText}` : 'à confirmer'
+      default:
+        return rolesText ? `sélectionné:${rolesText}` : 'sélectionné'
+    }
+  }
+  
+  // Si le joueur n'est pas sélectionné, afficher le statut de disponibilité
+  if (availabilityValue && typeof availabilityValue === 'object' && availabilityValue.available !== undefined) {
+    // Nouveau format avec rôles
+    if (availabilityValue.available) {
+      const roles = availabilityValue.roles || []
+      const rolesText = formatRolesForCsv(roles)
+      return rolesText ? `disponible:${rolesText}` : 'disponible'
+    } else {
+      return 'indisponible'
+    }
+  } else if (availabilityValue === true || availabilityValue === 'oui') {
+    // Ancien format (boolean)
+    return 'disponible'
+  } else if (availabilityValue === false || availabilityValue === 'non') {
+    // Ancien format (boolean)
+    return 'indisponible'
+  }
+  
+  // Pas de réponse
+  return ''
+}
+
+// Fonction helper pour obtenir les rôles de sélection d'un joueur
+function getPlayerSelectionRoles(playerName, selections, eventId) {
+  if (!selections || !selections[eventId]) {
+    return []
+  }
+  
+  const selection = selections[eventId]
+  if (selection.roles && typeof selection.roles === 'object') {
+    // Parcourir tous les rôles pour trouver celui qui contient ce joueur
+    for (const [role, players] of Object.entries(selection.roles)) {
+      if (Array.isArray(players) && players.includes(playerName)) {
+        return [role]
+      }
+    }
+  }
+  
+  return []
+}
 </script>

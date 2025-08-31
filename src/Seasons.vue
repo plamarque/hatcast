@@ -996,7 +996,7 @@ async function exportSeasonAvailabilityCsv(season) {
     for (const player of players) {
       const name = player?.name || ''
       const availMap = availability?.[name] || {}
-      const line = [name, ...events.map(e => cellValue(availMap[e.id], selections?.[e.id], name))]
+      const line = [name, ...events.map(e => cellValueNew(availMap[e.id], selections, name, e.id))]
       rows.push(line)
     }
 
@@ -1040,10 +1040,54 @@ function formatCsvHeaderForEvent(event) {
   return `${iso} · ${title}`.trim()
 }
 
-function availabilityToString(value) {
-  if (value === true || value === 'oui') return 'disponible'
-  if (value === false || value === 'non') return 'non disponible'
-  return ''
+// Nouvelle fonction pour formater les rôles en CSV
+function formatRolesForCsv(roles) {
+  if (!Array.isArray(roles) || roles.length === 0) {
+    return ''
+  }
+  
+  // Mapper les rôles vers leurs labels en français
+  const roleLabels = {
+    'player': 'Comédien',
+    'dj': 'DJ',
+    'mc': 'MC',
+    'volunteer': 'Volontaire',
+    'referee': 'Arbitre',
+    'assistant_referee': 'Assistant',
+    'lighting': 'Éclairagiste',
+    'coach': 'Coach',
+    'stage_manager': 'Régisseur'
+  }
+  
+  return roles.map(role => roleLabels[role] || role).join(',')
+}
+
+// Nouvelle fonction pour obtenir le statut de sélection d'un joueur
+function getPlayerSelectionStatus(playerName, selections, eventId) {
+  if (!selections || !selections[eventId]) {
+    return null
+  }
+  
+  const selection = selections[eventId]
+  if (selection.playerStatuses && selection.playerStatuses[playerName]) {
+    return selection.playerStatuses[playerName]
+  }
+  
+  return null
+}
+
+// Nouvelle fonction pour vérifier si un joueur est sélectionné
+function isPlayerSelected(playerName, selections, eventId) {
+  if (!selections || !selections[eventId]) {
+    return false
+  }
+  
+  const selection = selections[eventId]
+  if (Array.isArray(selection.players)) {
+    return selection.players.includes(playerName)
+  }
+  
+  return false
 }
 
 function toCsvString(matrix) {
@@ -1069,13 +1113,68 @@ function sanitizeFilename(name) {
     || 'fichier'
 }
 
-function cellValue(availabilityValue, selectedList, playerName) {
-  const isSelected = Array.isArray(selectedList) && selectedList.includes(playerName)
-  if (isSelected) {
-    if (availabilityValue === false || availabilityValue === 'non') return 'non disponible'
-    return 'sélectionné'
+// Nouvelle fonction cellValue adaptée au format status:roles
+function cellValue(availabilityValue, selections, playerName, eventId) {
+  // Vérifier d'abord le statut de sélection
+  const selectionStatus = getPlayerSelectionStatus(playerName, selections, eventId)
+  const isSelected = isPlayerSelected(playerName, selections, eventId)
+  
+  // Si le joueur est sélectionné, afficher le statut de confirmation
+  if (isSelected && selectionStatus) {
+    const roles = getPlayerSelectionRoles(playerName, selections, eventId)
+    const rolesText = formatRolesForCsv(roles)
+    
+    switch (selectionStatus) {
+      case 'confirmed':
+        return rolesText ? `confirmé:${rolesText}` : 'confirmé'
+      case 'declined':
+        return rolesText ? `décliné:${rolesText}` : 'décliné'
+      case 'pending':
+        return rolesText ? `à confirmer:${rolesText}` : 'à confirmer'
+      default:
+        return rolesText ? `sélectionné:${rolesText}` : 'sélectionné'
+    }
   }
-  return availabilityToString(availabilityValue)
+  
+  // Si le joueur n'est pas sélectionné, afficher le statut de disponibilité
+  if (availabilityValue && typeof availabilityValue === 'object' && availabilityValue.available !== undefined) {
+    // Nouveau format avec rôles
+    if (availabilityValue.available) {
+      const roles = availabilityValue.roles || []
+      const rolesText = formatRolesForCsv(roles)
+      return rolesText ? `disponible:${rolesText}` : 'disponible'
+    } else {
+      return 'indisponible'
+    }
+  } else if (availabilityValue === true || availabilityValue === 'oui') {
+    // Ancien format (boolean)
+    return 'disponible'
+  } else if (availabilityValue === false || availabilityValue === 'non') {
+    // Ancien format (boolean)
+    return 'indisponible'
+  }
+  
+  // Pas de réponse
+  return ''
+}
+
+// Fonction helper pour obtenir les rôles de sélection d'un joueur
+function getPlayerSelectionRoles(playerName, selections, eventId) {
+  if (!selections || !selections[eventId]) {
+    return []
+  }
+  
+  const selection = selections[eventId]
+  if (selection.roles && typeof selection.roles === 'object') {
+    // Parcourir tous les rôles pour trouver celui qui contient ce joueur
+    for (const [role, players] of Object.entries(selection.roles)) {
+      if (Array.isArray(players) && players.includes(playerName)) {
+        return [role]
+      }
+    }
+  }
+  
+  return []
 }
 
 async function moveSeasonUp(index) {

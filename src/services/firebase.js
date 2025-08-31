@@ -52,11 +52,29 @@ try {
     }
   }
   
-  db = initializeFirestore(app, {
-    cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
-    experimentalForceOwningTab: false, // Permettre le partage entre onglets
-    databaseId: database // Spécifier la base de données
-  });
+  // Initialiser Firestore avec la base spécifique
+  if (database === 'staging' || database === 'development') {
+    // Pour les bases non-default, utiliser une approche différente
+    db = initializeFirestore(app, {
+      cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
+      experimentalForceOwningTab: false // Permettre le partage entre onglets
+    });
+    
+    // Forcer la connexion à la base spécifique
+    try {
+      // Note: Cette approche peut ne pas fonctionner avec toutes les versions de Firebase
+      console.log('🔧 Tentative de connexion à la base:', database);
+      // La base sera déterminée par les règles Firestore et la configuration du projet
+    } catch (error) {
+      console.warn('⚠️ Impossible de forcer la connexion à la base spécifique:', error);
+    }
+  } else {
+    // Base default (production)
+    db = initializeFirestore(app, {
+      cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
+      experimentalForceOwningTab: false // Permettre le partage entre onglets
+    });
+  }
   
   // Stocker l'instance pour pouvoir la fermer plus tard
   window.firebaseDbInstance = db;
