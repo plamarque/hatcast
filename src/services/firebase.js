@@ -25,6 +25,14 @@ try {
   const hostname = window.location.hostname;
   let database = 'default'; // production par défaut
   
+  console.log('🔍 Détection de l\'environnement:', {
+    hostname: hostname,
+    includesStaging: hostname.includes('staging'),
+    includesHatcastStaging: hostname.includes('hatcast-staging'),
+    includesLocalhost: hostname.includes('localhost'),
+    includesLocalIP: hostname.includes('192.168.1.134')
+  });
+  
   if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
     database = 'staging';
   } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134')) {
@@ -32,6 +40,7 @@ try {
   }
   
   console.log('🌍 Initialisation Firestore avec la base:', database);
+  console.log('🌍 URL complète:', window.location.href);
   
   // Forcer la fermeture de toutes les connexions existantes
   if (window.firebaseDbInstance) {
@@ -53,6 +62,20 @@ try {
   window.firebaseDbInstance = db;
   
   console.log('✅ Firestore initialisé avec la base:', database);
+  
+  // Vérification post-initialisation
+  setTimeout(() => {
+    try {
+      const actualDatabase = db.app.options.databaseId || 'default';
+      console.log('🔍 Vérification post-initialisation - Base réellement utilisée:', actualDatabase);
+      if (actualDatabase !== database) {
+        console.warn('⚠️ ATTENTION: La base utilisée ne correspond pas à la base configurée!');
+        console.warn('⚠️ Configurée:', database, 'Utilisée:', actualDatabase);
+      }
+    } catch (error) {
+      console.warn('⚠️ Impossible de vérifier la base utilisée:', error);
+    }
+  }, 1000);
 } catch (error) {
   console.warn('⚠️ Erreur lors de l\'initialisation de la base spécifique, utilisation de la base par défaut:', error);
   db = initializeFirestore(app, {
