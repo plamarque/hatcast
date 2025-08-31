@@ -78,13 +78,16 @@ const staySignedIn = ref(true)
 
 // Récupérer l'email pré-rempli depuis localStorage quand la modal s'ouvre
 watch(() => props.show, (newShow) => {
+  console.log('🔑 AccountLoginModal: props.show changé à', newShow)
   if (newShow) {
+    console.log('🔑 AccountLoginModal: Modal ouverte, récupération email pré-rempli')
     const prefilledEmail = localStorage.getItem('prefilledEmail')
     if (prefilledEmail) {
       email.value = prefilledEmail
       // Nettoyer localStorage après utilisation
       localStorage.removeItem('prefilledEmail')
     }
+    console.log('🔑 AccountLoginModal: Email actuel:', email.value)
   }
 }, { immediate: true })
 

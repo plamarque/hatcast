@@ -64,6 +64,18 @@
           <span class="text-base md:text-lg flex-shrink-0">❓</span>
           <span class="truncate">Aide</span>
         </button>
+        
+        <!-- Item Développement (admin uniquement) -->
+        <button 
+          v-if="isAdmin"
+          @click="openDevelopment"
+          class="w-full text-left px-4 py-2 text-sm text-purple-300 hover:bg-purple-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
+          role="menuitem"
+        >
+          <span class="text-base md:text-lg flex-shrink-0">🛠️</span>
+          <span class="truncate">Développement</span>
+        </button>
+        
         <div class="border-t border-white/10 my-1"></div>
         <button 
           data-testid="logout-btn"
@@ -83,23 +95,29 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { auth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
+import adminService from '../services/adminService.js'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
   buttonClass: { type: String, default: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation', 'open-development'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
 const dropdownButton = ref(null)
 const dropdownStyle = ref({})
+const isAdmin = ref(false)
 
 // Réinitialiser isLoading immédiatement quand isConnected change
 watch(() => props.isConnected, (newValue) => {
   // Si l'état de connexion change, on peut afficher le contenu immédiatement
   isLoading.value = false
+  // Vérifier le statut admin si connecté
+  if (newValue) {
+    checkAdminStatus()
+  }
 }, { immediate: true })
 
 // Pas de délai artificiel - afficher immédiatement
@@ -107,8 +125,21 @@ onMounted(() => {
   isLoading.value = false
 })
 
+// Fonction de vérification admin
+async function checkAdminStatus() {
+  try {
+    const adminStatus = await adminService.checkAdminStatus();
+    isAdmin.value = adminStatus;
+  } catch (error) {
+    console.error('❌ Erreur lors de la vérification admin:', error);
+    isAdmin.value = false;
+  }
+}
+
 function openLogin() {
+  console.log('🔑 AccountDropdown: openLogin() appelé')
   emit('open-login')
+  console.log('🔑 AccountDropdown: événement open-login émis')
 }
 
 function toggleDropdown() {
@@ -141,6 +172,11 @@ function openHelp() {
 function openNotifications() {
   isOpen.value = false
   emit('open-notifications')
+}
+
+function openDevelopment() {
+  isOpen.value = false
+  emit('open-development')
 }
 
 async function logout() {

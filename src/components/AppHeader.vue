@@ -59,6 +59,7 @@
             @open-players="openPlayers"
             @logout="logout"
             @open-login="openLogin"
+            @open-development="openDevelopment"
           />
           
           <!-- Actions supplémentaires via slot -->
@@ -81,7 +82,7 @@ const props = defineProps({
   customLogo: { type: String, default: null }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account-creation'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account-creation', 'open-development'])
 
 const route = useRoute()
 
@@ -130,10 +131,16 @@ function logout() {
 }
 
 function openLogin() {
+  console.log('🔑 AppHeader: openLogin() appelé')
   emit('open-login')
+  console.log('🔑 AppHeader: événement open-login émis')
 }
 
 function openAccountCreation() {
   emit('open-account-creation')
+}
+
+function openDevelopment() {
+  emit('open-development')
 }
 </script>

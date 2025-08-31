@@ -3,6 +3,17 @@
     "hatcast": "impro-selector",
     "default": "impro-selector"
   },
-  "targets": {},
+  "targets": {
+    "impro-selector": {
+      "hosting": {
+        "production": [
+          "impro-selector"
+        ],
+        "staging": [
+          "hatcast-staging"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

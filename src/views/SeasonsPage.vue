@@ -343,7 +343,9 @@ function handleLogout() {
 }
 
 function openAccountLogin() {
+  console.log('🔑 SeasonsPage: openAccountLogin() appelé')
   showAccountLogin.value = true
+  console.log('🔑 SeasonsPage: showAccountLogin =', showAccountLogin.value)
 }
 
 function openAccountCreation() {

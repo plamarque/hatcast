@@ -310,7 +310,9 @@ function openAccountMenu() {
 }
 
 function openAccountLogin() {
+  console.log('🔑 HomePage: openAccountLogin() appelé')
   showAccountLogin.value = true
+  console.log('🔑 HomePage: showAccountLogin =', showAccountLogin.value)
 }
 
 function openAccountCreation() {

@@ -9,6 +9,9 @@ const AuditService = require('./auditService')
 const auditTriggers = require('./auditTriggers')
 const auditQueries = require('./auditQueries')
 
+// Import des fonctions admin
+const adminFunctions = require('./adminFunctions')
+
 // Callable: crée un custom token Firebase pour un email et le renvoie
 exports.createCustomTokenForEmail = functions.https.onCall(async (data, context) => {
   try {
@@ -179,7 +182,9 @@ exports.processReminders = functions.pubsub
           }
           
           // Créer les URLs pour le désistement
-          const eventUrl = `https://hatcast.app/season/${reminder.seasonSlug}/event/${reminder.eventId}`
+          // Utiliser la configuration Firebase ou une URL par défaut
+          const baseUrl = functions.config().app?.base_url || 'https://hatcast.app'
+          const eventUrl = `${baseUrl}/season/${reminder.seasonSlug}/event/${reminder.eventId}`
           
           // Créer un magic link pour le désistement (simplifié ici)
           const noUrl = `${eventUrl}?action=desist&player=${encodeURIComponent(reminder.playerName)}`
@@ -356,5 +361,25 @@ async function sendReminderNotification({ reminder, eventUrl, noUrl }) {
     throw error
   }
 }
+
+// ===== FONCTIONS EMAIL =====
+
+// Import des fonctions email
+const emailFunctions = require('./emailFunctions');
+
+// Export des fonctions email
+exports.sendEmail = emailFunctions.sendEmail;
+exports.sendSelectionNotification = emailFunctions.sendSelectionNotification;
+exports.sendAvailabilityNotification = emailFunctions.sendAvailabilityNotification;
+exports.sendPasswordResetEmail = emailFunctions.sendPasswordResetEmail;
+exports.testEmail = emailFunctions.testEmail;
+
+// ===== FONCTIONS ADMIN =====
+
+// Export des fonctions admin
+exports.checkAdminStatus = adminFunctions.checkAdminStatus;
+exports.dumpEnvironment = adminFunctions.dumpEnvironment;
+exports.checkAdminConfig = adminFunctions.checkAdminConfig;
+exports.testAdminAccess = adminFunctions.testAdminAccess;
 
 

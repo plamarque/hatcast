@@ -33,6 +33,7 @@
           @open-players="openPlayers"
           @logout="logout"
           @open-login="openLogin"
+          @open-development="openDevelopment"
         />
         
         <!-- Icône aide seulement quand pas connecté (à côté du bouton connexion) -->
@@ -58,6 +59,7 @@
           @open-players="openPlayers"
           @logout="logout"
           @open-login="openLogin"
+          @open-development="openDevelopment"
         />
       </div>
     </div>
@@ -75,7 +77,7 @@ const props = defineProps({
   seasonSlug: { type: String, default: '' }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development'])
 
 // État de connexion géré localement et de manière cohérente
 const currentUser = ref(null)
@@ -157,5 +159,9 @@ function logout() {
 
 function openAccount() {
   emit('open-account')
+}
+
+function openDevelopment() {
+  emit('open-development')
 }
 </script>

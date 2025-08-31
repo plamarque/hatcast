@@ -14,6 +14,7 @@
       @open-login="openAccount"
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
+      @open-development="openDevelopment"
     />
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
@@ -1337,6 +1338,12 @@
     @request-edit="handleAvailabilityRequestEdit"
   />
 
+  <!-- Modal de développement -->
+  <DevelopmentModal 
+    :show="showDevelopmentModal"
+    @close="showDevelopmentModal = false"
+  />
+
   
 </template>
 
@@ -1558,6 +1565,7 @@ import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
+import DevelopmentModal from './DevelopmentModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1736,6 +1744,9 @@ const notificationSuccessData = ref(null)
 // Variables pour la modale de protection des saisies
 const showPlayerClaim = ref(false)
 const playerClaimData = ref(null)
+
+// Variables pour la modale de développement
+const showDevelopmentModal = ref(false)
 
 // Fonctions pour gérer le dropdown des actions d'événements
 function updateEventMoreActionsPosition() {
@@ -2017,24 +2028,23 @@ function openAccount() {
       if (target) accountAuthPlayer.value = target
       return
     }
+    
+    // Si l'utilisateur est déjà connecté, ne rien faire
+    // Il peut accéder à son compte via le bouton avatar
+    console.log('🔐 Utilisateur déjà connecté, pas d\'action automatique')
+    return
   } catch {}
-  showAccountMenu.value = true
-  
-  // Synchroniser l'URL avec l'état de la modale "Mon Compte"
-  // Éviter la duplication du paramètre open=account
-  const currentPath = `/season/${props.slug}`
-  const currentSearch = new URLSearchParams(window.location.search)
-  
-  // Nettoyer les paramètres existants et ajouter open=account
-  currentSearch.delete('open')
-  currentSearch.set('open', 'account')
-  
-  const newUrl = `${currentPath}?${currentSearch.toString()}`
-  router.push(newUrl)
 }
 
 function openAccountCreation() {
   showAccountCreation.value = true
+}
+
+function openDevelopment() {
+  console.log('🚀 openDevelopment() appelée dans GridBoard');
+  console.log('🔧 showDevelopmentModal avant:', showDevelopmentModal.value);
+  showDevelopmentModal.value = true;
+  console.log('🔧 showDevelopmentModal après:', showDevelopmentModal.value);
 }
 
 async function handleAccountChangePassword() {
@@ -6752,9 +6762,16 @@ async function handleAccountLoginSuccess(data) {
       localStorage.removeItem('pendingNotificationData')
     }
   } else {
-    // Connexion normale, afficher le menu du compte
-    console.log('🔐 Connexion normale, affichage du menu du compte')
-    showAccountMenu.value = true
+    // Connexion normale, ne pas afficher automatiquement le menu du compte
+    // L'utilisateur peut y accéder via le bouton de son avatar s'il le souhaite
+    console.log('🔐 Connexion réussie, utilisateur connecté')
+    
+    // Afficher un message de succès discret
+    showSuccessMessage.value = true
+    successMessage.value = 'Connexion réussie !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 2000)
   }
 }
 

@@ -25,6 +25,8 @@ Basée sur Vue 3, Firebase et TailwindCSS.
    cp .env.example .env.local
    ```
 
+⚠️ **IMPORTANT** : Remplacez toutes les valeurs sensibles (emails, URLs, IPs) par vos propres données dans la configuration.
+
 3. Installez les dépendances :
    ```bash
    npm install

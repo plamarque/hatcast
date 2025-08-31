@@ -219,7 +219,7 @@ cp playwright.config.local.example.js playwright.config.local.js
 
 # Éditer avec ta configuration
 # Exemple :
-# baseURL: 'https://192.168.1.134:5173'
+# baseURL: 'https://votre-ip-locale:5173'
 ```
 
 Le fichier `playwright.config.local.js` est automatiquement ignoré par Git.
@@ -256,7 +256,7 @@ const BASE_URL = process.env.BASE_URL || LOCAL_CONFIG.baseURL || 'http://localho
 ```javascript
 // playwright.config.local.js
 const LOCAL_CONFIG = {
-  baseURL: 'https://192.168.1.134:5173', // Ton IP personnelle
+  baseURL: 'https://votre-ip-locale:5173', // Votre IP locale
 };
 ```
 
