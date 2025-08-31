@@ -95,6 +95,73 @@ export const ROLE_DISPLAY_ORDER = [
   ROLES.STAGE_MANAGER
 ]
 
+// Modèles de rôles prédéfinis pour différents types d'événements
+export const ROLE_TEMPLATES = {
+  match: {
+    name: 'Match',
+    description: 'Compétition avec arbitrage',
+    roles: {
+      [ROLES.PLAYER]: 5,
+      [ROLES.MC]: 1,
+      [ROLES.REFEREE]: 1,
+      [ROLES.ASSISTANT_REFEREE]: 2,
+      [ROLES.VOLUNTEER]: 5,
+      [ROLES.DJ]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
+  cabaret: {
+    name: 'Cabaret',
+    description: 'Spectacle avec MC et DJ',
+    roles: {
+      [ROLES.PLAYER]: 5,
+      [ROLES.MC]: 1,
+      [ROLES.DJ]: 1,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
+  deplacement: {
+    name: 'Déplacement',
+    description: 'Événement extérieur simple',
+    roles: {
+      [ROLES.PLAYER]: 5,
+      [ROLES.MC]: 0,
+      [ROLES.DJ]: 0,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
+  custom: {
+    name: 'Autre',
+    description: 'Configuration personnalisée',
+    roles: {
+      [ROLES.PLAYER]: 0,
+      [ROLES.MC]: 0,
+      [ROLES.DJ]: 0,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  }
+}
+
+// Ordre d'affichage des types
+export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
+
 export function setStorageMode(value) {
   mode = value
 }
@@ -900,23 +967,11 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
         updatedPlayerStatuses[playerName] === 'confirmed'
       )
       
-      console.log('🔍 Vérification état global:', { 
-        players, 
-        updatedPlayerStatuses, 
-        allPlayersConfirmed 
-      })
-      
       // Mettre à jour le statut du joueur ET l'état global de la sélection
       await updateDoc(selRef, {
         [`playerStatuses.${playerName}`]: status,
         confirmedByAllPlayers: allPlayersConfirmed,
         updatedAt: serverTimestamp()
-      })
-      
-      console.log('✅ Statut du joueur et état global mis à jour avec succès:', { 
-        playerName, 
-        status, 
-        confirmedByAllPlayers: allPlayersConfirmed 
       })
       
       return { confirmedByAllPlayers: allPlayersConfirmed }
@@ -937,8 +992,6 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
  * @returns {Promise<boolean>} - true si tous ont confirmé
  */
 export async function isAllPlayersConfirmed(eventId, seasonId = null) {
-  console.log('🔍 isAllPlayersConfirmed appelé:', { eventId, seasonId })
-  
   try {
     if (mode === 'firebase') {
       const selRef = seasonId
@@ -947,7 +1000,6 @@ export async function isAllPlayersConfirmed(eventId, seasonId = null) {
       
       const selectionDoc = await getDoc(selRef)
       if (!selectionDoc.exists) {
-        console.log('❌ Sélection non trouvée')
         return false
       }
       
@@ -955,11 +1007,8 @@ export async function isAllPlayersConfirmed(eventId, seasonId = null) {
       const { confirmedByAllPlayers = false } = selectionData
       
       // Utiliser le champ pré-calculé pour de meilleures performances
-      console.log('🔍 État global de la sélection:', { confirmedByAllPlayers })
-      
       return confirmedByAllPlayers
     } else {
-      console.log('🎭 Mode mock activé')
       return false
     }
   } catch (error) {

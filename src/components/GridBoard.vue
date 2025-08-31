@@ -438,107 +438,26 @@
   </div>
 
   <!-- Modales -->
-  <div v-if="newEventForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouveau spectacle</h2>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
-        <input
-          v-model="newEventTitle"
-          type="text"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-          placeholder="Titre du spectacle"
-        >
-      </div>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
-        <input
-          v-model="newEventDate"
-          type="date"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-        >
-      </div>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
-        <textarea
-          v-model="newEventDescription"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-          rows="3"
-          placeholder="Description du spectacle (optionnel)"
-        ></textarea>
-      </div>
-      <div class="mb-6 flex items-center gap-3">
-        <input id="new-archived" type="checkbox" v-model="newEventArchived" class="w-4 h-4" />
-        <label for="new-archived" class="text-sm font-medium text-gray-300">Créer comme archivé</label>
-      </div>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-3">Équipe</label>
-        
-        <!-- Premiers rôles (toujours visibles) -->
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div v-for="role in visibleRoles" :key="role" class="flex items-center gap-2">
-            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
-            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
-            <input
-              v-model="newEventRoles[role]"
-              type="number"
-              min="0"
-              max="20"
-              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
-            >
-          </div>
-        </div>
-        
-        <!-- Rôles supplémentaires (révélés par "Plus de rôles") -->
-        <div v-if="showAllRoles" class="grid grid-cols-2 gap-3 mb-3">
-          <div v-for="role in hiddenRoles" :key="role" class="flex items-center gap-2">
-            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
-            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
-            <input
-              v-model="newEventRoles[role]"
-              type="number"
-              min="0"
-              max="20"
-              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
-            >
-          </div>
-        </div>
-        
-        <!-- Bouton "Plus de rôles" -->
-        <div v-if="!showAllRoles && hiddenRoles.length > 0" class="text-center">
-          <button
-            @click="showAllRoles = true"
-            type="button"
-            class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-          >
-            Plus de rôles...
-          </button>
-        </div>
-        
-        <!-- Total de l'équipe -->
-        <div class="mt-3 pt-3 border-t border-gray-600">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-gray-300">Total de l'équipe :</span>
-            <span class="text-white font-medium">{{ totalTeamSize }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex justify-end space-x-3">
-        <button
-          @click="cancelNewEvent"
-          class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
-        >
-          Annuler
-        </button>
-        <button
-          @click="createEvent"
-          class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300"
-        >
-          Créer
-        </button>
-      </div>
-    </div>
-  </div>
+  <EventModal
+    :mode="'create'"
+    :is-visible="newEventForm"
+    @save="handleCreateEvent"
+    @cancel="cancelNewEvent"
+  />
+
+  <EventModal
+    :mode="'edit'"
+    :is-visible="!!editingEvent"
+    :event-data="editingEvent ? {
+      title: editingTitle,
+      date: editingDate,
+      description: editingDescription,
+      archived: editingArchived,
+      roles: editingRoles
+    } : null"
+    @save="handleEditEvent"
+    @cancel="cancelEdit"
+  />
 
   <!-- Modale de création de joueur -->
   <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
@@ -655,6 +574,10 @@
            <div class="flex-1 min-w-0">
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
+               <!-- Badge du type d'événement -->
+               <div v-if="selectedEvent?.roles" class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
+                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[determineRoleTemplate(selectedEvent.roles)]?.name || 'Autre' }}</span>
+               </div>
              </div>
              
 
@@ -990,115 +913,7 @@
     @verified="handlePasswordVerified"
   />
 
-  <!-- Modal d'édition d'événement -->
-  <div v-if="editingEvent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier le spectacle</h2>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
-        <input
-          v-model="editingTitle"
-          type="text"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-          @keydown.esc="cancelEdit"
-          @keydown.enter="saveEdit"
-          ref="editTitleInput"
-        >
-      </div>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
-        <input
-          v-model="editingDate"
-          type="date"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-          @keydown.esc="cancelEdit"
-          @keydown.enter="saveEdit"
-        >
-      </div>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
-        <textarea
-          v-model="editingDescription"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-          rows="3"
-          placeholder="Description du spectacle (optionnel)"
-          @keydown.esc="cancelEdit"
-        ></textarea>
-      </div>
-      <div class="mb-6 flex items-center gap-3">
-        <input id="edit-archived" type="checkbox" v-model="editingArchived" class="w-4 h-4" />
-        <label for="edit-archived" class="text-sm font-medium text-gray-300">Archiver ce spectacle</label>
-      </div>
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-3">Équipe</label>
-        
-        <!-- Premiers rôles (toujours visibles) -->
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div v-for="role in visibleRoles" :key="role" class="flex items-center gap-2">
-            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
-            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
-            <input
-              v-model="editingRoles[role]"
-              type="number"
-              min="0"
-              max="20"
-              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
-              @keydown.esc="cancelEdit"
-            >
-          </div>
-        </div>
-        
-        <!-- Rôles supplémentaires (révélés par "Plus de rôles") -->
-        <div v-if="editingShowAllRoles" class="grid grid-cols-2 gap-3 mb-3">
-          <div v-for="role in hiddenRoles" :key="role" class="flex items-center gap-2">
-            <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
-            <span class="text-sm text-gray-300 flex-1">{{ ROLE_LABELS[role] }}</span>
-            <input
-              v-model="editingRoles[role]"
-              type="number"
-              min="0"
-              max="20"
-              class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
-              @keydown.esc="cancelEdit"
-            >
-          </div>
-        </div>
-        
-        <!-- Bouton "Plus de rôles" -->
-        <div v-if="!editingShowAllRoles && hiddenRoles.length > 0" class="text-center">
-          <button
-            @click="editingShowAllRoles = true"
-            type="button"
-            class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-          >
-            Plus de rôles...
-          </button>
-        </div>
-        
-        <!-- Total de l'équipe -->
-        <div class="mt-3 pt-3 border-t border-gray-600">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-gray-300">Total de l'équipe :</span>
-            <span class="text-white font-medium">{{ editingTotalTeamSize }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex justify-end space-x-3">
-        <button
-          @click="cancelEdit"
-          class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
-        >
-          Annuler
-        </button>
-        <button
-          @click="saveEdit"
-          class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300"
-        >
-          Sauvegarder
-        </button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Modal de saisie du PIN -->
   <PinModal
@@ -1682,6 +1497,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER } from '../services/storage.js'
 import { trackPageVisit, trackModalInteraction } from '../services/navigationTracker.js'
 import { useRouter, useRoute } from 'vue-router'
 import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -1705,11 +1521,7 @@ import {
   saveEvent,
   saveAvailability,
   updatePlayer,
-  saveSelection,
-  ROLES,
-  ROLE_EMOJIS,
-  ROLE_LABELS,
-  ROLE_DISPLAY_ORDER
+  saveSelection
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
@@ -1745,6 +1557,7 @@ import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
+import EventModal from './EventModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -2302,6 +2115,11 @@ async function onManageAccountPlayer(assoc) {
 onMounted(async () => {
   // Initialiser l'état d'authentification
   currentUser.value = auth.currentUser
+  
+  // Initialiser les rôles avec le template par défaut (après le prochain tick)
+  nextTick(() => {
+    applyRoleTemplate('cabaret')
+  })
   
   // Écouter les changements d'état d'authentification
   const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
@@ -3048,36 +2866,56 @@ function startEditing(event) {
 async function saveEdit() {
   if (!editingEvent.value || !editingTitle.value.trim() || !editingDate.value) return
 
-  // Calculer le total des rôles et vérifier qu'il y a au moins un comédien
+  // Calculer le total des rôles (peut être 0 pour les événements sans rôles)
   const totalRoles = Object.values(editingRoles.value).reduce((sum, count) => sum + count, 0)
   const playerCount = editingRoles.value[ROLES.PLAYER] || 0
   
-  if (totalRoles === 0) {
-    alert('Veuillez définir au moins un rôle pour l\'équipe')
+  // Permettre les événements sans rôles, mais vérifier la cohérence si des rôles sont définis
+  if (totalRoles > 0 && playerCount === 0) {
+    alert('Il doit y avoir au moins un comédien dans l\'équipe si des rôles sont définis')
     return
   }
+
+  // Utiliser handleEditEvent pour éviter la duplication de code
+  await handleEditEvent({
+    title: editingTitle.value,
+    date: editingDate.value,
+    description: editingDescription.value,
+    archived: editingArchived.value,
+    roles: editingRoles.value
+  })
+}
+
+// Nouvelle fonction pour gérer l'édition via EventModal
+async function handleEditEvent(eventData) {
+  if (!editingEvent.value) return
+
+  // Calculer le total des rôles (peut être 0 pour les événements sans rôles)
+  const totalRoles = Object.values(eventData.roles).reduce((sum, count) => sum + count, 0)
+  const playerCount = eventData.roles[ROLES.PLAYER] || 0
   
-  if (playerCount === 0) {
-    alert('Il doit y avoir au moins un comédien dans l\'équipe')
+  // Permettre les événements sans rôles, mais vérifier la cohérence si des rôles sont définis
+  if (totalRoles > 0 && playerCount === 0) {
+    alert('Il doit y avoir au moins un comédien dans l\'équipe si des rôles sont définis')
     return
   }
 
   try {
-    const eventData = {
-      title: editingTitle.value.trim(),
-      date: editingDate.value,
-      description: editingDescription.value.trim() || '',
+    const eventDataToSave = {
+      title: eventData.title.trim(),
+      date: eventData.date,
+      description: eventData.description.trim() || '',
       playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
-      roles: editingRoles.value, // Nouveau champ pour les rôles
-      archived: !!editingArchived.value
+      roles: eventData.roles, // Nouveau champ pour les rôles
+      archived: !!eventData.archived
     }
     
     // Récupérer l'ancienne date pour comparer
     const oldEvent = events.value.find(e => e.id === editingEvent.value)
     const oldDate = oldEvent?.date
-    const dateChanged = oldDate !== editingDate.value
+    const dateChanged = oldDate !== eventData.date
     
-    await updateEvent(editingEvent.value, eventData, seasonId.value)
+    await updateEvent(editingEvent.value, eventDataToSave, seasonId.value)
     
     // Si la date a changé et qu'il y a des joueurs sélectionnés, recréer les rappels
     if (dateChanged && !eventData.archived) {
@@ -3151,6 +2989,7 @@ async function saveEdit() {
       selections.value = newSelections
     })
     
+    // Réinitialiser l'état d'édition
     editingEvent.value = null
     editingTitle.value = ''
     editingDate.value = ''
@@ -3168,6 +3007,7 @@ async function saveEdit() {
       [ROLES.COACH]: 0,
       [ROLES.STAGE_MANAGER]: 1
     }
+    editingShowRoleInputs.value = false
     editingShowAllRoles.value = false
     
     // Message de succès final
@@ -3178,8 +3018,8 @@ async function saveEdit() {
     }, 3000)
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Erreur lors de l\'édition de l\'événement')
-    alert('Erreur lors de l\'édition de l\'événement. Veuillez réessayer.')
+    console.error('Erreur lors de la modification de l\'événement')
+    alert('Erreur lors de la modification de l\'événement. Veuillez réessayer.')
   }
 }
 
@@ -3326,6 +3166,10 @@ const newEventRoles = ref({
   [ROLES.STAGE_MANAGER]: 1
 })
 const showAllRoles = ref(false)
+const selectedRoleTemplate = ref('cabaret') // Type par défaut (premier de la liste)
+const editingSelectedRoleTemplate = ref('cabaret') // Type par défaut pour l'édition
+const showRoleInputs = ref(false) // Contrôler l'affichage des champs de saisie des rôles
+const editingShowRoleInputs = ref(false) // Contrôler l'affichage des champs de saisie des rôles en édition
 
 // Computed properties pour l'affichage des rôles
 const visibleRoles = computed(() => {
@@ -3344,6 +3188,22 @@ const editingTotalTeamSize = computed(() => {
   return Object.values(editingRoles.value).reduce((sum, count) => sum + count, 0)
 })
 
+// Computed property pour vérifier que les constantes sont disponibles
+const isRoleDataReady = computed(() => {
+  const ready = ROLE_DISPLAY_ORDER && ROLE_DISPLAY_ORDER.length > 0 && 
+                ROLE_LABELS && Object.keys(ROLE_LABELS).length > 0
+  
+  if (!ready) {
+    console.log('🔍 Rôles non prêts:', {
+      ROLE_DISPLAY_ORDER: ROLE_DISPLAY_ORDER,
+      ROLE_LABELS: ROLE_LABELS,
+      newEventRoles: newEventRoles.value
+    })
+  }
+  
+  return ready
+})
+
 // Calculer le total de l'équipe pour un événement existant
 const selectedEventTotalTeamSize = computed(() => {
   if (!selectedEvent.value) return 0
@@ -3359,6 +3219,63 @@ const selectedEventTotalTeamSize = computed(() => {
 // État pour afficher/masquer les détails des rôles
 const showRoleDetails = ref(false)
 
+// Fonction pour appliquer un type de rôles
+function applyRoleTemplate(templateId) {
+  selectedRoleTemplate.value = templateId
+  const template = ROLE_TEMPLATES[templateId]
+  
+  // Appliquer les rôles du type
+  Object.keys(newEventRoles.value).forEach(role => {
+    newEventRoles.value[role] = template.roles[role] || 0
+  })
+}
+
+// Fonction pour appliquer un type de rôles lors de l'édition
+function applyRoleTemplateForEdit(templateId) {
+  editingSelectedRoleTemplate.value = templateId
+  const template = ROLE_TEMPLATES[templateId]
+  
+  // Appliquer les rôles du type
+  Object.keys(editingRoles.value).forEach(role => {
+    editingRoles.value[role] = template.roles[role] || 0
+  })
+}
+
+// Fonction pour déterminer quel type correspond aux rôles actuels
+function determineRoleTemplate(roles) {
+  // Comparer avec chaque type
+  for (const [templateId, template] of Object.entries(ROLE_TEMPLATES)) {
+    if (templateId === 'custom') continue // Ignorer le type personnalisé
+    
+    let matches = true
+    for (const [role, count] of Object.entries(template.roles)) {
+      if (roles[role] !== count) {
+        matches = false
+        break
+      }
+    }
+    
+    if (matches) {
+      return templateId
+    }
+  }
+  
+  // Si aucun type ne correspond, retourner 'custom'
+  return 'custom'
+}
+
+// Fonction pour obtenir la couleur du compteur de rôle selon le détail spectacle
+function getRoleCountColor(count) {
+  if (count === 0) return 'text-blue-500' // Bleu pour 0
+  if (count === 1) return 'text-purple-500' // Violet pour 1
+  if (count === 2) return 'text-orange-500' // Orange pour 2
+  if (count === 6) return 'text-cyan-400' // Cyan pour 6
+  if (count === 15) return 'text-orange-500' // Orange pour 15
+  if (count >= 10) return 'text-green-500' // Vert pour les grands effectifs
+  if (count >= 5) return 'text-blue-400' // Bleu clair pour les effectifs moyens
+  return 'text-pink-500' // Rose pour les autres
+}
+
 // Fonction pour annuler la création d'événement
 
 
@@ -3368,17 +3285,13 @@ async function createEvent() {
     return
   }
 
-  // Calculer le total des rôles et vérifier qu'il y a au moins un joueur
+  // Calculer le total des rôles (peut être 0 pour les événements sans rôles)
   const totalRoles = Object.values(newEventRoles.value).reduce((sum, count) => sum + count, 0)
   const playerCount = newEventRoles.value[ROLES.PLAYER] || 0
   
-  if (totalRoles === 0) {
-    alert('Veuillez définir au moins un rôle pour l\'équipe')
-    return
-  }
-  
-  if (playerCount === 0) {
-    alert('Il doit y avoir au moins un comédien dans l\'équipe')
+  // Permettre les événements sans rôles, mais vérifier la cohérence si des rôles sont définis
+  if (totalRoles > 0 && playerCount === 0) {
+    alert('Il doit y avoir au moins un comédien dans l\'équipe si des rôles sont définis')
     return
   }
 
@@ -3389,6 +3302,31 @@ async function createEvent() {
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: newEventRoles.value, // Nouveau champ pour les rôles
     archived: !!newEventArchived.value
+  }
+
+  // Créer l'événement directement après validation du PIN
+  await createEventProtected(newEvent)
+}
+
+// Nouvelle fonction pour gérer la création via EventModal
+async function handleCreateEvent(eventData) {
+  // Calculer le total des rôles (peut être 0 pour les événements sans rôles)
+  const totalRoles = Object.values(eventData.roles).reduce((sum, count) => sum + count, 0)
+  const playerCount = eventData.roles[ROLES.PLAYER] || 0
+  
+  // Permettre les événements sans rôles, mais vérifier la cohérence si des rôles sont définis
+  if (totalRoles > 0 && playerCount === 0) {
+    alert('Il doit y avoir au moins un comédien dans l\'équipe si des rôles sont définis')
+    return
+  }
+
+  const newEvent = {
+    title: eventData.title.trim(),
+    date: eventData.date,
+    description: eventData.description.trim() || '',
+    playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
+    roles: eventData.roles, // Nouveau champ pour les rôles
+    archived: !!eventData.archived
   }
 
   // Créer l'événement directement après validation du PIN
@@ -4371,7 +4309,17 @@ function isAvailableForRole(playerName, role, eventId) {
   // Gestion du nouveau format avec rôles
   if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
     // Le joueur doit être disponible ET avoir le rôle demandé
-    return availabilityData.available && availabilityData.roles && availabilityData.roles.includes(role)
+    if (availabilityData.available && availabilityData.roles) {
+      // Vérifier si le joueur a le rôle spécifique demandé
+      if (availabilityData.roles.includes(role)) {
+        return true
+      }
+      // Vérifier si le joueur est disponible "en général" (pas de rôles spécifiques)
+      if (availabilityData.roles.length === 0) {
+        return true
+      }
+    }
+    return false
   }
   
   // Fallback pour l'ancien format (boolean direct)
@@ -5674,6 +5622,10 @@ function startEditingFromDetails() {
   }
   
   editingShowAllRoles.value = false;
+  
+  // Détecter automatiquement le type d'événement correspondant aux rôles
+  editingSelectedRoleTemplate.value = determineRoleTemplate(editingRoles.value);
+  
   showEventDetailsModal.value = false; // Fermer le popin
 }
 
@@ -6178,21 +6130,16 @@ function getSelectionPlayers(eventId) {
   const selection = selections.value[eventId]
   
   if (!selection) {
-    console.log('🔍 getSelectionPlayers: pas de sélection pour', eventId)
     return []
   }
   
-  console.log('🔍 getSelectionPlayers: sélection trouvée:', selection)
-  
   // Si c'est la nouvelle structure avec confirmed
   if (selection.players && Array.isArray(selection.players)) {
-    console.log('🔍 getSelectionPlayers: utilisant selection.players:', selection.players)
     return selection.players
   }
   
   // Si c'est l'ancienne structure (array direct)
   if (Array.isArray(selection)) {
-    console.log('🔍 getSelectionPlayers: utilisant selection (array):', selection)
     return selection
   }
   
@@ -6206,11 +6153,9 @@ function getSelectionPlayers(eventId) {
     }
     // Retourner un tableau unique (sans doublons)
     const uniquePlayers = [...new Set(allPlayers)]
-    console.log('🔍 getSelectionPlayers: utilisant selection.roles, joueurs extraits:', uniquePlayers)
     return uniquePlayers
   }
   
-  console.log('🔍 getSelectionPlayers: aucun format reconnu, retour vide')
   return []
 }
 

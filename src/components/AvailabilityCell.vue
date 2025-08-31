@@ -41,7 +41,7 @@
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
       <!-- Afficher tous les rôles et l'icône de commentaire -->
-      <template v-if="isAvailable === true">
+      <template v-if="isAvailable === true && hasSpecificRoles">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de sélection) -->
           <div class="flex items-center gap-0.5">
@@ -68,6 +68,20 @@
             v-if="hasComment" 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"
             class="cursor-pointer hover:text-yellow-300 transition-colors ml-1"
+            @click.stop="showCommentModal"
+            title="Voir le commentaire"
+          >
+            📝
+          </span>
+        </div>
+      </template>
+      
+      <!-- Icône commentaire seule (quand pas de rôles spécifiques) -->
+      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment">
+        <div class="flex items-center justify-center mt-1">
+          <span 
+            :class="compact ? 'text-xs' : 'text-base md:text-sm'"
+            class="cursor-pointer hover:text-yellow-300 transition-colors"
             @click.stop="showCommentModal"
             title="Voir le commentaire"
           >
@@ -181,8 +195,9 @@ const allRoles = computed(() => {
     return []
   }
   
-  // Si c'est un tableau, le trier selon l'ordre d'affichage
+  // Si c'est un tableau, le traiter
   if (Array.isArray(props.availabilityData.roles)) {
+    // Filtrer les rôles selon l'ordre d'affichage
     return ROLE_DISPLAY_ORDER.filter(role => props.availabilityData.roles.includes(role))
   }
   
@@ -208,6 +223,11 @@ const hasComment = computed(() => {
 
 const isSelectionDisplay = computed(() => {
   return props.availabilityData?.isSelectionDisplay === true
+})
+
+// Vérifier s'il y a des rôles spécifiques
+const hasSpecificRoles = computed(() => {
+  return allRoles.value.length > 0
 })
 
 // Fonction pour obtenir le libellé du rôle confirmé

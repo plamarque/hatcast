@@ -26,14 +26,17 @@
 
       <!-- Contenu -->
       <div class="p-4">
-        <!-- Rôles disponibles -->
-        <div class="mb-4">
+        <!-- Rôles disponibles (seulement si des rôles sont définis) -->
+        <div v-if="availableRoles.length > 0" class="mb-4">
           <label class="block text-sm font-medium text-gray-300 mb-3">
             {{ isReadOnly ? 'Rôles sélectionnés' : 'Pour quels rôles es-tu disponible ?' }}
           </label>
           
-          <div v-if="availableRoles.length === 0" class="text-center py-4 text-gray-400">
-            <p>Aucun rôle n'est attendu pour ce spectacle.</p>
+          <div v-if="availableRoles.length === 0" class="space-y-3">
+            <div class="text-center py-4 text-gray-400">
+              <p>Aucun rôle spécifique n'est attendu pour ce spectacle.</p>
+              <p class="text-sm mt-2">Tu peux indiquer ta disponibilité et ajouter un commentaire optionnel.</p>
+            </div>
           </div>
           
           <div v-else class="space-y-2">
@@ -250,19 +253,24 @@ watch(() => props.show, (newShow) => {
   if (newShow) {
     // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
     if (!props.currentAvailability.available && props.currentAvailability.roles.length === 0) {
-      // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
-      const defaultRoles = []
-      if (props.eventRoles[ROLES.PLAYER] > 0) {
-        defaultRoles.push(ROLES.PLAYER)
+      if (availableRoles.value.length > 0) {
+        // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
+        const defaultRoles = []
+        if (props.eventRoles[ROLES.PLAYER] > 0) {
+          defaultRoles.push(ROLES.PLAYER)
+        }
+        if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+          defaultRoles.push(ROLES.VOLUNTEER)
+        }
+        // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
+        if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+          defaultRoles.push(availableRoles.value[0])
+        }
+        selectedRoles.value = defaultRoles
+      } else {
+        // Aucun rôle défini : pas de rôles sélectionnés (disponible "en général")
+        selectedRoles.value = []
       }
-      if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
-        defaultRoles.push(ROLES.VOLUNTEER)
-      }
-      // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
-      if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
-        defaultRoles.push(availableRoles.value[0])
-      }
-      selectedRoles.value = defaultRoles
     } else {
       selectedRoles.value = [...props.currentAvailability.roles]
     }
@@ -274,21 +282,26 @@ watch(() => props.show, (newShow) => {
 // Initialiser aussi quand currentAvailability change
 watch(() => props.currentAvailability, (newAvailability) => {
   if (props.show) {
-    // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
-    if (!newAvailability.available && (!newAvailability.roles || newAvailability.roles.length === 0)) {
-      // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
-      const defaultRoles = []
-      if (props.eventRoles[ROLES.PLAYER] > 0) {
-        defaultRoles.push(ROLES.PLAYER)
-      }
-      if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
-        defaultRoles.push(ROLES.VOLUNTEER)
-      }
-      // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
-      if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
-        defaultRoles.push(availableRoles.value[0])
-      }
-      selectedRoles.value = defaultRoles
+            // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
+        if (!newAvailability.available && (!newAvailability.roles || newAvailability.roles.length === 0)) {
+          if (availableRoles.value.length > 0) {
+            // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
+            const defaultRoles = []
+            if (props.eventRoles[ROLES.PLAYER] > 0) {
+              defaultRoles.push(ROLES.PLAYER)
+            }
+            if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+              defaultRoles.push(ROLES.VOLUNTEER)
+            }
+            // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
+            if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+              defaultRoles.push(availableRoles.value[0])
+            }
+            selectedRoles.value = defaultRoles
+          } else {
+            // Aucun rôle défini : pas de rôles sélectionnés (disponible "en général")
+            selectedRoles.value = []
+          }
     } else {
       selectedRoles.value = [...(newAvailability.roles || [])]
     }
@@ -308,7 +321,8 @@ function formatDate(dateString) {
 }
 
 function handleSave() {
-  if (selectedRoles.value.length === 0) return
+  // Permettre la sauvegarde même sans rôles si aucun rôle n'est défini pour l'événement
+  if (availableRoles.value.length > 0 && selectedRoles.value.length === 0) return
   
   emit('save', {
     available: true,
