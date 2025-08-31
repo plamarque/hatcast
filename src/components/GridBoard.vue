@@ -3492,18 +3492,12 @@ onMounted(async () => {
       // Étape 1: événements
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
-      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
-      events.value = eventsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        playerCount: doc.data().playerCount || 6
-      }))
+      events.value = await loadEvents(seasonId.value)
 
       // Étape 2: joueurs
       currentLoadingLabel.value = 'Chargement des joueurs'
       loadingProgress.value = 45
-      const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
-      players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      players.value = await loadPlayers(seasonId.value)
 
       // Étape 3: disponibilités
       currentLoadingLabel.value = 'Chargement des disponibilités'

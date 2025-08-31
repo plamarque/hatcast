@@ -163,7 +163,9 @@ export const ROLE_TEMPLATES = {
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
 export function setStorageMode(value) {
+  console.log('🔧 setStorageMode appelé avec:', value);
   mode = value
+  console.log('🔧 Mode de stockage défini à:', mode);
 }
 
 // Migration automatique des données globales vers la structure multi-saison
@@ -256,6 +258,7 @@ export async function initializeStorage() {
 }
 
 export async function loadEvents(seasonId = null) {
+  console.log('🔧 loadEvents appelé avec mode:', mode, 'seasonId:', seasonId);
   let events
   if (mode === 'firebase') {
     try {
@@ -300,6 +303,7 @@ export async function loadEvents(seasonId = null) {
 }
 
 export async function loadPlayers(seasonId = null) {
+  console.log('🔧 loadPlayers appelé avec mode:', mode, 'seasonId:', seasonId);
   let players
   if (mode === 'firebase') {
     try {
