@@ -4,19 +4,7 @@
   },
   "firestore": {
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json",
-    "targets": {
-      "production": {
-        "database": "default"
-      },
-      "staging": {
-        "database": "staging"
-      },
-      "development": {
-        "database": "development",
-        "region": "europe-west3"
-      }
-    }
+    "indexes": "firestore.indexes.json"
   },
   "storage": {
     "rules": "storage.rules"
