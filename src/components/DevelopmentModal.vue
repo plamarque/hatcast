@@ -359,13 +359,18 @@ const testPushLoading = ref(false);
 const testPushSuccess = ref('');
 const testPushError = ref('');
 const fcmToken = ref(localStorage.getItem('fcmToken') || '');
-const vapidKeyPreview = (function maskKey(key) { 
-  try { 
-    return key ? (key.length > 20 ? key.slice(0,8) + '…' + key.slice(-6) : key) : '' 
-  } catch { 
-    return '' 
-  } 
-})(import.meta.env?.VITE_FIREBASE_VAPID_KEY);
+const vapidKeyPreview = ref('');
+
+// Fonction pour mettre à jour la VAPID key preview
+async function updateVapidKeyPreview() {
+  try {
+    const configService = await import('../services/configService.js');
+    const vapidKey = configService.default.getVapidKey();
+    vapidKeyPreview.value = vapidKey ? (vapidKey.length > 20 ? vapidKey.slice(0,8) + '…' + vapidKey.slice(-6) : vapidKey) : '';
+  } catch (error) {
+    vapidKeyPreview.value = 'indisponible';
+  }
+}
 
 // Environment debug state
 const environmentInfo = ref(null);
@@ -552,12 +557,14 @@ async function dumpToConsole() {
 
 
 
-onMounted(() => {
+onMounted(async () => {
   if (props.show) {
     try {
       email.value = auth?.currentUser?.email || '';
     } catch {}
   }
+  // Mettre à jour la VAPID key preview
+  await updateVapidKeyPreview();
 });
 
 // Watcher pour actualiser les informations quand la modale de debug s'ouvre

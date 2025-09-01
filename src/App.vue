@@ -1,4 +1,7 @@
 <template>
+  <!-- Badge d'environnement flottant en bas -->
+  <EnvironmentBadge />
+  
   <div data-testid="app-loaded">
     <router-view />
   </div>
@@ -156,6 +159,7 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ensurePushNotificationsActive } from './services/notifications.js'
+import EnvironmentBadge from './components/EnvironmentBadge.vue'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
 const deferredPrompt = ref(null)
