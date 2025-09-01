@@ -1516,7 +1516,7 @@ import { signOut } from 'firebase/auth'
 import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
 import { 
   initializeStorage, 
-  setStorageMode,
+        setEventArchived,
   loadPlayers,
   loadEvents,
   loadAvailability,
