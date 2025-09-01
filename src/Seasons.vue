@@ -652,7 +652,7 @@ import NotificationsModal from './components/NotificationsModal.vue'
 import PlayersModal from './components/PlayersModal.vue'
 import CreateSeasonModal from './components/CreateSeasonModal.vue'
 import logger from './services/logger.js'
-import { loadEvents, loadPlayers, loadAvailability, loadSelections, initializeStorage } from './services/storage.js'
+import { loadEvents, loadPlayers, loadAvailability, loadSelections } from './services/storage.js'
 import { auth } from './services/firebase.js'
 import { getLastVisitedSeason } from './services/seasonPreferences.js'
 import { currentUser, forceSync, waitForInitialization, forceInitialize } from './services/authState.js'
@@ -706,7 +706,6 @@ onMounted(async () => {
     // setStorageMode('firebase') // SUPPRIMÉ
     logger.info('Mode de stockage défini sur Firebase')
     
-    await initializeStorage()
     logger.info('Stockage initialisé')
     
     // Attendre que le service d'authentification soit initialisé

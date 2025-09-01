@@ -1515,8 +1515,7 @@ import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { signOut } from 'firebase/auth'
 import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
 import { 
-  initializeStorage, 
-        setEventArchived,
+  setEventArchived,
   loadPlayers,
   loadEvents,
   loadAvailability,
@@ -3459,9 +3458,6 @@ onMounted(async () => {
   try {
     // Le mode de stockage est maintenant géré par les variables d'environnement
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
-
-    // Migration automatique si besoin
-    await initializeStorage()
 
     // Charger la saison par slug
     const q = query(collection(db, 'seasons'), where('slug', '==', props.slug))

@@ -134,11 +134,6 @@ export const ROLE_TEMPLATES = {
 // Ordre d'affichage des types
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
-// Appeler la migration au démarrage
-export async function initializeStorage() {
-  // Migration obsolète supprimée - la structure multi-saison est déjà en place
-}
-
 export async function loadEvents(seasonId = null) {
   let events
   if (seasonId) {
