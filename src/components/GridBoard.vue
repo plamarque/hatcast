@@ -1514,8 +1514,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER } from '../services/storage.js'
 import { trackPageVisit, trackModalInteraction } from '../services/navigationTracker.js'
 import { useRouter, useRoute } from 'vue-router'
-import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../services/firebase.js'
+import firestoreService from '../services/firestoreService.js'
 import { auth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
@@ -2122,10 +2121,9 @@ async function onManageAccountPlayer(assoc) {
   closeAccountMenu()
   try {
     if (assoc.seasonId && assoc.seasonId !== seasonId.value) {
-      const seasonRef = doc(db, 'seasons', assoc.seasonId)
-      const seasonSnap = await getDocs(collection(db, 'seasons'))
-      const match = seasonSnap.docs.find(d => d.id === assoc.seasonId)
-      const slug = match?.data()?.slug
+      const seasons = await firestoreService.getDocuments('seasons')
+      const match = seasons.find(d => d.id === assoc.seasonId)
+      const slug = match?.slug
       if (slug) {
         router.push(`/season/${slug}?player=${encodeURIComponent(assoc.playerId)}&open=protection`)
         return
@@ -3520,14 +3518,14 @@ onMounted(async () => {
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
 
     // Charger la saison par slug
-    const q = query(collection(db, 'seasons'), where('slug', '==', props.slug))
-    const snap = await getDocs(q)
-    if (!snap.empty) {
-      const seasonDoc = snap.docs[0]
+    const seasons = await firestoreService.queryDocuments('seasons', [
+      firestoreService.where('slug', '==', props.slug)
+    ])
+    if (seasons.length > 0) {
+      const seasonDoc = seasons[0]
       seasonId.value = seasonDoc.id
-      const data = seasonDoc.data()
-      seasonName.value = data.name
-      seasonMeta.value = data
+      seasonName.value = seasonDoc.name
+      seasonMeta.value = seasonDoc
       document.title = `Saison : ${seasonName.value}`
       
       // Mémoriser cette saison comme dernière visitée
@@ -6533,13 +6531,9 @@ async function isEventMonitored(eventId) {
     if (!currentUser.value?.email) return false
     
     // Récupérer les préférences de notification depuis Firestore
-    const { db } = await import('../services/firebase.js')
-    const { doc, getDoc } = await import('firebase/firestore')
+    const prefs = await firestoreService.getDocument('userPreferences', currentUser.value.email)
     
-    const userPrefsDoc = await getDoc(doc(db, 'userPreferences', currentUser.value.email))
-    
-    if (userPrefsDoc.exists()) {
-      const prefs = userPrefsDoc.data()
+    if (prefs) {
       
       // Vérifier les notifications email (préférences uniquement)
       const hasEmailNotifications = (

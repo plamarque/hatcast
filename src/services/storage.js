@@ -232,9 +232,9 @@ export async function updatePlayer(playerId, newName, seasonId) {
 
     // Renommer le document de disponibilités (clé = nom du joueur)
     try {
-      console.log(`🔍 Tentative de migration des disponibilités de "${oldName}" vers "${trimmedNewName}"`)
+      logger.info(`🔍 Tentative de migration des disponibilités de "${oldName}" vers "${trimmedNewName}"`)
       const oldAvailability = await firestoreService.getDocument('seasons', seasonId, 'availability', oldName)
-      console.log(`📊 Disponibilités trouvées pour "${oldName}":`, oldAvailability)
+              logger.info(`📊 Disponibilités trouvées pour "${oldName}":`, oldAvailability)
       
       if (oldAvailability) {
         // Extraire les données sans l'ID pour la migration
@@ -242,18 +242,18 @@ export async function updatePlayer(playerId, newName, seasonId) {
         
         // Créer le nouveau document de disponibilités
         await firestoreService.setDocument('seasons', seasonId, availabilityData, true, 'availability', trimmedNewName)
-        console.log(`✅ Nouveau document de disponibilités créé pour "${trimmedNewName}"`)
+        logger.info(`✅ Nouveau document de disponibilités créé pour "${trimmedNewName}"`)
         
         // Supprimer l'ancien document
         await firestoreService.deleteDocument('seasons', seasonId, 'availability', oldName)
-        console.log(`🗑️ Ancien document de disponibilités supprimé pour "${oldName}"`)
+        logger.info(`🗑️ Ancien document de disponibilités supprimé pour "${oldName}"`)
         
-        console.log(`✅ Disponibilités migrées de "${oldName}" vers "${trimmedNewName}"`)
+        logger.info(`✅ Disponibilités migrées de "${oldName}" vers "${trimmedNewName}"`)
       } else {
-        console.log(`ℹ️ Aucune disponibilité trouvée pour "${oldName}"`)
+        logger.info(`ℹ️ Aucune disponibilité trouvée pour "${oldName}"`)
       }
     } catch (error) {
-      console.warn(`⚠️ Échec de la migration des disponibilités pour "${oldName}":`, error.message)
+              logger.warn(`⚠️ Échec de la migration des disponibilités pour "${oldName}":`, error.message)
       // On continue car le joueur a déjà été renommé
     }
 
@@ -283,10 +283,10 @@ export async function updatePlayer(playerId, newName, seasonId) {
         }
       }
       if (updatedSelections > 0) {
-        console.log(`✅ ${updatedSelections} sélection(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
+        logger.info(`✅ ${updatedSelections} sélection(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
       }
     } catch (error) {
-      console.warn(`⚠️ Échec de la mise à jour des sélections pour "${oldName}":`, error.message)
+              logger.warn(`⚠️ Échec de la mise à jour des sélections pour "${oldName}":`, error.message)
       // On continue car le joueur a déjà été renommé
     }
   }
@@ -345,7 +345,7 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
     
     await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde de la disponibilité avec rôles:', error)
+    logger.error('Erreur lors de la sauvegarde de la disponibilité avec rôles:', error)
     throw error
   }
 }
@@ -420,7 +420,7 @@ export async function saveSelection(eventId, roles, seasonId) {
                 })
               }
             } catch (error) {
-              console.error('Erreur lors de la suppression des rappels pour', playerName, error)
+              logger.error('Erreur lors de la suppression des rappels pour', playerName, error)
             }
           }
           
@@ -446,16 +446,16 @@ export async function saveSelection(eventId, roles, seasonId) {
                 })
               }
             } catch (error) {
-              console.error(`❌ Erreur lors de la création des rappels pour ${playerName}:`, error)
+              logger.error(`❌ Erreur lors de la création des rappels pour ${playerName}:`, error)
             }
           }
         }
     } catch (error) {
-      console.error('Erreur lors de la gestion des rappels automatiques:', error)
+      logger.error('Erreur lors de la gestion des rappels automatiques:', error)
       // Ne pas faire échouer la sauvegarde de la sélection à cause des rappels
     }
   } catch (error) {
-    console.error('❌ Erreur dans saveSelection:', error)
+    logger.error('❌ Erreur dans saveSelection:', error)
     throw error
   }
 }
@@ -486,7 +486,7 @@ export async function confirmSelection(eventId, seasonId) {
       playerStatuses
     }, 'selections', eventId)
   } catch (error) {
-    console.error('❌ Erreur dans confirmSelection:', error)
+    logger.error('❌ Erreur dans confirmSelection:', error)
     throw error
   }
 }
@@ -515,7 +515,7 @@ export async function unconfirmSelection(eventId, seasonId) {
       confirmedByAllPlayers: false
     }, 'selections', eventId)
   } catch (error) {
-    console.error('❌ Erreur dans unconfirmSelection:', error)
+    logger.error('❌ Erreur dans unconfirmSelection:', error)
     throw error
   }
 }
@@ -526,15 +526,15 @@ export async function unconfirmSelection(eventId, seasonId) {
  * @param {string} seasonId - ID de la saison (optionnel)
  */
 export async function deleteSelection(eventId, seasonId) {
-  console.log('🗑️ deleteSelection appelé:', { eventId, seasonId })
+          logger.info('🗑️ deleteSelection appelé:', { eventId, seasonId })
   
   try {
     // Supprimer complètement le document de sélection
     await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
     
-    console.log('✅ Sélection supprimée avec succès')
+    logger.info('✅ Sélection supprimée avec succès')
   } catch (error) {
-    console.error('❌ Erreur dans deleteSelection:', error)
+    logger.error('❌ Erreur dans deleteSelection:', error)
     throw error
   }
 }
@@ -615,7 +615,7 @@ export async function setEventArchived(eventId, archived, seasonId) {
  * @param {string} seasonId - ID de la saison (optionnel)
  */
 export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId) {
-  console.log('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
+  logger.info('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
   
   try {
     // Récupérer la sélection actuelle pour vérifier l'état global
@@ -645,7 +645,7 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
     
     return { confirmedByAllPlayers: allPlayersConfirmed }
   } catch (error) {
-    console.error('❌ Erreur dans updatePlayerSelectionStatus:', error)
+    logger.error('❌ Erreur dans updatePlayerSelectionStatus:', error)
     throw error
   }
 }
@@ -668,7 +668,7 @@ export async function isAllPlayersConfirmed(eventId, seasonId) {
     // Utiliser le champ pré-calculé pour de meilleures performances
     return confirmedByAllPlayers
   } catch (error) {
-    console.error('❌ Erreur dans isAllPlayersConfirmed:', error)
+    logger.error('❌ Erreur dans isAllPlayersConfirmed:', error)
     return false
   }
 }

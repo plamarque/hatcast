@@ -209,6 +209,25 @@ class FirestoreService {
   }
 
   /**
+   * Exécuter une requête avec contraintes
+   * @param {string} collectionName - Nom de la collection
+   * @param {Array} constraints - Contraintes de requête
+   * @param {...string} pathSegments - Segments de chemin pour les sous-collections
+   * @returns {Promise<Array>} Documents avec leurs IDs
+   */
+  async queryDocuments(collectionName, constraints = [], ...pathSegments) {
+    try {
+      const colRef = this.getCollection(collectionName, ...pathSegments)
+      const queryRef = query(colRef, ...constraints)
+      const snapshot = await getDocs(queryRef)
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } catch (error) {
+      console.error(`❌ Erreur lors de l'exécution de la requête sur ${collectionName}:`, error)
+      throw error
+    }
+  }
+
+  /**
    * Exécuter une requête
    * @param {Query} queryRef - Requête Firestore
    * @returns {Promise<Array>} Documents avec leurs IDs
@@ -300,6 +319,12 @@ class FirestoreService {
 // Instance singleton
 const firestoreService = new FirestoreService()
 
+// Exposer les fonctions de requête Firestore
+firestoreService.where = where
+firestoreService.orderBy = orderBy
+firestoreService.limit = limit
+firestoreService.startAfter = startAfter
+
 // Export de l'instance et des fonctions utilitaires
 export default firestoreService
 
@@ -313,6 +338,7 @@ export const {
   updateDocument,
   deleteDocument,
   createQuery,
+  queryDocuments,
   executeQuery,
   createBatch,
   executeTransaction,
