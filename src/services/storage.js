@@ -620,33 +620,30 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
   console.log('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
   
   try {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
-    
     // Récupérer la sélection actuelle pour vérifier l'état global
-    const selectionDoc = await getDoc(selRef)
-    if (!selectionDoc.exists) {
+    const selectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    if (!selectionDoc) {
       throw new Error('Sélection non trouvée')
     }
     
-    const selectionData = selectionDoc.data()
-    const { players = [], playerStatuses = {} } = selectionData
+    const { playerStatuses = {} } = selectionDoc
     
     // Mettre à jour le statut du joueur
     const updatedPlayerStatuses = { ...playerStatuses, [playerName]: status }
     
+    // Récupérer tous les joueurs de la sélection (tous rôles confondus)
+    const allPlayers = getAllPlayersFromSelection(selectionDoc)
+    
     // Vérifier si tous les joueurs ont maintenant confirmé
-    const allPlayersConfirmed = players.every(playerName => 
+    const allPlayersConfirmed = allPlayers.every(playerName => 
       updatedPlayerStatuses[playerName] === 'confirmed'
     )
     
     // Mettre à jour le statut du joueur ET l'état global de la sélection
-    await updateDoc(selRef, {
+    await firestoreService.updateDocument('seasons', seasonId, {
       [`playerStatuses.${playerName}`]: status,
-      confirmedByAllPlayers: allPlayersConfirmed,
-      updatedAt: serverTimestamp()
-    })
+      confirmedByAllPlayers: allPlayersConfirmed
+    }, 'selections', eventId)
     
     return { confirmedByAllPlayers: allPlayersConfirmed }
   } catch (error) {
