@@ -1761,11 +1761,28 @@ function updateEventMoreActionsPosition() {
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
     const gap = 8
+    const dropdownHeight = 200 // estimation de la hauteur du dropdown
     
-    // Sur desktop, positionner au-dessus du bouton
+    // Sur desktop, positionner intelligemment
     if (window.innerWidth > 768) {
-      const top = Math.max(gap, Math.round(rect.top - gap))
-      const left = Math.max(gap, Math.round(rect.left))
+      let top, left
+      
+      // Vérifier s'il y a assez d'espace en haut
+      const spaceAbove = rect.top
+      const spaceBelow = window.innerHeight - rect.bottom
+      
+      if (spaceAbove >= dropdownHeight + gap) {
+        // Positionner au-dessus du bouton
+        top = Math.max(gap, Math.round(rect.top - dropdownHeight - gap))
+      } else if (spaceBelow >= dropdownHeight + gap) {
+        // Positionner en dessous du bouton
+        top = Math.round(rect.bottom + gap)
+      } else {
+        // Positionner au centre de l'écran
+        top = Math.max(gap, Math.round((window.innerHeight - dropdownHeight) / 2))
+      }
+      
+      left = Math.max(gap, Math.round(rect.left))
       eventMoreActionsStyle.value = {
         position: 'fixed',
         top: `${top}px`,
@@ -2823,6 +2840,9 @@ async function deleteEventConfirmed(eventId = null) {
     // Fermer la modal de confirmation
     confirmDelete.value = false
     eventToDelete.value = null
+    
+    // Fermer la modale de détails de l'événement
+    closeEventDetailsAndUpdateUrl()
     
     showSuccessMessage.value = true
     successMessage.value = 'Événement supprimé avec succès !'

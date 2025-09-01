@@ -541,29 +541,23 @@ export async function deleteSelection(eventId, seasonId) {
   }
 }
 
-export async function deleteEvent(eventId, seasonId = null) {
+export async function deleteEvent(eventId, seasonId) {
   logger.info('Suppression de l\'événement', { eventId })
   
   try {
     // Supprimer l'événement
     logger.debug('Suppression de l\'événement dans Firestore')
-    const eventRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'events', eventId)
-      : doc(db, 'events', eventId)
+    const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
     await deleteDoc(eventRef)
     
     // Supprimer la sélection associée
     logger.debug('Suppression de la sélection associée')
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
+    const selRef = doc(db, 'seasons', seasonId, 'selections', eventId)
     await deleteDoc(selRef)
     
     // Supprimer les disponibilités pour cet événement
     logger.debug('Suppression des disponibilités')
-    const availabilitySnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-      : await getDocs(collection(db, 'availability'))
+    const availabilitySnap = await getDocs(collection(db, 'seasons', seasonId, 'availability'))
     const batch = writeBatch(db)
     
     availabilitySnap.forEach(doc => {
@@ -584,7 +578,7 @@ export async function deleteEvent(eventId, seasonId = null) {
   }
 }
 
-export async function saveEvent(eventData, seasonId = null) {
+export async function saveEvent(eventData, seasonId) {
   // Ajouter la structure des rôles par défaut si elle n'existe pas
   const eventWithRoles = {
     ...eventData,
@@ -601,26 +595,20 @@ export async function saveEvent(eventData, seasonId = null) {
     }
   }
   
-  const newDocRef = seasonId
-    ? doc(collection(db, 'seasons', seasonId, 'events'))
-    : doc(collection(db, 'events'))
+  const newDocRef = doc(collection(db, 'seasons', seasonId, 'events'))
   await setDoc(newDocRef, eventWithRoles)
   return newDocRef.id
 }
 
-export async function updateEvent(eventId, eventData, seasonId = null) {
-  const eventRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'events', eventId)
-    : doc(db, 'events', eventId)
+export async function updateEvent(eventId, eventData, seasonId) {
+  const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
   // Utiliser merge pour ne pas écraser des champs existants (ex: archived)
   await setDoc(eventRef, eventData, { merge: true })
 }
 
 // Mise à jour de l'état d'archivage d'un événement
-export async function setEventArchived(eventId, archived, seasonId = null) {
-  const eventRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'events', eventId)
-    : doc(db, 'events', eventId)
+export async function setEventArchived(eventId, archived, seasonId) {
+  const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
   await updateDoc(eventRef, { archived: !!archived })
 }
 
@@ -631,7 +619,7 @@ export async function setEventArchived(eventId, archived, seasonId = null) {
  * @param {string} status - Statut: 'pending', 'confirmed', 'declined'
  * @param {string} seasonId - ID de la saison (optionnel)
  */
-export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId = null) {
+export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId) {
   console.log('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
   
   try {
@@ -676,11 +664,9 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
  * @param {string} seasonId - ID de la saison (optionnel)
  * @returns {Promise<boolean>} - true si tous ont confirmé
  */
-export async function isAllPlayersConfirmed(eventId, seasonId = null) {
+export async function isAllPlayersConfirmed(eventId, seasonId) {
   try {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
+    const selRef = doc(db, 'seasons', seasonId, 'selections', eventId)
     
     const selectionDoc = await getDoc(selRef)
     if (!selectionDoc.exists) {
