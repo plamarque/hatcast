@@ -1532,7 +1532,6 @@ import {
   deleteEvent,
   updateEvent,
   saveEvent,
-  saveAvailability,
   updatePlayer,
   saveSelection
 } from '../services/storage.js'
@@ -4076,111 +4075,7 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   })
 }
 
-async function performToggleAvailability(player, eventId) {
-  // Récupérer l'état actuel depuis availability.value
-  const current = availability.value[player.name]?.[eventId];
-  // Toggle de disponibilité
-  let newValue;
-  
-  // Logique de basculement : undefined -> true -> false -> undefined
-  if (current === true) {
-    newValue = false;
-  } else if (current === false) {
-    newValue = undefined;
-  } else {
-    // État undefined -> passe à true
-    newValue = true;
-  }
-  
-  // Logger l'audit de modification de disponibilité
-  try {
-    const { default: AuditClient } = await import('../services/auditClient.js')
-    const event = events.value.find(e => e.id === eventId)
-    await AuditClient.logUserAction({
-      type: 'availability_changed',
-      category: 'availability',
-      severity: 'info',
-      data: {
-        playerName: player.name,
-        eventTitle: event?.title || 'Unknown',
-        seasonSlug: props.slug,
-        eventId: eventId,
-        oldValue: current,
-        newValue: newValue,
-        action: 'toggle_availability'
-      },
-      success: true,
-      tags: ['availability', 'toggle']
-    })
-  } catch (auditError) {
-    console.warn('Erreur audit toggleAvailability:', auditError)
-  }
-  
-  // Mettre à jour availability.value
-  if (newValue === undefined) {
-    // Si on revient à l'état indéfini, supprimer la clé
-    if (availability.value[player.name]) {
-      delete availability.value[player.name][eventId];
-    }
-  } else {
-    // Sinon, mettre à jour la valeur
-    if (!availability.value[player.name]) {
-      availability.value[player.name] = {};
-    }
-    availability.value[player.name][eventId] = newValue;
-  }
-  
-  // Avancer le mini-tutoriel joueur: étape 1 -> 2 au premier toggle
-  try {
-    if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 1) {
-      const isGuidedCell = (player.id === (guidedPlayerId.value || (sortedPlayers.value[0]?.id))) && (eventId === (guidedEventId.value || (displayedEvents.value[0]?.id)))
-      if (isGuidedCell) {
-        playerTourStep.value = 3
-        // Positionner le coachmark près du nom du joueur
-        nextTick(() => {
-          const row = document.querySelector(`[data-player-id="${player.id}"]`)
-          if (row) {
-            const nameEl = row.querySelector('.player-name')
-            if (nameEl) {
-              const rect = nameEl.getBoundingClientRect()
-              playerNameCoachmark.value.position = {
-                x: Math.round(rect.right + 8),
-                y: Math.round(rect.top + window.scrollY - 4)
-              }
-            }
-          }
-        })
-
-// Nettoyage listeners/observers
-onUnmounted(() => {
-  try { window.removeEventListener('resize', updateScrollHints) } catch {}
-  try { if (gridResizeObserver.value) gridResizeObserver.value.disconnect() } catch {}
-})
-      }
-    }
-  } catch {}
-
-  // Sauvegarder les disponibilités pour ce joueur
-  saveAvailability(player.name, availability.value[player.name], seasonId.value)
-    .then(async () => {
-      // Forcer la réactivité de l'interface
-      await nextTick();
-      
-      // Recalculer les chances car la disponibilité a changé
-      updateAllChances()
-
-      showSuccessMessage.value = true;
-      successMessage.value = 'Disponibilité mise à jour avec succès !';
-      setTimeout(() => {
-        showSuccessMessage.value = false;
-      }, 3000);
-    })
-    .catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error('Erreur lors de la mise à jour de la disponibilité')
-      alert('Erreur lors de la mise à jour de la disponibilité. Veuillez réessayer.');
-    });
-}
+// Fonction performToggleAvailability supprimée - toutes les disponibilités passent maintenant par la modale
 
 // Fonction pour gérer le changement de statut individuel d'un joueur dans une sélection
 async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus, seasonId) {
@@ -5212,8 +5107,8 @@ async function executePendingOperation(operation) {
         }
         break
       case 'toggleAvailability':
-        // Exécuter directement la modification de disponibilité
-        performToggleAvailability(data.player, data.eventId)
+        // Cette action n'est plus utilisée - toutes les disponibilités passent par la modale
+        console.warn('toggleAvailability action is deprecated')
         break
       case 'toggleArchive':
         await setEventArchived(data.eventId, data.archived, seasonId.value)
@@ -5232,7 +5127,9 @@ async function executePendingOperation(operation) {
           // Détecter les joueurs retirés avant de sauvegarder
           const oldSelection = [...getSelectionPlayers(eventId)]
           const nextSelection = Array.isArray(players) ? players : []
-          await saveSelection(eventId, nextSelection, seasonId.value)
+          // Convertir en format par rôle
+          const roles = { player: nextSelection }
+          await saveSelection(eventId, roles, seasonId.value)
           
           // Mettre à jour la structure locale
           if (selections.value[eventId]) {

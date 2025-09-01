@@ -124,7 +124,7 @@
         <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3">
           <button
             @click="handleSave"
-            :disabled="selectedRoles.length === 0"
+            :disabled="availableRoles.length > 0 && selectedRoles.length === 0"
             class="px-4 py-3 bg-green-500/60 text-white rounded-lg hover:bg-green-500/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Disponible
@@ -321,9 +321,8 @@ function formatDate(dateString) {
 }
 
 function handleSave() {
-  // Permettre la sauvegarde même sans rôles si aucun rôle n'est défini pour l'événement
-  if (availableRoles.value.length > 0 && selectedRoles.value.length === 0) return
-  
+  // Permettre la sauvegarde même sans rôles sélectionnés
+  // L'utilisateur peut vouloir être disponible "en général"
   emit('save', {
     available: true,
     roles: selectedRoles.value,

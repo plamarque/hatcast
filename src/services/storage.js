@@ -321,23 +321,14 @@ export async function loadSelections(seasonId) {
   return res
 }
 
-export async function saveAvailability(player, availabilityMap, seasonId = null) {
-  const availRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'availability', player)
-    : doc(db, 'availability', player)
-  await setDoc(availRef, availabilityMap)
-}
+// Fonction saveAvailability supprimée - toutes les disponibilités passent maintenant par saveAvailabilityWithRoles
 
 // Nouvelle fonction pour sauvegarder une disponibilité avec rôles et commentaire
 export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId, available, roles = [], comment = null }) {
   try {
-    // Utiliser directement l'API Firebase pour les sous-collections avec ID spécifique
-    const availRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'availability', playerName)
-      : doc(db, 'availability', playerName)
-    
-    const snap = await getDoc(availRef)
-    const current = snap.exists() ? snap.data() : {}
+    // Récupérer les données actuelles
+    const currentDoc = await firestoreService.getDocument('seasons', seasonId, 'availability', playerName)
+    const current = currentDoc || {}
     const next = { ...current }
     
     if (available === undefined) {
@@ -350,7 +341,7 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
       }
     }
     
-    await setDoc(availRef, next)
+    await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
   } catch (error) {
     console.error('Erreur lors de la sauvegarde de la disponibilité avec rôles:', error)
     throw error
@@ -359,53 +350,26 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
 
 // Mise à jour ciblée d'une disponibilité pour un joueur/événement (utilisé par magic links)
 export async function setSingleAvailability({ seasonId, playerName, eventId, value }) {
-  const availRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'availability', playerName)
-    : doc(db, 'availability', playerName)
-  const snap = await getDoc(availRef)
-  const current = snap.exists() ? snap.data() : {}
+  const currentDoc = await firestoreService.getDocument('seasons', seasonId, 'availability', playerName)
+  const current = currentDoc || {}
   const next = { ...current }
   
   if (value === undefined) {
     delete next[eventId]
   } else {
-    // Migration automatique vers le nouveau format si nécessaire
-    if (typeof value === 'boolean') {
-      next[eventId] = {
-        available: value,
-        roles: value ? [ROLES.PLAYER] : [],
-        comment: null
-      }
-    } else {
-      next[eventId] = value
-    }
+    // Toutes les disponibilités sont maintenant au nouveau format
+    next[eventId] = value
   }
-  await setDoc(availRef, next)
+  await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
 }
 
-export async function saveSelection(eventId, players, seasonId) {
+export async function saveSelection(eventId, roles, seasonId) {
   try {
     // Récupérer l'ancienne sélection pour comparer
     const oldSelectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
     
-    // Déterminer le format des données d'entrée
-    let isNewFormat = false
-    let allPlayers = []
-    let roles = {}
-    
-    if (Array.isArray(players)) {
-      // Ancien format : array de noms
-      allPlayers = players
-      roles = { player: players } // Migration automatique vers le nouveau format
-    } else if (players && typeof players === 'object') {
-      // Nouveau format : objet avec rôles
-      isNewFormat = true
-      roles = players
-      // Extraire tous les joueurs de tous les rôles
-      allPlayers = Object.values(players).flat().filter(Boolean)
-    } else {
-      throw new Error('Format de données invalide pour saveSelection')
-    }
+    // Extraire tous les joueurs de tous les rôles
+    const allPlayers = Object.values(roles).flat().filter(Boolean)
     
     const oldSelection = oldSelectionDoc 
       ? (oldSelectionDoc.players || []) 
@@ -418,11 +382,8 @@ export async function saveSelection(eventId, players, seasonId) {
     })
     
     const selectionData = { 
-      // Ancien format (rétrocompatible)
-      players: allPlayers,
-      
       // Nouveau format (par rôle)
-      roles: isNewFormat ? roles : { player: allPlayers },
+      roles: roles,
       
       confirmed: false, // Nouvelle sélection = non confirmée
       confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
@@ -505,12 +466,13 @@ export async function saveSelection(eventId, players, seasonId) {
 export async function confirmSelection(eventId, seasonId) {
   try {
     // Récupérer la sélection actuelle pour initialiser les statuts des joueurs
-    const currentSelection = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { players: [] }
+    const currentSelection = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { roles: {} }
     
     // Initialiser les statuts individuels des joueurs si pas encore fait
     // Préserver les statuts "declined" existants
     const playerStatuses = currentSelection.playerStatuses || {}
-    currentSelection.players.forEach((playerName, index) => {
+    const allPlayers = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
+    allPlayers.forEach((playerName) => {
       if (!playerStatuses[playerName]) {
         playerStatuses[playerName] = 'pending' // En attente de confirmation
       }
