@@ -676,7 +676,7 @@ export async function saveSelection(eventId, players, seasonId = null) {
             const seasonData = seasonSnap.data()
             
             // Supprimer les rappels pour les joueurs désélectionnés
-            const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
+            const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))'regles'
             
             for (const playerName of removedPlayers) {
               try {

@@ -522,8 +522,18 @@ async function refreshEnvironmentInfo() {
     const summary = await configService.default.getEnvironmentSummary();
     const fullInfo = await configService.default.dumpEnvironmentInfo();
     
-    environmentInfo.value = summary; // Maintenant contient firebaseSecrets
+    // Utiliser fullInfo pour avoir toutes les données (envVars + firebaseSecrets)
+    environmentInfo.value = {
+      ...summary, // Contient firebaseSecrets
+      envVars: fullInfo.envVars // Ajouter les variables d'environnement
+    };
     environmentVars.value = fullInfo.envVars;
+    
+    console.log('🔄 Actualisation des informations d\'environnement...');
+    console.log('✅ Informations d\'environnement actualisées:', {
+      summary: summary,
+      vars: fullInfo.envVars
+    });
     
   } catch (err) {
     console.error('❌ Erreur lors de l\'actualisation:', err);
@@ -547,6 +557,14 @@ onMounted(() => {
     try {
       email.value = auth?.currentUser?.email || '';
     } catch {}
+  }
+});
+
+// Watcher pour actualiser les informations quand la modale de debug s'ouvre
+watch(showEnvironmentDebug, async (newValue) => {
+  if (newValue) {
+    console.log('🚀 Ouverture de la modale de debug des variables d\'environnement');
+    await refreshEnvironmentInfo();
   }
 });
 </script>
