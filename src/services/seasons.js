@@ -1,5 +1,4 @@
 import firestoreService from './firestoreService.js'
-import { orderBy, where } from 'firebase/firestore'
 
 const SEASONS_COLLECTION = 'seasons'
 
@@ -24,7 +23,7 @@ export async function deleteSeason(seasonId) {
 export async function getSeasons() {
   try {
     console.log('🔧 getSeasons: chargement depuis Firestore')
-    const q = firestoreService.createQuery(SEASONS_COLLECTION, [orderBy('createdAt', 'desc')])
+    const q = firestoreService.createQuery(SEASONS_COLLECTION, [firestoreService.orderBy('createdAt', 'desc')])
     const seasons = await firestoreService.executeQuery(q)
     console.log('🔧 getSeasons: saisons chargées depuis Firebase:', seasons.length)
     
@@ -52,7 +51,7 @@ export async function getSeasons() {
 
 // Get season by slug
 export async function getSeasonBySlug(slug) {
-  const q = firestoreService.createQuery(SEASONS_COLLECTION, [where('slug', '==', slug)])
+  const q = firestoreService.createQuery(SEASONS_COLLECTION, [firestoreService.where('slug', '==', slug)])
   const seasons = await firestoreService.executeQuery(q)
   return seasons.length > 0 ? seasons[0] : null
 }
