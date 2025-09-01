@@ -157,15 +157,8 @@ export async function loadEvents(seasonId) {
   })
 }
 
-export async function loadPlayers(seasonId = null) {
-  let players
-  if (seasonId) {
-    const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
-    players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  } else {
-    const playersSnap = await getDocs(collection(db, 'players'))
-    players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  }
+export async function loadPlayers(seasonId) {
+  const players = await firestoreService.getDocuments('seasons', seasonId, 'players')
 
   // Tri par order puis par nom
   return players.sort((a, b) => {
