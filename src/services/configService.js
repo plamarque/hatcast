@@ -44,6 +44,9 @@ class ConfigService {
           service: 'ethereal',
           capture: true
         },
+        notifications: {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'Non défini'
+        },
         hosting: {
           url: 'https://192.168.1.134:5173'
         }
@@ -61,6 +64,9 @@ class ConfigService {
           service: 'ethereal',
           capture: true
         },
+        notifications: {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'Non défini'
+        },
         hosting: {
           url: 'https://hatcast-staging.web.app'
         }
@@ -77,6 +83,9 @@ class ConfigService {
         email: {
           service: 'gmail',
           capture: false
+        },
+        notifications: {
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'Non défini'
         },
         hosting: {
           url: 'https://selections.la-malice.fr'
@@ -99,6 +108,13 @@ class ConfigService {
    */
   getFirestoreRegion() {
     return this.config.firestore.region;
+  }
+
+  /**
+   * Retourne la VAPID key pour les notifications push
+   */
+  getVapidKey() {
+    return this.config.notifications.vapidKey;
   }
 
   /**
@@ -305,6 +321,10 @@ class ConfigService {
       email: {
         service: info.config.email.service,
         capture: info.config.email.capture
+      },
+      // Configuration Notifications (déterminée côté client)
+      notifications: {
+        vapidKey: info.config.notifications.vapidKey
       },
       // Configuration Firebase (variables d'environnement)
       firebase: {

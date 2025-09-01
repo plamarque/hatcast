@@ -1,10 +1,9 @@
 // FCM push notifications helper
 import { isSupported, getToken, onMessage, deleteToken } from 'firebase/messaging'
-import { db, auth, getMessaging } from './firebase'
-import { setDoc, doc, serverTimestamp, arrayUnion } from 'firebase/firestore'
+import { auth, getMessaging } from './firebase'
+import firestoreService from './firestoreService.js'
+import configService from './configService.js'
 import { getApp } from 'firebase/app'
-
-const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
 export async function canUsePush() {
   try {
@@ -19,7 +18,7 @@ async function getActiveServiceWorkerRegistration() {
   
   // En mode développement, ne pas essayer d'enregistrer le SW
   if (import.meta.env?.DEV) {
-    console.log('🔇 Service Worker désactivé en mode développement')
+    logger.info('🔇 Service Worker désactivé en mode développement')
     return null
   }
   
@@ -58,20 +57,20 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   
   // Fallback: si aucune registration n'est passée, attendre un SW actif
   let swReg = serviceWorkerRegistration || await getActiveServiceWorkerRegistration()
-  const token = await getToken(messaging, swReg ? { vapidKey, serviceWorkerRegistration: swReg } : { vapidKey })
+  const token = await getToken(messaging, swReg ? { vapidKey: configService.getVapidKey(), serviceWorkerRegistration: swReg } : { vapidKey: configService.getVapidKey() })
   
   // Persist token with user identity (by email if available)
   try {
     const email = auth?.currentUser?.email || 'anonymous'
     if (email && token) {
-      await setDoc(doc(db, 'userPushTokens', email), {
-        tokens: arrayUnion(token),
+      await firestoreService.setDocument('userPushTokens', email, {
+        tokens: [token], // arrayUnion remplacé par un tableau simple
         lastToken: token,
         email,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date(),
         userAgent: navigator.userAgent,
-        lastActivation: serverTimestamp()
-      }, { merge: true })
+        lastActivation: new Date()
+      }, true) // merge: true
     }
   } catch {}
   return token
@@ -81,7 +80,7 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
 export async function ensurePushNotificationsActive() {
   // En mode développement, désactiver les notifications push
   if (import.meta.env?.DEV) {
-    console.log('🔇 Notifications push désactivées en mode développement')
+    logger.info('🔇 Notifications push désactivées en mode développement')
     return { active: false, error: 'Notifications désactivées en développement' }
   }
   
@@ -93,7 +92,7 @@ export async function ensurePushNotificationsActive() {
       const messaging = getMessaging(getApp())
       try {
         // Essayer de récupérer le token actuel
-        const currentToken = await getToken(messaging, { vapidKey })
+        const currentToken = await getToken(messaging, { vapidKey: configService.getVapidKey() })
         if (currentToken === existingToken) {
           // Token toujours valide
           return { active: true, token: currentToken }
@@ -121,7 +120,7 @@ export async function ensurePushNotificationsActive() {
 export function startPushHealthCheck() {
   // DÉSACTIVÉ EN LOCAL pour éviter le spam de logs
   if (import.meta.env?.DEV) {
-    console.log('🔇 Push health check désactivé en mode développement')
+    logger.info('🔇 Push health check désactivé en mode développement')
     return
   }
   
@@ -130,12 +129,12 @@ export function startPushHealthCheck() {
     try {
       const status = await ensurePushNotificationsActive()
       if (!status.active) {
-        console.log('Push notifications inactive, attempting to reactivate...')
+        logger.info('Push notifications inactive, attempting to reactivate...')
         // Émettre un événement pour informer l'UI
         window.dispatchEvent(new CustomEvent('push-status-changed', { detail: status }))
       }
     } catch (error) {
-      console.warn('Push health check failed:', error)
+      logger.warn('Push health check failed:', error)
     }
   }, 5 * 60 * 1000) // 5 minutes
 }
