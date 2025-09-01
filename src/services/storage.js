@@ -204,54 +204,81 @@ export async function deletePlayer(playerId, seasonId) {
   }
 }
 
-export async function updatePlayer(playerId, newName, seasonId = null) {
-  const playerRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'players', playerId)
-    : doc(db, 'players', playerId)
+export async function updatePlayer(playerId, newName, seasonId) {
+  // Validation : vérifier que le nouveau nom n'existe pas déjà
+  if (!newName || !newName.trim()) {
+    throw new Error('Le nom du joueur ne peut pas être vide')
+  }
+  
+  const trimmedNewName = newName.trim()
+  
+  // Vérifier si un autre joueur a déjà ce nom
+  const existingPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
+  const nameExists = existingPlayers.some(player => 
+    player.name === trimmedNewName && player.id !== playerId
+  )
+  
+  if (nameExists) {
+    throw new Error('Un joueur avec ce nom existe déjà dans cette saison')
+  }
 
   // Lire l'ancien nom (si existant) avant mise à jour
-  const prevSnap = await getDoc(playerRef)
-  const oldName = prevSnap.exists() ? (prevSnap.data().name || null) : null
+  const player = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+  const oldName = player?.name || null
 
   // Mettre à jour uniquement le nom et préserver les autres champs. Crée le doc s'il n'existe pas.
-  await setDoc(playerRef, { name: newName }, { merge: true })
+  await firestoreService.setDocument('seasons', seasonId, { name: trimmedNewName }, true, 'players', playerId)
 
   // Si le nom change, renommer les dépendances (availability + selections)
-  if (oldName && oldName !== newName) {
-    const batch = writeBatch(db)
+  if (oldName && oldName !== trimmedNewName) {
 
     // Renommer le document de disponibilités (clé = nom du joueur)
     try {
-      const availRefOld = seasonId
-        ? doc(db, 'seasons', seasonId, 'availability', oldName)
-        : doc(db, 'availability', oldName)
-      const availSnap = await getDoc(availRefOld)
-      if (availSnap.exists()) {
-        const data = availSnap.data() || {}
-        const availRefNew = seasonId
-          ? doc(db, 'seasons', seasonId, 'availability', newName)
-          : doc(db, 'availability', newName)
-        batch.set(availRefNew, data, { merge: true })
-        batch.delete(availRefOld)
+      console.log(`🔍 Tentative de migration des disponibilités de "${oldName}" vers "${trimmedNewName}"`)
+      const oldAvailability = await firestoreService.getDocument('seasons', seasonId, 'availability', oldName)
+      console.log(`📊 Disponibilités trouvées pour "${oldName}":`, oldAvailability)
+      
+      if (oldAvailability) {
+        // Extraire les données sans l'ID pour la migration
+        const { id, ...availabilityData } = oldAvailability
+        
+        // Créer le nouveau document de disponibilités
+        await firestoreService.setDocument('seasons', seasonId, availabilityData, true, 'availability', trimmedNewName)
+        console.log(`✅ Nouveau document de disponibilités créé pour "${trimmedNewName}"`)
+        
+        // Supprimer l'ancien document
+        await firestoreService.deleteDocument('seasons', seasonId, 'availability', oldName)
+        console.log(`🗑️ Ancien document de disponibilités supprimé pour "${oldName}"`)
+        
+        console.log(`✅ Disponibilités migrées de "${oldName}" vers "${trimmedNewName}"`)
+      } else {
+        console.log(`ℹ️ Aucune disponibilité trouvée pour "${oldName}"`)
       }
-    } catch (_) {}
+    } catch (error) {
+      console.warn(`⚠️ Échec de la migration des disponibilités pour "${oldName}":`, error.message)
+      // On continue car le joueur a déjà été renommé
+    }
 
     // Mettre à jour les sélections (tableaux de noms)
     try {
-      const selCol = seasonId
-        ? collection(db, 'seasons', seasonId, 'selections')
-        : collection(db, 'selections')
-      const selSnap = await getDocs(selCol)
-      selSnap.forEach((d) => {
-        const arr = Array.isArray(d.data()?.players) ? d.data().players : []
-        if (arr.includes(oldName)) {
-          const next = arr.map((n) => (n === oldName ? newName : n))
-          batch.update(d.ref, { players: next })
+      const selections = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+      let updatedSelections = 0
+      for (const selection of selections) {
+        const { id, ...data } = selection
+        if (data.players && Array.isArray(data.players) && data.players.includes(oldName)) {
+          const updatedPlayers = data.players.map(n => n === oldName ? trimmedNewName : n)
+          // Mise à jour directe sans batch pour l'instant
+          await firestoreService.updateDocument('seasons', seasonId, { players: updatedPlayers }, 'selections', id)
+          updatedSelections++
         }
-      })
-    } catch (_) {}
-
-    await batch.commit()
+      }
+      if (updatedSelections > 0) {
+        console.log(`✅ ${updatedSelections} sélection(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
+      }
+    } catch (error) {
+      console.warn(`⚠️ Échec de la mise à jour des sélections pour "${oldName}":`, error.message)
+      // On continue car le joueur a déjà été renommé
+    }
   }
 }
 

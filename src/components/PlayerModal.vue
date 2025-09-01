@@ -151,11 +151,18 @@
         <input
           v-model="editingName"
           type="text"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          :class="[
+            'w-full p-3 bg-gray-800 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400',
+            editNameError ? 'border-red-500' : 'border-gray-600'
+          ]"
           @keydown.esc="cancelEdit"
           @keydown.enter="saveEdit"
+          @input="validateEditName"
           ref="editNameInput"
         >
+        <div v-if="editNameError" class="mt-2 text-sm text-red-400">
+          {{ editNameError }}
+        </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -238,6 +245,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding'])
 
+
+
 const editing = ref(false)
 const editingName = ref('')
 const editNameInput = ref(null)
@@ -247,6 +256,7 @@ const pendingAction = ref(null) // 'update' ou 'delete'
 const showMoreActions = ref(false)
 const showPlayerMoreActionsDesktop = ref(false)
 const showPlayerMoreActions = ref(false)
+const editNameError = ref('')
 const playerMoreActionsRef = ref(null)
 const playerMoreActionsDropdownRef = ref(null)
 const playerMoreActionsStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
@@ -272,6 +282,7 @@ function closeModal() {
 
 function startEditing() {
   editingName.value = props.player?.name || ''
+  editNameError.value = ''
   editing.value = true
   nextTick(() => {
     if (editNameInput.value) {
@@ -283,9 +294,35 @@ function startEditing() {
 function cancelEdit() {
   editing.value = false
   editingName.value = ''
+  editNameError.value = ''
+}
+
+function validateEditName() {
+  editNameError.value = ''
+  
+  if (!editingName.value.trim()) {
+    editNameError.value = 'Le nom du joueur ne peut pas être vide'
+    return false
+  }
+  
+  // Vérifier si le nom est différent du nom actuel
+  const trimmedName = editingName.value.trim()
+  if (trimmedName === props.player?.name) {
+    return true // Pas d'erreur si c'est le même nom
+  }
+  
+  // Pour la validation côté client, on ne peut pas vérifier les doublons
+  // car on n'a pas accès à la liste complète des joueurs
+  // La validation côté serveur dans updatePlayer() s'en chargera
+  return true
 }
 
 async function saveEdit() {
+  // Validation côté client
+  if (!validateEditName()) {
+    return
+  }
+  
   if (!editingName.value.trim()) return
   
   // Vérifier si le joueur est protégé
@@ -295,7 +332,7 @@ async function saveEdit() {
     const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
     if (hasCachedPassword) {
       // Session active, procéder directement
-      performUpdate()
+      await performUpdate()
     } else {
       // Pas de session, demander le mot de passe
       pendingAction.value = 'update'
@@ -305,17 +342,19 @@ async function saveEdit() {
   }
   
   // Si non protégé, procéder directement
-  performUpdate()
+  await performUpdate()
 }
 
 function performUpdate() {
-  emit('update', {
-    playerId: props.player?.id,
-    newName: editingName.value.trim()
+  return new Promise((resolve, reject) => {
+    emit('update', {
+      playerId: props.player?.id,
+      newName: editingName.value.trim()
+    })
+    
+    // Ne pas fermer le mode d'édition ici, attendre la réponse
+    // Le parent devra appeler une méthode pour fermer le mode d'édition
   })
-  
-  editing.value = false
-  editingName.value = ''
 }
 
 async function handleDelete() {
@@ -360,10 +399,10 @@ async function handleProtectionUpdate() {
   emit('refresh')
 }
 
-function handlePasswordVerified(verificationData) {
+async function handlePasswordVerified(verificationData) {
   // Le mot de passe a été vérifié, procéder à l'action en cours
   if (pendingAction.value === 'update') {
-    performUpdate()
+    await performUpdate()
   } else if (pendingAction.value === 'delete') {
     performDelete()
   }
@@ -515,9 +554,17 @@ onMounted(() => {
   }, { passive: true })
 })
 
-// Exposer une méthode pour ouvrir la protection depuis le parent
+// Exposer des méthodes pour le parent
 defineExpose({
-  openProtection() { showProtectionModal.value = true }
+  openProtection() { showProtectionModal.value = true },
+  setEditError: (error) => {
+    editNameError.value = error
+  },
+  closeEditMode: () => {
+    editing.value = false
+    editingName.value = ''
+    editNameError.value = ''
+  }
 })
 
 // Coachmark simple sur le bouton Protection quand onboardingStep === 4

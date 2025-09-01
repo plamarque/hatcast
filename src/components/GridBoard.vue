@@ -5790,10 +5790,19 @@ async function handlePlayerUpdate({ playerId, newName }) {
     setTimeout(() => {
       showSuccessMessage.value = false;
     }, 3000);
+    
+    // Fermer le mode d'édition seulement en cas de succès
+    if (playerModalRef.value) {
+      playerModalRef.value.closeEditMode()
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'édition du joueur');
-    alert('Erreur lors de l\'édition du joueur. Veuillez réessayer.');
+    
+    // Passer l'erreur au modal pour affichage (modal reste ouvert)
+    if (playerModalRef.value) {
+      playerModalRef.value.setEditError(error.message || 'Erreur lors de l\'édition du joueur. Veuillez réessayer.')
+    }
   }
 }
 
