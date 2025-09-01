@@ -98,6 +98,16 @@ Ce document analyse tous les accès directs à Firebase Firestore dans le codeba
 
 ### 13. `src/services/seasons.js` - ✅ DÉJÀ MIGRÉ
 - **✅ Utilise** `firestoreService` pour toutes les opérations
+
+## 🎯 TODO - Améliorations Futures
+
+### 🔒 Contrainte d'unicité Firestore
+- **Problème** : Les disponibilités sont indexées par nom de joueur, créant des conflits si deux joueurs ont le même nom
+- **Solution actuelle** : Validation côté application dans `addPlayer()`
+- **Amélioration future** : Ajouter une contrainte d'unicité au niveau Firestore avec des règles de sécurité
+- **Complexité** : Moyenne (règles Firestore complexes)
+- **Priorité** : Basse (solution actuelle fonctionne)
+- **Fichier** : `firestore.rules`
 - **✅ Importe** seulement `orderBy`, `where` de Firebase (constantes)
 - **📋 État** : Complètement migré
 

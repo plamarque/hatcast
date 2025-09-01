@@ -16,6 +16,10 @@
 
 - [ ] **Fonction de réinitialisation de sélection** : La fonction `handleResetEventSelection` ne fonctionne plus correctement. L'audit est implémenté mais la fonction elle-même n'a pas d'effet. À corriger plus tard.
 
+## Améliorations techniques
+
+- [ ] **Contrainte d'unicité Firestore** : Les disponibilités sont indexées par nom de joueur, créant des conflits si deux joueurs ont le même nom. Solution actuelle : validation côté application dans `addPlayer()`. Amélioration future : ajouter une contrainte d'unicité au niveau Firestore avec des règles de sécurité dans `firestore.rules`. Priorité basse (solution actuelle fonctionne).
+
 ---
 
 ## Notes

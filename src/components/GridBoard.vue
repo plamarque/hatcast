@@ -3541,8 +3541,18 @@ onMounted(async () => {
         availability.value = {}
       }
 
-      // Étape 4: sélections + protections
+      // Étape 4: sélections
       currentLoadingLabel.value = 'Chargement des sélections'
+      loadingProgress.value = 80
+      try {
+        selections.value = await loadSelections(seasonId.value)
+      } catch (error) {
+        console.log('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
+        selections.value = {}
+      }
+
+      // Étape 5: protections
+      currentLoadingLabel.value = 'Chargement des protections'
       loadingProgress.value = 85
       try {
         const protections = await listProtectedPlayers(seasonId.value)

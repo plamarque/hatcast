@@ -293,13 +293,12 @@ export async function loadAvailability(players, events, seasonId) {
   return availability
 }
 
-export async function loadSelections(seasonId = null) {
-  const selSnap = seasonId
-    ? await getDocs(collection(db, 'seasons', seasonId, 'selections'))
-    : await getDocs(collection(db, 'selections'))
+export async function loadSelections(seasonId) {
+  const selectionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'selections')
   const res = {}
-  selSnap.forEach(doc => {
-    const data = doc.data()
+  
+  selectionsDocs.forEach(doc => {
+    const { id, ...data } = doc
     
     // Migration automatique vers le nouveau format si nécessaire
     let roles = data.roles
@@ -308,7 +307,7 @@ export async function loadSelections(seasonId = null) {
       roles = { player: data.players }
     }
     
-    res[doc.id] = {
+    res[id] = {
       players: data.players || [],
       roles: roles || {},
       confirmed: data.confirmed || false,
@@ -318,6 +317,7 @@ export async function loadSelections(seasonId = null) {
       confirmedByAllPlayers: data.confirmedByAllPlayers || false
     }
   })
+  
   return res
 }
 
@@ -383,14 +383,10 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
   await setDoc(availRef, next)
 }
 
-export async function saveSelection(eventId, players, seasonId = null) {
+export async function saveSelection(eventId, players, seasonId) {
   try {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
-    
     // Récupérer l'ancienne sélection pour comparer
-    const oldSelectionDoc = await getDoc(selRef)
+    const oldSelectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
     
     // Déterminer le format des données d'entrée
     let isNewFormat = false
@@ -411,8 +407,8 @@ export async function saveSelection(eventId, players, seasonId = null) {
       throw new Error('Format de données invalide pour saveSelection')
     }
     
-    const oldSelection = oldSelectionDoc.exists && oldSelectionDoc.data() 
-      ? (oldSelectionDoc.data().players || []) 
+    const oldSelection = oldSelectionDoc 
+      ? (oldSelectionDoc.players || []) 
       : []
     
     // Initialiser les statuts individuels des joueurs
@@ -433,23 +429,18 @@ export async function saveSelection(eventId, players, seasonId = null) {
       playerStatuses, // Statuts individuels des joueurs
       updatedAt: serverTimestamp()
     }
-    await setDoc(selRef, selectionData)
+    await firestoreService.setDocument('seasons', seasonId, selectionData, false, 'selections', eventId)
     
     // Gérer les rappels automatiques
     try {
       if (seasonId) {
         // Récupérer les informations de l'événement et de la saison
-        const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
-        const seasonRef = doc(db, 'seasons', seasonId)
-        
-        const [eventSnap, seasonSnap] = await Promise.all([
-          getDoc(eventRef),
-          getDoc(seasonRef)
+        const [eventData, seasonData] = await Promise.all([
+          firestoreService.getDocument('seasons', seasonId, 'events', eventId),
+          firestoreService.getDocument('seasons', seasonId)
         ])
         
-        if (eventSnap.exists && seasonSnap.exists) {
-          const eventData = eventSnap.data()
-          const seasonData = seasonSnap.data()
+        if (eventData && seasonData) {
           
           // Supprimer les rappels pour les joueurs désélectionnés
           const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
@@ -511,15 +502,10 @@ export async function saveSelection(eventId, players, seasonId = null) {
 /**
  * Confirmer une sélection (la verrouille)
  */
-export async function confirmSelection(eventId, seasonId = null) {
+export async function confirmSelection(eventId, seasonId) {
   try {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
-    
     // Récupérer la sélection actuelle pour initialiser les statuts des joueurs
-    const selectionDoc = await getDoc(selRef)
-    const currentSelection = selectionDoc.exists ? selectionDoc.data() : { players: [] }
+    const currentSelection = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { players: [] }
     
     // Initialiser les statuts individuels des joueurs si pas encore fait
     // Préserver les statuts "declined" existants
@@ -531,12 +517,12 @@ export async function confirmSelection(eventId, seasonId = null) {
       // Ne pas écraser un statut "declined" existant
     })
     
-    await updateDoc(selRef, { 
+    await firestoreService.updateDocument('seasons', seasonId, { 
       confirmed: true,
       confirmedAt: serverTimestamp(),
       confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
       playerStatuses
-    })
+    }, 'selections', eventId)
   } catch (error) {
     console.error('❌ Erreur dans confirmSelection:', error)
     throw error
@@ -546,15 +532,10 @@ export async function confirmSelection(eventId, seasonId = null) {
 /**
  * Annuler la confirmation d'une sélection (admin uniquement)
  */
-export async function unconfirmSelection(eventId, seasonId = null) {
+export async function unconfirmSelection(eventId, seasonId) {
   try {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
-    
     // Préserver TOUS les statuts des joueurs lors du déverrouillage
-    const currentSelection = await getDoc(selRef)
-    const currentData = currentSelection.data()
+    const currentData = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
     const preservedPlayerStatuses = {}
     
     if (currentData && currentData.playerStatuses) {
@@ -568,13 +549,13 @@ export async function unconfirmSelection(eventId, seasonId = null) {
     // Garder TOUS les joueurs dans les slots pour préserver l'information visuelle
     const currentPlayers = Array.isArray(currentData?.players) ? currentData.players : []
     
-    await updateDoc(selRef, { 
+    await firestoreService.updateDocument('seasons', seasonId, { 
       confirmed: false,
       confirmedAt: null,
       players: currentPlayers, // Garder tous les joueurs
       playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
       confirmedByAllPlayers: false
-    })
+    }, 'selections', eventId)
   } catch (error) {
     console.error('❌ Erreur dans unconfirmSelection:', error)
     throw error
@@ -586,16 +567,12 @@ export async function unconfirmSelection(eventId, seasonId = null) {
  * @param {string} eventId - ID de l'événement
  * @param {string} seasonId - ID de la saison (optionnel)
  */
-export async function deleteSelection(eventId, seasonId = null) {
+export async function deleteSelection(eventId, seasonId) {
   console.log('🗑️ deleteSelection appelé:', { eventId, seasonId })
   
   try {
-    const selRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'selections', eventId)
-      : doc(db, 'selections', eventId)
-    
     // Supprimer complètement le document de sélection
-    await deleteDoc(selRef)
+    await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
     
     console.log('✅ Sélection supprimée avec succès')
   } catch (error) {
