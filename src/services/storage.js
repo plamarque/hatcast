@@ -176,23 +176,31 @@ export async function addPlayer(name, seasonId) {
     throw new Error('Le nom du joueur ne peut pas être vide')
   }
   
-  const newId = await firestoreService.addDocument('seasons', { name: name.trim() }, seasonId, 'players')
+  const trimmedName = name.trim()
+  
+  // Vérifier si un joueur avec ce nom existe déjà
+  const existingPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
+  const nameExists = existingPlayers.some(player => player.name === trimmedName)
+  
+  if (nameExists) {
+    throw new Error('Un joueur avec ce nom existe déjà dans cette saison')
+  }
+  
+  const newId = await firestoreService.addDocument('seasons', { name: trimmedName }, seasonId, 'players')
   return newId
 }
 
 export async function deletePlayer(playerId, seasonId) {
   // Lire le nom du joueur avant suppression
-  const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
-  const playerSnap = await getDoc(playerRef)
-  const playerName = playerSnap.exists() ? playerSnap.data().name : null
+  const player = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+  const playerName = player?.name || null
   
   // Supprimer le joueur
-  await deleteDoc(playerRef)
+  await firestoreService.deleteDocument('seasons', seasonId, 'players', playerId)
   
   // Supprimer les disponibilités pour ce joueur (par nom)
   if (playerName) {
-    const availabilityRef = doc(db, 'seasons', seasonId, 'availability', playerName)
-    await deleteDoc(availabilityRef)
+    await firestoreService.deleteDocument('seasons', seasonId, 'availability', playerName)
   }
 }
 
