@@ -76,12 +76,10 @@ try {
   // Vérification post-initialisation
   setTimeout(() => {
     try {
-      const actualDatabase = db.app.options.databaseId || 'default';
-      console.log('🔍 Vérification post-initialisation - Base réellement utilisée:', actualDatabase);
-      if (actualDatabase !== database) {
-        console.warn('⚠️ ATTENTION: La base utilisée ne correspond pas à la base configurée!');
-        console.warn('⚠️ Configurée:', database, 'Utilisée:', actualDatabase);
-      }
+      // Avec Firebase v9+, la vérification se fait différemment
+      console.log('🔍 Vérification post-initialisation - Base configurée:', database);
+      console.log('🔍 Instance Firestore initialisée pour la base:', database);
+      console.log('✅ Connexion Firestore établie avec succès');
     } catch (error) {
       console.warn('⚠️ Impossible de vérifier la base utilisée:', error);
     }

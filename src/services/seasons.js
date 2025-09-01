@@ -27,6 +27,17 @@ export async function getSeasons() {
     const q = firestoreService.createQuery(SEASONS_COLLECTION, [orderBy('createdAt', 'desc')])
     const seasons = await firestoreService.executeQuery(q)
     console.log('🔧 getSeasons: saisons chargées depuis Firebase:', seasons.length)
+    
+    // Vérifier si des saisons n'ont pas de sortOrder et les initialiser
+    const needSortOrder = seasons.some(s => typeof s.sortOrder !== 'number' || isNaN(s.sortOrder))
+    if (needSortOrder) {
+      console.log('🔧 getSeasons: des saisons n\'ont pas de sortOrder, initialisation...')
+      // On initialise en arrière-plan et on retourne les saisons actuelles
+      initializeMissingSortOrders(seasons).catch(error => {
+        console.error('❌ Erreur lors de l\'initialisation des sortOrder:', error)
+      })
+    }
+    
     return seasons
   } catch (error) {
     // Gestion robuste des erreurs : collection inexistante = base vide
@@ -60,7 +71,10 @@ export async function getSeasonPin(seasonId) {
 
 // Update only the sort order of a season
 export async function setSeasonSortOrder(seasonId, sortOrder) {
-  await firestoreService.updateDocument(SEASONS_COLLECTION, seasonId, { sortOrder })
+  // Valider que sortOrder est un nombre valide
+  const validSortOrder = typeof sortOrder === 'number' && !isNaN(sortOrder) ? sortOrder : 0
+  console.log('🔧 setSeasonSortOrder: seasonId =', seasonId, 'sortOrder =', sortOrder, 'validSortOrder =', validSortOrder)
+  await firestoreService.updateDocument(SEASONS_COLLECTION, seasonId, { sortOrder: validSortOrder })
 }
 
 // Update season name (slug remains unchanged)
@@ -71,4 +85,32 @@ export async function updateSeasonName(seasonId, newName) {
 // Update season (name, description and logo)
 export async function updateSeason(seasonId, updates) {
   await firestoreService.updateDocument(SEASONS_COLLECTION, seasonId, updates)
+}
+
+// Initialize missing sortOrder values for provided seasons array
+export async function initializeMissingSortOrders(seasons) {
+  try {
+    console.log('🔧 initializeMissingSortOrders: début avec', seasons.length, 'saisons')
+    
+    // Trouver l'ordre max existant
+    const existingOrders = seasons
+      .map(s => (typeof s.sortOrder === 'number' ? s.sortOrder : null))
+      .filter(v => v !== null)
+    let maxOrder = existingOrders.length ? Math.max(...existingOrders) : 0
+    
+    console.log('🔧 initializeMissingSortOrders: maxOrder existant =', maxOrder)
+    
+    // Affecter un sortOrder aux saisons qui n'en ont pas
+    for (const season of seasons) {
+      if (typeof season.sortOrder !== 'number' || isNaN(season.sortOrder)) {
+        maxOrder += 1
+        console.log('🔧 initializeMissingSortOrders: affectation sortOrder =', maxOrder, 'à la saison', season.name)
+        await setSeasonSortOrder(season.id, maxOrder)
+      }
+    }
+    
+    console.log('🔧 initializeMissingSortOrders: terminé')
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'initialisation des sortOrder:', error)
+  }
 }

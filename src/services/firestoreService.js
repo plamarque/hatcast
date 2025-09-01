@@ -32,6 +32,8 @@ class FirestoreService {
     this.db = db
     this.environment = import.meta.env.VITE_FIRESTORE_DATABASE || 'default'
     console.log('🔧 FirestoreService initialisé pour l\'environnement:', this.environment)
+    console.log('🔧 Instance Firestore connectée:', this.db ? 'OK' : 'ERREUR')
+    console.log('🔧 Projet Firebase:', this.db?.app?.options?.projectId || 'Non déterminé')
   }
 
   /**
@@ -55,7 +57,7 @@ class FirestoreService {
    * @param {...string} pathSegments - Segments de chemin pour les sous-collections
    * @returns {DocumentReference} Référence de document
    */
-  getDocument(collectionName, docId, ...pathSegments) {
+  getDocumentRef(collectionName, docId, ...pathSegments) {
     if (pathSegments.length === 0) {
       return doc(this.db, collectionName, docId)
     } else {
@@ -89,7 +91,7 @@ class FirestoreService {
    */
   async getDocument(collectionName, docId, ...pathSegments) {
     try {
-      const docRef = this.getDocument(collectionName, docId, ...pathSegments)
+      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
       const snapshot = await getDoc(docRef)
       if (snapshot.exists()) {
         return { id: snapshot.id, ...snapshot.data() }
@@ -134,7 +136,7 @@ class FirestoreService {
    */
   async setDocument(collectionName, docId, data, merge = false, ...pathSegments) {
     try {
-      const docRef = this.getDocument(collectionName, docId, ...pathSegments)
+      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
       await setDoc(docRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -156,7 +158,7 @@ class FirestoreService {
    */
   async updateDocument(collectionName, docId, data, ...pathSegments) {
     try {
-      const docRef = this.getDocument(collectionName, docId, ...pathSegments)
+      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
       await updateDoc(docRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -177,7 +179,7 @@ class FirestoreService {
    */
   async deleteDocument(collectionName, docId, ...pathSegments) {
     try {
-      const docRef = this.getDocument(collectionName, docId, ...pathSegments)
+      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
       await deleteDoc(docRef)
       console.log(`✅ Document ${docId} supprimé de ${collectionName}`)
     } catch (error) {
@@ -259,7 +261,7 @@ class FirestoreService {
    * @returns {Function} Fonction de désabonnement
    */
   onDocumentSnapshot(collectionName, docId, callback, ...pathSegments) {
-    const docRef = this.getDocument(collectionName, docId, ...pathSegments)
+    const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
     return onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         callback({ id: snapshot.id, ...snapshot.data() })
