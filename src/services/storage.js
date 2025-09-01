@@ -134,50 +134,9 @@ export const ROLE_TEMPLATES = {
 // Ordre d'affichage des types
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
-// Migration automatique des données globales vers la structure multi-saison
-export async function migrateToSeasons() {
-  // Vérifier si la collection 'seasons' est vide
-  const seasonsSnap = await getDocs(collection(db, 'seasons'))
-  if (!seasonsSnap.empty) return // Déjà migré
-
-  // Créer la saison 'Malice 2025-2026'
-  const seasonRef = doc(collection(db, 'seasons'))
-  await setDoc(seasonRef, {
-    name: 'Malice 2025-2026',
-    slug: 'malice-2025-2026',
-    createdAt: serverTimestamp(),
-  })
-
-  // Copier les joueurs
-  const playersSnap = await getDocs(collection(db, 'players'))
-  for (const playerDoc of playersSnap.docs) {
-    await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
-  }
-
-  // Copier les événements
-  const eventsSnap = await getDocs(collection(db, 'events'))
-  for (const eventDoc of eventsSnap.docs) {
-    await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
-  }
-
-  // Copier les disponibilités
-  const availSnap = await getDocs(collection(db, 'availability'))
-  for (const availDoc of availSnap.docs) {
-    await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
-  }
-
-  // Copier les sélections
-  const selSnap = await getDocs(collection(db, 'selections'))
-  for (const selDoc of selSnap.docs) {
-    await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
-  }
-
-  // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
-}
-
 // Appeler la migration au démarrage
 export async function initializeStorage() {
-  await migrateToSeasons()
+  // Migration obsolète supprimée - la structure multi-saison est déjà en place
 }
 
 export async function loadEvents(seasonId = null) {
