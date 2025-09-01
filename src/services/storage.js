@@ -606,8 +606,7 @@ export async function updateEvent(eventId, eventData, seasonId) {
 
 // Mise à jour de l'état d'archivage d'un événement
 export async function setEventArchived(eventId, archived, seasonId) {
-  const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
-  await updateDoc(eventRef, { archived: !!archived })
+  await firestoreService.updateDocument('seasons', seasonId, { archived: !!archived }, 'events', eventId)
 }
 
 /**
