@@ -1,23 +1,34 @@
 // Queue de notifications push (à traiter côté Cloud Functions)
-import { db } from './firebase'
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import firestoreService from './firestoreService.js'
+import logger from './logger.js'
 
 /**
  * Enqueue a push notification to be sent by backend based on user email.
- * The backend should resolve email -> tokens from collection `userPushTokens` and send via FCM.
+ * The backend should resolve email -> tokens from collection `pushQueue` and send via FCM.
  */
 export async function queuePushMessage({ toEmail, title, body, data = {}, reason = 'generic' }) {
   if (!toEmail) return { success: false, error: 'missing_toEmail' }
+  
   const payload = {
     to: toEmail,
     title,
     body,
     data,
     reason,
-    createdAt: serverTimestamp()
+    createdAt: new Date()
   }
-  await addDoc(collection(db, 'pushQueue'), payload)
-  return { success: true }
+  
+  try {
+    await firestoreService.addDocument('pushQueue', payload)
+    return { success: true }
+  } catch (error) {
+    logger.error('Erreur lors de l\'ajout à la queue push', {
+      error: error.message,
+      toEmail,
+      reason
+    })
+    return { success: false, error: error.message }
+  }
 }
 
 

@@ -45,7 +45,7 @@ class ConfigService {
           capture: true
         },
         notifications: {
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'Non défini'
+          vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
           url: 'https://192.168.1.134:5173'
@@ -65,7 +65,7 @@ class ConfigService {
           capture: true
         },
         notifications: {
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'Non défini'
+          vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
           url: 'https://hatcast-staging.web.app'
@@ -85,7 +85,7 @@ class ConfigService {
           capture: false
         },
         notifications: {
-          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'Non défini'
+          vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
           url: 'https://selections.la-malice.fr'

@@ -17,10 +17,11 @@ async function getActiveServiceWorkerRegistration() {
   if (typeof navigator === 'undefined' || !navigator.serviceWorker) return null
   
   // En mode développement, ne pas essayer d'enregistrer le SW
-  if (import.meta.env?.DEV) {
-    logger.info('🔇 Service Worker désactivé en mode développement')
-    return null
-  }
+  // Temporairement activé pour les tests
+  // if (import.meta.env?.DEV) {
+  //   logger.info('🔇 Service Worker désactivé en mode développement')
+  //   return null
+  // }
   
   // Essayer de récupérer une registration existante
   const existingReg = await navigator.serviceWorker.getRegistration()
@@ -79,10 +80,11 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
 // Fonction pour vérifier et réactiver automatiquement les notifications push
 export async function ensurePushNotificationsActive() {
   // En mode développement, désactiver les notifications push
-  if (import.meta.env?.DEV) {
-    logger.info('🔇 Notifications push désactivées en mode développement')
-    return { active: false, error: 'Notifications désactivées en développement' }
-  }
+  // Temporairement activé pour les tests
+  // if (import.meta.env?.DEV) {
+  //   logger.info('🔇 Notifications push désactivées en mode développement')
+  //   return { active: false, error: 'Notifications désactivées en développement' }
+  // }
   
   try {
     // Vérifier si on a déjà un token valide
@@ -119,10 +121,11 @@ export async function ensurePushNotificationsActive() {
 // Vérifier périodiquement l'état des notifications push
 export function startPushHealthCheck() {
   // DÉSACTIVÉ EN LOCAL pour éviter le spam de logs
-  if (import.meta.env?.DEV) {
-    logger.info('🔇 Push health check désactivé en mode développement')
-    return
-  }
+  // Temporairement activé pour les tests
+  // if (import.meta.env?.DEV) {
+  //   logger.info('🔇 Push health check désactivé en mode développement')
+  //   return
+  // }
   
   // Vérifier toutes les 5 minutes
   setInterval(async () => {

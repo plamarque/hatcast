@@ -1,8 +1,11 @@
 /// <reference lib="webworker" />
 /* global self */
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
 
-// Silence workbox logs in production (vite-plugin-pwa will inject workbox at build time)
+// Silence workbox logs in production
 self.__WB_DISABLE_DEV_LOGS = true
 
 // Precache assets injected at build time
@@ -31,6 +34,20 @@ self.addEventListener('activate', (event) => {
   )
 })
 
+// Cache Firebase JS files
+registerRoute(
+  /^https:\/\/www\.gstatic\.com\/firebasejs\/.*/,
+  new CacheFirst({
+    cacheName: 'firebase-js',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 10,
+        maxAgeSeconds: 60 * 60 * 24 * 365 // 1 an
+      })
+    ]
+  })
+)
+
 // Listen for messages from the main thread to check for updates
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -48,7 +65,7 @@ self.addEventListener('message', (event) => {
   }
 })
 
-// Basic notificationclick handler (future-proof for push integration)
+// Basic notificationclick handler for push notifications
 self.addEventListener('notificationclick', (event) => {
   const data = event.notification?.data || {}
   const url = data.url || '/'
@@ -56,7 +73,9 @@ self.addEventListener('notificationclick', (event) => {
   const yesUrl = data.yesUrl
   const confirmUrl = data.confirmUrl
   const declineUrl = data.declineUrl
+  
   event.notification.close()
+  
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       // Actions spécifiques pour sélection
@@ -65,6 +84,7 @@ self.addEventListener('notificationclick', (event) => {
       // Actions spécifiques pour disponibilité
       if (event.action === 'no' && noUrl) return self.clients.openWindow(noUrl)
       if (event.action === 'yes' && yesUrl) return self.clients.openWindow(yesUrl)
+      
       const targetUrl = url
       const client = clients.find((c) => c.url.includes(targetUrl))
       if (client) return client.focus()
@@ -73,30 +93,27 @@ self.addEventListener('notificationclick', (event) => {
   )
 })
 
-// Firebase Messaging background handler (compat build for SW)
+// Firebase Messaging background handler
 self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js')
 self.importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js')
 
 try {
-  // Config Firebase - utiliser des valeurs par défaut pour éviter les erreurs
+  // Configuration Firebase
   const firebaseConfig = {
-    apiKey: 'demo-key',
-    authDomain: 'demo.firebaseapp.com',
-    projectId: 'demo-project',
-    storageBucket: 'demo-project.appspot.com',
-    messagingSenderId: '123456789',
-    appId: 'demo-app-id',
-    measurementId: 'demo-measurement-id'
+    apiKey: 'AIzaSyDCqJRmxKiIzuAhgXsmXICCx_O65aujNa0',
+    authDomain: 'impro-selector.firebaseapp.com',
+    projectId: 'impro-selector',
+    storageBucket: 'impro-selector.firebasestorage.app',
+    messagingSenderId: '730278491306',
+    appId: '1:730278491306:web:c966af1179221e91118cd3',
+    measurementId: 'G-3NB062D088'
   }
   
-  // Vérifier si on a une config valide (pas de valeurs demo)
-  const hasValidConfig = Object.values(firebaseConfig).every(value => 
-    value && !value.includes('demo')
-  )
-  
-  if (hasValidConfig) {
-    firebase.initializeApp(firebaseConfig)
+  // Initialiser Firebase
+  firebase.initializeApp(firebaseConfig)
   const messaging = firebase.messaging()
+  
+  // Gérer les messages en arrière-plan
   messaging.onBackgroundMessage((payload) => {
     const data = payload?.data || {}
     const title = data.title || payload.notification?.title || 'Notification'
@@ -108,6 +125,7 @@ try {
     const confirmUrl = data.confirmUrl
     const declineUrl = data.declineUrl
     const reason = data.reason || 'generic'
+    
     /** @type {NotificationAction[]} */
     const actions = []
     
@@ -129,11 +147,14 @@ try {
       actions.push({ action: 'open', title: 'Voir' })
     }
     
-    self.registration.showNotification(title, { body, icon, actions, data: { url, noUrl, yesUrl, confirmUrl, declineUrl, reason } })
+    self.registration.showNotification(title, { 
+      body, 
+      icon, 
+      actions, 
+      data: { url, noUrl, yesUrl, confirmUrl, declineUrl, reason } 
+    })
   })
-  }
 } catch (e) {
-  // ignore in dev/preview or if Firebase config is not available
   console.log('Firebase Messaging not available in service worker:', e.message)
 }
 
