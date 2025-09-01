@@ -469,13 +469,20 @@
         <input
           v-model="newPlayerName"
           type="text"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          :class="[
+            'w-full p-3 bg-gray-800 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400',
+            newPlayerNameError ? 'border-red-500' : 'border-gray-600'
+          ]"
           placeholder="Nom de la personne"
+          @input="validateNewPlayerName"
         >
+        <div v-if="newPlayerNameError" class="mt-2 text-sm text-red-400">
+          {{ newPlayerNameError }}
+        </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
-          @click="newPlayerForm = false"
+          @click="closeNewPlayerForm"
           class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
         >
           Annuler
@@ -1673,6 +1680,7 @@ const editingShowAllRoles = ref(false)
 
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
+const newPlayerNameError = ref('')
 const highlightedPlayer = ref(null)
 const guidedPlayerId = ref(null)
 const guidedEventId = ref(null)
@@ -3065,11 +3073,43 @@ async function confirmDeletePlayer(playerId) {
   }
 }
 
+// Fonction de validation du nom de joueur
+function validateNewPlayerName() {
+  const name = newPlayerName.value.trim()
+  
+  if (!name) {
+    newPlayerNameError.value = ''
+    return
+  }
+  
+  const existingPlayer = players.value.find(player => player.name.toLowerCase() === name.toLowerCase())
+  if (existingPlayer) {
+    newPlayerNameError.value = `Une personne nommée "${name}" existe déjà dans cette saison.`
+  } else {
+    newPlayerNameError.value = ''
+  }
+}
+
+// Fonction pour fermer la modale de nouvelle personne
+function closeNewPlayerForm() {
+  newPlayerForm.value = false
+  newPlayerName.value = ''
+  newPlayerNameError.value = ''
+}
+
 async function addNewPlayer() {
   if (!newPlayerName.value.trim()) return
 
+  const newName = newPlayerName.value.trim()
+  
+  // Vérifier si un joueur avec ce nom existe déjà (validation côté client)
+  const existingPlayer = players.value.find(player => player.name.toLowerCase() === newName.toLowerCase())
+  if (existingPlayer) {
+    newPlayerNameError.value = `Une personne nommée "${newName}" existe déjà dans cette saison.`
+    return
+  }
+
   try {
-    const newName = newPlayerName.value.trim()
     const newId = await addPlayer(newName, seasonId.value)
     
     // Recharger les données
@@ -3133,6 +3173,7 @@ async function addNewPlayer() {
     
     newPlayerForm.value = false
     newPlayerName.value = ''
+    newPlayerNameError.value = ''
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'ajout du joueur:', error)
