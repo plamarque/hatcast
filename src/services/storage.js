@@ -170,12 +170,14 @@ export async function loadPlayers(seasonId) {
 
 
 
-export async function addPlayer(name, seasonId = null) {
-  const newDocRef = seasonId
-    ? doc(collection(db, 'seasons', seasonId, 'players'))
-    : doc(collection(db, 'players'))
-  await setDoc(newDocRef, { name })
-  return newDocRef.id
+export async function addPlayer(name, seasonId) {
+  // Validation côté serveur
+  if (!name || !name.trim()) {
+    throw new Error('Le nom du joueur ne peut pas être vide')
+  }
+  
+  const newId = await firestoreService.addDocument('seasons', { name: name.trim() }, seasonId, 'players')
+  return newId
 }
 
 export async function deletePlayer(playerId, seasonId = null) {
