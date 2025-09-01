@@ -76,7 +76,7 @@ export async function setSeasonSortOrder(seasonId, sortOrder) {
   console.log('🔧 setSeasonSortOrder: seasonId =', seasonId, 'sortOrder =', sortOrder, 'validSortOrder =', validSortOrder)
   await firestoreService.updateDocument(SEASONS_COLLECTION, seasonId, { sortOrder: validSortOrder })
 }
-
+ier et supprimer également. aps d'erreur.
 // Update season name (slug remains unchanged)
 export async function updateSeasonName(seasonId, newName) {
   await firestoreService.updateDocument(SEASONS_COLLECTION, seasonId, { name: newName })

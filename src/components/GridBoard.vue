@@ -3502,23 +3502,35 @@ onMounted(async () => {
       // Étape 3: disponibilités
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
-      availability.value = await loadAvailability(players.value, events.value, seasonId.value)
+      try {
+        availability.value = await loadAvailability(players.value, events.value, seasonId.value)
+      } catch (error) {
+        console.log('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
+        availability.value = {}
+      }
 
       // Étape 4: sélections + protections
       currentLoadingLabel.value = 'Chargement des sélections'
       loadingProgress.value = 85
-      // Les sélections sont déjà chargées par loadSelections()
-
-      const protections = await listProtectedPlayers(seasonId.value)
-      const protSet = new Set()
-      if (Array.isArray(protections)) {
-        protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+      try {
+        const protections = await listProtectedPlayers(seasonId.value)
+        const protSet = new Set()
+        if (Array.isArray(protections)) {
+          protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+        }
+        protectedPlayers.value = protSet
+      } catch (error) {
+        console.log('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
+        protectedPlayers.value = new Set()
       }
-      protectedPlayers.value = protSet
       
       // Initialiser les joueurs préférés si l'utilisateur est connecté
       if (auth.currentUser?.email) {
-        await updatePreferredPlayersSet()
+        try {
+          await updatePreferredPlayersSet()
+        } catch (error) {
+          console.log('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
+        }
       }
     }
     

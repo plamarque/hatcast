@@ -1,4 +1,5 @@
 // storage.js
+import firestoreService from './firestoreService.js'
 import { db } from './firebase.js'
 import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
@@ -222,18 +223,16 @@ export async function initializeEmptyDatabase() {
 
   try {
     // Vérifier si la collection 'seasons' est vide
-    const seasonsSnap = await getDocs(getCollection('seasons'))
-    if (!seasonsSnap.empty) return // Déjà des données
+    const seasons = await firestoreService.getDocuments('seasons')
+    if (seasons.length > 0) return // Déjà des données
 
     console.log('🌱 Base vide détectée, création d\'une saison de test...')
     
     // Créer une saison de test pour staging/development
-    const seasonRef = doc(getCollection('seasons'))
-    await setDoc(seasonRef, {
+    await firestoreService.addDocument('seasons', {
       name: 'Saison de Test',
       slug: 'saison-test',
       description: 'Saison créée automatiquement pour tester l\'application',
-      createdAt: serverTimestamp(),
       sortOrder: 1
     })
 
@@ -264,11 +263,9 @@ export async function loadEvents(seasonId = null) {
   if (mode === 'firebase') {
     try {
       if (seasonId) {
-        const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
-        events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        events = await firestoreService.getDocuments('seasons', seasonId, 'events')
       } else {
-        const eventsSnap = await getDocs(collection(db, 'events'))
-        events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        events = await firestoreService.getDocuments('events')
       }
     } catch (error) {
       // Gestion robuste des erreurs : collection inexistante = base vide
@@ -309,11 +306,9 @@ export async function loadPlayers(seasonId = null) {
   if (mode === 'firebase') {
     try {
       if (seasonId) {
-        const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
-        players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        players = await firestoreService.getDocuments('seasons', seasonId, 'players')
       } else {
-        const playersSnap = await getDocs(collection(db, 'players'))
-        players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        players = await firestoreService.getDocuments('players')
       }
     } catch (error) {
       // Gestion robuste des erreurs : collection inexistante = base vide
@@ -367,11 +362,18 @@ export async function reorderPlayersAlphabetically(seasonId = null) {
 
 export async function addPlayer(name, seasonId = null) {
   if (mode === 'firebase') {
-    const newDocRef = seasonId
-      ? doc(collection(db, 'seasons', seasonId, 'players'))
-      : doc(collection(db, 'players'))
-    await setDoc(newDocRef, { name })
-    return newDocRef.id
+    try {
+      if (seasonId) {
+        const newDocRef = await firestoreService.addDocument('seasons', seasonId, 'players', { name })
+        return newDocRef
+      } else {
+        const newDocRef = await firestoreService.addDocument('players', { name })
+        return newDocRef
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du joueur:', error)
+      throw error
+    }
   } else {
     const newId = `p${playersList.length + 1}`
     playersList.push({ id: newId, name })
@@ -563,9 +565,13 @@ export async function loadAvailability(players, events, seasonId = null) {
 export async function loadSelections(seasonId = null) {
   if (mode === 'firebase') {
     try {
-      const selSnap = seasonId
-        ? await getDocs(collection(db, 'seasons', seasonId, 'selections'))
-        : await getDocs(collection(db, 'selections'))
+      let selSnap
+      if (seasonId) {
+        selSnap = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+      } else {
+        selSnap = await firestoreService.getDocuments('selections')
+      }
+      
       const res = {}
       selSnap.forEach(doc => {
         const data = doc.data()
