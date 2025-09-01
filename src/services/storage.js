@@ -3,6 +3,7 @@ import { db } from './firebase.js'
 import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
+import firestoreService from './firestoreService.js'
 
 // Constantes pour les rôles et leurs emojis
 export const ROLES = {
@@ -134,15 +135,8 @@ export const ROLE_TEMPLATES = {
 // Ordre d'affichage des types
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
-export async function loadEvents(seasonId = null) {
-  let events
-  if (seasonId) {
-    const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
-    events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  } else {
-    const eventsSnap = await getDocs(collection(db, 'events'))
-    events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  }
+export async function loadEvents(seasonId) {
+  const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
 
   // Tri des événements par date (croissant) puis par titre (alphabétique)
   return events.sort((a, b) => {
