@@ -269,48 +269,13 @@ export async function updatePlayer(playerId, newName, seasonId = null) {
   }
 }
 
-export async function loadAvailability(players, events, seasonId = null) {
-  const availabilitySnap = seasonId
-    ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-    : await getDocs(collection(db, 'availability'))
+export async function loadAvailability(players, events, seasonId) {
+  const availabilityDocs = await firestoreService.getDocuments('seasons', seasonId, 'availability')
   const availability = {}
-  availabilitySnap.forEach(doc => {
-    const data = doc.data()
-    const migratedData = {}
-    
-    // Migration des anciennes disponibilités vers le nouveau format
-    Object.keys(data).forEach(eventId => {
-      const value = data[eventId]
-      if (eventId === 'updatedAt') {
-        migratedData[eventId] = value
-      } else {
-        // Migration : ancien format (boolean) vers nouveau format (objet)
-        if (typeof value === 'boolean' || value === null || value === undefined) {
-          // Ancien format : juste un boolean
-          migratedData[eventId] = {
-            available: value === true,
-            roles: value === true ? [ROLES.PLAYER] : [],
-            comment: null
-          }
-        } else if (typeof value === 'object' && value !== null) {
-          // Nouveau format : déjà migré
-          migratedData[eventId] = {
-            available: value.available ?? (value.roles && value.roles.length > 0),
-            roles: value.roles || [],
-            comment: value.comment || null
-          }
-        } else {
-          // Fallback pour les cas inattendus
-          migratedData[eventId] = {
-            available: false,
-            roles: [],
-            comment: null
-          }
-        }
-      }
-    })
-    
-    availability[doc.id] = migratedData
+  availabilityDocs.forEach(doc => {
+    // firestoreService.getDocuments() retourne déjà { id, ...data }
+    const { id, ...data } = doc
+    availability[id] = data
   })
   return availability
 }
