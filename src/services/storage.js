@@ -595,15 +595,13 @@ export async function saveEvent(eventData, seasonId) {
     }
   }
   
-  const newDocRef = doc(collection(db, 'seasons', seasonId, 'events'))
-  await setDoc(newDocRef, eventWithRoles)
-  return newDocRef.id
+  const eventId = await firestoreService.addDocument('seasons', eventWithRoles, seasonId, 'events')
+  return eventId
 }
 
 export async function updateEvent(eventId, eventData, seasonId) {
-  const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
   // Utiliser merge pour ne pas écraser des champs existants (ex: archived)
-  await setDoc(eventRef, eventData, { merge: true })
+  await firestoreService.setDocument('seasons', seasonId, eventData, true, 'events', eventId)
 }
 
 // Mise à jour de l'état d'archivage d'un événement
