@@ -1,7 +1,5 @@
 // storage.js
-import { db } from './firebase.js'
 import logger from './logger.js'
-import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 import firestoreService from './firestoreService.js'
 
@@ -392,7 +390,7 @@ export async function saveSelection(eventId, roles, seasonId) {
       confirmed: false, // Nouvelle sélection = non confirmée
       confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
       playerStatuses, // Statuts individuels des joueurs
-      updatedAt: serverTimestamp()
+      updatedAt: new Date()
     }
     await firestoreService.setDocument('seasons', seasonId, selectionData, false, 'selections', eventId)
     
@@ -483,7 +481,7 @@ export async function confirmSelection(eventId, seasonId) {
     
     await firestoreService.updateDocument('seasons', seasonId, { 
       confirmed: true,
-      confirmedAt: serverTimestamp(),
+      confirmedAt: new Date(),
       confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
       playerStatuses
     }, 'selections', eventId)
@@ -547,26 +545,26 @@ export async function deleteEvent(eventId, seasonId) {
   try {
     // Supprimer l'événement
     logger.debug('Suppression de l\'événement dans Firestore')
-    const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
-    await deleteDoc(eventRef)
+    await firestoreService.deleteDocument('seasons', seasonId, 'events', eventId)
     
     // Supprimer la sélection associée
     logger.debug('Suppression de la sélection associée')
-    const selRef = doc(db, 'seasons', seasonId, 'selections', eventId)
-    await deleteDoc(selRef)
+    await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
     
     // Supprimer les disponibilités pour cet événement
     logger.debug('Suppression des disponibilités')
-    const availabilitySnap = await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-    const batch = writeBatch(db)
+    const allAvailability = await firestoreService.getDocuments('seasons', seasonId, 'availability')
     
-    availabilitySnap.forEach(doc => {
-      const availabilityData = doc.data()
+    // Créer un batch pour supprimer les disponibilités
+    const batch = firestoreService.createBatch()
+    
+    allAvailability.forEach(availabilityDoc => {
+      const availabilityData = availabilityDoc
       if (availabilityData[eventId] !== undefined) {
         logger.debug('Mise à jour de la disponibilité pour un joueur')
         const updatedData = { ...availabilityData }
         delete updatedData[eventId]
-        batch.update(doc.ref, updatedData)
+        batch.update('seasons', seasonId, updatedData, 'availability', availabilityDoc.id)
       }
     })
     
@@ -655,20 +653,17 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
 /**
  * Vérifier si tous les joueurs d'une sélection ont confirmé leur participation
  * @param {string} eventId - ID de l'événement
- * @param {string} seasonId - ID de la saison (optionnel)
+ * @param {string} seasonId - ID de la saison
  * @returns {Promise<boolean>} - true si tous ont confirmé
  */
 export async function isAllPlayersConfirmed(eventId, seasonId) {
   try {
-    const selRef = doc(db, 'seasons', seasonId, 'selections', eventId)
-    
-    const selectionDoc = await getDoc(selRef)
-    if (!selectionDoc.exists) {
+    const selectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    if (!selectionDoc) {
       return false
     }
     
-    const selectionData = selectionDoc.data()
-    const { confirmedByAllPlayers = false } = selectionData
+    const { confirmedByAllPlayers = false } = selectionDoc
     
     // Utiliser le champ pré-calculé pour de meilleures performances
     return confirmedByAllPlayers
