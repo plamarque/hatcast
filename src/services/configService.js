@@ -17,7 +17,7 @@ class ConfigService {
     
     if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
       return 'staging';
-    } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134')) {
+    } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134') || hostname.includes('127.0.0.1')) {
       return 'development';
     } else {
       return 'production';

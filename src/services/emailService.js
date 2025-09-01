@@ -1,17 +1,29 @@
 // src/services/emailService.js
 // Service d'envoi d'emails – version Trigger Email (Firebase Extension)
-import { db } from './firebase.js'
+import firestoreService from './firestoreService.js'
+import configService from './configService.js'
 import logger from './logger.js'
-import { addDoc, collection, serverTimestamp, getDoc, doc } from 'firebase/firestore'
 import { queuePushMessage } from './pushService'
 import { buildAvailabilityEmailTemplate, buildNotificationActivationTemplate } from './emailTemplates.js'
+import { serverTimestamp } from 'firebase/firestore'
 
 // Configuration centralisée de l'expéditeur
 const DEFAULT_FROM_EMAIL = 'HatCast <impropick@gmail.com>'
 const DEFAULT_REPLY_TO = 'impropick@gmail.com'
 
-// Fonction utilitaire pour configurer l'expéditeur
+// Fonction utilitaire pour configurer l'expéditeur selon l'environnement
 function getFromEmailConfig(customFromEmail = null) {
+  const emailConfig = configService.getEmailConfig()
+  
+  // En développement/staging, utiliser Ethereal
+  if (emailConfig.service === 'ethereal') {
+    return {
+      from: customFromEmail || 'HatCast Dev <dev@ethereal.email>',
+      replyTo: customFromEmail || 'dev@ethereal.email'
+    }
+  }
+  
+  // En production, utiliser Gmail
   return {
     from: customFromEmail || DEFAULT_FROM_EMAIL,
     replyTo: customFromEmail || DEFAULT_REPLY_TO
@@ -46,13 +58,9 @@ export async function queueAvailabilityEmail({
 }) {
   // Respecter préférences notification
   try {
-    const prefRef = doc(db, 'userPreferences', toEmail)
-    const prefSnap = await getDoc(prefRef)
-    if (prefSnap.exists()) {
-      const prefs = prefSnap.data()
-      if (prefs?.notifyAvailability === false) {
-        return { success: true, skipped: true }
-      }
+    const prefs = await firestoreService.getDocument('userPreferences', toEmail)
+    if (prefs?.notifyAvailability === false) {
+      return { success: true, skipped: true }
     }
   } catch {}
   const html = buildAvailabilityEmailTemplate({
@@ -81,13 +89,24 @@ export async function queueAvailabilityEmail({
   docData.from = fromConfig.from
   docData.replyTo = fromConfig.replyTo
 
-  await addDoc(collection(db, 'mail'), docData)
+  const emailConfig = configService.getEmailConfig()
+  
+  // En développement/staging avec capture, simuler l'envoi
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    logger.info('📧 Email capturé en mode développement:', {
+      to: toEmail,
+      subject: docData.message.subject,
+      reason: docData.meta.reason
+    })
+    return { success: true, captured: true }
+  }
+  
+  // En production ou sans capture, envoyer via Firebase Trigger Email
+  await firestoreService.addDocument('mail', docData)
 
   // Mirror push (expérimental) si activé dans préférences
   try {
-    const prefRef = doc(db, 'userPreferences', toEmail)
-    const prefSnap = await getDoc(prefRef)
-    const prefs = prefSnap.exists() ? prefSnap.data() : {}
+    const prefs = await firestoreService.getDocument('userPreferences', toEmail) || {}
     if (prefs?.notifyAvailabilityPush !== false) {
       const title = `${reason === 'reminder' ? 'Rappel: ' : ''}${eventTitle} (${eventDate})`
       const body = `${playerName}, t'es dispo ?`
@@ -134,7 +153,40 @@ export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'pl
   const fromConfig = getFromEmailConfig(fromEmail)
   docData.from = fromConfig.from
   docData.replyTo = fromConfig.replyTo
-  await addDoc(collection(db, 'mail'), docData)
+  
+  const emailConfig = configService.getEmailConfig()
+  logger.info('🔧 Configuration email détectée:', { 
+    service: emailConfig.service, 
+    capture: emailConfig.capture,
+    environment: configService.getEnvironment()
+  })
+  
+  // En mode Ethereal avec capture, on écrit quand même dans Firestore
+  // pour que l'extension soit déclenchée, mais on log que c'est capturé
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    logger.info('📧 Email capturé en mode développement (écriture dans Firestore)', {
+      to: toEmail,
+      subject: docData.message.subject,
+      reason: docData.meta.reason
+    })
+  }
+  
+  // Toujours écrire dans Firestore pour déclencher l'extension
+  logger.info('🚀 Ajout du document email dans Firestore', { 
+    collection: 'mail', 
+    to: toEmail, 
+    subject: docData.message.subject,
+    database: 'development'
+  })
+  
+  await firestoreService.addDocument('mail', docData)
+  logger.info('✅ Document email ajouté avec succès dans Firestore')
+  
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    return { success: true, captured: true }
+  }
+  
+  return { success: true }
 }
 
 // Ancien alias conservé pour compat: protection joueur
@@ -158,13 +210,9 @@ export async function queueSelectionEmail({
 }) {
   // Respecter préférences notification
   try {
-    const prefRef = doc(db, 'userPreferences', toEmail)
-    const prefSnap = await getDoc(prefRef)
-    if (prefSnap.exists()) {
-      const prefs = prefSnap.data()
-      if (prefs?.notifySelection === false) {
-        return { success: true, skipped: true }
-      }
+    const prefs = await firestoreService.getDocument('userPreferences', toEmail)
+    if (prefs?.notifySelection === false) {
+      return { success: true, skipped: true }
     }
   } catch {}
   logger.debug('queueSelectionEmail', { forPlayer: playerName, hasCustomHtml: !!html, hasCustomSubject: !!subject })
@@ -204,12 +252,24 @@ export async function queueSelectionEmail({
   logger.debug('queueSelectionEmail firestore payload ready')
   
   try {
-    await addDoc(collection(db, 'mail'), docData)
+    const emailConfig = configService.getEmailConfig()
+    
+    // En développement/staging avec capture, simuler l'envoi
+    if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+      logger.info('📧 Email de sélection capturé en mode développement:', {
+        to: toEmail,
+        subject: docData.message.subject,
+        reason: docData.meta.reason
+      })
+      return { success: true, captured: true }
+    }
+    
+    // En production ou sans capture, envoyer via Firebase Trigger Email
+    await firestoreService.addDocument('mail', docData)
+    
     // Enqueue push mirror si préférences l'autorisent
     try {
-      const prefRef = doc(db, 'userPreferences', toEmail)
-      const prefSnap = await getDoc(prefRef)
-      const prefs = prefSnap.exists() ? prefSnap.data() : {}
+      const prefs = await firestoreService.getDocument('userPreferences', toEmail) || {}
       console.log('Préférences utilisateur pour notifications push', { 
         toEmail, 
         prefs, 
@@ -268,13 +328,9 @@ export async function queueDeselectionEmail({
 }) {
   // Respecter préférences notification (on réutilise notifySelection)
   try {
-    const prefRef = doc(db, 'userPreferences', toEmail)
-    const prefSnap = await getDoc(prefRef)
-    if (prefSnap.exists()) {
-      const prefs = prefSnap.data()
-      if (prefs?.notifySelection === false) {
-        return { success: true, skipped: true }
-      }
+    const prefs = await firestoreService.getDocument('userPreferences', toEmail)
+    if (prefs?.notifySelection === false) {
+      return { success: true, skipped: true }
     }
   } catch {}
 
@@ -310,13 +366,24 @@ export async function queueDeselectionEmail({
   docData.from = fromConfig.from
   docData.replyTo = fromConfig.replyTo
 
-  await addDoc(collection(db, 'mail'), docData)
+  const emailConfig = configService.getEmailConfig()
+  
+  // En développement/staging avec capture, simuler l'envoi
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    logger.info('📧 Email de désélection capturé en mode développement:', {
+      to: toEmail,
+      subject: docData.message.subject,
+      reason: docData.meta.reason
+    })
+    return { success: true, captured: true }
+  }
+  
+  // En production ou sans capture, envoyer via Firebase Trigger Email
+  await firestoreService.addDocument('mail', docData)
 
   // Mirror push notification si autorisé (on réutilise notifySelectionPush)
   try {
-    const prefRef = doc(db, 'userPreferences', toEmail)
-    const prefSnap = await getDoc(prefRef)
-    const prefs = prefSnap.exists() ? prefSnap.data() : {}
+    const prefs = await firestoreService.getDocument('userPreferences', toEmail) || {}
     if (prefs?.notifySelectionPush !== false) {
       await queuePushMessage({
         toEmail,
@@ -596,12 +663,20 @@ export async function queueNotificationActivationEmail({
   docData.from = fromConfig.from
   docData.replyTo = fromConfig.replyTo
 
-  try {
-    await addDoc(collection(db, 'mail'), docData)
-    logger.info('Email d\'activation des notifications ajouté à la queue', { toEmail, playerName })
-    return { success: true }
-  } catch (error) {
-    logger.error('Erreur lors de l\'ajout de l\'email d\'activation à la queue', error)
-    throw error
+  const emailConfig = configService.getEmailConfig()
+  
+  // En développement/staging avec capture, simuler l'envoi
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    logger.info('📧 Email d\'activation des notifications capturé en mode développement:', {
+      to: toEmail,
+      subject: docData.message.subject,
+      reason: docData.meta.reason
+    })
+    return { success: true, captured: true }
   }
+  
+  // En production ou sans capture, envoyer via Firebase Trigger Email
+  await firestoreService.addDocument('mail', docData)
+  logger.info('Email d\'activation des notifications ajouté à la queue', { toEmail, playerName })
+  return { success: true }
 }

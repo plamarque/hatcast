@@ -252,7 +252,13 @@ onMounted(async () => {
           await new Promise(resolve => setTimeout(resolve, 2000))
           
           // Renvoyer vers la saison de départ
-          if (slug) {
+          if (seasonId) {
+            // Utiliser seasonId pour une redirection plus fiable
+            const seasonUrl = `/season/${seasonId}?player=${encodeURIComponent(playerId)}&verified=1`
+            console.log('🔗 Redirection vers la saison:', seasonUrl)
+            router.push(seasonUrl)
+          } else if (slug) {
+            // Fallback sur le slug si pas de seasonId
             router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`)
           } else {
             router.push('/seasons')
