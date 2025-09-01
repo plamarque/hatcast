@@ -215,6 +215,67 @@
           ></textarea>
         </div>
         
+        <!-- Section Logo -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Logo de la saison</label>
+          <div class="flex items-center gap-4">
+            <!-- Prévisualisation du logo -->
+            <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20">
+              <img 
+                v-if="editSeasonLogoPreview" 
+                :src="editSeasonLogoPreview" 
+                :alt="`Logo de ${editSeasonName}`"
+                class="w-full h-full object-cover"
+              >
+              <span v-else class="text-xl">🎭</span>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex flex-col gap-2">
+              <button
+                v-if="isConnected"
+                type="button"
+                @click="triggerLogoUpload"
+                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
+              >
+                {{ editSeasonLogo ? 'Changer le logo' : 'Ajouter un logo' }}
+              </button>
+              <button
+                v-else
+                type="button"
+                disabled
+                class="px-4 py-2 bg-gray-600 text-gray-400 text-sm rounded-lg cursor-not-allowed"
+                title="Connectez-vous pour ajouter un logo"
+              >
+                🔒 Connexion requise
+              </button>
+              <button
+                v-if="editSeasonLogoPreview"
+                type="button"
+                @click="removeLogo"
+                class="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-all duration-300"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+          
+          <!-- Input file caché -->
+          <input
+            ref="logoFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleLogoUpload"
+          >
+          
+          <!-- Indicateur de chargement -->
+          <div v-if="isLogoUploading" class="mt-2 text-sm text-blue-400 flex items-center gap-2">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+            Upload en cours...
+          </div>
+        </div>
+        
         <div class="flex justify-end space-x-3">
           <button
             @click="cancelEdit"
@@ -275,6 +336,7 @@ import { getSeasons, setSeasonSortOrder, updateSeason, deleteSeason } from '../s
 import { loadEvents, loadPlayers, loadAvailability, loadSelections } from '../services/storage.js'
 import { currentUser, isConnected } from '../services/authState.js'
 import { clearLastSeasonPreference } from '../services/seasonPreferences.js'
+import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
 import AppHeader from '../components/AppHeader.vue'
 import CreateSeasonModal from '../components/CreateSeasonModal.vue'
 import AccountLoginModal from '../components/AccountLoginModal.vue'
@@ -297,8 +359,9 @@ const seasonToEdit = ref(null)
 const editSeasonName = ref('')
 const editSeasonDescription = ref('')
 const editSeasonLogo = ref(null)
-const editSeasonLogoPreview = ref(null)
+const editSeasonLogoPreview = ref('')
 const isLogoUploading = ref(false)
+const logoFileInput = ref(null)
 const showDeleteModal = ref(false)
 const showEditModal = ref(false)
 
@@ -579,6 +642,37 @@ function openEditModal(season) {
   closeMenu()
 }
 
+// Fonctions pour la gestion du logo
+function handleLogoUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    editSeasonLogo.value = file
+    isLogoUploading.value = true
+    
+    // Créer une prévisualisation
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      editSeasonLogoPreview.value = e.target.result
+      isLogoUploading.value = false
+    }
+    reader.onerror = () => {
+      isLogoUploading.value = false
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+function removeLogo() {
+  editSeasonLogo.value = null
+  editSeasonLogoPreview.value = ''
+}
+
+function triggerLogoUpload() {
+  if (logoFileInput.value) {
+    logoFileInput.value.click()
+  }
+}
+
 function cancelEdit() {
   showEditModal.value = false
   seasonToEdit.value = null
@@ -600,8 +694,32 @@ async function saveSeasonEdit() {
     
     // Si un nouveau logo a été sélectionné, l'uploader
     if (editSeasonLogo.value) {
-      // TODO: Implémenter l'upload du logo
-      // updates.logoUrl = await uploadLogo(editSeasonLogo.value)
+      try {
+        isLogoUploading.value = true
+        logger.info('Upload du nouveau logo...')
+        const logoUrl = await uploadImage(editSeasonLogo.value, `season-logos/${seasonToEdit.value.id}`, {
+          resize: true,
+          maxWidth: 64,   // Taille exacte d'affichage
+          maxHeight: 64,
+          quality: 0.6    // Qualité réduite car très petit
+        })
+        updates.logoUrl = logoUrl
+        
+        // Supprimer l'ancien logo s'il existe
+        if (seasonToEdit.value.logoUrl && isFirebaseStorageUrl(seasonToEdit.value.logoUrl)) {
+          try {
+            await deleteImage(seasonToEdit.value.logoUrl)
+            logger.info('Ancien logo supprimé')
+          } catch (deleteError) {
+            logger.warn('Erreur lors de la suppression de l\'ancien logo:', deleteError)
+          }
+        }
+      } catch (uploadError) {
+        logger.error('Erreur lors de l\'upload du logo:', uploadError)
+        throw new Error('Erreur lors de l\'upload du logo: ' + uploadError.message)
+      } finally {
+        isLogoUploading.value = false
+      }
     }
     
     await updateSeason(seasonToEdit.value.id, updates)
