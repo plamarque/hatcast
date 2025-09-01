@@ -364,7 +364,7 @@ export async function addPlayer(name, seasonId = null) {
   if (mode === 'firebase') {
     try {
       if (seasonId) {
-        const newDocRef = await firestoreService.addDocument('seasons', seasonId, 'players', { name })
+        const newDocRef = await firestoreService.addDocument('seasons', { name }, seasonId, 'players')
         return newDocRef
       } else {
         const newDocRef = await firestoreService.addDocument('players', { name })
@@ -468,49 +468,59 @@ export async function updatePlayer(playerId, newName, seasonId = null) {
 
 export async function loadAvailability(players, events, seasonId = null) {
   if (mode === 'firebase') {
-    const availabilitySnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-      : await getDocs(collection(db, 'availability'))
-    const availability = {}
-    availabilitySnap.forEach(doc => {
-      const data = doc.data()
-      const migratedData = {}
+    try {
+      let availabilitySnap
+      if (seasonId) {
+        availabilitySnap = await firestoreService.getDocuments('seasons', seasonId, 'availability')
+      } else {
+        availabilitySnap = await firestoreService.getDocuments('availability')
+      }
       
-      // Migration des anciennes disponibilités vers le nouveau format
-      Object.keys(data).forEach(eventId => {
-        const value = data[eventId]
-        if (eventId === 'updatedAt') {
-          migratedData[eventId] = value
-        } else {
-          // Migration : ancien format (boolean) vers nouveau format (objet)
-          if (typeof value === 'boolean' || value === null || value === undefined) {
-            // Ancien format : juste un boolean
-            migratedData[eventId] = {
-              available: value === true,
-              roles: value === true ? [ROLES.PLAYER] : [],
-              comment: null
-            }
-          } else if (typeof value === 'object' && value !== null) {
-            // Nouveau format : déjà migré
-            migratedData[eventId] = {
-              available: value.available ?? (value.roles && value.roles.length > 0),
-              roles: value.roles || [],
-              comment: value.comment || null
-            }
+      const availability = {}
+      availabilitySnap.forEach(doc => {
+        const data = doc.data()
+        const migratedData = {}
+        
+        // Migration des anciennes disponibilités vers le nouveau format
+        Object.keys(data).forEach(eventId => {
+          const value = data[eventId]
+          if (eventId === 'updatedAt') {
+            migratedData[eventId] = value
           } else {
-            // Fallback pour les cas inattendus
-            migratedData[eventId] = {
-              available: false,
-              roles: [],
-              comment: null
+            // Migration : ancien format (boolean) vers nouveau format (objet)
+            if (typeof value === 'boolean' || value === null || value === undefined) {
+              // Ancien format : juste un boolean
+              migratedData[eventId] = {
+                available: value === true,
+                roles: value === true ? [ROLES.PLAYER] : [],
+                comment: null
+              }
+            } else if (typeof value === 'object' && value !== null) {
+              // Nouveau format : déjà migré
+              migratedData[eventId] = {
+                available: value.available ?? (value.roles && value.roles.length > 0),
+                roles: value.roles || [],
+                comment: value.comment || null
+              }
+            } else {
+              // Fallback pour les cas inattendus
+              migratedData[eventId] = {
+                available: false,
+                roles: [],
+                comment: null
+              }
             }
           }
-        }
+        })
+        
+        availability[doc.id] = migratedData
       })
-      
-      availability[doc.id] = migratedData
-    })
-    return availability
+      return availability
+    } catch (error) {
+      // Si la collection n'existe pas encore, retourner un objet vide
+      console.log('🔍 loadAvailability - Collection availability non trouvée, utilisation de la structure vide')
+      return {}
+    }
   } else {
     // Random mock generation avec nouveau format
     const availability = {}
@@ -606,10 +616,18 @@ export async function loadSelections(seasonId = null) {
 
 export async function saveAvailability(player, availabilityMap, seasonId = null) {
   if (mode === 'firebase') {
-    const availRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'availability', player)
-      : doc(db, 'availability', player)
-    await setDoc(availRef, availabilityMap)
+    try {
+      if (seasonId) {
+        // Utiliser directement l'API Firebase pour les sous-collections avec ID spécifique
+        const availRef = doc(db, 'seasons', seasonId, 'availability', player)
+        await setDoc(availRef, availabilityMap)
+      } else {
+        await firestoreService.setDocument('availability', player, availabilityMap)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la disponibilité:', error)
+      throw error
+    }
   }
 }
 
@@ -968,11 +986,18 @@ export async function saveEvent(eventData, seasonId = null) {
   }
   
   if (mode === 'firebase') {
-    const newDocRef = seasonId
-      ? doc(collection(db, 'seasons', seasonId, 'events'))
-      : doc(collection(db, 'events'))
-    await setDoc(newDocRef, eventWithRoles)
-    return newDocRef.id
+    try {
+      if (seasonId) {
+        const newDocRef = await firestoreService.addDocument('seasons', eventWithRoles, seasonId, 'events')
+        return newDocRef
+      } else {
+        const newDocRef = await firestoreService.addDocument('events', eventWithRoles)
+        return newDocRef
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'événement:', error)
+      throw error
+    }
   } else {
     // Pour le mode mock, on génère un nouvel ID
     const newId = `event${eventList.length + 1}`

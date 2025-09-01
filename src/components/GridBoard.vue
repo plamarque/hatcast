@@ -3074,20 +3074,25 @@ async function addNewPlayer() {
     const newId = await addPlayer(newName, seasonId.value)
     
     // Recharger les données
-    await Promise.all([
+    const [newPlayers, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
       loadSelections(seasonId.value)
-    ]).then(([newPlayers, newAvailability, newSelections]) => {
-      players.value = newPlayers
-      availability.value = newAvailability
-      selections.value = newSelections
+    ])
+    
+    // Charger les disponibilités avec les nouveaux joueurs
+    const newAvailabilityData = await loadAvailability(newPlayers, events.value, seasonId.value)
+    
+    // Mettre à jour les données
+    players.value = newPlayers
+    availability.value = newAvailabilityData
+    selections.value = newSelections
       
-      // Recharger l'état de protection des joueurs
-      loadProtectedPlayers()
-      
-      // Trouver le nouveau joueur et le mettre en évidence
-      const newPlayer = players.value.find(p => p.id === newId)
+    // Recharger l'état de protection des joueurs
+    loadProtectedPlayers()
+    
+    // Trouver le nouveau joueur et le mettre en évidence
+    const newPlayer = players.value.find(p => p.id === newId)
+    if (newPlayer) {
       highlightPlayer(newId)
 
       // Avancer à l'étape 2 (disponibilités) et définir les cibles du guidage
@@ -3114,24 +3119,24 @@ async function addNewPlayer() {
           }
         }
       })
+    }
 
-      // Afficher le message de succès
-      showSuccessMessage.value = true
-      successMessage.value = 'Personne ajoutée avec succès ! Vous pouvez maintenant indiquer sa disponibilité.'
-      setTimeout(() => {
-        showSuccessMessage.value = false
-      }, 3000)     // Masquer le message après 5 secondes
-      setTimeout(() => {
-        showSuccessMessage.value = false
-        successMessage.value = ''
-      }, 5000)
-    })
+    // Afficher le message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Personne ajoutée avec succès ! Vous pouvez maintenant indiquer sa disponibilité.'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)     // Masquer le message après 5 secondes
+    setTimeout(() => {
+      showSuccessMessage.value = false
+      successMessage.value = ''
+    }, 5000)
     
     newPlayerForm.value = false
     newPlayerName.value = ''
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Erreur lors de l\'ajout du joueur')
+    console.error('Erreur lors de l\'ajout du joueur:', error)
     alert('Erreur lors de l\'ajout de la personne. Veuillez réessayer.')
   }
 }
@@ -3351,16 +3356,6 @@ async function createEventProtected(eventData) {
     // Mettre à jour la liste des événements
     events.value = [...events.value, { id: eventId, ...eventData }]
     
-    // Mettre à jour la disponibilité pour le nouvel événement
-    const newAvailability = {}
-    // Utiliser une boucle for...of pour gérer les promesses
-    for (const player of players.value) {
-      newAvailability[player.name] = availability.value[player.name] || {}
-      newAvailability[player.name][eventId] = null // Utiliser null au lieu de undefined
-      // Sauvegarder la disponibilité pour chaque joueur
-      await saveAvailability(player.name, newAvailability[player.name], seasonId.value)
-    }
-    
     // Réinitialiser le formulaire
     newEventTitle.value = ''
     newEventDate.value = ''
@@ -3396,7 +3391,7 @@ async function createEventProtected(eventData) {
     }, 3000)
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Erreur lors de la création de l\'événement')
+    console.error('Erreur lors de la création de l\'événement:', error)
     alert('Erreur lors de la création de l\'événement. Veuillez réessayer.')
   }
 }
