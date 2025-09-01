@@ -394,14 +394,13 @@ export async function saveSelection(eventId, roles, seasonId) {
     
     // Gérer les rappels automatiques
     try {
-      if (seasonId) {
-        // Récupérer les informations de l'événement et de la saison
-        const [eventData, seasonData] = await Promise.all([
-          firestoreService.getDocument('seasons', seasonId, 'events', eventId),
-          firestoreService.getDocument('seasons', seasonId)
-        ])
-        
-        if (eventData && seasonData) {
+      // Récupérer les informations de l'événement et de la saison
+      const [eventData, seasonData] = await Promise.all([
+        firestoreService.getDocument('seasons', seasonId, 'events', eventId),
+        firestoreService.getDocument('seasons', seasonId)
+      ])
+      
+      if (eventData && seasonData) {
           
           // Supprimer les rappels pour les joueurs désélectionnés
           const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
@@ -449,7 +448,6 @@ export async function saveSelection(eventId, roles, seasonId) {
             }
           }
         }
-      }
     } catch (error) {
       console.error('Erreur lors de la gestion des rappels automatiques:', error)
       // Ne pas faire échouer la sauvegarde de la sélection à cause des rappels
