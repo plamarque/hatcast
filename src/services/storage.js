@@ -4,7 +4,9 @@ import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 
-let mode = 'mock' // or 'firebase'
+// Mode Firebase uniquement
+let mode = 'firebase'
+console.log('🔧 Mode de stockage forcé à Firebase')
 
 let playersList = [
   { id: 'p1', name: 'Alice' },
@@ -163,9 +165,8 @@ export const ROLE_TEMPLATES = {
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
 export function setStorageMode(value) {
-  console.log('🔧 setStorageMode appelé avec:', value);
-  mode = value
-  console.log('🔧 Mode de stockage défini à:', mode);
+  console.log('🔧 setStorageMode appelé avec:', value, '(ignoré, mode forcé à Firebase)');
+  // Mode Firebase uniquement, ignorer les autres modes
 }
 
 // Migration automatique des données globales vers la structure multi-saison
@@ -186,25 +187,25 @@ export async function migrateToSeasons() {
     })
 
     // Copier les joueurs
-    const playersSnap = await getDocs(collection(db, 'players'))
+    const playersSnap = await getDocs(getCollection('players'))
     for (const playerDoc of playersSnap.docs) {
       await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
     }
 
     // Copier les événements
-    const eventsSnap = await getDocs(collection(db, 'events'))
+    const eventsSnap = await getDocs(getCollection('events'))
     for (const eventDoc of eventsSnap.docs) {
       await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
     }
 
     // Copier les disponibilités
-    const availSnap = await getDocs(collection(db, 'availability'))
+    const availSnap = await getDocs(getCollection('availability'))
     for (const availDoc of availSnap.docs) {
       await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
     }
 
     // Copier les sélections
-    const selSnap = await getDocs(collection(db, 'selections'))
+    const selSnap = await getDocs(getCollection('selections'))
     for (const selDoc of selSnap.docs) {
       await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
     }
@@ -221,13 +222,13 @@ export async function initializeEmptyDatabase() {
 
   try {
     // Vérifier si la collection 'seasons' est vide
-    const seasonsSnap = await getDocs(collection(db, 'seasons'))
+    const seasonsSnap = await getDocs(getCollection('seasons'))
     if (!seasonsSnap.empty) return // Déjà des données
 
     console.log('🌱 Base vide détectée, création d\'une saison de test...')
     
     // Créer une saison de test pour staging/development
-    const seasonRef = doc(collection(db, 'seasons'))
+    const seasonRef = doc(getCollection('seasons'))
     await setDoc(seasonRef, {
       name: 'Saison de Test',
       slug: 'saison-test',

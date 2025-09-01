@@ -33,10 +33,15 @@ try {
     includesLocalIP: hostname.includes('192.168.1.134')
   });
   
-  if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
+  // Priorité aux variables d'environnement Vite
+  if (import.meta.env.VITE_FIRESTORE_DATABASE) {
+    database = import.meta.env.VITE_FIRESTORE_DATABASE;
+    console.log('🔧 Base de données forcée par variable d\'environnement:', database);
+  } else if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
     database = 'staging';
   } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134')) {
     database = 'development';
+    console.log('🔧 Base de données forcée à development pour les tests locaux');
   }
   
   console.log('🌍 Initialisation Firestore avec la base:', database);
@@ -52,11 +57,16 @@ try {
     }
   }
   
-  db = initializeFirestore(app, {
-    cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache
-    experimentalForceOwningTab: false, // Permettre le partage entre onglets
-    databaseId: database // Spécifier la base de données
-  });
+  // Initialiser Firestore avec la base spécifique
+  if (database === 'default') {
+    // Base par défaut
+    db = getFirestore(app);
+  } else {
+    // Base spécifique avec databaseId
+    db = getFirestore(app, database);
+  }
+  
+  console.log('🔧 Tentative de connexion à la base:', database, 'avec getFirestore() et databaseId:', database);
   
   // Stocker l'instance pour pouvoir la fermer plus tard
   window.firebaseDbInstance = db;

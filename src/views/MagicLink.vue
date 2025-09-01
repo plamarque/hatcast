@@ -52,7 +52,8 @@ function goToSeason() {
 onMounted(async () => {
   try {
     // Assurer le mode Firebase pour les écritures
-    setStorageMode('firebase')
+    // Le mode de stockage est maintenant géré par les variables d'environnement
+    // setStorageMode('firebase') // SUPPRIMÉ
     // Plus de route de désistement dédiée: on traite uniquement les magic links
     
     const seasonId = String(route.query.sid || '')

@@ -3462,8 +3462,8 @@ watch(() => auth.currentUser?.email, async (newEmail, oldEmail) => {
 // Initialiser les données au montage
 onMounted(async () => {
   try {
-    const useFirebase = true
-    setStorageMode(useFirebase ? 'firebase' : 'mock')
+    // Le mode de stockage est maintenant géré par les variables d'environnement
+    // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
 
     // Migration automatique si besoin
     await initializeStorage()
@@ -3502,54 +3502,12 @@ onMounted(async () => {
       // Étape 3: disponibilités
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
-      const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
-      const availObj = {}
-      availSnap.docs.forEach(doc => {
-        const data = doc.data()
-        const cleanedData = {}
-        Object.keys(data).forEach(eventId => {
-          const value = data[eventId]
-          cleanedData[eventId] = value === 'oui' ? true : value === 'non' ? false : value
-        })
-        availObj[doc.id] = cleanedData
-      })
-      availability.value = availObj
+      availability.value = await loadAvailability(players.value, events.value, seasonId.value)
 
       // Étape 4: sélections + protections
       currentLoadingLabel.value = 'Chargement des sélections'
       loadingProgress.value = 85
-      const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
-      const selObj = {}
-      
-      selSnap.docs.forEach(doc => { 
-        const data = doc.data()
-        
-        // Préserver la nouvelle structure complète ou migrer l'ancienne
-        if (data.players && Array.isArray(data.players)) {
-          // Nouvelle structure avec playerStatuses, confirmed, etc.
-          selObj[doc.id] = data
-        } else if (Array.isArray(data)) {
-          // Ancienne structure : migrer vers la nouvelle
-          selObj[doc.id] = {
-            players: data,
-            confirmed: false,
-            confirmedByAllPlayers: false,
-            playerStatuses: {},
-            updatedAt: new Date()
-          }
-        } else {
-          // Structure inconnue, utiliser un tableau vide
-          selObj[doc.id] = {
-            players: [],
-            confirmed: false,
-            confirmedByAllPlayers: false,
-            playerStatuses: {},
-            updatedAt: new Date()
-          }
-        }
-      })
-      
-      selections.value = selObj
+      // Les sélections sont déjà chargées par loadSelections()
 
       const protections = await listProtectedPlayers(seasonId.value)
       const protSet = new Set()

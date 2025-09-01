@@ -702,7 +702,8 @@ onMounted(async () => {
     logger.info('Début du chargement des saisons')
     
     // Initialiser le mode de stockage Firebase
-    setStorageMode('firebase')
+    // Le mode de stockage est maintenant géré par les variables d'environnement
+    // setStorageMode('firebase') // SUPPRIMÉ
     logger.info('Mode de stockage défini sur Firebase')
     
     await initializeStorage()
