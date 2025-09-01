@@ -36,7 +36,12 @@ service cloud.firestore {
     }
     
     // Collection des disponibilités - Lecture et écriture publiques
-    match /seasons/{seasonId}/availabilities/{playerName} {
+    match /seasons/{seasonId}/availability/{playerName} {
+      allow read, write: if true;
+    }
+    
+    // Collection des disponibilités globale - Lecture et écriture publiques
+    match /availability/{playerName} {
       allow read, write: if true;
     }
     
