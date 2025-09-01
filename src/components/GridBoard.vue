@@ -1512,9 +1512,32 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER } from '../services/storage.js'
-import { trackPageVisit, trackModalInteraction } from '../services/navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
+
+// Fonction simple pour récupérer l'ID utilisateur actuel
+function getCurrentUserId() {
+  try {
+    // Essayer de récupérer depuis localStorage (fallback)
+    const storedUserId = localStorage.getItem('hatcast_current_user_id')
+    if (storedUserId) {
+      return storedUserId
+    }
+    
+    // Essayer de récupérer depuis l'URL (pour les liens de reset)
+    const urlParams = new URLSearchParams(window.location.search)
+    const email = urlParams.get('email')
+    if (email) {
+      return email
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'ID utilisateur', error)
+    return null
+  }
+}
 import { auth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
@@ -2175,12 +2198,7 @@ onMounted(async () => {
       const urlParams = new URLSearchParams(window.location.search)
       const email = urlParams.get('email') || localStorage.getItem('hatcast_last_email')
       
-      if (email) {
-        await trackPageVisit(email, currentPath, {
-          seasonSlug: props.slug,
-          source: 'grid_board'
-        })
-      }
+      // Navigation tracking supprimé - remplacé par seasonPreferences
     }
   } catch (error) {
     // Log silencieux pour les erreurs de tracking non critiques
@@ -5302,16 +5320,7 @@ async function showEventDetails(event) {
   try {
     const userId = getCurrentUserId()
     if (userId) {
-      await trackPageVisit(userId, newUrl, {
-        seasonSlug: props.slug,
-        eventId: event.id,
-        eventTitle: event.title,
-        navigationType: 'event_details',
-        context: {
-          currentPage: newUrl,
-          timestamp: new Date().toISOString()
-        }
-              })
+      // Navigation tracking supprimé - remplacé par seasonPreferences
       }
     } catch (error) {
       // Log silencieux pour les erreurs de tracking non critiques
@@ -5398,14 +5407,7 @@ function closeEventDetailsAndUpdateUrl() {
   try {
     const userId = getCurrentUserId()
     if (userId) {
-      trackPageVisit(userId, baseUrl, {
-        seasonSlug: props.slug,
-        navigationType: 'season_overview',
-        context: {
-          previousPage: route.path,
-          timestamp: new Date().toISOString()
-        }
-      })
+      // Navigation tracking supprimé - remplacé par seasonPreferences
     }
   } catch (error) {
     // Log silencieux pour les erreurs de tracking non critiques
@@ -5666,14 +5668,7 @@ function closePlayerModal() {
     try {
       const userId = getCurrentUserId()
       if (userId) {
-        trackPageVisit(userId, baseUrl, {
-          seasonSlug: props.slug,
-          navigationType: 'season_overview',
-          context: {
-            previousPage: route.path,
-            timestamp: new Date().toISOString()
-          }
-        })
+        // Navigation tracking supprimé - remplacé par seasonPreferences
       }
     } catch (error) {
       // Log silencieux pour les erreurs de tracking non critiques

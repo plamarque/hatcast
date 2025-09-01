@@ -82,7 +82,7 @@
 import { ref, computed, watch } from 'vue'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
-import { getLastVisitedPage, isValidRedirectPath } from '../services/navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 import AccountBenefitsHint from './AccountBenefitsHint.vue'
 
 const props = defineProps({

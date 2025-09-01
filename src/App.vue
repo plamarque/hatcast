@@ -156,7 +156,7 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ensurePushNotificationsActive } from './services/notifications.js'
-import { trackPageVisit, getCurrentUserId } from './services/navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 
 const deferredPrompt = ref(null)
 const canInstallPwa = ref(false)
@@ -165,34 +165,7 @@ const refreshing = ref(false)
 const bannerDismissed = ref(false)
 const route = useRoute()
 
-// Tracking de navigation
-watch(() => route.path, async (newPath, oldPath) => {
-  if (newPath !== oldPath) {
-    const userId = getCurrentUserId()
-    if (userId) {
-      // Extraire des informations contextuelles de la route
-      const additionalData = {}
-      
-      // Si on est sur une page de saison, récupérer le slug
-      if (newPath.startsWith('/season/')) {
-        const pathParts = newPath.split('/')
-        if (pathParts.length >= 3) {
-          additionalData.seasonSlug = pathParts[2]
-        }
-      }
-      
-      // Si on est sur une page d'événement, récupérer l'ID
-      if (newPath.includes('/event/')) {
-        const eventMatch = newPath.match(/\/event\/([^\/]+)/)
-        if (eventMatch) {
-          additionalData.eventId = eventMatch[1]
-        }
-      }
-      
-      await trackPageVisit(userId, newPath, additionalData)
-    }
-  }
-}, { immediate: true })
+// Navigation tracking supprimé - remplacé par seasonPreferences
 
 function handleBeforeInstallPrompt(event) {
   event.preventDefault()

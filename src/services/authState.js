@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { auth } from './firebase.js'
 import logger from './logger.js'
-import { trackPageVisit, clearNavigationHistory } from './navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 
 // État global de l'authentification
 const currentUser = ref(null)
@@ -61,19 +61,14 @@ function initialize() {
       // Tracking de navigation et audit pour les changements d'authentification
       try {
         if (user && !previousUser) {
-          // Nouvelle connexion - tracker la page actuelle et logger l'audit
-          const currentPath = window.location.pathname
-          if (currentPath && currentPath !== '/') {
-            await trackPageVisit(user.uid, currentPath)
-          }
+          // Nouvelle connexion - logger l'audit (navigation tracking supprimé)
           
           // Logger la connexion
           const { default: AuditClient } = await import('./auditClient.js')
           await AuditClient.logLogin(user.email, 'firebase_auth')
           
         } else if (!user && previousUser) {
-          // Déconnexion - effacer l'historique de navigation ET les sessions locales
-          await clearNavigationHistory(previousUser.uid)
+          // Déconnexion - effacer les sessions locales (navigation tracking supprimé)
           
           // Logger la déconnexion
           const { default: AuditClient } = await import('./auditClient.js')
