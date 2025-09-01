@@ -3,6 +3,7 @@
 // Garantit l'utilisation de la bonne base de données selon l'environnement
 
 import { db } from './firebase.js'
+import configService from './configService.js'
 import {
   collection,
   doc,
@@ -30,10 +31,17 @@ import {
 class FirestoreService {
   constructor() {
     this.db = db
-    this.environment = import.meta.env.VITE_FIRESTORE_DATABASE || 'default'
-    console.log('🔧 FirestoreService initialisé pour l\'environnement:', this.environment)
-    console.log('🔧 Instance Firestore connectée:', this.db ? 'OK' : 'ERREUR')
-    console.log('🔧 Projet Firebase:', this.db?.app?.options?.projectId || 'Non déterminé')
+    // Utiliser configService pour la détection d'environnement
+    this.environment = configService.getEnvironment()
+    this.database = configService.getFirestoreDatabase()
+    this.region = configService.getFirestoreRegion()
+    
+    console.log('🔧 FirestoreService initialisé:')
+    console.log('  - Environnement:', this.environment)
+    console.log('  - Base de données:', this.database)
+    console.log('  - Région:', this.region)
+    console.log('  - Instance Firestore:', this.db ? 'OK' : 'ERREUR')
+    console.log('  - Projet Firebase:', this.db?.app?.options?.projectId || 'Non déterminé')
   }
 
   /**
@@ -278,8 +286,13 @@ class FirestoreService {
   getEnvironmentInfo() {
     return {
       environment: this.environment,
-      projectId: this.db.app.options.projectId,
-      database: this.db._databaseId || 'default'
+      database: this.database,
+      region: this.region,
+      projectId: this.db?.app?.options?.projectId || 'Non déterminé',
+      // Informations complètes depuis configService
+      config: configService.getFullConfig(),
+      // Compatibilité avec l'ancienne API
+      _databaseId: this.database
     }
   }
 }

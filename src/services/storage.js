@@ -1,13 +1,23 @@
 // storage.js
-import firestoreService from './firestoreService.js'
 import { db } from './firebase.js'
 import logger from './logger.js'
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 
-// Mode Firebase uniquement
-let mode = 'firebase'
-console.log('🔧 Mode de stockage forcé à Firebase')
+// Détecter automatiquement le mode selon l'environnement
+let mode = 'mock' // or 'firebase'
+
+// Détection automatique du mode selon l'environnement
+const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+if (import.meta.env.VITE_FORCE_FIREBASE_MODE === 'true' || 
+    hostname.includes('localhost') || 
+    hostname.includes('192.168.1.134') ||
+    hostname.includes('staging') ||
+    hostname.includes('hatcast-staging') ||
+    hostname.includes('impro-selector')) {
+  mode = 'firebase'
+  console.log('🔧 Mode de stockage forcé à Firebase')
+}
 
 let playersList = [
   { id: 'p1', name: 'Alice' },
@@ -166,116 +176,68 @@ export const ROLE_TEMPLATES = {
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
 export function setStorageMode(value) {
-  console.log('🔧 setStorageMode appelé avec:', value, '(ignoré, mode forcé à Firebase)');
-  // Mode Firebase uniquement, ignorer les autres modes
+  mode = value
 }
 
 // Migration automatique des données globales vers la structure multi-saison
 export async function migrateToSeasons() {
   if (mode !== 'firebase') return
 
-  try {
-    // Vérifier si la collection 'seasons' est vide
-    const seasonsSnap = await getDocs(collection(db, 'seasons'))
-    if (!seasonsSnap.empty) return // Déjà migré
+  // Vérifier si la collection 'seasons' est vide
+  const seasonsSnap = await getDocs(collection(db, 'seasons'))
+  if (!seasonsSnap.empty) return // Déjà migré
 
-    // Créer la saison 'Malice 2025-2026'
-    const seasonRef = doc(collection(db, 'seasons'))
-    await setDoc(seasonRef, {
-      name: 'Malice 2025-2026',
-      slug: 'malice-2025-2026',
-      createdAt: serverTimestamp(),
-    })
+  // Créer la saison 'Malice 2025-2026'
+  const seasonRef = doc(collection(db, 'seasons'))
+  await setDoc(seasonRef, {
+    name: 'Malice 2025-2026',
+    slug: 'malice-2025-2026',
+    createdAt: serverTimestamp(),
+  })
 
-    // Copier les joueurs
-    const playersSnap = await getDocs(getCollection('players'))
-    for (const playerDoc of playersSnap.docs) {
-      await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
-    }
-
-    // Copier les événements
-    const eventsSnap = await getDocs(getCollection('events'))
-    for (const eventDoc of eventsSnap.docs) {
-      await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
-    }
-
-    // Copier les disponibilités
-    const availSnap = await getDocs(getCollection('availability'))
-    for (const availDoc of availSnap.docs) {
-      await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
-    }
-
-    // Copier les sélections
-    const selSnap = await getDocs(getCollection('selections'))
-    for (const selDoc of selSnap.docs) {
-      await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
-    }
-
-    // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
-  } catch (error) {
-    console.warn('⚠️ Erreur lors de la migration des données:', error)
+  // Copier les joueurs
+  const playersSnap = await getDocs(collection(db, 'players'))
+  for (const playerDoc of playersSnap.docs) {
+    await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
   }
-}
 
-// Initialisation automatique pour base vide (staging/development)
-export async function initializeEmptyDatabase() {
-  if (mode !== 'firebase') return
-
-  try {
-    // Vérifier si la collection 'seasons' est vide
-    const seasons = await firestoreService.getDocuments('seasons')
-    if (seasons.length > 0) return // Déjà des données
-
-    console.log('🌱 Base vide détectée, création d\'une saison de test...')
-    
-    // Créer une saison de test pour staging/development
-    await firestoreService.addDocument('seasons', {
-      name: 'Saison de Test',
-      slug: 'saison-test',
-      description: 'Saison créée automatiquement pour tester l\'application',
-      sortOrder: 1
-    })
-
-    console.log('✅ Saison de test créée avec succès')
-  } catch (error) {
-    console.warn('⚠️ Erreur lors de l\'initialisation de la base vide:', error)
+  // Copier les événements
+  const eventsSnap = await getDocs(collection(db, 'events'))
+  for (const eventDoc of eventsSnap.docs) {
+    await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
   }
+
+  // Copier les disponibilités
+  const availSnap = await getDocs(collection(db, 'availability'))
+  for (const availDoc of availSnap.docs) {
+    await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
+  }
+
+  // Copier les sélections
+  const selSnap = await getDocs(collection(db, 'selections'))
+  for (const selDoc of selSnap.docs) {
+    await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
+  }
+
+  // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
 }
 
 // Appeler la migration au démarrage si firebase
 export async function initializeStorage() {
   if (mode === 'firebase') {
-    try {
-      // Essayer d'abord la migration des données existantes
-      await migrateToSeasons()
-      
-      // Si la base est vide, initialiser avec des données de test
-      await initializeEmptyDatabase()
-    } catch (error) {
-      console.warn('⚠️ Erreur lors de l\'initialisation du stockage:', error)
-    }
+    await migrateToSeasons()
   }
 }
 
 export async function loadEvents(seasonId = null) {
-  console.log('🔧 loadEvents appelé avec mode:', mode, 'seasonId:', seasonId);
   let events
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        events = await firestoreService.getDocuments('seasons', seasonId, 'events')
-      } else {
-        events = await firestoreService.getDocuments('events')
-      }
-    } catch (error) {
-      // Gestion robuste des erreurs : collection inexistante = base vide
-      if (error.code === 'permission-denied' || error.code === 'not-found') {
-        console.log('🔍 Collection events non trouvée ou vide, retour d\'un tableau vide')
-        events = []
-      } else {
-        console.error('Erreur lors du chargement des événements:', error)
-        events = []
-      }
+    if (seasonId) {
+      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
+      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } else {
+      const eventsSnap = await getDocs(collection(db, 'events'))
+      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     }
   } else {
     events = eventList
@@ -301,24 +263,14 @@ export async function loadEvents(seasonId = null) {
 }
 
 export async function loadPlayers(seasonId = null) {
-  console.log('🔧 loadPlayers appelé avec mode:', mode, 'seasonId:', seasonId);
   let players
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        players = await firestoreService.getDocuments('seasons', seasonId, 'players')
-      } else {
-        players = await firestoreService.getDocuments('players')
-      }
-    } catch (error) {
-      // Gestion robuste des erreurs : collection inexistante = base vide
-      if (error.code === 'permission-denied' || error.code === 'not-found') {
-        console.log('🔍 Collection players non trouvée ou vide, retour d\'un tableau vide')
-        players = []
-      } else {
-        console.error('Erreur lors du chargement des joueurs:', error)
-        players = []
-      }
+    if (seasonId) {
+      const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
+      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    } else {
+      const playersSnap = await getDocs(collection(db, 'players'))
+      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     }
   } else {
     players = playersList
@@ -362,18 +314,11 @@ export async function reorderPlayersAlphabetically(seasonId = null) {
 
 export async function addPlayer(name, seasonId = null) {
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        const newDocRef = await firestoreService.addDocument('seasons', { name }, seasonId, 'players')
-        return newDocRef
-      } else {
-        const newDocRef = await firestoreService.addDocument('players', { name })
-        return newDocRef
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout du joueur:', error)
-      throw error
-    }
+    const newDocRef = seasonId
+      ? doc(collection(db, 'seasons', seasonId, 'players'))
+      : doc(collection(db, 'players'))
+    await setDoc(newDocRef, { name })
+    return newDocRef.id
   } else {
     const newId = `p${playersList.length + 1}`
     playersList.push({ id: newId, name })
@@ -468,60 +413,49 @@ export async function updatePlayer(playerId, newName, seasonId = null) {
 
 export async function loadAvailability(players, events, seasonId = null) {
   if (mode === 'firebase') {
-    try {
-      let availabilitySnap
-      if (seasonId) {
-        // Utiliser directement l'API Firebase pour les sous-collections
-        availabilitySnap = await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-      } else {
-        availabilitySnap = await firestoreService.getDocuments('availability')
-      }
+    const availabilitySnap = seasonId
+      ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
+      : await getDocs(collection(db, 'availability'))
+    const availability = {}
+    availabilitySnap.forEach(doc => {
+      const data = doc.data()
+      const migratedData = {}
       
-      const availability = {}
-      availabilitySnap.forEach(doc => {
-        const data = doc.data()
-        const migratedData = {}
-        
-        // Migration des anciennes disponibilités vers le nouveau format
-        Object.keys(data).forEach(eventId => {
-          const value = data[eventId]
-          if (eventId === 'updatedAt') {
-            migratedData[eventId] = value
+      // Migration des anciennes disponibilités vers le nouveau format
+      Object.keys(data).forEach(eventId => {
+        const value = data[eventId]
+        if (eventId === 'updatedAt') {
+          migratedData[eventId] = value
+        } else {
+          // Migration : ancien format (boolean) vers nouveau format (objet)
+          if (typeof value === 'boolean' || value === null || value === undefined) {
+            // Ancien format : juste un boolean
+            migratedData[eventId] = {
+              available: value === true,
+              roles: value === true ? [ROLES.PLAYER] : [],
+              comment: null
+            }
+          } else if (typeof value === 'object' && value !== null) {
+            // Nouveau format : déjà migré
+            migratedData[eventId] = {
+              available: value.available ?? (value.roles && value.roles.length > 0),
+              roles: value.roles || [],
+              comment: value.comment || null
+            }
           } else {
-            // Migration : ancien format (boolean) vers nouveau format (objet)
-            if (typeof value === 'boolean' || value === null || value === undefined) {
-              // Ancien format : juste un boolean
-              migratedData[eventId] = {
-                available: value === true,
-                roles: value === true ? [ROLES.PLAYER] : [],
-                comment: null
-              }
-            } else if (typeof value === 'object' && value !== null) {
-              // Nouveau format : déjà migré
-              migratedData[eventId] = {
-                available: value.available ?? (value.roles && value.roles.length > 0),
-                roles: value.roles || [],
-                comment: value.comment || null
-              }
-            } else {
-              // Fallback pour les cas inattendus
-              migratedData[eventId] = {
-                available: false,
-                roles: [],
-                comment: null
-              }
+            // Fallback pour les cas inattendus
+            migratedData[eventId] = {
+              available: false,
+              roles: [],
+              comment: null
             }
           }
-        })
-        
-        availability[doc.id] = migratedData
+        }
       })
-      return availability
-    } catch (error) {
-      // Si la collection n'existe pas encore, retourner un objet vide
-      console.log('🔍 loadAvailability - Collection availability non trouvée, utilisation de la structure vide')
-      return {}
-    }
+      
+      availability[doc.id] = migratedData
+    })
+    return availability
   } else {
     // Random mock generation avec nouveau format
     const availability = {}
@@ -575,41 +509,31 @@ export async function loadAvailability(players, events, seasonId = null) {
 
 export async function loadSelections(seasonId = null) {
   if (mode === 'firebase') {
-    try {
-      let selSnap
-      if (seasonId) {
-        selSnap = await firestoreService.getDocuments('seasons', seasonId, 'selections')
-      } else {
-        selSnap = await firestoreService.getDocuments('selections')
+    const selSnap = seasonId
+      ? await getDocs(collection(db, 'seasons', seasonId, 'selections'))
+      : await getDocs(collection(db, 'selections'))
+    const res = {}
+    selSnap.forEach(doc => {
+      const data = doc.data()
+      
+      // Migration automatique vers le nouveau format si nécessaire
+      let roles = data.roles
+      if (!roles && data.players && Array.isArray(data.players)) {
+        // Ancien format : créer la structure par rôle
+        roles = { player: data.players }
       }
       
-      const res = {}
-      selSnap.forEach(doc => {
-        const data = doc.data()
-        
-        // Migration automatique vers le nouveau format si nécessaire
-        let roles = data.roles
-        if (!roles && data.players && Array.isArray(data.players)) {
-          // Ancien format : créer la structure par rôle
-          roles = { player: data.players }
-        }
-        
-        res[doc.id] = {
-          players: data.players || [],
-          roles: roles || {},
-          confirmed: data.confirmed || false,
-          confirmedAt: data.confirmedAt || null,
-          updatedAt: data.updatedAt || null,
-          playerStatuses: data.playerStatuses || {},
-          confirmedByAllPlayers: data.confirmedByAllPlayers || false
-        }
-      })
-      return res
-    } catch (error) {
-      // Si la collection n'existe pas encore, retourner un objet vide
-      console.log('🔍 loadSelections - Collection selections non trouvée, utilisation de la structure vide')
-      return {}
-    }
+      res[doc.id] = {
+        players: data.players || [],
+        roles: roles || {},
+        confirmed: data.confirmed || false,
+        confirmedAt: data.confirmedAt || null,
+        updatedAt: data.updatedAt || null,
+        playerStatuses: data.playerStatuses || {},
+        confirmedByAllPlayers: data.confirmedByAllPlayers || false
+      }
+    })
+    return res
   } else {
     return {} // initially empty
   }
@@ -617,18 +541,10 @@ export async function loadSelections(seasonId = null) {
 
 export async function saveAvailability(player, availabilityMap, seasonId = null) {
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        // Utiliser directement l'API Firebase pour les sous-collections avec ID spécifique
-        const availRef = doc(db, 'seasons', seasonId, 'availability', player)
-        await setDoc(availRef, availabilityMap)
-      } else {
-        await firestoreService.setDocument('availability', player, availabilityMap)
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la disponibilité:', error)
-      throw error
-    }
+    const availRef = seasonId
+      ? doc(db, 'seasons', seasonId, 'availability', player)
+      : doc(db, 'availability', player)
+    await setDoc(availRef, availabilityMap)
   }
 }
 
@@ -636,25 +552,31 @@ export async function saveAvailability(player, availabilityMap, seasonId = null)
 export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId, available, roles = [], comment = null }) {
   if (mode !== 'firebase') return
   
-  const availRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'availability', playerName)
-    : doc(db, 'availability', playerName)
-  
-  const snap = await getDoc(availRef)
-  const current = snap.exists() ? snap.data() : {}
-  const next = { ...current }
-  
-  if (available === undefined) {
-    delete next[eventId]
-  } else {
-    next[eventId] = {
-      available: !!available,
-      roles: Array.isArray(roles) ? roles : [],
-      comment: comment || null
+  try {
+    // Utiliser directement l'API Firebase pour les sous-collections avec ID spécifique
+    const availRef = seasonId
+      ? doc(db, 'seasons', seasonId, 'availability', playerName)
+      : doc(db, 'availability', playerName)
+    
+    const snap = await getDoc(availRef)
+    const current = snap.exists() ? snap.data() : {}
+    const next = { ...current }
+    
+    if (available === undefined) {
+      delete next[eventId]
+    } else {
+      next[eventId] = {
+        available: !!available,
+        roles: Array.isArray(roles) ? roles : [],
+        comment: comment || null
+      }
     }
+    
+    await setDoc(availRef, next)
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la disponibilité avec rôles:', error)
+    throw error
   }
-  
-  await setDoc(availRef, next)
 }
 
 // Mise à jour ciblée d'une disponibilité pour un joueur/événement (utilisé par magic links)
@@ -754,7 +676,7 @@ export async function saveSelection(eventId, players, seasonId = null) {
             const seasonData = seasonSnap.data()
             
             // Supprimer les rappels pour les joueurs désélectionnés
-            const removedPlayers = oldSelection.filter(name => !players.includes(name))
+            const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
             
             for (const playerName of removedPlayers) {
               try {
@@ -774,7 +696,7 @@ export async function saveSelection(eventId, players, seasonId = null) {
             }
             
             // Créer les rappels pour les nouveaux joueurs sélectionnés
-            const newPlayers = players.filter(name => !oldSelection.includes(name))
+            const newPlayers = allPlayers.filter(name => !oldSelection.includes(name))
             
             // Créer les rappels pour les nouveaux joueurs sélectionnés
             for (const playerName of newPlayers) {
@@ -987,19 +909,12 @@ export async function saveEvent(eventData, seasonId = null) {
   }
   
   if (mode === 'firebase') {
-    try {
-      if (seasonId) {
-        const newDocRef = await firestoreService.addDocument('seasons', eventWithRoles, seasonId, 'events')
-        return newDocRef
-      } else {
-        const newDocRef = await firestoreService.addDocument('events', eventWithRoles)
-        return newDocRef
-      }
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\'événement:', error)
-      throw error
-    }
-  } else {
+    const newDocRef = seasonId
+      ? doc(collection(db, 'seasons', seasonId, 'events'))
+      : doc(collection(db, 'events'))
+    await setDoc(newDocRef, eventWithRoles)
+    return newDocRef.id
+ment   } else {
     // Pour le mode mock, on génère un nouvel ID
     const newId = `event${eventList.length + 1}`
     eventList.push({ id: newId, ...eventWithRoles })
