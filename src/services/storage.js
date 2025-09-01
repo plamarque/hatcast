@@ -168,25 +168,7 @@ export async function loadPlayers(seasonId) {
   })
 }
 
-export async function reorderPlayersAlphabetically(seasonId = null) {
-  const playersSnap = seasonId
-    ? await getDocs(collection(db, 'seasons', seasonId, 'players'))
-    : await getDocs(collection(db, 'players'))
-  const players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  
-  // Trier par nom
-  const sortedPlayers = players.sort((a, b) => a.name.localeCompare(b.name))
-  
-  // Mettre à jour les ordres
-  const batch = writeBatch(db)
-  sortedPlayers.forEach((player, index) => {
-    const playerRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'players', player.id)
-      : doc(db, 'players', player.id)
-    batch.update(playerRef, { order: index })
-  })
-  await batch.commit()
-}
+
 
 export async function addPlayer(name, seasonId = null) {
   const newDocRef = seasonId
