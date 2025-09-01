@@ -471,7 +471,8 @@ export async function loadAvailability(players, events, seasonId = null) {
     try {
       let availabilitySnap
       if (seasonId) {
-        availabilitySnap = await firestoreService.getDocuments('seasons', seasonId, 'availability')
+        // Utiliser directement l'API Firebase pour les sous-collections
+        availabilitySnap = await getDocs(collection(db, 'seasons', seasonId, 'availability'))
       } else {
         availabilitySnap = await firestoreService.getDocuments('availability')
       }
