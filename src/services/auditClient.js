@@ -1,6 +1,6 @@
 // Service d'audit côté client pour HatCast
-import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
-import { db, auth } from './firebase.js'
+import firestoreService from './firestoreService.js'
+import { auth } from './firebase.js'
 import logger from './logger.js'
 
 /**
@@ -96,7 +96,7 @@ class AuditClient {
         error: actionData?.error || null,
         deviceInfo: this.cleanDataForFirestore(this.getDeviceInfo()),
         sessionId: this.getSessionId(),
-        timestamp: serverTimestamp(),
+        timestamp: new Date(),
         tags: actionData?.tags || [],
         // Contexte de navigation (avec fallbacks sécurisés)
         pageUrl: (typeof window !== 'undefined' && window.location?.href) || 'unknown',
@@ -104,7 +104,7 @@ class AuditClient {
         userAgent: (typeof navigator !== 'undefined' && navigator.userAgent) || 'unknown'
       }
       
-      const docRef = await addDoc(collection(db, 'auditLogs'), this.cleanDataForFirestore(auditData))
+      const auditId = await firestoreService.addDocument('auditLogs', this.cleanDataForFirestore(auditData))
       
       // Log local pour debug
       if (actionData.severity === 'error' || actionData.severity === 'critical') {

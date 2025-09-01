@@ -119,15 +119,22 @@ async function login() {
   } catch (e) {
     error.value = 'Email ou mot de passe incorrect'
     
-    // Logger l'erreur d'audit
-    console.log('🔍 Tentative de logging d\'erreur d\'audit...')
+    // Logger la tentative de connexion échouée (info, pas une erreur)
     try {
-      console.log('🔍 Appel de logError avec:', e, { context: 'login_attempt', email: email.value.trim() })
-      await AuditClient.logError(e, { context: 'login_attempt', email: email.value.trim() })
-      console.log('🔍 LogError terminé avec succès')
+      await AuditClient.logUserAction({
+        type: 'login_attempt_failed',
+        category: 'auth',
+        severity: 'info',
+        data: {
+          email: AuditClient.obfuscateEmail(email.value.trim()),
+          error: e.message || 'Invalid credentials',
+          timestamp: new Date().toISOString()
+        },
+        success: false,
+        tags: ['auth', 'login', 'failed_attempt']
+      })
     } catch (auditError) {
-      console.error('❌ Erreur audit error:', auditError)
-      console.error('❌ Stack trace:', auditError.stack)
+      console.warn('Erreur audit login failed:', auditError)
     }
   } finally {
     loading.value = false
@@ -167,11 +174,22 @@ async function forgotPassword() {
   } catch (e) {
     error.value = 'Impossible d\'envoyer l\'email de réinitialisation'
     
-    // Logger l'erreur d'audit
+    // Logger la tentative de reset échouée (info, pas une erreur)
     try {
-      await AuditClient.logError(e, { context: 'password_reset_attempt', email: email.value.trim() })
+      await AuditClient.logUserAction({
+        type: 'password_reset_attempt_failed',
+        category: 'auth',
+        severity: 'info',
+        data: {
+          email: AuditClient.obfuscateEmail(email.value.trim()),
+          error: e.message || 'Reset failed',
+          timestamp: new Date().toISOString()
+        },
+        success: false,
+        tags: ['auth', 'password_reset', 'failed_attempt']
+      })
     } catch (auditError) {
-      console.warn('Erreur audit password reset error:', auditError)
+      console.warn('Erreur audit password reset failed:', auditError)
     }
   } finally {
     loading.value = false

@@ -123,7 +123,30 @@ export async function signInPlayer(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     return userCredential.user
   } catch (error) {
-    throw error
+    // Capturer proprement les erreurs d'authentification courantes
+    if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+      // Créer une erreur propre sans exposer les détails Firebase
+      const cleanError = new Error('Email ou mot de passe incorrect')
+      cleanError.code = 'AUTH_INVALID_CREDENTIALS'
+      cleanError.isAuthError = true
+      throw cleanError
+    }
+    
+    // Pour les autres erreurs, les logger mais ne pas les exposer
+    console.warn('Erreur d\'authentification Firebase:', error.code, error.message)
+    
+    if (error.code === 'auth/too-many-requests') {
+      const cleanError = new Error('Trop de tentatives. Réessayez plus tard.')
+      cleanError.code = 'AUTH_TOO_MANY_ATTEMPTS'
+      cleanError.isAuthError = true
+      throw cleanError
+    }
+    
+    // Erreur générique pour les autres cas
+    const cleanError = new Error('Erreur de connexion. Réessayez.')
+    cleanError.code = 'AUTH_GENERIC_ERROR'
+    cleanError.isAuthError = true
+    throw cleanError
   }
 }
 
@@ -131,7 +154,21 @@ export async function resetPlayerPassword(email) {
   try {
     await sendPasswordResetEmail(auth, email)
   } catch (error) {
-    throw error
+    // Capturer proprement les erreurs de reset de mot de passe
+    if (error.code === 'auth/user-not-found') {
+      const cleanError = new Error('Aucun compte trouvé avec cette adresse email')
+      cleanError.code = 'AUTH_USER_NOT_FOUND'
+      cleanError.isAuthError = true
+      throw cleanError
+    }
+    
+    // Pour les autres erreurs, les logger mais ne pas les exposer
+    console.warn('Erreur de reset de mot de passe Firebase:', error.code, error.message)
+    
+    const cleanError = new Error('Impossible d\'envoyer l\'email de réinitialisation')
+    cleanError.code = 'AUTH_RESET_ERROR'
+    cleanError.isAuthError = true
+    throw cleanError
   }
 }
 
