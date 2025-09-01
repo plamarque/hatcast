@@ -259,17 +259,29 @@ export async function updatePlayer(playerId, newName, seasonId) {
       // On continue car le joueur a déjà été renommé
     }
 
-    // Mettre à jour les sélections (tableaux de noms)
+    // Mettre à jour les sélections (nouveau format par rôles)
     try {
       const selections = await firestoreService.getDocuments('seasons', seasonId, 'selections')
       let updatedSelections = 0
       for (const selection of selections) {
         const { id, ...data } = selection
-        if (data.players && Array.isArray(data.players) && data.players.includes(oldName)) {
-          const updatedPlayers = data.players.map(n => n === oldName ? trimmedNewName : n)
-          // Mise à jour directe sans batch pour l'instant
-          await firestoreService.updateDocument('seasons', seasonId, { players: updatedPlayers }, 'selections', id)
-          updatedSelections++
+        if (data.roles && typeof data.roles === 'object') {
+          let hasUpdates = false
+          const updatedRoles = { ...data.roles }
+          
+          // Vérifier chaque rôle pour le nom à remplacer
+          for (const [role, players] of Object.entries(updatedRoles)) {
+            if (Array.isArray(players) && players.includes(oldName)) {
+              updatedRoles[role] = players.map(n => n === oldName ? trimmedNewName : n)
+              hasUpdates = true
+            }
+          }
+          
+          if (hasUpdates) {
+            // Mise à jour directe sans batch pour l'instant
+            await firestoreService.updateDocument('seasons', seasonId, { roles: updatedRoles }, 'selections', id)
+            updatedSelections++
+          }
         }
       }
       if (updatedSelections > 0) {
@@ -300,16 +312,8 @@ export async function loadSelections(seasonId) {
   selectionsDocs.forEach(doc => {
     const { id, ...data } = doc
     
-    // Migration automatique vers le nouveau format si nécessaire
-    let roles = data.roles
-    if (!roles && data.players && Array.isArray(data.players)) {
-      // Ancien format : créer la structure par rôle
-      roles = { player: data.players }
-    }
-    
     res[id] = {
-      players: data.players || [],
-      roles: roles || {},
+      roles: data.roles || {},
       confirmed: data.confirmed || false,
       confirmedAt: data.confirmedAt || null,
       updatedAt: data.updatedAt || null,
@@ -372,7 +376,7 @@ export async function saveSelection(eventId, roles, seasonId) {
     const allPlayers = Object.values(roles).flat().filter(Boolean)
     
     const oldSelection = oldSelectionDoc 
-      ? (oldSelectionDoc.players || []) 
+      ? Object.values(oldSelectionDoc.roles || {}).flat().filter(Boolean)
       : []
     
     // Initialiser les statuts individuels des joueurs
@@ -506,13 +510,9 @@ export async function unconfirmSelection(eventId, seasonId) {
       })
     }
     
-    // Garder TOUS les joueurs dans les slots pour préserver l'information visuelle
-    const currentPlayers = Array.isArray(currentData?.players) ? currentData.players : []
-    
     await firestoreService.updateDocument('seasons', seasonId, { 
       confirmed: false,
       confirmedAt: null,
-      players: currentPlayers, // Garder tous les joueurs
       playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
       confirmedByAllPlayers: false
     }, 'selections', eventId)
@@ -715,8 +715,8 @@ export function getAllPlayersFromSelection(selection) {
     return Object.values(selection.roles).flat().filter(Boolean)
   }
   
-  // Ancien format ou fallback
-  return selection.players || []
+  // Aucun format valide trouvé
+  return []
 }
 
 /**
