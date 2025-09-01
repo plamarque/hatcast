@@ -180,26 +180,20 @@ export async function addPlayer(name, seasonId) {
   return newId
 }
 
-export async function deletePlayer(playerId, seasonId = null) {
-  const playerRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'players', playerId)
-    : doc(db, 'players', playerId)
+export async function deletePlayer(playerId, seasonId) {
+  // Lire le nom du joueur avant suppression
+  const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
+  const playerSnap = await getDoc(playerRef)
+  const playerName = playerSnap.exists() ? playerSnap.data().name : null
+  
+  // Supprimer le joueur
   await deleteDoc(playerRef)
   
-  // Supprimer les disponibilités pour ce joueur
-  const availabilitySnap = seasonId
-    ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-    : await getDocs(collection(db, 'availability'))
-  const batch = writeBatch(db)
-  availabilitySnap.forEach(doc => {
-    const availabilityData = doc.data()
-    if (availabilityData[playerId] !== undefined) {
-      const updatedData = { ...availabilityData }
-      delete updatedData[playerId]
-      batch.update(doc.ref, updatedData)
-    }
-  })
-  await batch.commit()
+  // Supprimer les disponibilités pour ce joueur (par nom)
+  if (playerName) {
+    const availabilityRef = doc(db, 'seasons', seasonId, 'availability', playerName)
+    await deleteDoc(availabilityRef)
+  }
 }
 
 export async function updatePlayer(playerId, newName, seasonId = null) {
