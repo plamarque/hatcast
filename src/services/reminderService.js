@@ -1,6 +1,5 @@
 // src/services/reminderService.js
-import { db } from './firebase.js'
-import { collection, addDoc, query, where, getDocs, deleteDoc, doc, serverTimestamp } from 'firebase/firestore'
+import firestoreService from './firestoreService.js'
 import { notifyRecipientAcrossChannels } from './notificationsService.js'
 import logger from './logger.js'
 
@@ -106,17 +105,19 @@ export async function createRemindersForSelection({
     const results = []
     for (const reminder of reminders) {
       try {
-        const docRef = await addDoc(collection(db, 'reminderQueue'), {
+        const reminderData = {
           ...reminder,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
-        results.push({ success: true, id: docRef.id, type: reminder.type })
-        logger.info('Rappel créé avec succès', { reminderId: docRef.id, type: reminder.type, playerEmail })
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+        
+        const reminderId = await firestoreService.addDocument('reminderQueue', reminderData)
+        results.push({ success: true, id: reminderId, type: reminder.type })
+        logger.info('Rappel créé avec succès', { reminderId, type: reminder.type, playerEmail })
         
         // Log plus détaillé pour le debugging
         console.log(`✅ Rappel ${reminder.type} créé:`, {
-          id: docRef.id,
+          id: reminderId,
           playerEmail,
           eventTitle: reminder.eventTitle,
           scheduledFor: reminder.scheduledFor,
@@ -145,15 +146,18 @@ export async function removeRemindersForPlayer({
   playerEmail
 }) {
   try {
-    const q = query(
-      collection(db, 'reminderQueue'),
-      where('seasonId', '==', seasonId),
-      where('eventId', '==', eventId),
-      where('playerEmail', '==', playerEmail)
+    const reminders = await firestoreService.queryDocuments(
+      'reminderQueue',
+      [
+        firestoreService.where('seasonId', '==', seasonId),
+        firestoreService.where('eventId', '==', eventId),
+        firestoreService.where('playerEmail', '==', playerEmail)
+      ]
     )
     
-    const snapshot = await getDocs(q)
-    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref))
+    const deletePromises = reminders.map(reminder => 
+      firestoreService.deleteDocument('reminderQueue', reminder.id)
+    )
     
     await Promise.all(deletePromises)
     
@@ -161,10 +165,10 @@ export async function removeRemindersForPlayer({
       seasonId, 
       eventId, 
       playerEmail, 
-      count: snapshot.docs.length 
+      count: reminders.length 
     })
     
-    return { success: true, deletedCount: snapshot.docs.length }
+    return { success: true, deletedCount: reminders.length }
   } catch (error) {
     logger.error('Erreur lors de la suppression des rappels', error)
     throw error
@@ -180,24 +184,27 @@ export async function removeRemindersForEvent({
   eventId
 }) {
   try {
-    const q = query(
-      collection(db, 'reminderQueue'),
-      where('seasonId', '==', seasonId),
-      where('eventId', '==', eventId)
+    const reminders = await firestoreService.queryDocuments(
+      'reminderQueue',
+      [
+        firestoreService.where('seasonId', '==', seasonId),
+        firestoreService.where('eventId', '==', eventId)
+      ]
     )
     
-    const snapshot = await getDocs(q)
-    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref))
+    const deletePromises = reminders.map(reminder => 
+      firestoreService.deleteDocument('reminderQueue', reminder.id)
+    )
     
     await Promise.all(deletePromises)
     
     logger.info('Rappels supprimés pour l\'événement', { 
       seasonId, 
       eventId, 
-      count: snapshot.docs.length 
+      count: reminders.length 
     })
     
-    return { success: true, deletedCount: snapshot.docs.length }
+    return { success: true, deletedCount: reminders.length }
   } catch (error) {
     logger.error('Erreur lors de la suppression des rappels de l\'événement', error)
     throw error
@@ -216,17 +223,18 @@ export async function getPendingRemindersForDate(targetDate) {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
     
-    const q = query(
-      collection(db, 'reminderQueue'),
-      where('scheduledFor', '>=', startOfDay),
-      where('scheduledFor', '<=', endOfDay),
-      where('status', '==', 'pending')
+    const reminders = await firestoreService.queryDocuments(
+      'reminderQueue',
+      [
+        firestoreService.where('scheduledFor', '>=', startOfDay),
+        firestoreService.where('scheduledFor', '<=', endOfDay),
+        firestoreService.where('status', '==', 'pending')
+      ]
     )
     
-    const snapshot = await getDocs(q)
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    return reminders.map(reminder => ({
+      id: reminder.id,
+      ...reminder
     }))
   } catch (error) {
     logger.error('Erreur lors de la récupération des rappels en attente', error)
@@ -239,10 +247,9 @@ export async function getPendingRemindersForDate(targetDate) {
  */
 export async function markReminderProcessed(reminderId, result) {
   try {
-    const reminderRef = doc(db, 'reminderQueue', reminderId)
-    await reminderRef.update({
+    await firestoreService.updateDocument('reminderQueue', reminderId, {
       status: 'processed',
-      processedAt: serverTimestamp(),
+      processedAt: new Date(),
       result
     })
     
@@ -302,13 +309,15 @@ export async function triggerRemindersForEvent({
     const results = []
     for (const reminder of reminders) {
       try {
-        const docRef = await addDoc(collection(db, 'reminderQueue'), {
+        const reminderData = {
           ...reminder,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })
-        results.push({ success: true, id: docRef.id, type: reminder.type })
-        logger.info('Rappel de test créé avec succès', { reminderId: docRef.id, type: reminder.type, playerEmail })
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+        
+        const reminderId = await firestoreService.addDocument('reminderQueue', reminderData)
+        results.push({ success: true, id: reminderId, type: reminder.type })
+        logger.info('Rappel de test créé avec succès', { reminderId, type: reminder.type, playerEmail })
       } catch (error) {
         logger.error('Erreur lors de la création du rappel de test', { error, reminder })
         results.push({ success: false, type: reminder.type, error: error.message })
