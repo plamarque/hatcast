@@ -121,17 +121,6 @@
             </div>
           </div>
 
-          <!-- Bouton Nouvelle saison -->
-          <div class="text-center mt-12">
-            <button
-              @click="showCreateSeasonModal = true"
-              class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl text-lg hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
-            >
-              <span>➕</span>
-              Nouvelle saison
-            </button>
-          </div>
-
           <!-- Message si aucune saison -->
           <div v-if="!loading && seasons.length === 0" class="text-center py-16">
             <div class="w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
@@ -139,11 +128,14 @@
             </div>
             <h3 class="text-2xl font-bold text-white mb-4">Aucune saison créée</h3>
             <p class="text-gray-300 mb-8">Commencez par créer votre première saison de spectacles !</p>
-            <button 
-              @click="showCreateSeasonModal = true"
-              class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-xl hover:shadow-pink-500/25 transition-all duration-300"
+            
+            <!-- Bouton Nouvelle saison -->
+            <button
+              @click="handleNewSeasonClick"
+              class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl text-lg hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
             >
-              Créer ma première saison
+              <span>➕</span>
+              Nouvelle saison
             </button>
           </div>
         </div>
@@ -312,7 +304,7 @@
       v-if="showAccountCreation" 
       :show="showAccountCreation"
       @close="showAccountCreation = false"
-      @account-created="handlePostLoginNavigation"
+      @account-created="handleAccountCreated"
     />
 
     <!-- Menu du compte -->
@@ -382,6 +374,9 @@ const showAccountMenu = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
 
+// Flag pour mémoriser l'intention de créer une saison
+const wantsToCreateSeason = ref(false)
+
 // État de connexion (importé depuis authState)
 
 // Computed properties
@@ -441,14 +436,56 @@ function openAccountCreation() {
   logger.debug('Template modal présent =', !!document.querySelector('[data-testid="create-account-modal"]'))
 }
 
+// Gérer la création de compte réussie
+async function handleAccountCreated() {
+  // Fermer la modal de création de compte
+  showAccountCreation.value = false
+  
+  // Vérifier si l'utilisateur voulait créer une saison
+  if (wantsToCreateSeason.value) {
+    logger.info('Nouveau compte créé voulait créer une saison, ouverture de la modale')
+    showCreateSeasonModal.value = true
+    wantsToCreateSeason.value = false // Reset le flag
+  } else if (seasons.length === 0) {
+    // Si l'utilisateur vient de créer un compte et qu'il n'y a pas de saisons,
+    // lui proposer d'en créer une
+    logger.info('Nouveau compte créé sans saisons, ouverture de la modale de création')
+    showCreateSeasonModal.value = true
+  }
+}
+
+// Gérer le clic sur le bouton "Nouvelle saison"
+function handleNewSeasonClick() {
+  if (isConnected.value) {
+    // Si connecté, ouvrir directement la modale de création
+    showCreateSeasonModal.value = true
+  } else {
+    // Si non connecté, mémoriser l'intention et ouvrir la modale de connexion
+    wantsToCreateSeason.value = true
+    openAccountLogin()
+  }
+}
+
 // Gérer la navigation post-connexion
 async function handlePostLoginNavigation() {
   // Fermer la modal de connexion
   showAccountLogin.value = false
   
-  // On est déjà sur /seasons, pas besoin de rediriger
-  // Juste rafraîchir la page pour mettre à jour l'état de connexion
-  logger.info('Connexion réussie sur /seasons, modal fermée')
+  // Vérifier si l'utilisateur voulait créer une saison
+  if (wantsToCreateSeason.value) {
+    logger.info('Utilisateur connecté voulait créer une saison, ouverture de la modale')
+    showCreateSeasonModal.value = true
+    wantsToCreateSeason.value = false // Reset le flag
+  } else if (seasons.length === 0) {
+    // Si l'utilisateur vient de se connecter et qu'il n'y a pas de saisons,
+    // lui proposer d'en créer une
+    logger.info('Utilisateur connecté sans saisons, ouverture de la modale de création')
+    showCreateSeasonModal.value = true
+  } else {
+    // On est déjà sur /seasons, pas besoin de rediriger
+    // Juste rafraîchir la page pour mettre à jour l'état de connexion
+    logger.info('Connexion réussie sur /seasons, modal fermée')
+  }
 }
 
 // Fonctions de gestion des saisons
