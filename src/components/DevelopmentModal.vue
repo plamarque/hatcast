@@ -914,20 +914,16 @@ async function refreshEnvironmentInfo() {
     appConfig.value = config;
     
     const summary = await configService.default.getEnvironmentSummary();
-    const fullInfo = await configService.default.dumpEnvironmentInfo();
     
-    // Utiliser fullInfo pour avoir toutes les données (envVars + firebaseSecrets)
-    environmentInfo.value = {
-      ...summary, // Contient firebaseSecrets
-      envVars: fullInfo.envVars // Ajouter les variables d'environnement
-    };
-    environmentVars.value = fullInfo.envVars;
+    // Utiliser summary qui contient maintenant toutes les données nécessaires
+    environmentInfo.value = summary;
+    environmentVars.value = summary.envVars;
     
     logger.info('🔄 Actualisation des informations d\'environnement...');
     logger.info('✅ Informations d\'environnement actualisées:', {
       config: config,
       summary: summary,
-      vars: fullInfo.envVars
+      vars: summary.envVars
     });
     
   } catch (err) {
@@ -984,7 +980,8 @@ function obfuscateSecret(value) {
 async function dumpToConsole() {
   try {
     const configService = await import('../services/configService.js');
-    const fullInfo = await configService.default.dumpEnvironmentInfo();
+    const summary = await configService.default.getEnvironmentSummary();
+    console.log('🔍 Informations d\'environnement complètes:', summary);
     alert('✅ Informations détaillées affichées dans la console (F12)');
   } catch (err) {
     console.error('❌ Erreur lors du dump console:', err);

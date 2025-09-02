@@ -849,20 +849,39 @@ class ConfigService {
   }
 
   /**
-   * Dump toutes les variables d'environnement et la configuration
-   * Utile pour le debug et la vérification des configs
+   * Retourne un résumé formaté pour l'affichage
    */
-  async dumpEnvironmentInfo() {
-    const envInfo = {
-      // Informations de base
-      currentUrl: window.location.href,
-      hostname: window.location.hostname,
+  async getEnvironmentSummary() {
+    return {
       environment: this.environment,
-      
-      // Configuration détectée
-      config: this.config,
-      
-      // Variables d'environnement disponibles (valeurs réelles pour admins)
+      url: window.location.href,
+      hostname: window.location.hostname,
+      // Configuration Firestore (déterminée côté client)
+      firestore: {
+        database: this.config.firestore.database,
+        region: this.config.firestore.region
+      },
+      // Configuration Storage (déterminée côté client)
+      storage: {
+        bucket: this.config.storage.bucket,
+        prefix: this.config.storage.prefix
+      },
+      // Configuration Email (déterminée côté client)
+      email: {
+        service: this.config.email.service,
+        capture: this.config.email.capture
+      },
+      // Configuration Notifications (déterminée côté client)
+      notifications: {
+        vapidKey: this.config.notifications.vapidKey
+      },
+      // Configuration Firebase (variables d'environnement)
+      firebase: {
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'Non défini',
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'Non défini',
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'Non défini'
+      },
+      // Variables d'environnement disponibles
       envVars: {
         NODE_ENV: import.meta.env.NODE_ENV || 'Non défini',
         VITE_APP_TITLE: import.meta.env.VITE_APP_TITLE || 'Non défini',
@@ -885,103 +904,15 @@ class ConfigService {
         'window.location.href': window.location.href,
         'window.location.hostname': window.location.hostname,
         'window.location.port': window.location.port || 'Non défini',
-        'window.location.protocol': window.location.protocol,
-        // Variables d'environnement système (si disponibles)
-        'process.env.NODE_ENV': typeof process !== 'undefined' ? process.env?.NODE_ENV : 'Non disponible côté client',
-        'process.env.PLATFORM': typeof process !== 'undefined' ? process.env?.PLATFORM : 'Non disponible côté client',
-        'process.env.ARCH': typeof process !== 'undefined' ? process.env?.ARCH : 'Non disponible côté client',
+        'window.location.protocol': window.location.protocol
       },
-      
-      // Informations Firebase
-      firebase: {
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'Non défini',
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'Non défini',
-        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'Non défini',
-      },
-      
       // Informations de build
       build: {
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
         platform: navigator.platform,
-        language: navigator.language,
+        language: navigator.language
       }
-    };
-
-    // Récupérer les secrets Firebase si l'utilisateur est admin
-    try {
-      const adminService = await import('./adminService.js');
-      const isAdmin = await adminService.default.checkAdminStatus();
-      
-      if (isAdmin) {
-        logger.info('🔐 Utilisateur admin détecté, récupération des secrets Firebase...');
-        
-        // Récupérer la configuration Firebase Functions
-        const response = await fetch('https://us-central1-impro-selector.cloudfunctions.net/dumpEnvironment', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${await this.getAuthToken()}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const firebaseConfig = await response.json();
-          logger.info('🔐 Réponse complète Firebase:', firebaseConfig);
-          envInfo.firebaseSecrets = firebaseConfig.data;
-          logger.info('🔐 Secrets Firebase récupérés:', firebaseConfig.data);
-          logger.info('🔐 firebaseSecrets dans envInfo:', envInfo.firebaseSecrets);
-        } else {
-                      logger.warn('⚠️ Impossible de récupérer les secrets Firebase:', response.status);
-          envInfo.firebaseSecrets = { error: 'Accès refusé ou erreur serveur' };
-        }
-      } else {
-        envInfo.firebaseSecrets = { message: 'Accès réservé aux administrateurs' };
-      }
-    } catch (error) {
-      logger.warn('⚠️ Erreur lors de la récupération des secrets Firebase:', error);
-      envInfo.firebaseSecrets = { error: error.message };
-    }
-
-    logger.info('🔍 DEBUG - Informations d\'environnement HatCast:', envInfo);
-    return envInfo;
-  }
-
-  /**
-   * Retourne un résumé formaté pour l'affichage
-   */
-  async getEnvironmentSummary() {
-    const info = await this.dumpEnvironmentInfo();
-    
-    return {
-      environment: info.environment,
-      url: info.currentUrl,
-      // Configuration Firestore (déterminée côté client)
-      firestore: {
-        database: info.config.firestore.database,
-        region: info.config.firestore.region
-      },
-      // Configuration Storage (déterminée côté client)
-      storage: {
-        bucket: info.config.storage.bucket,
-        prefix: info.config.storage.prefix
-      },
-      // Configuration Email (déterminée côté client)
-      email: {
-        service: info.config.email.service,
-        capture: info.config.email.capture
-      },
-      // Configuration Notifications (déterminée côté client)
-      notifications: {
-        vapidKey: info.config.notifications.vapidKey
-      },
-      // Configuration Firebase (variables d'environnement)
-      firebase: {
-        projectId: info.firebase.projectId,
-        authDomain: info.firebase.authDomain
-      },
-      // Secrets Firebase (récupérés côté serveur)
-      firebaseSecrets: info.firebaseSecrets
     };
   }
 }

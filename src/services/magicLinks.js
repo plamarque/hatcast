@@ -40,26 +40,42 @@ export async function createMagicLink({ seasonId, playerId, eventId, action, slu
 // Magic link pour vérification d'email de protection joueur
 // Utilise eventId spécial "protection" et action "verify_email"
 export async function createEmailVerificationLink({ seasonId, playerId, email }) {
-  const eventId = 'protection'
-  const action = 'verify_email'
-  const id = buildId({ seasonId, playerId, eventId, action })
-  const token = randomToken(40)
-  const expirationDays = configService.getMagicLinkExpirationDays()
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
-  await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, email, expiresAt })
-  const base = window.location.origin + '/'
-  const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
-  return { id, token, url }
+  try {
+    // S'assurer que firestoreService est initialisé
+    await firestoreService.initialize()
+    
+    const eventId = 'protection'
+    const action = 'verify_email'
+    const id = buildId({ seasonId, playerId, eventId, action })
+    const token = randomToken(40)
+    const expirationDays = configService.getMagicLinkExpirationDays()
+    const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
+    await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, email, expiresAt })
+    const base = window.location.origin + '/'
+    const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+    return { id, token, url }
+  } catch (error) {
+    console.error('Error creating email verification link:', error)
+    throw error
+  }
 }
 
 export async function verifyMagicLink({ seasonId, playerId, eventId, token, action }) {
-  const id = buildId({ seasonId, playerId, eventId, action })
-  const data = await firestoreService.getDocument(COLLECTION, id)
-  if (!data) return { valid: false, reason: 'not_found' }
-  if (data.token !== token) return { valid: false, reason: 'token_mismatch' }
-  if (data.action !== action) return { valid: false, reason: 'action_mismatch' }
-  if (typeof data.expiresAt === 'number' && Date.now() > data.expiresAt) return { valid: false, reason: 'expired' }
-  return { valid: true, data }
+  try {
+    // S'assurer que firestoreService est initialisé
+    await firestoreService.initialize()
+    
+    const id = buildId({ seasonId, playerId, eventId, action })
+    const data = await firestoreService.getDocument(COLLECTION, id)
+    if (!data) return { valid: false, reason: 'not_found' }
+    if (data.token !== token) return { valid: false, reason: 'token_mismatch' }
+    if (data.action !== action) return { valid: false, reason: 'action_mismatch' }
+    if (typeof data.expiresAt === 'number' && Date.now() > data.expiresAt) return { valid: false, reason: 'expired' }
+    return { valid: true, data }
+  } catch (error) {
+    console.error('Magic link error', error)
+    return { valid: false, reason: 'firestore_error', error: error.message }
+  }
 }
 
 export async function consumeMagicLink({ seasonId, playerId, eventId, action }) {
