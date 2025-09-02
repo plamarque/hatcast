@@ -4,7 +4,7 @@ import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
+import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 import configService from './configService.js'
 import logger from './logger.js'
 
@@ -225,6 +225,68 @@ export async function updatePlayerPassword(newPassword) {
   } catch (error) {
     throw error
   }
+}
+
+// Google Authentication functions
+export async function signInWithGoogle() {
+  try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore initialisé')
+    }
+    
+    const provider = new GoogleAuthProvider()
+    // Request email and profile info
+    provider.addScope('email')
+    provider.addScope('profile')
+    
+    const result = await signInWithPopup(auth, provider)
+    
+    // Log successful Google sign-in
+    logger.info('Google sign-in successful', {
+      uid: result.user.uid,
+      email: result.user.email,
+      isNewUser: result.user.metadata.creationTime === result.user.metadata.lastSignInTime
+    })
+    
+    return result.user
+  } catch (error) {
+    // Handle specific Google Auth errors
+    if (error.code === 'auth/popup-closed-by-user') {
+      const cleanError = new Error('Connexion annulée')
+      cleanError.code = 'AUTH_POPUP_CANCELLED'
+      cleanError.isAuthError = true
+      throw cleanError
+    }
+    
+    if (error.code === 'auth/popup-blocked') {
+      const cleanError = new Error('Popup bloquée par le navigateur. Autorisez les popups pour ce site.')
+      cleanError.code = 'AUTH_POPUP_BLOCKED'
+      cleanError.isAuthError = true
+      throw cleanError
+    }
+    
+    if (error.code === 'auth/account-exists-with-different-credential') {
+      const cleanError = new Error('Un compte existe déjà avec cette adresse email via une autre méthode de connexion')
+      cleanError.code = 'AUTH_ACCOUNT_EXISTS'
+      cleanError.isAuthError = true
+      throw cleanError
+    }
+    
+    // Log other errors but don't expose details
+    logger.warn('Google authentication error:', error.code, error.message)
+    
+    const cleanError = new Error('Erreur lors de la connexion avec Google. Réessayez.')
+    cleanError.code = 'AUTH_GOOGLE_ERROR'
+    cleanError.isAuthError = true
+    throw cleanError
+  }
+}
+
+export async function signUpWithGoogle() {
+  // For Google Auth, sign-in and sign-up are the same process
+  // Firebase automatically creates an account if it doesn't exist
+  return signInWithGoogle()
 }
 
 // Getters pour accéder aux services Firebase
