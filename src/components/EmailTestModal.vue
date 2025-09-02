@@ -252,7 +252,8 @@ const error = ref(null);
 const environmentSummary = ref(null);
 const environmentVars = ref({});
 
-const auth = getAuth();
+// Ne pas initialiser auth au niveau du module
+let auth = null;
 
 const closeModal = () => {
   emit('close');
@@ -332,6 +333,13 @@ const dumpToConsole = () => {
 
 onMounted(() => {
   console.log('🚀 EmailTestModal monté, initialisation...');
+  try {
+    // Initialiser auth seulement quand Firebase est prêt
+    auth = getAuth();
+    console.log('✅ Auth Firebase initialisé');
+  } catch (error) {
+    console.warn('⚠️ Auth Firebase non disponible:', error);
+  }
   refreshEnvironmentInfo();
 });
 

@@ -1724,6 +1724,7 @@ const playerModalRef = ref(null)
 const showPinModal = ref(false)
 const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
+const sessionInfo = ref(null)
 
 // Variables pour la protection par mot de passe de joueur
 const showPlayerPasswordModal = ref(false)
@@ -3520,9 +3521,9 @@ async function openNewEventForm() {
     console.log('✅ GridBoard: PIN validé, modal devrait s\'ouvrir')
   } catch (error) {
     console.error('❌ GridBoard: Erreur dans openNewEventForm:', error)
-    // En cas d'erreur, essayer d'ouvrir directement la modal
-    console.log('🔄 GridBoard: Tentative d\'ouverture directe de la modal')
-    newEventForm.value = true
+    // En cas d'erreur, ne pas ouvrir la modal automatiquement
+    // L'utilisateur devra réessayer ou la modal de PIN s'affichera
+    console.log('🔄 GridBoard: Erreur lors de la vérification du PIN, modal non ouverte')
   }
 }
 
@@ -4843,26 +4844,39 @@ function getPinModalMessage() {
 }
 
 async function requirePin(operation) {
-  // Vérifier si le PIN est déjà en cache pour cette saison
-  if (pinSessionManager.isPinCached(seasonId.value)) {
-    const cachedPin = pinSessionManager.getCachedPin(seasonId.value)
-    // PIN en cache trouvé, utilisation automatique
-    
-    // Vérifier que le PIN est toujours valide
-    const isValid = await verifySeasonPin(seasonId.value, cachedPin)
-    if (isValid) {
-      // Exécuter directement l'opération
-      await executePendingOperation(operation)
-      return
-    } else {
-      // PIN invalide, effacer le cache
-      pinSessionManager.clearSession()
+  try {
+    // Vérifier si le PIN est déjà en cache pour cette saison
+    if (await pinSessionManager.isPinCached(seasonId.value)) {
+      const cachedPin = await pinSessionManager.getCachedPin(seasonId.value)
+      if (cachedPin) {
+        // PIN en cache trouvé, utilisation automatique
+        
+        // Vérifier que le PIN est toujours valide
+        const isValid = await verifySeasonPin(seasonId.value, cachedPin)
+        if (isValid) {
+          // Exécuter directement l'opération
+          await executePendingOperation(operation)
+          return
+        } else {
+          // PIN invalide, effacer le cache
+          pinSessionManager.clearSession()
+        }
+      }
     }
+    
+    // Afficher la modal de saisie du PIN
+    pendingOperation.value = operation
+    showPinModal.value = true
+    // Mettre à jour les informations de session
+    await updateSessionInfo()
+  } catch (error) {
+    console.error('❌ Erreur lors de la vérification du PIN en cache:', error)
+    // En cas d'erreur, afficher la modal de saisie du PIN
+    pendingOperation.value = operation
+    showPinModal.value = true
+    // Mettre à jour les informations de session
+    await updateSessionInfo()
   }
-  
-  // Afficher la modal de saisie du PIN
-  pendingOperation.value = operation
-  showPinModal.value = true
 }
 
 async function requirePlayerPassword(operation) {
@@ -4870,7 +4884,7 @@ async function requirePlayerPassword(operation) {
   
   // Si un PIN de saison valide est déjà en cache, ne pas redemander
   try {
-    if (pinSessionManager.isPinCached(seasonId.value)) {
+    if (await pinSessionManager.isPinCached(seasonId.value)) {
               // PIN de saison en cache — saut de la demande de mot de passe joueur
       await executePendingOperation(operation)
       return
@@ -4904,6 +4918,9 @@ async function handlePinSubmit(pinCode) {
       showPinModal.value = false
       const operationToExecute = pendingOperation.value
       pendingOperation.value = null
+      
+      // Mettre à jour les informations de session
+      await updateSessionInfo()
       
       // Exécuter l'opération en attente
       await executePendingOperation(operationToExecute)
@@ -5089,14 +5106,25 @@ async function sendPlayerResetEmail() {
   }
 }
 
-function getSessionInfo() {
-  if (pinSessionManager.isPinCached(seasonId.value)) {
-    return {
-      timeRemaining: pinSessionManager.getTimeRemaining(),
-      isExpiringSoon: pinSessionManager.isExpiringSoon()
+async function updateSessionInfo() {
+  try {
+    if (await pinSessionManager.isPinCached(seasonId.value)) {
+      sessionInfo.value = {
+        timeRemaining: await pinSessionManager.getTimeRemaining(),
+        isExpiringSoon: await pinSessionManager.isExpiringSoon()
+      }
+    } else {
+      sessionInfo.value = null
     }
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour des informations de session:', error)
+    sessionInfo.value = null
   }
-  return null
+}
+
+// Fonction synchrone pour le template
+function getSessionInfo() {
+  return sessionInfo.value
 }
 
 async function executePendingOperation(operation) {

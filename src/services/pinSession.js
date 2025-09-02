@@ -132,8 +132,10 @@ class PinSessionManager {
   }
 
   // Récupérer le PIN en cache
-  getCachedPin(seasonId) {
-    if (this.isPinCached(seasonId)) {
+  async getCachedPin(seasonId) {
+    // Vérifier d'abord si le PIN est en cache
+    const isCached = await this.isPinCached(seasonId)
+    if (isCached && this.sessionData && this.sessionData.pinCode) {
       return this.sessionData.pinCode
     }
     return null
