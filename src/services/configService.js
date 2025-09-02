@@ -720,6 +720,10 @@ class ConfigService {
    * Retourne l'environnement actuel
    */
   getEnvironment() {
+    if (!this.environment) {
+      // Fallback si l'environnement n'est pas encore détecté
+      this.environment = this.detectEnvironment();
+    }
     return this.environment;
   }
 

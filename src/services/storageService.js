@@ -2,11 +2,11 @@
 // Service centralisé pour Firebase Storage
 // Garantit l'utilisation du bon préfixe selon l'environnement
 
-import { storage, auth } from './firebase.js'
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { signInAnonymously } from 'firebase/auth'
+import { ref, uploadBytes, getDownloadURL, deleteObject, getStorage } from 'firebase/storage'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import configService from './configService.js'
 import logger from './logger.js'
+import AuditClient from './auditClient.js'
 
 /**
  * Service centralisé pour Firebase Storage
@@ -14,8 +14,8 @@ import logger from './logger.js'
  */
 class StorageService {
   constructor() {
-    this.storage = storage
-    this.auth = auth
+    this.storage = null // Sera initialisé plus tard
+    this.auth = null // Sera initialisé plus tard
     this.environment = null
     this.prefix = null
     this.isInitialized = false
@@ -29,6 +29,20 @@ class StorageService {
       // Attendre que configService soit initialisé
       await configService.initializeConfig();
       
+      // Initialiser Firebase Auth
+      if (!this.auth) {
+        const { app } = await import('./firebase.js')
+        this.auth = getAuth(app)
+        logger.info('🔐 Firebase Auth initialisé')
+      }
+      
+      // Initialiser Firebase Storage
+      if (!this.storage) {
+        const { app } = await import('./firebase.js')
+        this.storage = getStorage(app)
+        logger.info('📦 Firebase Storage initialisé')
+      }
+      
       // Utiliser configService pour la détection d'environnement
       this.environment = configService.getEnvironment()
       this.prefix = configService.getStoragePrefix()
@@ -36,7 +50,8 @@ class StorageService {
       logger.info('🔧 StorageService initialisé:', {
         environment: this.environment,
         prefix: this.prefix,
-        instance: this.storage ? 'OK' : 'ERREUR'
+        storage: this.storage ? 'OK' : 'ERREUR',
+        auth: this.auth ? 'OK' : 'ERREUR'
       })
       
       this.isInitialized = true;
@@ -77,19 +92,52 @@ class StorageService {
    * @returns {Promise<void>}
    */
   async ensureAuthenticated() {
+    logger.info('🔐 Vérification de l\'authentification...', {
+      auth: this.auth ? 'OK' : 'NULL',
+      currentUser: this.auth?.currentUser ? 'OK' : 'NULL',
+      uid: this.auth?.currentUser?.uid
+    })
+    
+    // Si pas d'utilisateur, attendre que Firebase Auth se stabilise
     if (!this.auth.currentUser) {
-      logger.info('Aucun utilisateur connecté, tentative de connexion anonyme...')
-      try {
-        await signInAnonymously(this.auth)
-        logger.info('Connexion anonyme réussie')
-      } catch (error) {
-        logger.error('Erreur lors de la connexion anonyme:', error)
-        throw new Error('Impossible de s\'authentifier: ' + error.message)
-      }
+      logger.info('⏳ Aucun utilisateur connecté, attente de Firebase Auth...')
+      
+      // Utiliser onAuthStateChanged pour attendre l'état réel
+      return new Promise((resolve, reject) => {
+        const maxWaitTime = 10000 // 10 secondes max
+        const timeoutId = setTimeout(() => {
+          logger.error('❌ Timeout: Aucun utilisateur connecté après 10 secondes', {
+            auth: this.auth ? 'OK' : 'NULL',
+            currentUser: this.auth?.currentUser ? 'OK' : 'NULL'
+          })
+          reject(new Error('Timeout: Aucun utilisateur connecté après 10 secondes'))
+        }, maxWaitTime)
+        
+        // Écouter les changements d'état d'authentification
+        const unsubscribe = onAuthStateChanged(this.auth, (user) => {
+          clearTimeout(timeoutId)
+          unsubscribe()
+          
+          if (user) {
+            logger.info('✅ Utilisateur authentifié via onAuthStateChanged:', {
+              uid: user.uid,
+              email: user.email,
+              isAnonymous: user.isAnonymous
+            })
+            resolve()
+          } else {
+            logger.error('❌ Aucun utilisateur connecté via onAuthStateChanged')
+            reject(new Error('Aucun utilisateur connecté'))
+          }
+        })
+      })
     }
     
-    // Attendre un peu que l'authentification soit stable
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    logger.info('✅ Utilisateur authentifié:', {
+      uid: this.auth.currentUser.uid,
+      email: this.auth.currentUser.email,
+      isAnonymous: this.auth.currentUser.isAnonymous
+    })
   }
 
   /**
@@ -101,20 +149,62 @@ class StorageService {
    */
   async uploadImage(file, path, options = {}) {
     try {
-      if (!this.isInitialized) {
-        await this.initialize();
-      }
-      
-      logger.info('Début upload image', { 
+      logger.info('🚀 DÉBUT UPLOAD IMAGE', { 
         fileName: file.name, 
-        path,
-        fullPath: await this.getFullPath(path),
-        environment: this.environment,
-        originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB` 
+        fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        fileType: file.type,
+        path: path,
+        options: options
       })
       
-      // S'assurer que l'utilisateur est authentifié
-      await this.ensureAuthenticated()
+      // ÉTAPE 1: Vérification de l'initialisation
+      if (!this.isInitialized) {
+        logger.info('⏳ Initialisation de StorageService...')
+        await this.initialize();
+        logger.info('✅ StorageService initialisé')
+      }
+      
+      // ÉTAPE 2: Vérification de la configuration
+      logger.info('🔍 Vérification de la configuration', {
+        environment: this.environment,
+        prefix: this.prefix,
+        storage: this.storage ? 'OK' : 'NULL',
+        auth: this.auth ? 'OK' : 'NULL'
+      })
+      
+      if (!this.prefix) {
+        throw new Error(`Préfixe de stockage non défini. Environment: ${this.environment}`)
+      }
+      
+      // ÉTAPE 3: Test de getFullPath
+      let testPath
+      try {
+        testPath = await this.getFullPath(path)
+        logger.info('✅ getFullPath fonctionne:', testPath)
+      } catch (pathError) {
+        logger.error('❌ ERREUR dans getFullPath:', {
+          error: pathError.message,
+          stack: pathError.stack,
+          path: path,
+          prefix: this.prefix
+        })
+        throw new Error(`Erreur de chemin: ${pathError.message}`)
+      }
+      
+      // ÉTAPE 4: Vérification de l'authentification
+      logger.info('🔐 Vérification de l\'authentification...')
+      try {
+        await this.ensureAuthenticated()
+        logger.info('✅ Utilisateur authentifié:', this.auth.currentUser?.uid)
+      } catch (authError) {
+        logger.error('❌ ERREUR d\'authentification:', {
+          error: authError.message,
+          stack: authError.stack,
+          auth: this.auth ? 'OK' : 'NULL',
+          currentUser: this.auth?.currentUser ? 'OK' : 'NULL'
+        })
+        throw new Error(`Erreur d'authentification: ${authError.message}`)
+      }
       
       // Vérifier le type de fichier
       if (!file.type.startsWith('image/')) {
@@ -152,7 +242,8 @@ class StorageService {
       // Créer une référence unique avec timestamp
       const timestamp = Date.now()
       const fileName = `${timestamp}_${file.name}`
-      const fullPath = this.getFullPath(`${path}/${fileName}`)
+      const finalPath = `${path}/${fileName}`
+      const fullPath = await this.getFullPath(finalPath)
       const storageRef = ref(this.storage, fullPath)
       
       logger.info('Tentative d\'upload vers Firebase Storage...', { 
@@ -163,21 +254,86 @@ class StorageService {
       })
       
       // Upload du fichier avec timeout
+      logger.info('🚀 Début de l\'upload...', { 
+        storageRef: storageRef ? 'OK' : 'NULL',
+        storageRefType: storageRef ? typeof storageRef : 'NULL',
+        processedFileSize: processedFile.size
+      })
+      
       const uploadPromise = uploadBytes(storageRef, processedFile)
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout: Upload trop long')), 30000)
       )
       
       const snapshot = await Promise.race([uploadPromise, timeoutPromise])
-      logger.info('Image uploadée avec succès', { fullPath })
+      logger.info('✅ Image uploadée avec succès', { 
+        fullPath,
+        snapshot: snapshot ? 'OK' : 'NULL',
+        snapshotType: snapshot ? typeof snapshot : 'NULL',
+        snapshotRef: snapshot?.ref ? 'OK' : 'NULL'
+      })
       
       // Récupérer l'URL de téléchargement
+      if (!snapshot || !snapshot.ref) {
+        throw new Error(`Snapshot invalide après upload: snapshot=${!!snapshot}, ref=${!!snapshot?.ref}`)
+      }
+      
+      logger.info('🔗 Récupération de l\'URL...', { 
+        snapshotRef: snapshot.ref,
+        refType: typeof snapshot.ref
+      })
+      
       const downloadURL = await getDownloadURL(snapshot.ref)
-      logger.info('URL de téléchargement récupérée', { downloadURL })
+      logger.info('✅ URL de téléchargement récupérée', { downloadURL })
+      
+      // Enregistrer l'audit de l'upload
+      try {
+        await AuditClient.logUserAction({
+          type: 'IMAGE_UPLOAD',
+          category: 'storage',
+          severity: 'info',
+          data: {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            path: path,
+            fullPath: fullPath,
+            downloadURL: downloadURL,
+            user: this.auth.currentUser?.uid,
+            environment: this.environment
+          },
+          success: true,
+          tags: ['storage', 'image', 'upload']
+        })
+        logger.info('✅ Audit enregistré pour l\'upload d\'image')
+      } catch (auditError) {
+        logger.warn('⚠️ Erreur lors de l\'enregistrement de l\'audit:', auditError)
+        // Ne pas faire échouer l'upload pour une erreur d'audit
+      }
       
       return downloadURL
     } catch (error) {
-      logger.error('Erreur lors de l\'upload de l\'image', error)
+      // GESTION DÉTAILLÉE DES ERREURS
+      logger.error('💥 ERREUR CRITIQUE lors de l\'upload de l\'image', {
+        // Informations sur l'erreur
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorName: error.name,
+        
+        // Informations sur le fichier
+        fileName: file.name,
+        fileSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        fileType: file.type,
+        path: path,
+        
+        // État du service
+        isInitialized: this.isInitialized,
+        environment: this.environment,
+        prefix: this.prefix,
+        storage: this.storage ? 'OK' : 'NULL',
+        auth: this.auth ? 'OK' : 'NULL',
+        currentUser: this.auth?.currentUser ? 'OK' : 'NULL'
+      })
       
       // Vérifier si c'est une erreur CORS ou d'authentification
       const isCorsError = error.message.includes('CORS') || 
@@ -188,11 +344,32 @@ class StorageService {
                          error.message.includes('Timeout')
       
       if (isCorsError) {
-        logger.warn('Erreur d\'accès détectée, utilisation du stockage local temporaire', error.message)
-        return await this.uploadImageToLocalStorage(file, path)
+        logger.warn('⚠️ Erreur d\'accès détectée, tentative de stockage local temporaire', {
+          error: error.message,
+          type: 'CORS/AUTH_ERROR'
+        })
+        try {
+          return await this.uploadImageToLocalStorage(file, path)
+        } catch (localError) {
+          logger.error('❌ Échec du stockage local aussi:', {
+            error: localError.message,
+            stack: localError.stack
+          })
+          throw new Error(`Upload impossible (Firebase + Local): ${error.message}`)
+        }
       }
       
-      throw error
+      // Relancer l'erreur avec plus de contexte
+      const enhancedError = new Error(`Upload échoué: ${error.message}`)
+      enhancedError.originalError = error
+      enhancedError.context = {
+        fileName: file.name,
+        fileSize: file.size,
+        path: path,
+        environment: this.environment
+      }
+      
+      throw enhancedError
     }
   }
 
@@ -311,6 +488,27 @@ class StorageService {
       // Supprimer le fichier
       await deleteObject(storageRef)
       logger.info('Image supprimée avec succès', { decodedPath })
+      
+      // Enregistrer l'audit de la suppression
+      try {
+        await AuditClient.logUserAction({
+          type: 'IMAGE_DELETE',
+          category: 'storage',
+          severity: 'info',
+          data: {
+            imageUrl: imageUrl,
+            decodedPath: decodedPath,
+            user: this.auth?.currentUser?.uid,
+            environment: this.environment
+          },
+          success: true,
+          tags: ['storage', 'image', 'delete']
+        })
+        logger.info('✅ Audit enregistré pour la suppression d\'image')
+      } catch (auditError) {
+        logger.warn('⚠️ Erreur lors de l\'enregistrement de l\'audit:', auditError)
+        // Ne pas faire échouer la suppression pour une erreur d'audit
+      }
     } catch (error) {
       logger.error('Erreur lors de la suppression de l\'image', error)
       throw error

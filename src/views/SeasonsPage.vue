@@ -254,9 +254,14 @@
                 v-if="editSeasonLogoPreview"
                 type="button"
                 @click="removeLogo"
-                class="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-all duration-300"
+                :disabled="isLogoDeleting"
+                class="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Supprimer
+                <span v-if="isLogoDeleting" class="flex items-center gap-2">
+                  <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  Suppression...
+                </span>
+                <span v-else>Supprimer</span>
               </button>
             </div>
           </div>
@@ -365,6 +370,7 @@ const editSeasonDescription = ref('')
 const editSeasonLogo = ref(null)
 const editSeasonLogoPreview = ref('')
 const isLogoUploading = ref(false)
+const isLogoDeleting = ref(false)
 const logoFileInput = ref(null)
 const showDeleteModal = ref(false)
 const showEditModal = ref(false)
@@ -686,9 +692,40 @@ function handleLogoUpload(event) {
   }
 }
 
-function removeLogo() {
-  editSeasonLogo.value = null
-  editSeasonLogoPreview.value = ''
+async function removeLogo() {
+  try {
+    isLogoDeleting.value = true
+    
+    // Supprimer le fichier du storage s'il existe
+    if (seasonToEdit.value?.logoUrl && isFirebaseStorageUrl(seasonToEdit.value.logoUrl)) {
+      try {
+        await deleteImage(seasonToEdit.value.logoUrl)
+        logger.info('Logo supprimé du storage')
+      } catch (deleteError) {
+        logger.warn('Erreur lors de la suppression du logo du storage:', deleteError)
+        // Continuer même si la suppression du fichier échoue
+      }
+    }
+    
+    // Mettre à jour la saison dans Firestore (supprimer logoUrl)
+    await updateSeason(seasonToEdit.value.id, { logoUrl: null })
+    logger.info('Logo supprimé de la saison')
+    
+    // Mettre à jour l'état local
+    seasonToEdit.value.logoUrl = null
+    editSeasonLogo.value = null
+    editSeasonLogoPreview.value = ''
+    
+    // Recharger les saisons pour mettre à jour l'affichage
+    await loadSeasons()
+    
+    logger.info('Logo supprimé avec succès')
+  } catch (error) {
+    logger.error('Erreur lors de la suppression du logo:', error)
+    alert('Erreur lors de la suppression du logo. Veuillez réessayer.')
+  } finally {
+    isLogoDeleting.value = false
+  }
 }
 
 function triggerLogoUpload() {
@@ -740,7 +777,7 @@ async function saveSeasonEdit() {
         }
       } catch (uploadError) {
         logger.error('Erreur lors de l\'upload du logo:', uploadError)
-        throw new Error('Erreur lors de l\'upload du logo: ' + uploadError.message)
+        throw new Error('Impossible d\'uploader le logo. Veuillez réessayer.')
       } finally {
         isLogoUploading.value = false
       }
