@@ -297,8 +297,9 @@
     <!-- Modales d'authentification -->
     <AccountLoginModal 
       v-if="showAccountLogin" 
+      :show="showAccountLogin"
       @close="showAccountLogin = false"
-      @login-success="handlePostLoginNavigation"
+      @success="handlePostLoginNavigation"
     />
     
     <AccountCreationModal 
@@ -408,8 +409,15 @@ function handleLogout() {
 
 function openAccountLogin() {
   logger.info('🔑 SeasonsPage: openAccountLogin() appelé')
+  logger.debug('showAccountLogin avant =', showAccountLogin.value)
   showAccountLogin.value = true
-  logger.debug('showAccountLogin =', showAccountLogin.value)
+  logger.debug('showAccountLogin après =', showAccountLogin.value)
+  logger.debug('showAccountLogin type =', typeof showAccountLogin.value)
+  logger.debug('showAccountLogin ref =', showAccountLogin)
+  
+  // Debug du composant modal
+  logger.debug('Composant AccountLoginModal importé =', !!AccountLoginModal)
+  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="email-input"]'))
 }
 
 function openAccountCreation() {
@@ -418,8 +426,12 @@ function openAccountCreation() {
 
 // Gérer la navigation post-connexion
 async function handlePostLoginNavigation() {
-  // Rediriger vers la page des saisons après connexion
-  router.push('/seasons')
+  // Fermer la modal de connexion
+  showAccountLogin.value = false
+  
+  // On est déjà sur /seasons, pas besoin de rediriger
+  // Juste rafraîchir la page pour mettre à jour l'état de connexion
+  logger.info('Connexion réussie sur /seasons, modal fermée')
 }
 
 // Fonctions de gestion des saisons
