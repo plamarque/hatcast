@@ -21,6 +21,17 @@
         <div class="text-center mb-12">
           <h2 class="text-4xl font-bold text-white mb-4">Saisons</h2>
           <p class="text-xl text-gray-300">Rejoins une saison existante ou crée la tienne</p>
+          
+          <!-- Bouton Nouvelle saison (gère la connexion automatiquement) -->
+          <div class="mt-6">
+            <button
+              @click="handleNewSeasonClick"
+              class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl text-base hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
+            >
+              <span>➕</span>
+              Nouvelle saison
+            </button>
+          </div>
         </div>
 
         <!-- Section des saisons -->
@@ -345,6 +356,7 @@ import AccountCreationModal from '../components/AccountCreationModal.vue'
 import AccountMenu from '../components/AccountMenu.vue'
 import NotificationsModal from '../components/NotificationsModal.vue'
 import PlayersModal from '../components/PlayersModal.vue'
+
 import logger from '../services/logger.js'
 
 const router = useRouter()
@@ -376,6 +388,8 @@ const showPlayers = ref(false)
 
 // Flag pour mémoriser l'intention de créer une saison
 const wantsToCreateSeason = ref(false)
+
+
 
 // État de connexion (importé depuis authState)
 
@@ -435,6 +449,8 @@ function openAccountCreation() {
   logger.debug('Composant AccountCreationModal importé =', !!AccountCreationModal)
   logger.debug('Template modal présent =', !!document.querySelector('[data-testid="create-account-modal"]'))
 }
+
+
 
 // Gérer la création de compte réussie
 async function handleAccountCreated() {
@@ -897,6 +913,8 @@ async function clearSeasonPreference() {
     logger.warn('Erreur lors du nettoyage de la préférence de saison', error)
   }
 }
+
+
 
 onMounted(async () => {
   // Supprimer la préférence de saison mémorisée lors de la visite de cette page
