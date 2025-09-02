@@ -3510,11 +3510,20 @@ function cancelNewEvent() {
 
 // Nouvelle fonction pour demander le PIN avant d'ouvrir la modal
 async function openNewEventForm() {
-  // Demander le PIN code avant d'ouvrir la modal de création
-  await requirePin({
-    type: 'addEvent',
-    data: {}
-  })
+  try {
+    console.log('🔍 GridBoard: openNewEventForm appelé')
+    // Demander le PIN code avant d'ouvrir la modal de création
+    await requirePin({
+      type: 'addEvent',
+      data: {}
+    })
+    console.log('✅ GridBoard: PIN validé, modal devrait s\'ouvrir')
+  } catch (error) {
+    console.error('❌ GridBoard: Erreur dans openNewEventForm:', error)
+    // En cas d'erreur, essayer d'ouvrir directement la modal
+    console.log('🔄 GridBoard: Tentative d\'ouverture directe de la modal')
+    newEventForm.value = true
+  }
 }
 
 const events = ref([])

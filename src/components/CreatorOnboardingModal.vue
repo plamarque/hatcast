@@ -95,8 +95,16 @@ const subtitleText = computed(() => {
 })
 
 function handleCreateEvent() {
-  showModal.value = false
-  emit('create-event')
+  try {
+    console.log('🔍 CreatorOnboardingModal: handleCreateEvent appelé')
+    showModal.value = false
+    emit('create-event')
+    console.log('✅ CreatorOnboardingModal: événement create-event émis avec succès')
+  } catch (error) {
+    console.error('❌ CreatorOnboardingModal: Erreur dans handleCreateEvent:', error)
+    // Réafficher la modal en cas d'erreur
+    showModal.value = true
+  }
 }
 function handleAddPlayer() {
   showModal.value = false

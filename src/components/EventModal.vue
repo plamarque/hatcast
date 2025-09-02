@@ -359,6 +359,37 @@ function handleCancel() {
 // Watchers
 watch(() => props.isVisible, (visible) => {
   if (visible) {
+    // Réinitialiser le formulaire si on est en mode création
+    if (props.mode === 'create') {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const tomorrowFormatted = tomorrow.toISOString().split('T')[0] // Format YYYY-MM-DD
+      formData.value = {
+        title: '',
+        date: tomorrowFormatted,
+        description: '',
+        archived: false,
+        roles: {
+          [ROLES.PLAYER]: 6,
+          [ROLES.DJ]: 1,
+          [ROLES.MC]: 1,
+          [ROLES.VOLUNTEER]: 5,
+          [ROLES.REFEREE]: 1,
+          [ROLES.ASSISTANT_REFEREE]: 2,
+          [ROLES.LIGHTING]: 0,
+          [ROLES.COACH]: 0,
+          [ROLES.STAGE_MANAGER]: 1
+        }
+      }
+      
+      // Réinitialiser le template de rôles
+      selectedRoleTemplate.value = 'cabaret'
+      
+      // Réinitialiser l'affichage des rôles
+      showRoleInputs.value = false
+      showAllRoles.value = false
+    }
+    
     nextTick(() => {
       titleInput.value?.focus()
     })
@@ -379,35 +410,6 @@ watch(() => props.eventData, (data) => {
     // Déterminer le template de rôles
     const templateId = determineRoleTemplate(data.roles)
     selectedRoleTemplate.value = templateId
-    
-    // Réinitialiser l'affichage des rôles
-    showRoleInputs.value = false
-    showAllRoles.value = false
-  } else if (props.mode === 'create') {
-    // Réinitialiser le formulaire pour la création
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowFormatted = tomorrow.toISOString().split('T')[0] // Format YYYY-MM-DD
-    formData.value = {
-      title: '',
-      date: tomorrowFormatted,
-      description: '',
-      archived: false,
-      roles: {
-        [ROLES.PLAYER]: 6,
-        [ROLES.DJ]: 1,
-        [ROLES.MC]: 1,
-        [ROLES.VOLUNTEER]: 5,
-        [ROLES.REFEREE]: 1,
-        [ROLES.ASSISTANT_REFEREE]: 2,
-        [ROLES.LIGHTING]: 0,
-        [ROLES.COACH]: 0,
-        [ROLES.STAGE_MANAGER]: 1
-      }
-    }
-    
-    // Réinitialiser le template de rôles
-    selectedRoleTemplate.value = 'cabaret'
     
     // Réinitialiser l'affichage des rôles
     showRoleInputs.value = false
