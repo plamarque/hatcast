@@ -81,7 +81,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
-import { auth } from '../services/firebase.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import AccountBenefitsHint from './AccountBenefitsHint.vue'
 
@@ -116,6 +116,11 @@ async function sendVerificationEmail() {
   error.value = ''
   
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth not initialized')
+    }
+    
     // Créer un compte temporaire avec un mot de passe temporaire
     const tempPassword = 'TempPass123!' // Mot de passe temporaire sécurisé
     const userCredential = await createUserWithEmailAndPassword(auth, email.value.trim(), tempPassword)
