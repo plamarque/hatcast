@@ -78,9 +78,17 @@ export async function verifySeasonPin(seasonId, pinCode) {
 
 // Get PIN code for a season
 export async function getSeasonPin(seasonId) {
-  const service = await ensureFirestoreService();
-  const season = await service.getDocument(SEASONS_COLLECTION, seasonId)
-  return season ? season.pinCode : null
+  try {
+    logger.info('🔍 getSeasonPin: début', { seasonId })
+    const service = await ensureFirestoreService();
+    logger.info('🔍 getSeasonPin: service initialisé')
+    const season = await service.getDocument(SEASONS_COLLECTION, seasonId)
+    logger.info('🔍 getSeasonPin: document récupéré', { season: season ? { id: season.id, pinCode: season.pinCode } : null })
+    return season ? season.pinCode : null
+  } catch (error) {
+    logger.error('🔍 getSeasonPin: erreur', error)
+    throw error
+  }
 }
 
 // Update only the sort order of a season

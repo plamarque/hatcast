@@ -130,7 +130,7 @@ import { getSeasonPin } from '../services/seasons.js'
 import logger from '../services/logger.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import pinSessionManager from '../services/pinSession.js'
-import { auth } from '../services/firebase.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 
 const props = defineProps({
   show: {
@@ -160,17 +160,32 @@ const staySignedIn = ref(true)
 
 // Vérifier le mot de passe
 async function verifyPassword() {
-  if (!password.value) return
+  logger.info('🔍 verifyPassword: début de la fonction')
+  
+  if (!password.value) {
+    logger.info('🔍 verifyPassword: pas de mot de passe saisi')
+    return
+  }
+  
+  logger.info('🔍 verifyPassword: validation des props', { 
+    seasonId: props.seasonId, 
+    playerId: props.player?.id,
+    playerName: props.player?.name
+  })
   
   loading.value = true
   error.value = ''
   
   try {
     // Vérifier si c'est le PIN de saison
+    logger.info('🔍 Récupération du PIN de saison', { seasonId: props.seasonId })
     const seasonPin = await getSeasonPin(props.seasonId)
+    logger.info('🔍 PIN de saison récupéré', { seasonPin, enteredPassword: password.value })
+    
     if (password.value === seasonPin) {
       // PIN de saison accepté - SAUVEGARDER LA SESSION PIN avec état de connexion !
-      const isConnected = !!auth.currentUser?.email
+      const auth = getFirebaseAuth()
+      const isConnected = !!auth?.currentUser?.email
       pinSessionManager.saveSession(props.seasonId, password.value, isConnected)
       
       // Marquer l'appareil de confiance pour ce joueur aussi
@@ -183,7 +198,9 @@ async function verifyPassword() {
     }
     
     // Vérifier le mot de passe du joueur
+    logger.info('🔍 Vérification du mot de passe du joueur', { playerId: props.player.id })
     const isValid = await verifyPlayerPassword(props.player.id, password.value, props.seasonId)
+    logger.info('🔍 Résultat de la vérification du mot de passe', { isValid })
     
     if (isValid) {
       // Marquer l'appareil de confiance (en plus de la logique interne)
@@ -196,7 +213,12 @@ async function verifyPassword() {
       error.value = 'Mot de passe incorrect. Veuillez réessayer.'
     }
   } catch (err) {
-    logger.error('Erreur lors de la vérification', err)
+    logger.error('🔍 Erreur attrapée dans verifyPassword', {
+      errorMessage: err?.message,
+      errorCode: err?.code,
+      errorStack: err?.stack,
+      fullError: err
+    })
     error.value = 'Erreur lors de la vérification. Veuillez réessayer.'
   } finally {
     loading.value = false
