@@ -37,7 +37,7 @@ class ConfigService {
           region: 'europe-west3'
         },
         storage: {
-          bucket: 'impro-selector.appspot.com',
+          bucket: 'impro-selector.firebasestorage.app',
           prefix: 'development/'
         },
         email: {
@@ -57,7 +57,7 @@ class ConfigService {
           region: 'us-central1'
         },
         storage: {
-          bucket: 'impro-selector.appspot.com',
+          bucket: 'impro-selector.firebasestorage.app',
           prefix: 'staging/'
         },
         email: {
@@ -77,7 +77,7 @@ class ConfigService {
           region: 'us-central1'
         },
         storage: {
-          bucket: 'impro-selector.appspot.com',
+          bucket: 'impro-selector.firebasestorage.app',
           prefix: 'production/'
         },
         email: {
