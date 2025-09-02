@@ -98,6 +98,25 @@ Les tests de protection utilisent l'intercepteur d'emails pour :
 - ✅ **Tester sans envoi réel** d'emails (mode bouchon)
 
 **🎯 NOUVEAU : Simulation Complète du Magic Link !**
+
+## 🔇 Tests de Configuration d'Audit
+
+### **Test de Configuration d'Audit en Développement**
+```bash
+npm run test:audit-config    # Test spécifique de la configuration audit
+```
+
+**Ce test vérifie :**
+- ✅ Audit désactivé par défaut en développement
+- ✅ Interface de développement affiche le statut audit
+- ✅ Bouton d'activation affiche les instructions
+- ✅ Logs de debug apparaissent quand audit désactivé
+
+**Scénarios testés :**
+1. **Audit désactivé par défaut** : Vérification qu'aucun log d'audit n'est généré
+2. **Interface de développement** : Vérification de l'affichage du statut audit
+3. **Instructions d'activation** : Vérification que le bouton affiche les bonnes instructions
+4. **Logs de debug** : Vérification que les logs de debug apparaissent correctement
 Les tests simulent maintenant **réellement** le clic sur le magic link :
 - ✅ **Navigation vers le lien** extrait de l'email
 - ✅ **Vérification de la page** de vérification

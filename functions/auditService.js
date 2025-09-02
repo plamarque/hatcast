@@ -50,6 +50,18 @@ class AuditService {
       return null
     }
     
+    // Désactiver l'audit en développement sauf si explicitement activé
+    const environment = process.env.NODE_ENV || 'development'
+    const isAuditExplicitlyEnabled = process.env.AUDIT_ENABLED === 'true'
+    
+    if (environment === 'development' && !isAuditExplicitlyEnabled) {
+      // Log de debug pour indiquer que l'audit est désactivé
+      if (eventData.severity === 'error' || eventData.severity === 'critical') {
+        console.log('🔇 AUDIT DISABLED (dev mode):', eventData.eventType, eventData.data)
+      }
+      return null
+    }
+    
     try {
       const auditDoc = {
         ...eventData,

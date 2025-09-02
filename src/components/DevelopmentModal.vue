@@ -84,6 +84,36 @@
               </div>
             </div>
           </div>
+          
+          <!-- Section Audit -->
+          <div class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4">
+            <h4 class="font-semibold mb-3 text-orange-200 flex items-center gap-2">
+              🔇 Audit
+            </h4>
+            <div class="space-y-3">
+              <!-- Statut de l'audit -->
+              <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div class="text-sm text-gray-300">
+                  Statut de l'audit: 
+                  <span :class="auditStatusClass" class="font-mono text-xs px-2 py-1 rounded">
+                    {{ auditStatusText }}
+                  </span>
+                </div>
+                <button @click="toggleAudit" :class="auditToggleButtonClass" class="px-3 py-1 rounded text-white text-xs transition-colors">
+                  {{ auditToggleButtonText }}
+                </button>
+              </div>
+              
+              <!-- Informations audit -->
+              <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                <div class="text-xs text-gray-400">
+                  <div>🔇 Audit désactivé par défaut en développement</div>
+                  <div>📝 Activer temporairement pour diagnostiquer</div>
+                  <div>🔄 Redémarrer le serveur après changement</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -717,6 +747,19 @@ const environmentInfo = ref(null);
 const environmentVars = ref({});
 const appConfig = ref(null); // Configuration réelle utilisée par l'app
 
+// Audit state
+const auditEnabled = ref(false);
+const auditStatusText = computed(() => auditEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
+const auditStatusClass = computed(() => auditEnabled.value 
+  ? 'bg-green-600/30 border border-green-500/30 text-green-300' 
+  : 'bg-red-600/30 border border-red-500/30 text-red-300'
+);
+const auditToggleButtonText = computed(() => auditEnabled.value ? '🔇 Désactiver' : '🔊 Activer');
+const auditToggleButtonClass = computed(() => auditEnabled.value 
+  ? 'bg-red-600 hover:bg-red-500' 
+  : 'bg-green-600 hover:bg-green-500'
+);
+
 const closeModal = () => {
   emit('close');
   // Reset state
@@ -948,6 +991,37 @@ async function dumpToConsole() {
   }
 }
 
+// Fonctions pour gérer l'audit
+async function checkAuditStatus() {
+  try {
+    auditEnabled.value = import.meta.env.VITE_AUDIT_ENABLED === 'true';
+  } catch (error) {
+    console.warn('⚠️ Erreur lors de la vérification du statut audit:', error);
+    auditEnabled.value = false;
+  }
+}
+
+async function toggleAudit() {
+  try {
+    const newStatus = !auditEnabled.value;
+    
+    if (newStatus) {
+      // Activer l'audit
+      alert(`🔊 Audit activé !\n\nPour que le changement prenne effet, vous devez :\n\n1. Créer/modifier le fichier .env.local\n2. Ajouter : VITE_AUDIT_ENABLED=true\n3. Redémarrer le serveur de développement\n\nExemple de commande :\n\necho "VITE_AUDIT_ENABLED=true" >> .env.local\nnpm run dev -- --host`);
+    } else {
+      // Désactiver l'audit
+      alert(`🔇 Audit désactivé !\n\nPour que le changement prenne effet, vous devez :\n\n1. Modifier le fichier .env.local\n2. Commenter ou supprimer : VITE_AUDIT_ENABLED=true\n3. Redémarrer le serveur de développement\n\nExemple de commande :\n\n# VITE_AUDIT_ENABLED=true\nnpm run dev -- --host`);
+    }
+    
+    // Mettre à jour l'état local
+    auditEnabled.value = newStatus;
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du toggle audit:', error);
+    alert('❌ Erreur lors de la modification du statut audit');
+  }
+}
+
 
 
 onMounted(async () => {
@@ -965,6 +1039,9 @@ onMounted(async () => {
   
   // Mettre à jour la VAPID key preview
   await updateVapidKeyPreview();
+  
+  // Vérifier le statut de l'audit
+  await checkAuditStatus();
 });
 
 // Watcher pour actualiser les informations quand la modale de debug s'ouvre

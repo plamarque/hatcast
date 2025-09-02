@@ -20,7 +20,8 @@
     "test:manual": "node tests/run-manual.js",
     "test:local": "playwright test",
     "test:all": "node tests/run-tests.js",
-    "test:all:headed": "node tests/run-tests.js --headed"
+    "test:all:headed": "node tests/run-tests.js --headed",
+    "test:audit-config": "playwright test tests/audit-config.spec.js"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.10",

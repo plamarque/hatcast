@@ -75,6 +75,18 @@ class AuditClient {
                            (window.location.pathname.includes('/season/test') ||
                             window.location.pathname.includes('/season/malice-2025-2026'))
     
+    // Vérifier si l'audit est explicitement activé via variable d'environnement
+    const isAuditExplicitlyEnabled = import.meta.env.VITE_AUDIT_ENABLED === 'true'
+    
+    // Désactiver l'audit en développement sauf si explicitement activé
+    if (isLocalDev && !isAuditExplicitlyEnabled) {
+      // Log de debug pour indiquer que l'audit est désactivé
+      if (actionData.severity === 'error' || actionData.severity === 'critical') {
+        console.log('🔇 AUDIT DISABLED (dev mode):', actionData.type, actionData.data)
+      }
+      return
+    }
+    
     // Permettre l'audit si on est en dev local OU si c'est une saison de test
     if (isTest && !isLocalDev && !isTestingSeason) {
       return
