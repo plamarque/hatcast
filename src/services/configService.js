@@ -66,20 +66,49 @@ class ConfigService {
 
   /**
    * Charge les secrets Firebase de manière différée (après initialisation Firebase)
+   * CHARGE LAZY : ne charge les secrets que quand ils sont explicitement demandés
    */
   async loadSecretsDelayed() {
-    if (this.configSources.secrets) {
-      return this.config.secrets; // Déjà chargé
+    // Si les secrets sont déjà chargés, les retourner
+    if (this.configSources.secrets && Object.keys(this.config.secrets?.secrets || {}).length > 0) {
+      return this.config.secrets;
     }
 
-    logger.info('🔐 Chargement différé des secrets Firebase...');
-    
+    // Ne pas charger automatiquement, attendre une demande explicite
+    logger.info('⏳ Chargement lazy des secrets Firebase - en attente d\'une demande explicite');
+    return {};
+  }
+
+  /**
+   * Charge les secrets Firebase à la demande (pour l'envoi d'emails)
+   * Cette méthode est appelée explicitement quand on a besoin des secrets
+   */
+  async loadSecretsOnDemand() {
+    // Si les secrets sont déjà chargés, les retourner
+    if (this.configSources.secrets && Object.keys(this.config.secrets?.secrets || {}).length > 0) {
+      return this.config.secrets;
+    }
+
+    logger.info('🔐 Chargement à la demande des secrets Firebase...');
+
     try {
+      // Vérifier si Firebase est initialisé
+      if (!window.firebaseInitialized) {
+        logger.warn('⚠️ Firebase pas encore initialisé, impossible de charger les secrets');
+        return {};
+      }
+
+      // Charger les secrets
       const secrets = await this.loadSecretsConfig();
-      this.config.secrets = secrets;
+      
+      // Mettre à jour la configuration
+      if (this.config) {
+        this.config.secrets = secrets;
+      }
+      
       return secrets;
     } catch (error) {
-      logger.warn('⚠️ Erreur lors du chargement différé des secrets:', error);
+      logger.warn('⚠️ Erreur lors du chargement à la demande des secrets:', error);
       return {};
     }
   }
@@ -375,8 +404,21 @@ class ConfigService {
     logger.info('🔐 Chargement des secrets Firebase...');
 
     try {
+      // Vérifier si Firebase est initialisé
+      if (!window.firebaseInitialized) {
+        logger.info('⏳ Firebase pas encore initialisé, chargement des secrets différé');
+        return {};
+      }
+
       // Tentative de récupération depuis adminService
       const adminService = await import('./adminService.js');
+      
+      // Vérifier si la méthode getSecrets existe
+      if (!adminService.default.getSecrets) {
+        logger.info('ℹ️ Méthode getSecrets non disponible dans adminService, chargement différé');
+        return {};
+      }
+
       const secrets = await adminService.default.getSecrets();
       
       if (secrets && Object.keys(secrets).length > 0) {
@@ -393,12 +435,12 @@ class ConfigService {
         
         return secrets;
       } else {
-        logger.warn('⚠️ Aucun secret Firebase trouvé');
+        logger.info('ℹ️ Aucun secret Firebase trouvé');
         this.configSources.secrets = {};
         return {};
       }
     } catch (error) {
-      logger.warn('⚠️ Erreur lors de la récupération des secrets Firebase:', error);
+      logger.info('ℹ️ Chargement des secrets Firebase différé:', error.message);
       this.configSources.secrets = {};
       return {};
     }

@@ -119,6 +119,27 @@ class AdminService {
   }
 
   /**
+   * Récupère les secrets Firebase (admin uniquement)
+   */
+  async getSecrets() {
+    try {
+      logger.info('🔐 Demande de récupération des secrets Firebase...');
+      
+      const result = await this.callFunction('getAllFirebaseSecrets');
+      
+      if (result.success) {
+        logger.info('✅ Secrets Firebase récupérés avec succès');
+        return result.data;
+      } else {
+        throw new Error(result.message || 'Erreur lors de la récupération des secrets');
+      }
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors de la récupération des secrets Firebase:', error);
+      return {};
+    }
+  }
+
+  /**
    * Vérifie le statut admin de l'utilisateur actuel
    */
   async checkAdminStatus(force = false) {

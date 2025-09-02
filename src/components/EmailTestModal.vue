@@ -9,36 +9,23 @@
         <button @click="closeModal" class="text-white/80 hover:text-white">✖️</button>
       </div>
 
-      <!-- Onglets -->
+      <!-- Onglet unique : Test Email -->
       <div class="border-b border-white/20 mb-4">
         <nav class="-mb-px flex space-x-8">
           <button
             @click="activeTab = 'test'"
             :class="[
               'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-              activeTab === 'test'
-                ? 'border-purple-400 text-purple-300'
-                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500'
+              'border-purple-400 text-purple-300'
             ]"
           >
             🧪 Test Email
           </button>
-          <button
-            @click="activeTab = 'debug'"
-            :class="[
-              'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-              activeTab === 'debug'
-                ? 'border-purple-400 text-purple-300'
-                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500'
-            ]"
-          >
-            🔍 Debug Environnement
-          </button>
         </nav>
       </div>
 
-      <!-- Onglet Test Email -->
-      <div v-if="activeTab === 'test'" class="space-y-4">
+      <!-- Contenu principal : Test Email -->
+      <div class="space-y-4">
         <div class="bg-white/5 p-4 rounded-lg border border-white/10">
           <h3 class="font-semibold mb-2 text-white">📊 Statut du Service</h3>
           <div class="grid grid-cols-2 gap-4 text-sm">
@@ -291,156 +278,14 @@
         </div>
       </div>
 
-      <!-- Onglet Debug Environnement -->
-      <div v-if="activeTab === 'debug'" class="space-y-4">
-        <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg">
-          <h3 class="font-semibold mb-2 text-blue-200">🔍 Informations d'Environnement</h3>
-          <p class="text-sm text-gray-300 mb-3">
-            Ces informations vous permettent de vérifier que la configuration est correcte pour l'environnement actuel.
-          </p>
-          <button
-            @click="refreshEnvironmentInfo"
-            class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-500 text-sm transition-colors"
-          >
-            🔄 Actualiser
-          </button>
-        </div>
-
-        <!-- Résumé de l'environnement -->
-        <div v-if="environmentSummary" class="bg-white border rounded-lg p-4">
-          <h4 class="font-semibold mb-3 text-gray-800">📋 Résumé de l'Environnement</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div class="space-y-2">
-              <div class="flex justify-between">
-                <span class="font-medium">Environnement:</span>
-                <span class="px-2 py-1 rounded text-xs font-medium"
-                      :class="{
-                        'bg-green-100 text-green-800': environmentSummary.environment === 'production',
-                        'bg-yellow-100 text-yellow-800': environmentSummary.environment === 'staging',
-                        'bg-blue-100 text-blue-800': environmentSummary.environment === 'development'
-                      }">
-                  {{ environmentSummary.environment.toUpperCase() }}
-                </span>
-              </div>
-              <div class="flex justify-between">
-                <span class="font-medium">URL:</span>
-                <span class="text-gray-600 text-xs truncate max-w-48">{{ environmentSummary.url }}</span>
-              </div>
-            </div>
-            <div class="space-y-2">
-              <div class="flex justify-between">
-                <span class="font-medium">Firebase Project:</span>
-                <span class="text-gray-600 text-xs">{{ environmentSummary.firebase.projectId }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="font-medium">Auth Domain:</span>
-                <span class="text-gray-600 text-xs">{{ environmentSummary.firebase.authDomain }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Configuration Firestore -->
-        <div v-if="environmentSummary" class="bg-white border rounded-lg p-4">
-          <h4 class="font-semibold mb-3 text-gray-800">🗄️ Configuration Firestore</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div class="flex justify-between">
-              <span class="font-medium">Base de données:</span>
-              <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                {{ environmentSummary.firestore.database }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="font-medium">Région:</span>
-              <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
-                {{ environmentSummary.firestore.region }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Configuration Storage -->
-        <div v-if="environmentSummary" class="bg-white border rounded-lg p-4">
-          <h4 class="font-semibold mb-3 text-gray-800">📁 Configuration Storage</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div class="flex justify-between">
-              <span class="font-medium">Bucket:</span>
-              <span class="text-gray-600 text-xs truncate max-w-32">{{ environmentSummary.storage.bucket }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="font-medium">Préfixe:</span>
-              <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                {{ environmentSummary.storage.prefix }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Configuration Email -->
-        <div v-if="environmentSummary" class="bg-white border rounded-lg p-4">
-          <h4 class="font-semibold mb-3 text-gray-800">📧 Configuration Email</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div class="flex justify-between">
-              <span class="font-medium">Service:</span>
-              <span class="px-2 py-1 rounded text-xs font-medium"
-                    :class="{
-                      'bg-purple-100 text-purple-800': environmentSummary.email.service === 'ethereal',
-                      'bg-red-100 text-red-800': environmentSummary.email.service === 'gmail'
-                    }">
-                {{ environmentSummary.email.service.toUpperCase() }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="font-medium">Capture:</span>
-              <span class="px-2 py-1 rounded text-xs font-medium"
-                    :class="{
-                      'bg-green-100 text-green-800': environmentSummary.email.capture,
-                      'bg-gray-100 text-gray-800': !environmentSummary.email.capture
-                    }">
-                {{ environmentSummary.email.capture ? 'OUI' : 'NON' }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Variables d'environnement -->
-        <div class="bg-white border rounded-lg p-4">
-          <h4 class="font-semibold mb-3 text-gray-800">🔧 Variables d'Environnement</h4>
-          <div class="space-y-2 text-sm">
-            <div v-for="(value, key) in environmentVars" :key="key" class="flex justify-between items-center">
-              <span class="font-medium text-gray-700">{{ key }}:</span>
-              <span class="text-xs px-2 py-1 rounded"
-                    :class="{
-                      'bg-green-100 text-green-800': value === '✅ Définie',
-                      'bg-red-100 text-red-800': value === '❌ Non définie',
-                      'bg-gray-100 text-gray-800': value !== '✅ Définie' && value !== '❌ Non définie'
-                    }">
-                {{ value }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bouton pour afficher les détails complets dans la console -->
-        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-          <h4 class="font-semibold text-yellow-800 mb-2">💡 Informations Détaillées</h4>
-          <p class="text-yellow-700 text-sm mb-3">
-            Pour voir toutes les informations détaillées (y compris les valeurs sensibles), ouvrez la console du navigateur et cliquez sur le bouton ci-dessous.
-          </p>
-          <button
-            @click="dumpToConsole"
-            class="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600 text-sm"
-          >
-            📋 Dumper dans la Console
-          </button>
-        </div>
-      </div>
+      <!-- Onglet Debug Environnement supprimé - redondant avec DevelopmentModal -->
+      <!-- Utilisez la modale de développement pour les informations d'environnement -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import secureEmailService from '../services/secureEmailService.js';
 import configService from '../services/configService.js';
 import { getAuth } from 'firebase/auth';
@@ -448,15 +293,13 @@ import { getAuth } from 'firebase/auth';
 const props = defineProps({ isVisible: Boolean });
 const emit = defineEmits(['close']);
 
-const activeTab = ref('test');
+
 const isTesting = ref(false);
 const isChecking = ref(false);
 const serviceStatus = ref(false);
 const lastTestTime = ref(null);
 const testResult = ref(null);
 const error = ref(null);
-const environmentSummary = ref(null);
-const environmentVars = ref({});
 
 // Configuration email actuelle
 const emailConfig = ref({
@@ -484,7 +327,6 @@ let auth = null;
 const closeModal = () => {
   emit('close');
   // Reset state
-  activeTab.value = 'test';
   testResult.value = null;
   error.value = null;
 };
@@ -577,21 +419,7 @@ const checkServiceAvailability = async () => {
   }
 };
 
-const refreshEnvironmentInfo = () => {
-  try {
-    console.log('🔄 Actualisation des informations d\'environnement...');
-    environmentSummary.value = configService.getEnvironmentSummary();
-    const fullInfo = configService.dumpEnvironmentInfo();
-    environmentVars.value = fullInfo.envVars;
-    console.log('✅ Informations d\'environnement actualisées:', {
-      summary: environmentSummary.value,
-      vars: environmentVars.value
-    });
-  } catch (err) {
-    console.error('❌ Erreur lors de l\'actualisation:', err);
-    error.value = `Erreur lors de l'actualisation: ${err.message}`;
-  }
-};
+
 
 const refreshEmailConfig = async () => {
   try {
@@ -788,17 +616,7 @@ const runAdvancedDiagnostic = async () => {
   }
 };
 
-const dumpToConsole = () => {
-  try {
-    const fullInfo = configService.dumpEnvironmentInfo();
-    console.log('🔍 DEBUG COMPLET - HatCast Environment Info:', fullInfo);
-    console.log('📋 Résumé formaté:', configService.getEnvironmentSummary());
-    alert('✅ Informations détaillées affichées dans la console (F12)');
-  } catch (err) {
-    console.error('❌ Erreur lors du dump console:', err);
-    error.value = `Erreur lors du dump console: ${err.message}`;
-  }
-};
+
 
 onMounted(() => {
   console.log('🚀 EmailTestModal monté, initialisation...');
@@ -810,19 +628,9 @@ onMounted(() => {
     console.warn('⚠️ Auth Firebase non disponible:', error);
   }
   
-  // Initialiser les informations d'environnement et la configuration email
-  refreshEnvironmentInfo();
+  // Initialiser seulement la configuration email de base
   refreshEmailConfig();
 });
 
-// Surveiller le changement d'onglet pour actualiser les infos
-watch(activeTab, (newTab) => {
-  if (newTab === 'debug') {
-    console.log('🔍 Onglet debug activé, actualisation des infos...');
-    refreshEnvironmentInfo();
-  } else if (newTab === 'test') {
-    console.log('🧪 Onglet test activé, actualisation de la config email...');
-    refreshEmailConfig();
-  }
-});
+
 </script>

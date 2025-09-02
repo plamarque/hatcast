@@ -128,6 +128,13 @@ exports.sendEmail = functions.https.onRequest(async (req, res) => {
         return;
       }
 
+      // Détecter automatiquement l'environnement pour les emails
+      let emailEnvironment = environment;
+      if (environment === 'development' || process.env.NODE_ENV === 'development') {
+        emailEnvironment = 'development';
+        console.log('🔧 Mode développement détecté, utilisation d\'Ethereal pour l\'email');
+      }
+      
       // Envoyer l'email
       const result = await emailService.sendEmail({
         to,
@@ -135,7 +142,7 @@ exports.sendEmail = functions.https.onRequest(async (req, res) => {
         html,
         text,
         from: user.email
-      }, environment);
+      }, emailEnvironment);
 
       res.json({
         success: true,
@@ -180,11 +187,18 @@ exports.sendSelectionNotification = functions.https.onRequest(async (req, res) =
         return;
       }
 
+      // Détecter automatiquement l'environnement pour les emails
+      let emailEnvironment = environment;
+      if (environment === 'development' || process.env.NODE_ENV === 'development') {
+        emailEnvironment = 'development';
+        console.log('🔧 Mode développement détecté, utilisation d\'Ethereal pour l\'email');
+      }
+      
       // Envoyer la notification
       const result = await emailService.sendSelectionNotification(
         playerData, 
         eventData, 
-        environment
+        emailEnvironment
       );
 
       res.json({
@@ -230,11 +244,18 @@ exports.sendAvailabilityNotification = functions.https.onRequest(async (req, res
         return;
       }
 
+      // Détecter automatiquement l'environnement pour les emails
+      let emailEnvironment = environment;
+      if (environment === 'development' || process.env.NODE_ENV === 'development') {
+        emailEnvironment = 'development';
+        console.log('🔧 Mode développement détecté, utilisation d\'Ethereal pour l\'email');
+      }
+      
       // Envoyer la notification
       const result = await emailService.sendAvailabilityNotification(
         playerData, 
         eventData, 
-        environment
+        emailEnvironment
       );
 
       res.json({
@@ -280,11 +301,18 @@ exports.sendPasswordResetEmail = functions.https.onRequest(async (req, res) => {
         return;
       }
 
+      // Détecter automatiquement l'environnement pour les emails
+      let emailEnvironment = environment;
+      if (environment === 'development' || process.env.NODE_ENV === 'development') {
+        emailEnvironment = 'development';
+        console.log('🔧 Mode développement détecté, utilisation d\'Ethereal pour l\'email');
+      }
+      
       // Envoyer l'email de réinitialisation
       const result = await emailService.sendPasswordResetEmail(
         playerData, 
         resetLink, 
-        environment
+        emailEnvironment
       );
 
       res.json({

@@ -99,13 +99,8 @@ async function initializeFirestoreInstance() {
       }
     });
 
-    // Maintenant que Firebase est initialisé, charger les secrets
-    try {
-      await configService.loadSecretsDelayed();
-      logger.info('🔐 Secrets Firebase chargés avec succès');
-    } catch (error) {
-      logger.warn('⚠️ Erreur lors du chargement des secrets Firebase:', error);
-    }
+    // Firebase est maintenant initialisé, les secrets seront chargés à la demande
+    logger.info('✅ Firebase initialisé, secrets disponibles à la demande');
     
     // Vérification post-initialisation
     setTimeout(() => {

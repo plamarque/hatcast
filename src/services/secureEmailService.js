@@ -15,6 +15,7 @@ class SecureEmailService {
     this.auth = null;
     this.baseUrl = this.getBaseUrl();
     this.isInitialized = false;
+    this.secretsLoaded = false; // Flag pour tracker si les secrets sont chargés
   }
 
   async initialize() {
@@ -118,6 +119,28 @@ class SecureEmailService {
   }
 
   /**
+   * Charge les secrets Firebase à la demande (pour l'envoi d'emails)
+   * Cette méthode est appelée explicitement quand on a besoin des secrets
+   */
+  async loadSecretsOnDemand() {
+    if (this.secretsLoaded) {
+      return; // Déjà chargé
+    }
+
+    logger.info('🔐 Chargement à la demande des secrets Firebase pour l\'envoi d\'emails...');
+
+    try {
+      // Charger les secrets via configService
+      await configService.loadSecretsOnDemand();
+      this.secretsLoaded = true;
+      logger.info('✅ Secrets Firebase chargés avec succès pour l\'envoi d\'emails');
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors du chargement des secrets Firebase:', error);
+      // Continuer sans les secrets (fallback vers la configuration par défaut)
+    }
+  }
+
+  /**
    * Envoie un email générique
    */
   async sendEmail(emailData) {
@@ -135,6 +158,9 @@ class SecureEmailService {
   async sendSelectionNotification(playerData, eventData) {
     const environment = this.detectEnvironment();
     
+    // Charger les secrets à la demande avant l'envoi de l'email
+    await this.loadSecretsOnDemand();
+    
     return await this.callFunction('sendSelectionNotification', {
       playerData,
       eventData,
@@ -148,6 +174,9 @@ class SecureEmailService {
   async sendAvailabilityNotification(playerData, eventData) {
     const environment = this.detectEnvironment();
     
+    // Charger les secrets à la demande avant l'envoi de l'email
+    await this.loadSecretsOnDemand();
+    
     return await this.callFunction('sendAvailabilityNotification', {
       playerData,
       eventData,
@@ -160,6 +189,9 @@ class SecureEmailService {
    */
   async sendPasswordResetEmail(playerData, resetLink) {
     const environment = this.detectEnvironment();
+    
+    // Charger les secrets à la demande avant l'envoi de l'email
+    await this.loadSecretsOnDemand();
     
     return await this.callFunction('sendPasswordResetEmail', {
       playerData,
