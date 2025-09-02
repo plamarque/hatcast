@@ -211,7 +211,7 @@ async function associatePlayerDirectly() {
     
     // Créer l'association dans la collection playerProtection (pas playerAssociations)
     const { doc, setDoc } = await import('firebase/firestore')
-    const { db } = await import('../services/firebase.js')
+    const { getFirebaseDb } = await import('../services/firebase.js')
     
     console.log('🆔 Création de l\'association dans playerProtection')
     
@@ -223,6 +223,12 @@ async function associatePlayerDirectly() {
       source: 'direct_association'
     }
     console.log('📝 Données d\'association:', associationData)
+    
+    // Obtenir l'instance Firestore via le getter
+    const db = getFirebaseDb()
+    if (!db) {
+      throw new Error('Firestore n\'est pas encore initialisé')
+    }
     
     // Créer dans la collection playerProtection de la saison
     await setDoc(doc(db, 'seasons', props.seasonId, 'playerProtection', props.player.id), associationData)
