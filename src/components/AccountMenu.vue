@@ -9,8 +9,8 @@
         <div class="flex items-start gap-4">
           <!-- Icône et titre à gauche -->
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-indigo-400 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-lg md:text-xl">👤</span>
+            <div class="bg-gradient-to-br from-indigo-400 to-cyan-500 rounded-full p-1 flex-shrink-0">
+              <UserAvatar size="lg" />
             </div>
             <div class="space-y-2">
               <h3 class="text-white font-semibold text-base md:text-lg">Mon compte</h3>
@@ -156,6 +156,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { createAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { queueVerificationEmail } from '../services/emailService.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
+import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false },

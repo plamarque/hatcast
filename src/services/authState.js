@@ -70,6 +70,15 @@ async function initialize() {
       isInitialized.value = true
       isInitializing.value = false
       
+      // Debug log for auth state changes
+      logger.info('🔑 AuthState: User changed', {
+        hadUser: !!previousUser,
+        hasUser: !!user,
+        email: user?.email || 'none',
+        photoURL: user?.photoURL || 'none',
+        providers: user?.providerData?.map(p => p.providerId) || []
+      })
+      
 
       
       // Tracking de navigation et audit pour les changements d'authentification

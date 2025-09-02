@@ -29,7 +29,7 @@
       aria-haspopup="true"
       ref="dropdownButton"
     >
-      <span class="text-2xl">👤</span>
+      <UserAvatar size="md" />
     </button>
     
     <!-- Dropdown menu via teleport pour éviter les conflits de z-index -->
@@ -45,7 +45,9 @@
           class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
         >
-          <span class="text-base md:text-lg flex-shrink-0">👤</span>
+          <div class="flex-shrink-0">
+            <UserAvatar size="sm" />
+          </div>
           <span class="truncate">Mon compte</span>
         </button>
         <button 
@@ -97,11 +99,20 @@ import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
 import adminService from '../services/adminService.js'
 import logger from '../services/logger.js'
+import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
   buttonClass: { type: String, default: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' }
 })
+
+// Debug log for props
+watch(() => props.isConnected, (connected) => {
+  logger.info('🔗 AccountDropdown: isConnected changed', { 
+    connected,
+    timestamp: new Date().toISOString()
+  })
+}, { immediate: true })
 
 const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation', 'open-development'])
 
