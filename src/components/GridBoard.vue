@@ -400,7 +400,7 @@
   </div>
 
   <CreatorOnboardingModal
-    v-if="!isLoadingGrid"
+    v-if="!isLoadingGrid && seasonMeta"
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players-count="players.length"
@@ -2199,14 +2199,7 @@ onMounted(async () => {
   // Stocker la fonction de cleanup pour onUnmounted
   window._gridBoardUnsubscribe = unsubscribe
   
-  try {
-    if (seasonId.value) {
-      const dismiss = localStorage.getItem(`dismissCreatorOnboarding:${seasonId.value}`)
-      if (dismiss) {
-        onboardingDismissedShare.value = true
-      }
-    }
-  } catch {}
+
   
   // Tracking de navigation pour les utilisateurs non connectés
   try {
@@ -2386,8 +2379,13 @@ onMounted(async () => {
   }
 })
 
-// Quand le modal onboarding se ferme, synchroniser la grille
+// Quand le modal onboarding se ferme, synchroniser la grille et mettre à jour seasonMeta
 function afterCloseOnboarding() {
+  // Mettre à jour seasonMeta pour refléter que l'onboarding est terminé
+  if (seasonMeta.value) {
+    seasonMeta.value = { ...seasonMeta.value, onboardingCreatorDone: true }
+  }
+  
   // Laisser le DOM s'actualiser puis forcer la sync
   nextTick(() => {
     forceGridLayoutSync()
@@ -3577,6 +3575,8 @@ onMounted(async () => {
       seasonName.value = seasonDoc.name
       seasonMeta.value = seasonDoc
       document.title = `Saison : ${seasonName.value}`
+      
+
       
       // Mémoriser cette saison comme dernière visitée
       rememberLastVisitedSeason(props.slug)

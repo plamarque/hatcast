@@ -61,15 +61,28 @@ const dismissedShare = ref(false)
 // Lire éventuel masquage pour cet utilisateur
 try {
   if (props.seasonId) {
-    dismissedShare.value = !!localStorage.getItem(`dismissCreatorOnboarding:${props.seasonId}`)
+    const key = `dismissCreatorOnboarding:${props.seasonId}`
+    const value = localStorage.getItem(key)
+    dismissedShare.value = !!value
   }
 } catch {}
 
 const step = computed(() => {
+  // Si onboarding explicitement terminé
   if (props.onboardingDone) return 0
+  
+  // Si pas d'événements ni de joueurs = étape 1 (créer événement)
   if (props.eventsCount === 0 && props.playersCount === 0) return 1
+  
+  // Si événements mais pas de joueurs = étape 2 (ajouter joueur)
   if (props.eventsCount > 0 && props.playersCount === 0) return 2
+  
+  // Si événements ET joueurs mais déjà masqué localement = pas d'onboarding
+  if (props.eventsCount > 0 && props.playersCount > 0 && dismissedShare.value) return 0
+  
+  // Si événements ET joueurs et pas encore masqué = étape 3 (partager)
   if (props.eventsCount > 0 && props.playersCount > 0 && !dismissedShare.value) return 3
+  
   return 0
 })
 
@@ -117,14 +130,18 @@ function handleCopyLink() {
 async function handleDismiss() {
   try {
     if (props.seasonId) {
-      const { db } = await import('../services/firebase.js')
-      const { doc, updateDoc } = await import('firebase/firestore')
-      await updateDoc(doc(db, 'seasons', props.seasonId), { onboardingCreatorDone: true })
+      const { default: firestoreService } = await import('../services/firestoreService.js')
+      await firestoreService.updateDocument('seasons', props.seasonId, { onboardingCreatorDone: true })
+      
+      // Mettre à jour le localStorage avec la clé correcte
+      const key = `dismissCreatorOnboarding:${props.seasonId}`
+      localStorage.setItem(key, '1')
     } else {
       // Fallback localStorage si pas d'ID
       localStorage.setItem('dismissCreatorOnboarding', '1')
     }
   } catch {}
+  
   dismissedShare.value = true
   showModal.value = false
   emit('dismissed')
