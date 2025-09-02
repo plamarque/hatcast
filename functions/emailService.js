@@ -32,30 +32,88 @@ class EmailService {
   /**
    * Crée un transporteur SMTP selon l'environnement
    */
-  async createTransporter(environment = 'production') {
-    if (environment === 'staging' || environment === 'production') {
-      // Ethereal Email pour le développement et staging
+  async createTransporter(environment = 'production', customCredentials = null) {
+    console.log(`🔧 Création du transporteur pour l'environnement: ${environment}`);
+    
+    if (environment === 'development') {
+      // En développement, créer un transporteur factice pour tester la configuration
+      console.log('🔧 Mode développement: création d\'un transporteur de test');
+      
+      // Priorité 1: Credentials personnalisés passés en paramètre
+      if (customCredentials && customCredentials.ethereal) {
+        console.log('✅ Credentials Ethereal personnalisés fournis');
+        return nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: {
+            user: customCredentials.ethereal.user,
+            pass: customCredentials.ethereal.pass
+          }
+        });
+      }
+      
+      // Priorité 2: Secrets Firebase
       const etherealUser = await this.getSecret('ETHEREAL_SMTP_USER');
       const etherealPass = await this.getSecret('ETHEREAL_SMTP_PASS');
+      
+      if (etherealUser && etherealPass) {
+        console.log('✅ Secrets Ethereal configurés, création du transporteur');
+        return nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: {
+            user: etherealUser,
+            pass: etherealPass
+          }
+        });
+      } else {
+        console.log('⚠️ Secrets Ethereal non configurés, transporteur de test créé');
+        // Créer un transporteur factice qui ne peut pas envoyer d'emails
+        return {
+          verify: async () => {
+            console.log('🔧 Vérification du transporteur de test');
+            return true;
+          },
+          sendMail: async () => {
+            throw new Error('Transporteur de test - emails non envoyés en développement');
+          }
+        };
+      }
+    } else if (environment === 'staging') {
+      // Staging: utiliser Ethereal Email
+      console.log('🔧 Mode staging: utilisation d\'Ethereal Email');
+      const etherealUser = await this.getSecret('ETHEREAL_SMTP_USER');
+      const etherealPass = await this.getSecret('ETHEREAL_SMTP_PASS');
+      
+      if (!etherealUser || !etherealPass) {
+        throw new Error('Configuration Ethereal Email manquante pour le staging');
+      }
       
       return nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
-        secure: false, // true pour 465, false pour les autres ports
+        secure: false,
         auth: {
           user: etherealUser,
           pass: etherealPass
         }
       });
     } else {
-      // Gmail pour la production
+      // Production: utiliser Gmail
+      console.log('🔧 Mode production: utilisation de Gmail');
       const gmailPassword = await this.getSecret('GMAIL_APP_PASSWORD');
+      
+      if (!gmailPassword) {
+        throw new Error('Configuration Gmail manquante pour la production');
+      }
       
       return nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: this.config.gmail?.user || process.env.GMAIL_USER,
-          pass: gmailPassword || this.config.gmail?.app_password || process.env.GMAIL_APP_PASSWORD
+          pass: gmailPassword
         }
       });
     }

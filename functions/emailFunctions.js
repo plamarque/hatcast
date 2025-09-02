@@ -316,12 +316,157 @@ exports.testEmail = functions.https.onRequest(async (req, res) => {
         return;
       }
 
-      // Authentifier la requête
-      const user = await authenticateRequest(req);
-      
       // Récupérer l'environnement depuis les query params
       const environment = req.query.environment || 'production';
       
+      // En développement, permettre les tests sans authentification
+      let user = null;
+      if (environment === 'development') {
+        console.log('🔧 Mode développement: authentification optionnelle');
+        try {
+          user = await authenticateRequest(req);
+          console.log('✅ Utilisateur authentifié en développement:', user.email);
+        } catch (authError) {
+          console.log('⚠️ Pas d\'authentification en développement, utilisation d\'un utilisateur de test');
+          user = {
+            uid: 'dev-test-user',
+            email: 'dev@test.local',
+            emailVerified: true
+          };
+        }
+      } else {
+        // En production/staging, authentification obligatoire
+        user = await authenticateRequest(req);
+      }
+      
+      // En développement, faire un test de configuration sans envoyer d'email
+      if (environment === 'development') {
+        console.log('🔧 Mode développement: test de configuration uniquement');
+        
+        try {
+          // Récupérer les credentials depuis les headers ou query params
+          let customCredentials = null;
+          const etherealUser = req.headers['ethereal-user'] || req.headers['x-ethereal-user'] || req.query.ethereal_user;
+          const etherealPass = req.headers['ethereal-pass'] || req.headers['x-ethereal-pass'] || req.query.ethereal_pass;
+          
+          if (etherealUser && etherealPass) {
+            console.log('✅ Credentials Ethereal reçus depuis le client');
+            customCredentials = {
+              ethereal: {
+                user: etherealUser,
+                pass: etherealPass
+              }
+            };
+          }
+          
+          // Tester la création du transporteur
+          const transporter = await emailService.createTransporter(environment, customCredentials);
+          console.log('✅ Transporteur créé avec succès');
+          
+          // Vérifier la configuration
+          const config = functions.config();
+          const hasEtherealConfig = config.ethereal?.smtp_user || process.env.ETHEREAL_SMTP_USER;
+          const hasEtherealSecret = await emailService.getSecret('ETHEREAL_SMTP_USER');
+          
+          // Tester la vérification du transporteur
+          let transporterStatus = '❌ Erreur de création';
+          try {
+            if (transporter.verify) {
+              await transporter.verify();
+              transporterStatus = '✅ Créé et vérifié';
+            } else {
+              transporterStatus = '✅ Créé avec succès';
+            }
+          } catch (verifyError) {
+            console.log('⚠️ Erreur de vérification du transporteur:', verifyError.message);
+            transporterStatus = '⚠️ Créé mais non vérifié';
+          }
+          
+          // ENVOYER UN VRAI EMAIL DE TEST EN DÉVELOPPEMENT
+          let emailResult = null;
+          if (customCredentials && customCredentials.ethereal) {
+            console.log('📧 Envoi d\'un email de test réel avec Ethereal...');
+            
+            const testEmail = {
+              from: customCredentials.ethereal.user,
+              to: 'test@example.com', // Envoi vers une adresse externe (capturée par Ethereal)
+              subject: '🧪 Test Email Service - Hatcast Development',
+              text: `Test du service email en développement
+              
+Timestamp: ${new Date().toISOString()}
+Environment: ${environment}
+User: ${user.email}
+Service: Ethereal Email
+
+Cet email confirme que le service email fonctionne correctement.`,
+              html: `
+                <h2>🧪 Test Email Service - Hatcast Development</h2>
+                <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+                <p><strong>Environment:</strong> ${environment}</p>
+                <p><strong>User:</strong> ${user.email}</p>
+                <p><strong>Service:</strong> Ethereal Email</p>
+                <hr>
+                <p>Cet email confirme que le service email fonctionne correctement.</p>
+              `
+            };
+            
+            try {
+              emailResult = await transporter.sendMail(testEmail);
+              console.log('✅ Email de test envoyé avec succès:', emailResult.messageId);
+            } catch (sendError) {
+              console.log('⚠️ Erreur lors de l\'envoi de l\'email de test:', sendError.message);
+              emailResult = { error: sendError.message };
+            }
+          }
+          
+          res.json({
+            success: true,
+            message: emailResult && !emailResult.error 
+              ? 'Email de test envoyé avec succès en développement'
+              : 'Configuration email testée en développement',
+            environment: environment,
+            user: user.email,
+            config: {
+              transporter: transporterStatus,
+              ethereal_secret: hasEtherealSecret ? '✅ Configuré' : '❌ Non configuré',
+              ethereal_config: hasEtherealConfig ? '✅ Configuré' : '❌ Non configuré',
+              ethereal_client: customCredentials ? '✅ Fourni par le client' : '❌ Non fourni',
+              mode: emailResult && !emailResult.error ? 'development_send' : 'development_test',
+              messageId: emailResult && !emailResult.error ? emailResult.messageId : null,
+              previewUrl: emailResult && !emailResult.error ? `https://ethereal.email/message/${emailResult.messageId}` : null
+            },
+            note: emailResult && !emailResult.error
+              ? 'Email de test envoyé et visible sur Ethereal'
+              : customCredentials 
+                ? 'En développement avec Ethereal configuré via le client - emails capturés pour test'
+                : hasEtherealSecret 
+                  ? 'En développement avec Ethereal configuré via Firebase - emails capturés pour test'
+                  : 'En développement sans Ethereal - configuration testée uniquement'
+          });
+          return;
+        } catch (configError) {
+          console.log('⚠️ Erreur de configuration en développement:', configError.message);
+          
+          res.json({
+            success: false,
+            message: 'Configuration email incomplète en développement',
+            environment: environment,
+            user: user.email,
+            error: configError.message,
+            config: {
+              transporter: '❌ Erreur de création',
+              ethereal_secret: '❌ Non configuré',
+              ethereal_config: '❌ Non configuré',
+              ethereal_client: '❌ Non fourni',
+              mode: 'development_test_failed'
+            },
+            note: 'Configurez ETHEREAL_SMTP_USER et ETHEREAL_SMTP_PASS dans Firebase Secrets ou .env.local pour tester l\'envoi d\'emails',
+            suggestion: 'firebase functions:config:set ethereal.smtp_user="votre_email@ethereal.email" ethereal.smtp_pass="votre_mot_de_passe"'
+          });
+          return;
+        }
+      }
+
       // Envoyer un email de test
       const result = await emailService.sendEmail({
         to: user.email,

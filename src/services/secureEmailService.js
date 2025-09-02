@@ -1,8 +1,10 @@
 // Service d'envoi d'emails sécurisé via Firebase Functions
 // Remplace l'ancien service emailService.js pour la production
+// FORCE_RELOAD_1756827071997
 
 import { getAuth } from 'firebase/auth';
 import logger from './logger.js';
+import configService from './configService.js';
 
 /**
  * Service d'envoi d'emails sécurisé
@@ -174,30 +176,113 @@ class SecureEmailService {
     
     try {
       logger.info('🧪 Test email - Environnement:', environment);
-      const token = await this.getAuthToken();
       const url = `${this.baseUrl}/testEmail?environment=${environment}`;
       
       logger.info('🌐 URL de test:', url);
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
+      // En développement, pas besoin d'authentification
+      let headers = {};
+      
+      if (environment === 'development') {
+        try {
+          const etherealCredentials = configService.getEtherealCredentials();
+          logger.info('🔐 Credentials Ethereal récupérés:', {
+            user: etherealCredentials.user,
+            source: etherealCredentials.source,
+            hasUser: !!etherealCredentials.user,
+            hasPass: !!etherealCredentials.pass
+          });
+          
+          if (etherealCredentials.source === 'local_env') {
+            logger.info('🔐 Credentials Ethereal locaux détectés, ajout aux query params');
+            // Utiliser les query parameters au lieu des headers pour éviter les restrictions du navigateur
+            url += `&ethereal_user=${encodeURIComponent(etherealCredentials.user)}&ethereal_pass=${encodeURIComponent(etherealCredentials.pass)}`;
+            logger.info('🌐 URL finale avec credentials:', url);
+          } else {
+            logger.info(`🔐 Source des credentials Ethereal: ${etherealCredentials.source}`);
+          }
+        } catch (configError) {
+          logger.warn('⚠️ Impossible de récupérer les credentials Ethereal:', configError);
         }
-      });
+      } else {
+        // En production/staging, authentification obligatoire
+        const token = await this.getAuthToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      logger.info('🔍 Headers envoyés:', headers);
+      logger.info('🌐 Tentative de fetch vers:', url);
+      logger.info('🕐 Timestamp de la requête:', new Date().toISOString());
+      logger.info('🌍 Hostname actuel:', window.location.hostname);
+      logger.info('🔒 Protocole actuel:', window.location.protocol);
+      logger.info('📱 User Agent:', navigator.userAgent);
+      
+      let response;
+      try {
+        logger.info('🚀 Début de la requête fetch...');
+        logger.info('🔍 Vérification de la connectivité réseau...');
+        
+        // Test simple de connectivité
+        try {
+          const testResponse = await fetch('https://httpbin.org/get', { method: 'GET' });
+          logger.info('✅ Test de connectivité réussi:', testResponse.status);
+        } catch (testError) {
+          logger.warn('⚠️ Test de connectivité échoué:', testError.message);
+        }
+        
+        response = await fetch(url, {
+          method: 'GET',
+          headers: headers
+        });
+        logger.info('✅ Fetch réussi, status:', response.status);
+      } catch (fetchError) {
+        logger.error('❌ Erreur fetch détaillée:', {
+          message: fetchError.message,
+          name: fetchError.name,
+          stack: fetchError.stack,
+          cause: fetchError.cause
+        });
+        throw fetchError;
+      }
 
       logger.info('📡 Réponse de test:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Erreur de parsing JSON' }));
+        logger.error('❌ Erreur HTTP:', response.status, errorData);
+        
+        // En développement, traiter différemment les erreurs
+        if (environment === 'development') {
+          throw new Error(`Test de configuration échoué: ${errorData.message || errorData.error || 'Erreur inconnue'}`);
+        } else {
+          throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+        }
       }
 
       const result = await response.json();
       logger.info('✅ Test email réussi:', result);
+      
+      // En développement, afficher des informations de configuration
+      if (environment === 'development' && result.config) {
+        logger.info('🔧 Configuration email:', result.config);
+        if (result.note) {
+          logger.info('💡 Note:', result.note);
+        }
+      }
+      
       return result;
     } catch (error) {
       logger.error('❌ Erreur lors du test email:', error);
+      
+      // En développement, fournir plus de contexte
+      if (environment === 'development') {
+        error.developmentContext = {
+          environment: environment,
+          suggestion: 'Vérifiez la configuration Ethereal Email dans .env.local ou Firebase Functions',
+          note: 'En développement, seules les erreurs de configuration sont testées'
+        };
+      }
+      
       throw error;
     }
   }

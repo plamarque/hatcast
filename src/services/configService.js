@@ -651,6 +651,59 @@ class ConfigService {
   }
 
   /**
+   * Retourne les credentials Ethereal Email depuis les variables d'environnement
+   * Priorité: .env.local > Firebase Secrets > Valeurs par défaut
+   */
+  getEtherealCredentials() {
+    // Priorité 1: Variables d'environnement locales (.env.local)
+    const localUser = import.meta.env.VITE_ETHEREAL_SMTP_USER;
+    const localPass = import.meta.env.VITE_ETHEREAL_SMTP_PASS;
+    
+    if (localUser && localPass) {
+      logger.info('🔐 Credentials Ethereal récupérés depuis .env.local');
+      return {
+        user: localUser,
+        pass: localPass,
+        source: 'local_env'
+      };
+    }
+    
+    // Priorité 2: Secrets Firebase (si disponibles)
+    if (this.config?.secrets?.ethereal) {
+      logger.info('🔐 Credentials Ethereal récupérés depuis Firebase Secrets');
+      return {
+        user: this.config.secrets.ethereal.smtp_user,
+        pass: this.config.secrets.ethereal.smtp_pass,
+        source: 'firebase_secrets'
+      };
+    }
+    
+    // Priorité 3: Valeurs par défaut (pour le développement)
+    logger.warn('⚠️ Aucun credential Ethereal configuré, utilisation des valeurs par défaut');
+    return {
+      user: 'dev@ethereal.email',
+      pass: 'dev_password',
+      source: 'default'
+    };
+  }
+
+  /**
+   * Vérifie si les credentials Ethereal sont configurés
+   */
+  isEtherealConfigured() {
+    const credentials = this.getEtherealCredentials();
+    return credentials.source !== 'default' && credentials.user && credentials.pass;
+  }
+
+  /**
+   * Retourne la source des credentials Ethereal
+   */
+  getEtherealCredentialsSource() {
+    const credentials = this.getEtherealCredentials();
+    return credentials.source;
+  }
+
+  /**
    * Retourne la configuration email
    */
   getEmailConfig() {
