@@ -4,7 +4,7 @@ import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
+import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -78,6 +78,34 @@ export async function updatePlayerPassword(newPassword) {
       throw new Error('Aucun utilisateur connecté')
     }
   } catch (error) {
+    throw error
+  }
+}
+
+// Google Authentication
+export async function signInWithGoogle() {
+  try {
+    const provider = new GoogleAuthProvider()
+    provider.addScope('email')
+    provider.addScope('profile')
+    
+    const result = await signInWithPopup(auth, provider)
+    const user = result.user
+    
+    // Log successful Google authentication
+    console.log('Google authentication successful:', {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName
+    })
+    
+    return {
+      user,
+      isNewUser: result.additionalUserInfo?.isNewUser || false,
+      providerId: 'google.com'
+    }
+  } catch (error) {
+    console.error('Google authentication error:', error)
     throw error
   }
 }
