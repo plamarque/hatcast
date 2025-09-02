@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { auth } from './firebase.js'
+import { getFirebaseAuth } from './firebase.js'
 import logger from './logger.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -24,12 +24,15 @@ const isAuthenticated = computed(() => {
 // Fonction pour forcer la synchronisation
 function forceSync() {
   try {
-    const user = auth.currentUser
-    if (user !== currentUser.value) {
-      currentUser.value = user
-      logger.debug('Synchronisation forcée de l\'état d\'authentification', { 
-        user: currentUser.value?.email || 'non connecté' 
-      })
+    const auth = getFirebaseAuth()
+    if (auth?.currentUser) {
+      const user = auth.currentUser
+      if (user !== currentUser.value) {
+        currentUser.value = user
+        logger.debug('Synchronisation forcée de l\'état d\'authentification', { 
+          user: currentUser.value?.email || 'non connecté' 
+        })
+      }
     }
   } catch (error) {
     logger.error('Erreur lors de la synchronisation forcée', error)
@@ -37,7 +40,7 @@ function forceSync() {
 }
 
 // Fonction pour initialiser le service
-function initialize() {
+async function initialize() {
   if (isInitialized.value || isInitializing.value) {
     return
   }
@@ -45,6 +48,12 @@ function initialize() {
   isInitializing.value = true
   
   try {
+    // Récupérer l'instance Firebase Auth
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore disponible')
+    }
+    
     // Initialiser l'état immédiatement
     currentUser.value = auth.currentUser
     logger.debug('État initial de l\'utilisateur:', currentUser.value?.email || 'non connecté')
@@ -154,20 +163,46 @@ function forceInitialize() {
 }
 
 // Initialiser automatiquement avec un délai pour laisser Firebase se charger
+let retryCount = 0
+const maxRetries = 10
+const baseDelay = 500 // 500ms de base
+
 function autoInitialize() {
   // Vérifier si Firebase est disponible
-  if (typeof auth === 'undefined' || !auth) {
-    logger.warn('Firebase auth non disponible, nouvelle tentative dans 500ms')
-    setTimeout(autoInitialize, 500)
-    return
+  const auth = getFirebaseAuth()
+  if (!auth) {
+    if (retryCount < maxRetries) {
+      // Calculer le délai avec backoff exponentiel (max 10 secondes)
+      const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000)
+      retryCount++
+      
+      logger.warn(`Firebase auth non disponible, tentative ${retryCount}/${maxRetries} dans ${delay}ms`)
+      setTimeout(autoInitialize, delay)
+      return
+    } else {
+      logger.error('Nombre maximum de tentatives atteint, arrêt de l\'auto-initialisation')
+      isInitializing.value = false
+      return
+    }
   }
+  
+  // Reset du compteur de tentatives
+  retryCount = 0
   
   try {
     initialize()
   } catch (error) {
     logger.error('Erreur lors de l\'auto-initialisation:', error)
-    // Réessayer dans 1 seconde
-    setTimeout(autoInitialize, 1000)
+    // Réessayer avec backoff exponentiel
+    if (retryCount < maxRetries) {
+      const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000)
+      retryCount++
+      logger.warn(`Erreur d'initialisation, tentative ${retryCount}/${maxRetries} dans ${delay}ms`)
+      setTimeout(autoInitialize, delay)
+    } else {
+      logger.error('Nombre maximum de tentatives atteint, arrêt de l\'auto-initialisation')
+      isInitializing.value = false
+    }
   }
 }
 

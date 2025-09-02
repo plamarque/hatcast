@@ -105,6 +105,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { createNotificationActivationRequest } from '../services/notificationActivation.js'
 import logger from '../services/logger.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 
 const props = defineProps({
   show: {
@@ -157,14 +158,14 @@ const canSend = computed(() => {
 // Récupérer l'email de l'utilisateur connecté au montage du composant
 onMounted(async () => {
   try {
-    const { auth } = await import('../services/firebase.js')
-    if (auth.currentUser?.email) {
+    const auth = getFirebaseAuth()
+    if (auth?.currentUser?.email) {
       currentUserEmail.value = auth.currentUser.email
       // Pré-remplir le champ email avec l'email de l'utilisateur connecté
       email.value = auth.currentUser.email
     }
   } catch (err) {
-    console.error('Erreur lors de la récupération de l\'email utilisateur:', err)
+    logger.error('Erreur lors de la récupération de l\'email utilisateur:', err)
   }
 })
 
@@ -175,15 +176,15 @@ async function sendMagicLink() {
   error.value = ''
   
   try {
-    console.log('🚀 Début de l\'activation des notifications...')
+    logger.info('🚀 Début de l\'activation des notifications...')
     
     // Vérifier si l'utilisateur est déjà connecté
-    const { auth } = await import('../services/firebase.js')
+    const auth = getFirebaseAuth()
     
-    const isAlreadyConnected = auth.currentUser?.email === email.value
+    const isAlreadyConnected = auth?.currentUser?.email === email.value
     
     if (isAlreadyConnected) {
-      console.log('✅ Utilisateur déjà connecté, activation directe...')
+      logger.info('✅ Utilisateur déjà connecté, activation directe...')
       
       // Activation directe des notifications (pas d'email)
       const { activateNotificationsForConnectedUser } = await import('../services/notificationActivation.js')
@@ -196,21 +197,21 @@ async function sendMagicLink() {
         seasonSlug: props.seasonSlug
       })
       
-      console.log('✅ Notifications activées directement:', result)
+      logger.info('✅ Notifications activées directement:', result)
       
       // Afficher le succès directement
       emailSent.value = true
       emit('success', { email: email.value, playerName: props.playerName, directActivation: true })
       
     } else {
-      console.log('📧 Utilisateur non connecté, vérification de l\'email...')
+      logger.info('📧 Utilisateur non connecté, vérification de l\'email...')
       
       // Vérifier si l'email existe déjà dans Firebase
       const { checkEmailExists } = await import('../services/notificationActivation.js')
       const emailExists = await checkEmailExists(email.value)
       
       if (emailExists) {
-        console.log('🎯 Email existant détecté, affichage du popup de connexion')
+        logger.info('🎯 Email existant détecté, affichage du popup de connexion')
         
         // Fermer cette modal et émettre un événement pour afficher le popup de connexion
         emit('close')
@@ -225,7 +226,7 @@ async function sendMagicLink() {
         return
       }
       
-      console.log('📧 Nouvel email, envoi de l\'email d\'activation...')
+              logger.info('📧 Nouvel email, envoi de l\'email d\'activation...')
       
       // Créer la demande d'activation des notifications (avec email)
       const result = await createNotificationActivationRequest({
@@ -237,7 +238,7 @@ async function sendMagicLink() {
         seasonSlug: props.seasonSlug
       })
       
-      console.log('✅ Résultat de la création:', result)
+      logger.info('✅ Résultat de la création:', result)
       
       emailSent.value = true
       emit('success', { email: email.value, playerName: props.playerName, directActivation: false })
@@ -251,7 +252,7 @@ async function sendMagicLink() {
     })
     
   } catch (err) {
-    console.error('❌ Erreur lors de l\'activation:', err)
+    logger.error('❌ Erreur lors de l\'activation:', err)
     logger.error('Erreur lors de l\'activation des notifications', err)
     error.value = 'Impossible d\'activer les notifications. Veuillez réessayer.'
   } finally {

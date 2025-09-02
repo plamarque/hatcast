@@ -1,5 +1,5 @@
 // src/services/seasonPreferences.js
-import { auth } from './firebase.js'
+import { getFirebaseAuth } from './firebase.js'
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 
@@ -15,7 +15,8 @@ export async function rememberLastVisitedSeason(seasonSlug) {
   if (!seasonSlug) return
 
   try {
-    const user = auth.currentUser
+    const auth = getFirebaseAuth()
+    const user = auth?.currentUser
     const userEmail = user?.email
 
     // Sauvegarder dans localStorage (fallback rapide)
@@ -49,7 +50,8 @@ export async function rememberLastVisitedSeason(seasonSlug) {
  */
 export async function getLastVisitedSeason() {
   try {
-    const user = auth.currentUser
+    const auth = getFirebaseAuth()
+    const user = auth?.currentUser
     const userEmail = user?.email
 
     // Essayer Firebase en premier (plus fiable pour les utilisateurs connectés)
@@ -89,7 +91,8 @@ export async function getLastVisitedSeason() {
  */
 export async function clearLastSeasonPreference(userEmail = null) {
   try {
-    const email = userEmail || auth.currentUser?.email
+    const auth = getFirebaseAuth()
+    const email = userEmail || auth?.currentUser?.email
 
     // Nettoyer localStorage
     try {

@@ -68,24 +68,20 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { auth } from '../services/firebase.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 import AccountDropdown from './AccountDropdown.vue'
 
 const props = defineProps({
   seasonName: { type: String, default: '' },
   isScrolled: { type: Boolean, default: false },
-  seasonSlug: { type: String, default: '' }
+  seasonSlug: { type: String, default: '' },
+  isConnected: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development'])
 
-// État de connexion géré localement et de manière cohérente
-const currentUser = ref(null)
-
-// Vérifier l'état de connexion de manière cohérente
-const isConnected = computed(() => {
-  return !!currentUser.value && !currentUser.value?.isAnonymous
-})
+// État de connexion reçu depuis le composant parent (GridBoard)
+// Plus besoin de logique locale d'authentification
 
 // Style du bouton selon l'état du scroll - même logique que AppHeader
 const buttonClass = computed(() => {
@@ -101,21 +97,8 @@ function refreshSeason() {
   }
 }
 
-// Gestion de l'état d'authentification
-function onAuthStateChanged(user) {
-  currentUser.value = user
-}
-
-onMounted(() => {
-  // Initialiser l'état de connexion
-  currentUser.value = auth.currentUser
-  
-  // Écouter les changements d'état d'authentification
-  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
-  
-  // Stocker la fonction de cleanup pour onUnmounted
-  window._seasonHeaderUnsubscribe = unsubscribe
-})
+// Plus besoin de gérer l'authentification localement
+// L'état est maintenant reçu depuis GridBoard via la prop isConnected
 
 onUnmounted(() => {
   // Cleanup de l'écouteur d'authentification

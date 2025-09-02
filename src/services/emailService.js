@@ -7,26 +7,24 @@ import { queuePushMessage } from './pushService'
 import { buildAvailabilityEmailTemplate, buildNotificationActivationTemplate } from './emailTemplates.js'
 import { serverTimestamp } from 'firebase/firestore'
 
-// Configuration centralisée de l'expéditeur
-const DEFAULT_FROM_EMAIL = 'HatCast <impropick@gmail.com>'
-const DEFAULT_REPLY_TO = 'impropick@gmail.com'
-
 // Fonction utilitaire pour configurer l'expéditeur selon l'environnement
 function getFromEmailConfig(customFromEmail = null) {
   const emailConfig = configService.getEmailConfig()
   
-  // En développement/staging, utiliser Ethereal
-  if (emailConfig.service === 'ethereal') {
+  // Utiliser la configuration centralisée depuis configService
+  if (emailConfig.from && emailConfig.replyTo) {
     return {
-      from: customFromEmail || 'HatCast Dev <dev@ethereal.email>',
-      replyTo: customFromEmail || 'dev@ethereal.email'
+      from: customFromEmail || emailConfig.from.displayName,
+      replyTo: customFromEmail || emailConfig.replyTo
     }
   }
   
-  // En production, utiliser Gmail
+  // Fallback pour compatibilité (ne devrait plus arriver)
+  logger.warn('⚠️ Configuration email incomplète, utilisation des valeurs de fallback depuis configService')
+  const fallbackConfig = configService.getEmailFallbackConfig()
   return {
-    from: customFromEmail || DEFAULT_FROM_EMAIL,
-    replyTo: customFromEmail || DEFAULT_REPLY_TO
+    from: customFromEmail || fallbackConfig.from,
+    replyTo: customFromEmail || fallbackConfig.replyTo
   }
 }
 
@@ -132,6 +130,11 @@ export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'pl
     : "Pour protéger tes saisies de disponibilités, on a besoin de vérifier que tu as bien accès à cette adresse email."
   const cta = isAccount ? 'Confirmer mon email' : 'Vérifier mon email'
   const subject = isAccount ? 'Confirme ton email' : '🔒 Vérifie ton email pour protéger tes saisies'
+  
+  // Récupérer la durée d'expiration depuis la configuration
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expirationText = expirationDays === 1 ? '1 jour' : `${expirationDays} jours`
+  
   const html = `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
       <p>${greeting}</p>
@@ -139,7 +142,7 @@ export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'pl
       <p>
         <a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);">${cta}</a>
       </p>
-      <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans 7 jours.</p>
+      <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans ${expirationText}.</p>
     </div>
   `
   const docData = {

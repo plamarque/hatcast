@@ -16,15 +16,35 @@ class StorageService {
   constructor() {
     this.storage = storage
     this.auth = auth
-    // Utiliser configService pour la détection d'environnement
-    this.environment = configService.getEnvironment()
-    this.prefix = configService.getStoragePrefix()
+    this.environment = null
+    this.prefix = null
+    this.isInitialized = false
+    // Ne pas appeler configService dans le constructeur
+  }
+
+  async initialize() {
+    if (this.isInitialized) return this;
     
-    logger.info('🔧 StorageService initialisé:', {
-      environment: this.environment,
-      prefix: this.prefix,
-      instance: this.storage ? 'OK' : 'ERREUR'
-    })
+    try {
+      // Attendre que configService soit initialisé
+      await configService.initializeConfig();
+      
+      // Utiliser configService pour la détection d'environnement
+      this.environment = configService.getEnvironment()
+      this.prefix = configService.getStoragePrefix()
+      
+      logger.info('🔧 StorageService initialisé:', {
+        environment: this.environment,
+        prefix: this.prefix,
+        instance: this.storage ? 'OK' : 'ERREUR'
+      })
+      
+      this.isInitialized = true;
+      return this;
+    } catch (error) {
+      logger.error('❌ Erreur lors de l\'initialisation de StorageService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -32,7 +52,11 @@ class StorageService {
    * @param {string} path - Le chemin relatif
    * @returns {string} Le chemin complet avec préfixe
    */
-  getFullPath(path) {
+  async getFullPath(path) {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+    
     // Nettoyer le chemin (enlever les slashes en début/fin)
     const cleanPath = path.replace(/^\/+|\/+$/g, '')
     return `${this.prefix}/${cleanPath}`
@@ -43,8 +67,8 @@ class StorageService {
    * @param {string} path - Le chemin relatif
    * @returns {StorageReference} Référence Storage
    */
-  getStorageRef(path) {
-    const fullPath = this.getFullPath(path)
+  async getStorageRef(path) {
+    const fullPath = await this.getFullPath(path)
     return ref(this.storage, fullPath)
   }
 
@@ -77,10 +101,14 @@ class StorageService {
    */
   async uploadImage(file, path, options = {}) {
     try {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
       logger.info('Début upload image', { 
         fileName: file.name, 
         path,
-        fullPath: this.getFullPath(path),
+        fullPath: await this.getFullPath(path),
         environment: this.environment,
         originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB` 
       })
@@ -253,6 +281,10 @@ class StorageService {
    */
   async deleteImage(imageUrl) {
     try {
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+      
       logger.info('Début suppression image', { imageUrl })
       
       // Si c'est une image base64 locale, rien à supprimer
@@ -298,17 +330,27 @@ class StorageService {
    * Obtenir des informations sur l'environnement actuel
    * @returns {Object} Informations sur l'environnement
    */
-  getEnvironmentInfo() {
+  async getEnvironmentInfo() {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+    
     return {
       environment: this.environment,
       prefix: this.prefix,
-      projectId: this.storage?.app?.options?.projectId || 'Non déterminé'
+      projectId: this.storage?.app?.options?.projectId || 'Non déterminé',
+      isInitialized: this.isInitialized
     }
   }
 }
 
 // Instance singleton
 const storageService = new StorageService()
+
+// Initialiser le service de manière asynchrone
+storageService.initialize().catch(error => {
+  logger.error('❌ Erreur lors de l\'initialisation de StorageService:', error);
+});
 
 // Export de l'instance
 export default storageService

@@ -8,11 +8,46 @@ import logger from './logger.js';
 
 class AdminService {
   constructor() {
-    this.auth = getAuth();
+    this.auth = null;
     this.baseUrl = this.getBaseUrl();
     this.adminStatus = null;
     this.lastCheck = null;
     this.checkValidity = 5 * 60 * 1000; // 5 minutes
+    this.isInitialized = false;
+  }
+
+  async initialize() {
+    if (this.isInitialized) return this;
+    
+    try {
+      // Attendre que Firebase soit initialisé
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (attempts < maxAttempts) {
+        try {
+          this.auth = getAuth();
+          if (this.auth) {
+            break;
+          }
+        } catch (error) {
+          // Firebase pas encore initialisé, attendre
+          await new Promise(resolve => setTimeout(resolve, 500));
+          attempts++;
+        }
+      }
+      
+      if (!this.auth) {
+        throw new Error('Impossible d\'initialiser Firebase Auth après plusieurs tentatives');
+      }
+      
+      this.isInitialized = true;
+      logger.info('✅ AdminService initialisé avec succès');
+      return this;
+    } catch (error) {
+      logger.error('❌ Erreur lors de l\'initialisation d\'AdminService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -35,6 +70,10 @@ class AdminService {
    */
   async getAuthToken() {
     try {
+      if (!this.isInitialized || !this.auth) {
+        await this.initialize();
+      }
+      
       const user = this.auth.currentUser;
       if (!user) {
         throw new Error('Utilisateur non connecté');
@@ -43,7 +82,7 @@ class AdminService {
       const token = await user.getIdToken();
       return token;
     } catch (error) {
-      console.error('❌ Erreur lors de la récupération du token:', error);
+      logger.error('❌ Erreur lors de la récupération du token:', error);
       throw new Error('Impossible de récupérer le token d\'authentification');
     }
   }
@@ -88,11 +127,11 @@ class AdminService {
       
       // Vérifier si on a un statut valide en cache
       if (!force && this.adminStatus && this.lastCheck && (now - this.lastCheck) < this.checkValidity) {
-        console.log('🔐 Statut admin récupéré du cache');
+        logger.info('🔐 Statut admin récupéré du cache');
         return this.adminStatus;
       }
 
-      console.log('🔐 Vérification du statut admin...');
+      logger.info('🔐 Vérification du statut admin...');
       
       const result = await this.callFunction('checkAdminStatus');
       
@@ -129,18 +168,18 @@ class AdminService {
    */
   async dumpEnvironment() {
     try {
-      console.log('🔍 Demande de dump environnement...');
+      logger.info('🔍 Demande de dump environnement...');
       
       const result = await this.callFunction('dumpEnvironment');
       
       if (result.success) {
-        console.log('✅ Dump environnement réussi:', result.data);
+        logger.info('✅ Dump environnement réussi:', result.data);
         return result.data;
       } else {
         throw new Error(result.message || 'Erreur lors du dump');
       }
     } catch (error) {
-      console.error('❌ Erreur lors du dump environnement:', error);
+      logger.error('❌ Erreur lors du dump environnement:', error);
       throw error;
     }
   }
@@ -150,18 +189,18 @@ class AdminService {
    */
   async checkAdminConfig() {
     try {
-      console.log('🔧 Vérification de la configuration admin...');
+      logger.info('🔧 Vérification de la configuration admin...');
       
       const result = await this.callFunction('checkAdminConfig');
       
       if (result.success) {
-        console.log('✅ Configuration admin récupérée:', result.data);
+        logger.info('✅ Configuration admin récupérée:', result.data);
         return result.data;
       } else {
         throw new Error(result.message || 'Erreur lors de la vérification');
       }
     } catch (error) {
-      console.error('❌ Erreur lors de la vérification config admin:', error);
+      logger.error('❌ Erreur lors de la vérification config admin:', error);
       throw error;
     }
   }
@@ -171,18 +210,18 @@ class AdminService {
    */
   async testAdminAccess() {
     try {
-      console.log('🧪 Test d\'accès admin...');
+      logger.info('🧪 Test d\'accès admin...');
       
       const result = await this.callFunction('testAdminAccess');
       
       if (result.success) {
-        console.log('✅ Test d\'accès admin réussi:', result.message);
+        logger.info('✅ Test d\'accès admin réussi:', result.message);
         return result;
       } else {
         throw new Error(result.message || 'Erreur lors du test');
       }
     } catch (error) {
-      console.error('❌ Erreur lors du test admin:', error);
+      logger.error('❌ Erreur lors du test admin:', error);
       throw error;
     }
   }
@@ -193,7 +232,7 @@ class AdminService {
   clearCache() {
     this.adminStatus = null;
     this.lastCheck = null;
-    console.log('🧹 Cache admin nettoyé');
+    logger.info('🧹 Cache admin nettoyé');
   }
 
   /**
@@ -205,12 +244,18 @@ class AdminService {
       lastCheck: this.lastCheck,
       checkValidity: this.checkValidity,
       baseUrl: this.baseUrl,
-      user: this.auth.currentUser?.email || 'Non connecté'
+      user: this.auth?.currentUser?.email || 'Non connecté',
+      isInitialized: this.isInitialized
     };
   }
 }
 
 // Instance singleton
 const adminService = new AdminService();
+
+// Initialiser le service de manière asynchrone
+adminService.initialize().catch(error => {
+  logger.error('❌ Erreur lors de l\'initialisation d\'AdminService:', error);
+});
 
 export default adminService;

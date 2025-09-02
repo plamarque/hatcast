@@ -2,6 +2,7 @@
 // Génération et vérification de liens magiques pour mettre à jour une disponibilité via email
 
 import firestoreService from './firestoreService.js'
+import configService from './configService.js'
 
 const COLLECTION = 'magicLinks'
 
@@ -22,7 +23,8 @@ function randomToken(length = 32) {
 export async function createMagicLink({ seasonId, playerId, eventId, action, slug }) {
   const id = buildId({ seasonId, playerId, eventId, action })
   const token = randomToken(40)
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
   await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, expiresAt })
   const base = window.location.origin + '/'
   let url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
@@ -42,7 +44,8 @@ export async function createEmailVerificationLink({ seasonId, playerId, email })
   const action = 'verify_email'
   const id = buildId({ seasonId, playerId, eventId, action })
   const token = randomToken(40)
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
   await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, email, expiresAt })
   const base = window.location.origin + '/'
   const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
@@ -74,7 +77,8 @@ export function buildAccountId(token) {
 export async function createAccountEmailUpdateLink({ currentEmail, newEmail }) {
   const token = randomToken(40)
   const id = buildAccountId(token)
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
   await firestoreService.setDocument(ACCOUNT_COLLECTION, id, { token, currentEmail, newEmail, action: 'account_email_update', expiresAt })
   const base = window.location.origin + '/'
   const url = `${base}magic?a=account_email_update&t=${encodeURIComponent(token)}`

@@ -6,111 +6,146 @@ import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
 import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth'
 import configService from './configService.js'
+import logger from './logger.js'
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-}
-
-const app = initializeApp(firebaseConfig)
+// Configuration Firebase sera créée après initialisation
+let app;
+let firebaseConfig;
 
 // Initialiser Firestore avec la base de données de l'environnement
-let db;
-try {
-  // Utiliser configService pour la détection d'environnement
-  const environment = configService.getEnvironment()
-  const database = configService.getFirestoreDatabase()
-  const region = configService.getFirestoreRegion()
-  
-  console.log('🔍 Détection de l\'environnement via configService:', {
-    environment: environment,
-    database: database,
-    region: region,
-    hostname: window.location.hostname
-  });
-  
-  // Priorité aux variables d'environnement Vite (override)
-  const overrideDatabase = import.meta.env.VITE_FIRESTORE_DATABASE
-  if (overrideDatabase) {
-    console.log('🔧 Base de données forcée par variable d\'environnement:', overrideDatabase);
-  }
-  
-  const finalDatabase = overrideDatabase || database
-  
-  console.log('🌍 Initialisation Firestore avec la base:', finalDatabase);
-  console.log('🌍 URL complète:', window.location.href);
-  
-  // Forcer la fermeture de toutes les connexions existantes
-  if (window.firebaseDbInstance) {
-    try {
-      window.firebaseDbInstance.terminate();
-      console.log('🔄 Fermeture des connexions Firestore existantes');
-    } catch (error) {
-      console.warn('⚠️ Erreur lors de la fermeture des connexions:', error);
+let firestoreDb;
+
+// Fonction d'initialisation asynchrone
+async function initializeFirestoreInstance() {
+  try {
+    // Initialiser Firebase IMMÉDIATEMENT avec les variables VITE
+    firebaseConfig = {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+      measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+    };
+    
+    // Initialiser l'app Firebase IMMÉDIATEMENT
+    app = initializeApp(firebaseConfig);
+    
+    // Maintenant que Firebase est initialisé, charger configService
+    await configService.initializeConfig();
+    
+    // Utiliser configService pour la détection d'environnement (maintenant initialisé)
+    const environment = configService.getEnvironment()
+    const database = configService.getFirestoreDatabase()
+    const region = configService.getFirestoreRegion()
+    
+    logger.info('🔍 Configuration via configService:', {
+      environment: environment,
+      firestoreDatabase: database,
+      firestoreRegion: region,
+      storageBucket: configService.getFirebaseStorageBucket(),
+      hostname: window.location.hostname
+    });
+    
+    // Priorité aux variables d'environnement Vite (override) - maintenant géré par configService
+    const finalDatabase = database
+    
+    logger.info('🌍 Initialisation Firestore avec la base depuis configService:', finalDatabase);
+    logger.info('🌍 URL complète:', window.location.href);
+    
+    // Forcer la fermeture de toutes les connexions existantes
+    if (window.firebaseDbInstance) {
+      try {
+        window.firebaseDbInstance.terminate();
+        logger.info('🔄 Fermeture des connexions Firestore existantes');
+      } catch (error) {
+        logger.warn('⚠️ Erreur lors de la fermeture des connexions:', error);
+      }
     }
-  }
-  
-  // Initialiser Firestore avec la base spécifique
-  if (finalDatabase === 'default') {
-    // Base par défaut
-    db = getFirestore(app);
-  } else {
-    // Base spécifique avec databaseId
-    db = getFirestore(app, finalDatabase);
-  }
-  
-  console.log('🔧 Tentative de connexion à la base:', finalDatabase, 'avec getFirestore() et databaseId:', finalDatabase);
-  
-  // Stocker l'instance pour pouvoir la fermer plus tard
-  window.firebaseDbInstance = db;
-  
-  console.log('✅ Firestore initialisé avec la base:', finalDatabase);
-  
-  // Vérification post-initialisation
-  setTimeout(() => {
-    try {
-      // Avec Firebase v9+, la vérification se fait différemment
-      console.log('🔍 Vérification post-initialisation - Base configurée:', finalDatabase);
-      console.log('🔍 Instance Firestore initialisée pour la base:', finalDatabase);
-      console.log('✅ Connexion Firestore établie avec succès');
-    } catch (error) {
-      console.warn('⚠️ Impossible de vérifier la base utilisée:', error);
+    
+    // Initialiser Firestore avec la base spécifique
+    if (finalDatabase === 'default') {
+      // Base par défaut
+      firestoreDb = getFirestore(app);
+    } else {
+      // Base spécifique avec databaseId
+      firestoreDb = getFirestore(app, finalDatabase);
     }
-  }, 1000);
-} catch (error) {
-  console.warn('⚠️ Erreur lors de l\'initialisation de la base spécifique, utilisation de la base par défaut:', error);
-  db = initializeFirestore(app, {
-    cacheSizeBytes: 50 * 1024 * 1024,
-    experimentalForceOwningTab: false
-  });
+    
+    logger.info('🔧 Tentative de connexion à la base:', finalDatabase, 'avec getFirestore() et databaseId:', finalDatabase);
+    
+    // Stocker l'instance pour pouvoir la fermer plus tard
+    window.firebaseDbInstance = firestoreDb;
+    
+    logger.info('✅ Firestore initialisé avec la base:', finalDatabase);
+    
+    // Initialiser les autres services Firebase maintenant que l'app est créée
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+    const functions = getFunctions(app);
+    
+    // Persistance de session durable (navigateur) pour éviter de redemander l'authentification
+    try {
+      // noinspection JSIgnoredPromiseFromCall
+      setPersistence(auth, browserLocalPersistence);
+    } catch (_) {}
+    
+    // Connexion anonyme uniquement si aucun utilisateur n'est déjà persisté
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        // noinspection JSIgnoredPromiseFromCall
+        signInAnonymously(auth);
+      }
+    });
+
+    // Maintenant que Firebase est initialisé, charger les secrets
+    try {
+      await configService.loadSecretsDelayed();
+      logger.info('🔐 Secrets Firebase chargés avec succès');
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors du chargement des secrets Firebase:', error);
+    }
+    
+    // Vérification post-initialisation
+    setTimeout(() => {
+      try {
+        // Avec Firebase v9+, la vérification se fait différemment
+        logger.info('🔍 Vérification post-initialisation - Base configurée:', finalDatabase);
+        logger.info('🔍 Instance Firestore initialisée pour la base:', finalDatabase);
+        logger.info('✅ Connexion Firestore établie avec succès');
+      } catch (error) {
+        logger.warn('⚠️ Impossible de vérifier la base utilisée:', error);
+      }
+    }, 1000);
+    
+    // Exporter les services
+    window.firebaseServices = { db: firestoreDb, storage, auth, functions };
+    
+    // Marquer Firebase comme initialisé
+    window.firebaseInitialized = true
+    
+  } catch (error) {
+    logger.warn('⚠️ Erreur lors de l\'initialisation de la base spécifique, utilisation de la base par défaut:', error);
+    firestoreDb = initializeFirestore(app, {
+      cacheSizeBytes: 50 * 1024 * 1024,
+      experimentalForceOwningTab: false
+    });
+  }
 }
 
-const storage = getStorage(app)
-const auth = getAuth(app)
-const functions = getFunctions(app)
-
-// Persistance de session durable (navigateur) pour éviter de redemander l'authentification
-try {
-  // noinspection JSIgnoredPromiseFromCall
-  setPersistence(auth, browserLocalPersistence)
-} catch (_) {}
-
-// Connexion anonyme uniquement si aucun utilisateur n'est déjà persisté
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    // noinspection JSIgnoredPromiseFromCall
-    signInAnonymously(auth)
-  }
-})
+// Appeler l'initialisation
+initializeFirestoreInstance().catch(error => {
+  logger.error('❌ Erreur fatale lors de l\'initialisation de Firestore:', error);
+});
 
 // Fonctions d'authentification pour les joueurs
 export async function createPlayerAccount(email, password) {
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore initialisé')
+    }
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     return userCredential.user
   } catch (error) {
@@ -120,6 +155,10 @@ export async function createPlayerAccount(email, password) {
 
 export async function signInPlayer(email, password) {
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore initialisé')
+    }
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     return userCredential.user
   } catch (error) {
@@ -133,7 +172,7 @@ export async function signInPlayer(email, password) {
     }
     
     // Pour les autres erreurs, les logger mais ne pas les exposer
-    console.warn('Erreur d\'authentification Firebase:', error.code, error.message)
+    logger.warn('Erreur d\'authentification Firebase:', error.code, error.message)
     
     if (error.code === 'auth/too-many-requests') {
       const cleanError = new Error('Trop de tentatives. Réessayez plus tard.')
@@ -152,6 +191,10 @@ export async function signInPlayer(email, password) {
 
 export async function resetPlayerPassword(email) {
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore initialisé')
+    }
     await sendPasswordResetEmail(auth, email)
   } catch (error) {
     // Capturer proprement les erreurs de reset de mot de passe
@@ -163,7 +206,7 @@ export async function resetPlayerPassword(email) {
     }
     
     // Pour les autres erreurs, les logger mais ne pas les exposer
-    console.warn('Erreur de reset de mot de passe Firebase:', error.code, error.message)
+    logger.warn('Erreur de reset de mot de passe Firebase:', error.code, error.message)
     
     const cleanError = new Error('Impossible d\'envoyer l\'email de réinitialisation')
     cleanError.code = 'AUTH_RESET_ERROR'
@@ -174,6 +217,10 @@ export async function resetPlayerPassword(email) {
 
 export async function updatePlayerPassword(newPassword) {
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore initialisé')
+    }
     const user = auth.currentUser
     if (user) {
       await updatePassword(user, newPassword)
@@ -185,4 +232,26 @@ export async function updatePlayerPassword(newPassword) {
   }
 }
 
-export { db, auth, storage, getMessaging, functions }
+// Getters pour accéder aux services Firebase
+export function getFirebaseDb() {
+  return window.firebaseServices?.db || null;
+}
+
+export function getFirebaseAuth() {
+  return window.firebaseServices?.auth || null;
+}
+
+export function getFirebaseStorage() {
+  return window.firebaseServices?.storage || null;
+}
+
+export function getFirebaseFunctions() {
+  return window.firebaseServices?.functions || null;
+}
+
+// Export des services pour compatibilité
+export const db = getFirebaseDb();
+export const auth = getFirebaseAuth();
+export const storage = getFirebaseStorage();
+export const functions = getFirebaseFunctions();
+export { getMessaging };

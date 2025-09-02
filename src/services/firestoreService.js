@@ -2,8 +2,9 @@
 // Service centralisé pour tous les accès Firestore
 // Garantit l'utilisation de la bonne base de données selon l'environnement
 
-import { db } from './firebase.js'
+import { getFirebaseDb } from './firebase.js'
 import configService from './configService.js'
+import logger from './logger.js'
 import {
   collection,
   doc,
@@ -30,18 +31,58 @@ import {
  */
 class FirestoreService {
   constructor() {
-    this.db = db
-    // Utiliser configService pour la détection d'environnement
-    this.environment = configService.getEnvironment()
-    this.database = configService.getFirestoreDatabase()
-    this.region = configService.getFirestoreRegion()
+    this.db = null
+    this.environment = null
+    this.database = null
+    this.region = null
+    this.isInitialized = false
+  }
+
+  async initialize() {
+    if (this.isInitialized) return this;
     
-    console.log('🔧 FirestoreService initialisé:')
-    console.log('  - Environnement:', this.environment)
-    console.log('  - Base de données:', this.database)
-    console.log('  - Région:', this.region)
-    console.log('  - Instance Firestore:', this.db ? 'OK' : 'ERREUR')
-    console.log('  - Projet Firebase:', this.db?.app?.options?.projectId || 'Non déterminé')
+    try {
+      // Attendre que Firebase soit complètement initialisé
+      let attempts = 0;
+      const maxAttempts = 20;
+      
+      while (attempts < maxAttempts) {
+        // Vérifier si Firebase est initialisé
+        if (window.firebaseInitialized && window.firebaseServices?.db) {
+          this.db = window.firebaseServices.db;
+          break;
+        }
+        
+        logger.info(`⏳ Tentative ${attempts + 1}/${maxAttempts}: Firebase pas encore prêt, attente...`);
+        await new Promise(resolve => setTimeout(resolve, 250));
+        attempts++;
+      }
+      
+      if (!this.db) {
+        throw new Error('Firebase Firestore n\'est pas encore initialisé après plusieurs tentatives');
+      }
+      
+      // Maintenant que Firebase est prêt, initialiser configService
+      await configService.initializeConfig();
+      
+      // Utiliser configService pour la détection d'environnement
+      this.environment = configService.getEnvironment()
+      this.database = configService.getFirestoreDatabase()
+      this.region = configService.getFirestoreRegion()
+      
+      logger.info('🔧 FirestoreService initialisé:')
+      logger.info('  - Environnement:', this.environment)
+      logger.info('  - Base de données:', this.database)
+      logger.info('  - Région:', this.region)
+      logger.info('  - Instance Firestore:', this.db ? 'OK' : 'ERREUR')
+      logger.info('  - Projet Firebase:', this.db?.app?.options?.projectId || 'Non déterminé')
+      
+      this.isInitialized = true;
+      return this;
+    } catch (error) {
+      logger.error('❌ Erreur lors de l\'initialisation de FirestoreService:', error);
+      throw error;
+    }
   }
 
   /**
@@ -303,6 +344,17 @@ class FirestoreService {
    * @returns {Object} Informations sur l'environnement
    */
   getEnvironmentInfo() {
+    if (!this.isInitialized) {
+      return {
+        environment: 'Non initialisé',
+        database: 'Non initialisé',
+        region: 'Non initialisé',
+        projectId: 'Non déterminé',
+        config: null,
+        _databaseId: 'Non initialisé'
+      };
+    }
+    
     return {
       environment: this.environment,
       database: this.database,
@@ -318,6 +370,11 @@ class FirestoreService {
 
 // Instance singleton
 const firestoreService = new FirestoreService()
+
+// Initialiser le service de manière asynchrone
+firestoreService.initialize().catch(error => {
+  logger.error('❌ Erreur lors de l\'initialisation de FirestoreService:', error);
+});
 
 // Exposer les fonctions de requête Firestore
 firestoreService.where = where

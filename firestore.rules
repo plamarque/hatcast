@@ -74,7 +74,7 @@ service cloud.firestore {
     
     // Collection des liens magiques pour comptes - Lecture et écriture publiques
     match /accountMagicLinks/{docId} {
-      allow read, write: if true;
+      allow relorad, write: if true;
     }
     
     // Collection des emails - Lecture et écriture publiques

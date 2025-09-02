@@ -1,12 +1,17 @@
 /**
  * Service de configuration unifié pour HatCast
  * Gère la détection d'environnement et la configuration des ressources Firebase
+ * avec logique de priorité intelligente et traçabilité complète
  */
+
+import logger from './logger.js'
 
 class ConfigService {
   constructor() {
     this.environment = this.detectEnvironment();
-    this.config = this.getConfig();
+    this.config = null;
+    this.configSources = {}; // Traçabilité de la source de chaque valeur
+    this.isInitialized = false;
   }
 
   /**
@@ -25,30 +30,119 @@ class ConfigService {
   }
 
   /**
+   * Initialise la configuration avec logique de priorité intelligente
+   */
+  async initializeConfig() {
+    if (this.isInitialized) {
+      return this.config;
+    }
+
+    logger.info('🔧 Initialisation de la configuration avec logique de priorité intelligente...');
+    
+    // 1. Configuration de base par environnement
+    const baseConfig = this.getBaseConfig();
+    
+    // 2. Configuration Firebase avec priorité intelligente
+    const firebaseConfig = await this.loadFirebaseConfig();
+    
+    // 3. Configuration des sessions avec priorité intelligente
+    const sessionConfig = await this.loadSessionConfig();
+    
+    // 4. Fusion des configurations (sans les secrets pour l'instant)
+    this.config = {
+      ...baseConfig,
+      firebase: firebaseConfig,
+      sessions: sessionConfig,
+      secrets: {} // Initialement vide, sera chargé plus tard
+    };
+    
+    this.isInitialized = true;
+    
+    // 5. Log de la traçabilité
+    this.logConfigSources();
+    
+    return this.config;
+  }
+
+  /**
+   * Charge les secrets Firebase de manière différée (après initialisation Firebase)
+   */
+  async loadSecretsDelayed() {
+    if (this.configSources.secrets) {
+      return this.config.secrets; // Déjà chargé
+    }
+
+    logger.info('🔐 Chargement différé des secrets Firebase...');
+    
+    try {
+      const secrets = await this.loadSecretsConfig();
+      this.config.secrets = secrets;
+      return secrets;
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors du chargement différé des secrets:', error);
+      return {};
+    }
+  }
+
+  /**
    * Retourne la configuration pour l'environnement actuel
    */
-  getConfig() {
+  async getConfig() {
+    if (!this.isInitialized) {
+      await this.initializeConfig();
+    }
+    return this.config;
+  }
+
+  /**
+   * Retourne la configuration de manière synchrone (pour compatibilité)
+   * ATTENTION: Peut retourner null si pas encore initialisée
+   */
+  getConfigSync() {
+    return this.config;
+  }
+
+  /**
+   * Configuration de base par environnement (sans valeurs sensibles)
+   */
+  getBaseConfig() {
     const env = this.environment;
     
-    const configs = {
+    const baseConfigs = {
       development: {
         firestore: {
           database: 'development',
           region: 'europe-west3'
         },
         storage: {
-          bucket: 'impro-selector.firebasestorage.app',
           prefix: 'development/'
         },
         email: {
           service: 'ethereal',
-          capture: true
+          capture: true,
+          from: {
+            name: 'HatCast Dev',
+            email: 'dev@ethereal.email',
+            displayName: 'HatCast Dev <dev@ethereal.email>'
+          },
+          replyTo: 'dev@ethereal.email'
+        },
+        magicLinks: {
+          expirationDays: 7
         },
         notifications: {
           vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
           url: 'https://192.168.1.134:5173'
+        },
+        pwa: {
+          serviceWorkerEnabled: true,
+          installPromptEnabled: true
+        },
+        push: {
+          enabled: true,
+          vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         }
       },
       staging: {
@@ -57,18 +151,34 @@ class ConfigService {
           region: 'us-central1'
         },
         storage: {
-          bucket: 'impro-selector.firebasestorage.app',
           prefix: 'staging/'
         },
         email: {
           service: 'ethereal',
-          capture: true
+          capture: true,
+          from: {
+            name: 'HatCast Dev',
+            email: 'dev@ethereal.email',
+            displayName: 'HatCast Dev <dev@ethereal.email>'
+          },
+          replyTo: 'dev@ethereal.email'
+        },
+        magicLinks: {
+          expirationDays: 7
         },
         notifications: {
           vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
           url: 'https://hatcast-staging.web.app'
+        },
+        pwa: {
+          serviceWorkerEnabled: true,
+          installPromptEnabled: true
+        },
+        push: {
+          enabled: true,
+          vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         }
       },
       production: {
@@ -77,23 +187,348 @@ class ConfigService {
           region: 'us-central1'
         },
         storage: {
-          bucket: 'impro-selector.firebasestorage.app',
           prefix: 'production/'
         },
         email: {
           service: 'gmail',
-          capture: false
+          capture: false,
+          from: {
+            name: 'HatCast',
+            email: 'impropick@gmail.com',
+            displayName: 'HatCast <impropick@gmail.com>'
+          },
+          replyTo: 'impropick@gmail.com'
+        },
+        magicLinks: {
+          expirationDays: 7
         },
         notifications: {
           vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
           url: 'https://selections.la-malice.fr'
+        },
+        pwa: {
+          serviceWorkerEnabled: true,
+          installPromptEnabled: true
+        },
+        push: {
+          enabled: true,
+          vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         }
       }
     };
 
-    return configs[env] || configs.production;
+    return baseConfigs[env] || baseConfigs.production;
+  }
+
+  /**
+   * Charge la configuration Firebase avec logique de priorité intelligente
+   */
+  async loadFirebaseConfig() {
+    const env = this.environment;
+    logger.info(`🔍 Chargement de la configuration Firebase pour l'environnement: ${env}`);
+
+    // Valeurs par défaut (fallback)
+    const defaultConfig = {
+      apiKey: 'AIzaSyDCqJRmxKiIzuAhgXsmXICCx_O65aujNa0',
+      authDomain: 'impro-selector.firebaseapp.com',
+      projectId: 'impro-selector',
+      storageBucket: 'impro-selector.firebasestorage.app',
+      messagingSenderId: '730278491306',
+      appId: '1:730278491306:web:c966af1179221e91118cd3',
+      measurementId: 'G-3NB062D088'
+    };
+
+    const finalConfig = {};
+    const sources = {};
+
+    // Priorité 1: Variables d'environnement VITE (pour le dev local)
+    if (env === 'development') {
+      logger.info('🔍 Priorité 1: Recherche dans les variables VITE...');
+      
+      const viteConfig = this.loadFromViteEnv();
+      Object.keys(defaultConfig).forEach(key => {
+        if (viteConfig[key]) {
+          finalConfig[key] = viteConfig[key];
+          sources[key] = 'VITE_ENV';
+        } else {
+          finalConfig[key] = defaultConfig[key];
+          sources[key] = 'DEFAULT_FALLBACK';
+        }
+      });
+    } else {
+      // Priorité 2: Tentative de récupération depuis Firebase Functions
+      logger.info('🔍 Priorité 2: Tentative de récupération depuis Firebase Functions...');
+      
+      try {
+        const firebaseConfig = await this.loadFromFirebaseFunctions();
+        if (firebaseConfig) {
+          logger.info('✅ Configuration récupérée depuis Firebase Functions');
+          Object.keys(defaultConfig).forEach(key => {
+            if (firebaseConfig[key]) {
+              finalConfig[key] = firebaseConfig[key];
+              sources[key] = 'FIREBASE_FUNCTIONS';
+            } else {
+              finalConfig[key] = defaultConfig[key];
+              sources[key] = 'DEFAULT_FALLBACK';
+            }
+          });
+        } else {
+          // Fallback vers les valeurs par défaut
+          logger.warn('⚠️ Impossible de récupérer la config depuis Firebase, utilisation des valeurs par défaut');
+          Object.keys(defaultConfig).forEach(key => {
+            finalConfig[key] = defaultConfig[key];
+            sources[key] = 'DEFAULT_FALLBACK';
+          });
+        }
+      } catch (error) {
+        logger.warn('⚠️ Erreur lors de la récupération depuis Firebase, utilisation des valeurs par défaut:', error);
+        Object.keys(defaultConfig).forEach(key => {
+          finalConfig[key] = defaultConfig[key];
+          sources[key] = 'DEFAULT_FALLBACK';
+        });
+      }
+    }
+
+    // Stocker les sources pour la traçabilité
+    this.configSources.firebase = sources;
+    
+    return finalConfig;
+  }
+
+    /**
+   * Charge la configuration des sessions avec logique de priorité intelligente
+   */
+  async loadSessionConfig() {
+    const env = this.environment;
+    logger.info(`🔍 Chargement de la configuration des sessions pour l'environnement: ${env}`);
+
+    // Valeurs par défaut (fallback)
+    const defaultSessionConfig = {
+      userSessionDurationMonths: 6,
+      pinSessionDurationConnectedDays: 7,
+      pinSessionDurationAnonymousMinutes: 10
+    };
+
+    const finalConfig = {};
+    const sources = {};
+
+    // Priorité 1: Variables d'environnement VITE (pour le dev local)
+    if (env === 'development') {
+      logger.info('🔍 Priorité 1: Recherche des configurations de session dans les variables VITE...');
+      
+      const viteConfig = this.loadSessionConfigFromViteEnv();
+      Object.keys(defaultSessionConfig).forEach(key => {
+        if (viteConfig[key] !== undefined) {
+          finalConfig[key] = viteConfig[key];
+          sources[key] = 'VITE_ENV';
+        } else {
+          finalConfig[key] = defaultSessionConfig[key];
+          sources[key] = 'DEFAULT_FALLBACK';
+        }
+      });
+    } else {
+      // Priorité 2: Tentative de récupération depuis Firebase Functions
+      logger.info('🔍 Priorité 2: Tentative de récupération des configurations de session depuis Firebase Functions...');
+      
+      try {
+        const firebaseConfig = await this.loadFromFirebaseFunctions();
+        if (firebaseConfig && firebaseConfig.sessions) {
+          logger.info('✅ Configuration des sessions récupérée depuis Firebase Functions');
+          Object.keys(defaultSessionConfig).forEach(key => {
+            if (firebaseConfig.sessions[key] !== undefined) {
+              finalConfig[key] = firebaseConfig.sessions[key];
+              sources[key] = 'FIREBASE_FUNCTIONS';
+            } else {
+              finalConfig[key] = defaultSessionConfig[key];
+              sources[key] = 'DEFAULT_FALLBACK';
+            }
+          });
+        } else {
+          // Fallback vers les valeurs par défaut
+          logger.warn('⚠️ Impossible de récupérer la config des sessions depuis Firebase, utilisation des valeurs par défaut');
+          Object.keys(defaultSessionConfig).forEach(key => {
+            finalConfig[key] = defaultSessionConfig[key];
+            sources[key] = 'DEFAULT_FALLBACK';
+          });
+        }
+      } catch (error) {
+        logger.warn('⚠️ Erreur lors de la récupération des sessions depuis Firebase, utilisation des valeurs par défaut:', error);
+        Object.keys(defaultSessionConfig).forEach(key => {
+          finalConfig[key] = defaultSessionConfig[key];
+          sources[key] = 'DEFAULT_FALLBACK';
+        });
+      }
+    }
+
+    // Stocker les sources pour la traçabilité
+    this.configSources.sessions = sources;
+
+    return finalConfig;
+  }
+
+  /**
+   * Charge les secrets Firebase avec logique de priorité intelligente
+   */
+  async loadSecretsConfig() {
+    logger.info('🔐 Chargement des secrets Firebase...');
+
+    try {
+      // Tentative de récupération depuis adminService
+      const adminService = await import('./adminService.js');
+      const secrets = await adminService.default.getSecrets();
+      
+      if (secrets && Object.keys(secrets).length > 0) {
+        logger.info('✅ Secrets Firebase récupérés avec succès');
+        
+        // Créer les sources pour la traçabilité
+        const sources = {};
+        Object.keys(secrets).forEach(key => {
+          sources[key] = 'FIREBASE_SECRETS';
+        });
+        
+        // Stocker les sources pour la traçabilité
+        this.configSources.secrets = sources;
+        
+        return secrets;
+      } else {
+        logger.warn('⚠️ Aucun secret Firebase trouvé');
+        this.configSources.secrets = {};
+        return {};
+      }
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors de la récupération des secrets Firebase:', error);
+      this.configSources.secrets = {};
+      return {};
+    }
+  }
+
+  /**
+   * Charge la configuration des sessions depuis les variables d'environnement VITE
+   */
+  loadSessionConfigFromViteEnv() {
+    const config = {};
+    
+    // Mapping des variables VITE vers les clés de session
+    const viteMapping = {
+      'VITE_USER_SESSION_DURATION_MONTHS': 'userSessionDurationMonths',
+      'VITE_PIN_SESSION_DURATION_CONNECTED_DAYS': 'pinSessionDurationConnectedDays',
+      'VITE_PIN_SESSION_DURATION_ANONYMOUS_MINUTES': 'pinSessionDurationAnonymousMinutes'
+    };
+
+    Object.entries(viteMapping).forEach(([viteKey, configKey]) => {
+      const value = import.meta.env[viteKey];
+      if (value !== undefined) {
+        const parsedValue = parseInt(value);
+        if (!isNaN(parsedValue)) {
+          config[configKey] = parsedValue;
+          logger.debug(`✅ ${configKey} chargé depuis ${viteKey}: ${parsedValue}`);
+        } else {
+          logger.warn(`⚠️ Valeur invalide pour ${viteKey}: ${value}`);
+        }
+      }
+    });
+
+    return config;
+  }
+
+  /**
+   * Charge la configuration depuis les variables d'environnement VITE
+   */
+  loadFromViteEnv() {
+    const config = {};
+    
+    // Mapping des variables VITE vers les clés Firebase
+    const viteMapping = {
+      'VITE_FIREBASE_API_KEY': 'apiKey',
+      'VITE_FIREBASE_AUTH_DOMAIN': 'authDomain',
+      'VITE_FIREBASE_PROJECT_ID': 'projectId',
+      'VITE_FIREBASE_STORAGE_BUCKET': 'storageBucket',
+      'VITE_FIREBASE_MESSAGING_SENDER_ID': 'messagingSenderId',
+      'VITE_FIREBASE_APP_ID': 'appId',
+      'VITE_FIREBASE_MEASUREMENT_ID': 'measurementId'
+    };
+
+    Object.entries(viteMapping).forEach(([viteKey, configKey]) => {
+      if (import.meta.env[viteKey]) {
+        config[configKey] = import.meta.env[viteKey];
+        logger.debug(`✅ ${configKey} chargé depuis ${viteKey}`);
+      }
+    });
+
+    return config;
+  }
+
+  /**
+   * Tente de récupérer la configuration depuis Firebase Functions
+   */
+  async loadFromFirebaseFunctions() {
+    try {
+      // Vérifier si on peut s'authentifier
+      const authToken = await this.getAuthToken();
+      if (!authToken) {
+        logger.warn('⚠️ Pas de token d\'authentification, impossible de récupérer la config Firebase');
+        return null;
+      }
+
+      logger.info('🔐 Tentative de récupération de la configuration depuis Firebase Functions...');
+      
+      const response = await fetch('https://us-central1-impro-selector.cloudfunctions.net/dumpEnvironment', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        logger.info('✅ Configuration récupérée depuis Firebase Functions');
+        return result.data || result;
+      } else {
+        logger.warn(`⚠️ Erreur HTTP ${response.status} lors de la récupération de la config Firebase`);
+        return null;
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors de la récupération depuis Firebase Functions:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Log de la traçabilité des sources de configuration
+   */
+  logConfigSources() {
+    logger.info('🔍 Traçabilité des sources de configuration:');
+    
+    if (this.configSources.firebase) {
+      logger.info('  🔥 Configuration Firebase:');
+      Object.entries(this.configSources.firebase).forEach(([key, source]) => {
+        logger.info(`    - ${key}: ${source}`);
+      });
+    }
+    
+    if (this.configSources.sessions) {
+      logger.info('  ⏰ Configuration des sessions:');
+      Object.entries(this.configSources.sessions).forEach(([key, source]) => {
+        logger.info(`    - ${key}: ${source}`);
+      });
+    }
+    
+    if (this.configSources.secrets) {
+      logger.info('  🔐 Secrets Firebase:');
+      Object.entries(this.configSources.secrets).forEach(([key, source]) => {
+        logger.info(`    - ${key}: ${source}`);
+      });
+    }
+  }
+
+  /**
+   * Retourne la source d'une valeur de configuration
+   */
+  getConfigSource(key, category = 'firebase') {
+    return this.configSources[category]?.[key] || 'UNKNOWN';
   }
 
   /**
@@ -132,10 +567,125 @@ class ConfigService {
   }
 
   /**
+   * Retourne la configuration Firebase complète
+   */
+  getFirebaseConfig() {
+    return this.config.firebase;
+  }
+
+  /**
+   * Retourne une clé Firebase spécifique
+   */
+  getFirebaseKey(key) {
+    return this.config.firebase[key];
+  }
+
+  /**
+   * Retourne la clé API Firebase
+   */
+  getFirebaseApiKey() {
+    return this.config.firebase.apiKey;
+  }
+
+  /**
+   * Retourne le domaine d'authentification Firebase
+   */
+  getFirebaseAuthDomain() {
+    return this.config.firebase.authDomain;
+  }
+
+  /**
+   * Retourne l'ID du projet Firebase
+   */
+  getFirebaseProjectId() {
+    return this.config.firebase.projectId;
+  }
+
+  /**
+   * Retourne le bucket Storage Firebase
+   */
+  getFirebaseStorageBucket() {
+    return this.config.firebase.storageBucket;
+  }
+
+  /**
+   * Retourne l'ID de l'expéditeur Firebase
+   */
+  getFirebaseMessagingSenderId() {
+    return this.config.firebase.messagingSenderId;
+  }
+
+  /**
+   * Retourne l'ID de l'application Firebase
+   */
+  getFirebaseAppId() {
+    return this.config.firebase.appId;
+  }
+
+  /**
+   * Retourne l'ID de mesure Firebase
+   */
+  getFirebaseMeasurementId() {
+    return this.config.firebase.measurementId;
+  }
+
+  /**
+   * Retourne la durée de session utilisateur en mois
+   */
+  getUserSessionDurationMonths() {
+    return this.config.sessions?.userSessionDurationMonths || 6;
+  }
+
+  /**
+   * Retourne la durée de session PIN pour utilisateurs connectés en jours
+   */
+  getPinSessionDurationConnectedDays() {
+    return this.config.sessions?.pinSessionDurationConnectedDays || 7;
+  }
+
+  /**
+   * Retourne la durée de session PIN pour utilisateurs anonymes en minutes
+   */
+  getPinSessionDurationAnonymousMinutes() {
+    return this.config.sessions?.pinSessionDurationAnonymousMinutes || 10;
+  }
+
+  /**
    * Retourne la configuration email
    */
   getEmailConfig() {
     return this.config.email;
+  }
+
+  /**
+   * Retourne la configuration d'expéditeur d'email
+   */
+  getEmailFromConfig() {
+    const emailConfig = this.config.email;
+    if (emailConfig?.from && emailConfig?.replyTo) {
+      return {
+        from: emailConfig.from.displayName,
+        replyTo: emailConfig.replyTo
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Retourne la durée d'expiration des magic links en jours
+   */
+  getMagicLinkExpirationDays() {
+    return this.config.magicLinks?.expirationDays || 7;
+  }
+
+  /**
+   * Retourne les valeurs de fallback pour l'email
+   */
+  getEmailFallbackConfig() {
+    return {
+      from: 'HatCast <noreply@hatcast.com>',
+      replyTo: 'noreply@hatcast.com'
+    };
   }
 
   /**
@@ -194,7 +744,7 @@ class ConfigService {
       }
       return null;
     } catch (error) {
-      console.warn('⚠️ Erreur lors de la récupération du token:', error);
+              logger.warn('⚠️ Erreur lors de la récupération du token:', error);
       return null;
     }
   }
@@ -265,7 +815,7 @@ class ConfigService {
       const isAdmin = await adminService.default.checkAdminStatus();
       
       if (isAdmin) {
-        console.log('🔐 Utilisateur admin détecté, récupération des secrets Firebase...');
+        logger.info('🔐 Utilisateur admin détecté, récupération des secrets Firebase...');
         
         // Récupérer la configuration Firebase Functions
         const response = await fetch('https://us-central1-impro-selector.cloudfunctions.net/dumpEnvironment', {
@@ -278,23 +828,23 @@ class ConfigService {
         
         if (response.ok) {
           const firebaseConfig = await response.json();
-          console.log('🔐 Réponse complète Firebase:', firebaseConfig);
+          logger.info('🔐 Réponse complète Firebase:', firebaseConfig);
           envInfo.firebaseSecrets = firebaseConfig.data;
-          console.log('🔐 Secrets Firebase récupérés:', firebaseConfig.data);
-          console.log('🔐 firebaseSecrets dans envInfo:', envInfo.firebaseSecrets);
+          logger.info('🔐 Secrets Firebase récupérés:', firebaseConfig.data);
+          logger.info('🔐 firebaseSecrets dans envInfo:', envInfo.firebaseSecrets);
         } else {
-          console.warn('⚠️ Impossible de récupérer les secrets Firebase:', response.status);
+                      logger.warn('⚠️ Impossible de récupérer les secrets Firebase:', response.status);
           envInfo.firebaseSecrets = { error: 'Accès refusé ou erreur serveur' };
         }
       } else {
         envInfo.firebaseSecrets = { message: 'Accès réservé aux administrateurs' };
       }
     } catch (error) {
-      console.warn('⚠️ Erreur lors de la récupération des secrets Firebase:', error);
+      logger.warn('⚠️ Erreur lors de la récupération des secrets Firebase:', error);
       envInfo.firebaseSecrets = { error: error.message };
     }
 
-    console.log('🔍 DEBUG - Informations d\'environnement HatCast:', envInfo);
+    logger.info('🔍 DEBUG - Informations d\'environnement HatCast:', envInfo);
     return envInfo;
   }
 

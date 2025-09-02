@@ -1,26 +1,51 @@
 // Service de gestion de la session PIN
 // Durées adaptatives selon l'état de connexion
-// Configurables via variables d'environnement avec fallbacks par défaut
-// 
-// Variables d'environnement disponibles :
-// - VITE_PIN_SESSION_DURATION_CONNECTED_DAYS : durée en jours pour utilisateurs connectés (défaut: 7)
-// - VITE_PIN_SESSION_DURATION_ANONYMOUS_MINUTES : durée en minutes pour utilisateurs non connectés (défaut: 10)
+// Configurables via configService avec fallbacks par défaut
 // 
 // Voir PIN_SESSION_CONFIG.md pour plus de détails sur la configuration
-const PIN_SESSION_DURATION_CONNECTED = parseInt(import.meta.env.VITE_PIN_SESSION_DURATION_CONNECTED_DAYS || '7') * 24 * 60 * 60 * 1000  // 7 jours si connecté (configurable)
-const PIN_SESSION_DURATION_ANONYMOUS = parseInt(import.meta.env.VITE_PIN_SESSION_DURATION_ANONYMOUS_MINUTES || '10') * 60 * 1000           // 10 minutes si non connecté (configurable)
+import configService from './configService.js'
+import logger from './logger.js'
+
 const PIN_SESSION_KEY = 'hatcast_pin_session'
 
 class PinSessionManager {
   constructor() {
     this.sessionData = this.loadSession()
+    this.connectedDuration = null
+    this.anonymousDuration = null
+    this.isInitialized = false
+  }
+
+  async initialize() {
+    if (this.isInitialized) return this;
     
-    // Log de la configuration des durées de session
-    console.log('🔐 Configuration des sessions PIN:', {
-      connected: `${PIN_SESSION_DURATION_CONNECTED / (24 * 60 * 60 * 1000)} jours`,
-      anonymous: `${PIN_SESSION_DURATION_ANONYMOUS / (60 * 1000)} minutes`,
-      source: 'variables d\'environnement' + (import.meta.env.VITE_PIN_SESSION_DURATION_CONNECTED_DAYS ? ' (personnalisées)' : ' (défaut)')
-    })
+    try {
+      // Attendre que configService soit initialisé
+      await configService.initializeConfig();
+      
+      // Récupérer les durées depuis configService
+      this.connectedDuration = configService.getPinSessionDurationConnectedDays() * 24 * 60 * 60 * 1000;
+      this.anonymousDuration = configService.getPinSessionDurationAnonymousMinutes() * 60 * 1000;
+      
+      logger.info('🔐 Configuration des sessions PIN:', {
+        connected: `${this.connectedDuration / (24 * 60 * 60 * 1000)} jours`,
+        anonymous: `${this.anonymousDuration / (60 * 1000)} minutes`,
+        source: {
+          connected: configService.getConfigSource('pinSessionDurationConnectedDays', 'sessions'),
+          anonymous: configService.getConfigSource('pinSessionDurationAnonymousMinutes', 'sessions')
+        }
+      });
+      
+      this.isInitialized = true;
+      return this;
+    } catch (error) {
+      logger.error('❌ Erreur lors de l\'initialisation de PinSessionManager:', error);
+      // Fallback vers les valeurs par défaut
+      this.connectedDuration = 7 * 24 * 60 * 60 * 1000; // 7 jours par défaut
+      this.anonymousDuration = 10 * 60 * 1000; // 10 minutes par défaut
+      this.isInitialized = true;
+      return this;
+    }
   }
 
   // Charger la session depuis le localStorage avec gestion des anciennes sessions
@@ -37,8 +62,8 @@ class PinSessionManager {
         
         // Déterminer la durée selon l'état de connexion
         const duration = session.isConnected ? 
-          PIN_SESSION_DURATION_CONNECTED : 
-          PIN_SESSION_DURATION_ANONYMOUS
+          this.connectedDuration || (7 * 24 * 60 * 60 * 1000) : 
+          this.anonymousDuration || (10 * 60 * 1000)
         
         // Vérifier si la session n'est pas expirée
         if (session.timestamp && (Date.now() - session.timestamp) < duration) {
@@ -78,13 +103,18 @@ class PinSessionManager {
   }
 
   // Vérifier si le PIN est en cache pour une saison avec durée adaptative
-  isPinCached(seasonId) {
+  async isPinCached(seasonId) {
     if (!this.sessionData) return false
+    
+    // S'assurer que le service est initialisé
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
     
     // Déterminer la durée selon l'état de connexion mémorisé
     const duration = this.sessionData.isConnected ? 
-      PIN_SESSION_DURATION_CONNECTED : 
-      PIN_SESSION_DURATION_ANONYMOUS
+      this.connectedDuration : 
+      this.anonymousDuration
     
     // Vérifier si c'est la même saison et si la session n'est pas expirée
     const valid = this.sessionData.seasonId === seasonId && 
@@ -121,13 +151,18 @@ class PinSessionManager {
   }
 
   // Obtenir le temps restant avant expiration (en minutes) avec durée adaptative
-  getTimeRemaining() {
+  async getTimeRemaining() {
     if (!this.sessionData || !this.sessionData.timestamp) return 0
+    
+    // S'assurer que le service est initialisé
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
     
     // Déterminer la durée selon l'état de connexion mémorisé
     const duration = this.sessionData.isConnected ? 
-      PIN_SESSION_DURATION_CONNECTED : 
-      PIN_SESSION_DURATION_ANONYMOUS
+      this.connectedDuration : 
+      this.anonymousDuration
     
     const elapsed = Date.now() - this.sessionData.timestamp
     const remaining = duration - elapsed
@@ -136,12 +171,18 @@ class PinSessionManager {
   }
 
   // Vérifier si la session va expirer bientôt (moins de 2 minutes)
-  isExpiringSoon() {
-    return this.getTimeRemaining() <= 2
+  async isExpiringSoon() {
+    const timeRemaining = await this.getTimeRemaining();
+    return timeRemaining <= 2;
   }
 }
 
 // Instance singleton
 const pinSessionManager = new PinSessionManager()
+
+// Initialiser le service de manière asynchrone
+pinSessionManager.initialize().catch(error => {
+  logger.error('❌ Erreur lors de l\'initialisation de PinSessionManager:', error);
+});
 
 export default pinSessionManager

@@ -5,6 +5,7 @@
       :season-name="seasonName"
       :is-scrolled="isScrolled"
       :season-slug="props.slug"
+      :is-connected="!!currentUser?.email"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="showHowItWorksGlobal = true"
@@ -1538,7 +1539,7 @@ function getCurrentUserId() {
     return null
   }
 }
-import { auth } from '../services/firebase.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { signOut } from 'firebase/auth'
@@ -1608,6 +1609,9 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+
+// Initialiser Firebase Auth
+const auth = getFirebaseAuth()
 
 // Gestion de l'état d'authentification
 function onAuthStateChanged(user) {
@@ -2058,6 +2062,9 @@ function closePlayers() {
 // Ouvrir compte avec flow d'association si anonyme
 function openAccount() {
   try {
+    console.log('🔑 GridBoard: openAccount() appelé')
+    console.log('🔑 showAccountLogin avant:', showAccountLogin.value)
+    
     const user = auth?.currentUser
     if (!user || user.isAnonymous) {
       // Choisir un joueur par défaut (préféré ou premier)
@@ -2069,6 +2076,7 @@ function openAccount() {
       if (!target) target = players.value[0] || null
       // Ouvrir login classique (email + mot de passe)
       showAccountLogin.value = true
+      console.log('🔑 showAccountLogin après:', showAccountLogin.value)
       // Mémoriser un joueur si l'utilisateur choisit l'association ensuite
       if (target) accountAuthPlayer.value = target
       return
@@ -2078,7 +2086,9 @@ function openAccount() {
     // Il peut accéder à son compte via le bouton avatar
     console.log('🔐 Utilisateur déjà connecté, pas d\'action automatique')
     return
-  } catch {}
+  } catch (error) {
+    console.error('❌ Erreur dans openAccount:', error)
+  }
 }
 
 function openAccountCreation() {
@@ -2143,6 +2153,11 @@ async function handleAccountDeleteAccount() {
 async function onManageAccountPlayer(assoc) {
   closeAccountMenu()
   try {
+    // S'assurer que firestoreService est initialisé
+    if (!firestoreService.isInitialized) {
+      await firestoreService.initialize()
+    }
+    
     if (assoc.seasonId && assoc.seasonId !== seasonId.value) {
       const seasons = await firestoreService.getDocuments('seasons')
       const match = seasons.find(d => d.id === assoc.seasonId)
@@ -2160,7 +2175,9 @@ async function onManageAccountPlayer(assoc) {
       // Fallback: ouvrir via URL
       router.push(`?player=${encodeURIComponent(assoc.playerId)}&open=protection`)
     }
-  } catch (_) {}
+  } catch (error) {
+    console.error('❌ Erreur dans onManageAccountPlayer:', error)
+  }
 }
 
   // Onboarding créateur (multi-étapes)
@@ -2168,7 +2185,7 @@ async function onManageAccountPlayer(assoc) {
 // Si l'utilisateur vient du /join, masquer l'onboarding créateur
 onMounted(async () => {
   // Initialiser l'état d'authentification
-  currentUser.value = auth.currentUser
+        currentUser.value = getFirebaseAuth()?.currentUser
   
   // Initialiser les rôles avec le template par défaut (après le prochain tick)
   nextTick(() => {
@@ -2176,7 +2193,7 @@ onMounted(async () => {
   })
   
   // Écouter les changements d'état d'authentification
-  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
+      const unsubscribe = getFirebaseAuth()?.onAuthStateChanged(onAuthStateChanged)
   
   // Stocker la fonction de cleanup pour onUnmounted
   window._gridBoardUnsubscribe = unsubscribe
@@ -3521,7 +3538,7 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
 })
 
 // Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
-watch(() => auth.currentUser?.email, async (newEmail, oldEmail) => {
+watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
     console.log('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
     await loadProtectedPlayers()
@@ -3534,6 +3551,11 @@ onMounted(async () => {
   try {
     // Le mode de stockage est maintenant géré par les variables d'environnement
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
+
+    // Attendre que firestoreService soit initialisé
+    console.log('⏳ Attente de l\'initialisation de firestoreService...')
+    await firestoreService.initialize()
+    console.log('✅ firestoreService initialisé')
 
     // Charger la saison par slug
     const seasons = await firestoreService.queryDocuments('seasons', [
@@ -3602,7 +3624,7 @@ onMounted(async () => {
       }
       
       // Initialiser les joueurs préférés si l'utilisateur est connecté
-      if (auth.currentUser?.email) {
+      if (getFirebaseAuth()?.currentUser?.email) {
         try {
           await updatePreferredPlayersSet()
         } catch (error) {
@@ -3714,16 +3736,32 @@ onMounted(async () => {
   }
 
   // Gérer le paramètre notificationSuccess (APRÈS tous les autres traitements d'URL)
+  // Essayer d'abord route.query, puis fallback sur window.location.search
+  let notificationSuccess = route.query.notificationSuccess
+  let email = route.query.email
+  let playerName = route.query.playerName
+  let eventId = route.query.eventId
+  
+  // Si route.query est vide, essayer window.location.search
+  if (!notificationSuccess && !email && !playerName && !eventId) {
+    const urlParams = new URLSearchParams(window.location.search)
+    notificationSuccess = urlParams.get('notificationSuccess')
+    email = urlParams.get('email')
+    playerName = urlParams.get('playerName')
+    eventId = urlParams.get('eventId')
+  }
+  
   console.debug('🔍 Vérification des paramètres notificationSuccess...', {
     routeQuery: route.query,
-    notificationSuccess: route.query.notificationSuccess,
-    email: route.query.email,
-    playerName: route.query.playerName,
-    eventId: route.query.eventId
+    windowLocationSearch: window.location.search,
+    notificationSuccess,
+    email,
+    playerName,
+    eventId
   })
   
-  if (route.query.notificationSuccess === '1') {
-    console.debug('✅ Paramètres notificationSuccess détectés dans route.query')
+  if (notificationSuccess === '1') {
+    console.debug('✅ Paramètres notificationSuccess détectés')
     
     // Fermer d'abord la modal de prompt des notifications si elle est ouverte
     if (showNotificationPrompt.value) {
@@ -3732,9 +3770,9 @@ onMounted(async () => {
     }
     
     notificationSuccessData.value = {
-      email: decodeURIComponent(route.query.email || ''),
-      playerName: decodeURIComponent(route.query.playerName || ''),
-      eventId: route.query.eventId || null
+      email: decodeURIComponent(email || ''),
+      playerName: decodeURIComponent(playerName || ''),
+      eventId: eventId || null
     }
     
     console.debug('📝 Données de notificationSuccess préparées:', notificationSuccessData.value)
@@ -3745,49 +3783,17 @@ onMounted(async () => {
       console.debug('🎉 Ouverture de NotificationSuccessModal')
     }, 300)
     
-    // Nettoyer l'URL
-    router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
-  } else {
-    // Fallback : essayer de parser manuellement window.location.search
+    // Nettoyer l'URL en utilisant window.location.search comme source de vérité
     const urlParams = new URLSearchParams(window.location.search)
-    const notificationSuccess = urlParams.get('notificationSuccess')
-    const email = urlParams.get('email')
-    const playerName = urlParams.get('playerName')
-    const eventId = urlParams.get('eventId')
+    urlParams.delete('notificationSuccess')
+    urlParams.delete('email')
+    urlParams.delete('playerName')
+    urlParams.delete('eventId')
     
-    console.debug('🔍 Fallback - Paramètres détectés via window.location.search:', {
-      notificationSuccess,
-      email,
-      playerName,
-      eventId
-    })
+    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '')
+    window.history.replaceState({}, '', newUrl)
     
-    if (notificationSuccess === '1') {
-      console.debug('✅ Paramètres détectés via fallback')
-      
-      // Fermer d'abord la modal de prompt des notifications si elle est ouverte
-      if (showNotificationPrompt.value) {
-        showNotificationPrompt.value = false
-        console.debug('🔒 Fermeture de NotificationPromptModal avant affichage de NotificationSuccessModal (fallback)')
-      }
-      
-      notificationSuccessData.value = {
-        email: decodeURIComponent(email || ''),
-        playerName: decodeURIComponent(playerName || ''),
-        eventId: eventId || null
-      }
-      
-      console.debug('📝 Données de notificationSuccess préparées (fallback):', notificationSuccessData.value)
-      
-      // Délai pour s'assurer que la modal d'activation soit fermée et que l'interface soit prête
-      setTimeout(() => {
-        showNotificationSuccess.value = true
-        console.debug('🎉 Ouverture de NotificationSuccessModal (fallback)')
-      }, 300)
-      
-      // Nettoyer l'URL
-      router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
-    }
+    console.debug('🧹 URL nettoyée:', newUrl)
   }
 
   } catch (error) {
@@ -3917,7 +3923,7 @@ async function updatePreferredPlayersSet() {
 
 // Fonction helper pour vérifier si l'utilisateur est connecté (y compris les utilisateurs anonymes avec email)
 function isUserConnected() {
-  return !!auth.currentUser?.email || !!localStorage.getItem('userEmail')
+      return !!getFirebaseAuth()?.currentUser?.email || !!localStorage.getItem('userEmail')
 }
 
 // Fonction helper pour vérifier si un joueur appartient à l'utilisateur connecté
@@ -4883,7 +4889,7 @@ async function handlePinSubmit(pinCode) {
     
     if (isValid) {
       // Sauvegarder le PIN en session avec état de connexion
-      const isConnected = !!auth.currentUser?.email
+      const isConnected = !!getFirebaseAuth()?.currentUser?.email
       pinSessionManager.saveSession(seasonId.value, pinCode, isConnected)
       
       showPinModal.value = false
@@ -4926,7 +4932,7 @@ async function handlePlayerPasswordSubmit(password) {
     if (password === seasonPin) {
       // PIN de saison accepté
       // Mémoriser le PIN de saison (session PIN avec état de connexion)
-      const isConnected = !!auth.currentUser?.email
+      const isConnected = !!getFirebaseAuth()?.currentUser?.email
       try { pinSessionManager.saveSession(seasonId.value, password, isConnected) } catch {}
       // Optionnel: marquer l'appareil de confiance pour ce joueur
       try { playerPasswordSessionManager.saveSession(pendingPlayerOperation.value.data.playerId) } catch {}
@@ -4989,7 +4995,7 @@ async function handleAvailabilityPasswordSubmit(password) {
     if (password === seasonPin) {
       // PIN de saison accepté
       // Mémoriser le PIN de saison (session PIN avec état de connexion)
-      const isConnected = !!auth.currentUser?.email
+      const isConnected = !!getFirebaseAuth()?.currentUser?.email
       try { pinSessionManager.saveSession(seasonId.value, password, isConnected) } catch {}
       // Optionnel: marquer l'appareil de confiance pour ce joueur
       try { playerPasswordSessionManager.saveSession(pendingAvailabilityOperation.value.data.player.id) } catch {}
@@ -6524,6 +6530,11 @@ async function isEventMonitored(eventId) {
   try {
     // Utiliser l'état d'authentification réactif du composant
     if (!currentUser.value?.email) return false
+    
+    // S'assurer que firestoreService est initialisé
+    if (!firestoreService.isInitialized) {
+      await firestoreService.initialize()
+    }
     
     // Récupérer les préférences de notification depuis Firestore
     const prefs = await firestoreService.getDocument('userPreferences', currentUser.value.email)

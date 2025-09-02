@@ -86,6 +86,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     <!-- Modal de test des emails -->
     <EmailTestModal :is-visible="showEmailTest" @close="showEmailTest = false" />
@@ -107,10 +108,10 @@
             <h4 class="font-semibold mb-3 text-blue-200 flex items-center gap-2">
               🌍 Environnement Détecté
             </h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div class="flex justify-between">
-                <span class="text-blue-300">Environnement:</span>
-                <span class="px-2 py-1 rounded text-xs font-medium"
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center gap-3">
+                <span class="text-blue-300 font-medium min-w-24">Environnement:</span>
+                <span class="px-3 py-1 rounded text-sm font-medium"
                       :class="{
                         'bg-green-600/30 text-green-300 border border-green-500/30': environmentInfo?.environment === 'production',
                         'bg-yellow-600/30 text-yellow-300 border border-yellow-500/30': environmentInfo?.environment === 'staging',
@@ -119,62 +120,403 @@
                   {{ environmentInfo?.environment?.toUpperCase() || 'Non détecté' }}
                 </span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-blue-300">URL:</span>
-                <span class="text-gray-300 text-xs truncate max-w-48">{{ environmentInfo?.url || 'Non disponible' }}</span>
+              <div class="flex items-start gap-3">
+                <span class="text-blue-300 font-medium min-w-24">URL:</span>
+                <span class="text-gray-300 text-xs break-all bg-gray-800/30 px-2 py-1 rounded border border-gray-600/30">
+                  {{ environmentInfo?.url || 'Non disponible' }}
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- Configuration Environnement (côté client) -->
+          <!-- Configuration Réelle Utilisée par l'App -->
           <div class="bg-blue-900/30 p-4 rounded-lg border border-blue-500/30">
-            <h4 class="font-semibold mb-3 text-blue-200">⚙️ Configuration Environnement</h4>
+            <h4 class="font-semibold mb-3 text-blue-200">⚙️ Configuration Réelle de l'App</h4>
             <div class="text-xs text-blue-400 mb-3">
-              📝 Configuration déterminée côté client via <code class="bg-blue-800/50 px-1 rounded">configService.getConfig()</code>
-              <span class="ml-2 text-yellow-300">Environnement détecté: {{ environmentInfo?.environment || 'Non défini' }}</span>
+              📝 Configuration actuellement utilisée par l'application (avec sources de chargement)
+            </div>
+            
+            <!-- Configuration Firebase -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">🔥 Firebase</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Project ID:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 bg-blue-600/30 text-blue-300 rounded text-xs font-medium border border-blue-500/30">
+                      {{ appConfig?.firebase?.projectId || 'Non défini' }}
+                    </span>
+                    <span class="text-2xl" :title="getConfigSource('firebase', 'projectId')">
+                      {{ getConfigSourceEmoji('firebase', 'projectId') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Auth Domain:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.firebase?.authDomain || 'Non défini' }}</span>
+                    <span class="text-2xl" :title="getConfigSource('firebase', 'authDomain')">
+                      {{ getConfigSourceEmoji('firebase', 'authDomain') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Storage Bucket:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.firebase?.storageBucket || 'Non défini' }}</span>
+                    <span class="text-2xl" :title="getConfigSource('firebase', 'storageBucket')">
+                      {{ getConfigSourceEmoji('firebase', 'storageBucket') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Messaging Sender ID:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.firebase?.messagingSenderId || 'Non défini' }}</span>
+                    <span class="text-2xl" :title="getConfigSource('firebase', 'messagingSenderId')">
+                      {{ getConfigSourceEmoji('firebase', 'messagingSenderId') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">App ID:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.firebase?.appId || 'Non défini' }}</span>
+                    <span class="text-2xl" :title="getConfigSource('firebase', 'appId')">
+                      {{ getConfigSourceEmoji('firebase', 'appId') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Measurement ID:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.firebase?.measurementId || 'Non défini' }}</span>
+                    <span class="text-2xl" :title="getConfigSource('firebase', 'measurementId')">
+                      {{ getConfigSourceEmoji('firebase', 'measurementId') }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuration Firestore -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">🗄️ Firestore</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Database:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 bg-blue-600/30 text-blue-300 rounded text-xs font-medium border border-blue-500/30">
+                      {{ appConfig?.firestore?.database || 'Non défini' }}
+                    </span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">
+                      🔧
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Region:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 bg-blue-600/30 text-blue-300 rounded text-xs font-medium border border-blue-500/30">
+                      {{ appConfig?.firestore?.region || 'Non défini' }}
+                    </span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">
+                      🔧
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuration Storage -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">💾 Storage</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Prefix:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 bg-green-600/30 text-green-300 rounded text-xs font-medium border border-green-500/30">
+                      {{ appConfig?.storage?.prefix || 'Non défini' }}
+                    </span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">
+                      🔧
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            <!-- Configuration Magic Links -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">🔗 Magic Links</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Durée d'expiration:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border border-purple-500/30 bg-purple-600/30 text-purple-300">
+                      {{ appConfig?.magicLinks?.expirationDays || 'Non défini' }} jours
+                    </span>
+                    <span class="text-2xl" :title="getConfigSource('magicLinks', 'expirationDays')">
+                      {{ getConfigSourceEmoji('magicLinks', 'expirationDays') }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuration des Sessions -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">⏰ Sessions</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Durée Session Utilisateur:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border border-purple-500/30 bg-purple-600/30 text-purple-300">
+                      {{ appConfig?.sessions?.userSessionDurationMonths || 'Non défini' }} mois
+                    </span>
+                    <span class="text-2xl" :title="getConfigSource('sessions', 'userSessionDurationMonths')">
+                      {{ getConfigSourceEmoji('sessions', 'userSessionDurationMonths') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Durée Session PIN (connecté):</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border border-purple-500/30 bg-purple-600/30 text-purple-300">
+                      {{ appConfig?.sessions?.pinSessionDurationConnectedDays || 'Non défini' }} jours
+                    </span>
+                    <span class="text-2xl" :title="getConfigSource('sessions', 'pinSessionDurationConnectedDays')">
+                      {{ getConfigSourceEmoji('sessions', 'pinSessionDurationConnectedDays') }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Durée Session PIN (anonyme):</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border border-purple-500/30 bg-purple-600/30 text-purple-300">
+                      {{ appConfig?.sessions?.pinSessionDurationAnonymousMinutes || 'Non défini' }} minutes
+                    </span>
+                    <span class="text-2xl" :title="getConfigSource('sessions', 'pinSessionDurationAnonymousMinutes')">
+                      {{ getConfigSourceEmoji('sessions', 'pinSessionDurationAnonymousMinutes') }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuration Email -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">📧 Email</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Service:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border"
+                          :class="{
+                            'bg-purple-600/30 text-purple-300 border-purple-500/30': appConfig?.email?.service === 'ethereal',
+                            'bg-red-600/30 text-red-300 border-red-500/30': appConfig?.email?.service === 'gmail'
+                          }">
+                      {{ appConfig?.email?.service?.toUpperCase() || 'Non défini' }}
+                    </span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">
+                      🔧
+                    </span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Capture:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs truncate max-w-32">{{ appConfig?.email?.capture ? 'OUI' : 'NON' }}</span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">
+                      🔧
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Informations d'expéditeur -->
+                <div v-if="appConfig?.email?.from" class="pt-2 border-t border-blue-500/20">
+                  <div class="text-xs text-blue-400 mb-2">📧 Configuration d'expéditeur</div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">Nom d'affichage:</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        {{ appConfig?.email?.from?.name || 'Non défini' }}
+                      </span>
+                      <span class="text-2xl" title="SERVICE_CONFIG">🔧</span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">Email d'expéditeur:</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        {{ appConfig?.email?.from?.email || 'Non défini' }}
+                      </span>
+                      <span class="text-2xl" title="SERVICE_CONFIG">🔧</span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">Reply-To:</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        {{ appConfig?.email?.replyTo || 'Non défini' }}
+                      </span>
+                      <span class="text-2xl" title="SERVICE_CONFIG">🔧</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Informations SMTP (si disponibles) -->
+                <div v-if="appConfig?.secrets?.ETHEREAL_SMTP_USER || appConfig?.secrets?.ETHEREAL_SMTP_PASS" class="pt-2 border-t border-blue-500/20">
+                  <div class="text-xs text-blue-400 mb-2">🔐 Informations SMTP (obfusquées)</div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">Username SMTP:</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        {{ appConfig?.secrets?.ETHEREAL_SMTP_USER ? obfuscateSecret(appConfig.secrets.ETHEREAL_SMTP_USER) : 'Non défini' }}
+                      </span>
+                      <span class="text-2xl" title="FIREBASE_SECRETS">🔐</span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">Password SMTP:</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        {{ appConfig?.secrets?.ETHEREAL_SMTP_PASS ? obfuscateSecret(appConfig.secrets.ETHEREAL_SMTP_PASS) : 'Non défini' }}
+                      </span>
+                      <span class="text-2xl" title="FIREBASE_SECRETS">🔐</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Valeurs de fallback -->
+                <div class="pt-2 border-t border-blue-500/20">
+                  <div class="text-xs text-blue-400 mb-2">🛡️ Valeurs de fallback (si configuration manquante)</div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">From (fallback):</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        HatCast &lt;noreply@hatcast.com&gt;
+                      </span>
+                      <span class="text-2xl" title="DEFAULT_FALLBACK">🟡</span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-300 font-medium text-xs">Reply-To (fallback):</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">
+                        noreply@hatcast.com
+                      </span>
+                      <span class="text-2xl" title="DEFAULT_FALLBACK">🟡</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+            <!-- Configuration Hosting -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">🌐 Hosting</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">URL:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.hosting?.url || 'Non défini' }}</span>
+                    <span class="text-2xl" :title="getConfigSource('hosting', 'url')">
+                      {{ getConfigSourceEmoji('hosting', 'url') }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuration PWA et Push -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">📱 PWA & Push</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Service Worker:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border border-green-500/30 bg-green-600/30 text-green-300">
+                      {{ appConfig?.pwa?.serviceWorkerEnabled ? 'Activé' : 'Désactivé' }}
+                    </span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">🔧</span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Notifications Push:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border border-green-500/30 bg-green-600/30 text-green-300">
+                      {{ appConfig?.push?.enabled ? 'Activées' : 'Désactivées' }}
+                    </span>
+                    <span class="text-2xl" title="SERVICE_CONFIG">🔧</span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">VAPID Key:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-300 text-xs break-all bg-blue-600/20 px-2 py-1 rounded">{{ appConfig?.push?.vapidKey ? obfuscateSecret(appConfig.push.vapidKey) : 'Non défini' }}</span>
+                    <span class="text-2xl" title="FIREBASE_SECRETS">🔐</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Légende des sources -->
+            <div class="mt-4 p-3 bg-blue-800/20 rounded-lg border border-blue-500/20">
+              <h6 class="text-xs font-medium text-blue-300 mb-2">📋 Légende des Sources</h6>
+              <div class="grid grid-cols-1 gap-1 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl">🟢</span>
+                  <span class="text-green-300">VITE_ENV</span>
+                  <span class="text-blue-400">Variables d'environnement VITE (.env.local)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl">🔵</span>
+                  <span class="text-blue-300">FIREBASE_FUNCTIONS</span>
+                  <span class="text-blue-400">Variables d'environnement Firebase</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl">🔐</span>
+                  <span class="text-blue-300">FIREBASE_SECRETS</span>
+                  <span class="text-blue-400">Secrets Firebase (chiffrés)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl">🟡</span>
+                  <span class="text-blue-300">DEFAULT_FALLBACK</span>
+                  <span class="text-blue-400">Valeurs par défaut (fallback)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl">🔧</span>
+                  <span class="text-blue-300">SERVICE_CONFIG</span>
+                  <span class="text-blue-400">Configuration des services (code)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+                    <!-- Secrets Firebase via configService -->
+          <div v-if="appConfig?.secrets && Object.keys(appConfig.secrets).length > 0" class="bg-red-900/30 p-4 rounded-lg border border-red-500/30">
+            <h4 class="font-semibold mb-3 text-red-200">🔐 Secrets Firebase (via configService)</h4>
+            <div class="text-xs text-red-400 mb-3">
+              📝 Secrets accessibles via configService (obfusqués pour la sécurité)
             </div>
             <div class="space-y-2 text-sm">
-              <div class="flex justify-between items-center">
-                <span class="text-blue-300 font-medium">config.firestore.database:</span>
-                <span class="px-2 py-1 bg-blue-600/30 text-blue-300 rounded text-xs font-medium border border-blue-500/30">
-                  {{ environmentInfo?.firestore?.database || 'Non défini' }}
-                </span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-blue-300 font-medium">config.firestore.region:</span>
-                <span class="px-2 py-1 bg-blue-600/30 text-blue-300 rounded text-xs font-medium border border-blue-500/30">
-                  {{ environmentInfo?.firestore?.region || 'Non défini' }}
-                </span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-blue-300 font-medium">config.storage.bucket:</span>
-                <span class="text-blue-300 text-xs truncate max-w-32">{{ environmentInfo?.storage?.bucket || 'Non défini' }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-blue-300 font-medium">config.storage.prefix:</span>
-                <span class="px-2 py-1 bg-green-600/30 text-green-300 rounded text-xs font-medium border border-green-500/30">
-                  {{ environmentInfo?.storage?.prefix || 'Non défini' }}
-                </span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-blue-300 font-medium">config.email.service:</span>
-                <span class="px-2 py-1 rounded text-xs font-medium border"
-                      :class="{
-                        'bg-purple-600/30 text-purple-300 border-purple-500/30': environmentInfo?.email?.service === 'ethereal',
-                        'bg-red-600/30 text-red-300 border-red-500/30': environmentInfo?.email?.service === 'gmail'
-                      }">
-                  {{ environmentInfo?.email?.service?.toUpperCase() || 'Non défini' }}
-                </span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-blue-300 font-medium">config.email.capture:</span>
-                <span class="px-2 py-1 rounded text-xs font-medium border"
-                      :class="{
-                        'bg-green-600/30 text-green-300 border-green-500/30': environmentInfo?.email?.capture,
-                        'bg-gray-600/30 text-gray-300 border-gray-500/30': !environmentInfo?.email?.capture
-                      }">
-                  {{ environmentInfo?.email?.capture ? 'OUI' : 'NON' }}
-                </span>
+              <div v-for="(secret, key) in appConfig.secrets" :key="key" 
+                   class="flex justify-between items-center">
+                <span class="text-red-300 font-medium">{{ key }}:</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs px-2 py-1 rounded bg-red-600/30 text-red-200 border border-red-500/30">
+                    {{ obfuscateSecret(secret) }}
+                  </span>
+                  <span class="text-2xl" title="FIREBASE_SECRETS">🔐</span>
+                </div>
               </div>
             </div>
           </div>
@@ -223,7 +565,7 @@
                   href="https://ethereal.email" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  class="px-3 py-1.5 bg-purple-600 text-white text-xs rounded hover:bg-purple-500 transition-colors flex items-center gap-1"
+                  class="px-3 py-1 rounded bg-purple-600 text-white text-xs hover:bg-purple-500 transition-colors flex items-center gap-1"
                 >
                   🌐 Ouvrir Ethereal
                   <span class="text-xs">↗</span>
@@ -235,10 +577,8 @@
             </div>
           </div>
 
-
-
           <!-- Tous les Secrets Firebase (si disponibles) -->
-          <div v-if="environmentInfo?.firebaseSecrets?.secrets?.secrets && Object.keys(environmentInfo.firebaseSecrets.secrets.secrets).length > 0" class="bg-red-900/30 p-4 rounded-lg border border-red-500/30">
+          <div v-if="environmentInfo?.firebaseSecrets?.secrets && Object.keys(environmentInfo.firebaseSecrets.secrets).length > 0" class="bg-red-900/30 p-4 rounded-lg border border-red-500/30">
             <h4 class="font-semibold mb-3 text-red-200">🔐 Tous les Secrets Firebase (Admin)</h4>
             <div class="text-xs text-red-400 mb-3">
               🚨 Données sensibles chiffrées via Google Cloud Secret Manager
@@ -329,7 +669,6 @@
             >
               📋 Dumper dans la Console
             </button>
-          </div>
         </div>
       </div>
     </div>
@@ -341,11 +680,12 @@ import { ref, watch, onMounted, computed } from 'vue';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import adminService from '../services/adminService.js';
 import EmailTestModal from './EmailTestModal.vue';
+import logger from '../services/logger.js';
 
 const props = defineProps({ show: Boolean });
 const emit = defineEmits(['close']);
 
-const auth = getAuth();
+const auth = ref(null);
 const email = ref('');
 
 
@@ -375,6 +715,7 @@ async function updateVapidKeyPreview() {
 // Environment debug state
 const environmentInfo = ref(null);
 const environmentVars = ref({});
+const appConfig = ref(null); // Configuration réelle utilisée par l'app
 
 const closeModal = () => {
   emit('close');
@@ -524,6 +865,11 @@ const formattedFirebaseSecrets = computed(() => {
 async function refreshEnvironmentInfo() {
   try {
     const configService = await import('../services/configService.js');
+    
+    // Récupérer la configuration réelle utilisée par l'app
+    const config = await configService.default.getConfig();
+    appConfig.value = config;
+    
     const summary = await configService.default.getEnvironmentSummary();
     const fullInfo = await configService.default.dumpEnvironmentInfo();
     
@@ -534,15 +880,62 @@ async function refreshEnvironmentInfo() {
     };
     environmentVars.value = fullInfo.envVars;
     
-    console.log('🔄 Actualisation des informations d\'environnement...');
-    console.log('✅ Informations d\'environnement actualisées:', {
+    logger.info('🔄 Actualisation des informations d\'environnement...');
+    logger.info('✅ Informations d\'environnement actualisées:', {
+      config: config,
       summary: summary,
       vars: fullInfo.envVars
     });
     
   } catch (err) {
-    console.error('❌ Erreur lors de l\'actualisation:', err);
+    logger.error('❌ Erreur lors de l\'actualisation:', err);
   }
+}
+
+// Fonction pour obtenir la source d'une configuration
+function getConfigSource(category, key) {
+  // Fallback basé sur la logique de priorité
+  if (category === 'firestore') return 'SERVICE_CONFIG';
+  if (category === 'storage' && key === 'prefix') return 'SERVICE_CONFIG';
+  if (category === 'email') return 'SERVICE_CONFIG';
+  if (category === 'sessions') return 'SERVICE_CONFIG';
+  if (category === 'hosting') return 'SERVICE_CONFIG';
+  if (category === 'pwa') return 'SERVICE_CONFIG';
+  if (category === 'push') return 'SERVICE_CONFIG';
+  if (category === 'firebase') {
+    // Pour Firebase, on peut déterminer la source basée sur l'environnement
+    const env = environmentInfo.value?.environment;
+    if (env === 'development') return 'VITE_ENV';
+    if (env === 'staging' || env === 'production') return 'FIREBASE_FUNCTIONS';
+    return 'DEFAULT_FALLBACK';
+  }
+  return 'DEFAULT_FALLBACK'; // Au lieu de 'UNKNOWN'
+}
+
+// Fonction pour obtenir l'emoji correspondant à la source
+function getConfigSourceEmoji(category, key) {
+  const source = getConfigSource(category, key);
+  switch (source) {
+    case 'VITE_ENV':
+      return '🟢';
+    case 'FIREBASE_FUNCTIONS':
+      return '🔵';
+    case 'FIREBASE_SECRETS':
+      return '🔐';
+    case 'DEFAULT_FALLBACK':
+      return '🟡';
+    case 'SERVICE_CONFIG':
+      return '🔧';
+    default:
+      return '❓';
+  }
+}
+
+// Fonction pour obfusquer les secrets
+function obfuscateSecret(value) {
+  if (!value || typeof value !== 'string') return '***';
+  if (value.length <= 4) return '***';
+  return value.substring(0, 2) + '***' + value.substring(value.length - 2);
 }
 
 async function dumpToConsole() {
@@ -558,11 +951,18 @@ async function dumpToConsole() {
 
 
 onMounted(async () => {
-  if (props.show) {
-    try {
-      email.value = auth?.currentUser?.email || '';
-    } catch {}
+  try {
+    // Initialiser Firebase de manière sécurisée
+    const { getAuth } = await import('firebase/auth');
+    auth.value = getAuth();
+    
+    if (props.show && auth.value?.currentUser) {
+      email.value = auth.value.currentUser.email || '';
+    }
+  } catch (error) {
+    logger.warn('⚠️ Firebase Auth non disponible:', error);
   }
+  
   // Mettre à jour la VAPID key preview
   await updateVapidKeyPreview();
 });
