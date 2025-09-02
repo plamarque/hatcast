@@ -849,6 +849,18 @@ async function deleteSeasonConfirmed() {
   if (!seasonToDelete.value) return
   
   try {
+    // Supprimer le logo du storage s'il existe
+    if (seasonToDelete.value?.logoUrl && isFirebaseStorageUrl(seasonToDelete.value.logoUrl)) {
+      try {
+        await deleteImage(seasonToDelete.value.logoUrl)
+        logger.info('Logo de la saison supprimé du storage avant suppression')
+      } catch (deleteError) {
+        logger.warn('Erreur lors de la suppression du logo du storage:', deleteError)
+        // Continuer même si la suppression du fichier échoue
+      }
+    }
+    
+    // Supprimer la saison de Firestore
     await deleteSeason(seasonToDelete.value.id)
     logger.info('Saison supprimée avec succès', { seasonId: seasonToDelete.value.id })
     
