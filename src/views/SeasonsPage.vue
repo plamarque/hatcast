@@ -3,6 +3,7 @@
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
+      :is-connected="isConnected"
       custom-logo="/logos/hatcast-mask.png"
       @open-account-menu="openAccountMenu"
       @open-help="openHelp"
@@ -406,9 +407,9 @@ function handleLogout() {
 }
 
 function openAccountLogin() {
-  console.log('🔑 SeasonsPage: openAccountLogin() appelé')
+  logger.info('🔑 SeasonsPage: openAccountLogin() appelé')
   showAccountLogin.value = true
-  console.log('🔑 SeasonsPage: showAccountLogin =', showAccountLogin.value)
+  logger.debug('showAccountLogin =', showAccountLogin.value)
 }
 
 function openAccountCreation() {

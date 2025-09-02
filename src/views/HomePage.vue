@@ -3,6 +3,7 @@
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
+      :is-connected="isConnected"
       @open-account-menu="openAccountMenu"
       @open-help="scrollToHelp"
       @open-notifications="openNotifications"
@@ -210,11 +211,14 @@
     </section>
 
     <!-- Modales d'authentification -->
+    <!-- DEBUG: showAccountLogin = {{ showAccountLogin }} -->
     <AccountLoginModal 
       v-if="showAccountLogin" 
+      :show="showAccountLogin"
       @close="showAccountLogin = false"
-      @login-success="handlePostLoginNavigation"
+      @success="handlePostLoginNavigation"
     />
+    <!-- DEBUG: Fin AccountLoginModal -->
     
     <AccountCreationModal 
       v-if="showAccountCreation" 
@@ -310,9 +314,16 @@ function openAccountMenu() {
 }
 
 function openAccountLogin() {
-  console.log('🔑 HomePage: openAccountLogin() appelé')
+  logger.info('🔑 HomePage: openAccountLogin() appelé')
+  logger.debug('showAccountLogin avant =', showAccountLogin.value)
   showAccountLogin.value = true
-  console.log('🔑 HomePage: showAccountLogin =', showAccountLogin.value)
+  logger.debug('showAccountLogin après =', showAccountLogin.value)
+  logger.debug('showAccountLogin type =', typeof showAccountLogin.value)
+  logger.debug('showAccountLogin ref =', showAccountLogin)
+  
+  // Debug du composant modal
+  logger.debug('Composant AccountLoginModal importé =', !!AccountLoginModal)
+  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="email-input"]'))
 }
 
 function openAccountCreation() {

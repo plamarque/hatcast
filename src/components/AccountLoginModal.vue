@@ -1,5 +1,6 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[170] p-4" @click="$emit('close')">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[170] p-4" @click="$emit('close')" data-debug-modal="true">
+    <!-- DEBUG: Modal rendue avec show = {{ show }} -->
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <button @click="$emit('close')" class="absolute right-3 top-3 text-white/80 hover:text-white" aria-label="Fermer" title="Fermer">✖️</button>
       <div class="text-center mb-6">
@@ -79,8 +80,14 @@ const staySignedIn = ref(true)
 
 // Récupérer l'email pré-rempli depuis localStorage quand la modal s'ouvre
 watch(() => props.show, (newShow) => {
+  logger.debug('props.show changé à', newShow)
+  logger.debug('props.show type =', typeof newShow)
+  logger.debug('props.show === true =', newShow === true)
+  logger.debug('props.show === "true" =', newShow === "true")
+  
   logger.info('🔑 AccountLoginModal: props.show changé à', newShow)
   if (newShow) {
+    logger.debug('Modal devrait s\'ouvrir maintenant')
     logger.info('🔑 AccountLoginModal: Modal ouverte, récupération email pré-rempli')
     const prefilledEmail = localStorage.getItem('prefilledEmail')
     if (prefilledEmail) {

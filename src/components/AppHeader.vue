@@ -73,13 +73,15 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { auth } from '../services/firebase.js'
-import { currentUser, isConnected, forceSync } from '../services/authState.js'
+import { currentUser, forceSync } from '../services/authState.js'
 import AccountDropdown from './AccountDropdown.vue'
 import { useRoute } from 'vue-router'
+import logger from '../services/logger.js'
 
 const props = defineProps({
   isScrolled: { type: Boolean, default: false },
-  customLogo: { type: String, default: null }
+  customLogo: { type: String, default: null },
+  isConnected: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account-creation', 'open-development'])
@@ -131,9 +133,9 @@ function logout() {
 }
 
 function openLogin() {
-  console.log('🔑 AppHeader: openLogin() appelé')
+  logger.info('🔑 AppHeader: openLogin() appelé')
   emit('open-login')
-  console.log('🔑 AppHeader: événement open-login émis')
+  logger.info('🔑 AppHeader: événement open-login émis')
 }
 
 function openAccountCreation() {

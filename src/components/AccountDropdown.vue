@@ -93,9 +93,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { auth } from '../services/firebase.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
 import adminService from '../services/adminService.js'
+import logger from '../services/logger.js'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
@@ -131,15 +132,20 @@ async function checkAdminStatus() {
     const adminStatus = await adminService.checkAdminStatus();
     isAdmin.value = adminStatus;
   } catch (error) {
-    console.error('❌ Erreur lors de la vérification admin:', error);
+    logger.error('❌ Erreur lors de la vérification admin:', error);
     isAdmin.value = false;
   }
 }
 
 function openLogin() {
-  console.log('🔑 AccountDropdown: openLogin() appelé')
-  emit('open-login')
-  console.log('🔑 AccountDropdown: événement open-login émis')
+  try {
+    logger.info('🔑 AccountDropdown: openLogin() appelé')
+    emit('open-login')
+    logger.info('🔑 AccountDropdown: événement open-login émis')
+  } catch (error) {
+    logger.error('Erreur lors de l\'émission de open-login:', error)
+    throw error // Re-lancer l'erreur pour Vue.js
+  }
 }
 
 function toggleDropdown() {
@@ -182,6 +188,12 @@ function openDevelopment() {
 async function logout() {
   isOpen.value = false
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      logger.error('Firebase Auth non disponible pour la déconnexion')
+      return
+    }
+    
     const userEmail = auth.currentUser?.email
     
     await auth.signOut()
@@ -190,7 +202,7 @@ async function logout() {
     try {
       await AuditClient.logLogout(userEmail)
     } catch (auditError) {
-      console.warn('Erreur audit logout:', auditError)
+      logger.warn('Erreur audit logout:', auditError)
     }
     
     // EFFACER TOUTES LES SESSIONS LOCALES à la déconnexion
@@ -200,20 +212,20 @@ async function logout() {
       
       pinSessionManager.clearSession()
       playerPasswordSessionManager.clearAllSessions()
-      console.log('Sessions locales effacées à la déconnexion')
+      logger.info('Sessions locales effacées à la déconnexion')
     } catch (sessionError) {
-      console.warn('Erreur lors de l\'effacement des sessions:', sessionError)
+      logger.warn('Erreur lors de l\'effacement des sessions:', sessionError)
     }
     
     emit('logout')
   } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error)
+    logger.error('Erreur lors de la déconnexion:', error)
     
     // Logger l'erreur d'audit
     try {
       await AuditClient.logError(error, { context: 'logout_attempt' })
     } catch (auditError) {
-      console.warn('Erreur audit error:', auditError)
+      logger.warn('Erreur audit error:', auditError)
     }
   }
 }

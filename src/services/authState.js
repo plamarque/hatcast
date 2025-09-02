@@ -25,6 +25,11 @@ const isAuthenticated = computed(() => {
 function forceSync() {
   try {
     const auth = getFirebaseAuth()
+    if (!auth) {
+      logger.debug('Firebase Auth pas encore disponible pour la synchronisation')
+      return
+    }
+    
     if (auth?.currentUser) {
       const user = auth.currentUser
       if (user !== currentUser.value) {
@@ -164,19 +169,19 @@ function forceInitialize() {
 
 // Initialiser automatiquement avec un délai pour laisser Firebase se charger
 let retryCount = 0
-const maxRetries = 10
+const maxRetries = 20 // Augmenter le nombre de tentatives
 const baseDelay = 500 // 500ms de base
 
 function autoInitialize() {
-  // Vérifier si Firebase est disponible
+  // Vérifier si Firebase est disponible ET complètement initialisé
   const auth = getFirebaseAuth()
-  if (!auth) {
+  if (!auth || !window.firebaseInitialized) {
     if (retryCount < maxRetries) {
       // Calculer le délai avec backoff exponentiel (max 10 secondes)
       const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000)
       retryCount++
       
-      logger.warn(`Firebase auth non disponible, tentative ${retryCount}/${maxRetries} dans ${delay}ms`)
+      logger.warn(`Firebase auth non disponible ou non initialisé, tentative ${retryCount}/${maxRetries} dans ${delay}ms`)
       setTimeout(autoInitialize, delay)
       return
     } else {
