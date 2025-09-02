@@ -151,7 +151,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { auth, db, resetPlayerPassword } from '../services/firebase.js'
+import { getFirebaseAuth, getFirebaseDb, resetPlayerPassword } from '../services/firebase.js'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { createAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { queueVerificationEmail } from '../services/emailService.js'
@@ -208,7 +208,12 @@ async function updateAccountEmail() {
 }
 
 async function changePassword() {
-  if (!email.value) return
+  // Fonction de changement de mot de passe
+  
+  if (!email.value) {
+    passwordError.value = 'Adresse email non disponible. Veuillez vous reconnecter.'
+    return
+  }
   
   passwordLoading.value = true
   passwordError.value = ''
@@ -216,7 +221,6 @@ async function changePassword() {
   
   try {
     // Sauvegarder le contexte "Mon Compte" avant l'envoi de l'email
-    // Sauvegarder l'état complet des modales et de la navigation
     const currentPath = window.location.pathname + window.location.search
     const currentNavigation = {
       lastVisitedPage: currentPath,
@@ -235,9 +239,22 @@ async function changePassword() {
     localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
     
     await resetPlayerPassword(email.value)
-    passwordSuccess.value = 'Email de réinitialisation envoyé. Vérifiez votre boîte de réception.'
-  } catch (e) {
-    passwordError.value = 'Impossible d\'envoyer l\'email de réinitialisation. Veuillez réessayer.'
+    passwordSuccess.value = 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+  } catch (error) {
+    // Gestion des erreurs de changement de mot de passe
+    
+    // Afficher un message d'erreur plus spécifique selon le type d'erreur
+    if (error.code === 'AUTH_USER_NOT_FOUND') {
+      passwordError.value = 'Aucun compte trouvé avec cette adresse email.'
+    } else if (error.code === 'auth/user-not-found') {
+      passwordError.value = 'Aucun compte trouvé avec cette adresse email.'
+    } else if (error.code === 'auth/invalid-email') {
+      passwordError.value = 'Adresse email invalide.'
+    } else if (error.code === 'auth/too-many-requests') {
+      passwordError.value = 'Trop de tentatives. Veuillez réessayer plus tard.'
+    } else {
+      passwordError.value = error.message || 'Impossible d\'envoyer l\'email de réinitialisation. Veuillez réessayer.'
+    }
   } finally {
     passwordLoading.value = false
   }
@@ -253,6 +270,12 @@ async function loadPlayerAssociations() {
     const raw = email.value ? await listAssociationsForEmail(email.value) : []
     // Enrichir avec le nom réel du joueur depuis la saison
     const enriched = []
+    const db = getFirebaseDb()
+    if (!db) {
+      associations.value = []
+      return
+    }
+    
     for (const a of raw) {
       let playerName = a.playerId
       let seasonName = a.seasonId || '—'
@@ -284,6 +307,10 @@ async function dissociatePlayer(assoc) {
   try {
     // Supprimer l'association depuis Firestore
     const { deleteDoc } = await import('firebase/firestore')
+    const db = getFirebaseDb()
+    if (!db) {
+      throw new Error('Firebase n\'est pas encore initialisé')
+    }
     
     if (assoc.seasonId) {
       // Association spécifique à une saison
@@ -332,20 +359,43 @@ function openPlayerModal(association) {
 
 function close() { emit('close') }
 
-watch(() => props.show, (v) => { 
+// Fonction pour charger l'email de l'utilisateur connecté
+async function loadUserEmail() {
+  try {
+    // Attendre que Firebase soit initialisé
+    let attempts = 0
+    const maxAttempts = 50 // 5 secondes max
+    
+    while (attempts < maxAttempts) {
+      const auth = getFirebaseAuth()
+      if (auth && auth.currentUser) {
+        email.value = auth.currentUser.email || ''
+        // Email chargé avec succès
+        return
+      }
+      
+      // Attendre 100ms avant le prochain essai
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
+    
+    console.warn('Impossible de charger l\'email utilisateur après', maxAttempts * 100, 'ms')
+  } catch (error) {
+    console.error('Erreur lors du chargement de l\'email:', error)
+  }
+}
+
+watch(() => props.show, async (v) => { 
   if (v) { 
-    try {
-      email.value = auth?.currentUser?.email || ''
-      loadPlayerAssociations()
-    } catch {}
+    await loadUserEmail()
+    await loadPlayerAssociations()
   } 
 })
-onMounted(() => { 
+
+onMounted(async () => { 
   if (props.show) { 
-    try {
-      email.value = auth?.currentUser?.email || ''
-      loadPlayerAssociations()
-    } catch {}
+    await loadUserEmail()
+    await loadPlayerAssociations()
   } 
 })
 </script>

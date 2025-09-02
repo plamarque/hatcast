@@ -245,6 +245,8 @@ export function getFirebaseFunctions() {
 }
 
 // Export des services pour compatibilité
+// Note: Ces exports sont dynamiques et peuvent être null au moment de l'import
+// Utilisez les getters pour un accès plus fiable
 export const db = getFirebaseDb();
 export const auth = getFirebaseAuth();
 export const storage = getFirebaseStorage();
