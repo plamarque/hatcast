@@ -1,68 +1,51 @@
 <template>
   <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <!-- Header -->
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">
-        {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
-      </h2>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <!-- Header fixe -->
+      <div class="p-6 pb-4 border-b border-gray-700/50">
+        <h2 class="text-2xl font-bold text-white text-center">
+          {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
+        </h2>
+      </div>
 
-      <!-- Formulaire -->
-      <form @submit.prevent="handleSubmit">
-        <!-- Titre -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
-          <input
-            v-model="formData.title"
-            type="text"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="Titre du spectacle"
-            @keydown.esc="handleCancel"
-            @keydown.enter="handleSubmit"
-            ref="titleInput"
-            required
-          >
+      <!-- Contenu scrollable -->
+      <div class="flex-1 overflow-y-auto p-6 pt-4">
+        <form @submit.prevent="handleSubmit" class="space-y-6">
+        <!-- Titre et Date sur une seule ligne -->
+        <div>
+          <div class="grid grid-cols-3 gap-4">
+            <!-- Titre (prend 2/3 de l'espace) -->
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
+              <input
+                v-model="formData.title"
+                type="text"
+                class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+                placeholder="Titre du spectacle"
+                @keydown.esc="handleCancel"
+                @keydown.enter="handleSubmit"
+                ref="titleInput"
+                required
+              >
+            </div>
+            
+            <!-- Date (prend 1/3 de l'espace) -->
+            <div class="col-span-1">
+              <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
+              <input
+                v-model="formData.date"
+                type="date"
+                class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+                @keydown.esc="handleCancel"
+                @keydown.enter="handleSubmit"
+                required
+              >
+            </div>
+          </div>
         </div>
 
-        <!-- Date -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
-          <input
-            v-model="formData.date"
-            type="date"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-            @keydown.esc="handleCancel"
-            @keydown.enter="handleSubmit"
-            required
-          >
-        </div>
-
-        <!-- Description -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
-          <textarea
-            v-model="formData.description"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            rows="3"
-            placeholder="Description du spectacle (optionnel)"
-            @keydown.esc="handleCancel"
-          ></textarea>
-        </div>
-
-        <!-- Archivé -->
-        <div class="mb-6 flex items-center gap-3">
-          <input 
-            :id="`${mode}-archived`" 
-            type="checkbox" 
-            v-model="formData.archived" 
-            class="w-4 h-4" 
-          />
-          <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
-            {{ mode === 'create' ? 'Créer comme archivé' : 'Archiver ce spectacle' }}
-          </label>
-        </div>
-
-        <!-- Section Équipe -->
-        <div class="mb-6">
+        <!-- Section Type d'événement -->
+        <div>
           <!-- Sélecteur de type d'événement avec nombre de personnes -->
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-400 mb-2">Type d'événement</label>
@@ -122,8 +105,8 @@
               </button>
             </div>
             
-            <!-- Rôles principaux (disposition horizontale compacte) -->
-            <div class="grid grid-cols-2 gap-3 mb-3">
+            <!-- Rôles principaux (responsive: 1 colonne mobile, 2 colonnes desktop) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div v-for="roleName in visibleRoles" :key="roleName" class="flex items-center gap-2">
                 <span class="text-lg">{{ safeRoleEmojis[roleName] }}</span>
                 <span class="text-sm text-gray-300 flex-1">{{ safeRoleLabels[roleName] }}</span>
@@ -138,8 +121,8 @@
               </div>
             </div>
             
-            <!-- Rôles supplémentaires (disposition horizontale compacte) -->
-            <div v-if="showAllRoles" class="grid grid-cols-2 gap-3 mb-3">
+            <!-- Rôles supplémentaires (responsive: 1 colonne mobile, 2 colonnes desktop) -->
+            <div v-if="showAllRoles" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div v-for="roleName in hiddenRoles" :key="roleName" class="flex items-center gap-2">
                 <span class="text-lg">{{ safeRoleEmojis[roleName] }}</span>
                 <span class="text-sm text-gray-300 flex-1">{{ safeRoleLabels[roleName] }}</span>
@@ -167,7 +150,35 @@
           </div>
         </div>
 
-        <!-- Actions -->
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+          <textarea
+            v-model="formData.description"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            rows="3"
+            placeholder="Description du spectacle (optionnel)"
+            @keydown.esc="handleCancel"
+          ></textarea>
+        </div>
+
+        <!-- Archivé -->
+        <div class="flex items-center gap-3">
+          <input 
+            :id="`${mode}-archived`" 
+            type="checkbox" 
+            v-model="formData.archived" 
+            class="w-4 h-4" 
+          />
+          <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
+            {{ mode === 'create' ? 'Créer comme archivé' : 'Archiver ce spectacle' }}
+          </label>
+        </div>
+        </form>
+      </div>
+
+      <!-- Boutons fixes en bas -->
+      <div class="p-6 pt-4 border-t border-gray-700/50">
         <div class="flex justify-end space-x-3">
           <button
             @click="handleCancel"
@@ -177,13 +188,14 @@
             Annuler
           </button>
           <button
-            type="submit"
+            @click="handleSubmit"
+            type="button"
             class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300"
           >
             {{ mode === 'create' ? 'Créer' : 'Sauvegarder' }}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>
