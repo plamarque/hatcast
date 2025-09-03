@@ -1152,12 +1152,16 @@ async function updateLogLevel() {
     currentLogLevel.value = selectedLogLevel.value;
     logger.info(`🔧 Niveau de log mis à jour vers: ${currentLogLevel.value}`);
     
+    // Mettre à jour le localStorage directement
+    localStorage.setItem('hatcast_log_level', selectedLogLevel.value);
+    console.log(`🔧 Niveau de log sauvegardé en localStorage: ${selectedLogLevel.value}`);
+    
     // Mettre à jour le logger côté client
     const { updateLogLevel } = await import('../services/logger.js');
     await updateLogLevel();
     
     // Afficher le message de succès dans la modale
-    logLevelSuccessMessage.value = `Niveau de log mis à jour vers ${currentLogLevel.value.toUpperCase()}. Les changements s'appliquent immédiatement.`;
+    logLevelSuccessMessage.value = `Niveau de log mis à jour vers ${currentLogLevel.value.toUpperCase()}. Les changements s'appliquent immédiatement et sont sauvegardés.`;
     
     // Effacer le message après 5 secondes
     setTimeout(() => {
