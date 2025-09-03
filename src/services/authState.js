@@ -79,6 +79,16 @@ async function initialize() {
         providers: user?.providerData?.map(p => p.providerId) || []
       })
       
+      // Store user avatar for player avatars service
+      if (user && user.email && user.photoURL) {
+        try {
+          const { storeUserAvatar } = await import('./playerAvatars.js')
+          storeUserAvatar(user.email, user.photoURL)
+        } catch (error) {
+          logger.debug('Could not store user avatar:', error)
+        }
+      }
+      
 
       
       // Tracking de navigation et audit pour les changements d'authentification

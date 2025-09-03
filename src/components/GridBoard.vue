@@ -295,27 +295,38 @@
             >
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
-                  <span 
-                    v-if="preferredPlayerIdsSet.has(player.id)"
-                    class="text-yellow-400 mr-1 text-sm"
-                    title="Ma personne"
-                  >
-                    ⭐
-                  </span>
-                  <span 
-                    v-else-if="isPlayerProtectedInGrid(player.id)"
-                    class="text-yellow-400 mr-1 text-sm"
-                    :title="preferredPlayerIdsSet.has(player.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
-                  >
-                    {{ preferredPlayerIdsSet.has(player.id) ? '⭐' : '🔒' }}
-                  </span>
-                                    <div 
+                  <div 
                     @click="showPlayerDetails(player)" 
                     class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group"
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
-                    <span class="group-hover:text-purple-300 transition-colors duration-200">{{ player.name }}</span>
+                    <div class="flex items-center gap-2">
+                      <div class="relative">
+                        <PlayerAvatar 
+                          :player-id="player.id"
+                          :season-id="seasonId"
+                          :player-name="player.name"
+                          size="sm"
+                        />
+                        <!-- Superposed status icons -->
+                        <span 
+                          v-if="preferredPlayerIdsSet.has(player.id)"
+                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          title="Ma personne"
+                        >
+                          ⭐
+                        </span>
+                        <span 
+                          v-else-if="isPlayerProtectedInGrid(player.id)"
+                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          :title="preferredPlayerIdsSet.has(player.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
+                        >
+                          🔒
+                        </span>
+                      </div>
+                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ player.name }}</span>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -1591,6 +1602,7 @@ import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
