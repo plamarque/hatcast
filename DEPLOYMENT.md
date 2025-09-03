@@ -142,7 +142,12 @@ gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
   --member="serviceAccount:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/firebaserules.admin"
 
-# 9. Vérifier que le service account GitHub Actions a les bonnes permissions
+# 9. Accorder le rôle "Firebase Storage Admin" au service account Firebase Admin SDK
+gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
+  --member="serviceAccount:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/firebasestorage.admin"
+
+# 10. Vérifier que le service account GitHub Actions a les bonnes permissions
 # (déjà configuré via le secret FIREBASE_SERVICE_ACCOUNT_HATCAST)
 ```
 
@@ -154,6 +159,7 @@ gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
 - **`roles/firebaseextensions.admin`** : Permet l'administration des Firebase Extensions (nécessaire pour le déploiement)
 - **`roles/cloudscheduler.admin`** : Permet l'administration de Cloud Scheduler (nécessaire pour les fonctions planifiées)
 - **`roles/firebaserules.admin`** : Permet l'administration des Firestore Rules (nécessaire pour le déploiement des règles)
+- **`roles/firebasestorage.admin`** : Permet l'administration de Firebase Storage (nécessaire pour le déploiement des règles de stockage)
 - **`roles/firebase.admin`** : Permet la gestion complète Firebase (déjà accordé par défaut)
 
 ### **Vérification des permissions**
@@ -175,12 +181,14 @@ Les permissions doivent être accordées dans cet ordre spécifique :
 4. **`firebaseextensions.admin`** : Permet l'administration des Firebase Extensions
 5. **`cloudscheduler.admin`** : Permet l'administration de Cloud Scheduler
 6. **`firebaserules.admin`** : Permet l'administration des Firestore Rules
+7. **`firebasestorage.admin`** : Permet l'administration de Firebase Storage
 
 **Note** : 
 - L'erreur `Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs` indique qu'il manque le rôle `iam.serviceAccountUser` pour le service account `firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com`.
 - L'erreur `HTTP Error: 403, The caller does not have permission` sur `firebaseextensions.googleapis.com` indique qu'il manque le rôle `firebaseextensions.admin`.
 - L'erreur `HTTP Error: 403, The principal lacks IAM permission "cloudscheduler.jobs.update"` indique qu'il manque le rôle `cloudscheduler.admin`.
 - L'erreur `HTTP Error: 403, The caller does not have permission` sur `firebaserules.googleapis.com` indique qu'il manque le rôle `firebaserules.admin`.
+- L'erreur `HTTP Error: 403, Permission 'firebasestorage.defaultBucket.get' denied` indique qu'il manque le rôle `firebasestorage.admin`.
 
 ## 📧 **Configuration Email par Environnement**
 
