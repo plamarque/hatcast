@@ -433,9 +433,9 @@ const refreshEmailConfig = async () => {
       environment: environment,
       service: environment === 'development' || environment === 'staging' ? 'ethereal' : 'gmail',
       etherealConfigured: configService.isEtherealConfigured(),
-      etherealSource: etherealCredentials.source,
-      etherealUser: etherealCredentials.user,
-      etherealPass: etherealCredentials.pass,
+      etherealSource: etherealCredentials ? etherealCredentials.source : 'none',
+      etherealUser: etherealCredentials ? etherealCredentials.user : null,
+      etherealPass: etherealCredentials ? etherealCredentials.pass : null,
       captureEnabled: environment === 'development' || environment === 'staging'
     };
     
@@ -563,10 +563,10 @@ const runAdvancedDiagnostic = async () => {
         code: response.status,
         message: 'URL accessible avec nos credentials dans les query parameters',
         credentials: {
-          source: etherealCredentials.source,
-          user: etherealCredentials.user,
-          hasUser: !!etherealCredentials.user,
-          hasPass: !!etherealCredentials.pass
+          source: etherealCredentials ? etherealCredentials.source : 'none',
+          user: etherealCredentials ? etherealCredentials.user : null,
+          hasUser: etherealCredentials ? !!etherealCredentials.user : false,
+          hasPass: etherealCredentials ? !!etherealCredentials.pass : false
         },
         url: urlWithCredentials,
         response: responseData
