@@ -1,68 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const EmailService = require('./emailService');
-
-/**
- * Configuration CORS intelligente basée sur l'environnement
- * Détecte automatiquement l'environnement et configure CORS en conséquence
- */
-function getAllowedOrigins() {
-  // Détecter l'environnement depuis la configuration Firebase
-  const environment = functions.config().env?.firebase_env || process.env.NODE_ENV || 'development';
-  
-  console.log(`🌍 Configuration CORS pour l'environnement: ${environment}`);
-  
-  // Charger les URLs depuis la configuration Firebase
-  try {
-    const config = functions.config();
-    
-    // URLs de production
-    const productionUrls = config.urls?.production?.split(',') || [];
-    
-    // URLs de staging
-    const stagingUrls = config.urls?.staging?.split(',') || [];
-    
-    // URLs de développement
-    const developmentUrls = config.urls?.development?.split(',') || [];
-    
-    // Combiner toutes les URLs configurées
-    const configuredUrls = [...productionUrls, ...stagingUrls, ...developmentUrls];
-    
-    if (configuredUrls.length > 0) {
-      console.log('🌍 URLs CORS chargées depuis la config Firebase:', configuredUrls);
-      return configuredUrls;
-    }
-  } catch (error) {
-    console.warn('⚠️ Erreur lors du chargement de la config CORS:', error.message);
-  }
-  
-  // Fallback vers des patterns génériques si pas de config
-  console.log('🌍 Utilisation des patterns CORS par défaut');
-  return [
-    // Firebase Hosting (tous vos sites)
-    'https://*.web.app',
-    'https://*.firebaseapp.com',
-    
-    // Développement local
-    'https://localhost:*',
-    'http://localhost:*',
-    
-    // Réseau local (toutes les plages)
-    'https://192.168.*.*:*',
-    'http://192.168.*.*:*',
-    'https://10.*.*.*:*',
-    'http://10.*.*.*:*',
-    'https://172.16.*.*:*',
-    'http://172.16.*.*:*'
-  ];
-}
-
-const cors = require('cors')({
-  origin: getAllowedOrigins(),
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-});
+const { cors } = require('./corsConfig');
 
 /**
  * Fonctions HTTP Firebase pour l'envoi d'emails
