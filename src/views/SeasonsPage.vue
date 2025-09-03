@@ -4,7 +4,7 @@
     <AppHeader 
       :is-scrolled="isScrolled"
       :is-connected="isConnected"
-      custom-logo="/logos/hatcast-mask.png"
+      :show-back-button="true"
       @open-account-menu="openAccountMenu"
       @open-help="openHelp"
       @open-notifications="openNotifications"

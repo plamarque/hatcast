@@ -2,9 +2,22 @@
   <header data-testid="app-header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-lg' : 'bg-transparent'">
     <nav class="container mx-auto px-4 py-4">
       <div class="flex items-center justify-between">
-        <!-- Logo HatCast à gauche -->
+        <!-- Logo HatCast à gauche OU bouton de retour -->
         <div class="flex items-center">
-          <a href="/" data-testid="home-link" class="flex items-center" title="Retour à l'accueil HatCast">
+          <!-- Bouton de retour si showBackButton est true -->
+          <button 
+            v-if="showBackButton"
+            @click="goBack"
+            class="flex items-center text-white hover:text-purple-300 transition-colors duration-200 p-1.5 md:p-2 rounded-full hover:bg-white/10"
+            title="Retour à l'accueil"
+          >
+            <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          
+          <!-- Logo HatCast si showBackButton est false -->
+          <a v-else href="/" data-testid="home-link" class="flex items-center" title="Retour à l'accueil HatCast">
             <div class="relative w-48 h-12 md:w-56 md:h-14">
               <!-- Logo personnalisé si fourni -->
               <template v-if="customLogo">
@@ -75,18 +88,20 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { auth } from '../services/firebase.js'
 import { currentUser, forceSync } from '../services/authState.js'
 import AccountDropdown from './AccountDropdown.vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import logger from '../services/logger.js'
 
 const props = defineProps({
   isScrolled: { type: Boolean, default: false },
   customLogo: { type: String, default: null },
-  isConnected: { type: Boolean, default: false }
+  isConnected: { type: Boolean, default: false },
+  showBackButton: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account-creation', 'open-development'])
 
 const route = useRoute()
+const router = useRouter()
 
 // Style du bouton selon l'état du scroll
 const buttonClass = computed(() => {
@@ -94,6 +109,11 @@ const buttonClass = computed(() => {
     ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' 
     : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'
 })
+
+// Fonction de retour - redirige vers l'accueil
+function goBack() {
+  router.push('/')
+}
 
 // Forcer la synchronisation quand la route change
 watch(() => route.path, () => {
