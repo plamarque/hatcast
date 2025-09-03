@@ -11,6 +11,7 @@
       @logout="handleLogout"
       @open-login="openAccountLogin"
       @open-account-creation="openAccountCreation"
+      @open-development="openDevelopment"
     />
 
     <!-- Section Hero -->
@@ -210,43 +211,25 @@
       </div>
     </section>
 
-    <!-- Modales d'authentification -->
-    <!-- DEBUG: showAccountLogin = {{ showAccountLogin }} -->
-    <AccountLoginModal 
-      v-if="showAccountLogin" 
-      :show="showAccountLogin"
-      @close="showAccountLogin = false"
-      @success="handlePostLoginNavigation"
-      @open-account-creation="openAccountCreation"
-    />
-    <!-- DEBUG: Fin AccountLoginModal -->
-    
-    <AccountCreationModal 
-      v-if="showAccountCreation" 
-      :show="showAccountCreation"
-      @close="showAccountCreation = false"
+    <!-- Gestionnaire de modales unifié -->
+    <ModalManager
+      ref="modalManager"
+      :show-account-login="showAccountLogin"
+      :show-account-creation="showAccountCreation"
+      :show-account-menu="showAccountMenu"
+      :show-notifications="showNotifications"
+      :show-players="showPlayers"
+      :show-development-modal="showDevelopmentModal"
+      @post-login-navigation="handlePostLoginNavigation"
       @account-created="handlePostLoginNavigation"
-    />
-
-    <!-- Menu du compte -->
-    <AccountMenu 
-      v-if="showAccountMenu" 
-      @close="showAccountMenu = false"
       @open-help="scrollToHelp"
-      @open-notifications="openNotifications"
-      @open-players="openPlayers"
       @logout="handleLogout"
-    />
-
-    <!-- Modales de notifications et joueurs -->
-    <NotificationsModal 
-      v-if="showNotifications" 
-      @close="showNotifications = false"
-    />
-    
-    <PlayersModal 
-      v-if="showPlayers" 
-      @close="showPlayers = false"
+      @close-account-login="showAccountLogin = false"
+      @close-account-creation="showAccountCreation = false"
+      @close-account-menu="showAccountMenu = false"
+      @close-notifications="showNotifications = false"
+      @close-players="showPlayers = false"
+      @close-development-modal="showDevelopmentModal = false"
     />
   </div>
 </template>
@@ -256,12 +239,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getLastVisitedSeason } from '../services/seasonPreferences.js'
 import { currentUser, isConnected } from '../services/authState.js'
-import AccountLoginModal from '../components/AccountLoginModal.vue'
-import AccountCreationModal from '../components/AccountCreationModal.vue'
-import AccountMenu from '../components/AccountMenu.vue'
 import AppHeader from '../components/AppHeader.vue'
-import NotificationsModal from '../components/NotificationsModal.vue'
-import PlayersModal from '../components/PlayersModal.vue'
+import ModalManager from '../components/ModalManager.vue'
 import logger from '../services/logger.js'
 
 const router = useRouter()
@@ -275,6 +254,10 @@ const showAccountCreation = ref(false)
 const showAccountMenu = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
+const showDevelopmentModal = ref(false)
+
+// Référence au gestionnaire de modales
+const modalManager = ref(null)
 
 // Vérifier automatiquement s'il y a une saison mémorisée pour redirection
 onMounted(async () => {
@@ -317,28 +300,12 @@ function openAccountMenu() {
 
 function openAccountLogin() {
   logger.info('🔑 HomePage: openAccountLogin() appelé')
-  logger.debug('showAccountLogin avant =', showAccountLogin.value)
   showAccountLogin.value = true
-  logger.debug('showAccountLogin après =', showAccountLogin.value)
-  logger.debug('showAccountLogin type =', typeof showAccountLogin.value)
-  logger.debug('showAccountLogin ref =', showAccountLogin)
-  
-  // Debug du composant modal
-  logger.debug('Composant AccountLoginModal importé =', !!AccountLoginModal)
-  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="email-input"]'))
 }
 
 function openAccountCreation() {
   logger.info('🔑 HomePage: openAccountCreation() appelé')
-  logger.debug('showAccountCreation avant =', showAccountCreation.value)
   showAccountCreation.value = true
-  logger.debug('showAccountCreation après =', showAccountCreation.value)
-  logger.debug('showAccountCreation type =', typeof showAccountCreation.value)
-  logger.debug('showAccountCreation ref =', showAccountCreation)
-  
-  // Debug du composant modal
-  logger.debug('Composant AccountCreationModal importé =', !!AccountCreationModal)
-  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="create-account-modal"]'))
 }
 
 function openNotifications() {
@@ -347,6 +314,10 @@ function openNotifications() {
 
 function openPlayers() {
   showPlayers.value = true
+}
+
+function openDevelopment() {
+  showDevelopmentModal.value = true
 }
 
 function handleLogout() {

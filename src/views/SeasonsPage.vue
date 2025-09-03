@@ -12,6 +12,7 @@
       @logout="handleLogout"
       @open-login="openAccountLogin"
       @open-account-creation="openAccountCreation"
+      @open-development="openDevelopment"
     />
 
     <!-- Contenu principal -->
@@ -302,41 +303,25 @@
       </div>
     </div>
 
-    <!-- Modales d'authentification -->
-    <AccountLoginModal 
-      v-if="showAccountLogin" 
-      :show="showAccountLogin"
-      @close="showAccountLogin = false"
-      @success="handlePostLoginNavigation"
-      @open-account-creation="openAccountCreation"
-    />
-    
-    <AccountCreationModal 
-      v-if="showAccountCreation" 
-      :show="showAccountCreation"
-      @close="showAccountCreation = false"
+    <!-- Gestionnaire de modales unifié -->
+    <ModalManager
+      ref="modalManager"
+      :show-account-login="showAccountLogin"
+      :show-account-creation="showAccountCreation"
+      :show-account-menu="showAccountMenu"
+      :show-notifications="showNotifications"
+      :show-players="showPlayers"
+      :show-development-modal="showDevelopmentModal"
+      @post-login-navigation="handlePostLoginNavigation"
       @account-created="handleAccountCreated"
-    />
-
-    <!-- Menu du compte -->
-    <AccountMenu 
-      v-if="showAccountMenu" 
-      @close="showAccountMenu = false"
       @open-help="openHelp"
-      @open-notifications="openNotifications"
-      @open-players="openPlayers"
       @logout="handleLogout"
-    />
-
-    <!-- Modales de notifications et joueurs -->
-    <NotificationsModal 
-      v-if="showNotifications" 
-      @close="showNotifications = false"
-    />
-    
-    <PlayersModal 
-      v-if="showPlayers" 
-      @close="showPlayers = false"
+      @close-account-login="showAccountLogin = false"
+      @close-account-creation="showAccountCreation = false"
+      @close-account-menu="showAccountMenu = false"
+      @close-notifications="showNotifications = false"
+      @close-players="showPlayers = false"
+      @close-development-modal="showDevelopmentModal = false"
     />
   </div>
 </template>
@@ -351,11 +336,7 @@ import { clearLastSeasonPreference } from '../services/seasonPreferences.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
 import AppHeader from '../components/AppHeader.vue'
 import CreateSeasonModal from '../components/CreateSeasonModal.vue'
-import AccountLoginModal from '../components/AccountLoginModal.vue'
-import AccountCreationModal from '../components/AccountCreationModal.vue'
-import AccountMenu from '../components/AccountMenu.vue'
-import NotificationsModal from '../components/NotificationsModal.vue'
-import PlayersModal from '../components/PlayersModal.vue'
+import ModalManager from '../components/ModalManager.vue'
 
 import logger from '../services/logger.js'
 
@@ -385,6 +366,10 @@ const showAccountCreation = ref(false)
 const showAccountMenu = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
+const showDevelopmentModal = ref(false)
+
+// Référence au gestionnaire de modales
+const modalManager = ref(null)
 
 // Flag pour mémoriser l'intention de créer une saison
 const wantsToCreateSeason = ref(false)
@@ -418,6 +403,13 @@ function openNotifications() {
 
 function openPlayers() {
   showPlayers.value = true
+}
+
+function openDevelopment() {
+  logger.info('🚀 SeasonsPage: openDevelopment() appelé')
+  logger.debug('showDevelopmentModal avant =', showDevelopmentModal.value)
+  showDevelopmentModal.value = true
+  logger.debug('showDevelopmentModal après =', showDevelopmentModal.value)
 }
 
 function handleLogout() {

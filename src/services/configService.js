@@ -1039,6 +1039,8 @@ class ConfigService {
         const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/getLogLevel`;
         
         logger.debug(`🔧 Tentative avec URL: ${functionUrl}`);
+        logger.debug(`🔧 Token d'auth: ${authToken ? authToken.substring(0, 20) + '...' : 'AUCUN'}`);
+        logger.debug(`🔧 Environnement détecté: ${this.environment}`);
         
         const response = await fetch(functionUrl, {
           method: 'GET',
@@ -1058,9 +1060,23 @@ class ConfigService {
             this.config.logs.level = result.level;
             return result.level;
           }
+        } else {
+          logger.error(`❌ Erreur HTTP ${response.status} lors de la récupération du niveau de log`);
+          logger.error(`🔍 Détails de la réponse:`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            url: response.url
+          });
         }
       }
     } catch (error) {
+      logger.error(`❌ Erreur lors de la récupération du niveau de log:`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause
+      });
       // En cas d'erreur, retourner null pour utiliser les valeurs par défaut
     }
     
@@ -1133,6 +1149,8 @@ class ConfigService {
         const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/setLogLevel`;
         
         logger.debug(`🔧 Tentative avec URL: ${functionUrl}`);
+        logger.debug(`🔧 Token d'auth: ${authToken ? authToken.substring(0, 20) + '...' : 'AUCUN'}`);
+        logger.debug(`🔧 Environnement détecté: ${this.environment}`);
         
         const response = await fetch(functionUrl, {
           method: 'POST',
@@ -1162,12 +1180,24 @@ class ConfigService {
         } else {
           const errorMsg = `Erreur HTTP ${response.status} lors de la mise à jour du niveau de log`;
           logger.error(`❌ ${errorMsg}`);
+          logger.error(`🔍 Détails de la réponse:`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            url: response.url
+          });
           throw new Error(errorMsg);
         }
       }
     } catch (error) {
       const errorMsg = error.message || 'Erreur inconnue lors de la mise à jour du niveau de log';
-      logger.error(`❌ ${errorMsg}:`, error);
+      logger.error(`❌ ${errorMsg}`);
+      logger.error(`🔍 Détails de l'erreur:`, {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause
+      });
       throw new Error(errorMsg);
     }
   }
