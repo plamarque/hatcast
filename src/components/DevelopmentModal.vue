@@ -75,12 +75,62 @@
               🔍 Debug
             </h4>
             <div class="space-y-3">
+              <!-- Niveau de log actuel -->
+              <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div class="text-sm text-gray-300">
+                  Niveau de log: 
+                  <span class="px-2 py-1 rounded text-xs font-medium ml-2"
+                        :class="{
+                          'bg-green-600/30 text-green-300 border border-green-500/30': currentLogLevel === 'debug',
+                          'bg-blue-600/30 text-blue-300 border border-blue-500/30': currentLogLevel === 'info',
+                          'bg-yellow-600/30 text-yellow-300 border border-yellow-500/30': currentLogLevel === 'warn',
+                          'bg-red-600/30 text-red-300 border border-red-500/30': currentLogLevel === 'error',
+                          'bg-gray-600/30 text-gray-300 border border-gray-500/30': currentLogLevel === 'silent'
+                        }">
+                    {{ currentLogLevel?.toUpperCase() || 'Non défini' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <select 
+                    v-model="selectedLogLevel" 
+                    @change="updateLogLevel"
+                    class="px-2 py-1 rounded text-xs font-medium border border-green-500/30 bg-green-600/30 text-green-300"
+                    :disabled="logLevelUpdating"
+                  >
+                    <option value="debug">DEBUG</option>
+                    <option value="info">INFO</option>
+                    <option value="warn">WARN</option>
+                    <option value="error">ERROR</option>
+                    <option value="silent">SILENT</option>
+                  </select>
+                  <span v-if="logLevelUpdating" class="text-green-300 text-xs">⏳</span>
+                </div>
+              </div>
+              
               <!-- Debug des variables d'environnement -->
               <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                 <div class="text-sm text-gray-300">Debug des variables d'environnement</div>
                 <button @click="showEnvironmentDebug = true" class="px-3 py-1 rounded bg-green-600 text-white text-xs hover:bg-green-500 transition-colors">
                   🔍 Debug Env
                 </button>
+              </div>
+              
+              <!-- Message de succès -->
+              <div v-if="logLevelSuccessMessage" class="p-3 bg-green-900/30 border border-green-500/30 rounded-lg">
+                <div class="text-sm text-green-300 flex items-center gap-2">
+                  <span>✅</span>
+                  <span>{{ logLevelSuccessMessage }}</span>
+                </div>
+              </div>
+              
+              <!-- Informations sur les logs -->
+              <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                <div class="text-xs text-green-400">
+                  💡 <strong>Mode de fonctionnement :</strong>
+                  <br>• <strong>Développement local :</strong> Utilise VITE_LOG_LEVEL du .env.local
+                  <br>• <strong>Staging/Production :</strong> Niveau configuré via Firebase (max 30s de délai)
+                  <br>• <strong>Debugging à distance :</strong> Activez DEBUG, regardez les logs, puis rebasculez
+                </div>
               </div>
             </div>
           </div>
@@ -329,6 +379,52 @@
                       {{ getConfigSourceEmoji('sessions', 'pinSessionDurationAnonymousMinutes') }}
                     </span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configuration des Logs -->
+            <div class="mb-4">
+              <h5 class="text-sm font-medium text-blue-300 mb-2">📝 Logs</h5>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Niveau actuel:</span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 rounded text-xs font-medium border"
+                          :class="{
+                            'bg-green-600/30 text-green-300 border-green-500/30': currentLogLevel === 'debug',
+                            'bg-blue-600/30 text-blue-300 border-blue-500/30': currentLogLevel === 'info',
+                            'bg-yellow-600/30 text-yellow-300 border-yellow-500/30': currentLogLevel === 'warn',
+                            'bg-red-600/30 text-red-300 border-red-500/30': currentLogLevel === 'error',
+                            'bg-gray-600/30 text-gray-300 border-gray-500/30': currentLogLevel === 'silent'
+                          }">
+                      {{ currentLogLevel?.toUpperCase() || 'Non défini' }}
+                    </span>
+                    <span class="text-2xl" title="FIREBASE_CONFIG">🔐</span>
+                  </div>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-blue-300 font-medium">Changer le niveau:</span>
+                  <div class="flex items-center gap-2">
+                    <select 
+                      v-model="selectedLogLevel" 
+                      @change="updateLogLevel"
+                      class="px-2 py-1 rounded text-xs font-medium border border-blue-500/30 bg-blue-600/30 text-blue-300"
+                      :disabled="logLevelUpdating"
+                    >
+                      <option value="debug">DEBUG (tout)</option>
+                      <option value="info">INFO (important)</option>
+                      <option value="warn">WARN (avertissements)</option>
+                      <option value="error">ERROR (erreurs uniquement)</option>
+                      <option value="silent">SILENT (aucun)</option>
+                    </select>
+                    <span v-if="logLevelUpdating" class="text-blue-300 text-xs">⏳</span>
+                    <span v-else class="text-2xl" title="FIREBASE_CONFIG">🔐</span>
+                  </div>
+                </div>
+                <div class="text-xs text-blue-400 mt-2">
+                  💡 Le niveau de log est configuré via Firebase et s'applique à tous les utilisateurs.
+                  <br>En développement local, le niveau par défaut est DEBUG.
                 </div>
               </div>
             </div>
@@ -760,11 +856,18 @@ const auditToggleButtonClass = computed(() => auditEnabled.value
   : 'bg-green-600 hover:bg-green-500'
 );
 
+// Log level state
+const currentLogLevel = ref('info');
+const selectedLogLevel = ref('info');
+const logLevelUpdating = ref(false);
+const logLevelSuccessMessage = ref('');
+
 const closeModal = () => {
   emit('close');
   // Reset state
   showEmailTest.value = false;
   showEnvironmentDebug.value = false;
+  logLevelSuccessMessage.value = '';
 };
 
 
@@ -1019,6 +1122,58 @@ async function toggleAudit() {
   }
 }
 
+// Fonctions pour gérer les logs
+async function checkLogLevel() {
+  try {
+    const configService = await import('../services/configService.js');
+    const level = configService.default.getLogLevel();
+    
+    currentLogLevel.value = level;
+    selectedLogLevel.value = level;
+    logger.info(`🔧 Niveau de log actuel: ${currentLogLevel.value}`);
+  } catch (error) {
+    logger.warn('⚠️ Impossible de récupérer le niveau de log:', error);
+    // Utiliser le niveau par défaut
+    currentLogLevel.value = 'info';
+    selectedLogLevel.value = 'info';
+  }
+}
+
+async function updateLogLevel() {
+  if (!selectedLogLevel.value || selectedLogLevel.value === currentLogLevel.value) {
+    return;
+  }
+  
+  logLevelUpdating.value = true;
+  try {
+    const configService = await import('../services/configService.js');
+    await configService.default.setLogLevel(selectedLogLevel.value);
+    
+    currentLogLevel.value = selectedLogLevel.value;
+    logger.info(`🔧 Niveau de log mis à jour vers: ${currentLogLevel.value}`);
+    
+    // Mettre à jour le logger côté client
+    const { updateLogLevel } = await import('../services/logger.js');
+    await updateLogLevel();
+    
+    // Afficher le message de succès dans la modale
+    logLevelSuccessMessage.value = `Niveau de log mis à jour vers ${currentLogLevel.value.toUpperCase()}. Les changements s'appliquent immédiatement.`;
+    
+    // Effacer le message après 5 secondes
+    setTimeout(() => {
+      logLevelSuccessMessage.value = '';
+    }, 5000);
+  } catch (error) {
+    const errorMessage = error.message || 'Erreur inconnue lors de la mise à jour du niveau de log';
+    logger.error('❌ Erreur lors de la mise à jour du niveau de log:', errorMessage);
+    alert(`❌ Erreur lors de la mise à jour du niveau de log:\n\n${errorMessage}\n\nVérifiez que vous êtes bien connecté et que vous avez les droits administrateur.`);
+    // Remettre la valeur précédente
+    selectedLogLevel.value = currentLogLevel.value;
+  } finally {
+    logLevelUpdating.value = false;
+  }
+}
+
 
 
 onMounted(async () => {
@@ -1039,6 +1194,9 @@ onMounted(async () => {
   
   // Vérifier le statut de l'audit
   await checkAuditStatus();
+  
+  // Vérifier le niveau de log
+  await checkLogLevel();
 });
 
 // Watcher pour actualiser les informations quand la modale de debug s'ouvre

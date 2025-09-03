@@ -48,17 +48,21 @@ class ConfigService {
     // 3. Configuration des sessions avec priorité intelligente
     const sessionConfig = await this.loadSessionConfig();
     
-    // 4. Fusion des configurations (sans les secrets pour l'instant)
+    // 4. Configuration des logs avec priorité intelligente
+    const logsConfig = await this.loadLogsConfig();
+    
+    // 5. Fusion des configurations (sans les secrets pour l'instant)
     this.config = {
       ...baseConfig,
       firebase: firebaseConfig,
       sessions: sessionConfig,
+      logs: logsConfig,
       secrets: {} // Initialement vide, sera chargé plus tard
     };
     
     this.isInitialized = true;
     
-    // 5. Log de la traçabilité
+    // 6. Log de la traçabilité
     this.logConfigSources();
     
     return this.config;
@@ -327,6 +331,75 @@ class ConfigService {
   }
 
     /**
+   * Charge la configuration des logs avec logique de priorité intelligente
+   */
+  async loadLogsConfig() {
+    const env = this.environment;
+    logger.info(`🔍 Chargement de la configuration des logs pour l'environnement: ${env}`);
+
+    // Valeurs par défaut (fallback)
+    const defaultLogsConfig = {
+      level: env === 'development' ? 'debug' : 'info'
+    };
+
+    const finalConfig = {};
+    const sources = {};
+
+    // Priorité 1: Variables d'environnement VITE (pour le dev local)
+    if (env === 'development') {
+      logger.info('🔍 Priorité 1: Recherche des configurations de logs dans les variables VITE...');
+      
+      const viteConfig = this.loadLogsConfigFromViteEnv();
+      Object.keys(defaultLogsConfig).forEach(key => {
+        if (viteConfig[key] !== undefined) {
+          finalConfig[key] = viteConfig[key];
+          sources[key] = 'VITE_ENV';
+        } else {
+          finalConfig[key] = defaultLogsConfig[key];
+          sources[key] = 'DEFAULT_FALLBACK';
+        }
+      });
+    } else {
+      // Priorité 2: Tentative de récupération depuis Firebase Functions
+      logger.info('🔍 Priorité 2: Tentative de récupération des configurations de logs depuis Firebase Functions...');
+      
+      try {
+        const firebaseConfig = await this.loadFromFirebaseFunctions();
+        if (firebaseConfig && firebaseConfig.logs) {
+          logger.info('✅ Configuration des logs récupérée depuis Firebase Functions');
+          Object.keys(defaultLogsConfig).forEach(key => {
+            if (firebaseConfig.logs[key] !== undefined) {
+              finalConfig[key] = firebaseConfig.logs[key];
+              sources[key] = 'FIREBASE_FUNCTIONS';
+            } else {
+              finalConfig[key] = defaultLogsConfig[key];
+              sources[key] = 'DEFAULT_FALLBACK';
+            }
+          });
+        } else {
+          // Fallback vers les valeurs par défaut
+          logger.warn('⚠️ Impossible de récupérer la config des logs depuis Firebase, utilisation des valeurs par défaut');
+          Object.keys(defaultLogsConfig).forEach(key => {
+            finalConfig[key] = defaultLogsConfig[key];
+            sources[key] = 'DEFAULT_FALLBACK';
+          });
+        }
+      } catch (error) {
+        logger.warn('⚠️ Erreur lors de la récupération des logs depuis Firebase, utilisation des valeurs par défaut:', error);
+        Object.keys(defaultLogsConfig).forEach(key => {
+          finalConfig[key] = defaultLogsConfig[key];
+          sources[key] = 'DEFAULT_FALLBACK';
+        });
+      }
+    }
+
+    // Stocker les sources pour la traçabilité
+    this.configSources.logs = sources;
+
+    return finalConfig;
+  }
+
+  /**
    * Charge la configuration des sessions avec logique de priorité intelligente
    */
   async loadSessionConfig() {
@@ -447,6 +520,28 @@ class ConfigService {
   }
 
   /**
+   * Charge la configuration des logs depuis les variables d'environnement VITE
+   */
+  loadLogsConfigFromViteEnv() {
+    const config = {};
+    
+    // Mapping des variables VITE vers les clés de logs
+    const viteMapping = {
+      'VITE_LOG_LEVEL': 'level'
+    };
+
+    Object.entries(viteMapping).forEach(([viteKey, configKey]) => {
+      const value = import.meta.env[viteKey];
+      if (value !== undefined) {
+        config[configKey] = value;
+        logger.debug(`✅ ${configKey} chargé depuis ${viteKey}: ${value}`);
+      }
+    });
+
+    return config;
+  }
+
+  /**
    * Charge la configuration des sessions depuis les variables d'environnement VITE
    */
   loadSessionConfigFromViteEnv() {
@@ -554,6 +649,13 @@ class ConfigService {
     if (this.configSources.sessions) {
       logger.info('  ⏰ Configuration des sessions:');
       Object.entries(this.configSources.sessions).forEach(([key, source]) => {
+        logger.info(`    - ${key}: ${source}`);
+      });
+    }
+    
+    if (this.configSources.logs) {
+      logger.info('  📝 Configuration des logs:');
+      Object.entries(this.configSources.logs).forEach(([key, source]) => {
         logger.info(`    - ${key}: ${source}`);
       });
     }
@@ -820,6 +922,254 @@ class ConfigService {
       this.environment = this.detectEnvironment();
     }
     return this.environment;
+  }
+
+  /**
+   * Retourne le niveau de log avec logique de priorité intelligente et cache
+   * Priorité: VITE_LOG_LEVEL (.env.local) > Firebase Config > Valeurs par défaut par environnement
+   */
+  getLogLevel() {
+    const env = this.environment;
+    
+    // Priorité 1: localStorage (pour mémoriser le choix de l'utilisateur en dev)
+    if (env === 'development') {
+      const savedLevel = localStorage.getItem('hatcast_log_level');
+      if (savedLevel) {
+        return savedLevel;
+      }
+    }
+    
+    // Priorité 2: Variable d'environnement VITE_LOG_LEVEL (pour le dev local)
+    const viteLogLevel = import.meta.env.VITE_LOG_LEVEL;
+    if (viteLogLevel) {
+      return viteLogLevel;
+    }
+    
+    // Priorité 2: Configuration Firebase (pour staging/production) avec cache
+    if (this.config?.logs?.level) {
+      // En mode développement, ne pas rafraîchir depuis Firebase
+      if (this.environment !== 'development') {
+        // Vérifier si on doit rafraîchir le cache (toutes les 30 secondes)
+        const now = Date.now();
+        if (!this.config.logs.lastFirebaseCheck || (now - this.config.logs.lastFirebaseCheck > 30000)) {
+          // Rafraîchir le cache en arrière-plan (non bloquant)
+          this.refreshLogLevelFromFirebase();
+        }
+      }
+      return this.config.logs.level;
+    }
+    
+    // Priorité 3: Valeurs par défaut selon l'environnement
+    const defaultLogLevels = {
+      development: 'debug',
+      staging: 'info',
+      production: 'info'
+    };
+    
+    const defaultLevel = defaultLogLevels[env] || 'info';
+    return defaultLevel;
+  }
+
+  /**
+   * Rafraîchit le niveau de log depuis Firebase (non bloquant)
+   */
+  async refreshLogLevelFromFirebase() {
+    // En mode développement, ne pas essayer de rafraîchir depuis Firebase
+    if (this.environment === 'development') {
+      return;
+    }
+    
+    // Ne pas bloquer l'exécution, faire le rafraîchissement en arrière-plan
+    setTimeout(async () => {
+      try {
+        const firebaseLevel = await this.loadLogLevelFromFirebaseInternal();
+        if (firebaseLevel) {
+          // Mettre à jour la configuration locale
+          if (!this.config.logs) {
+            this.config.logs = {};
+          }
+          this.config.logs.level = firebaseLevel;
+          this.config.logs.lastFirebaseCheck = Date.now();
+        }
+      } catch (error) {
+        // En cas d'erreur, ne pas mettre à jour le cache
+      }
+    }, 0);
+  }
+
+  /**
+   * Charge le niveau de log depuis Firebase (pour staging/production)
+   * Cette méthode est appelée après l'initialisation Firebase
+   */
+  async loadLogLevelFromFirebaseInternal() {
+    try {
+      // Vérifier si Firebase est initialisé
+      if (!window.firebaseInitialized) {
+        return null;
+      }
+
+      // Vérifier si on peut s'authentifier
+      const authToken = await this.getAuthToken();
+      if (!authToken) {
+        return null;
+      }
+
+      // Utiliser le SDK Firebase Functions au lieu d'une URL codée en dur
+      try {
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        const functions = getFunctions();
+        const getLogLevel = httpsCallable(functions, 'getLogLevel');
+        const result = await getLogLevel();
+        
+        if (result.data?.success && result.data?.level) {
+          // Mettre à jour la configuration locale
+          if (!this.config.logs) {
+            this.config.logs = {};
+          }
+          this.config.logs.level = result.data.level;
+          return result.data.level;
+        }
+      } catch (firebaseError) {
+        // Fallback vers l'URL directe si le SDK échoue
+        logger.warn('⚠️ SDK Firebase Functions échoué, tentative avec URL directe...');
+        
+        // Construire l'URL dynamiquement à partir de la configuration Firebase
+        const projectId = this.config.firebase?.projectId || 'impro-selector';
+        const region = 'us-central1'; // Région par défaut des Cloud Functions
+        const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/getLogLevel`;
+        
+        logger.debug(`🔧 Tentative avec URL: ${functionUrl}`);
+        
+        const response = await fetch(functionUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.level) {
+            // Mettre à jour la configuration locale
+            if (!this.config.logs) {
+              this.config.logs = {};
+            }
+            this.config.logs.level = result.level;
+            return result.level;
+          }
+        }
+      }
+    } catch (error) {
+      // En cas d'erreur, retourner null pour utiliser les valeurs par défaut
+    }
+    
+    return null;
+  }
+
+  /**
+   * Rafraîchit le niveau de log depuis Firebase (méthode publique)
+   */
+  async refreshLogLevel() {
+    await this.refreshLogLevelFromFirebase();
+  }
+
+  /**
+   * Met à jour le niveau de log dans la configuration Firebase
+   */
+  async setLogLevel(level) {
+    try {
+      // En développement local, on ne peut pas modifier le niveau de log via Firebase
+      // car les Cloud Functions ne sont pas accessibles depuis localhost
+      if (this.environment === 'development') {
+        logger.info(`🔧 Mode développement: niveau de log mis à jour localement vers: ${level}`);
+        // Mettre à jour la configuration locale seulement
+        if (!this.config.logs) { this.config.logs = {}; }
+        this.config.logs.level = level;
+        
+        // En développement, sauvegarder le choix dans localStorage
+        localStorage.setItem('hatcast_log_level', level);
+        return true;
+      }
+
+      // Vérifier si on peut s'authentifier
+      const authToken = await this.getAuthToken();
+      if (!authToken) {
+        const errorMsg = 'Pas de token d\'authentification, impossible de mettre à jour le niveau de log';
+        logger.warn(`⚠️ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      logger.info(`🔧 Mise à jour du niveau de log vers: ${level}`);
+      
+      // Utiliser le SDK Firebase Functions au lieu d'une URL codée en dur
+      try {
+        const { getFunctions, httpsCallable } = await import('firebase/functions');
+        const functions = getFunctions();
+        const setLogLevel = httpsCallable(functions, 'setLogLevel');
+        const result = await setLogLevel({ level });
+        
+        if (result.data?.success) {
+          // Mettre à jour la configuration locale
+          if (!this.config.logs) {
+            this.config.logs = {};
+          }
+          this.config.logs.level = level;
+          
+          logger.info(`✅ Niveau de log mis à jour avec succès vers: ${level}`);
+          return true;
+        } else {
+          const errorMsg = result.data?.message || 'Erreur inconnue lors de la mise à jour du niveau de log';
+          logger.error(`❌ ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+      } catch (firebaseError) {
+        // Fallback vers l'URL directe si le SDK échoue
+        logger.warn('⚠️ SDK Firebase Functions échoué, tentative avec URL directe...');
+        
+        // Construire l'URL dynamiquement à partir de la configuration Firebase
+        const projectId = this.config.firebase?.projectId || 'impro-selector';
+        const region = 'us-central1'; // Région par défaut des Cloud Functions
+        const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/setLogLevel`;
+        
+        logger.debug(`🔧 Tentative avec URL: ${functionUrl}`);
+        
+        const response = await fetch(functionUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ level })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            // Mettre à jour la configuration locale
+            if (!this.config.logs) {
+              this.config.logs = {};
+            }
+            this.config.logs.level = level;
+            
+            logger.info(`✅ Niveau de log mis à jour avec succès vers: ${level}`);
+            return true;
+          } else {
+            const errorMsg = result.message || 'Erreur inconnue lors de la mise à jour du niveau de log';
+            logger.error(`❌ ${errorMsg}`);
+            throw new Error(errorMsg);
+          }
+        } else {
+          const errorMsg = `Erreur HTTP ${response.status} lors de la mise à jour du niveau de log`;
+          logger.error(`❌ ${errorMsg}`);
+          throw new Error(errorMsg);
+        }
+      }
+    } catch (error) {
+      const errorMsg = error.message || 'Erreur inconnue lors de la mise à jour du niveau de log';
+      logger.error(`❌ ${errorMsg}:`, error);
+      throw new Error(errorMsg);
+    }
   }
 
   /**

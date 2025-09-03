@@ -95,6 +95,11 @@ class AdminService {
       const token = await this.getAuthToken();
       const url = `${this.baseUrl}/${functionName}`;
       
+            logger.debug(`🔐 callFunction - Appel à ${functionName}`);
+      logger.debug(`🔐 - URL: ${url}`);
+      logger.debug(`🔐 - Token présent: ${!!token}`);
+      logger.debug(`🔐 - Origin: ${window.location.origin}`);
+      
       const response = await fetch(url, {
         method: options.method || 'GET',
         headers: {
@@ -106,14 +111,22 @@ class AdminService {
         ...options
       });
 
+      logger.debug(`🔐 - Status de la réponse: ${response.status}`);
+      logger.debug(`🔐 - Headers de la réponse:`, Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        logger.error(`❌ Erreur HTTP ${response.status}:`, errorData);
         throw new Error(errorData.message || `Erreur HTTP: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      logger.debug(`🔐 - Réponse reçue:`, result);
+      return result;
     } catch (error) {
-      console.error(`❌ Erreur lors de l'appel à ${functionName}:`, error);
+      logger.error(`❌ Erreur lors de l'appel à ${functionName}:`, error);
+      logger.error(`❌ DEBUG - Type d'erreur:`, error.name);
+      logger.error(`❌ DEBUG - Message d'erreur:`, error.message);
       throw error;
     }
   }
@@ -153,17 +166,29 @@ class AdminService {
       }
 
       logger.info('🔐 Vérification du statut admin...');
+      logger.debug('🔐 checkAdminStatus - Début de la vérification');
+      logger.debug('🔐 - Utilisateur actuel:', this.auth?.currentUser?.email || 'Non connecté');
+      logger.debug('🔐 - URL de base:', this.baseUrl);
       
       const result = await this.callFunction('checkAdminStatus');
+      
+      logger.debug('🔐 - Réponse de la Cloud Function:', result);
       
       this.adminStatus = result.isAdmin;
       this.lastCheck = now;
       
-      console.log(`🔐 Statut admin: ${this.adminStatus ? '✅ OUI' : '❌ NON'}`);
+      logger.info(`🔐 Statut admin: ${this.adminStatus ? '✅ OUI' : '❌ NON'}`);
+      logger.debug('🔐 - Statut admin final:', this.adminStatus);
       
       return this.adminStatus;
     } catch (error) {
-      console.error('❌ Erreur lors de la vérification admin:', error);
+      logger.error('❌ Erreur lors de la vérification admin:', error);
+      logger.error('❌ DEBUG - Détails de l\'erreur:', {
+        message: error.message,
+        stack: error.stack,
+        user: this.auth?.currentUser?.email || 'Non connecté',
+        baseUrl: this.baseUrl
+      });
       this.adminStatus = false;
       this.lastCheck = now;
       return false;

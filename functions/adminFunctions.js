@@ -350,4 +350,95 @@ exports.testAdminAccess = functions.https.onRequest(async (req, res) => {
       });
     }
   });
+});
+
+/**
+ * Récupérer le niveau de log configuré (admin uniquement)
+ */
+exports.getLogLevel = functions.https.onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      await authenticateRequest(req, res, async () => {
+        // Vérification admin
+        adminService.requireAdmin(req, res, async () => {
+          try {
+            const config = functions.config();
+            const logLevel = config.logs?.level || 'info';
+            
+            console.log(`🔧 Niveau de log récupéré par ${req.user.email}: ${logLevel}`);
+            
+            res.json({
+              success: true,
+              level: logLevel,
+              message: 'Niveau de log récupéré avec succès',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('❌ Erreur lors de la récupération du niveau de log:', error);
+            res.status(500).json({ 
+              error: 'Log level retrieval failed',
+              message: 'Erreur lors de la récupération du niveau de log'
+            });
+          }
+        });
+      });
+    } catch (error) {
+      console.error('❌ Erreur dans getLogLevel:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Erreur lors de la vérification des permissions'
+      });
+    }
+  });
+});
+
+/**
+ * Mettre à jour le niveau de log (admin uniquement)
+ */
+exports.setLogLevel = functions.https.onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      await authenticateRequest(req, res, async () => {
+        // Vérification admin
+        adminService.requireAdmin(req, res, async () => {
+          try {
+            const { level } = req.body;
+            
+            if (!level || !['debug', 'info', 'warn', 'error', 'silent'].includes(level)) {
+              return res.status(400).json({
+                error: 'Invalid log level',
+                message: 'Niveau de log invalide. Valeurs acceptées: debug, info, warn, error, silent'
+              });
+            }
+            
+            // Mettre à jour la configuration Firebase
+            const config = functions.config();
+            const currentConfig = config.logs || {};
+            currentConfig.level = level;
+            
+            console.log(`🔧 Niveau de log mis à jour par ${req.user.email}: ${level}`);
+            
+            res.json({
+              success: true,
+              level: level,
+              message: `Niveau de log mis à jour vers ${level}`,
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('❌ Erreur lors de la mise à jour du niveau de log:', error);
+            res.status(500).json({ 
+              error: 'Log level update failed',
+              message: 'Erreur lors de la mise à jour du niveau de log'
+            });
+          }
+        });
+      });
+    } catch (error) {
+      console.error('❌ Erreur dans setLogLevel:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Erreur lors de la vérification des permissions'
+      });
+    }
+  });
 }); 

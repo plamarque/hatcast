@@ -10,12 +10,76 @@ const SAFE_KEYS = [
   'eventType', 'eventCategory', 'type', 'category', 'severity', 'tags'
 ]
 
-function getLogLevel() {
-  // Default: debug in development, warn in production unless overridden
-  const defaultLevel = (import.meta?.env?.MODE === 'development') ? 'debug' : 'warn'
-  const level = import.meta?.env?.VITE_LOG_LEVEL || defaultLevel
-  return level
+
+
+
+
+// Cache pour le niveau de log
+let cachedLogLevel = 'info'
+let lastLogLevelCheck = 0
+const LOG_LEVEL_CACHE_DURATION = 5000 // 5 secondes
+
+async function getLogLevelAsync() {
+  // Simple pass-through vers le configService
+  try {
+    // Utiliser import() dynamique au lieu de require() (qui n'existe pas dans le navigateur)
+    const configService = await import('./configService.js')
+    if (configService.default && configService.default.getLogLevel) {
+      const level = configService.default.getLogLevel()
+      // Mettre en cache
+      cachedLogLevel = level
+      lastLogLevelCheck = Date.now()
+      return level
+    }
+  } catch (error) {
+    console.warn('⚠️ Impossible de lire le niveau de log configuré:', error)
+  }
+  
+  // Fallback de sécurité
+  return 'info'
 }
+
+function getLogLevel() {
+  // Vérifier si le cache est encore valide
+  const now = Date.now()
+  if (now - lastLogLevelCheck > LOG_LEVEL_CACHE_DURATION) {
+    // Rafraîchir le cache en arrière-plan
+    getLogLevelAsync().then(level => {
+      cachedLogLevel = level
+      lastLogLevelCheck = now
+    }).catch(() => {
+      // En cas d'erreur, garder l'ancienne valeur
+    })
+  }
+  
+  return cachedLogLevel
+}
+
+
+
+
+
+// Fonction pour mettre à jour le niveau de log dynamiquement
+export async function updateLogLevel() {
+  // Simple pass-through vers le configService
+  try {
+    const configService = await import('./configService.js')
+    if (configService.default && configService.default.refreshLogLevel) {
+      await configService.default.refreshLogLevel()
+    }
+  } catch (error) {
+    console.warn('⚠️ Impossible de rafraîchir le niveau de log:', error)
+  }
+}
+
+// Initialiser le niveau de log au chargement
+updateLogLevel()
+getLogLevelAsync().then(level => {
+  cachedLogLevel = level
+  lastLogLevelCheck = Date.now()
+}).catch(() => {
+  // En cas d'erreur, utiliser la valeur par défaut
+})
 
 function levelToRank(level) {
   switch (level) {
@@ -105,11 +169,11 @@ function sanitizeArgs(args) {
   return out
 }
 
-const currentLevelRank = levelToRank(getLogLevel())
-
 function makeLoggerMethod(methodLevel, consoleMethod) {
   const methodRank = levelToRank(methodLevel)
   return (...args) => {
+    // Vérifier le niveau de log à chaque appel pour permettre les changements dynamiques
+    const currentLevelRank = levelToRank(getLogLevel())
     if (methodRank < currentLevelRank) return
     const safeArgs = sanitizeArgs(args)
     // eslint-disable-next-line no-console
@@ -122,6 +186,25 @@ const logger = {
   info: makeLoggerMethod('info', 'info'),
   warn: makeLoggerMethod('warn', 'warn'),
   error: makeLoggerMethod('error', 'error')
+}
+
+// Remplacer console.log par le système de logging pour respecter le niveau de log
+const originalConsoleLog = console.log
+console.log = (...args) => {
+  // Vérifier le niveau de log actuel
+  const currentLevelRank = levelToRank(getLogLevel())
+  const debugRank = levelToRank('debug')
+  
+  // Si le niveau est 'silent', ne rien afficher
+  if (currentLevelRank >= levelToRank('silent')) {
+    return
+  }
+  
+  // Si le niveau est 'debug' ou plus bas, afficher le log
+  if (currentLevelRank <= debugRank) {
+    const safeArgs = sanitizeArgs(args)
+    originalConsoleLog(...safeArgs)
+  }
 }
 
 export default logger

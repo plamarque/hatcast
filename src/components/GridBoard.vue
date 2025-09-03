@@ -1670,16 +1670,16 @@ async function syncFavoritesWithAuthState(user) {
     if (seasonId.value) {
       if (user?.email) {
         // Utilisateur connecté : charger les favoris depuis Firebase
-        console.log('🔄 Chargement des favoris pour utilisateur connecté:', user.email)
+        logger.debug('🔄 Chargement des favoris pour utilisateur connecté:', user.email)
         await updatePreferredPlayersSet()
       } else {
         // Utilisateur déconnecté : vider les favoris
-        console.log('🔄 Utilisateur déconnecté, effacement des favoris')
+        logger.debug('🔄 Utilisateur déconnecté, effacement des favoris')
         preferredPlayerIdsSet.value = new Set()
       }
     }
   } catch (error) {
-    console.error('❌ Erreur lors de la synchronisation des favoris:', error)
+    logger.error('❌ Erreur lors de la synchronisation des favoris:', error)
   }
 }
 
@@ -1696,7 +1696,7 @@ async function updateEventMonitoredState() {
   try {
     isEventMonitoredState.value = await isEventMonitored(selectedEvent.value.id)
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de l\'état de surveillance:', error)
+    logger.error('Erreur lors de la mise à jour de l\'état de surveillance:', error)
     isEventMonitoredState.value = false
   }
 }
@@ -2087,8 +2087,8 @@ function closePlayers() {
 // Ouvrir compte avec flow d'association si anonyme
 function openAccount() {
   try {
-    console.log('🔑 GridBoard: openAccount() appelé')
-    console.log('🔑 showAccountLogin avant:', showAccountLogin.value)
+    logger.debug('🔑 GridBoard: openAccount() appelé')
+    logger.debug('🔑 showAccountLogin avant:', showAccountLogin.value)
     
     const user = auth?.currentUser
     if (!user || user.isAnonymous) {
@@ -2101,7 +2101,7 @@ function openAccount() {
       if (!target) target = players.value[0] || null
       // Ouvrir login classique (email + mot de passe)
       showAccountLogin.value = true
-      console.log('🔑 showAccountLogin après:', showAccountLogin.value)
+      logger.debug('🔑 showAccountLogin après:', showAccountLogin.value)
       // Mémoriser un joueur si l'utilisateur choisit l'association ensuite
       if (target) accountAuthPlayer.value = target
       return
@@ -2109,10 +2109,10 @@ function openAccount() {
     
     // Si l'utilisateur est déjà connecté, ne rien faire
     // Il peut accéder à son compte via le bouton avatar
-    console.log('🔐 Utilisateur déjà connecté, pas d\'action automatique')
+    logger.debug('🔐 Utilisateur déjà connecté, pas d\'action automatique')
     return
   } catch (error) {
-    console.error('❌ Erreur dans openAccount:', error)
+    logger.error('❌ Erreur dans openAccount:', error)
   }
 }
 
@@ -2121,10 +2121,10 @@ function openAccountCreation() {
 }
 
 function openDevelopment() {
-  console.log('🚀 openDevelopment() appelée dans GridBoard');
-  console.log('🔧 showDevelopmentModal avant:', showDevelopmentModal.value);
+  logger.debug('🚀 openDevelopment() appelée dans GridBoard');
+  logger.debug('🔧 showDevelopmentModal avant:', showDevelopmentModal.value);
   showDevelopmentModal.value = true;
-  console.log('🔧 showDevelopmentModal après:', showDevelopmentModal.value);
+  logger.debug('🔧 showDevelopmentModal après:', showDevelopmentModal.value);
 }
 
 async function handleAccountChangePassword() {
@@ -2297,7 +2297,7 @@ onMounted(async () => {
         try {
           // Mettre à jour l'état des favoris pour déclencher la réactivité
           await updatePreferredPlayersSet()
-          console.log('🔄 Favoris mis à jour après activation de la protection')
+          logger.debug('🔄 Favoris mis à jour après activation de la protection')
           
                             // Afficher un message de succès
                   showSuccessMessage.value = true
@@ -2312,7 +2312,7 @@ onMounted(async () => {
           localStorage.removeItem('protectedPlayerId')
           localStorage.removeItem('protectedSeasonId')
           
-          console.log('✅ Joueur ajouté en favoris après activation de la protection:', playerId)
+          logger.debug('✅ Joueur ajouté en favoris après activation de la protection:', playerId)
           
           // Si l'URL contient aussi open=protection, ouvrir les détails du joueur après un délai
           if (urlParams.get('open') === 'protection') {
@@ -2328,7 +2328,7 @@ onMounted(async () => {
           // via la Cloud Function createCustomTokenForEmail, donc pas besoin d'afficher
           // la modale de connexion ici
         } catch (error) {
-          console.error('Erreur lors de l\'ajout en favoris:', error)
+          logger.error('Erreur lors de l\'ajout en favoris:', error)
         }
       }
     }
@@ -3047,7 +3047,7 @@ async function handleEditEvent(eventData) {
           }
         }
         
-        console.log('🎯 Rappels mis à jour pour la nouvelle date:', {
+        logger.debug('🎯 Rappels mis à jour pour la nouvelle date:', {
           eventId: editingEvent.value,
           eventTitle: eventData.title,
           newDate: eventData.date,
@@ -3304,7 +3304,7 @@ const isRoleDataReady = computed(() => {
                 ROLE_LABELS && Object.keys(ROLE_LABELS).length > 0
   
   if (!ready) {
-    console.log('🔍 Rôles non prêts:', {
+    logger.warn('🔍 Rôles non prêts:', {
       ROLE_DISPLAY_ORDER: ROLE_DISPLAY_ORDER,
       ROLE_LABELS: ROLE_LABELS,
       newEventRoles: newEventRoles.value
@@ -3504,18 +3504,18 @@ function cancelNewEvent() {
 // Nouvelle fonction pour demander le PIN avant d'ouvrir la modal
 async function openNewEventForm() {
   try {
-    console.log('🔍 GridBoard: openNewEventForm appelé')
+    logger.debug('🔍 GridBoard: openNewEventForm appelé')
     // Demander le PIN code avant d'ouvrir la modal de création
     await requirePin({
       type: 'addEvent',
       data: {}
     })
-    console.log('✅ GridBoard: PIN validé, modal devrait s\'ouvrir')
+    logger.debug('✅ GridBoard: PIN validé, modal devrait s\'ouvrir')
   } catch (error) {
-    console.error('❌ GridBoard: Erreur dans openNewEventForm:', error)
+    logger.error('❌ GridBoard: Erreur dans openNewEventForm:', error)
     // En cas d'erreur, ne pas ouvrir la modal automatiquement
     // L'utilisateur devra réessayer ou la modal de PIN s'affichera
-    console.log('🔄 GridBoard: Erreur lors de la vérification du PIN, modal non ouverte')
+    logger.debug('🔄 GridBoard: Erreur lors de la vérification du PIN, modal non ouverte')
   }
 }
 
@@ -3542,7 +3542,7 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
 // Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
 watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
-    console.log('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
+    logger.debug('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
     await loadProtectedPlayers()
     await updatePreferredPlayersSet()
   }
@@ -3555,9 +3555,9 @@ onMounted(async () => {
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
 
     // Attendre que firestoreService soit initialisé
-    console.log('⏳ Attente de l\'initialisation de firestoreService...')
+    logger.debug('⏳ Attente de l\'initialisation de firestoreService...')
     await firestoreService.initialize()
-    console.log('✅ firestoreService initialisé')
+    logger.debug('✅ firestoreService initialisé')
 
     // Charger la saison par slug
     const seasons = await firestoreService.queryDocuments('seasons', [
@@ -3598,7 +3598,7 @@ onMounted(async () => {
       try {
         availability.value = await loadAvailability(players.value, events.value, seasonId.value)
       } catch (error) {
-        console.log('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
+        logger.debug('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
         availability.value = {}
       }
 
@@ -3608,7 +3608,7 @@ onMounted(async () => {
       try {
         selections.value = await loadSelections(seasonId.value)
       } catch (error) {
-        console.log('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
+        logger.debug('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
         selections.value = {}
       }
 
@@ -3623,7 +3623,7 @@ onMounted(async () => {
         }
         protectedPlayers.value = protSet
       } catch (error) {
-        console.log('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
+        logger.debug('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
         protectedPlayers.value = new Set()
       }
       
@@ -3632,7 +3632,7 @@ onMounted(async () => {
         try {
           await updatePreferredPlayersSet()
         } catch (error) {
-          console.log('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
+          logger.debug('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
         }
       }
     }
@@ -3860,15 +3860,15 @@ const sortedPlayers = computed(() => {
   
   // Pour les utilisateurs connectés, remonter leurs joueurs favoris en haut
   if (currentUser.value?.email && preferredPlayerIdsSet.value.size > 0) {
-    console.log('🔄 Tri des joueurs avec favoris en premier')
+    logger.debug('🔄 Tri des joueurs avec favoris en premier')
     const favoritesFirst = base.filter(p => preferredPlayerIdsSet.value.has(p.id))
     const rest = base.filter(p => !preferredPlayerIdsSet.value.has(p.id))
     
     // Trier les favoris par ordre alphabétique
     const sortedFavorites = favoritesFirst.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
     
-    console.log('⭐ Favoris en premier:', sortedFavorites.map(p => p.name))
-    console.log('📝 Reste des joueurs:', rest.map(p => p.name))
+    logger.debug('⭐ Favoris en premier:', sortedFavorites.map(p => p.name))
+    logger.debug('📝 Reste des joueurs:', rest.map(p => p.name))
     
     return [...sortedFavorites, ...rest]
   }
@@ -3895,15 +3895,15 @@ async function updatePreferredPlayersSet() {
     if (seasonal.length > 0) {
       const playerIds = seasonal.map(a => a.playerId)
       preferredPlayerIdsSet.value = new Set(playerIds)
-      console.log('✅ Favoris chargés depuis Firebase:', playerIds)
+      logger.debug('✅ Favoris chargés depuis Firebase:', playerIds)
     } else {
       preferredPlayerIdsSet.value = new Set()
-      console.log('ℹ️ Aucun favori trouvé pour cette saison')
+      logger.debug('ℹ️ Aucun favori trouvé pour cette saison')
       
       // Si on vient de vérifier un email et qu'on n'a pas trouvé de favoris,
       // réessayer après un délai (problème de propagation Firestore)
       if (localStorage.getItem('protectionActivated') === 'true') {
-        console.log('🔄 Retry après 1s pour la propagation Firestore...')
+        logger.debug('🔄 Retry après 1s pour la propagation Firestore...')
         setTimeout(async () => {
           try {
             const retryAssocs = await listAssociationsForEmail(currentUser.value.email)
@@ -3911,16 +3911,16 @@ async function updatePreferredPlayersSet() {
             if (retrySeasonal.length > 0) {
               const retryPlayerIds = retrySeasonal.map(a => a.playerId)
               preferredPlayerIdsSet.value = new Set(retryPlayerIds)
-              console.log('✅ Favoris trouvés au retry:', retryPlayerIds)
+              logger.debug('✅ Favoris trouvés au retry:', retryPlayerIds)
             }
           } catch (retryError) {
-            console.warn('❌ Erreur lors du retry:', retryError)
+            logger.warn('❌ Erreur lors du retry:', retryError)
           }
         }, 1000)
       }
     }
   } catch (error) {
-    console.error('❌ Erreur lors du chargement des favoris:', error)
+    logger.error('❌ Erreur lors du chargement des favoris:', error)
     preferredPlayerIdsSet.value = new Set()
   }
 }
@@ -3945,7 +3945,7 @@ async function isPlayerOwnedByCurrentUser(playerId) {
     // 2. L'email de protection correspond à l'email de l'utilisateur connecté
     return protectionData?.isProtected && protectionData?.email === currentUser.value.email
   } catch (error) {
-    console.warn('Erreur lors de la vérification de propriété du joueur:', error)
+    logger.warn('Erreur lors de la vérification de propriété du joueur:', error)
     return false
   }
 }
@@ -4335,21 +4335,21 @@ function isSelected(player, eventId) {
 }
 
 async function drawMultiRoles(eventId) {
-  console.log('🎲 drawMultiRoles appelé:', { eventId })
+  logger.debug('🎲 drawMultiRoles appelé:', { eventId })
   const event = events.value.find(e => e.id === eventId)
   
   if (!event) {
-    console.error('❌ Événement non trouvé:', eventId)
+    logger.error('❌ Événement non trouvé:', eventId)
     return
   }
   
   // Récupérer les rôles attendus pour cet événement
   const roles = event.roles || { player: event.playerCount || 6 }
-  console.log('📅 Événement trouvé:', { eventTitle: event.title, roles })
+  logger.debug('📅 Événement trouvé:', { eventTitle: event.title, roles })
   
   // Récupérer la sélection actuelle
   const currentSelection = selections.value[eventId]
-  console.log('👥 Sélection actuelle:', currentSelection)
+  logger.debug('👥 Sélection actuelle:', currentSelection)
   
   // Nouvelle structure de sélection par rôle
   const newSelections = {}
@@ -4359,7 +4359,7 @@ async function drawMultiRoles(eventId) {
     const requiredCount = roles[role] || 0
     
     if (requiredCount > 0) {
-      console.log(`🎭 Draw pour le rôle ${role}: ${requiredCount} personnes`)
+      logger.debug(`🎭 Draw pour le rôle ${role}: ${requiredCount} personnes`)
       
       // Récupérer les joueurs déjà sélectionnés pour ce rôle
       const currentRoleSelection = currentSelection?.roles?.[role] || []
@@ -4401,9 +4401,9 @@ async function drawMultiRoles(eventId) {
     updatedAt: new Date()
   }
   
-  console.log('💾 Nouvelle sélection sauvegardée:', selections.value[eventId])
-  console.log('👥 Nombre total de joueurs:', allPlayers.length)
-  console.log('🎭 Rôles et joueurs:', newSelections)
+  logger.debug('💾 Nouvelle sélection sauvegardée:', selections.value[eventId])
+  logger.debug('👥 Nombre total de joueurs:', allPlayers.length)
+  logger.debug('🎭 Rôles et joueurs:', newSelections)
   
   // Sauvegarder en base
   await saveSelection(eventId, newSelections, seasonId.value)
@@ -4415,7 +4415,7 @@ async function drawMultiRoles(eventId) {
 
 // Fonction helper pour draw des joueurs pour un rôle spécifique
 async function drawForRole(role, count, eventId, alreadySelected = []) {
-  console.log(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected })
+  logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected })
   
   // Exclure les joueurs qui ont décliné cette sélection
   const declinedPlayers = getDeclinedPlayers(eventId)
@@ -4431,7 +4431,7 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
   })
   
   if (candidates.length === 0) {
-    console.log(`⚠️ Aucun candidat disponible pour le rôle ${role}`)
+    logger.warn(`⚠️ Aucun candidat disponible pour le rôle ${role}`)
     return []
   }
   
@@ -4462,12 +4462,12 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
     }
   }
   
-  console.log(`✅ Draw pour le rôle ${role}:`, draw)
+  logger.debug(`✅ Draw pour le rôle ${role}:`, draw)
   return draw
 }
 
 async function drawProtected(eventId) {
-  console.log('🛡️ drawProtected appelé:', { eventId })
+  logger.debug('🛡️ drawProtected appelé:', { eventId })
   // Tirage protégé
   // État de la modal de sélection avant
   
@@ -4481,7 +4481,7 @@ async function drawProtected(eventId) {
   // Sauvegarder l'ancienne sélection pour comparer
   const oldSelection = wasReselection ? [...getSelectionPlayers(eventId)] : []
   
-  console.log('🎲 Appel de drawMultiRoles...')
+  logger.debug('🎲 Appel de drawMultiRoles...')
   await drawMultiRoles(eventId)
   
   
@@ -5144,7 +5144,7 @@ async function executePendingOperation(operation) {
         confirmPlayerDelete.value = true
         break
       case 'launchSelection':
-        console.log('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
+        logger.debug('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
         
         // Logger l'audit de sélection automatique
         try {
@@ -5157,7 +5157,7 @@ async function executePendingOperation(operation) {
             hasExistingSelection: getSelectionPlayers(data.eventId).length > 0
           })
         } catch (auditError) {
-          console.warn('Erreur audit launchSelection:', auditError)
+          logger.warn('Erreur audit launchSelection:', auditError)
         }
         
         // Vérifier si une sélection complète existe déjà pour afficher la confirmation
