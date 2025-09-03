@@ -71,3 +71,4 @@ scripts/
 
 The code is licensed under the [MIT License](./LICENSE).  
 Visual elements and written content (e.g., emojis, headers) are licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).# Sun Aug 31 23:37:28 CEST 2025
+# Test commit to trigger production deployment
