@@ -756,21 +756,32 @@
               :key="player.id"
               class="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-gray-800/40 transition-colors"
             >
-              <div class="flex items-center min-w-0 gap-1.5">
-                <span
-                  v-if="preferredPlayerIdsSet.has(player.id)"
-                  class="text-yellow-400 mr-1 text-xs"
-                  title="Ma personne"
-                >
-                  ⭐
-                </span>
-                <span
-                  v-else-if="isPlayerProtectedInGrid(player.id)"
-                  class="text-yellow-400 mr-1 text-xs"
-                  title="Personne protégée par mot de passe"
-                >
-                  🔒
-                </span>
+              <div class="flex items-center min-w-0 gap-2">
+                <!-- Avatar du joueur -->
+                <div class="relative flex-shrink-0">
+                  <PlayerAvatar 
+                    :player-id="player.id"
+                    :season-id="seasonId"
+                    :player-name="player.name"
+                    size="sm"
+                  />
+                  <!-- Statuts superposés -->
+                  <span
+                    v-if="preferredPlayerIdsSet.has(player.id)"
+                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                    title="Ma personne"
+                  >
+                    ⭐
+                  </span>
+                  <span
+                    v-else-if="isPlayerProtectedInGrid(player.id)"
+                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                    title="Personne protégée par mot de passe"
+                  >
+                    🔒
+                  </span>
+                </div>
+                <!-- Nom du joueur -->
                 <span
                   class="text-white text-sm md:text-base block truncate max-w-full flex-1 min-w-0"
                   :title="player.name"
