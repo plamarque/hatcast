@@ -3,7 +3,7 @@
 ## 🌍 **Environnements Disponibles**
 
 ### **🏠 Development (Local)**
-- **URL** : `https://votre-ip-locale:5173`
+- **URL** : `https://localhost:5173` (avec `npm run dev -- --host`)
 - **Base Firestore** : `development` (région `europe-west3`)
 - **Storage** : `development/` prefix
 - **Email** : Ethereal Email (capture)
@@ -117,15 +117,15 @@ firebase projects:list
 # 3. Lister les service accounts existants
 gcloud iam service-accounts list --project=VOTRE_PROJECT_ID
 
-# 4. Accorder le rôle "Service Account User" au service account App Engine
+# 4. Accorder le rôle "Service Account User" au service account Firebase Admin SDK
 gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
-  --member="serviceAccount:VOTRE_PROJECT_ID@appspot.gserviceaccount.com" \
+  --member="serviceAccount:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/iam.serviceAccountUser"
 
-# 5. Accorder le rôle "Service Account Token Creator" au service account App Engine
+# 5. Accorder le rôle "Cloud Functions Admin" au service account Firebase Admin SDK
 gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
-  --member="serviceAccount:VOTRE_PROJECT_ID@appspot.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountTokenCreator"
+  --member="serviceAccount:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/cloudfunctions.admin"
 
 # 6. Accorder le rôle "Cloud Functions Developer" au service account GitHub Actions
 gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
@@ -147,8 +147,8 @@ gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
 gcloud projects get-iam-policy VOTRE_PROJECT_ID \
   --flatten="bindings[].members" \
   --format="table(bindings.role)" \
-  --filter="bindings.members:VOTRE_PROJECT_ID@appspot.gserviceaccount.com"
-```
+  --filter="bindings.members:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com"
+```c de 
 
 ### **⚠️ Ordre important des permissions**
 
@@ -157,7 +157,7 @@ Les permissions doivent être accordées dans cet ordre spécifique :
 2. **`iam.serviceAccountTokenCreator`** : Permet la création de tokens
 3. **`cloudfunctions.developer`** : Permet le déploiement des Functions
 
-**Note** : L'erreur `Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs` indique qu'il manque le rôle `iam.serviceAccountUser`.
+**Note** : L'erreur `Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs` indique qu'il manque le rôle `iam.serviceAccountUser` pour le service account `firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com`.
 
 ## 📧 **Configuration Email par Environnement**
 
@@ -189,7 +189,7 @@ npm run test:email
 
 ### **Validation Production**
 - Déploiement automatique sur push `main`
-- Tests de régression
+- Tests de régression sur `impro-selector.web.app`
 - Monitoring des performances
 
 ## 🚨 **Sécurité et Bonnes Pratiques**
