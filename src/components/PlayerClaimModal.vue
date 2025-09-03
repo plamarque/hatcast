@@ -235,6 +235,11 @@ async function associatePlayerDirectly() {
     
     console.log('✅ Association créée avec succès dans Firestore')
     
+    // Marquer l'email comme vérifié et sauvegarder l'avatar
+    const { markEmailVerifiedForProtection } = await import('../services/playerProtection.js')
+    await markEmailVerifiedForProtection({ playerId: props.player.id, seasonId: props.seasonId })
+    console.log('✅ Email marqué comme vérifié et avatar sauvegardé')
+    
     // Afficher le message de succès
     success.value = `${props.player.name} est maintenant associé à ton compte !`
     

@@ -213,13 +213,33 @@ export async function markEmailVerifiedForProtection({ playerId, seasonId = null
   // Sauvegarder l'avatar du joueur si l'utilisateur est connecté
   try {
     const { currentUser } = await import('./authState.js')
+    logger.info('🔍 Debug: Checking current user for avatar save', { 
+      hasCurrentUser: !!currentUser.value,
+      hasPhotoURL: !!currentUser.value?.photoURL,
+      hasEmail: !!snap.email,
+      playerId,
+      seasonId
+    })
+    
     if (currentUser.value && currentUser.value.photoURL && snap.email) {
       const { savePlayerAvatar } = await import('./playerAvatars.js')
-      await savePlayerAvatar(playerId, currentUser.value.photoURL, snap.email, seasonId)
-      logger.info('✅ Avatar sauvegardé pour le joueur', { playerId, seasonId, email: snap.email })
+      const success = await savePlayerAvatar(playerId, currentUser.value.photoURL, snap.email, seasonId)
+      logger.info('✅ Avatar sauvegardé pour le joueur', { 
+        playerId, 
+        seasonId, 
+        email: snap.email,
+        success,
+        photoURL: currentUser.value.photoURL
+      })
+    } else {
+      logger.info('❌ Avatar non sauvegardé - conditions non remplies', {
+        hasCurrentUser: !!currentUser.value,
+        hasPhotoURL: !!currentUser.value?.photoURL,
+        hasEmail: !!snap.email
+      })
     }
   } catch (error) {
-    logger.debug('Could not save player avatar:', error)
+    logger.error('❌ Erreur lors de la sauvegarde de l\'avatar:', error)
   }
   
   return { success: true }

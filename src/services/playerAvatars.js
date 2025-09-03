@@ -52,33 +52,72 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       return result
     }
     
-    // 2. Fallback : chercher l'association joueur-utilisateur (logique existante)
+    // 2. Essayer de récupérer l'association joueur-utilisateur
     const association = await getPlayerAssociation(playerId, seasonId)
     
-    if (!association) {
-      const result = { photoURL: null, email: null, isAssociated: false, source: 'none' }
+    if (association && association.email) {
+      // 3. Récupérer l'avatar de l'utilisateur associé
+      const photoURL = await getUserPhotoURL(association.email)
+      
+      const result = {
+        photoURL,
+        email: association.email,
+        isAssociated: true,
+        source: 'association'
+      }
+      
+      // Mettre en cache le résultat
       avatarCache.set(cacheKey, result)
+      
+      logger.debug('PlayerAvatar service: Retrieved avatar from association', {
+        playerId,
+        seasonId,
+        email: association.email,
+        hasAvatar: !!photoURL
+      })
+      
       return result
     }
     
-    // 3. Récupérer l'avatar de l'utilisateur associé
-    const photoURL = await getUserPhotoURL(association.email)
-    
-    const result = {
-      photoURL,
-      email: association.email,
-      isAssociated: true,
-      source: 'association'
+    // 4. Essayer de récupérer l'avatar depuis userPreferences (pour tous les utilisateurs)
+    try {
+      // Si on a une association avec un email, essayer de récupérer l'avatar de cet utilisateur
+      if (association && association.email) {
+        const photoURL = await getUserPhotoURL(association.email)
+        
+        if (photoURL) {
+          const result = {
+            photoURL,
+            email: association.email,
+            isAssociated: true,
+            source: 'userPreferences'
+          }
+          
+          // Mettre en cache le résultat
+          avatarCache.set(cacheKey, result)
+          
+          logger.debug('PlayerAvatar service: Retrieved avatar from userPreferences', {
+            playerId,
+            seasonId,
+            email: association.email,
+            hasAvatar: !!photoURL
+          })
+          
+          return result
+        }
+      }
+    } catch (error) {
+      logger.debug('Could not check userPreferences for avatar:', error)
     }
     
-    // Mettre en cache le résultat
+    // 5. Aucun avatar trouvé
+    const result = { photoURL: null, email: null, isAssociated: false, source: 'none' }
     avatarCache.set(cacheKey, result)
     
-    logger.debug('PlayerAvatar service: Retrieved avatar from association', {
+    logger.debug('PlayerAvatar service: No avatar found', {
       playerId,
       seasonId,
-      email: association.email,
-      hasAvatar: !!photoURL
+      hasAssociation: !!association
     })
     
     return result
