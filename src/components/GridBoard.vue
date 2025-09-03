@@ -1202,6 +1202,7 @@
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
     @refresh="handlePlayerRefresh"
+    @avatar-updated="handleAvatarUpdated"
     @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
   />
 
@@ -5831,6 +5832,29 @@ async function handlePlayerRefresh() {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors du rafraîchissement');
+  }
+}
+
+async function handleAvatarUpdated({ playerId, seasonId: eventSeasonId }) {
+  try {
+    console.log('🔄 Avatar mis à jour, rechargement des avatars...', { playerId, eventSeasonId })
+    
+    // Vider le cache des avatars pour ce joueur
+    const { clearPlayerAvatarCacheForPlayer } = await import('../services/playerAvatars.js')
+    clearPlayerAvatarCacheForPlayer(playerId)
+    
+    // Forcer le rechargement des composants PlayerAvatar
+    // En déclenchant un événement global ou en utilisant une clé de réactivité
+    nextTick(() => {
+      // Déclencher un événement personnalisé pour forcer le rechargement
+      window.dispatchEvent(new CustomEvent('avatar-cache-cleared', { 
+        detail: { playerId, seasonId: eventSeasonId } 
+      }))
+    })
+    
+    console.log('✅ Cache des avatars vidé pour le joueur', playerId)
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour des avatars:', error)
   }
 }
 

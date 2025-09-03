@@ -404,6 +404,9 @@ async function handleProtectionUpdate() {
   
   // Émettre l'événement de rafraîchissement pour la grille
   emit('refresh')
+  
+  // Émettre aussi l'événement d'update d'avatar
+  emit('avatar-updated', { playerId: props.player?.id, seasonId: props.seasonId })
 }
 
 async function handlePasswordVerified(verificationData) {

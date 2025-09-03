@@ -209,6 +209,19 @@ export async function markEmailVerifiedForProtection({ playerId, seasonId = null
     
     logger.info('✅ Protection activée pour le joueur (global)', { playerId })
   }
+  
+  // Sauvegarder l'avatar du joueur si l'utilisateur est connecté
+  try {
+    const { currentUser } = await import('./authState.js')
+    if (currentUser.value && currentUser.value.photoURL && snap.email) {
+      const { savePlayerAvatar } = await import('./playerAvatars.js')
+      await savePlayerAvatar(playerId, currentUser.value.photoURL, snap.email, seasonId)
+      logger.info('✅ Avatar sauvegardé pour le joueur', { playerId, seasonId, email: snap.email })
+    }
+  } catch (error) {
+    logger.debug('Could not save player avatar:', error)
+  }
+  
   return { success: true }
 }
 
@@ -241,6 +254,15 @@ export async function unprotectPlayer(playerId, seasonId = null) {
         emailVerifiedAt: null,
         updatedAt: new Date()
       })
+    }
+    
+    // Supprimer l'avatar du joueur pour restaurer l'avatar par défaut
+    try {
+      const { deletePlayerAvatar } = await import('./playerAvatars.js')
+      await deletePlayerAvatar(playerId, seasonId)
+      logger.info('✅ Avatar supprimé pour le joueur déprotégé', { playerId, seasonId })
+    } catch (error) {
+      logger.debug('Could not delete player avatar:', error)
     }
     
     // Nettoyer la préférence locale pour ce joueur

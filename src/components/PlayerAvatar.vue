@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 import logger from '../services/logger.js'
 
@@ -262,4 +262,37 @@ watch([() => props.playerId, () => props.seasonId], () => {
     fetchPlayerAssociation()
   }
 }, { immediate: true })
+
+// Écouter les événements de mise à jour d'avatar
+let avatarUpdateListener = null
+
+onMounted(() => {
+  avatarUpdateListener = (event) => {
+    const { playerId: updatedPlayerId, seasonId: updatedSeasonId } = event.detail
+    if (updatedPlayerId === props.playerId && 
+        (updatedSeasonId === props.seasonId || (!updatedSeasonId && !props.seasonId))) {
+      logger.debug('PlayerAvatar: Cache cleared, refetching avatar', { 
+        playerId: props.playerId, 
+        seasonId: props.seasonId 
+      })
+      
+      // Reset state and refetch
+      userPhotoURL.value = null
+      associatedUserEmail.value = null
+      isAssociated.value = false
+      imageLoaded.value = false
+      imageError.value = false
+      
+      fetchPlayerAssociation()
+    }
+  }
+  
+  window.addEventListener('avatar-cache-cleared', avatarUpdateListener)
+})
+
+onUnmounted(() => {
+  if (avatarUpdateListener) {
+    window.removeEventListener('avatar-cache-cleared', avatarUpdateListener)
+  }
+})
 </script>

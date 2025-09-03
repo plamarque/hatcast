@@ -318,6 +318,7 @@ async function activateProtection() {
     password.value = ''
     confirmPassword.value = ''
     emit('update')
+    emit('avatar-updated', { playerId: props.player.id, seasonId: props.seasonId })
     try { if (props.onboarding) emit('onboarding-finished') } catch {}
   } catch (err) {
     logger.error('Erreur lors de l\'activation de la protection', err)
@@ -351,6 +352,7 @@ async function performUnprotect() {
     isProtected.value = false
     if (result.email) { email.value = result.email }
     emit('update')
+    emit('avatar-updated', { playerId: props.player.id, seasonId: props.seasonId })
   } catch (err) {
     logger.error('Erreur lors de la désactivation de la protection', err)
     error.value = 'Erreur lors de la désactivation de la protection. Veuillez réessayer.'

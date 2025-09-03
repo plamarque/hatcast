@@ -82,8 +82,12 @@ async function initialize() {
       // Store user avatar for player avatars service
       if (user && user.email && user.photoURL) {
         try {
-          const { storeUserAvatar } = await import('./playerAvatars.js')
+          const { storeUserAvatar, savePlayerAvatar } = await import('./playerAvatars.js')
           storeUserAvatar(user.email, user.photoURL)
+          
+          // Also save to playerAvatars collection for public access
+          // We need to find the playerId associated with this email
+          // This will be handled by the player protection system when a user claims a player
         } catch (error) {
           logger.debug('Could not store user avatar:', error)
         }
