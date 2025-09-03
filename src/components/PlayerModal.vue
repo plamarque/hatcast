@@ -6,7 +6,7 @@
         <button @click="closeModal" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         
         <!-- Layout horizontal compact -->
-        <div class="flex items-start gap-4 md:gap-6">
+        <div class="flex items-center gap-4 md:gap-6">
           <!-- Avatar du joueur avec statuts superposés -->
           <div class="relative flex-shrink-0">
             <PlayerAvatar 
@@ -14,22 +14,8 @@
               :season-id="seasonId"
               :player-name="player?.name"
               size="xl"
+              :show-status-icons="false"
             />
-            <!-- Superposed status icons -->
-            <span 
-              v-if="isPreferred"
-              class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
-              title="Ma personne"
-            >
-              ⭐
-            </span>
-            <span 
-              v-else-if="isProtected"
-              class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
-              title="Personne protégée par mot de passe"
-            >
-              🔒
-            </span>
           </div>
           
           <!-- Informations principales -->

@@ -42,6 +42,27 @@
     >
       👤
     </span>
+
+    <!-- Status icons (only if showStatusIcons is true) -->
+    <template v-if="showStatusIcons">
+      <!-- Indicateur de favori -->
+      <span 
+        v-if="isPreferred"
+        class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
+        title="Ma personne"
+      >
+        ⭐
+      </span>
+      
+      <!-- Indicateur de protection -->
+      <span 
+        v-else-if="isProtected"
+        class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
+        title="Personne protégée par mot de passe"
+      >
+        🔒
+      </span>
+    </template>
   </div>
 </template>
 
@@ -72,6 +93,18 @@ const props = defineProps({
     type: String,
     default: 'full',
     validator: (value) => ['none', 'md', 'lg', 'full'].includes(value)
+  },
+  showStatusIcons: {
+    type: Boolean,
+    default: false
+  },
+  isPreferred: {
+    type: Boolean,
+    default: false
+  },
+  isProtected: {
+    type: Boolean,
+    default: false
   }
 })
 
