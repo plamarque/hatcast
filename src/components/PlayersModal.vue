@@ -16,11 +16,23 @@
         <ul v-else class="space-y-2">
           <li v-for="assoc in associations" :key="assocKey(assoc)" class="p-3 rounded-lg border border-white/10 bg-white/5 text-sm text-gray-300">
             <div class="flex items-center justify-between gap-3">
-              <div class="truncate">
-                <div class="text-white font-semibold">{{ assoc.seasonName || assoc.seasonId || '—' }}</div>
-                <div class="text-gray-400 text-xs">Personne : {{ assoc.playerName || '—' }}</div>
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <!-- Avatar du joueur -->
+                <div class="flex-shrink-0">
+                  <PlayerAvatar 
+                    :player-id="assoc.playerId"
+                    :season-id="assoc.seasonId"
+                    :player-name="assoc.playerName"
+                    size="md"
+                  />
+                </div>
+                <!-- Informations du joueur -->
+                <div class="truncate">
+                  <div class="text-white font-semibold">{{ assoc.seasonName || assoc.seasonId || '—' }}</div>
+                  <div class="text-gray-400 text-xs">Personne : {{ assoc.playerName || '—' }}</div>
+                </div>
               </div>
-              <button @click="managePlayer(assoc)" class="px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 text-xs">Gérer</button>
+              <button @click="managePlayer(assoc)" class="px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 text-xs flex-shrink-0">Gérer</button>
             </div>
           </li>
         </ul>
@@ -38,6 +50,7 @@ import { ref, watch, onMounted } from 'vue'
 import { auth, db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
+import PlayerAvatar from './PlayerAvatar.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false }

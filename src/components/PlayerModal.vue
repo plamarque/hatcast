@@ -7,9 +7,29 @@
         
         <!-- Layout horizontal compact -->
         <div class="flex items-start gap-4 md:gap-6">
-          <!-- Icône illustrative -->
-          <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex-shrink-0 flex items-center justify-center">
-            <span class="text-xl md:text-2xl">👤</span>
+          <!-- Avatar du joueur avec statuts superposés -->
+          <div class="relative flex-shrink-0">
+            <PlayerAvatar 
+              :player-id="player?.id"
+              :season-id="seasonId"
+              :player-name="player?.name"
+              size="xl"
+            />
+            <!-- Superposed status icons -->
+            <span 
+              v-if="isPreferred"
+              class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
+              title="Ma personne"
+            >
+              ⭐
+            </span>
+            <span 
+              v-else-if="isProtected"
+              class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
+              title="Personne protégée par mot de passe"
+            >
+              🔒
+            </span>
           </div>
           
           <!-- Informations principales -->
@@ -17,7 +37,7 @@
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
               
-              <!-- Indicateurs de statut compacts -->
+              <!-- Indicateurs de statut compacts (optionnel, gardés pour la lisibilité) -->
               <div class="flex items-center gap-2">
                 <!-- Indicateur de protection -->
                 <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
@@ -206,6 +226,7 @@
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
 
 const props = defineProps({
