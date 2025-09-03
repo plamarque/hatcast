@@ -218,20 +218,26 @@ class SecureEmailService {
       if (environment === 'development') {
         try {
           const etherealCredentials = configService.getEtherealCredentials();
-          logger.info('🔐 Credentials Ethereal récupérés:', {
-            user: etherealCredentials.user,
-            source: etherealCredentials.source,
-            hasUser: !!etherealCredentials.user,
-            hasPass: !!etherealCredentials.pass
-          });
           
-          if (etherealCredentials.source === 'local_env') {
-            logger.info('🔐 Credentials Ethereal locaux détectés, ajout aux query params');
-            // Utiliser les query parameters au lieu des headers pour éviter les restrictions du navigateur
-            url += `&ethereal_user=${encodeURIComponent(etherealCredentials.user)}&ethereal_pass=${encodeURIComponent(etherealCredentials.pass)}`;
-            logger.info('🌐 URL finale avec credentials:', url);
+          // Vérifier que les credentials sont disponibles
+          if (etherealCredentials) {
+            logger.info('🔐 Credentials Ethereal récupérés:', {
+              user: etherealCredentials.user,
+              source: etherealCredentials.source,
+              hasUser: !!etherealCredentials.user,
+              hasPass: !!etherealCredentials.pass
+            });
+            
+            if (etherealCredentials.source === 'local_env') {
+              logger.info('🔐 Credentials Ethereal locaux détectés, ajout aux query params');
+              // Utiliser les query parameters au lieu des headers pour éviter les restrictions du navigateur
+              url += `&ethereal_user=${encodeURIComponent(etherealCredentials.user)}&ethereal_pass=${encodeURIComponent(etherealCredentials.pass)}`;
+              logger.info('🌐 URL finale avec credentials:', url);
+            } else {
+              logger.info(`🔐 Source des credentials Ethereal: ${etherealCredentials.source}`);
+            }
           } else {
-            logger.info(`🔐 Source des credentials Ethereal: ${etherealCredentials.source}`);
+            logger.info('ℹ️ Aucun credential Ethereal configuré en développement');
           }
         } catch (configError) {
           logger.warn('⚠️ Impossible de récupérer les credentials Ethereal:', configError);

@@ -795,10 +795,12 @@ class ConfigService {
   }
 
   /**
-   * Retourne les credentials Ethereal Email depuis les variables d'environnement
-   * Priorité: .env.local > Firebase Secrets > Valeurs par défaut
+   * Retourne les credentials Ethereal depuis les variables d'environnement
+   * Priorité: .env.local > Firebase Secrets > null (pas de warning en staging/prod)
    */
   getEtherealCredentials() {
+    const environment = this.getEnvironment();
+    
     // Priorité 1: Variables d'environnement locales (.env.local)
     const localUser = import.meta.env.VITE_ETHEREAL_SMTP_USER;
     const localPass = import.meta.env.VITE_ETHEREAL_SMTP_PASS;
@@ -822,13 +824,18 @@ class ConfigService {
       };
     }
     
-    // Priorité 3: Valeurs par défaut (pour le développement)
-    logger.warn('⚠️ Aucun credential Ethereal configuré, utilisation des valeurs par défaut');
-    return {
-      user: 'dev@ethereal.email',
-      pass: 'dev_password',
-      source: 'default'
-    };
+    // En développement, utiliser des valeurs par défaut avec warning
+    if (environment === 'development') {
+      logger.warn('⚠️ Aucun credential Ethereal configuré, utilisation des valeurs par défaut');
+      return {
+        user: 'dev@ethereal.email',
+        pass: 'dev_password',
+        source: 'default'
+      };
+    }
+    
+    // En staging/prod, retourner null sans warning (pas besoin d'Ethereal)
+    return null;
   }
 
   /**
@@ -836,7 +843,7 @@ class ConfigService {
    */
   isEtherealConfigured() {
     const credentials = this.getEtherealCredentials();
-    return credentials.source !== 'default' && credentials.user && credentials.pass;
+    return credentials && credentials.source !== 'default' && credentials.user && credentials.pass;
   }
 
   /**
@@ -844,7 +851,7 @@ class ConfigService {
    */
   getEtherealCredentialsSource() {
     const credentials = this.getEtherealCredentials();
-    return credentials.source;
+    return credentials ? credentials.source : 'none';
   }
 
   /**
