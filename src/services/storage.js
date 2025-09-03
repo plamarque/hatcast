@@ -581,15 +581,15 @@ export async function saveEvent(eventData, seasonId) {
   const eventWithRoles = {
     ...eventData,
     roles: eventData.roles || {
-      [ROLES.PLAYER]: eventData.playerCount || 6,
-      [ROLES.VOLUNTEER]: 3,
+      [ROLES.PLAYER]: eventData.playerCount || 5,
+      [ROLES.VOLUNTEER]: 0,
       [ROLES.MC]: 1,
       [ROLES.DJ]: 1,
-      [ROLES.REFEREE]: 2,
-      [ROLES.ASSISTANT_REFEREE]: 2,
-      [ROLES.LIGHTING]: 1,
-      [ROLES.COACH]: 1,
-      [ROLES.STAGE_MANAGER]: 1
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
     }
   }
   

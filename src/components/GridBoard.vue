@@ -3261,18 +3261,8 @@ function cancelEdit() {
   editingTitle.value = ''
   editingDate.value = ''
   editingDescription.value = ''
-  editingPlayerCount.value = 6
-  editingRoles.value = {
-    [ROLES.PLAYER]: 6,
-    [ROLES.DJ]: 1,
-    [ROLES.MC]: 1,
-    [ROLES.VOLUNTEER]: 5,
-    [ROLES.REFEREE]: 1,
-    [ROLES.ASSISTANT_REFEREE]: 2,
-    [ROLES.LIGHTING]: 0,
-    [ROLES.COACH]: 0,
-    [ROLES.STAGE_MANAGER]: 1
-  }
+  editingPlayerCount.value = 5
+  editingRoles.value = { ...ROLE_TEMPLATES.cabaret.roles }
   editingShowAllRoles.value = false
 }
 
@@ -3282,19 +3272,9 @@ const newEventForm = ref(false)
 const newEventTitle = ref('')
 const newEventDate = ref('')
 const newEventDescription = ref('')
-const newEventPlayerCount = ref(6)
+const newEventPlayerCount = ref(5)
 const newEventArchived = ref(false)
-const newEventRoles = ref({
-  [ROLES.PLAYER]: 6,
-  [ROLES.DJ]: 1,
-  [ROLES.MC]: 1,
-  [ROLES.VOLUNTEER]: 5,
-  [ROLES.REFEREE]: 1,
-  [ROLES.ASSISTANT_REFEREE]: 2,
-  [ROLES.LIGHTING]: 0,
-  [ROLES.COACH]: 0,
-  [ROLES.STAGE_MANAGER]: 1
-})
+const newEventRoles = ref({ ...ROLE_TEMPLATES.cabaret.roles })
 const showAllRoles = ref(false)
 const selectedRoleTemplate = ref('cabaret') // Type par défaut (premier de la liste)
 const editingSelectedRoleTemplate = ref('cabaret') // Type par défaut pour l'édition
@@ -3475,19 +3455,9 @@ async function createEventProtected(eventData) {
     newEventTitle.value = ''
     newEventDate.value = ''
     newEventDescription.value = ''
-    newEventPlayerCount.value = 6
+    newEventPlayerCount.value = 5
     newEventArchived.value = false
-    newEventRoles.value = {
-      [ROLES.PLAYER]: 6,
-      [ROLES.DJ]: 1,
-      [ROLES.MC]: 1,
-      [ROLES.VOLUNTEER]: 5,
-      [ROLES.REFEREE]: 1,
-      [ROLES.ASSISTANT_REFEREE]: 2,
-      [ROLES.LIGHTING]: 0,
-      [ROLES.COACH]: 0,
-      [ROLES.STAGE_MANAGER]: 1
-    }
+    newEventRoles.value = { ...ROLE_TEMPLATES.cabaret.roles }
     showAllRoles.value = false
     newEventForm.value = false
     

@@ -234,15 +234,15 @@ const formData = ref({
   description: '',
   archived: false,
   roles: {
-    [ROLES.PLAYER]: 6,
+    [ROLES.PLAYER]: 5,
     [ROLES.DJ]: 1,
     [ROLES.MC]: 1,
-    [ROLES.VOLUNTEER]: 5,
-    [ROLES.REFEREE]: 1,
-    [ROLES.ASSISTANT_REFEREE]: 2,
+    [ROLES.VOLUNTEER]: 0,
+    [ROLES.REFEREE]: 0,
+    [ROLES.ASSISTANT_REFEREE]: 0,
     [ROLES.LIGHTING]: 0,
     [ROLES.COACH]: 0,
-    [ROLES.STAGE_MANAGER]: 1
+    [ROLES.STAGE_MANAGER]: 0
   }
 })
 
@@ -364,26 +364,19 @@ watch(() => props.isVisible, (visible) => {
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
       const tomorrowFormatted = tomorrow.toISOString().split('T')[0] // Format YYYY-MM-DD
+      
+      // Réinitialiser le template de rôles
+      selectedRoleTemplate.value = 'cabaret'
+      
+      // Appliquer le template cabaret par défaut
+      const cabaretTemplate = ROLE_TEMPLATES.cabaret
       formData.value = {
         title: '',
         date: tomorrowFormatted,
         description: '',
         archived: false,
-        roles: {
-          [ROLES.PLAYER]: 6,
-          [ROLES.DJ]: 1,
-          [ROLES.MC]: 1,
-          [ROLES.VOLUNTEER]: 5,
-          [ROLES.REFEREE]: 1,
-          [ROLES.ASSISTANT_REFEREE]: 2,
-          [ROLES.LIGHTING]: 0,
-          [ROLES.COACH]: 0,
-          [ROLES.STAGE_MANAGER]: 1
-        }
+        roles: { ...cabaretTemplate.roles }
       }
-      
-      // Réinitialiser le template de rôles
-      selectedRoleTemplate.value = 'cabaret'
       
       // Réinitialiser l'affichage des rôles
       showRoleInputs.value = false
