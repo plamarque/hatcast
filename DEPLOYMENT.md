@@ -98,8 +98,51 @@ firebase functions:config:set gmail.app_password="votre-app-password"
 ```
 
 ### **GitHub Actions**
-- `FIREBASE_SERVICE_ACCOUNT_HATCAST` : Service account Firebase
-- `FIREBASE_TOKEN` : Token Firebase CLI
+- `FIREBASE_SERVICE_ACCOUNT_HATCAST` : Service account Firebase pour production
+- `FIREBASE_SERVICE_ACCOUNT_STAGING` : Service account Firebase pour staging
+
+## 🔑 **Configuration des Permissions IAM**
+
+### **Permissions requises pour le déploiement**
+
+Avant le premier déploiement, il faut accorder les bonnes permissions IAM aux service accounts :
+
+```bash
+# 1. Se connecter avec le compte propriétaire du projet
+firebase login
+
+# 2. Vérifier le projet actuel
+firebase projects:list
+
+# 3. Lister les service accounts existants
+gcloud iam service-accounts list --project=VOTRE_PROJECT_ID
+
+# 4. Accorder le rôle "Service Account User" au service account App Engine
+gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
+  --member="serviceAccount:VOTRE_PROJECT_ID@appspot.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+
+# 5. Accorder le rôle "Cloud Functions Developer" au service account GitHub Actions
+gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
+  --member="serviceAccount:github-actions-deploy@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/cloudfunctions.developer"
+```
+
+### **Rôles IAM nécessaires**
+
+- **`roles/iam.serviceAccountUser`** : Permet aux service accounts d'agir au nom d'autres comptes
+- **`roles/cloudfunctions.developer`** : Permet le déploiement des Cloud Functions
+- **`roles/firebase.admin`** : Permet la gestion complète Firebase (déjà accordé par défaut)
+
+### **Vérification des permissions**
+
+```bash
+# Vérifier les permissions d'un service account
+gcloud projects get-iam-policy VOTRE_PROJECT_ID \
+  --flatten="bindings[].members" \
+  --format="table(bindings.role)" \
+  --filter="bindings.members:VOTRE_PROJECT_ID@appspot.gserviceaccount.com"
+```
 
 ## 📧 **Configuration Email par Environnement**
 
@@ -161,6 +204,26 @@ firebase functions:log
 # Logs spécifiques
 firebase functions:log --only functionName
 ```
+
+### **Erreurs courantes de déploiement**
+
+#### **Erreur d'authentification Firebase**
+```
+Error: Failed to authenticate... have you run firebase login?
+```
+**Solution** : Vérifier que le secret `FIREBASE_SERVICE_ACCOUNT_*` est valide et complet
+
+#### **Erreur de permissions IAM**
+```
+Error: Missing permissions required for functions deploy. You must have permission iam.serviceAccountActAs
+```
+**Solution** : Exécuter les commandes de configuration IAM (voir section "Configuration des Permissions IAM")
+
+#### **Erreur de parsing JSON**
+```
+SyntaxError: Bad control character in string literal in JSON at position X
+```
+**Solution** : Régénérer le service account Firebase et mettre à jour le secret GitHub
 
 ### **Base de Données**
 - **Development** : `firebase firestore:use development`
