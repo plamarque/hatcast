@@ -127,17 +127,21 @@ gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
   --member="serviceAccount:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/cloudfunctions.admin"
 
-# 6. Accorder le rôle "Cloud Functions Developer" au service account GitHub Actions
+# 6. Accorder le rôle "Firebase Extensions Admin" au service account Firebase Admin SDK
 gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
-  --member="serviceAccount:github-actions-deploy@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/cloudfunctions.developer"
+  --member="serviceAccount:firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/firebaseextensions.admin"
+
+# 7. Vérifier que le service account GitHub Actions a les bonnes permissions
+# (déjà configuré via le secret FIREBASE_SERVICE_ACCOUNT_HATCAST)
 ```
 
 ### **Rôles IAM nécessaires**
 
 - **`roles/iam.serviceAccountUser`** : Permet aux service accounts d'agir au nom d'autres comptes
 - **`roles/iam.serviceAccountTokenCreator`** : Permet de créer des tokens pour d'autres service accounts
-- **`roles/cloudfunctions.developer`** : Permet le déploiement des Cloud Functions
+- **`roles/cloudfunctions.admin`** : Permet l'administration complète des Cloud Functions
+- **`roles/firebaseextensions.admin`** : Permet l'administration des Firebase Extensions (nécessaire pour le déploiement)
 - **`roles/firebase.admin`** : Permet la gestion complète Firebase (déjà accordé par défaut)
 
 ### **Vérification des permissions**
@@ -155,9 +159,12 @@ gcloud projects get-iam-policy VOTRE_PROJECT_ID \
 Les permissions doivent être accordées dans cet ordre spécifique :
 1. **`iam.serviceAccountUser`** : Permet l'utilisation des service accounts
 2. **`iam.serviceAccountTokenCreator`** : Permet la création de tokens
-3. **`cloudfunctions.developer`** : Permet le déploiement des Functions
+3. **`cloudfunctions.admin`** : Permet l'administration complète des Cloud Functions
+4. **`firebaseextensions.admin`** : Permet l'administration des Firebase Extensions
 
-**Note** : L'erreur `Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs` indique qu'il manque le rôle `iam.serviceAccountUser` pour le service account `firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com`.
+**Note** : 
+- L'erreur `Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs` indique qu'il manque le rôle `iam.serviceAccountUser` pour le service account `firebase-adminsdk-fbsvc@VOTRE_PROJECT_ID.iam.gserviceaccount.com`.
+- L'erreur `HTTP Error: 403, The caller does not have permission` sur `firebaseextensions.googleapis.com` indique qu'il manque le rôle `firebaseextensions.admin`.
 
 ## 📧 **Configuration Email par Environnement**
 
