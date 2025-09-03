@@ -64,6 +64,27 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   try {
     const email = auth?.currentUser?.email || 'anonymous'
     if (email && token) {
+      // Debug: vérifier l'état de firestoreService
+      console.log('🔍 Debug firestoreService avant setDocument:', {
+        isInitialized: firestoreService.isInitialized,
+        hasDb: !!firestoreService.db,
+        environment: firestoreService.getEnvironmentInfo(),
+        email: email,
+        token: token ? 'present' : 'missing'
+      })
+      
+      // Vérifier que firestoreService est initialisé
+      if (!firestoreService.isInitialized) {
+        console.warn('⚠️ FirestoreService pas encore initialisé, tentative d\'initialisation...')
+        await firestoreService.initialize()
+      }
+      
+      // Vérifier que this.db est valide
+      if (!firestoreService.db) {
+        console.error('❌ FirestoreService.db est null, impossible de sauvegarder le token')
+        throw new Error('FirestoreService.db est null')
+      }
+      
       await firestoreService.setDocument('userPushTokens', email, {
         tokens: [token], // arrayUnion remplacé par un tableau simple
         lastToken: token,
@@ -72,8 +93,20 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
         userAgent: navigator.userAgent,
         lastActivation: new Date()
       }, true) // merge: true
+      
+      console.log('✅ Token push sauvegardé avec succès dans userPushTokens')
     }
-  } catch {}
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde du token push:', {
+      error: error.message,
+      stack: error.stack,
+      firestoreServiceState: {
+        isInitialized: firestoreService.isInitialized,
+        hasDb: !!firestoreService.db,
+        environment: firestoreService.getEnvironmentInfo()
+      }
+    })
+  }
   return token
 }
 
@@ -132,12 +165,12 @@ export function startPushHealthCheck() {
     try {
       const status = await ensurePushNotificationsActive()
       if (!status.active) {
-        logger.info('Push notifications inactive, attempting to reactivate...')
+        console.log('Push notifications inactive, attempting to reactivate...')
         // Émettre un événement pour informer l'UI
         window.dispatchEvent(new CustomEvent('push-status-changed', { detail: status }))
       }
     } catch (error) {
-      logger.warn('Push health check failed:', error)
+      console.warn('Push health check failed:', error)
     }
   }, 5 * 60 * 1000) // 5 minutes
 }

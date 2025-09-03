@@ -185,6 +185,16 @@ class FirestoreService {
    */
   async setDocument(collectionName, docId, data, merge = false, ...pathSegments) {
     try {
+      // Vérifier que le service est initialisé
+      if (!this.isInitialized || !this.db) {
+        console.log('⏳ FirestoreService pas encore initialisé, attente...')
+        await this.initialize()
+      }
+      
+      if (!this.db) {
+        throw new Error('FirestoreService.db est null après initialisation')
+      }
+      
       const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
       await setDoc(docRef, {
         ...data,
