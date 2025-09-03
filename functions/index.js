@@ -381,5 +381,7 @@ exports.checkAdminStatus = adminFunctions.checkAdminStatus;
 exports.dumpEnvironment = adminFunctions.dumpEnvironment;
 exports.checkAdminConfig = adminFunctions.checkAdminConfig;
 exports.testAdminAccess = adminFunctions.testAdminAccess;
+exports.getLogLevel = adminFunctions.getLogLevel;
+exports.setLogLevel = adminFunctions.setLogLevel;
 
 

@@ -37,7 +37,7 @@ class ConfigService {
       return this.config;
     }
 
-    logger.info('🔧 Initialisation de la configuration avec logique de priorité intelligente...');
+    logger.debug('🔧 Initialisation de la configuration avec logique de priorité intelligente...');
     
     // 1. Configuration de base par environnement
     const baseConfig = this.getBaseConfig();
@@ -260,7 +260,7 @@ class ConfigService {
    */
   async loadFirebaseConfig() {
     const env = this.environment;
-    logger.info(`🔍 Chargement de la configuration Firebase pour l'environnement: ${env}`);
+    logger.debug(`🔍 Chargement de la configuration Firebase pour l'environnement: ${env}`);
 
     // Valeurs par défaut (fallback)
     const defaultConfig = {
@@ -309,7 +309,7 @@ class ConfigService {
           });
         } else {
           // Fallback vers les valeurs par défaut
-          logger.warn('⚠️ Impossible de récupérer la config depuis Firebase, utilisation des valeurs par défaut');
+          logger.debug('⚠️ Impossible de récupérer la config depuis Firebase, utilisation des valeurs par défaut');
           Object.keys(defaultConfig).forEach(key => {
             finalConfig[key] = defaultConfig[key];
             sources[key] = 'DEFAULT_FALLBACK';
@@ -335,7 +335,7 @@ class ConfigService {
    */
   async loadLogsConfig() {
     const env = this.environment;
-    logger.info(`🔍 Chargement de la configuration des logs pour l'environnement: ${env}`);
+    logger.debug(`🔍 Chargement de la configuration des logs pour l'environnement: ${env}`);
 
     // Valeurs par défaut (fallback)
     const defaultLogsConfig = {
@@ -378,7 +378,7 @@ class ConfigService {
           });
         } else {
           // Fallback vers les valeurs par défaut
-          logger.warn('⚠️ Impossible de récupérer la config des logs depuis Firebase, utilisation des valeurs par défaut');
+          logger.debug('⚠️ Impossible de récupérer la config des logs depuis Firebase, utilisation des valeurs par défaut');
           Object.keys(defaultLogsConfig).forEach(key => {
             finalConfig[key] = defaultLogsConfig[key];
             sources[key] = 'DEFAULT_FALLBACK';
@@ -404,7 +404,7 @@ class ConfigService {
    */
   async loadSessionConfig() {
     const env = this.environment;
-    logger.info(`🔍 Chargement de la configuration des sessions pour l'environnement: ${env}`);
+    logger.debug(`🔍 Chargement de la configuration des sessions pour l'environnement: ${env}`);
 
     // Valeurs par défaut (fallback)
     const defaultSessionConfig = {
@@ -449,7 +449,7 @@ class ConfigService {
           });
         } else {
           // Fallback vers les valeurs par défaut
-          logger.warn('⚠️ Impossible de récupérer la config des sessions depuis Firebase, utilisation des valeurs par défaut');
+          logger.debug('⚠️ Impossible de récupérer la config des sessions depuis Firebase, utilisation des valeurs par défaut');
           Object.keys(defaultSessionConfig).forEach(key => {
             finalConfig[key] = defaultSessionConfig[key];
             sources[key] = 'DEFAULT_FALLBACK';
@@ -605,7 +605,7 @@ class ConfigService {
       // Vérifier si on peut s'authentifier
       const authToken = await this.getAuthToken();
       if (!authToken) {
-        logger.warn('⚠️ Pas de token d\'authentification, impossible de récupérer la config Firebase');
+        logger.debug('⚠️ Pas de token d\'authentification, impossible de récupérer la config Firebase');
         return null;
       }
 
@@ -1003,14 +1003,18 @@ class ConfigService {
    */
   async loadLogLevelFromFirebaseInternal() {
     try {
+      logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Début, environnement: ${this.environment}`);
       // Vérifier si Firebase est initialisé
       if (!window.firebaseInitialized) {
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Firebase pas initialisé`);
         return null;
       }
 
       // Vérifier si on peut s'authentifier
       const authToken = await this.getAuthToken();
+      logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Token récupéré: ${authToken ? 'OUI' : 'NON'}`);
       if (!authToken) {
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Pas de token, retour null`);
         return null;
       }
 
@@ -1038,10 +1042,12 @@ class ConfigService {
         const region = 'us-central1'; // Région par défaut des Cloud Functions
         const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/getLogLevel`;
         
-        logger.debug(`🔧 Tentative avec URL: ${functionUrl}`);
-        logger.debug(`🔧 Token d'auth: ${authToken ? authToken.substring(0, 20) + '...' : 'AUCUN'}`);
-        logger.debug(`🔧 Environnement détecté: ${this.environment}`);
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Tentative avec URL: ${functionUrl}`);
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Token d'auth: ${authToken ? authToken.substring(0, 20) + '...' : 'AUCUN'}`);
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Environnement détecté: ${this.environment}`);
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Configuration Firebase:`, this.config.firebase);
         
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Début du fetch...`);
         const response = await fetch(functionUrl, {
           method: 'GET',
           headers: {
@@ -1049,6 +1055,7 @@ class ConfigService {
             'Content-Type': 'application/json'
           }
         });
+        logger.debug(`🔧 loadLogLevelFromFirebaseInternal: Fetch terminé, status: ${response.status}`);
 
         if (response.ok) {
           const result = await response.json();
@@ -1109,7 +1116,9 @@ class ConfigService {
       }
 
       // Vérifier si on peut s'authentifier
+      logger.debug(`🔧 setLogLevel: Début de la fonction, environnement: ${this.environment}`);
       const authToken = await this.getAuthToken();
+      logger.debug(`🔧 setLogLevel: Token récupéré: ${authToken ? 'OUI' : 'NON'}`);
       if (!authToken) {
         const errorMsg = 'Pas de token d\'authentification, impossible de mettre à jour le niveau de log';
         logger.warn(`⚠️ ${errorMsg}`);
@@ -1148,10 +1157,12 @@ class ConfigService {
         const region = 'us-central1'; // Région par défaut des Cloud Functions
         const functionUrl = `https://${region}-${projectId}.cloudfunctions.net/setLogLevel`;
         
-        logger.debug(`🔧 Tentative avec URL: ${functionUrl}`);
-        logger.debug(`🔧 Token d'auth: ${authToken ? authToken.substring(0, 20) + '...' : 'AUCUN'}`);
-        logger.debug(`🔧 Environnement détecté: ${this.environment}`);
+        logger.debug(`🔧 setLogLevel: Tentative avec URL: ${functionUrl}`);
+        logger.debug(`🔧 setLogLevel: Token d'auth: ${authToken ? authToken.substring(0, 20) + '...' : 'AUCUN'}`);
+        logger.debug(`🔧 setLogLevel: Environnement détecté: ${this.environment}`);
+        logger.debug(`🔧 setLogLevel: Configuration Firebase:`, this.config.firebase);
         
+        logger.debug(`🔧 setLogLevel: Début du fetch...`);
         const response = await fetch(functionUrl, {
           method: 'POST',
           headers: {
@@ -1160,6 +1171,7 @@ class ConfigService {
           },
           body: JSON.stringify({ level })
         });
+        logger.debug(`🔧 setLogLevel: Fetch terminé, status: ${response.status}`);
 
         if (response.ok) {
           const result = await response.json();
@@ -1185,8 +1197,7 @@ class ConfigService {
             statusText: response.statusText,
             headers: Object.fromEntries(response.headers.entries()),
             url: response.url
-          });
-          throw new Error(errorMsg);
+          });          throw new Error(errorMsg);
         }
       }
     } catch (error) {
