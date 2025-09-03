@@ -122,7 +122,12 @@ gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
   --member="serviceAccount:VOTRE_PROJECT_ID@appspot.gserviceaccount.com" \
   --role="roles/iam.serviceAccountUser"
 
-# 5. Accorder le rôle "Cloud Functions Developer" au service account GitHub Actions
+# 5. Accorder le rôle "Service Account Token Creator" au service account App Engine
+gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
+  --member="serviceAccount:VOTRE_PROJECT_ID@appspot.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
+# 6. Accorder le rôle "Cloud Functions Developer" au service account GitHub Actions
 gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
   --member="serviceAccount:github-actions-deploy@VOTRE_PROJECT_ID.iam.gserviceaccount.com" \
   --role="roles/cloudfunctions.developer"
@@ -131,6 +136,7 @@ gcloud projects add-iam-policy-binding VOTRE_PROJECT_ID \
 ### **Rôles IAM nécessaires**
 
 - **`roles/iam.serviceAccountUser`** : Permet aux service accounts d'agir au nom d'autres comptes
+- **`roles/iam.serviceAccountTokenCreator`** : Permet de créer des tokens pour d'autres service accounts
 - **`roles/cloudfunctions.developer`** : Permet le déploiement des Cloud Functions
 - **`roles/firebase.admin`** : Permet la gestion complète Firebase (déjà accordé par défaut)
 
@@ -143,6 +149,15 @@ gcloud projects get-iam-policy VOTRE_PROJECT_ID \
   --format="table(bindings.role)" \
   --filter="bindings.members:VOTRE_PROJECT_ID@appspot.gserviceaccount.com"
 ```
+
+### **⚠️ Ordre important des permissions**
+
+Les permissions doivent être accordées dans cet ordre spécifique :
+1. **`iam.serviceAccountUser`** : Permet l'utilisation des service accounts
+2. **`iam.serviceAccountTokenCreator`** : Permet la création de tokens
+3. **`cloudfunctions.developer`** : Permet le déploiement des Functions
+
+**Note** : L'erreur `Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs` indique qu'il manque le rôle `iam.serviceAccountUser`.
 
 ## 📧 **Configuration Email par Environnement**
 
