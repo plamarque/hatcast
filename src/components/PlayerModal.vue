@@ -1,6 +1,6 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeModal">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col" @click.stop>
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4" @click="closeModal">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="closeModal" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
@@ -163,7 +163,7 @@
   </teleport>
 
   <!-- Modal d'édition du nom -->
-  <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
+  <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
               <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Renommer la personne</h2>
       <div class="mb-6">
@@ -471,8 +471,13 @@ function updatePlayerMoreActionsMobilePosition() {
     const buttonHeight = 48 // hauteur du bouton 3-points (h-12)
     const dropdownHeight = 120 // estimation de la hauteur du dropdown
     
-    // Positionner au-dessus du footer (pull-up style)
-    const top = Math.max(gap, window.innerHeight - gap - buttonHeight - dropdownHeight)
+    // Calculer la position de la modale pour centrer le dropdown
+    const modalHeight = 600 // estimation de la hauteur de la modale
+    const modalTop = (window.innerHeight - modalHeight) / 2
+    const footerTop = modalTop + modalHeight - buttonHeight - 20 // 20px de marge
+    
+    // Positionner le dropdown au-dessus du footer de la modale
+    const top = Math.max(gap, Math.round(footerTop - dropdownHeight - gap))
     const left = Math.max(gap, Math.round(window.innerWidth - 200 - gap)) // 200 = largeur du dropdown (w-48)
     
     playerMoreActionsMobileStyle.value = {

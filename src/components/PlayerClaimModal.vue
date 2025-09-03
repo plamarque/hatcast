@@ -1,6 +1,6 @@
 <template>
   <!-- Contenu migré depuis l'ancien PlayerProtectionModal.vue -->
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" @click="closeModal">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4" @click="closeModal">
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <button
         @click="closeModal"
