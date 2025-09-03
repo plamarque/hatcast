@@ -19,6 +19,9 @@ let cachedLogLevel = 'info'
 let lastLogLevelCheck = 0
 const LOG_LEVEL_CACHE_DURATION = 5000 // 5 secondes
 
+// Clé pour localStorage
+const LOG_LEVEL_STORAGE_KEY = 'hatcast_log_level'
+
 async function getLogLevelAsync() {
   // Simple pass-through vers le configService
   try {
@@ -29,6 +32,8 @@ async function getLogLevelAsync() {
       // Mettre en cache
       cachedLogLevel = level
       lastLogLevelCheck = Date.now()
+      // Persister en localStorage
+      localStorage.setItem(LOG_LEVEL_STORAGE_KEY, level)
       return level
     }
   } catch (error) {
@@ -55,10 +60,6 @@ function getLogLevel() {
   return cachedLogLevel
 }
 
-
-
-
-
 // Fonction pour mettre à jour le niveau de log dynamiquement
 export async function updateLogLevel() {
   // Simple pass-through vers le configService
@@ -73,6 +74,14 @@ export async function updateLogLevel() {
 }
 
 // Initialiser le niveau de log au chargement
+// Vérifier d'abord localStorage, puis configService
+const savedLevel = localStorage.getItem(LOG_LEVEL_STORAGE_KEY)
+if (savedLevel) {
+  cachedLogLevel = savedLevel
+  lastLogLevelCheck = Date.now()
+  console.log(`🔧 Niveau de log restauré depuis localStorage: ${savedLevel}`)
+}
+
 updateLogLevel()
 getLogLevelAsync().then(level => {
   cachedLogLevel = level

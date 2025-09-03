@@ -933,17 +933,15 @@ class ConfigService {
 
   /**
    * Retourne le niveau de log avec logique de priorité intelligente et cache
-   * Priorité: VITE_LOG_LEVEL (.env.local) > Firebase Config > Valeurs par défaut par environnement
+   * Priorité: localStorage > VITE_LOG_LEVEL (.env.local) > Firebase Config > Valeurs par défaut par environnement
    */
   getLogLevel() {
     const env = this.environment;
     
-    // Priorité 1: localStorage (pour mémoriser le choix de l'utilisateur en dev)
-    if (env === 'development') {
-      const savedLevel = localStorage.getItem('hatcast_log_level');
-      if (savedLevel) {
-        return savedLevel;
-      }
+    // Priorité 1: localStorage (pour mémoriser le choix de l'utilisateur)
+    const savedLevel = localStorage.getItem('hatcast_log_level');
+    if (savedLevel) {
+      return savedLevel;
     }
     
     // Priorité 2: Variable d'environnement VITE_LOG_LEVEL (pour le dev local)
@@ -952,7 +950,7 @@ class ConfigService {
       return viteLogLevel;
     }
     
-    // Priorité 2: Configuration Firebase (pour staging/production) avec cache
+    // Priorité 3: Configuration Firebase (pour staging/production) avec cache
     if (this.config?.logs?.level) {
       // En mode développement, ne pas rafraîchir depuis Firebase
       if (this.environment !== 'development') {
@@ -966,7 +964,7 @@ class ConfigService {
       return this.config.logs.level;
     }
     
-    // Priorité 3: Valeurs par défaut selon l'environnement
+    // Priorité 4: Valeurs par défaut selon l'environnement
     const defaultLogLevels = {
       development: 'debug',
       staging: 'info',
