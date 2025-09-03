@@ -235,7 +235,7 @@ class ConfigService {
           vapidKey: 'BG1NEd8-vnwABAfwt9D7pqO2PfHn_UpX8EqMHPX_TuIjk87KRxuQ66Kojfbe-4f_zBpyJZIH4biEVqt4YGjyAU0'
         },
         hosting: {
-          url: 'https://selections.la-malice.fr'
+          url: 'https://impro-selector.web.app'
         },
         pwa: {
           serviceWorkerEnabled: true,
