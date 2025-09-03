@@ -3,6 +3,7 @@
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
+      :is-connected="isConnected"
       @open-account-menu="openAccountMenu"
       @open-help="scrollToHelp"
       @open-notifications="openNotifications"
@@ -210,14 +211,19 @@
     </section>
 
     <!-- Modales d'authentification -->
+    <!-- DEBUG: showAccountLogin = {{ showAccountLogin }} -->
     <AccountLoginModal 
       v-if="showAccountLogin" 
+      :show="showAccountLogin"
       @close="showAccountLogin = false"
-      @login-success="handlePostLoginNavigation"
+      @success="handlePostLoginNavigation"
+      @open-account-creation="openAccountCreation"
     />
+    <!-- DEBUG: Fin AccountLoginModal -->
     
     <AccountCreationModal 
       v-if="showAccountCreation" 
+      :show="showAccountCreation"
       @close="showAccountCreation = false"
       @account-created="handlePostLoginNavigation"
     />
@@ -310,11 +316,29 @@ function openAccountMenu() {
 }
 
 function openAccountLogin() {
+  logger.info('🔑 HomePage: openAccountLogin() appelé')
+  logger.debug('showAccountLogin avant =', showAccountLogin.value)
   showAccountLogin.value = true
+  logger.debug('showAccountLogin après =', showAccountLogin.value)
+  logger.debug('showAccountLogin type =', typeof showAccountLogin.value)
+  logger.debug('showAccountLogin ref =', showAccountLogin)
+  
+  // Debug du composant modal
+  logger.debug('Composant AccountLoginModal importé =', !!AccountLoginModal)
+  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="email-input"]'))
 }
 
 function openAccountCreation() {
+  logger.info('🔑 HomePage: openAccountCreation() appelé')
+  logger.debug('showAccountCreation avant =', showAccountCreation.value)
   showAccountCreation.value = true
+  logger.debug('showAccountCreation après =', showAccountCreation.value)
+  logger.debug('showAccountCreation type =', typeof showAccountCreation.value)
+  logger.debug('showAccountCreation ref =', showAccountCreation)
+  
+  // Debug du composant modal
+  logger.debug('Composant AccountCreationModal importé =', !!AccountCreationModal)
+  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="create-account-modal"]'))
 }
 
 function openNotifications() {

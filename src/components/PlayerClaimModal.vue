@@ -1,6 +1,6 @@
 <template>
   <!-- Contenu migré depuis l'ancien PlayerProtectionModal.vue -->
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4" @click="closeModal">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4" @click="closeModal">
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <button
         @click="closeModal"
@@ -211,7 +211,7 @@ async function associatePlayerDirectly() {
     
     // Créer l'association dans la collection playerProtection (pas playerAssociations)
     const { doc, setDoc } = await import('firebase/firestore')
-    const { db } = await import('../services/firebase.js')
+    const { getFirebaseDb } = await import('../services/firebase.js')
     
     console.log('🆔 Création de l\'association dans playerProtection')
     
@@ -224,10 +224,21 @@ async function associatePlayerDirectly() {
     }
     console.log('📝 Données d\'association:', associationData)
     
+    // Obtenir l'instance Firestore via le getter
+    const db = getFirebaseDb()
+    if (!db) {
+      throw new Error('Firestore n\'est pas encore initialisé')
+    }
+    
     // Créer dans la collection playerProtection de la saison
     await setDoc(doc(db, 'seasons', props.seasonId, 'playerProtection', props.player.id), associationData)
     
     console.log('✅ Association créée avec succès dans Firestore')
+    
+    // Marquer l'email comme vérifié et sauvegarder l'avatar
+    const { markEmailVerifiedForProtection } = await import('../services/playerProtection.js')
+    await markEmailVerifiedForProtection({ playerId: props.player.id, seasonId: props.seasonId })
+    console.log('✅ Email marqué comme vérifié et avatar sauvegardé')
     
     // Afficher le message de succès
     success.value = `${props.player.name} est maintenant associé à ton compte !`
@@ -312,6 +323,7 @@ async function activateProtection() {
     password.value = ''
     confirmPassword.value = ''
     emit('update')
+    emit('avatar-updated', { playerId: props.player.id, seasonId: props.seasonId })
     try { if (props.onboarding) emit('onboarding-finished') } catch {}
   } catch (err) {
     logger.error('Erreur lors de l\'activation de la protection', err)
@@ -345,6 +357,7 @@ async function performUnprotect() {
     isProtected.value = false
     if (result.email) { email.value = result.email }
     emit('update')
+    emit('avatar-updated', { playerId: props.player.id, seasonId: props.seasonId })
   } catch (err) {
     logger.error('Erreur lors de la désactivation de la protection', err)
     error.value = 'Erreur lors de la désactivation de la protection. Veuillez réessayer.'

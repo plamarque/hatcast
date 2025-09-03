@@ -1,6 +1,6 @@
 // Service d'audit côté client pour HatCast
-import { doc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
-import { db, auth } from './firebase.js'
+import firestoreService from './firestoreService.js'
+import { auth } from './firebase.js'
 import logger from './logger.js'
 
 /**
@@ -75,6 +75,18 @@ class AuditClient {
                            (window.location.pathname.includes('/season/test') ||
                             window.location.pathname.includes('/season/malice-2025-2026'))
     
+    // Vérifier si l'audit est explicitement activé via variable d'environnement
+    const isAuditExplicitlyEnabled = import.meta.env.VITE_AUDIT_ENABLED === 'true'
+    
+    // Désactiver l'audit en développement sauf si explicitement activé
+    if (isLocalDev && !isAuditExplicitlyEnabled) {
+      // Log de debug pour indiquer que l'audit est désactivé
+      if (actionData.severity === 'error' || actionData.severity === 'critical') {
+        console.log('🔇 AUDIT DISABLED (dev mode):', actionData.type, actionData.data)
+      }
+      return
+    }
+    
     // Permettre l'audit si on est en dev local OU si c'est une saison de test
     if (isTest && !isLocalDev && !isTestingSeason) {
       return
@@ -96,7 +108,7 @@ class AuditClient {
         error: actionData?.error || null,
         deviceInfo: this.cleanDataForFirestore(this.getDeviceInfo()),
         sessionId: this.getSessionId(),
-        timestamp: serverTimestamp(),
+        timestamp: new Date(),
         tags: actionData?.tags || [],
         // Contexte de navigation (avec fallbacks sécurisés)
         pageUrl: (typeof window !== 'undefined' && window.location?.href) || 'unknown',
@@ -104,7 +116,7 @@ class AuditClient {
         userAgent: (typeof navigator !== 'undefined' && navigator.userAgent) || 'unknown'
       }
       
-      const docRef = await addDoc(collection(db, 'auditLogs'), this.cleanDataForFirestore(auditData))
+      const auditId = await firestoreService.addDocument('auditLogs', this.cleanDataForFirestore(auditData))
       
       // Log local pour debug
       if (actionData.severity === 'error' || actionData.severity === 'critical') {

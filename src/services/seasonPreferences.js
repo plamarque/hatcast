@@ -1,7 +1,6 @@
 // src/services/seasonPreferences.js
-import { auth } from './firebase.js'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
-import { db } from './firebase.js'
+import { getFirebaseAuth } from './firebase.js'
+import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 
 // Clés de stockage
@@ -16,7 +15,8 @@ export async function rememberLastVisitedSeason(seasonSlug) {
   if (!seasonSlug) return
 
   try {
-    const user = auth.currentUser
+    const auth = getFirebaseAuth()
+    const user = auth?.currentUser
     const userEmail = user?.email
 
     // Sauvegarder dans localStorage (fallback rapide)
@@ -30,11 +30,10 @@ export async function rememberLastVisitedSeason(seasonSlug) {
     // Si utilisateur connecté, sauvegarder dans Firebase (persistant)
     if (userEmail) {
       try {
-        const userPrefsRef = doc(db, 'userPreferences', userEmail)
-        await setDoc(userPrefsRef, {
+        await firestoreService.setDocument('userPreferences', userEmail, {
           lastVisitedSeason: seasonSlug,
           lastVisitedSeasonTimestamp: Date.now()
-        }, { merge: true })
+        }, true)
         logger.debug('Préférence de saison sauvegardée dans Firebase', { seasonSlug, userEmail })
       } catch (error) {
         logger.warn('Erreur lors de la sauvegarde Firebase', error)
@@ -51,20 +50,17 @@ export async function rememberLastVisitedSeason(seasonSlug) {
  */
 export async function getLastVisitedSeason() {
   try {
-    const user = auth.currentUser
+    const auth = getFirebaseAuth()
+    const user = auth?.currentUser
     const userEmail = user?.email
 
     // Essayer Firebase en premier (plus fiable pour les utilisateurs connectés)
     if (userEmail) {
       try {
-        const userPrefsRef = doc(db, 'userPreferences', userEmail)
-        const userPrefsSnap = await getDoc(userPrefsRef)
-        if (userPrefsSnap.exists()) {
-          const prefs = userPrefsSnap.data()
-          if (prefs.lastVisitedSeason) {
-            logger.debug('Préférence de saison récupérée depuis Firebase', { seasonSlug: prefs.lastVisitedSeason })
-            return prefs.lastVisitedSeason
-          }
+        const prefs = await firestoreService.getDocument('userPreferences', userEmail)
+        if (prefs && prefs.lastVisitedSeason) {
+          logger.debug('Préférence de saison récupérée depuis Firebase', { seasonSlug: prefs.lastVisitedSeason })
+          return prefs.lastVisitedSeason
         }
       } catch (error) {
         logger.warn('Erreur lors de la récupération Firebase', error)
@@ -95,7 +91,8 @@ export async function getLastVisitedSeason() {
  */
 export async function clearLastSeasonPreference(userEmail = null) {
   try {
-    const email = userEmail || auth.currentUser?.email
+    const auth = getFirebaseAuth()
+    const email = userEmail || auth?.currentUser?.email
 
     // Nettoyer localStorage
     try {
@@ -108,11 +105,10 @@ export async function clearLastSeasonPreference(userEmail = null) {
     // Nettoyer Firebase si utilisateur connecté
     if (email) {
       try {
-        const userPrefsRef = doc(db, 'userPreferences', email)
-        await setDoc(userPrefsRef, { 
+        await firestoreService.setDocument('userPreferences', email, { 
           lastVisitedSeason: null,
           lastVisitedSeasonTimestamp: null 
-        }, { merge: true })
+        }, true)
         logger.debug('Préférence de saison nettoyée dans Firebase', { userEmail: email })
       } catch (error) {
         logger.warn('Erreur lors du nettoyage Firebase', error)

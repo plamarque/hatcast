@@ -95,20 +95,24 @@
             >
               <!-- Slot rempli -->
               <div v-if="slot.player" class="flex items-center justify-between gap-2">
-                <div class="flex-1 text-white font-medium truncate" :title="getPlayerSlotTooltip(slot.player)">
-                  <!-- Statut de confirmation individuel du joueur -->
-                  <span v-if="getPlayerSelectionStatus(slot.player) === 'confirmed'" class="text-purple-400 mr-2">✅</span>
-                  <span v-else-if="getPlayerSelectionStatus(slot.player) === 'declined'" class="text-red-400 mr-2">❌</span>
-                  <span v-else-if="getPlayerSelectionStatus(slot.player) === 'pending'" class="text-orange-400 mr-2">⏳</span>
-                  <!-- Statut de disponibilité classique -->
-                  <span v-else-if="isInSavedSelectionAndAvailable(slot.player)" class="text-purple-400 mr-2">🎭</span>
-                  <span v-else-if="isPlayerAvailable(slot.player)" class="text-green-400 mr-2">✅</span>
-                  <span v-else-if="isPlayerUnavailable(slot.player)" class="text-red-400 mr-2">❌</span>
-                  <span v-else class="text-gray-400 mr-2">–</span>
+                <div class="flex-1 flex items-center gap-2 min-w-0" :title="getPlayerSlotTooltip(slot.player)">
+                  <!-- Avatar du joueur -->
+                  <div class="flex-shrink-0">
+                    <PlayerAvatar 
+                      :player-id="getPlayerIdFromName(slot.player)"
+                      :season-id="seasonId"
+                      :player-name="slot.player"
+                      size="sm"
+                    />
+                  </div>
                   
                   <!-- Nom du joueur + emoji du rôle -->
-                  <span class="mr-2">{{ slot.player }}</span>
-                  <span class="text-lg">{{ slot.roleEmoji }}</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1">
+                      <span class="text-white font-medium truncate">{{ slot.player }}</span>
+                      <span class="text-lg flex-shrink-0">{{ slot.roleEmoji }}</span>
+                    </div>
+                  </div>
                 </div>
                 <button
                   v-if="!isSelectionConfirmedByOrganizer"
@@ -275,6 +279,7 @@ import { ref, computed, watch } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
 import { saveSelection } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 
@@ -950,6 +955,13 @@ function getTotalTeamSize() {
     // Ancien format (fallback)
     return props.event?.playerCount || 6
   }
+}
+
+// Fonction helper pour récupérer l'ID du joueur à partir de son nom
+function getPlayerIdFromName(playerName) {
+  if (!playerName || !props.players) return null
+  const player = props.players.find(p => p.name === playerName)
+  return player?.id || null
 }
 
 // Fonctions pour l'invitation à la sélection

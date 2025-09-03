@@ -1,9 +1,9 @@
 // src/services/playerProtection.js
-import { db } from './firebase.js'
+import firestoreService from './firestoreService.js'
 import logger from './logger.js'
-import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { createEmailVerificationLink } from './magicLinks.js'
 import playerPasswordSessionManager from './playerPasswordSession.js'
+import { queueVerificationEmail } from './emailService.js'
 
 // Fonction simple pour hasher un mot de passe (pour la démo)
 // En production, utilisez bcrypt ou une bibliothèque de hachage sécurisée
@@ -80,18 +80,15 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     }
     
     // Vérifier si l'email est déjà utilisé par un autre joueur
-    const { collection, query, where, getDocs } = await import('firebase/firestore')
-    const { db } = await import('./firebase.js')
+    const emailDocs = await firestoreService.queryDocuments(
+      seasonId ? 'seasons' : 'playerProtection',
+      [firestoreService.where('email', '==', email)],
+      seasonId ? seasonId : null,
+      'playerProtection'
+    )
     
-    const protectionCollection = seasonId
-      ? collection(db, 'seasons', seasonId, 'playerProtection')
-      : collection(db, 'playerProtection')
-    
-    const emailQuery = query(protectionCollection, where('email', '==', email))
-    const emailDocs = await getDocs(emailQuery)
-    
-    if (!emailDocs.empty) {
-      const existingDoc = emailDocs.docs.find(doc => doc.id !== playerId)
+    if (emailDocs.length > 0) {
+      const existingDoc = emailDocs.find(doc => doc.id !== playerId)
       if (existingDoc) {
         throw new Error('Cette adresse email est déjà utilisée par un autre joueur')
       }
@@ -109,18 +106,25 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     const passwordHash = simpleHash(password)
     
     // Sauvegarder dans Firestore
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
-    await setDoc(protectionRef, {
-      playerId,
-      email,
-      passwordHash,
-      firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
-      isProtected: true,
-      createdAt: new Date()
-    })
+    if (seasonId) {
+      await firestoreService.setDocument('seasons', seasonId, {
+        playerId,
+        email,
+        passwordHash,
+        firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
+        isProtected: true,
+        createdAt: new Date()
+      }, false, 'playerProtection', playerId)
+    } else {
+      await firestoreService.setDocument('playerProtection', playerId, {
+        playerId,
+        email,
+        passwordHash,
+        firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
+        isProtected: true,
+        createdAt: new Date()
+      })
+    }
     
     logger.info('Protection sauvegardée dans Firestore')
 
@@ -139,55 +143,147 @@ export async function startEmailVerificationForProtection({ playerId, email, sea
   // La vérification par email prouvera la possession, et l'association sera gérée après vérification.
 
   // Stocker provisoirement l'email saisi (sans activer la protection)
-  const ref = seasonId
-    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-    : doc(db, 'playerProtection', playerId)
-  const existing = await getDoc(ref)
-  if (!existing.exists()) {
-    await setDoc(ref, { playerId, email, isProtected: false, createdAt: new Date() })
+  let existing
+  if (seasonId) {
+    existing = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
+    if (!existing) {
+      await firestoreService.setDocument('seasons', seasonId, { playerId, email, isProtected: false, createdAt: new Date() }, false, 'playerProtection', playerId)
+    } else {
+      await firestoreService.updateDocument('seasons', seasonId, { email, updatedAt: new Date() }, 'playerProtection', playerId)
+    }
   } else {
-    await updateDoc(ref, { email, updatedAt: new Date() })
+    existing = await firestoreService.getDocument('playerProtection', playerId)
+    if (!existing) {
+      await firestoreService.setDocument('playerProtection', playerId, { playerId, email, isProtected: false, createdAt: new Date() })
+    } else {
+      await firestoreService.updateDocument('playerProtection', playerId, { email, updatedAt: new Date() })
+    }
   }
 
   // Créer et retourner le lien de vérification
   const { url } = await createEmailVerificationLink({ seasonId, playerId, email })
+  
+  // Envoyer l'email de vérification
+  logger.info('🚀 Début envoi email de vérification', { playerId, email, url })
+  try {
+    const result = await queueVerificationEmail({ 
+      toEmail: email, 
+      verifyUrl: url, 
+      purpose: 'player_protection', 
+      displayName: playerId 
+    })
+    logger.info('✅ Email de vérification envoyé avec succès', { playerId, email, result })
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'envoi de l\'email de vérification', { playerId, email, error })
+    // Ne pas faire échouer la fonction si l'email échoue
+  }
+  
   return { success: true, url }
 }
 
-// Etape 2: Marquer l'email comme vérifié via la page /magic
+// Etape 2: Marquer l'email comme vérifié et activer la protection
 export async function markEmailVerifiedForProtection({ playerId, seasonId = null }) {
-  const ref = seasonId
-    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-    : doc(db, 'playerProtection', playerId)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) throw new Error('Protection introuvable')
-  await updateDoc(ref, { emailVerifiedAt: new Date() })
+  let snap
+  if (seasonId) {
+    snap = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
+    if (!snap) throw new Error('Protection introuvable')
+    
+    // Activer la protection et marquer l'email comme vérifié
+    await firestoreService.updateDocument('seasons', seasonId, { 
+      emailVerifiedAt: new Date(),
+      isProtected: true,
+      updatedAt: new Date()
+    }, 'playerProtection', playerId)
+    
+    logger.info('✅ Protection activée pour le joueur', { playerId, seasonId })
+  } else {
+    snap = await firestoreService.getDocument('playerProtection', playerId)
+    if (!snap) throw new Error('Protection introuvable')
+    
+    // Activer la protection et marquer l'email comme vérifié
+    await firestoreService.updateDocument('playerProtection', playerId, { 
+      emailVerifiedAt: new Date(),
+      isProtected: true,
+      updatedAt: new Date()
+    })
+    
+    logger.info('✅ Protection activée pour le joueur (global)', { playerId })
+  }
+  
+  // Sauvegarder l'avatar du joueur si l'utilisateur est connecté
+  try {
+    const { currentUser } = await import('./authState.js')
+    logger.info('🔍 Debug: Checking current user for avatar save', { 
+      hasCurrentUser: !!currentUser.value,
+      hasPhotoURL: !!currentUser.value?.photoURL,
+      hasEmail: !!snap.email,
+      playerId,
+      seasonId
+    })
+    
+    if (currentUser.value && currentUser.value.photoURL && snap.email) {
+      const { savePlayerAvatar } = await import('./playerAvatars.js')
+      const success = await savePlayerAvatar(playerId, currentUser.value.photoURL, snap.email, seasonId)
+      logger.info('✅ Avatar sauvegardé pour le joueur', { 
+        playerId, 
+        seasonId, 
+        email: snap.email,
+        success,
+        photoURL: currentUser.value.photoURL
+      })
+    } else {
+      logger.info('❌ Avatar non sauvegardé - conditions non remplies', {
+        hasCurrentUser: !!currentUser.value,
+        hasPhotoURL: !!currentUser.value?.photoURL,
+        hasEmail: !!snap.email
+      })
+    }
+  } catch (error) {
+    logger.error('❌ Erreur lors de la sauvegarde de l\'avatar:', error)
+  }
+  
   return { success: true }
 }
 
 // Réinitialiser la vérification d'email pour permettre de ressaisir une autre adresse
 export async function clearEmailVerificationForProtection({ playerId, seasonId = null }) {
-  const ref = seasonId
-    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-    : doc(db, 'playerProtection', playerId)
-  await updateDoc(ref, { emailVerifiedAt: null })
+  if (seasonId) {
+    await firestoreService.updateDocument('seasons', seasonId, { emailVerifiedAt: null }, 'playerProtection', playerId)
+  } else {
+    await firestoreService.updateDocument('playerProtection', playerId, { emailVerifiedAt: null })
+  }
   return { success: true }
 }
 
 export async function unprotectPlayer(playerId, seasonId = null) {
   try {
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
     // Désactiver la protection et purger l'email pour confidentialité
-    await setDoc(protectionRef, {
-      playerId,
-      email: '',
-      isProtected: false,
-      emailVerifiedAt: null,
-      updatedAt: new Date()
-    })
+    if (seasonId) {
+      await firestoreService.setDocument('seasons', seasonId, {
+        playerId,
+        email: '',
+        isProtected: false,
+        emailVerifiedAt: null,
+        updatedAt: new Date()
+      }, false, 'playerProtection', playerId)
+    } else {
+      await firestoreService.setDocument('playerProtection', playerId, {
+        playerId,
+        email: '',
+        isProtected: false,
+        emailVerifiedAt: null,
+        updatedAt: new Date()
+      })
+    }
+    
+    // Supprimer l'avatar du joueur pour restaurer l'avatar par défaut
+    try {
+      const { deletePlayerAvatar } = await import('./playerAvatars.js')
+      await deletePlayerAvatar(playerId, seasonId)
+      logger.info('✅ Avatar supprimé pour le joueur déprotégé', { playerId, seasonId })
+    } catch (error) {
+      logger.debug('Could not delete player avatar:', error)
+    }
     
     // Nettoyer la préférence locale pour ce joueur
     if (seasonId) removePreferredPlayerLocal(seasonId, playerId)
@@ -206,18 +302,18 @@ export async function isPlayerProtected(playerId, seasonId = null) {
   }
   
   try {
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
+    let protectionDoc
+    if (seasonId) {
+      protectionDoc = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
+    } else {
+      protectionDoc = await firestoreService.getDocument('playerProtection', playerId)
+    }
     
-    const protectionDoc = await getDoc(protectionRef)
-    
-    if (!protectionDoc.exists()) {
+    if (!protectionDoc) {
       return false
     }
     
-    const protectionData = protectionDoc.data()
-    return protectionData.isProtected === true
+    return protectionDoc.isProtected === true
   } catch (error) {
     // Log silencieux pour les erreurs non critiques
     if (error.code !== 'not-found' && error.code !== 'permission-denied') {
@@ -239,17 +335,14 @@ export async function getPlayerProtectionData(playerId, seasonId = null) {
   }
   
   try {
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
-    const protectionDoc = await getDoc(protectionRef)
-    
-    if (!protectionDoc.exists()) {
-      return null
+    let protectionDoc
+    if (seasonId) {
+      protectionDoc = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
+    } else {
+      protectionDoc = await firestoreService.getDocument('playerProtection', playerId)
     }
     
-    return protectionDoc.data()
+    return protectionDoc
   } catch (error) {
     // Log silencieux pour les erreurs non critiques (ex: document inexistant)
     if (error.code !== 'not-found' && error.code !== 'permission-denied') {
@@ -281,11 +374,15 @@ export async function getPlayerEmail(playerId, seasonId = null) {
 // Lister les protections (pour récupérer emails des joueurs protégés)
 export async function listProtectedPlayers(seasonId = null) {
   try {
-    const protectionCollection = seasonId
-      ? collection(db, 'seasons', seasonId, 'playerProtection')
-      : collection(db, 'playerProtection')
-    const snap = await getDocs(protectionCollection)
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    if (seasonId) {
+      // Protection pour une saison spécifique
+      const protections = await firestoreService.getDocuments('seasons', seasonId, 'playerProtection')
+      return protections.map(protection => ({ id: protection.id, ...protection }))
+    } else {
+      // Protection globale (racine)
+      const protections = await firestoreService.getDocuments('playerProtection')
+      return protections.map(protection => ({ id: protection.id, ...protection }))
+    }
   } catch (error) {
     // Log silencieux pour les erreurs non critiques
     if (error.code !== 'not-found' && error.code !== 'permission-denied') {
@@ -301,35 +398,40 @@ export async function listAssociationsForEmail(email) {
     const results = []
     
     // Rechercher dans toutes les saisons connues via la collection seasons
-    const seasonsSnap = await getDocs(collection(db, 'seasons'))
-    logger.debug(`listAssociationsForEmail: Recherche dans ${seasonsSnap.docs.length} saisons pour ${email}`)
+    const seasons = await firestoreService.getDocuments('seasons')
+    logger.debug(`listAssociationsForEmail: Recherche dans ${seasons.length} saisons pour ${email}`)
     
-    for (const s of seasonsSnap.docs) {
-      const sid = s.id
-      const seasonName = s.data()?.name || sid
+    for (const season of seasons) {
+      const sid = season.id
+      const seasonName = season.name || sid
       logger.debug(`listAssociationsForEmail: Vérification de la saison ${sid} (${seasonName})`)
       
       try {
-        const qProt = query(collection(db, 'seasons', sid, 'playerProtection'), where('email', '==', email))
-        const protSnap = await getDocs(qProt)
-        logger.debug(`listAssociationsForEmail: ${protSnap.docs.length} documents de protection trouvés dans ${sid}`)
+        // Rechercher les protections de joueurs pour cet email dans cette saison
+        const protections = await firestoreService.queryDocuments(
+          'seasons', 
+          [firestoreService.where('email', '==', email)], 
+          sid, 
+          'playerProtection'
+        )
         
-        protSnap.forEach((d) => {
-          const data = d.data()
-          logger.debug(`listAssociationsForEmail: Document ${d.id} dans ${sid}:`, { 
-            email: data.email, 
-            isProtected: data.isProtected, 
-            firebaseUid: data.firebaseUid 
+        logger.debug(`listAssociationsForEmail: ${protections.length} documents de protection trouvés dans ${sid}`)
+        
+        protections.forEach((protection) => {
+          logger.debug(`listAssociationsForEmail: Document ${protection.id} dans ${sid}:`, { 
+            email: protection.email, 
+            isProtected: protection.isProtected, 
+            firebaseUid: protection.firebaseUid 
           })
           
-          if (data?.isProtected) {
+          if (protection?.isProtected) {
             results.push({ 
               seasonId: sid, 
               seasonName: seasonName, 
-              playerId: d.id, 
-              ...data 
+              playerId: protection.id, 
+              ...protection 
             })
-            logger.debug(`listAssociationsForEmail: Association ajoutée pour ${sid}/${d.id}`)
+            logger.debug(`listAssociationsForEmail: Association ajoutée pour ${sid}/${protection.id}`)
           }
         })
       } catch (seasonError) {

@@ -1,8 +1,25 @@
 [
   {
-    "origin": ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://192.168.1.134:5173", "http://192.168.1.134:5174", "http://192.168.1.134:5175"],
+    "origin": [
+      "http://localhost:5173", 
+      "http://localhost:5174", 
+      "http://localhost:5175", 
+      "http://192.168.1.134:5173", 
+      "http://192.168.1.134:5174", 
+      "http://192.168.1.134:5175",
+      "https://hatcast-staging.web.app",
+      "https://localhost:5173",
+      "https://192.168.1.134:5173"
+    ],
     "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
     "maxAgeSeconds": 3600,
-    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"]
+    "responseHeader": [
+      "Content-Type", 
+      "Authorization", 
+      "Content-Length", 
+      "User-Agent", 
+      "x-goog-*",
+      "Access-Control-Allow-Origin"
+    ]
   }
 ]

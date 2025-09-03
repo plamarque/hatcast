@@ -1,36 +1,7 @@
 // storage.js
-import { db } from './firebase.js'
 import logger from './logger.js'
-import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
-
-let mode = 'mock' // or 'firebase'
-
-let playersList = [
-  { id: 'p1', name: 'Alice' },
-  { id: 'p2', name: 'Bob' },
-  { id: 'p3', name: 'Charlie' },
-  { id: 'p4', name: 'David' },
-  { id: 'p5', name: 'Eva' },
-  { id: 'p6', name: 'Fanny' },
-  { id: 'p7', name: 'Georges' },
-  { id: 'p8', name: 'Hélène' },
-  { id: 'p9', name: 'Ismaël' },
-  { id: 'p10', name: 'Jade' },
-  { id: 'p11', name: 'Karim' },
-  { id: 'p12', name: 'Léa' },
-  { id: 'p13', name: 'Marc' },
-  { id: 'p14', name: 'Nina' },
-  { id: 'p15', name: 'Oscar' }
-]
-
-let eventList = [
-  { id: 'event1', title: 'Apérock Septembre', date: '2025-09-08', description: 'Soirée apéro-rock avec ambiance festive' },
-  { id: 'event2', title: 'Match à Cambo', date: '2025-11-25', description: 'Match d\'improvisation compétitif à Cambo-les-Bains' },
-  { id: 'event3', title: 'Impro des Familles', date: '2025-12-02', description: 'Spectacle d\'improvisation pour toute la famille' },
-  { id: 'event4', title: 'Cabaret Surprise', date: '2026-01-20', description: 'Cabaret avec des surprises et des performances uniques' },
-  { id: 'event5', title: 'Impro Plage', date: '2026-03-10', description: 'Improvisation en plein air avec vue sur la plage' }
-]
+import firestoreService from './firestoreService.js'
 
 // Constantes pour les rôles et leurs emojis
 export const ROLES = {
@@ -162,73 +133,8 @@ export const ROLE_TEMPLATES = {
 // Ordre d'affichage des types
 export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
 
-export function setStorageMode(value) {
-  mode = value
-}
-
-// Migration automatique des données globales vers la structure multi-saison
-export async function migrateToSeasons() {
-  if (mode !== 'firebase') return
-
-  // Vérifier si la collection 'seasons' est vide
-  const seasonsSnap = await getDocs(collection(db, 'seasons'))
-  if (!seasonsSnap.empty) return // Déjà migré
-
-  // Créer la saison 'Malice 2025-2026'
-  const seasonRef = doc(collection(db, 'seasons'))
-  await setDoc(seasonRef, {
-    name: 'Malice 2025-2026',
-    slug: 'malice-2025-2026',
-    createdAt: serverTimestamp(),
-  })
-
-  // Copier les joueurs
-  const playersSnap = await getDocs(collection(db, 'players'))
-  for (const playerDoc of playersSnap.docs) {
-    await setDoc(doc(seasonRef, 'players', playerDoc.id), playerDoc.data())
-  }
-
-  // Copier les événements
-  const eventsSnap = await getDocs(collection(db, 'events'))
-  for (const eventDoc of eventsSnap.docs) {
-    await setDoc(doc(seasonRef, 'events', eventDoc.id), eventDoc.data())
-  }
-
-  // Copier les disponibilités
-  const availSnap = await getDocs(collection(db, 'availability'))
-  for (const availDoc of availSnap.docs) {
-    await setDoc(doc(seasonRef, 'availability', availDoc.id), availDoc.data())
-  }
-
-  // Copier les sélections
-  const selSnap = await getDocs(collection(db, 'selections'))
-  for (const selDoc of selSnap.docs) {
-    await setDoc(doc(seasonRef, 'selections', selDoc.id), selDoc.data())
-  }
-
-  // (Optionnel) : tu pourras supprimer manuellement les anciennes collections après vérification
-}
-
-// Appeler la migration au démarrage si firebase
-export async function initializeStorage() {
-  if (mode === 'firebase') {
-    await migrateToSeasons()
-  }
-}
-
-export async function loadEvents(seasonId = null) {
-  let events
-  if (mode === 'firebase') {
-    if (seasonId) {
-      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId, 'events'))
-      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    } else {
-      const eventsSnap = await getDocs(collection(db, 'events'))
-      events = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    }
-  } else {
-    events = eventList
-  }
+export async function loadEvents(seasonId) {
+  const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
 
   // Tri des événements par date (croissant) puis par titre (alphabétique)
   return events.sort((a, b) => {
@@ -249,19 +155,8 @@ export async function loadEvents(seasonId = null) {
   })
 }
 
-export async function loadPlayers(seasonId = null) {
-  let players
-  if (mode === 'firebase') {
-    if (seasonId) {
-      const playersSnap = await getDocs(collection(db, 'seasons', seasonId, 'players'))
-      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    } else {
-      const playersSnap = await getDocs(collection(db, 'players'))
-      players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    }
-  } else {
-    players = playersList
-  }
+export async function loadPlayers(seasonId) {
+  const players = await firestoreService.getDocuments('seasons', seasonId, 'players')
 
   // Tri par order puis par nom
   return players.sort((a, b) => {
@@ -271,447 +166,296 @@ export async function loadPlayers(seasonId = null) {
   })
 }
 
-export async function reorderPlayersAlphabetically(seasonId = null) {
-  if (mode === 'firebase') {
-    const playersSnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'players'))
-      : await getDocs(collection(db, 'players'))
-    const players = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    
-    // Trier par nom
-    const sortedPlayers = players.sort((a, b) => a.name.localeCompare(b.name))
-    
-    // Mettre à jour les ordres
-    const batch = writeBatch(db)
-    sortedPlayers.forEach((player, index) => {
-      const playerRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'players', player.id)
-        : doc(db, 'players', player.id)
-      batch.update(playerRef, { order: index })
-    })
-    await batch.commit()
-  } else {
-    // Pour le mode mock, trier simplement le tableau
-    playersList.sort((a, b) => a.name.localeCompare(b.name))
-    playersList.forEach((player, index) => {
-      player.order = index
-    })
+
+
+export async function addPlayer(name, seasonId) {
+  // Validation côté serveur
+  if (!name || !name.trim()) {
+    throw new Error('Le nom du joueur ne peut pas être vide')
+  }
+  
+  const trimmedName = name.trim()
+  
+  // Vérifier si un joueur avec ce nom existe déjà
+  const existingPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
+  const nameExists = existingPlayers.some(player => player.name === trimmedName)
+  
+  if (nameExists) {
+    throw new Error('Un joueur avec ce nom existe déjà dans cette saison')
+  }
+  
+  const newId = await firestoreService.addDocument('seasons', { name: trimmedName }, seasonId, 'players')
+  return newId
+}
+
+export async function deletePlayer(playerId, seasonId) {
+  // Lire le nom du joueur avant suppression
+  const player = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+  const playerName = player?.name || null
+  
+  // Supprimer le joueur
+  await firestoreService.deleteDocument('seasons', seasonId, 'players', playerId)
+  
+  // Supprimer les disponibilités pour ce joueur (par nom)
+  if (playerName) {
+    await firestoreService.deleteDocument('seasons', seasonId, 'availability', playerName)
   }
 }
 
-export async function addPlayer(name, seasonId = null) {
-  if (mode === 'firebase') {
-    const newDocRef = seasonId
-      ? doc(collection(db, 'seasons', seasonId, 'players'))
-      : doc(collection(db, 'players'))
-    await setDoc(newDocRef, { name })
-    return newDocRef.id
-  } else {
-    const newId = `p${playersList.length + 1}`
-    playersList.push({ id: newId, name })
-    return newId
+export async function updatePlayer(playerId, newName, seasonId) {
+  // Validation : vérifier que le nouveau nom n'existe pas déjà
+  if (!newName || !newName.trim()) {
+    throw new Error('Le nom du joueur ne peut pas être vide')
   }
-}
+  
+  const trimmedNewName = newName.trim()
+  
+  // Vérifier si un autre joueur a déjà ce nom
+  const existingPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
+  const nameExists = existingPlayers.some(player => 
+    player.name === trimmedNewName && player.id !== playerId
+  )
+  
+  if (nameExists) {
+    throw new Error('Un joueur avec ce nom existe déjà dans cette saison')
+  }
 
-export async function deletePlayer(playerId, seasonId = null) {
-  if (mode === 'firebase') {
-    const playerRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'players', playerId)
-      : doc(db, 'players', playerId)
-    await deleteDoc(playerRef)
-    
-    // Supprimer les disponibilités pour ce joueur
-    const availabilitySnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-      : await getDocs(collection(db, 'availability'))
-    const batch = writeBatch(db)
-    availabilitySnap.forEach(doc => {
-      const availabilityData = doc.data()
-      if (availabilityData[playerId] !== undefined) {
-        const updatedData = { ...availabilityData }
-        delete updatedData[playerId]
-        batch.update(doc.ref, updatedData)
+  // Lire l'ancien nom (si existant) avant mise à jour
+  const player = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+  const oldName = player?.name || null
+
+  // Mettre à jour uniquement le nom et préserver les autres champs. Crée le doc s'il n'existe pas.
+  await firestoreService.setDocument('seasons', seasonId, { name: trimmedNewName }, true, 'players', playerId)
+
+  // Si le nom change, renommer les dépendances (availability + selections)
+  if (oldName && oldName !== trimmedNewName) {
+
+    // Renommer le document de disponibilités (clé = nom du joueur)
+    try {
+      logger.info(`🔍 Tentative de migration des disponibilités de "${oldName}" vers "${trimmedNewName}"`)
+      const oldAvailability = await firestoreService.getDocument('seasons', seasonId, 'availability', oldName)
+              logger.info(`📊 Disponibilités trouvées pour "${oldName}":`, oldAvailability)
+      
+      if (oldAvailability) {
+        // Extraire les données sans l'ID pour la migration
+        const { id, ...availabilityData } = oldAvailability
+        
+        // Créer le nouveau document de disponibilités
+        await firestoreService.setDocument('seasons', seasonId, availabilityData, true, 'availability', trimmedNewName)
+        logger.info(`✅ Nouveau document de disponibilités créé pour "${trimmedNewName}"`)
+        
+        // Supprimer l'ancien document
+        await firestoreService.deleteDocument('seasons', seasonId, 'availability', oldName)
+        logger.info(`🗑️ Ancien document de disponibilités supprimé pour "${oldName}"`)
+        
+        logger.info(`✅ Disponibilités migrées de "${oldName}" vers "${trimmedNewName}"`)
+      } else {
+        logger.info(`ℹ️ Aucune disponibilité trouvée pour "${oldName}"`)
       }
-    })
-    await batch.commit()
-  } else {
-    playersList = playersList.filter(player => player.id !== playerId)
-  }
-}
-
-export async function updatePlayer(playerId, newName, seasonId = null) {
-  if (mode === 'firebase') {
-    const playerRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'players', playerId)
-      : doc(db, 'players', playerId)
-
-    // Lire l'ancien nom (si existant) avant mise à jour
-    const prevSnap = await getDoc(playerRef)
-    const oldName = prevSnap.exists() ? (prevSnap.data().name || null) : null
-
-    // Mettre à jour uniquement le nom et préserver les autres champs. Crée le doc s'il n'existe pas.
-    await setDoc(playerRef, { name: newName }, { merge: true })
-
-    // Si le nom change, renommer les dépendances (availability + selections)
-    if (oldName && oldName !== newName) {
-      const batch = writeBatch(db)
-
-      // Renommer le document de disponibilités (clé = nom du joueur)
-      try {
-        const availRefOld = seasonId
-          ? doc(db, 'seasons', seasonId, 'availability', oldName)
-          : doc(db, 'availability', oldName)
-        const availSnap = await getDoc(availRefOld)
-        if (availSnap.exists()) {
-          const data = availSnap.data() || {}
-          const availRefNew = seasonId
-            ? doc(db, 'seasons', seasonId, 'availability', newName)
-            : doc(db, 'availability', newName)
-          batch.set(availRefNew, data, { merge: true })
-          batch.delete(availRefOld)
-        }
-      } catch (_) {}
-
-      // Mettre à jour les sélections (tableaux de noms)
-      try {
-        const selCol = seasonId
-          ? collection(db, 'seasons', seasonId, 'selections')
-          : collection(db, 'selections')
-        const selSnap = await getDocs(selCol)
-        selSnap.forEach((d) => {
-          const arr = Array.isArray(d.data()?.players) ? d.data().players : []
-          if (arr.includes(oldName)) {
-            const next = arr.map((n) => (n === oldName ? newName : n))
-            batch.update(d.ref, { players: next })
-          }
-        })
-      } catch (_) {}
-
-      await batch.commit()
+    } catch (error) {
+              logger.warn(`⚠️ Échec de la migration des disponibilités pour "${oldName}":`, error.message)
+      // On continue car le joueur a déjà été renommé
     }
-  } else {
-    const index = playersList.findIndex(player => player.id === playerId)
-    if (index !== -1) {
-      // Conserver l'objet joueur et ne modifier que le nom
-      playersList[index] = { ...playersList[index], name: newName }
+
+    // Mettre à jour les sélections (nouveau format par rôles)
+    try {
+      const selections = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+      let updatedSelections = 0
+      for (const selection of selections) {
+        const { id, ...data } = selection
+        if (data.roles && typeof data.roles === 'object') {
+          let hasUpdates = false
+          const updatedRoles = { ...data.roles }
+          
+          // Vérifier chaque rôle pour le nom à remplacer
+          for (const [role, players] of Object.entries(updatedRoles)) {
+            if (Array.isArray(players) && players.includes(oldName)) {
+              updatedRoles[role] = players.map(n => n === oldName ? trimmedNewName : n)
+              hasUpdates = true
+            }
+          }
+          
+          if (hasUpdates) {
+            // Mise à jour directe sans batch pour l'instant
+            await firestoreService.updateDocument('seasons', seasonId, { roles: updatedRoles }, 'selections', id)
+            updatedSelections++
+          }
+        }
+      }
+      if (updatedSelections > 0) {
+        logger.info(`✅ ${updatedSelections} sélection(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
+      }
+    } catch (error) {
+              logger.warn(`⚠️ Échec de la mise à jour des sélections pour "${oldName}":`, error.message)
+      // On continue car le joueur a déjà été renommé
     }
   }
 }
 
-export async function loadAvailability(players, events, seasonId = null) {
-  if (mode === 'firebase') {
-    const availabilitySnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-      : await getDocs(collection(db, 'availability'))
-    const availability = {}
-    availabilitySnap.forEach(doc => {
-      const data = doc.data()
-      const migratedData = {}
-      
-      // Migration des anciennes disponibilités vers le nouveau format
-      Object.keys(data).forEach(eventId => {
-        const value = data[eventId]
-        if (eventId === 'updatedAt') {
-          migratedData[eventId] = value
-        } else {
-          // Migration : ancien format (boolean) vers nouveau format (objet)
-          if (typeof value === 'boolean' || value === null || value === undefined) {
-            // Ancien format : juste un boolean
-            migratedData[eventId] = {
-              available: value === true,
-              roles: value === true ? [ROLES.PLAYER] : [],
-              comment: null
-            }
-          } else if (typeof value === 'object' && value !== null) {
-            // Nouveau format : déjà migré
-            migratedData[eventId] = {
-              available: value.available ?? (value.roles && value.roles.length > 0),
-              roles: value.roles || [],
-              comment: value.comment || null
-            }
-          } else {
-            // Fallback pour les cas inattendus
-            migratedData[eventId] = {
-              available: false,
-              roles: [],
-              comment: null
-            }
-          }
-        }
-      })
-      
-      availability[doc.id] = migratedData
-    })
-    return availability
-  } else {
-    // Random mock generation avec nouveau format
-    const availability = {}
-    players.forEach(p => {
-      availability[p.name] = {}
-      events.forEach(e => {
-        availability[p.name][e.id] = {
-          available: undefined,
-          roles: [],
-          comment: null
-        }
-      })
-    })
-
-    events.forEach(event => {
-      const shuffled = [...players].sort(() => 0.5 - Math.random())
-      shuffled.slice(0, 4).forEach(p => {
-        availability[p.name][event.id] = {
-          available: true,
-          roles: [ROLES.PLAYER],
-          comment: null
-        }
-      })
-      shuffled.slice(4).forEach(p => {
-        const rand = Math.random()
-        if (rand < 0.4) {
-          availability[p.name][event.id] = {
-            available: true,
-            roles: [ROLES.PLAYER],
-            comment: null
-          }
-        } else if (rand < 0.8) {
-          availability[p.name][event.id] = {
-            available: false,
-            roles: [],
-            comment: null
-          }
-        } else {
-          availability[p.name][event.id] = {
-            available: undefined,
-            roles: [],
-            comment: null
-          }
-        }
-      })
-    })
-
-    return availability
-  }
+export async function loadAvailability(players, events, seasonId) {
+  const availabilityDocs = await firestoreService.getDocuments('seasons', seasonId, 'availability')
+  const availability = {}
+  availabilityDocs.forEach(doc => {
+    // firestoreService.getDocuments() retourne déjà { id, ...data }
+    const { id, ...data } = doc
+    availability[id] = data
+  })
+  return availability
 }
 
-export async function loadSelections(seasonId = null) {
-  if (mode === 'firebase') {
-    const selSnap = seasonId
-      ? await getDocs(collection(db, 'seasons', seasonId, 'selections'))
-      : await getDocs(collection(db, 'selections'))
-    const res = {}
-    selSnap.forEach(doc => {
-      const data = doc.data()
-      
-      // Migration automatique vers le nouveau format si nécessaire
-      let roles = data.roles
-      if (!roles && data.players && Array.isArray(data.players)) {
-        // Ancien format : créer la structure par rôle
-        roles = { player: data.players }
-      }
-      
-      res[doc.id] = {
-        players: data.players || [],
-        roles: roles || {},
-        confirmed: data.confirmed || false,
-        confirmedAt: data.confirmedAt || null,
-        updatedAt: data.updatedAt || null,
-        playerStatuses: data.playerStatuses || {},
-        confirmedByAllPlayers: data.confirmedByAllPlayers || false
-      }
-    })
-    return res
-  } else {
-    return {} // initially empty
-  }
+export async function loadSelections(seasonId) {
+  const selectionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+  const res = {}
+  
+  selectionsDocs.forEach(doc => {
+    const { id, ...data } = doc
+    
+    res[id] = {
+      roles: data.roles || {},
+      confirmed: data.confirmed || false,
+      confirmedAt: data.confirmedAt || null,
+      updatedAt: data.updatedAt || null,
+      playerStatuses: data.playerStatuses || {},
+      confirmedByAllPlayers: data.confirmedByAllPlayers || false
+    }
+  })
+  
+  return res
 }
 
-export async function saveAvailability(player, availabilityMap, seasonId = null) {
-  if (mode === 'firebase') {
-    const availRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'availability', player)
-      : doc(db, 'availability', player)
-    await setDoc(availRef, availabilityMap)
-  }
-}
+// Fonction saveAvailability supprimée - toutes les disponibilités passent maintenant par saveAvailabilityWithRoles
 
 // Nouvelle fonction pour sauvegarder une disponibilité avec rôles et commentaire
 export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId, available, roles = [], comment = null }) {
-  if (mode !== 'firebase') return
-  
-  const availRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'availability', playerName)
-    : doc(db, 'availability', playerName)
-  
-  const snap = await getDoc(availRef)
-  const current = snap.exists() ? snap.data() : {}
-  const next = { ...current }
-  
-  if (available === undefined) {
-    delete next[eventId]
-  } else {
-    next[eventId] = {
-      available: !!available,
-      roles: Array.isArray(roles) ? roles : [],
-      comment: comment || null
+  try {
+    // Récupérer les données actuelles
+    const currentDoc = await firestoreService.getDocument('seasons', seasonId, 'availability', playerName)
+    const current = currentDoc || {}
+    const next = { ...current }
+    
+    if (available === undefined) {
+      delete next[eventId]
+    } else {
+      next[eventId] = {
+        available: !!available,
+        roles: Array.isArray(roles) ? roles : [],
+        comment: comment || null
+      }
     }
+    
+    await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
+  } catch (error) {
+    logger.error('Erreur lors de la sauvegarde de la disponibilité avec rôles:', error)
+    throw error
   }
-  
-  await setDoc(availRef, next)
 }
 
 // Mise à jour ciblée d'une disponibilité pour un joueur/événement (utilisé par magic links)
 export async function setSingleAvailability({ seasonId, playerName, eventId, value }) {
-  if (mode !== 'firebase') return
-  const availRef = seasonId
-    ? doc(db, 'seasons', seasonId, 'availability', playerName)
-    : doc(db, 'availability', playerName)
-  const snap = await getDoc(availRef)
-  const current = snap.exists() ? snap.data() : {}
+  const currentDoc = await firestoreService.getDocument('seasons', seasonId, 'availability', playerName)
+  const current = currentDoc || {}
   const next = { ...current }
   
   if (value === undefined) {
     delete next[eventId]
   } else {
-    // Migration automatique vers le nouveau format si nécessaire
-    if (typeof value === 'boolean') {
-      next[eventId] = {
-        available: value,
-        roles: value ? [ROLES.PLAYER] : [],
-        comment: null
-      }
-    } else {
-      next[eventId] = value
-    }
+    // Toutes les disponibilités sont maintenant au nouveau format
+    next[eventId] = value
   }
-  await setDoc(availRef, next)
+  await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
 }
 
-export async function saveSelection(eventId, players, seasonId = null) {
+export async function saveSelection(eventId, roles, seasonId) {
   try {
-    if (mode === 'firebase') {
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
+    // Récupérer l'ancienne sélection pour comparer
+    const oldSelectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    
+    // Extraire tous les joueurs de tous les rôles
+    const allPlayers = Object.values(roles).flat().filter(Boolean)
+    
+    const oldSelection = oldSelectionDoc 
+      ? Object.values(oldSelectionDoc.roles || {}).flat().filter(Boolean)
+      : []
+    
+    // Initialiser les statuts individuels des joueurs
+    const playerStatuses = {}
+    allPlayers.forEach(playerName => {
+      playerStatuses[playerName] = 'pending' // Tous commencent en attente de confirmation
+    })
+    
+    const selectionData = { 
+      // Nouveau format (par rôle)
+      roles: roles,
       
-      // Récupérer l'ancienne sélection pour comparer
-      const oldSelectionDoc = await getDoc(selRef)
+      confirmed: false, // Nouvelle sélection = non confirmée
+      confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
+      playerStatuses, // Statuts individuels des joueurs
+      updatedAt: new Date()
+    }
+    await firestoreService.setDocument('seasons', seasonId, selectionData, false, 'selections', eventId)
+    
+    // Gérer les rappels automatiques
+    try {
+      // Récupérer les informations de l'événement et de la saison
+      const [eventData, seasonData] = await Promise.all([
+        firestoreService.getDocument('seasons', seasonId, 'events', eventId),
+        firestoreService.getDocument('seasons', seasonId)
+      ])
       
-      // Déterminer le format des données d'entrée
-      let isNewFormat = false
-      let allPlayers = []
-      let roles = {}
-      
-      if (Array.isArray(players)) {
-        // Ancien format : array de noms
-        allPlayers = players
-        roles = { player: players } // Migration automatique vers le nouveau format
-      } else if (players && typeof players === 'object') {
-        // Nouveau format : objet avec rôles
-        isNewFormat = true
-        roles = players
-        // Extraire tous les joueurs de tous les rôles
-        allPlayers = Object.values(players).flat().filter(Boolean)
-      } else {
-        throw new Error('Format de données invalide pour saveSelection')
-      }
-      
-      const oldSelection = oldSelectionDoc.exists && oldSelectionDoc.data() 
-        ? (oldSelectionDoc.data().players || []) 
-        : []
-      
-      // Initialiser les statuts individuels des joueurs
-      const playerStatuses = {}
-      allPlayers.forEach(playerName => {
-        playerStatuses[playerName] = 'pending' // Tous commencent en attente de confirmation
-      })
-      
-      const selectionData = { 
-        // Ancien format (rétrocompatible)
-        players: allPlayers,
-        
-        // Nouveau format (par rôle)
-        roles: isNewFormat ? roles : { player: allPlayers },
-        
-        confirmed: false, // Nouvelle sélection = non confirmée
-        confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
-        playerStatuses, // Statuts individuels des joueurs
-        updatedAt: serverTimestamp()
-      }
-      await setDoc(selRef, selectionData)
-      
-      // Gérer les rappels automatiques
-      try {
-        if (seasonId) {
-          // Récupérer les informations de l'événement et de la saison
-          const eventRef = doc(db, 'seasons', seasonId, 'events', eventId)
-          const seasonRef = doc(db, 'seasons', seasonId)
+      if (eventData && seasonData) {
           
-          const [eventSnap, seasonSnap] = await Promise.all([
-            getDoc(eventRef),
-            getDoc(seasonRef)
-          ])
+          // Supprimer les rappels pour les joueurs désélectionnés
+          const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
           
-          if (eventSnap.exists && seasonSnap.exists) {
-            const eventData = eventSnap.data()
-            const seasonData = seasonSnap.data()
-            
-            // Supprimer les rappels pour les joueurs désélectionnés
-            const removedPlayers = oldSelection.filter(name => !players.includes(name))
-            
-            for (const playerName of removedPlayers) {
-              try {
-                // Récupérer l'email du joueur depuis playerProtection
-                const { getPlayerEmail } = await import('./playerProtection.js')
-                const playerEmail = await getPlayerEmail(playerName, seasonId)
-                if (playerEmail) {
-                  await removeRemindersForPlayer({
-                    seasonId,
-                    eventId,
-                    playerEmail: playerEmail
-                  })
-                }
-              } catch (error) {
-                console.error('Erreur lors de la suppression des rappels pour', playerName, error)
+          for (const playerName of removedPlayers) {
+            try {
+              // Récupérer l'email du joueur depuis playerProtection
+              const { getPlayerEmail } = await import('./playerProtection.js')
+              const playerEmail = await getPlayerEmail(playerName, seasonId)
+              if (playerEmail) {
+                await removeRemindersForPlayer({
+                  seasonId,
+                  eventId,
+                  playerEmail: playerEmail
+                })
               }
+            } catch (error) {
+              logger.error('Erreur lors de la suppression des rappels pour', playerName, error)
             }
-            
-            // Créer les rappels pour les nouveaux joueurs sélectionnés
-            const newPlayers = players.filter(name => !oldSelection.includes(name))
-            
-            // Créer les rappels pour les nouveaux joueurs sélectionnés
-            for (const playerName of newPlayers) {
-              try {
-                // Récupérer l'email du joueur depuis playerProtection
-                const { getPlayerEmail } = await import('./playerProtection.js')
-                const playerEmail = await getPlayerEmail(playerName, seasonId)
-                
-                if (playerEmail) {
-                  await createRemindersForSelection({
-                    seasonId,
-                    eventId,
-                    playerEmail: playerEmail,
-                    playerName: playerName,
-                    eventTitle: eventData.title,
-                    eventDate: eventData.date,
-                    seasonSlug: seasonData.slug
-                  })
-                }
-              } catch (error) {
-                console.error(`❌ Erreur lors de la création des rappels pour ${playerName}:`, error)
+          }
+          
+          // Créer les rappels pour les nouveaux joueurs sélectionnés
+          const newPlayers = allPlayers.filter(name => !oldSelection.includes(name))
+          
+          // Créer les rappels pour les nouveaux joueurs sélectionnés
+          for (const playerName of newPlayers) {
+            try {
+              // Récupérer l'email du joueur depuis playerProtection
+              const { getPlayerEmail } = await import('./playerProtection.js')
+              const playerEmail = await getPlayerEmail(playerName, seasonId)
+              
+              if (playerEmail) {
+                await createRemindersForSelection({
+                  seasonId,
+                  eventId,
+                  playerEmail: playerEmail,
+                  playerName: playerName,
+                  eventTitle: eventData.title,
+                  eventDate: eventData.date,
+                  seasonSlug: seasonData.slug
+                })
               }
+            } catch (error) {
+              logger.error(`❌ Erreur lors de la création des rappels pour ${playerName}:`, error)
             }
           }
         }
-      } catch (error) {
-        console.error('Erreur lors de la gestion des rappels automatiques:', error)
-        // Ne pas faire échouer la sauvegarde de la sélection à cause des rappels
-      }
-    } else {
-      console.log('🎭 Mode mock activé')
+    } catch (error) {
+      logger.error('Erreur lors de la gestion des rappels automatiques:', error)
+      // Ne pas faire échouer la sauvegarde de la sélection à cause des rappels
     }
   } catch (error) {
-    console.error('❌ Erreur dans saveSelection:', error)
+    logger.error('❌ Erreur dans saveSelection:', error)
     throw error
   }
 }
@@ -719,38 +463,30 @@ export async function saveSelection(eventId, players, seasonId = null) {
 /**
  * Confirmer une sélection (la verrouille)
  */
-export async function confirmSelection(eventId, seasonId = null) {
+export async function confirmSelection(eventId, seasonId) {
   try {
-    if (mode === 'firebase') {
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
-      
-      // Récupérer la sélection actuelle pour initialiser les statuts des joueurs
-      const selectionDoc = await getDoc(selRef)
-      const currentSelection = selectionDoc.exists ? selectionDoc.data() : { players: [] }
-      
-      // Initialiser les statuts individuels des joueurs si pas encore fait
-      // Préserver les statuts "declined" existants
-      const playerStatuses = currentSelection.playerStatuses || {}
-      currentSelection.players.forEach((playerName, index) => {
-        if (!playerStatuses[playerName]) {
-          playerStatuses[playerName] = 'pending' // En attente de confirmation
-        }
-        // Ne pas écraser un statut "declined" existant
-      })
-      
-      await updateDoc(selRef, { 
-        confirmed: true,
-        confirmedAt: serverTimestamp(),
-        confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
-        playerStatuses
-      })
-    } else {
-      console.log('🎭 Mode mock activé')
-    }
+    // Récupérer la sélection actuelle pour initialiser les statuts des joueurs
+    const currentSelection = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { roles: {} }
+    
+    // Initialiser les statuts individuels des joueurs si pas encore fait
+    // Préserver les statuts "declined" existants
+    const playerStatuses = currentSelection.playerStatuses || {}
+    const allPlayers = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
+    allPlayers.forEach((playerName) => {
+      if (!playerStatuses[playerName]) {
+        playerStatuses[playerName] = 'pending' // En attente de confirmation
+      }
+      // Ne pas écraser un statut "declined" existant
+    })
+    
+    await firestoreService.updateDocument('seasons', seasonId, { 
+      confirmed: true,
+      confirmedAt: new Date(),
+      confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
+      playerStatuses
+    }, 'selections', eventId)
   } catch (error) {
-    console.error('❌ Erreur dans confirmSelection:', error)
+    logger.error('❌ Erreur dans confirmSelection:', error)
     throw error
   }
 }
@@ -758,41 +494,28 @@ export async function confirmSelection(eventId, seasonId = null) {
 /**
  * Annuler la confirmation d'une sélection (admin uniquement)
  */
-export async function unconfirmSelection(eventId, seasonId = null) {
+export async function unconfirmSelection(eventId, seasonId) {
   try {
-    if (mode === 'firebase') {
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
-      
-      // Préserver TOUS les statuts des joueurs lors du déverrouillage
-      const currentSelection = await getDoc(selRef)
-      const currentData = currentSelection.data()
-      const preservedPlayerStatuses = {}
-      
-      if (currentData && currentData.playerStatuses) {
-        // Préserver tous les statuts existants pour garder l'historique visuel
-        Object.entries(currentData.playerStatuses).forEach(([playerName, status]) => {
-          // Garder le statut actuel (confirmed, declined, pending)
-          preservedPlayerStatuses[playerName] = status
-        })
-      }
-      
-      // Garder TOUS les joueurs dans les slots pour préserver l'information visuelle
-      const currentPlayers = Array.isArray(currentData?.players) ? currentData.players : []
-      
-      await updateDoc(selRef, { 
-        confirmed: false,
-        confirmedAt: null,
-        players: currentPlayers, // Garder tous les joueurs
-        playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
-        confirmedByAllPlayers: false
+    // Préserver TOUS les statuts des joueurs lors du déverrouillage
+    const currentData = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    const preservedPlayerStatuses = {}
+    
+    if (currentData && currentData.playerStatuses) {
+      // Préserver tous les statuts existants pour garder l'historique visuel
+      Object.entries(currentData.playerStatuses).forEach(([playerName, status]) => {
+        // Garder le statut actuel (confirmed, declined, pending)
+        preservedPlayerStatuses[playerName] = status
       })
-    } else {
-      console.log('🎭 Mode mock activé')
     }
+    
+    await firestoreService.updateDocument('seasons', seasonId, { 
+      confirmed: false,
+      confirmedAt: null,
+      playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
+      confirmedByAllPlayers: false
+    }, 'selections', eventId)
   } catch (error) {
-    console.error('❌ Erreur dans unconfirmSelection:', error)
+    logger.error('❌ Erreur dans unconfirmSelection:', error)
     throw error
   }
 }
@@ -802,136 +525,86 @@ export async function unconfirmSelection(eventId, seasonId = null) {
  * @param {string} eventId - ID de l'événement
  * @param {string} seasonId - ID de la saison (optionnel)
  */
-export async function deleteSelection(eventId, seasonId = null) {
-  console.log('🗑️ deleteSelection appelé:', { eventId, seasonId })
+export async function deleteSelection(eventId, seasonId) {
+          logger.info('🗑️ deleteSelection appelé:', { eventId, seasonId })
   
   try {
-    if (mode === 'firebase') {
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
-      
-      // Supprimer complètement le document de sélection
-      await deleteDoc(selRef)
-      
-      console.log('✅ Sélection supprimée avec succès')
-    } else {
-      console.log('🎭 Mode mock activé')
-    }
+    // Supprimer complètement le document de sélection
+    await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
+    
+    logger.info('✅ Sélection supprimée avec succès')
   } catch (error) {
-    console.error('❌ Erreur dans deleteSelection:', error)
+    logger.error('❌ Erreur dans deleteSelection:', error)
     throw error
   }
 }
 
-export async function deleteEvent(eventId, seasonId = null) {
+export async function deleteEvent(eventId, seasonId) {
   logger.info('Suppression de l\'événement', { eventId })
   
-  if (mode === 'firebase') {
-    try {
-      // Supprimer l'événement
-      logger.debug('Suppression de l\'événement dans Firestore')
-      const eventRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'events', eventId)
-        : doc(db, 'events', eventId)
-      await deleteDoc(eventRef)
-      
-      // Supprimer la sélection associée
-      logger.debug('Suppression de la sélection associée')
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
-      await deleteDoc(selRef)
-      
-      // Supprimer les disponibilités pour cet événement
-      logger.debug('Suppression des disponibilités')
-      const availabilitySnap = seasonId
-        ? await getDocs(collection(db, 'seasons', seasonId, 'availability'))
-        : await getDocs(collection(db, 'availability'))
-      const batch = writeBatch(db)
-      
-      availabilitySnap.forEach(doc => {
-        const availabilityData = doc.data()
-        if (availabilityData[eventId] !== undefined) {
-          logger.debug('Mise à jour de la disponibilité pour un joueur')
-          const updatedData = { ...availabilityData }
-          delete updatedData[eventId]
-          batch.update(doc.ref, updatedData)
-        }
-      })
-      
-      await batch.commit()
-      logger.info('Opérations de suppression terminées avec succès')
-    } catch (error) {
-      logger.error('Erreur lors de la suppression', error)
-      throw error
-    }
-  } else {
-    // Pour le mode mock, on supprime simplement l'événement
-    eventList = eventList.filter(event => event.id !== eventId)
+  try {
+    // Supprimer l'événement
+    logger.debug('Suppression de l\'événement dans Firestore')
+    await firestoreService.deleteDocument('seasons', seasonId, 'events', eventId)
+    
+    // Supprimer la sélection associée
+    logger.debug('Suppression de la sélection associée')
+    await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
+    
+    // Supprimer les disponibilités pour cet événement
+    logger.debug('Suppression des disponibilités')
+    const allAvailability = await firestoreService.getDocuments('seasons', seasonId, 'availability')
+    
+    // Créer un batch pour supprimer les disponibilités
+    const batch = firestoreService.createBatch()
+    
+    allAvailability.forEach(availabilityDoc => {
+      const availabilityData = availabilityDoc
+      if (availabilityData[eventId] !== undefined) {
+        logger.debug('Mise à jour de la disponibilité pour un joueur')
+        const updatedData = { ...availabilityData }
+        delete updatedData[eventId]
+        batch.update('seasons', seasonId, updatedData, 'availability', availabilityDoc.id)
+      }
+    })
+    
+    await batch.commit()
+    logger.info('Opérations de suppression terminées avec succès')
+  } catch (error) {
+    logger.error('Erreur lors de la suppression', error)
+    throw error
   }
 }
 
-export async function saveEvent(eventData, seasonId = null) {
+export async function saveEvent(eventData, seasonId) {
   // Ajouter la structure des rôles par défaut si elle n'existe pas
   const eventWithRoles = {
     ...eventData,
     roles: eventData.roles || {
-      [ROLES.PLAYER]: eventData.playerCount || 6,
-      [ROLES.VOLUNTEER]: 3,
+      [ROLES.PLAYER]: eventData.playerCount || 5,
+      [ROLES.VOLUNTEER]: 0,
       [ROLES.MC]: 1,
       [ROLES.DJ]: 1,
-      [ROLES.REFEREE]: 2,
-      [ROLES.ASSISTANT_REFEREE]: 2,
-      [ROLES.LIGHTING]: 1,
-      [ROLES.COACH]: 1,
-      [ROLES.STAGE_MANAGER]: 1
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
     }
   }
   
-  if (mode === 'firebase') {
-    const newDocRef = seasonId
-      ? doc(collection(db, 'seasons', seasonId, 'events'))
-      : doc(collection(db, 'events'))
-    await setDoc(newDocRef, eventWithRoles)
-    return newDocRef.id
-  } else {
-    // Pour le mode mock, on génère un nouvel ID
-    const newId = `event${eventList.length + 1}`
-    eventList.push({ id: newId, ...eventWithRoles })
-    return newId
-  }
+  const eventId = await firestoreService.addDocument('seasons', eventWithRoles, seasonId, 'events')
+  return eventId
 }
 
-export async function updateEvent(eventId, eventData, seasonId = null) {
-  if (mode === 'firebase') {
-    const eventRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'events', eventId)
-      : doc(db, 'events', eventId)
-    // Utiliser merge pour ne pas écraser des champs existants (ex: archived)
-    await setDoc(eventRef, eventData, { merge: true })
-  } else {
-    // Pour le mode mock, on met à jour l'événement
-    const index = eventList.findIndex(event => event.id === eventId)
-    if (index !== -1) {
-      eventList[index] = { id: eventId, ...eventData }
-    }
-  }
+export async function updateEvent(eventId, eventData, seasonId) {
+  // Utiliser merge pour ne pas écraser des champs existants (ex: archived)
+  await firestoreService.setDocument('seasons', seasonId, eventData, true, 'events', eventId)
 }
 
 // Mise à jour de l'état d'archivage d'un événement
-export async function setEventArchived(eventId, archived, seasonId = null) {
-  if (mode === 'firebase') {
-    const eventRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'events', eventId)
-      : doc(db, 'events', eventId)
-    await updateDoc(eventRef, { archived: !!archived })
-  } else {
-    const idx = eventList.findIndex(e => e.id === eventId)
-    if (idx !== -1) {
-      eventList[idx] = { ...eventList[idx], archived: !!archived }
-    }
-  }
+export async function setEventArchived(eventId, archived, seasonId) {
+  await firestoreService.updateDocument('seasons', seasonId, { archived: !!archived }, 'events', eventId)
 }
 
 /**
@@ -941,46 +614,38 @@ export async function setEventArchived(eventId, archived, seasonId = null) {
  * @param {string} status - Statut: 'pending', 'confirmed', 'declined'
  * @param {string} seasonId - ID de la saison (optionnel)
  */
-export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId = null) {
-  console.log('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
+export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId) {
+  logger.info('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
   
   try {
-    if (mode === 'firebase') {
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
-      
-      // Récupérer la sélection actuelle pour vérifier l'état global
-      const selectionDoc = await getDoc(selRef)
-      if (!selectionDoc.exists) {
-        throw new Error('Sélection non trouvée')
-      }
-      
-      const selectionData = selectionDoc.data()
-      const { players = [], playerStatuses = {} } = selectionData
-      
-      // Mettre à jour le statut du joueur
-      const updatedPlayerStatuses = { ...playerStatuses, [playerName]: status }
-      
-      // Vérifier si tous les joueurs ont maintenant confirmé
-      const allPlayersConfirmed = players.every(playerName => 
-        updatedPlayerStatuses[playerName] === 'confirmed'
-      )
-      
-      // Mettre à jour le statut du joueur ET l'état global de la sélection
-      await updateDoc(selRef, {
-        [`playerStatuses.${playerName}`]: status,
-        confirmedByAllPlayers: allPlayersConfirmed,
-        updatedAt: serverTimestamp()
-      })
-      
-      return { confirmedByAllPlayers: allPlayersConfirmed }
-    } else {
-      console.log('🎭 Mode mock activé')
-      return { confirmedByAllPlayers: false }
+    // Récupérer la sélection actuelle pour vérifier l'état global
+    const selectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    if (!selectionDoc) {
+      throw new Error('Sélection non trouvée')
     }
+    
+    const { playerStatuses = {} } = selectionDoc
+    
+    // Mettre à jour le statut du joueur
+    const updatedPlayerStatuses = { ...playerStatuses, [playerName]: status }
+    
+    // Récupérer tous les joueurs de la sélection (tous rôles confondus)
+    const allPlayers = getAllPlayersFromSelection(selectionDoc)
+    
+    // Vérifier si tous les joueurs ont maintenant confirmé
+    const allPlayersConfirmed = allPlayers.every(playerName => 
+      updatedPlayerStatuses[playerName] === 'confirmed'
+    )
+    
+    // Mettre à jour le statut du joueur ET l'état global de la sélection
+    await firestoreService.updateDocument('seasons', seasonId, {
+      [`playerStatuses.${playerName}`]: status,
+      confirmedByAllPlayers: allPlayersConfirmed
+    }, 'selections', eventId)
+    
+    return { confirmedByAllPlayers: allPlayersConfirmed }
   } catch (error) {
-    console.error('❌ Erreur dans updatePlayerSelectionStatus:', error)
+    logger.error('❌ Erreur dans updatePlayerSelectionStatus:', error)
     throw error
   }
 }
@@ -988,31 +653,22 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
 /**
  * Vérifier si tous les joueurs d'une sélection ont confirmé leur participation
  * @param {string} eventId - ID de l'événement
- * @param {string} seasonId - ID de la saison (optionnel)
+ * @param {string} seasonId - ID de la saison
  * @returns {Promise<boolean>} - true si tous ont confirmé
  */
-export async function isAllPlayersConfirmed(eventId, seasonId = null) {
+export async function isAllPlayersConfirmed(eventId, seasonId) {
   try {
-    if (mode === 'firebase') {
-      const selRef = seasonId
-        ? doc(db, 'seasons', seasonId, 'selections', eventId)
-        : doc(db, 'selections', eventId)
-      
-      const selectionDoc = await getDoc(selRef)
-      if (!selectionDoc.exists) {
-        return false
-      }
-      
-      const selectionData = selectionDoc.data()
-      const { confirmedByAllPlayers = false } = selectionData
-      
-      // Utiliser le champ pré-calculé pour de meilleures performances
-      return confirmedByAllPlayers
-    } else {
+    const selectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    if (!selectionDoc) {
       return false
     }
+    
+    const { confirmedByAllPlayers = false } = selectionDoc
+    
+    // Utiliser le champ pré-calculé pour de meilleures performances
+    return confirmedByAllPlayers
   } catch (error) {
-    console.error('❌ Erreur dans isAllPlayersConfirmed:', error)
+    logger.error('❌ Erreur dans isAllPlayersConfirmed:', error)
     return false
   }
 }
@@ -1034,8 +690,8 @@ export function getAllPlayersFromSelection(selection) {
     return Object.values(selection.roles).flat().filter(Boolean)
   }
   
-  // Ancien format ou fallback
-  return selection.players || []
+  // Aucun format valide trouvé
+  return []
 }
 
 /**

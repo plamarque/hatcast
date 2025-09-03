@@ -5,6 +5,7 @@
       :season-name="seasonName"
       :is-scrolled="isScrolled"
       :season-slug="props.slug"
+      :is-connected="!!currentUser?.email"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="showHowItWorksGlobal = true"
@@ -14,6 +15,7 @@
       @open-login="openAccount"
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
+      @open-development="openDevelopment"
     />
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
@@ -293,27 +295,38 @@
             >
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
-                  <span 
-                    v-if="preferredPlayerIdsSet.has(player.id)"
-                    class="text-yellow-400 mr-1 text-sm"
-                    title="Ma personne"
-                  >
-                    ⭐
-                  </span>
-                  <span 
-                    v-else-if="isPlayerProtectedInGrid(player.id)"
-                    class="text-yellow-400 mr-1 text-sm"
-                    :title="preferredPlayerIdsSet.has(player.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
-                  >
-                    {{ preferredPlayerIdsSet.has(player.id) ? '⭐' : '🔒' }}
-                  </span>
-                                    <div 
+                  <div 
                     @click="showPlayerDetails(player)" 
                     class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group"
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + player.name"
                   >
-                    <span class="group-hover:text-purple-300 transition-colors duration-200">{{ player.name }}</span>
+                    <div class="flex items-center gap-2">
+                      <div class="relative">
+                        <PlayerAvatar 
+                          :player-id="player.id"
+                          :season-id="seasonId"
+                          :player-name="player.name"
+                          size="sm"
+                        />
+                        <!-- Superposed status icons -->
+                        <span 
+                          v-if="preferredPlayerIdsSet.has(player.id)"
+                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          title="Ma personne"
+                        >
+                          ⭐
+                        </span>
+                        <span 
+                          v-else-if="isPlayerProtectedInGrid(player.id)"
+                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          :title="preferredPlayerIdsSet.has(player.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
+                        >
+                          🔒
+                        </span>
+                      </div>
+                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ player.name }}</span>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -398,7 +411,7 @@
   </div>
 
   <CreatorOnboardingModal
-    v-if="!isLoadingGrid"
+    v-if="!isLoadingGrid && seasonMeta"
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players-count="players.length"
@@ -468,13 +481,20 @@
         <input
           v-model="newPlayerName"
           type="text"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          :class="[
+            'w-full p-3 bg-gray-800 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400',
+            newPlayerNameError ? 'border-red-500' : 'border-gray-600'
+          ]"
           placeholder="Nom de la personne"
+          @input="validateNewPlayerName"
         >
+        <div v-if="newPlayerNameError" class="mt-2 text-sm text-red-400">
+          {{ newPlayerNameError }}
+        </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
-          @click="newPlayerForm = false"
+          @click="closeNewPlayerForm"
           class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
         >
           Annuler
@@ -736,21 +756,32 @@
               :key="player.id"
               class="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-gray-800/40 transition-colors"
             >
-              <div class="flex items-center min-w-0 gap-1.5">
-                <span
-                  v-if="preferredPlayerIdsSet.has(player.id)"
-                  class="text-yellow-400 mr-1 text-xs"
-                  title="Ma personne"
-                >
-                  ⭐
-                </span>
-                <span
-                  v-else-if="isPlayerProtectedInGrid(player.id)"
-                  class="text-yellow-400 mr-1 text-xs"
-                  title="Personne protégée par mot de passe"
-                >
-                  🔒
-                </span>
+              <div class="flex items-center min-w-0 gap-2">
+                <!-- Avatar du joueur -->
+                <div class="relative flex-shrink-0">
+                  <PlayerAvatar 
+                    :player-id="player.id"
+                    :season-id="seasonId"
+                    :player-name="player.name"
+                    size="sm"
+                  />
+                  <!-- Statuts superposés -->
+                  <span
+                    v-if="preferredPlayerIdsSet.has(player.id)"
+                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                    title="Ma personne"
+                  >
+                    ⭐
+                  </span>
+                  <span
+                    v-else-if="isPlayerProtectedInGrid(player.id)"
+                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                    title="Personne protégée par mot de passe"
+                  >
+                    🔒
+                  </span>
+                </div>
+                <!-- Nom du joueur -->
                 <span
                   class="text-white text-sm md:text-base block truncate max-w-full flex-1 min-w-0"
                   :title="player.name"
@@ -1171,6 +1202,7 @@
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
     @refresh="handlePlayerRefresh"
+    @avatar-updated="handleAvatarUpdated"
     @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
   />
 
@@ -1337,6 +1369,12 @@
     @request-edit="handleAvailabilityRequestEdit"
   />
 
+  <!-- Modal de développement -->
+  <DevelopmentModal 
+    :show="showDevelopmentModal"
+    @close="showDevelopmentModal = false"
+  />
+
   
 </template>
 
@@ -1498,18 +1536,39 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER } from '../services/storage.js'
-import { trackPageVisit, trackModalInteraction } from '../services/navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
-import { collection, getDocs, query, where, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../services/firebase.js'
-import { auth } from '../services/firebase.js'
+import firestoreService from '../services/firestoreService.js'
+
+// Fonction simple pour récupérer l'ID utilisateur actuel
+function getCurrentUserId() {
+  try {
+    // Essayer de récupérer depuis localStorage (fallback)
+    const storedUserId = localStorage.getItem('hatcast_current_user_id')
+    if (storedUserId) {
+      return storedUserId
+    }
+    
+    // Essayer de récupérer depuis l'URL (pour les liens de reset)
+    const urlParams = new URLSearchParams(window.location.search)
+    const email = urlParams.get('email')
+    if (email) {
+      return email
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'ID utilisateur', error)
+    return null
+  }
+}
+import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { signOut } from 'firebase/auth'
 import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
 import { 
-  initializeStorage, 
-  setStorageMode,
+  setEventArchived,
   loadPlayers,
   loadEvents,
   loadAvailability,
@@ -1519,7 +1578,6 @@ import {
   deleteEvent,
   updateEvent,
   saveEvent,
-  saveAvailability,
   updatePlayer,
   saveSelection
 } from '../services/storage.js'
@@ -1556,8 +1614,10 @@ import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
+import DevelopmentModal from './DevelopmentModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1573,6 +1633,9 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+
+// Initialiser Firebase Auth
+const auth = getFirebaseAuth()
 
 // Gestion de l'état d'authentification
 function onAuthStateChanged(user) {
@@ -1666,6 +1729,7 @@ const editingShowAllRoles = ref(false)
 
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
+const newPlayerNameError = ref('')
 const highlightedPlayer = ref(null)
 const guidedPlayerId = ref(null)
 const guidedEventId = ref(null)
@@ -1684,6 +1748,7 @@ const playerModalRef = ref(null)
 const showPinModal = ref(false)
 const pendingOperation = ref(null)
 const pinErrorMessage = ref('')
+const sessionInfo = ref(null)
 
 // Variables pour la protection par mot de passe de joueur
 const showPlayerPasswordModal = ref(false)
@@ -1737,6 +1802,9 @@ const notificationSuccessData = ref(null)
 const showPlayerClaim = ref(false)
 const playerClaimData = ref(null)
 
+// Variables pour la modale de développement
+const showDevelopmentModal = ref(false)
+
 // Fonctions pour gérer le dropdown des actions d'événements
 function updateEventMoreActionsPosition() {
   try {
@@ -1744,11 +1812,28 @@ function updateEventMoreActionsPosition() {
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
     const gap = 8
+    const dropdownHeight = 200 // estimation de la hauteur du dropdown
     
-    // Sur desktop, positionner au-dessus du bouton
+    // Sur desktop, positionner intelligemment
     if (window.innerWidth > 768) {
-      const top = Math.max(gap, Math.round(rect.top - gap))
-      const left = Math.max(gap, Math.round(rect.left))
+      let top, left
+      
+      // Vérifier s'il y a assez d'espace en haut
+      const spaceAbove = rect.top
+      const spaceBelow = window.innerHeight - rect.bottom
+      
+      if (spaceAbove >= dropdownHeight + gap) {
+        // Positionner au-dessus du bouton
+        top = Math.max(gap, Math.round(rect.top - dropdownHeight - gap))
+      } else if (spaceBelow >= dropdownHeight + gap) {
+        // Positionner en dessous du bouton
+        top = Math.round(rect.bottom + gap)
+      } else {
+        // Positionner au centre de l'écran
+        top = Math.max(gap, Math.round((window.innerHeight - dropdownHeight) / 2))
+      }
+      
+      left = Math.max(gap, Math.round(rect.left))
       eventMoreActionsStyle.value = {
         position: 'fixed',
         top: `${top}px`,
@@ -2002,6 +2087,9 @@ function closePlayers() {
 // Ouvrir compte avec flow d'association si anonyme
 function openAccount() {
   try {
+    console.log('🔑 GridBoard: openAccount() appelé')
+    console.log('🔑 showAccountLogin avant:', showAccountLogin.value)
+    
     const user = auth?.currentUser
     if (!user || user.isAnonymous) {
       // Choisir un joueur par défaut (préféré ou premier)
@@ -2013,28 +2101,30 @@ function openAccount() {
       if (!target) target = players.value[0] || null
       // Ouvrir login classique (email + mot de passe)
       showAccountLogin.value = true
+      console.log('🔑 showAccountLogin après:', showAccountLogin.value)
       // Mémoriser un joueur si l'utilisateur choisit l'association ensuite
       if (target) accountAuthPlayer.value = target
       return
     }
-  } catch {}
-  showAccountMenu.value = true
-  
-  // Synchroniser l'URL avec l'état de la modale "Mon Compte"
-  // Éviter la duplication du paramètre open=account
-  const currentPath = `/season/${props.slug}`
-  const currentSearch = new URLSearchParams(window.location.search)
-  
-  // Nettoyer les paramètres existants et ajouter open=account
-  currentSearch.delete('open')
-  currentSearch.set('open', 'account')
-  
-  const newUrl = `${currentPath}?${currentSearch.toString()}`
-  router.push(newUrl)
+    
+    // Si l'utilisateur est déjà connecté, ne rien faire
+    // Il peut accéder à son compte via le bouton avatar
+    console.log('🔐 Utilisateur déjà connecté, pas d\'action automatique')
+    return
+  } catch (error) {
+    console.error('❌ Erreur dans openAccount:', error)
+  }
 }
 
 function openAccountCreation() {
   showAccountCreation.value = true
+}
+
+function openDevelopment() {
+  console.log('🚀 openDevelopment() appelée dans GridBoard');
+  console.log('🔧 showDevelopmentModal avant:', showDevelopmentModal.value);
+  showDevelopmentModal.value = true;
+  console.log('🔧 showDevelopmentModal après:', showDevelopmentModal.value);
 }
 
 async function handleAccountChangePassword() {
@@ -2088,11 +2178,15 @@ async function handleAccountDeleteAccount() {
 async function onManageAccountPlayer(assoc) {
   closeAccountMenu()
   try {
+    // S'assurer que firestoreService est initialisé
+    if (!firestoreService.isInitialized) {
+      await firestoreService.initialize()
+    }
+    
     if (assoc.seasonId && assoc.seasonId !== seasonId.value) {
-      const seasonRef = doc(db, 'seasons', assoc.seasonId)
-      const seasonSnap = await getDocs(collection(db, 'seasons'))
-      const match = seasonSnap.docs.find(d => d.id === assoc.seasonId)
-      const slug = match?.data()?.slug
+      const seasons = await firestoreService.getDocuments('seasons')
+      const match = seasons.find(d => d.id === assoc.seasonId)
+      const slug = match?.slug
       if (slug) {
         router.push(`/season/${slug}?player=${encodeURIComponent(assoc.playerId)}&open=protection`)
         return
@@ -2106,7 +2200,9 @@ async function onManageAccountPlayer(assoc) {
       // Fallback: ouvrir via URL
       router.push(`?player=${encodeURIComponent(assoc.playerId)}&open=protection`)
     }
-  } catch (_) {}
+  } catch (error) {
+    console.error('❌ Erreur dans onManageAccountPlayer:', error)
+  }
 }
 
   // Onboarding créateur (multi-étapes)
@@ -2114,7 +2210,7 @@ async function onManageAccountPlayer(assoc) {
 // Si l'utilisateur vient du /join, masquer l'onboarding créateur
 onMounted(async () => {
   // Initialiser l'état d'authentification
-  currentUser.value = auth.currentUser
+        currentUser.value = getFirebaseAuth()?.currentUser
   
   // Initialiser les rôles avec le template par défaut (après le prochain tick)
   nextTick(() => {
@@ -2122,19 +2218,12 @@ onMounted(async () => {
   })
   
   // Écouter les changements d'état d'authentification
-  const unsubscribe = auth.onAuthStateChanged(onAuthStateChanged)
+      const unsubscribe = getFirebaseAuth()?.onAuthStateChanged(onAuthStateChanged)
   
   // Stocker la fonction de cleanup pour onUnmounted
   window._gridBoardUnsubscribe = unsubscribe
   
-  try {
-    if (seasonId.value) {
-      const dismiss = localStorage.getItem(`dismissCreatorOnboarding:${seasonId.value}`)
-      if (dismiss) {
-        onboardingDismissedShare.value = true
-      }
-    }
-  } catch {}
+
   
   // Tracking de navigation pour les utilisateurs non connectés
   try {
@@ -2144,12 +2233,7 @@ onMounted(async () => {
       const urlParams = new URLSearchParams(window.location.search)
       const email = urlParams.get('email') || localStorage.getItem('hatcast_last_email')
       
-      if (email) {
-        await trackPageVisit(email, currentPath, {
-          seasonSlug: props.slug,
-          source: 'grid_board'
-        })
-      }
+      // Navigation tracking supprimé - remplacé par seasonPreferences
     }
   } catch (error) {
     // Log silencieux pour les erreurs de tracking non critiques
@@ -2319,8 +2403,13 @@ onMounted(async () => {
   }
 })
 
-// Quand le modal onboarding se ferme, synchroniser la grille
+// Quand le modal onboarding se ferme, synchroniser la grille et mettre à jour seasonMeta
 function afterCloseOnboarding() {
+  // Mettre à jour seasonMeta pour refléter que l'onboarding est terminé
+  if (seasonMeta.value) {
+    seasonMeta.value = { ...seasonMeta.value, onboardingCreatorDone: true }
+  }
+  
   // Laisser le DOM s'actualiser puis forcer la sync
   nextTick(() => {
     forceGridLayoutSync()
@@ -2808,6 +2897,9 @@ async function deleteEventConfirmed(eventId = null) {
     confirmDelete.value = false
     eventToDelete.value = null
     
+    // Fermer la modale de détails de l'événement
+    closeEventDetailsAndUpdateUrl()
+    
     showSuccessMessage.value = true
     successMessage.value = 'Événement supprimé avec succès !'
     setTimeout(() => {
@@ -3056,28 +3148,65 @@ async function confirmDeletePlayer(playerId) {
   }
 }
 
+// Fonction de validation du nom de joueur
+function validateNewPlayerName() {
+  const name = newPlayerName.value.trim()
+  
+  if (!name) {
+    newPlayerNameError.value = ''
+    return
+  }
+  
+  const existingPlayer = players.value.find(player => player.name.toLowerCase() === name.toLowerCase())
+  if (existingPlayer) {
+    newPlayerNameError.value = `Une personne nommée "${name}" existe déjà dans cette saison.`
+  } else {
+    newPlayerNameError.value = ''
+  }
+}
+
+// Fonction pour fermer la modale de nouvelle personne
+function closeNewPlayerForm() {
+  newPlayerForm.value = false
+  newPlayerName.value = ''
+  newPlayerNameError.value = ''
+}
+
 async function addNewPlayer() {
   if (!newPlayerName.value.trim()) return
 
+  const newName = newPlayerName.value.trim()
+  
+  // Vérifier si un joueur avec ce nom existe déjà (validation côté client)
+  const existingPlayer = players.value.find(player => player.name.toLowerCase() === newName.toLowerCase())
+  if (existingPlayer) {
+    newPlayerNameError.value = `Une personne nommée "${newName}" existe déjà dans cette saison.`
+    return
+  }
+
   try {
-    const newName = newPlayerName.value.trim()
     const newId = await addPlayer(newName, seasonId.value)
     
     // Recharger les données
-    await Promise.all([
+    const [newPlayers, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
       loadSelections(seasonId.value)
-    ]).then(([newPlayers, newAvailability, newSelections]) => {
-      players.value = newPlayers
-      availability.value = newAvailability
-      selections.value = newSelections
+    ])
+    
+    // Charger les disponibilités avec les nouveaux joueurs
+    const newAvailabilityData = await loadAvailability(newPlayers, events.value, seasonId.value)
+    
+    // Mettre à jour les données
+    players.value = newPlayers
+    availability.value = newAvailabilityData
+    selections.value = newSelections
       
-      // Recharger l'état de protection des joueurs
-      loadProtectedPlayers()
-      
-      // Trouver le nouveau joueur et le mettre en évidence
-      const newPlayer = players.value.find(p => p.id === newId)
+    // Recharger l'état de protection des joueurs
+    loadProtectedPlayers()
+    
+    // Trouver le nouveau joueur et le mettre en évidence
+    const newPlayer = players.value.find(p => p.id === newId)
+    if (newPlayer) {
       highlightPlayer(newId)
 
       // Avancer à l'étape 2 (disponibilités) et définir les cibles du guidage
@@ -3104,24 +3233,25 @@ async function addNewPlayer() {
           }
         }
       })
+    }
 
-      // Afficher le message de succès
-      showSuccessMessage.value = true
-      successMessage.value = 'Personne ajoutée avec succès ! Vous pouvez maintenant indiquer sa disponibilité.'
-      setTimeout(() => {
-        showSuccessMessage.value = false
-      }, 3000)     // Masquer le message après 5 secondes
-      setTimeout(() => {
-        showSuccessMessage.value = false
-        successMessage.value = ''
-      }, 5000)
-    })
+    // Afficher le message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Personne ajoutée avec succès ! Vous pouvez maintenant indiquer sa disponibilité.'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)     // Masquer le message après 5 secondes
+    setTimeout(() => {
+      showSuccessMessage.value = false
+      successMessage.value = ''
+    }, 5000)
     
     newPlayerForm.value = false
     newPlayerName.value = ''
+    newPlayerNameError.value = ''
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Erreur lors de l\'ajout du joueur')
+    console.error('Erreur lors de l\'ajout du joueur:', error)
     alert('Erreur lors de l\'ajout de la personne. Veuillez réessayer.')
   }
 }
@@ -3131,18 +3261,8 @@ function cancelEdit() {
   editingTitle.value = ''
   editingDate.value = ''
   editingDescription.value = ''
-  editingPlayerCount.value = 6
-  editingRoles.value = {
-    [ROLES.PLAYER]: 6,
-    [ROLES.DJ]: 1,
-    [ROLES.MC]: 1,
-    [ROLES.VOLUNTEER]: 5,
-    [ROLES.REFEREE]: 1,
-    [ROLES.ASSISTANT_REFEREE]: 2,
-    [ROLES.LIGHTING]: 0,
-    [ROLES.COACH]: 0,
-    [ROLES.STAGE_MANAGER]: 1
-  }
+  editingPlayerCount.value = 5
+  editingRoles.value = { ...ROLE_TEMPLATES.cabaret.roles }
   editingShowAllRoles.value = false
 }
 
@@ -3152,19 +3272,9 @@ const newEventForm = ref(false)
 const newEventTitle = ref('')
 const newEventDate = ref('')
 const newEventDescription = ref('')
-const newEventPlayerCount = ref(6)
+const newEventPlayerCount = ref(5)
 const newEventArchived = ref(false)
-const newEventRoles = ref({
-  [ROLES.PLAYER]: 6,
-  [ROLES.DJ]: 1,
-  [ROLES.MC]: 1,
-  [ROLES.VOLUNTEER]: 5,
-  [ROLES.REFEREE]: 1,
-  [ROLES.ASSISTANT_REFEREE]: 2,
-  [ROLES.LIGHTING]: 0,
-  [ROLES.COACH]: 0,
-  [ROLES.STAGE_MANAGER]: 1
-})
+const newEventRoles = ref({ ...ROLE_TEMPLATES.cabaret.roles })
 const showAllRoles = ref(false)
 const selectedRoleTemplate = ref('cabaret') // Type par défaut (premier de la liste)
 const editingSelectedRoleTemplate = ref('cabaret') // Type par défaut pour l'édition
@@ -3341,33 +3451,13 @@ async function createEventProtected(eventData) {
     // Mettre à jour la liste des événements
     events.value = [...events.value, { id: eventId, ...eventData }]
     
-    // Mettre à jour la disponibilité pour le nouvel événement
-    const newAvailability = {}
-    // Utiliser une boucle for...of pour gérer les promesses
-    for (const player of players.value) {
-      newAvailability[player.name] = availability.value[player.name] || {}
-      newAvailability[player.name][eventId] = null // Utiliser null au lieu de undefined
-      // Sauvegarder la disponibilité pour chaque joueur
-      await saveAvailability(player.name, newAvailability[player.name], seasonId.value)
-    }
-    
     // Réinitialiser le formulaire
     newEventTitle.value = ''
     newEventDate.value = ''
     newEventDescription.value = ''
-    newEventPlayerCount.value = 6
+    newEventPlayerCount.value = 5
     newEventArchived.value = false
-    newEventRoles.value = {
-      [ROLES.PLAYER]: 6,
-      [ROLES.DJ]: 1,
-      [ROLES.MC]: 1,
-      [ROLES.VOLUNTEER]: 5,
-      [ROLES.REFEREE]: 1,
-      [ROLES.ASSISTANT_REFEREE]: 2,
-      [ROLES.LIGHTING]: 0,
-      [ROLES.COACH]: 0,
-      [ROLES.STAGE_MANAGER]: 1
-    }
+    newEventRoles.value = { ...ROLE_TEMPLATES.cabaret.roles }
     showAllRoles.value = false
     newEventForm.value = false
     
@@ -3386,7 +3476,7 @@ async function createEventProtected(eventData) {
     }, 3000)
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error('Erreur lors de la création de l\'événement')
+    console.error('Erreur lors de la création de l\'événement:', error)
     alert('Erreur lors de la création de l\'événement. Veuillez réessayer.')
   }
 }
@@ -3413,11 +3503,20 @@ function cancelNewEvent() {
 
 // Nouvelle fonction pour demander le PIN avant d'ouvrir la modal
 async function openNewEventForm() {
-  // Demander le PIN code avant d'ouvrir la modal de création
-  await requirePin({
-    type: 'addEvent',
-    data: {}
-  })
+  try {
+    console.log('🔍 GridBoard: openNewEventForm appelé')
+    // Demander le PIN code avant d'ouvrir la modal de création
+    await requirePin({
+      type: 'addEvent',
+      data: {}
+    })
+    console.log('✅ GridBoard: PIN validé, modal devrait s\'ouvrir')
+  } catch (error) {
+    console.error('❌ GridBoard: Erreur dans openNewEventForm:', error)
+    // En cas d'erreur, ne pas ouvrir la modal automatiquement
+    // L'utilisateur devra réessayer ou la modal de PIN s'affichera
+    console.log('🔄 GridBoard: Erreur lors de la vérification du PIN, modal non ouverte')
+  }
 }
 
 const events = ref([])
@@ -3441,7 +3540,7 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
 })
 
 // Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
-watch(() => auth.currentUser?.email, async (newEmail, oldEmail) => {
+watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
     console.log('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
     await loadProtectedPlayers()
@@ -3452,22 +3551,26 @@ watch(() => auth.currentUser?.email, async (newEmail, oldEmail) => {
 // Initialiser les données au montage
 onMounted(async () => {
   try {
-    const useFirebase = true
-    setStorageMode(useFirebase ? 'firebase' : 'mock')
+    // Le mode de stockage est maintenant géré par les variables d'environnement
+    // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
 
-    // Migration automatique si besoin
-    await initializeStorage()
+    // Attendre que firestoreService soit initialisé
+    console.log('⏳ Attente de l\'initialisation de firestoreService...')
+    await firestoreService.initialize()
+    console.log('✅ firestoreService initialisé')
 
     // Charger la saison par slug
-    const q = query(collection(db, 'seasons'), where('slug', '==', props.slug))
-    const snap = await getDocs(q)
-    if (!snap.empty) {
-      const seasonDoc = snap.docs[0]
+    const seasons = await firestoreService.queryDocuments('seasons', [
+      firestoreService.where('slug', '==', props.slug)
+    ])
+    if (seasons.length > 0) {
+      const seasonDoc = seasons[0]
       seasonId.value = seasonDoc.id
-      const data = seasonDoc.data()
-      seasonName.value = data.name
-      seasonMeta.value = data
+      seasonName.value = seasonDoc.name
+      seasonMeta.value = seasonDoc
       document.title = `Saison : ${seasonName.value}`
+      
+
       
       // Mémoriser cette saison comme dernière visitée
       rememberLastVisitedSeason(props.slug)
@@ -3482,81 +3585,55 @@ onMounted(async () => {
       // Étape 1: événements
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
-      const eventsSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'events'))
-      events.value = eventsSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        playerCount: doc.data().playerCount || 6
-      }))
+      events.value = await loadEvents(seasonId.value)
 
       // Étape 2: joueurs
       currentLoadingLabel.value = 'Chargement des joueurs'
       loadingProgress.value = 45
-      const playersSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'players'))
-      players.value = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      players.value = await loadPlayers(seasonId.value)
 
       // Étape 3: disponibilités
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
-      const availSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'availability'))
-      const availObj = {}
-      availSnap.docs.forEach(doc => {
-        const data = doc.data()
-        const cleanedData = {}
-        Object.keys(data).forEach(eventId => {
-          const value = data[eventId]
-          cleanedData[eventId] = value === 'oui' ? true : value === 'non' ? false : value
-        })
-        availObj[doc.id] = cleanedData
-      })
-      availability.value = availObj
-
-      // Étape 4: sélections + protections
-      currentLoadingLabel.value = 'Chargement des sélections'
-      loadingProgress.value = 85
-      const selSnap = await getDocs(collection(db, 'seasons', seasonId.value, 'selections'))
-      const selObj = {}
-      
-      selSnap.docs.forEach(doc => { 
-        const data = doc.data()
-        
-        // Préserver la nouvelle structure complète ou migrer l'ancienne
-        if (data.players && Array.isArray(data.players)) {
-          // Nouvelle structure avec playerStatuses, confirmed, etc.
-          selObj[doc.id] = data
-        } else if (Array.isArray(data)) {
-          // Ancienne structure : migrer vers la nouvelle
-          selObj[doc.id] = {
-            players: data,
-            confirmed: false,
-            confirmedByAllPlayers: false,
-            playerStatuses: {},
-            updatedAt: new Date()
-          }
-        } else {
-          // Structure inconnue, utiliser un tableau vide
-          selObj[doc.id] = {
-            players: [],
-            confirmed: false,
-            confirmedByAllPlayers: false,
-            playerStatuses: {},
-            updatedAt: new Date()
-          }
-        }
-      })
-      
-      selections.value = selObj
-
-      const protections = await listProtectedPlayers(seasonId.value)
-      const protSet = new Set()
-      if (Array.isArray(protections)) {
-        protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+      try {
+        availability.value = await loadAvailability(players.value, events.value, seasonId.value)
+      } catch (error) {
+        console.log('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
+        availability.value = {}
       }
-      protectedPlayers.value = protSet
+
+      // Étape 4: sélections
+      currentLoadingLabel.value = 'Chargement des sélections'
+      loadingProgress.value = 80
+      try {
+        selections.value = await loadSelections(seasonId.value)
+      } catch (error) {
+        console.log('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
+        selections.value = {}
+      }
+
+      // Étape 5: protections
+      currentLoadingLabel.value = 'Chargement des protections'
+      loadingProgress.value = 85
+      try {
+        const protections = await listProtectedPlayers(seasonId.value)
+        const protSet = new Set()
+        if (Array.isArray(protections)) {
+          protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+        }
+        protectedPlayers.value = protSet
+      } catch (error) {
+        console.log('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
+        protectedPlayers.value = new Set()
+      }
       
       // Initialiser les joueurs préférés si l'utilisateur est connecté
-      if (auth.currentUser?.email) {
-        await updatePreferredPlayersSet()
+      if (getFirebaseAuth()?.currentUser?.email) {
+        try {
+          await updatePreferredPlayersSet()
+        } catch (error) {
+          console.log('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
+        }
       }
     }
     
@@ -3663,16 +3740,32 @@ onMounted(async () => {
   }
 
   // Gérer le paramètre notificationSuccess (APRÈS tous les autres traitements d'URL)
+  // Essayer d'abord route.query, puis fallback sur window.location.search
+  let notificationSuccess = route.query.notificationSuccess
+  let email = route.query.email
+  let playerName = route.query.playerName
+  let eventId = route.query.eventId
+  
+  // Si route.query est vide, essayer window.location.search
+  if (!notificationSuccess && !email && !playerName && !eventId) {
+    const urlParams = new URLSearchParams(window.location.search)
+    notificationSuccess = urlParams.get('notificationSuccess')
+    email = urlParams.get('email')
+    playerName = urlParams.get('playerName')
+    eventId = urlParams.get('eventId')
+  }
+  
   console.debug('🔍 Vérification des paramètres notificationSuccess...', {
     routeQuery: route.query,
-    notificationSuccess: route.query.notificationSuccess,
-    email: route.query.email,
-    playerName: route.query.playerName,
-    eventId: route.query.eventId
+    windowLocationSearch: window.location.search,
+    notificationSuccess,
+    email,
+    playerName,
+    eventId
   })
   
-  if (route.query.notificationSuccess === '1') {
-    console.debug('✅ Paramètres notificationSuccess détectés dans route.query')
+  if (notificationSuccess === '1') {
+    console.debug('✅ Paramètres notificationSuccess détectés')
     
     // Fermer d'abord la modal de prompt des notifications si elle est ouverte
     if (showNotificationPrompt.value) {
@@ -3681,9 +3774,9 @@ onMounted(async () => {
     }
     
     notificationSuccessData.value = {
-      email: decodeURIComponent(route.query.email || ''),
-      playerName: decodeURIComponent(route.query.playerName || ''),
-      eventId: route.query.eventId || null
+      email: decodeURIComponent(email || ''),
+      playerName: decodeURIComponent(playerName || ''),
+      eventId: eventId || null
     }
     
     console.debug('📝 Données de notificationSuccess préparées:', notificationSuccessData.value)
@@ -3694,49 +3787,17 @@ onMounted(async () => {
       console.debug('🎉 Ouverture de NotificationSuccessModal')
     }, 300)
     
-    // Nettoyer l'URL
-    router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
-  } else {
-    // Fallback : essayer de parser manuellement window.location.search
+    // Nettoyer l'URL en utilisant window.location.search comme source de vérité
     const urlParams = new URLSearchParams(window.location.search)
-    const notificationSuccess = urlParams.get('notificationSuccess')
-    const email = urlParams.get('email')
-    const playerName = urlParams.get('playerName')
-    const eventId = urlParams.get('eventId')
+    urlParams.delete('notificationSuccess')
+    urlParams.delete('email')
+    urlParams.delete('playerName')
+    urlParams.delete('eventId')
     
-    console.debug('🔍 Fallback - Paramètres détectés via window.location.search:', {
-      notificationSuccess,
-      email,
-      playerName,
-      eventId
-    })
+    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '')
+    window.history.replaceState({}, '', newUrl)
     
-    if (notificationSuccess === '1') {
-      console.debug('✅ Paramètres détectés via fallback')
-      
-      // Fermer d'abord la modal de prompt des notifications si elle est ouverte
-      if (showNotificationPrompt.value) {
-        showNotificationPrompt.value = false
-        console.debug('🔒 Fermeture de NotificationPromptModal avant affichage de NotificationSuccessModal (fallback)')
-      }
-      
-      notificationSuccessData.value = {
-        email: decodeURIComponent(email || ''),
-        playerName: decodeURIComponent(playerName || ''),
-        eventId: eventId || null
-      }
-      
-      console.debug('📝 Données de notificationSuccess préparées (fallback):', notificationSuccessData.value)
-      
-      // Délai pour s'assurer que la modal d'activation soit fermée et que l'interface soit prête
-      setTimeout(() => {
-        showNotificationSuccess.value = true
-        console.debug('🎉 Ouverture de NotificationSuccessModal (fallback)')
-      }, 300)
-      
-      // Nettoyer l'URL
-      router.replace({ query: { ...route.query, notificationSuccess: undefined, email: undefined, playerName: undefined, eventId: undefined } })
-    }
+    console.debug('🧹 URL nettoyée:', newUrl)
   }
 
   } catch (error) {
@@ -3866,7 +3927,7 @@ async function updatePreferredPlayersSet() {
 
 // Fonction helper pour vérifier si l'utilisateur est connecté (y compris les utilisateurs anonymes avec email)
 function isUserConnected() {
-  return !!auth.currentUser?.email || !!localStorage.getItem('userEmail')
+      return !!getFirebaseAuth()?.currentUser?.email || !!localStorage.getItem('userEmail')
 }
 
 // Fonction helper pour vérifier si un joueur appartient à l'utilisateur connecté
@@ -4060,111 +4121,7 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   })
 }
 
-async function performToggleAvailability(player, eventId) {
-  // Récupérer l'état actuel depuis availability.value
-  const current = availability.value[player.name]?.[eventId];
-  // Toggle de disponibilité
-  let newValue;
-  
-  // Logique de basculement : undefined -> true -> false -> undefined
-  if (current === true) {
-    newValue = false;
-  } else if (current === false) {
-    newValue = undefined;
-  } else {
-    // État undefined -> passe à true
-    newValue = true;
-  }
-  
-  // Logger l'audit de modification de disponibilité
-  try {
-    const { default: AuditClient } = await import('../services/auditClient.js')
-    const event = events.value.find(e => e.id === eventId)
-    await AuditClient.logUserAction({
-      type: 'availability_changed',
-      category: 'availability',
-      severity: 'info',
-      data: {
-        playerName: player.name,
-        eventTitle: event?.title || 'Unknown',
-        seasonSlug: props.slug,
-        eventId: eventId,
-        oldValue: current,
-        newValue: newValue,
-        action: 'toggle_availability'
-      },
-      success: true,
-      tags: ['availability', 'toggle']
-    })
-  } catch (auditError) {
-    console.warn('Erreur audit toggleAvailability:', auditError)
-  }
-  
-  // Mettre à jour availability.value
-  if (newValue === undefined) {
-    // Si on revient à l'état indéfini, supprimer la clé
-    if (availability.value[player.name]) {
-      delete availability.value[player.name][eventId];
-    }
-  } else {
-    // Sinon, mettre à jour la valeur
-    if (!availability.value[player.name]) {
-      availability.value[player.name] = {};
-    }
-    availability.value[player.name][eventId] = newValue;
-  }
-  
-  // Avancer le mini-tutoriel joueur: étape 1 -> 2 au premier toggle
-  try {
-    if (typeof playerTourStep !== 'undefined' && playerTourStep.value === 1) {
-      const isGuidedCell = (player.id === (guidedPlayerId.value || (sortedPlayers.value[0]?.id))) && (eventId === (guidedEventId.value || (displayedEvents.value[0]?.id)))
-      if (isGuidedCell) {
-        playerTourStep.value = 3
-        // Positionner le coachmark près du nom du joueur
-        nextTick(() => {
-          const row = document.querySelector(`[data-player-id="${player.id}"]`)
-          if (row) {
-            const nameEl = row.querySelector('.player-name')
-            if (nameEl) {
-              const rect = nameEl.getBoundingClientRect()
-              playerNameCoachmark.value.position = {
-                x: Math.round(rect.right + 8),
-                y: Math.round(rect.top + window.scrollY - 4)
-              }
-            }
-          }
-        })
-
-// Nettoyage listeners/observers
-onUnmounted(() => {
-  try { window.removeEventListener('resize', updateScrollHints) } catch {}
-  try { if (gridResizeObserver.value) gridResizeObserver.value.disconnect() } catch {}
-})
-      }
-    }
-  } catch {}
-
-  // Sauvegarder les disponibilités pour ce joueur
-  saveAvailability(player.name, availability.value[player.name], seasonId.value)
-    .then(async () => {
-      // Forcer la réactivité de l'interface
-      await nextTick();
-      
-      // Recalculer les chances car la disponibilité a changé
-      updateAllChances()
-
-      showSuccessMessage.value = true;
-      successMessage.value = 'Disponibilité mise à jour avec succès !';
-      setTimeout(() => {
-        showSuccessMessage.value = false;
-      }, 3000);
-    })
-    .catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error('Erreur lors de la mise à jour de la disponibilité')
-      alert('Erreur lors de la mise à jour de la disponibilité. Veuillez réessayer.');
-    });
-}
+// Fonction performToggleAvailability supprimée - toutes les disponibilités passent maintenant par la modale
 
 // Fonction pour gérer le changement de statut individuel d'un joueur dans une sélection
 async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus, seasonId) {
@@ -4881,26 +4838,39 @@ function getPinModalMessage() {
 }
 
 async function requirePin(operation) {
-  // Vérifier si le PIN est déjà en cache pour cette saison
-  if (pinSessionManager.isPinCached(seasonId.value)) {
-    const cachedPin = pinSessionManager.getCachedPin(seasonId.value)
-    // PIN en cache trouvé, utilisation automatique
-    
-    // Vérifier que le PIN est toujours valide
-    const isValid = await verifySeasonPin(seasonId.value, cachedPin)
-    if (isValid) {
-      // Exécuter directement l'opération
-      await executePendingOperation(operation)
-      return
-    } else {
-      // PIN invalide, effacer le cache
-      pinSessionManager.clearSession()
+  try {
+    // Vérifier si le PIN est déjà en cache pour cette saison
+    if (await pinSessionManager.isPinCached(seasonId.value)) {
+      const cachedPin = await pinSessionManager.getCachedPin(seasonId.value)
+      if (cachedPin) {
+        // PIN en cache trouvé, utilisation automatique
+        
+        // Vérifier que le PIN est toujours valide
+        const isValid = await verifySeasonPin(seasonId.value, cachedPin)
+        if (isValid) {
+          // Exécuter directement l'opération
+          await executePendingOperation(operation)
+          return
+        } else {
+          // PIN invalide, effacer le cache
+          pinSessionManager.clearSession()
+        }
+      }
     }
+    
+    // Afficher la modal de saisie du PIN
+    pendingOperation.value = operation
+    showPinModal.value = true
+    // Mettre à jour les informations de session
+    await updateSessionInfo()
+  } catch (error) {
+    console.error('❌ Erreur lors de la vérification du PIN en cache:', error)
+    // En cas d'erreur, afficher la modal de saisie du PIN
+    pendingOperation.value = operation
+    showPinModal.value = true
+    // Mettre à jour les informations de session
+    await updateSessionInfo()
   }
-  
-  // Afficher la modal de saisie du PIN
-  pendingOperation.value = operation
-  showPinModal.value = true
 }
 
 async function requirePlayerPassword(operation) {
@@ -4908,7 +4878,7 @@ async function requirePlayerPassword(operation) {
   
   // Si un PIN de saison valide est déjà en cache, ne pas redemander
   try {
-    if (pinSessionManager.isPinCached(seasonId.value)) {
+    if (await pinSessionManager.isPinCached(seasonId.value)) {
               // PIN de saison en cache — saut de la demande de mot de passe joueur
       await executePendingOperation(operation)
       return
@@ -4936,12 +4906,15 @@ async function handlePinSubmit(pinCode) {
     
     if (isValid) {
       // Sauvegarder le PIN en session avec état de connexion
-      const isConnected = !!auth.currentUser?.email
+      const isConnected = !!getFirebaseAuth()?.currentUser?.email
       pinSessionManager.saveSession(seasonId.value, pinCode, isConnected)
       
       showPinModal.value = false
       const operationToExecute = pendingOperation.value
       pendingOperation.value = null
+      
+      // Mettre à jour les informations de session
+      await updateSessionInfo()
       
       // Exécuter l'opération en attente
       await executePendingOperation(operationToExecute)
@@ -4979,7 +4952,7 @@ async function handlePlayerPasswordSubmit(password) {
     if (password === seasonPin) {
       // PIN de saison accepté
       // Mémoriser le PIN de saison (session PIN avec état de connexion)
-      const isConnected = !!auth.currentUser?.email
+      const isConnected = !!getFirebaseAuth()?.currentUser?.email
       try { pinSessionManager.saveSession(seasonId.value, password, isConnected) } catch {}
       // Optionnel: marquer l'appareil de confiance pour ce joueur
       try { playerPasswordSessionManager.saveSession(pendingPlayerOperation.value.data.playerId) } catch {}
@@ -5042,7 +5015,7 @@ async function handleAvailabilityPasswordSubmit(password) {
     if (password === seasonPin) {
       // PIN de saison accepté
       // Mémoriser le PIN de saison (session PIN avec état de connexion)
-      const isConnected = !!auth.currentUser?.email
+      const isConnected = !!getFirebaseAuth()?.currentUser?.email
       try { pinSessionManager.saveSession(seasonId.value, password, isConnected) } catch {}
       // Optionnel: marquer l'appareil de confiance pour ce joueur
       try { playerPasswordSessionManager.saveSession(pendingAvailabilityOperation.value.data.player.id) } catch {}
@@ -5127,14 +5100,25 @@ async function sendPlayerResetEmail() {
   }
 }
 
-function getSessionInfo() {
-  if (pinSessionManager.isPinCached(seasonId.value)) {
-    return {
-      timeRemaining: pinSessionManager.getTimeRemaining(),
-      isExpiringSoon: pinSessionManager.isExpiringSoon()
+async function updateSessionInfo() {
+  try {
+    if (await pinSessionManager.isPinCached(seasonId.value)) {
+      sessionInfo.value = {
+        timeRemaining: await pinSessionManager.getTimeRemaining(),
+        isExpiringSoon: await pinSessionManager.isExpiringSoon()
+      }
+    } else {
+      sessionInfo.value = null
     }
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour des informations de session:', error)
+    sessionInfo.value = null
   }
-  return null
+}
+
+// Fonction synchrone pour le template
+function getSessionInfo() {
+  return sessionInfo.value
 }
 
 async function executePendingOperation(operation) {
@@ -5196,8 +5180,8 @@ async function executePendingOperation(operation) {
         }
         break
       case 'toggleAvailability':
-        // Exécuter directement la modification de disponibilité
-        performToggleAvailability(data.player, data.eventId)
+        // Cette action n'est plus utilisée - toutes les disponibilités passent par la modale
+        console.warn('toggleAvailability action is deprecated')
         break
       case 'toggleArchive':
         await setEventArchived(data.eventId, data.archived, seasonId.value)
@@ -5216,7 +5200,9 @@ async function executePendingOperation(operation) {
           // Détecter les joueurs retirés avant de sauvegarder
           const oldSelection = [...getSelectionPlayers(eventId)]
           const nextSelection = Array.isArray(players) ? players : []
-          await saveSelection(eventId, nextSelection, seasonId.value)
+          // Convertir en format par rôle
+          const roles = { player: nextSelection }
+          await saveSelection(eventId, roles, seasonId.value)
           
           // Mettre à jour la structure locale
           if (selections.value[eventId]) {
@@ -5371,16 +5357,7 @@ async function showEventDetails(event) {
   try {
     const userId = getCurrentUserId()
     if (userId) {
-      await trackPageVisit(userId, newUrl, {
-        seasonSlug: props.slug,
-        eventId: event.id,
-        eventTitle: event.title,
-        navigationType: 'event_details',
-        context: {
-          currentPage: newUrl,
-          timestamp: new Date().toISOString()
-        }
-              })
+      // Navigation tracking supprimé - remplacé par seasonPreferences
       }
     } catch (error) {
       // Log silencieux pour les erreurs de tracking non critiques
@@ -5467,14 +5444,7 @@ function closeEventDetailsAndUpdateUrl() {
   try {
     const userId = getCurrentUserId()
     if (userId) {
-      trackPageVisit(userId, baseUrl, {
-        seasonSlug: props.slug,
-        navigationType: 'season_overview',
-        context: {
-          previousPage: route.path,
-          timestamp: new Date().toISOString()
-        }
-      })
+      // Navigation tracking supprimé - remplacé par seasonPreferences
     }
   } catch (error) {
     // Log silencieux pour les erreurs de tracking non critiques
@@ -5735,14 +5705,7 @@ function closePlayerModal() {
     try {
       const userId = getCurrentUserId()
       if (userId) {
-        trackPageVisit(userId, baseUrl, {
-          seasonSlug: props.slug,
-          navigationType: 'season_overview',
-          context: {
-            previousPage: route.path,
-            timestamp: new Date().toISOString()
-          }
-        })
+        // Navigation tracking supprimé - remplacé par seasonPreferences
       }
     } catch (error) {
       // Log silencieux pour les erreurs de tracking non critiques
@@ -5784,10 +5747,19 @@ async function handlePlayerUpdate({ playerId, newName }) {
     setTimeout(() => {
       showSuccessMessage.value = false;
     }, 3000);
+    
+    // Fermer le mode d'édition seulement en cas de succès
+    if (playerModalRef.value) {
+      playerModalRef.value.closeEditMode()
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'édition du joueur');
-    alert('Erreur lors de l\'édition du joueur. Veuillez réessayer.');
+    
+    // Passer l'erreur au modal pour affichage (modal reste ouvert)
+    if (playerModalRef.value) {
+      playerModalRef.value.setEditError(error.message || 'Erreur lors de l\'édition du joueur. Veuillez réessayer.')
+    }
   }
 }
 
@@ -5830,6 +5802,29 @@ async function handlePlayerRefresh() {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors du rafraîchissement');
+  }
+}
+
+async function handleAvatarUpdated({ playerId, seasonId: eventSeasonId }) {
+  try {
+    console.log('🔄 Avatar mis à jour, rechargement des avatars...', { playerId, eventSeasonId })
+    
+    // Vider le cache des avatars pour ce joueur
+    const { clearPlayerAvatarCacheForPlayer } = await import('../services/playerAvatars.js')
+    clearPlayerAvatarCacheForPlayer(playerId)
+    
+    // Forcer le rechargement des composants PlayerAvatar
+    // En déclenchant un événement global ou en utilisant une clé de réactivité
+    nextTick(() => {
+      // Déclencher un événement personnalisé pour forcer le rechargement
+      window.dispatchEvent(new CustomEvent('avatar-cache-cleared', { 
+        detail: { playerId, seasonId: eventSeasonId } 
+      }))
+    })
+    
+    console.log('✅ Cache des avatars vidé pour le joueur', playerId)
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour des avatars:', error)
   }
 }
 
@@ -6590,14 +6585,15 @@ async function isEventMonitored(eventId) {
     // Utiliser l'état d'authentification réactif du composant
     if (!currentUser.value?.email) return false
     
+    // S'assurer que firestoreService est initialisé
+    if (!firestoreService.isInitialized) {
+      await firestoreService.initialize()
+    }
+    
     // Récupérer les préférences de notification depuis Firestore
-    const { db } = await import('../services/firebase.js')
-    const { doc, getDoc } = await import('firebase/firestore')
+    const prefs = await firestoreService.getDocument('userPreferences', currentUser.value.email)
     
-    const userPrefsDoc = await getDoc(doc(db, 'userPreferences', currentUser.value.email))
-    
-    if (userPrefsDoc.exists()) {
-      const prefs = userPrefsDoc.data()
+    if (prefs) {
       
       // Vérifier les notifications email (préférences uniquement)
       const hasEmailNotifications = (
@@ -6752,9 +6748,16 @@ async function handleAccountLoginSuccess(data) {
       localStorage.removeItem('pendingNotificationData')
     }
   } else {
-    // Connexion normale, afficher le menu du compte
-    console.log('🔐 Connexion normale, affichage du menu du compte')
-    showAccountMenu.value = true
+    // Connexion normale, ne pas afficher automatiquement le menu du compte
+    // L'utilisateur peut y accéder via le bouton de son avatar s'il le souhaite
+    console.log('🔐 Connexion réussie, utilisateur connecté')
+    
+    // Afficher un message de succès discret
+    showSuccessMessage.value = true
+    successMessage.value = 'Connexion réussie !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 2000)
   }
 }
 

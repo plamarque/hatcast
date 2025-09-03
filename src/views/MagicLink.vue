@@ -21,7 +21,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { verifyMagicLink, consumeMagicLink, verifyAccountEmailUpdateLink, consumeAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { auth } from '../services/firebase.js'
 import { updateEmail as updateAuthEmail } from 'firebase/auth'
-import { setSingleAvailability, setStorageMode } from '../services/storage.js'
+import { setSingleAvailability } from '../services/storage.js'
 import { db } from '../services/firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
 import { markEmailVerifiedForProtection, finalizeProtectionAfterVerification } from '../services/playerProtection.js'
@@ -52,7 +52,8 @@ function goToSeason() {
 onMounted(async () => {
   try {
     // Assurer le mode Firebase pour les écritures
-    setStorageMode('firebase')
+    // Le mode de stockage est maintenant géré par les variables d'environnement
+    // setStorageMode('firebase') // SUPPRIMÉ
     // Plus de route de désistement dédiée: on traite uniquement les magic links
     
     const seasonId = String(route.query.sid || '')
@@ -251,7 +252,13 @@ onMounted(async () => {
           await new Promise(resolve => setTimeout(resolve, 2000))
           
           // Renvoyer vers la saison de départ
-          if (slug) {
+          if (seasonId) {
+            // Utiliser seasonId pour une redirection plus fiable
+            const seasonUrl = `/season/${seasonId}?player=${encodeURIComponent(playerId)}&verified=1`
+            console.log('🔗 Redirection vers la saison:', seasonUrl)
+            router.push(seasonUrl)
+          } else if (slug) {
+            // Fallback sur le slug si pas de seasonId
             router.push(`/season/${slug}?player=${encodeURIComponent(playerId)}&verified=1`)
           } else {
             router.push('/seasons')

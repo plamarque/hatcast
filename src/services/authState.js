@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
-import { auth } from './firebase.js'
+import { getFirebaseAuth } from './firebase.js'
 import logger from './logger.js'
-import { trackPageVisit, clearNavigationHistory } from './navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 
 // État global de l'authentification
 const currentUser = ref(null)
@@ -24,12 +24,20 @@ const isAuthenticated = computed(() => {
 // Fonction pour forcer la synchronisation
 function forceSync() {
   try {
-    const user = auth.currentUser
-    if (user !== currentUser.value) {
-      currentUser.value = user
-      logger.debug('Synchronisation forcée de l\'état d\'authentification', { 
-        user: currentUser.value?.email || 'non connecté' 
-      })
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      logger.debug('Firebase Auth pas encore disponible pour la synchronisation')
+      return
+    }
+    
+    if (auth?.currentUser) {
+      const user = auth.currentUser
+      if (user !== currentUser.value) {
+        currentUser.value = user
+        logger.debug('Synchronisation forcée de l\'état d\'authentification', { 
+          user: currentUser.value?.email || 'non connecté' 
+        })
+      }
     }
   } catch (error) {
     logger.error('Erreur lors de la synchronisation forcée', error)
@@ -37,7 +45,7 @@ function forceSync() {
 }
 
 // Fonction pour initialiser le service
-function initialize() {
+async function initialize() {
   if (isInitialized.value || isInitializing.value) {
     return
   }
@@ -45,6 +53,12 @@ function initialize() {
   isInitializing.value = true
   
   try {
+    // Récupérer l'instance Firebase Auth
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      throw new Error('Firebase Auth n\'est pas encore disponible')
+    }
+    
     // Initialiser l'état immédiatement
     currentUser.value = auth.currentUser
     logger.debug('État initial de l\'utilisateur:', currentUser.value?.email || 'non connecté')
@@ -56,24 +70,43 @@ function initialize() {
       isInitialized.value = true
       isInitializing.value = false
       
+      // Debug log for auth state changes
+      logger.info('🔑 AuthState: User changed', {
+        hadUser: !!previousUser,
+        hasUser: !!user,
+        email: user?.email || 'none',
+        photoURL: user?.photoURL || 'none',
+        providers: user?.providerData?.map(p => p.providerId) || []
+      })
+      
+      // Store user avatar for player avatars service
+      if (user && user.email && user.photoURL) {
+        try {
+          const { storeUserAvatar, clearPlayerAvatarCache } = await import('./playerAvatars.js')
+          storeUserAvatar(user.email, user.photoURL)
+          
+          // Vider le cache des avatars pour forcer le rechargement
+          clearPlayerAvatarCache()
+          
+          logger.info('✅ Avatar utilisateur sauvegardé et cache vidé', { email: user.email })
+        } catch (error) {
+          logger.debug('Could not store user avatar:', error)
+        }
+      }
+      
 
       
       // Tracking de navigation et audit pour les changements d'authentification
       try {
         if (user && !previousUser) {
-          // Nouvelle connexion - tracker la page actuelle et logger l'audit
-          const currentPath = window.location.pathname
-          if (currentPath && currentPath !== '/') {
-            await trackPageVisit(user.uid, currentPath)
-          }
+          // Nouvelle connexion - logger l'audit (navigation tracking supprimé)
           
           // Logger la connexion
           const { default: AuditClient } = await import('./auditClient.js')
           await AuditClient.logLogin(user.email, 'firebase_auth')
           
         } else if (!user && previousUser) {
-          // Déconnexion - effacer l'historique de navigation ET les sessions locales
-          await clearNavigationHistory(previousUser.uid)
+          // Déconnexion - effacer les sessions locales (navigation tracking supprimé)
           
           // Logger la déconnexion
           const { default: AuditClient } = await import('./auditClient.js')
@@ -159,20 +192,46 @@ function forceInitialize() {
 }
 
 // Initialiser automatiquement avec un délai pour laisser Firebase se charger
+let retryCount = 0
+const maxRetries = 20 // Augmenter le nombre de tentatives
+const baseDelay = 500 // 500ms de base
+
 function autoInitialize() {
-  // Vérifier si Firebase est disponible
-  if (typeof auth === 'undefined' || !auth) {
-    logger.warn('Firebase auth non disponible, nouvelle tentative dans 500ms')
-    setTimeout(autoInitialize, 500)
-    return
+  // Vérifier si Firebase est disponible ET complètement initialisé
+  const auth = getFirebaseAuth()
+  if (!auth || !window.firebaseInitialized) {
+    if (retryCount < maxRetries) {
+      // Calculer le délai avec backoff exponentiel (max 10 secondes)
+      const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000)
+      retryCount++
+      
+      logger.warn(`Firebase auth non disponible ou non initialisé, tentative ${retryCount}/${maxRetries} dans ${delay}ms`)
+      setTimeout(autoInitialize, delay)
+      return
+    } else {
+      logger.error('Nombre maximum de tentatives atteint, arrêt de l\'auto-initialisation')
+      isInitializing.value = false
+      return
+    }
   }
+  
+  // Reset du compteur de tentatives
+  retryCount = 0
   
   try {
     initialize()
   } catch (error) {
     logger.error('Erreur lors de l\'auto-initialisation:', error)
-    // Réessayer dans 1 seconde
-    setTimeout(autoInitialize, 1000)
+    // Réessayer avec backoff exponentiel
+    if (retryCount < maxRetries) {
+      const delay = Math.min(baseDelay * Math.pow(2, retryCount), 10000)
+      retryCount++
+      logger.warn(`Erreur d'initialisation, tentative ${retryCount}/${maxRetries} dans ${delay}ms`)
+      setTimeout(autoInitialize, delay)
+    } else {
+      logger.error('Nombre maximum de tentatives atteint, arrêt de l\'auto-initialisation')
+      isInitializing.value = false
+    }
   }
 }
 

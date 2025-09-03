@@ -91,7 +91,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { confirmPasswordReset, signInWithEmailAndPassword, verifyPasswordResetCode } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import logger from '../services/logger.js'
-import { getLastVisitedPage, isValidRedirectPath } from '../services/navigationTracker.js'
+// Navigation tracking supprimé - remplacé par seasonPreferences
 
 const route = useRoute()
 const router = useRouter()

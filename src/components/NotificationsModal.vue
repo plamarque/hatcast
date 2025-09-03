@@ -283,7 +283,15 @@ async function savePrefs() {
 
 function close() { emit('close') }
 
-watch(() => props.show, (v) => { if (v) { loadPrefs() } })
+watch(() => props.show, (v) => { 
+  if (v) { 
+    try {
+      email.value = auth?.currentUser?.email || ''
+      loadPrefs()
+    } catch {}
+  } 
+})
+
 onMounted(() => { 
   try {
     email.value = auth?.currentUser?.email || ''

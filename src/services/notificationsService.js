@@ -1,8 +1,7 @@
 // src/services/notificationsService.js
 import { queueAvailabilityEmail, sendSelectionEmailsForEvent as sendSelectionEmailsViaEmail } from './emailService.js'
 import { queuePushMessage } from './pushService.js'
-import { db } from './firebase.js'
-import { getDoc, doc } from 'firebase/firestore'
+import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 import { buildNotificationPayloads } from './notificationTemplates.js'
 
@@ -20,10 +19,31 @@ export async function notifyRecipientAcrossChannels({
   extra = {} // any additional data needed by templates
 }) {
   if (!recipientEmail) {
+    logger.warn('Tentative de notification sans email', { reason })
     return { success: false, skipped: true, reason: 'missing_email' }
   }
-  const prefsSnap = await getDoc(doc(db, 'userPreferences', recipientEmail)).catch(() => null)
-  const prefs = prefsSnap?.exists() ? prefsSnap.data() : {}
+  
+  // Récupérer les préférences utilisateur avec fallback vers les valeurs par défaut
+  let prefs = {}
+  try {
+    const prefsData = await firestoreService.getDocument('userPreferences', recipientEmail)
+    prefs = prefsData || {}
+  } catch (error) {
+    // En cas d'erreur (permissions, réseau, etc.), utiliser les préférences par défaut
+    logger.warn('Impossible de récupérer les préférences utilisateur, utilisation des valeurs par défaut', {
+      email: recipientEmail,
+      error: error.message,
+      reason: 'fallback_to_defaults'
+    })
+    
+    // Préférences par défaut pour assurer la continuité du service
+    prefs = {
+      emailNotifications: true,
+      pushNotifications: true,
+      availabilityReminders: true,
+      selectionNotifications: true
+    }
+  }
 
   const payloads = buildNotificationPayloads({
     reason,

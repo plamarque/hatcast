@@ -17,7 +17,7 @@ Pour qu'une PWA soit éligible à l'installation sur Chrome Mobile, elle doit sa
 ### 🛠️ Outils de Diagnostic
 
 #### 1. Page de diagnostic intégrée
-Visitez : `https://selections.la-malice.fr/pwa-debug.html`
+Visitez : `https://votre-domaine.com/pwa-debug.html`
 
 Cette page vous permettra de :
 - Vérifier tous les critères d'éligibilité
@@ -43,18 +43,18 @@ Cette page vous permettra de :
 
 #### Vérifier le manifest
 ```bash
-curl -I https://selections.la-malice.fr/manifest.webmanifest
+curl -I https://votre-domaine.com/manifest.webmanifest
 ```
 
 #### Vérifier les icônes
 ```bash
-curl -I https://selections.la-malice.fr/icons/manifest-icon-192.maskable.png
-curl -I https://selections.la-malice.fr/icons/manifest-icon-512.maskable.png
+curl -I https://votre-domaine.com/icons/manifest-icon-192.maskable.png
+curl -I https://votre-domaine.com/icons/manifest-icon-512.maskable.png
 ```
 
 #### Vérifier le service worker
 ```bash
-curl -I https://selections.la-malice.fr/sw.js
+curl -I https://votre-domaine.com/sw.js
 ```
 
 ### 🚨 Problèmes courants et solutions
@@ -89,7 +89,7 @@ curl -I https://selections.la-malice.fr/sw.js
 ### 📱 Test sur Chrome Mobile
 
 #### Méthode 1 : Menu Chrome
-1. Ouvrez `https://selections.la-malice.fr` sur Chrome Mobile
+1. Ouvrez `https://votre-domaine.com` sur Chrome Mobile
 2. Appuyez sur le menu (3 points)
 3. Cherchez **"Ajouter à l'écran d'accueil"** ou **"Installer l'application"**
 

@@ -1,10 +1,27 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+// Règles Firebase Storage
 service firebase.storage {
   match /b/{bucket}/o {
+    // Logos de saison : lecture publique, écriture pour utilisateurs connectés
+    match /development/season-logos/{seasonId}/{fileName} {
+      allow read: if true;  // Lecture publique des logos
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
+    }
+    
+    // Logos de saison staging : lecture publique, écriture pour utilisateurs connectés
+    match /staging/season-logos/{seasonId}/{fileName} {
+      allow read: if true;  // Lecture publique des logos
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
+    }
+    
+    // Logos de saison production : lecture publique, écriture pour utilisateurs connectés
+    match /production/season-logos/{seasonId}/{fileName} {
+      allow read: if true;  // Lecture publique des logos
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
+    }
+    
+    // Par défaut : tout bloqué
     match /{allPaths=**} {
       allow read, write: if false;
     }

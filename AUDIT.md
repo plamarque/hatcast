@@ -98,6 +98,42 @@ Timestamp | Action | Changement | User | Saison | Spectacle | Joueur
 
 ### **Obfuscation des Emails**
 - `user@example.com` → `us••@ex••.com`
+
+## 🔇 Configuration en Développement
+
+### **Audit Désactivé par Défaut**
+En environnement de développement, l'audit est **désactivé par défaut** pour éviter de générer trop de logs lors du développement.
+
+### **Activation Temporaire**
+Pour activer l'audit pendant le développement :
+
+1. **Via l'interface de développement** :
+   - Ouvrir les outils de développement (Ctrl+Shift+D)
+   - Section "Audit" → Cliquer sur "🔊 Activer"
+   - Suivre les instructions affichées
+
+2. **Via fichier .env.local** :
+   ```bash
+   # Activer l'audit en développement
+   VITE_AUDIT_ENABLED=true
+   ```
+
+3. **Redémarrer le serveur** :
+   ```bash
+   npm run dev -- --host
+   ```
+
+### **Désactivation**
+```bash
+# Commenter ou supprimer la ligne
+# VITE_AUDIT_ENABLED=true
+
+# Ou définir explicitement
+VITE_AUDIT_ENABLED=false
+```
+
+### **Logs de Debug**
+Quand l'audit est désactivé, les actions critiques sont toujours loggées dans la console avec le préfixe `🔇 AUDIT DISABLED (dev mode)`.
 - Reconnaissable mais privé
 
 ### **Authentification Firebase CLI**

@@ -3,6 +3,7 @@
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
+      :is-connected="isConnected"
       custom-logo="/logos/hatcast-mask.png"
       @open-account-menu="openAccountMenu"
       @open-help="openHelp"
@@ -20,6 +21,17 @@
         <div class="text-center mb-12">
           <h2 class="text-4xl font-bold text-white mb-4">Saisons</h2>
           <p class="text-xl text-gray-300">Rejoins une saison existante ou crée la tienne</p>
+          
+          <!-- Bouton Nouvelle saison (gère la connexion automatiquement) -->
+          <div class="mt-6">
+            <button
+              @click="handleNewSeasonClick"
+              class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl text-base hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
+            >
+              <span>➕</span>
+              Nouvelle saison
+            </button>
+          </div>
         </div>
 
         <!-- Section des saisons -->
@@ -120,17 +132,6 @@
             </div>
           </div>
 
-          <!-- Bouton Nouvelle saison -->
-          <div class="text-center mt-12">
-            <button
-              @click="showCreateSeasonModal = true"
-              class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl text-lg hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
-            >
-              <span>➕</span>
-              Nouvelle saison
-            </button>
-          </div>
-
           <!-- Message si aucune saison -->
           <div v-if="!loading && seasons.length === 0" class="text-center py-16">
             <div class="w-24 h-24 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
@@ -138,11 +139,14 @@
             </div>
             <h3 class="text-2xl font-bold text-white mb-4">Aucune saison créée</h3>
             <p class="text-gray-300 mb-8">Commencez par créer votre première saison de spectacles !</p>
-            <button 
-              @click="showCreateSeasonModal = true"
-              class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-xl hover:shadow-pink-500/25 transition-all duration-300"
+            
+            <!-- Bouton Nouvelle saison -->
+            <button
+              @click="handleNewSeasonClick"
+              class="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl text-lg hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-pink-500/25"
             >
-              Créer ma première saison
+              <span>➕</span>
+              Nouvelle saison
             </button>
           </div>
         </div>
@@ -215,6 +219,72 @@
           ></textarea>
         </div>
         
+        <!-- Section Logo -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">Logo de la saison</label>
+          <div class="flex items-center gap-4">
+            <!-- Prévisualisation du logo -->
+            <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20">
+              <img 
+                v-if="editSeasonLogoPreview" 
+                :src="editSeasonLogoPreview" 
+                :alt="`Logo de ${editSeasonName}`"
+                class="w-full h-full object-cover"
+              >
+              <span v-else class="text-xl">🎭</span>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex flex-col gap-2">
+              <button
+                v-if="isConnected"
+                type="button"
+                @click="triggerLogoUpload"
+                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
+              >
+                {{ editSeasonLogo ? 'Changer le logo' : 'Ajouter un logo' }}
+              </button>
+              <button
+                v-else
+                type="button"
+                disabled
+                class="px-4 py-2 bg-gray-600 text-gray-400 text-sm rounded-lg cursor-not-allowed"
+                title="Connectez-vous pour ajouter un logo"
+              >
+                🔒 Connexion requise
+              </button>
+              <button
+                v-if="editSeasonLogoPreview"
+                type="button"
+                @click="removeLogo"
+                :disabled="isLogoDeleting"
+                class="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="isLogoDeleting" class="flex items-center gap-2">
+                  <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  Suppression...
+                </span>
+                <span v-else>Supprimer</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Input file caché -->
+          <input
+            ref="logoFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleLogoUpload"
+          >
+          
+          <!-- Indicateur de chargement -->
+          <div v-if="isLogoUploading" class="mt-2 text-sm text-blue-400 flex items-center gap-2">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+            Upload en cours...
+          </div>
+        </div>
+        
         <div class="flex justify-end space-x-3">
           <button
             @click="cancelEdit"
@@ -235,14 +305,17 @@
     <!-- Modales d'authentification -->
     <AccountLoginModal 
       v-if="showAccountLogin" 
+      :show="showAccountLogin"
       @close="showAccountLogin = false"
-      @login-success="handlePostLoginNavigation"
+      @success="handlePostLoginNavigation"
+      @open-account-creation="openAccountCreation"
     />
     
     <AccountCreationModal 
       v-if="showAccountCreation" 
+      :show="showAccountCreation"
       @close="showAccountCreation = false"
-      @account-created="handlePostLoginNavigation"
+      @account-created="handleAccountCreated"
     />
 
     <!-- Menu du compte -->
@@ -275,6 +348,7 @@ import { getSeasons, setSeasonSortOrder, updateSeason, deleteSeason } from '../s
 import { loadEvents, loadPlayers, loadAvailability, loadSelections } from '../services/storage.js'
 import { currentUser, isConnected } from '../services/authState.js'
 import { clearLastSeasonPreference } from '../services/seasonPreferences.js'
+import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
 import AppHeader from '../components/AppHeader.vue'
 import CreateSeasonModal from '../components/CreateSeasonModal.vue'
 import AccountLoginModal from '../components/AccountLoginModal.vue'
@@ -282,6 +356,7 @@ import AccountCreationModal from '../components/AccountCreationModal.vue'
 import AccountMenu from '../components/AccountMenu.vue'
 import NotificationsModal from '../components/NotificationsModal.vue'
 import PlayersModal from '../components/PlayersModal.vue'
+
 import logger from '../services/logger.js'
 
 const router = useRouter()
@@ -297,8 +372,10 @@ const seasonToEdit = ref(null)
 const editSeasonName = ref('')
 const editSeasonDescription = ref('')
 const editSeasonLogo = ref(null)
-const editSeasonLogoPreview = ref(null)
+const editSeasonLogoPreview = ref('')
 const isLogoUploading = ref(false)
+const isLogoDeleting = ref(false)
+const logoFileInput = ref(null)
 const showDeleteModal = ref(false)
 const showEditModal = ref(false)
 
@@ -308,6 +385,11 @@ const showAccountCreation = ref(false)
 const showAccountMenu = ref(false)
 const showNotifications = ref(false)
 const showPlayers = ref(false)
+
+// Flag pour mémoriser l'intention de créer une saison
+const wantsToCreateSeason = ref(false)
+
+
 
 // État de connexion (importé depuis authState)
 
@@ -343,17 +425,83 @@ function handleLogout() {
 }
 
 function openAccountLogin() {
+  logger.info('🔑 SeasonsPage: openAccountLogin() appelé')
+  logger.debug('showAccountLogin avant =', showAccountLogin.value)
   showAccountLogin.value = true
+  logger.debug('showAccountLogin après =', showAccountLogin.value)
+  logger.debug('showAccountLogin type =', typeof showAccountLogin.value)
+  logger.debug('showAccountLogin ref =', showAccountLogin)
+  
+  // Debug du composant modal
+  logger.debug('Composant AccountLoginModal importé =', !!AccountLoginModal)
+  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="email-input"]'))
 }
 
 function openAccountCreation() {
+  logger.info('🔑 SeasonsPage: openAccountCreation() appelé')
+  logger.debug('showAccountCreation avant =', showAccountCreation.value)
   showAccountCreation.value = true
+  logger.debug('showAccountCreation après =', showAccountCreation.value)
+  logger.debug('showAccountCreation type =', typeof showAccountCreation.value)
+  logger.debug('showAccountCreation ref =', showAccountCreation)
+  
+  // Debug du composant modal
+  logger.debug('Composant AccountCreationModal importé =', !!AccountCreationModal)
+  logger.debug('Template modal présent =', !!document.querySelector('[data-testid="create-account-modal"]'))
+}
+
+
+
+// Gérer la création de compte réussie
+async function handleAccountCreated() {
+  // Fermer la modal de création de compte
+  showAccountCreation.value = false
+  
+  // Vérifier si l'utilisateur voulait créer une saison
+  if (wantsToCreateSeason.value) {
+    logger.info('Nouveau compte créé voulait créer une saison, ouverture de la modale')
+    showCreateSeasonModal.value = true
+    wantsToCreateSeason.value = false // Reset le flag
+  } else if (seasons.length === 0) {
+    // Si l'utilisateur vient de créer un compte et qu'il n'y a pas de saisons,
+    // lui proposer d'en créer une
+    logger.info('Nouveau compte créé sans saisons, ouverture de la modale de création')
+    showCreateSeasonModal.value = true
+  }
+}
+
+// Gérer le clic sur le bouton "Nouvelle saison"
+function handleNewSeasonClick() {
+  if (isConnected.value) {
+    // Si connecté, ouvrir directement la modale de création
+    showCreateSeasonModal.value = true
+  } else {
+    // Si non connecté, mémoriser l'intention et ouvrir la modale de connexion
+    wantsToCreateSeason.value = true
+    openAccountLogin()
+  }
 }
 
 // Gérer la navigation post-connexion
 async function handlePostLoginNavigation() {
-  // Rediriger vers la page des saisons après connexion
-  router.push('/seasons')
+  // Fermer la modal de connexion
+  showAccountLogin.value = false
+  
+  // Vérifier si l'utilisateur voulait créer une saison
+  if (wantsToCreateSeason.value) {
+    logger.info('Utilisateur connecté voulait créer une saison, ouverture de la modale')
+    showCreateSeasonModal.value = true
+    wantsToCreateSeason.value = false // Reset le flag
+  } else if (seasons.length === 0) {
+    // Si l'utilisateur vient de se connecter et qu'il n'y a pas de saisons,
+    // lui proposer d'en créer une
+    logger.info('Utilisateur connecté sans saisons, ouverture de la modale de création')
+    showCreateSeasonModal.value = true
+  } else {
+    // On est déjà sur /seasons, pas besoin de rediriger
+    // Juste rafraîchir la page pour mettre à jour l'état de connexion
+    logger.info('Connexion réussie sur /seasons, modal fermée')
+  }
 }
 
 // Fonctions de gestion des saisons
@@ -577,6 +725,68 @@ function openEditModal(season) {
   closeMenu()
 }
 
+// Fonctions pour la gestion du logo
+function handleLogoUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    editSeasonLogo.value = file
+    isLogoUploading.value = true
+    
+    // Créer une prévisualisation
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      editSeasonLogoPreview.value = e.target.result
+      isLogoUploading.value = false
+    }
+    reader.onerror = () => {
+      isLogoUploading.value = false
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+async function removeLogo() {
+  try {
+    isLogoDeleting.value = true
+    
+    // Supprimer le fichier du storage s'il existe
+    if (seasonToEdit.value?.logoUrl && isFirebaseStorageUrl(seasonToEdit.value.logoUrl)) {
+      try {
+        await deleteImage(seasonToEdit.value.logoUrl)
+        logger.info('Logo supprimé du storage')
+      } catch (deleteError) {
+        logger.warn('Erreur lors de la suppression du logo du storage:', deleteError)
+        // Continuer même si la suppression du fichier échoue
+      }
+    }
+    
+    // Mettre à jour la saison dans Firestore (supprimer logoUrl)
+    await updateSeason(seasonToEdit.value.id, { logoUrl: null })
+    logger.info('Logo supprimé de la saison')
+    
+    // Mettre à jour l'état local
+    seasonToEdit.value.logoUrl = null
+    editSeasonLogo.value = null
+    editSeasonLogoPreview.value = ''
+    
+    // Recharger les saisons pour mettre à jour l'affichage
+    await loadSeasons()
+    
+    logger.info('Logo supprimé avec succès')
+  } catch (error) {
+    logger.error('Erreur lors de la suppression du logo:', error)
+    alert('Erreur lors de la suppression du logo. Veuillez réessayer.')
+  } finally {
+    isLogoDeleting.value = false
+  }
+}
+
+function triggerLogoUpload() {
+  if (logoFileInput.value) {
+    logoFileInput.value.click()
+  }
+}
+
 function cancelEdit() {
   showEditModal.value = false
   seasonToEdit.value = null
@@ -598,8 +808,32 @@ async function saveSeasonEdit() {
     
     // Si un nouveau logo a été sélectionné, l'uploader
     if (editSeasonLogo.value) {
-      // TODO: Implémenter l'upload du logo
-      // updates.logoUrl = await uploadLogo(editSeasonLogo.value)
+      try {
+        isLogoUploading.value = true
+        logger.info('Upload du nouveau logo...')
+        const logoUrl = await uploadImage(editSeasonLogo.value, `season-logos/${seasonToEdit.value.id}`, {
+          resize: true,
+          maxWidth: 64,   // Taille exacte d'affichage
+          maxHeight: 64,
+          quality: 0.6    // Qualité réduite car très petit
+        })
+        updates.logoUrl = logoUrl
+        
+        // Supprimer l'ancien logo s'il existe
+        if (seasonToEdit.value.logoUrl && isFirebaseStorageUrl(seasonToEdit.value.logoUrl)) {
+          try {
+            await deleteImage(seasonToEdit.value.logoUrl)
+            logger.info('Ancien logo supprimé')
+          } catch (deleteError) {
+            logger.warn('Erreur lors de la suppression de l\'ancien logo:', deleteError)
+          }
+        }
+      } catch (uploadError) {
+        logger.error('Erreur lors de l\'upload du logo:', uploadError)
+        throw new Error('Impossible d\'uploader le logo. Veuillez réessayer.')
+      } finally {
+        isLogoUploading.value = false
+      }
     }
     
     await updateSeason(seasonToEdit.value.id, updates)
@@ -631,6 +865,18 @@ async function deleteSeasonConfirmed() {
   if (!seasonToDelete.value) return
   
   try {
+    // Supprimer le logo du storage s'il existe
+    if (seasonToDelete.value?.logoUrl && isFirebaseStorageUrl(seasonToDelete.value.logoUrl)) {
+      try {
+        await deleteImage(seasonToDelete.value.logoUrl)
+        logger.info('Logo de la saison supprimé du storage avant suppression')
+      } catch (deleteError) {
+        logger.warn('Erreur lors de la suppression du logo du storage:', deleteError)
+        // Continuer même si la suppression du fichier échoue
+      }
+    }
+    
+    // Supprimer la saison de Firestore
     await deleteSeason(seasonToDelete.value.id)
     logger.info('Saison supprimée avec succès', { seasonId: seasonToDelete.value.id })
     
@@ -667,6 +913,8 @@ async function clearSeasonPreference() {
     logger.warn('Erreur lors du nettoyage de la préférence de saison', error)
   }
 }
+
+
 
 onMounted(async () => {
   // Supprimer la préférence de saison mémorisée lors de la visite de cette page

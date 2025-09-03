@@ -1,6 +1,5 @@
 // Service pour gérer l'activation des notifications pour les utilisateurs non connectés
-import { db } from './firebase.js'
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import firestoreService from './firestoreService.js'
 import { createMagicLink } from './magicLinks.js'
 import { queueNotificationActivationEmail } from './emailService.js'
 import { canUsePush, requestAndGetToken } from './notifications.js'
@@ -71,12 +70,12 @@ export async function createNotificationActivationRequest({
   try {
     // Récupérer le nom complet de la saison depuis Firestore
     let seasonTitle = seasonSlug // Fallback au slug
-    try {
-      const seasonDoc = await getDoc(doc(db, 'seasons', seasonId))
-      if (seasonDoc.exists()) {
-        seasonTitle = seasonDoc.data().title || seasonSlug
-      }
-    } catch (error) {
+          try {
+        const seasonData = await firestoreService.getDocument('seasons', seasonId)
+        if (seasonData) {
+          seasonTitle = seasonData.title || seasonSlug
+        }
+      } catch (error) {
       console.warn('Impossible de récupérer le titre de la saison, utilisation du slug:', error)
     }
 
@@ -91,7 +90,7 @@ export async function createNotificationActivationRequest({
 
     // Enregistrer la demande dans Firestore
     const activationId = `${seasonId}_${eventId}_${email.replace(/[^a-zA-Z0-9]/g, '_')}`
-    await setDoc(doc(db, 'notificationActivations', activationId), {
+    await firestoreService.setDocument('notificationActivations', activationId, {
       seasonId,
       eventId,
       playerName,
@@ -100,7 +99,7 @@ export async function createNotificationActivationRequest({
       seasonSlug,
       magicLinkId: magicLink.id,
       magicLinkUrl: magicLink.url,
-      requestedAt: serverTimestamp(),
+      requestedAt: new Date(),
       status: 'pending'
     })
 
@@ -198,14 +197,13 @@ export async function processNotificationActivation(token) {
 async function getNotificationActivationData(token) {
   try {
     // Rechercher dans la collection des activations
-    const { collection, query, where, getDocs } = await import('firebase/firestore')
-    const q = query(collection(db, 'notificationActivations'), where('status', '==', 'pending'))
-    const snap = await getDocs(q)
+    const activations = await firestoreService.queryDocuments('notificationActivations', [
+      firestoreService.where('status', '==', 'pending')
+    ])
     
-    for (const doc of snap.docs) {
-      const data = doc.data()
-      if (data.magicLinkUrl && data.magicLinkUrl.includes(token)) {
-        return { ...data, activationId: doc.id }
+    for (const activation of activations) {
+      if (activation.magicLinkUrl && activation.magicLinkUrl.includes(token)) {
+        return { ...activation, activationId: activation.id }
       }
     }
     
@@ -249,10 +247,10 @@ async function activatePushNotifications() {
  */
 async function updateUserNotificationPreferences(email, preferences) {
   try {
-    await setDoc(doc(db, 'userPreferences', email), {
+    await firestoreService.setDocument('userPreferences', email, {
       ...preferences,
-      updatedAt: serverTimestamp(),
-      notificationActivatedAt: serverTimestamp()
+      updatedAt: new Date(),
+      notificationActivatedAt: new Date()
     }, { merge: true })
   } catch (error) {
     logger.error('Erreur lors de la mise à jour des préférences', error)
@@ -265,9 +263,9 @@ async function updateUserNotificationPreferences(email, preferences) {
  */
 async function markActivationComplete(activationId) {
   try {
-    await updateDoc(doc(db, 'notificationActivations', activationId), {
+    await firestoreService.updateDocument('notificationActivations', activationId, {
       status: 'completed',
-      completedAt: serverTimestamp()
+      completedAt: new Date()
     })
   } catch (error) {
     logger.error('Erreur lors de la finalisation de l\'activation', error)
@@ -282,14 +280,12 @@ async function associatePlayerWithEmail(activationData) {
     const { collection, query, where, getDocs, setDoc } = await import('firebase/firestore')
     
     // Vérifier si l'association existe déjà
-    const q = query(
-      collection(db, 'playerAssociations'),
-      where('email', '==', activationData.email),
-      where('seasonId', '==', activationData.seasonId)
-    )
-    const existing = await getDocs(q)
+    const existing = await firestoreService.queryDocuments('playerAssociations', [
+      firestoreService.where('email', '==', activationData.email),
+      firestoreService.where('seasonId', '==', activationData.seasonId)
+    ])
     
-    if (!existing.empty) {
+    if (existing.length > 0) {
       logger.info('Association joueur-email déjà existante', {
         email: activationData.email,
         seasonId: activationData.seasonId
@@ -298,11 +294,11 @@ async function associatePlayerWithEmail(activationData) {
     }
 
     // Créer l'association
-    await setDoc(doc(db, 'playerAssociations', `${activationData.seasonId}_${activationData.email}`), {
+    await firestoreService.setDocument('playerAssociations', `${activationData.seasonId}_${activationData.email}`, {
       email: activationData.email,
       seasonId: activationData.seasonId,
       playerName: activationData.playerName,
-      associatedAt: serverTimestamp(),
+      associatedAt: new Date(),
       source: 'notification_activation'
     })
 

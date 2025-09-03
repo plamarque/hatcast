@@ -29,7 +29,7 @@
       aria-haspopup="true"
       ref="dropdownButton"
     >
-      <span class="text-2xl">👤</span>
+      <UserAvatar size="md" />
     </button>
     
     <!-- Dropdown menu via teleport pour éviter les conflits de z-index -->
@@ -45,7 +45,9 @@
           class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
         >
-          <span class="text-base md:text-lg flex-shrink-0">👤</span>
+          <div class="flex-shrink-0">
+            <UserAvatar size="sm" />
+          </div>
           <span class="truncate">Mon compte</span>
         </button>
         <button 
@@ -64,6 +66,18 @@
           <span class="text-base md:text-lg flex-shrink-0">❓</span>
           <span class="truncate">Aide</span>
         </button>
+        
+        <!-- Item Développement (admin uniquement) -->
+        <button 
+          v-if="isAdmin"
+          @click="openDevelopment"
+          class="w-full text-left px-4 py-2 text-sm text-purple-300 hover:bg-purple-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
+          role="menuitem"
+        >
+          <span class="text-base md:text-lg flex-shrink-0">🛠️</span>
+          <span class="truncate">Développement</span>
+        </button>
+        
         <div class="border-t border-white/10 my-1"></div>
         <button 
           data-testid="logout-btn"
@@ -81,25 +95,41 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { auth } from '../services/firebase.js'
+import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
+import adminService from '../services/adminService.js'
+import logger from '../services/logger.js'
+import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
   buttonClass: { type: String, default: 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700' }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation'])
+// Debug log for props
+watch(() => props.isConnected, (connected) => {
+  logger.info('🔗 AccountDropdown: isConnected changed', { 
+    connected,
+    timestamp: new Date().toISOString()
+  })
+}, { immediate: true })
+
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation', 'open-development'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
 const dropdownButton = ref(null)
 const dropdownStyle = ref({})
+const isAdmin = ref(false)
 
 // Réinitialiser isLoading immédiatement quand isConnected change
 watch(() => props.isConnected, (newValue) => {
   // Si l'état de connexion change, on peut afficher le contenu immédiatement
   isLoading.value = false
+  // Vérifier le statut admin si connecté
+  if (newValue) {
+    checkAdminStatus()
+  }
 }, { immediate: true })
 
 // Pas de délai artificiel - afficher immédiatement
@@ -107,8 +137,26 @@ onMounted(() => {
   isLoading.value = false
 })
 
+// Fonction de vérification admin
+async function checkAdminStatus() {
+  try {
+    const adminStatus = await adminService.checkAdminStatus();
+    isAdmin.value = adminStatus;
+  } catch (error) {
+    logger.error('❌ Erreur lors de la vérification admin:', error);
+    isAdmin.value = false;
+  }
+}
+
 function openLogin() {
-  emit('open-login')
+  try {
+    logger.info('🔑 AccountDropdown: openLogin() appelé')
+    emit('open-login')
+    logger.info('🔑 AccountDropdown: événement open-login émis')
+  } catch (error) {
+    logger.error('Erreur lors de l\'émission de open-login:', error)
+    throw error // Re-lancer l'erreur pour Vue.js
+  }
 }
 
 function toggleDropdown() {
@@ -143,9 +191,20 @@ function openNotifications() {
   emit('open-notifications')
 }
 
+function openDevelopment() {
+  isOpen.value = false
+  emit('open-development')
+}
+
 async function logout() {
   isOpen.value = false
   try {
+    const auth = getFirebaseAuth()
+    if (!auth) {
+      logger.error('Firebase Auth non disponible pour la déconnexion')
+      return
+    }
+    
     const userEmail = auth.currentUser?.email
     
     await auth.signOut()
@@ -154,7 +213,7 @@ async function logout() {
     try {
       await AuditClient.logLogout(userEmail)
     } catch (auditError) {
-      console.warn('Erreur audit logout:', auditError)
+      logger.warn('Erreur audit logout:', auditError)
     }
     
     // EFFACER TOUTES LES SESSIONS LOCALES à la déconnexion
@@ -164,20 +223,20 @@ async function logout() {
       
       pinSessionManager.clearSession()
       playerPasswordSessionManager.clearAllSessions()
-      console.log('Sessions locales effacées à la déconnexion')
+      logger.info('Sessions locales effacées à la déconnexion')
     } catch (sessionError) {
-      console.warn('Erreur lors de l\'effacement des sessions:', sessionError)
+      logger.warn('Erreur lors de l\'effacement des sessions:', sessionError)
     }
     
     emit('logout')
   } catch (error) {
-    console.error('Erreur lors de la déconnexion:', error)
+    logger.error('Erreur lors de la déconnexion:', error)
     
     // Logger l'erreur d'audit
     try {
       await AuditClient.logError(error, { context: 'logout_attempt' })
     } catch (auditError) {
-      console.warn('Erreur audit error:', auditError)
+      logger.warn('Erreur audit error:', auditError)
     }
   }
 }

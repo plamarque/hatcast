@@ -2,6 +2,40 @@
 
 const admin = require('firebase-admin')
 
+// Détecter l'environnement
+function detectEnvironment(options = {}) {
+  // Priorité 1: Option --env
+  if (options.env) {
+    const env = options.env
+    const databaseMap = {
+      'development': 'development',
+      'staging': 'staging',
+      'production': 'default',
+      'default': 'default'
+    }
+    
+    if (databaseMap[env]) {
+      return databaseMap[env]
+    } else {
+      console.warn(`⚠️ Environnement inconnu: ${env}, utilisation de 'development'`)
+      return 'development'
+    }
+  }
+  
+  // Priorité 2: Variables d'environnement
+  const env = process.env.NODE_ENV || process.env.FIREBASE_ENV || 'development'
+  
+  // Mapping des environnements vers les bases Firestore
+  const databaseMap = {
+    'development': 'development',
+    'staging': 'staging',
+    'production': 'default',
+    'default': 'default'
+  }
+  
+  return databaseMap[env] || 'development'
+}
+
 // Initialiser Firebase Admin avec les credentials Firebase CLI
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -10,7 +44,23 @@ if (!admin.apps.length) {
   })
 }
 
-const db = admin.firestore()
+// Se connecter à la base appropriée (sera mis à jour après parsing des options)
+let environment = 'development'
+let db = admin.firestore()
+
+// Fonction pour mettre à jour la connexion selon l'environnement
+function updateConnection(options = {}) {
+  environment = detectEnvironment(options)
+  
+  // Se reconnecter à la base appropriée
+  try {
+    db = admin.firestore()
+    console.log(`🔧 Connexion à la base Firestore: ${environment}`)
+  } catch (error) {
+    console.error('❌ Erreur lors de la connexion à la base:', error)
+    process.exit(1)
+  }
+}
 
 // Fonctions pour interroger directement Firestore
 async function getAuditLogsDirect(filters = {}) {
@@ -487,6 +537,7 @@ function showHelp() {
   log('  --season=SLUG    : Logs d\'une saison spécifique')
   log('  --type=TYPE      : Type d\'événement (ex: player_confirmed)')
   log('  --limit=N        : Nombre maximum de résultats (défaut: 100)')
+  log('  --env=ENV        : Environnement (development, staging, production)')
   log('\nExemples:')
   log('  node audit-cli.js list --user="patrice.lamarque@gmail.com" --limit=20')
   log('  node audit-cli.js list --player="Christopher" --season="test"')
@@ -533,6 +584,9 @@ async function main() {
     
     // Authentification via Firebase CLI
     const userEmail = await authenticate()
+    
+    // Mettre à jour la connexion selon l'environnement
+    updateConnection(options)
     
     // Exécuter la commande
     switch (command) {

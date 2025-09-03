@@ -3,20 +3,42 @@
 // uniquement qu'un appareil est "de confiance" pour un playerId pendant une
 // longue période. Les données sont persistées en localStorage.
 
+import configService from './configService.js'
+import logger from './logger.js'
+
 const TRUST_STORAGE_KEY = 'hatcast_trusted_players'
-// Durée de confiance pour les appareils des utilisateurs
-// Configurable via variable d'environnement avec fallback par défaut
-const TRUST_DURATION = parseInt(import.meta.env.VITE_USER_SESSION_DURATION_MONTHS || '6') * 30 * 24 * 60 * 60 * 1000 // 6 mois par défaut (configurable)
 
 class PlayerPasswordSessionManager {
   constructor() {
     this.trustedMap = this.load()
+    this.trustDuration = null
+    this.isInitialized = false
+  }
+
+  async initialize() {
+    if (this.isInitialized) return this;
     
-    // Log de la configuration de la durée de confiance
-    console.log('🔐 Configuration des sessions utilisateur:', {
-      duration: `${TRUST_DURATION / (30 * 24 * 60 * 60 * 1000)} mois`,
-      source: 'variables d\'environnement' + (import.meta.env.VITE_USER_SESSION_DURATION_MONTHS ? ' (personnalisées)' : ' (défaut)')
-    })
+    try {
+      // Attendre que configService soit initialisé
+      await configService.initializeConfig();
+      
+      // Récupérer la durée depuis configService
+      this.trustDuration = configService.getUserSessionDurationMonths() * 30 * 24 * 60 * 60 * 1000;
+      
+      logger.info('🔐 Configuration des sessions utilisateur:', {
+        duration: `${this.trustDuration / (30 * 24 * 60 * 60 * 1000)} mois`,
+        source: configService.getConfigSource('userSessionDurationMonths', 'sessions')
+      });
+      
+      this.isInitialized = true;
+      return this;
+    } catch (error) {
+      logger.error('❌ Erreur lors de l\'initialisation de PlayerPasswordSessionManager:', error);
+      // Fallback vers la valeur par défaut
+      this.trustDuration = 6 * 30 * 24 * 60 * 60 * 1000; // 6 mois par défaut
+      this.isInitialized = true;
+      return this;
+    }
   }
 
   load() {
@@ -37,12 +59,18 @@ class PlayerPasswordSessionManager {
   }
 
   // Vérifie si l'appareil est de confiance pour ce joueur (avec expiration glissante)
-  isPasswordCached(playerId) {
+  async isPasswordCached(playerId) {
     if (!playerId) return false
+    
+    // S'assurer que le service est initialisé
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+    
     const ts = this.trustedMap[playerId]
     if (!ts) return false
     const now = Date.now()
-    const valid = now - ts < TRUST_DURATION
+    const valid = now - ts < this.trustDuration
     if (valid) {
       // Sliding expiration
       this.trustedMap[playerId] = now
@@ -74,11 +102,16 @@ class PlayerPasswordSessionManager {
   }
 
   // Purger les confiances expirées
-  clearExpiredSessions() {
+  async clearExpiredSessions() {
+    // S'assurer que le service est initialisé
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+    
     const now = Date.now()
     let changed = false
     for (const [pid, ts] of Object.entries(this.trustedMap)) {
-      if (now - ts > TRUST_DURATION) {
+      if (now - ts > this.trustDuration) {
         delete this.trustedMap[pid]
         changed = true
       }
@@ -95,5 +128,10 @@ class PlayerPasswordSessionManager {
 
 // Créer une instance singleton
 const playerPasswordSessionManager = new PlayerPasswordSessionManager()
+
+// Initialiser le service de manière asynchrone
+playerPasswordSessionManager.initialize().catch(error => {
+  logger.error('❌ Erreur lors de l\'initialisation de PlayerPasswordSessionManager:', error);
+});
 
 export default playerPasswordSessionManager

@@ -25,6 +25,8 @@ Basée sur Vue 3, Firebase et TailwindCSS.
    cp .env.example .env.local
    ```
 
+⚠️ **IMPORTANT** : Remplacez toutes les valeurs sensibles (emails, URLs, IPs) par vos propres données dans la configuration.
+
 3. Installez les dépendances :
    ```bash
    npm install
@@ -68,4 +70,4 @@ scripts/
 ### License
 
 The code is licensed under the [MIT License](./LICENSE).  
-Visual elements and written content (e.g., emojis, headers) are licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
+Visual elements and written content (e.g., emojis, headers) are licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).# Sun Aug 31 23:37:28 CEST 2025

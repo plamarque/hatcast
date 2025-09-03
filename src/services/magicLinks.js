@@ -1,8 +1,8 @@
 // src/services/magicLinks.js
 // Génération et vérification de liens magiques pour mettre à jour une disponibilité via email
 
-import { db } from './firebase.js'
-import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore'
+import firestoreService from './firestoreService.js'
+import configService from './configService.js'
 
 const COLLECTION = 'magicLinks'
 
@@ -23,9 +23,9 @@ function randomToken(length = 32) {
 export async function createMagicLink({ seasonId, playerId, eventId, action, slug }) {
   const id = buildId({ seasonId, playerId, eventId, action })
   const token = randomToken(40)
-  const ref = doc(db, COLLECTION, id)
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
-  await setDoc(ref, { seasonId, playerId, eventId, token, action, expiresAt })
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
+  await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, expiresAt })
   const base = window.location.origin + '/'
   let url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
   
@@ -40,34 +40,47 @@ export async function createMagicLink({ seasonId, playerId, eventId, action, slu
 // Magic link pour vérification d'email de protection joueur
 // Utilise eventId spécial "protection" et action "verify_email"
 export async function createEmailVerificationLink({ seasonId, playerId, email }) {
-  const eventId = 'protection'
-  const action = 'verify_email'
-  const id = buildId({ seasonId, playerId, eventId, action })
-  const token = randomToken(40)
-  const ref = doc(db, COLLECTION, id)
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7 // 7 jours
-  await setDoc(ref, { seasonId, playerId, eventId, token, action, email, expiresAt })
-  const base = window.location.origin + '/'
-  const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
-  return { id, token, url }
+  try {
+    // S'assurer que firestoreService est initialisé
+    await firestoreService.initialize()
+    
+    const eventId = 'protection'
+    const action = 'verify_email'
+    const id = buildId({ seasonId, playerId, eventId, action })
+    const token = randomToken(40)
+    const expirationDays = configService.getMagicLinkExpirationDays()
+    const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
+    await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, email, expiresAt })
+    const base = window.location.origin + '/'
+    const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+    return { id, token, url }
+  } catch (error) {
+    console.error('Error creating email verification link:', error)
+    throw error
+  }
 }
 
 export async function verifyMagicLink({ seasonId, playerId, eventId, token, action }) {
-  const id = buildId({ seasonId, playerId, eventId, action })
-  const ref = doc(db, COLLECTION, id)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return { valid: false, reason: 'not_found' }
-  const data = snap.data()
-  if (data.token !== token) return { valid: false, reason: 'token_mismatch' }
-  if (data.action !== action) return { valid: false, reason: 'action_mismatch' }
-  if (typeof data.expiresAt === 'number' && Date.now() > data.expiresAt) return { valid: false, reason: 'expired' }
-  return { valid: true, data }
+  try {
+    // S'assurer que firestoreService est initialisé
+    await firestoreService.initialize()
+    
+    const id = buildId({ seasonId, playerId, eventId, action })
+    const data = await firestoreService.getDocument(COLLECTION, id)
+    if (!data) return { valid: false, reason: 'not_found' }
+    if (data.token !== token) return { valid: false, reason: 'token_mismatch' }
+    if (data.action !== action) return { valid: false, reason: 'action_mismatch' }
+    if (typeof data.expiresAt === 'number' && Date.now() > data.expiresAt) return { valid: false, reason: 'expired' }
+    return { valid: true, data }
+  } catch (error) {
+    console.error('Magic link error', error)
+    return { valid: false, reason: 'firestore_error', error: error.message }
+  }
 }
 
 export async function consumeMagicLink({ seasonId, playerId, eventId, action }) {
   const id = buildId({ seasonId, playerId, eventId, action })
-  const ref = doc(db, COLLECTION, id)
-  await deleteDoc(ref)
+  await firestoreService.deleteDocument(COLLECTION, id)
 }
 
 // ===== Account email update magic link (separate collection) =====
@@ -80,9 +93,9 @@ export function buildAccountId(token) {
 export async function createAccountEmailUpdateLink({ currentEmail, newEmail }) {
   const token = randomToken(40)
   const id = buildAccountId(token)
-  const ref = doc(db, ACCOUNT_COLLECTION, id)
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7
-  await setDoc(ref, { token, currentEmail, newEmail, action: 'account_email_update', expiresAt })
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
+  await firestoreService.setDocument(ACCOUNT_COLLECTION, id, { token, currentEmail, newEmail, action: 'account_email_update', expiresAt })
   const base = window.location.origin + '/'
   const url = `${base}magic?a=account_email_update&t=${encodeURIComponent(token)}`
   return { id, token, url }
@@ -90,10 +103,8 @@ export async function createAccountEmailUpdateLink({ currentEmail, newEmail }) {
 
 export async function verifyAccountEmailUpdateLink({ token }) {
   const id = buildAccountId(token)
-  const ref = doc(db, ACCOUNT_COLLECTION, id)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return { valid: false, reason: 'not_found' }
-  const data = snap.data()
+  const data = await firestoreService.getDocument(ACCOUNT_COLLECTION, id)
+  if (!data) return { valid: false, reason: 'not_found' }
   if (data.token !== token) return { valid: false, reason: 'token_mismatch' }
   if (typeof data.expiresAt === 'number' && Date.now() > data.expiresAt) return { valid: false, reason: 'expired' }
   return { valid: true, data }

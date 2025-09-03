@@ -110,6 +110,14 @@ window.addEventListener('unhandledrejection', async (event) => {
 })
 
 const app = createApp(App)
+
+// Injecter configService dans les propriétés globales
+import configService from './services/configService.js'
+app.config.globalProperties.configService = configService
+
+// Rendre configService accessible globalement pour le débogage
+window.configService = configService
+
 app.use(router)
 app.mount('#app')
 

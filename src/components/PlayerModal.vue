@@ -1,15 +1,21 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[80] p-0 md:p-4" @click="closeModal">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col" @click.stop>
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[120] p-4" @click="closeModal">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="closeModal" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         
         <!-- Layout horizontal compact -->
-        <div class="flex items-start gap-4 md:gap-6">
-          <!-- Icône illustrative -->
-          <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex-shrink-0 flex items-center justify-center">
-            <span class="text-xl md:text-2xl">👤</span>
+        <div class="flex items-center gap-4 md:gap-6">
+          <!-- Avatar du joueur avec statuts superposés -->
+          <div class="relative flex-shrink-0">
+            <PlayerAvatar 
+              :player-id="player?.id"
+              :season-id="seasonId"
+              :player-name="player?.name"
+              size="xl"
+              :show-status-icons="false"
+            />
           </div>
           
           <!-- Informations principales -->
@@ -17,7 +23,7 @@
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
               
-              <!-- Indicateurs de statut compacts -->
+              <!-- Indicateurs de statut compacts (optionnel, gardés pour la lisibilité) -->
               <div class="flex items-center gap-2">
                 <!-- Indicateur de protection -->
                 <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
@@ -143,7 +149,7 @@
   </teleport>
 
   <!-- Modal d'édition du nom -->
-  <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90] p-4">
+  <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
               <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Renommer la personne</h2>
       <div class="mb-6">
@@ -151,11 +157,18 @@
         <input
           v-model="editingName"
           type="text"
-          class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+          :class="[
+            'w-full p-3 bg-gray-800 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400',
+            editNameError ? 'border-red-500' : 'border-gray-600'
+          ]"
           @keydown.esc="cancelEdit"
           @keydown.enter="saveEdit"
+          @input="validateEditName"
           ref="editNameInput"
         >
+        <div v-if="editNameError" class="mt-2 text-sm text-red-400">
+          {{ editNameError }}
+        </div>
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -199,6 +212,7 @@
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
 
 const props = defineProps({
@@ -236,7 +250,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding'])
+const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated'])
+
+
 
 const editing = ref(false)
 const editingName = ref('')
@@ -247,6 +263,7 @@ const pendingAction = ref(null) // 'update' ou 'delete'
 const showMoreActions = ref(false)
 const showPlayerMoreActionsDesktop = ref(false)
 const showPlayerMoreActions = ref(false)
+const editNameError = ref('')
 const playerMoreActionsRef = ref(null)
 const playerMoreActionsDropdownRef = ref(null)
 const playerMoreActionsStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
@@ -272,6 +289,7 @@ function closeModal() {
 
 function startEditing() {
   editingName.value = props.player?.name || ''
+  editNameError.value = ''
   editing.value = true
   nextTick(() => {
     if (editNameInput.value) {
@@ -283,9 +301,35 @@ function startEditing() {
 function cancelEdit() {
   editing.value = false
   editingName.value = ''
+  editNameError.value = ''
+}
+
+function validateEditName() {
+  editNameError.value = ''
+  
+  if (!editingName.value.trim()) {
+    editNameError.value = 'Le nom du joueur ne peut pas être vide'
+    return false
+  }
+  
+  // Vérifier si le nom est différent du nom actuel
+  const trimmedName = editingName.value.trim()
+  if (trimmedName === props.player?.name) {
+    return true // Pas d'erreur si c'est le même nom
+  }
+  
+  // Pour la validation côté client, on ne peut pas vérifier les doublons
+  // car on n'a pas accès à la liste complète des joueurs
+  // La validation côté serveur dans updatePlayer() s'en chargera
+  return true
 }
 
 async function saveEdit() {
+  // Validation côté client
+  if (!validateEditName()) {
+    return
+  }
+  
   if (!editingName.value.trim()) return
   
   // Vérifier si le joueur est protégé
@@ -295,7 +339,7 @@ async function saveEdit() {
     const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
     if (hasCachedPassword) {
       // Session active, procéder directement
-      performUpdate()
+      await performUpdate()
     } else {
       // Pas de session, demander le mot de passe
       pendingAction.value = 'update'
@@ -305,17 +349,19 @@ async function saveEdit() {
   }
   
   // Si non protégé, procéder directement
-  performUpdate()
+  await performUpdate()
 }
 
 function performUpdate() {
-  emit('update', {
-    playerId: props.player?.id,
-    newName: editingName.value.trim()
+  return new Promise((resolve, reject) => {
+    emit('update', {
+      playerId: props.player?.id,
+      newName: editingName.value.trim()
+    })
+    
+    // Ne pas fermer le mode d'édition ici, attendre la réponse
+    // Le parent devra appeler une méthode pour fermer le mode d'édition
   })
-  
-  editing.value = false
-  editingName.value = ''
 }
 
 async function handleDelete() {
@@ -358,12 +404,15 @@ async function handleProtectionUpdate() {
   
   // Émettre l'événement de rafraîchissement pour la grille
   emit('refresh')
+  
+  // Émettre aussi l'événement d'update d'avatar
+  emit('avatar-updated', { playerId: props.player?.id, seasonId: props.seasonId })
 }
 
-function handlePasswordVerified(verificationData) {
+async function handlePasswordVerified(verificationData) {
   // Le mot de passe a été vérifié, procéder à l'action en cours
   if (pendingAction.value === 'update') {
-    performUpdate()
+    await performUpdate()
   } else if (pendingAction.value === 'delete') {
     performDelete()
   }
@@ -411,8 +460,13 @@ function updatePlayerMoreActionsMobilePosition() {
     const buttonHeight = 48 // hauteur du bouton 3-points (h-12)
     const dropdownHeight = 120 // estimation de la hauteur du dropdown
     
-    // Positionner au-dessus du footer (pull-up style)
-    const top = Math.max(gap, window.innerHeight - gap - buttonHeight - dropdownHeight)
+    // Calculer la position de la modale pour centrer le dropdown
+    const modalHeight = 600 // estimation de la hauteur de la modale
+    const modalTop = (window.innerHeight - modalHeight) / 2
+    const footerTop = modalTop + modalHeight - buttonHeight - 20 // 20px de marge
+    
+    // Positionner le dropdown au-dessus du footer de la modale
+    const top = Math.max(gap, Math.round(footerTop - dropdownHeight - gap))
     const left = Math.max(gap, Math.round(window.innerWidth - 200 - gap)) // 200 = largeur du dropdown (w-48)
     
     playerMoreActionsMobileStyle.value = {
@@ -515,9 +569,17 @@ onMounted(() => {
   }, { passive: true })
 })
 
-// Exposer une méthode pour ouvrir la protection depuis le parent
+// Exposer des méthodes pour le parent
 defineExpose({
-  openProtection() { showProtectionModal.value = true }
+  openProtection() { showProtectionModal.value = true },
+  setEditError: (error) => {
+    editNameError.value = error
+  },
+  closeEditMode: () => {
+    editing.value = false
+    editingName.value = ''
+    editNameError.value = ''
+  }
 })
 
 // Coachmark simple sur le bouton Protection quand onboardingStep === 4

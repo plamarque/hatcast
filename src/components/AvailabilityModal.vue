@@ -26,6 +26,23 @@
 
       <!-- Contenu -->
       <div class="p-4">
+        
+        <!-- Actions rapides (déplacées en haut pour être toujours visibles) -->
+        <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3 mb-4">
+          <button
+            @click="handleSave"
+            class="px-4 py-3 bg-green-500/60 text-white rounded-lg hover:bg-green-500/80 transition-all duration-300"
+          >
+            Disponible
+          </button>
+          <button
+            @click="handleNotAvailable"
+            class="px-4 py-3 bg-red-500/60 text-white rounded-lg hover:bg-red-500/80 transition-colors"
+          >
+            Pas dispo
+          </button>
+        </div>
+        
         <!-- Rôles disponibles (seulement si des rôles sont définis) -->
         <div v-if="availableRoles.length > 0" class="mb-4">
           <label class="block text-sm font-medium text-gray-300 mb-3">
@@ -40,10 +57,10 @@
           </div>
           
           <div v-else class="space-y-2">
-            <!-- Premiers rôles (toujours visibles) -->
+            <!-- Tous les rôles (toujours visibles) -->
             <div class="grid grid-cols-2 gap-2">
               <label 
-                v-for="role in visibleRoles" 
+                v-for="role in availableRoles" 
                 :key="role"
                 class="flex items-center p-3 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors relative"
                 :class="{ 'border-purple-500 bg-purple-500/10': selectedRoles.includes(role) }"
@@ -66,42 +83,7 @@
                 >
                   {{ chancePercent }}%
                 </span>
-                
-
-                
-                <!-- Debug pourcentage -->
-                <!-- Désactivé temporairement pour debug -->
               </label>
-            </div>
-            
-            <!-- Rôles supplémentaires (révélés par "Plus...") -->
-            <div v-if="showAllRoles && hiddenRoles.length > 0" class="grid grid-cols-2 gap-2">
-              <label 
-                v-for="role in hiddenRoles" 
-                :key="role"
-                class="flex items-center p-3 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors"
-                :class="{ 'border-purple-500 bg-purple-500/10': selectedRoles.includes(role) }"
-              >
-                <input
-                  type="checkbox"
-                  :value="role"
-                  v-model="selectedRoles"
-                  :disabled="isReadOnly"
-                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                >
-                <span class="ml-3 text-lg">{{ ROLE_EMOJIS[role] }}</span>
-                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS_SINGULAR[role] }}</span>
-              </label>
-            </div>
-            
-            <!-- Bouton "Plus..." -->
-            <div v-if="!showAllRoles && hiddenRoles.length > 0" class="text-center pt-2">
-              <button
-                @click="showAllRoles = true"
-                class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-              >
-                Plus de rôles...
-              </button>
             </div>
           </div>
         </div>
@@ -120,21 +102,8 @@
           ></textarea>
         </div>
 
-        <!-- Actions -->
+        <!-- Actions secondaires -->
         <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3">
-          <button
-            @click="handleSave"
-            :disabled="selectedRoles.length === 0"
-            class="px-4 py-3 bg-green-500/60 text-white rounded-lg hover:bg-green-500/80 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Disponible
-          </button>
-          <button
-            @click="handleNotAvailable"
-            class="px-4 py-3 bg-red-500/60 text-white rounded-lg hover:bg-red-500/80 transition-colors"
-          >
-            Pas dispo
-          </button>
           <button
             @click="handleClear"
             class="px-4 py-3 bg-gray-500/40 text-white rounded-lg hover:bg-gray-500/60 transition-colors"
@@ -143,10 +112,10 @@
             Effacer
           </button>
           <button
-            @click="$emit('close')"
-            class="px-4 py-3 bg-gray-500/40 text-white rounded-lg hover:bg-gray-500/60 transition-colors"
+            @click="handleSaveAndClose"
+            class="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
-            Fermer
+            Enregistrer
           </button>
         </div>
         
@@ -229,23 +198,14 @@ const emit = defineEmits(['close', 'save', 'not-available', 'clear', 'requestEdi
 
 const selectedRoles = ref([])
 const comment = ref('')
-const showAllRoles = ref(false)
 
-// Computed properties pour gérer l'affichage des rôles
+// Computed property pour gérer l'affichage des rôles
 const availableRoles = computed(() => {
   // Filtrer les rôles pour ne garder que ceux attendus (nombre > 0)
   return ROLE_DISPLAY_ORDER.filter(role => {
     const count = props.eventRoles[role] || 0
     return count > 0
   })
-})
-
-const visibleRoles = computed(() => {
-  return availableRoles.value.slice(0, 4) // Premiers 4 rôles (2 lignes de 2)
-})
-
-const hiddenRoles = computed(() => {
-  return availableRoles.value.slice(4) // Rôles restants
 })
 
 // Initialiser les valeurs quand la modale s'ouvre
@@ -275,7 +235,7 @@ watch(() => props.show, (newShow) => {
       selectedRoles.value = [...props.currentAvailability.roles]
     }
     comment.value = props.currentAvailability.comment || ''
-    showAllRoles.value = false // Réinitialiser l'affichage des rôles
+    // Rôles affichés
   }
 })
 
@@ -320,10 +280,33 @@ function formatDate(dateString) {
   })
 }
 
-function handleSave() {
-  // Permettre la sauvegarde même sans rôles si aucun rôle n'est défini pour l'événement
-  if (availableRoles.value.length > 0 && selectedRoles.value.length === 0) return
+function handleSaveAndClose() {
+  // Déterminer automatiquement la disponibilité selon les rôles sélectionnés
+  const hasSelectedRoles = selectedRoles.value.length > 0
+  const hasComment = comment.value.trim().length > 0
   
+  // Si des rôles sont sélectionnés ou qu'il y a un commentaire, considérer comme disponible
+  const isAvailable = hasSelectedRoles || hasComment
+  
+  if (isAvailable) {
+    emit('save', {
+      available: true,
+      roles: selectedRoles.value,
+      comment: comment.value.trim() || null
+    })
+  } else {
+    // Aucun rôle sélectionné et pas de commentaire = pas disponible
+    emit('not-available', {
+      available: false,
+      roles: [],
+      comment: null
+    })
+  }
+}
+
+function handleSave() {
+  // Permettre la sauvegarde même sans rôles sélectionnés
+  // L'utilisateur peut vouloir être disponible "en général"
   emit('save', {
     available: true,
     roles: selectedRoles.value,

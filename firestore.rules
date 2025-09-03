@@ -67,6 +67,46 @@ service cloud.firestore {
          docId == 'email_' + request.auth.token.email);
     }
     
+    // Collection des liens magiques - Lecture et écriture publiques
+    match /magicLinks/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des liens magiques pour comptes - Lecture et écriture publiques
+    match /accountMagicLinks/{docId} {
+      allow relorad, write: if true;
+    }
+    
+    // Collection des emails - Lecture et écriture publiques
+    match /mail/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des tokens push utilisateur
+    match /userPushTokens/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Collection de la queue des notifications push
+    match /pushQueue/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des préférences utilisateur (déjà définie plus haut, mais ajoutons ici pour clarté)
+    match /userPreferences/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des associations joueur-email
+    match /playerAssociations/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des protections de joueurs (déjà définie plus haut, mais ajoutons ici pour clarté)
+    match /playerProtection/{docId} {
+      allow read, write: if true;
+    }
+    
     // Autres collections existantes (ajouter selon vos besoins)
     // match /users/{userId} {
     //   allow read, write: if request.auth != null && request.auth.uid == userId;
