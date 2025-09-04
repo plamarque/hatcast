@@ -86,7 +86,7 @@
       <!-- Confirmation email envoyé -->
       <div v-else class="text-center">
         <p class="text-green-400 text-sm mb-4">
-          Email envoyé à <span class="font-medium text-white">{{ email }}</span>
+          Email envoyé à <span class="font-medium text-white">{{ email }}</span>. Si vous ne le recevez pas dans quelques minutes, vérifiez vos dossiers de spam.
         </p>
         <p class="text-gray-300 text-xs">
           Clique sur le lien qu'il contient pour activer tes notifications

@@ -61,7 +61,7 @@
         <div v-if="verificationSent" class="space-y-4">
           <div class="p-3 rounded-lg border border-green-500/30 bg-green-500/10 text-green-200 text-sm flex items-center gap-2">
             <span>✅</span>
-            <span>Un email de vérification a été envoyé à {{ email }}. Vérifie ta boîte mail et clique sur le lien pour continuer.</span>
+            <span>Un email de vérification a été envoyé à {{ email }}. Vérifie ta boîte mail et clique sur le lien pour continuer. Si tu ne reçois pas l'email dans quelques minutes, vérifie tes dossiers de spam/courrier indésirable.</span>
           </div>
           
           <!-- Instructions pour continuer -->

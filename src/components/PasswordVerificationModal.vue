@@ -233,7 +233,7 @@ async function sendResetEmail() {
   
   try {
     const result = await sendPasswordResetEmail(props.player.id, props.seasonId)
-    forgotPasswordSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+    forgotPasswordSuccess.value = result.message || 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
   } catch (err) {
     logger.error('Erreur lors de l\'envoi de l\'email', err)
     forgotPasswordError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'

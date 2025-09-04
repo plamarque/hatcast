@@ -26,7 +26,7 @@
         </div>
         <div v-if="verificationSent" class="p-3 rounded-lg border border-green-500/30 bg-green-500/10 text-green-200 text-sm flex items-center gap-2">
           <span>✅</span>
-          <span>Un email a été envoyé à {{ email }}. Cliquez sur le lien contenu dans l'email pour continuer.</span>
+          <span>Un email a été envoyé à {{ email }}. Cliquez sur le lien contenu dans l'email pour continuer. Si vous ne recevez pas l'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.</span>
         </div>
       </div>
 

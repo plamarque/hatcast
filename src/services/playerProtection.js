@@ -711,7 +711,7 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
       }
     }
     
-    return { success: true, message: 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.' }
+    return { success: true, message: 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.' }
   } catch (error) {
     logger.error('Erreur lors de l\'envoi de l\'email de réinitialisation', { error })
     

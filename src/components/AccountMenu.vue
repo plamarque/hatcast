@@ -198,7 +198,7 @@ async function updateAccountEmail() {
     // Générer un magic link custom et envoyer via notre pipeline email
     const link = await createAccountEmailUpdateLink({ currentEmail: email.value, newEmail: newEmail.value.trim() })
     await queueVerificationEmail({ toEmail: newEmail.value.trim(), verifyUrl: link.url, purpose: 'account_email_update', displayName: 'utilisateur' })
-    emailSuccess.value = `Un email de vérification a été envoyé à ${newEmail.value.trim()}. Cliquez sur le lien pour confirmer le changement.`
+    emailSuccess.value = `Un email de vérification a été envoyé à ${newEmail.value.trim()}. Cliquez sur le lien pour confirmer le changement. Si vous ne recevez pas l'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.`
   } catch (e) {
     emailError.value = (e?.code === 'auth/requires-recent-login')
       ? 'Veuillez vous reconnecter pour modifier votre email'
@@ -240,7 +240,7 @@ async function changePassword() {
     localStorage.setItem('pendingPasswordResetNavigation', JSON.stringify(currentNavigation))
     
     await resetPlayerPassword(email.value)
-    passwordSuccess.value = 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+    passwordSuccess.value = 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
   } catch (error) {
     // Gestion des erreurs de changement de mot de passe
     

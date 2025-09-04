@@ -191,7 +191,7 @@ async function forgotPassword() {
   
   try {
     await resetPlayerPassword(email.value.trim())
-    success.value = 'Un email de réinitialisation a été envoyé à votre adresse email'
+    success.value = 'Un email de réinitialisation a été envoyé à votre adresse email. Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
     
     // Logger l'audit de reset de mot de passe
     try {

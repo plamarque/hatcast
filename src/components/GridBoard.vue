@@ -2208,7 +2208,7 @@ async function handleAccountChangePassword() {
     const { resetPlayerPassword } = await import('../services/firebase.js')
     await resetPlayerPassword(email)
     showSuccessMessage.value = true
-    successMessage.value = 'Email de réinitialisation envoyé.'
+    successMessage.value = 'Email de réinitialisation envoyé. Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
   } catch (e) {
     showErrorMessage.value = true
@@ -5140,7 +5140,7 @@ async function sendAvailabilityResetEmail() {
   try {
     const player = pendingAvailabilityOperation.value.data.player
     const result = await sendPasswordResetEmail(player.id, seasonId.value)
-    availabilityResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+    availabilityResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'envoi de l\'email')
@@ -5158,7 +5158,7 @@ async function sendPlayerResetEmail() {
   try {
     const playerId = pendingPlayerOperation.value.data.playerId
     const result = await sendPasswordResetEmail(playerId, seasonId.value)
-    playerResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.'
+    playerResetSuccess.value = result.message || 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('Erreur lors de l\'envoi de l\'email')
@@ -6736,7 +6736,7 @@ async function handleNotificationPromptSuccess(data) {
   if (data.directActivation) {
     successMessage.value = `Notifications activées directement pour ${data.playerName} !`
   } else {
-    successMessage.value = `Email envoyé à ${data.email} pour activer les notifications !`
+    successMessage.value = `Email envoyé à ${data.email} pour activer les notifications ! Si vous ne recevez pas l'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.`
   }
   
   setTimeout(() => {

@@ -43,7 +43,7 @@
         <div class="flex items-start gap-3">
           <span class="text-green-400 text-lg">✅</span>
           <div class="text-left">
-            <p class="text-green-300 text-sm font-medium mb-1">Email envoyé !</p>
+            <p class="text-green-300 text-sm font-medium mb-1">Email envoyé ! Si vous ne le recevez pas dans quelques minutes, vérifiez vos dossiers de spam.</p>
             <p class="text-green-200 text-sm">
               Vérifie ta boîte mail à <span class="font-mono">{{ email }}</span> et clique sur le lien pour créer ton mot de passe.
             </p>
