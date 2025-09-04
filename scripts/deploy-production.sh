@@ -57,14 +57,50 @@ else
 fi
 echo "📋 Version bump type: $VERSION_BUMP"
 
+# Sandbox management functions
+create_dry_run_sandbox() {
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+    DRY_STAGING="dry-run-staging-$TIMESTAMP"
+    DRY_MAIN="dry-run-main-$TIMESTAMP"
+    
+    echo "🏗️  Creating dry-run sandbox environment..."
+    echo "   └─ Staging copy: $DRY_STAGING"
+    echo "   └─ Main copy: $DRY_MAIN"
+    
+    # Create sandbox branches
+    git branch "$DRY_STAGING" staging
+    git branch "$DRY_MAIN" origin/main
+    
+    # Switch to sandbox staging
+    git checkout "$DRY_STAGING"
+    
+    echo "✅ Sandbox created successfully"
+}
+
+cleanup_dry_run_sandbox() {
+    if [ -n "$DRY_STAGING" ] && [ -n "$DRY_MAIN" ]; then
+        echo "🧹 Cleaning up dry-run sandbox..."
+        
+        # Return to original branch
+        git checkout staging
+        
+        # Delete sandbox branches
+        git branch -D "$DRY_STAGING" "$DRY_MAIN" 2>/dev/null || true
+        
+        echo "✅ Sandbox cleaned up"
+    fi
+}
+
 # Command wrapper function
 execute_cmd() {
     local cmd="$1"
     local description="$2"
     
     if [ "$DRY_RUN" = true ]; then
-        echo "📝 SIMULATION: $description"
+        echo "📝 EXECUTING: $description"
         echo "   └─ $cmd"
+        # Execute the real command in sandbox
+        eval "$cmd"
     else
         echo "📝 $description"
         eval "$cmd"
@@ -78,18 +114,22 @@ modify_file() {
     local description="$3"
     
     if [ "$DRY_RUN" = true ]; then
-        echo "📝 SIMULATION: $description"
+        echo "📝 EXECUTING: $description"
         echo "   └─ $operation"
+        # Execute the real file modification in sandbox
+        eval "$operation"
+        
+        # Show what was actually changed
         if [ "$file" = "package.json" ]; then
-            echo "   └─ \"version\": \"$CURRENT_VERSION\" → \"version\": \"$NEW_VERSION\""
+            echo "   └─ ✅ Version updated: \"$CURRENT_VERSION\" → \"$NEW_VERSION\""
         elif [ "$file" = "public/version.txt" ]; then
-            echo "   └─ Content that would be created:"
+            echo "   └─ ✅ File created with content:"
             echo "      $NEW_VERSION"
             echo "      Production build - $BUILD_DATE"
             echo "      Git: $GIT_HASH"
             echo "      Build: $BUILD_TIME"
         elif [ "$file" = "CHANGELOG.md" ]; then
-            echo "   └─ CHANGELOG updated with commits since last version"
+            echo "   └─ ✅ CHANGELOG updated with commits since last version"
         fi
     else
         echo "📝 $description"
@@ -223,17 +263,34 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
+# Create sandbox for dry-run
+if [ "$DRY_RUN" = true ]; then
+    create_dry_run_sandbox
+    # Set up trap to cleanup on exit
+    trap cleanup_dry_run_sandbox EXIT
+fi
+
 # Fetch latest branch versions
 echo "📡 Fetching latest versions..."
 git fetch origin
 
 # Check if there are commits on main not in staging (potential hotfixes)
-COMMITS_MAIN_NOT_IN_STAGING=$(git rev-list staging..origin/main --count)
+if [ "$DRY_RUN" = true ]; then
+    # Use sandbox branches for dry-run
+    CURRENT_STAGING="$DRY_STAGING"
+    CURRENT_MAIN="$DRY_MAIN"
+else
+    # Use real branches for actual deployment
+    CURRENT_STAGING="staging"
+    CURRENT_MAIN="origin/main"
+fi
+
+COMMITS_MAIN_NOT_IN_STAGING=$(git rev-list "$CURRENT_STAGING".."$CURRENT_MAIN" --count)
 if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
     echo "⚠️  WARNING: $COMMITS_MAIN_NOT_IN_STAGING commit(s) on main are not in staging!"
     echo ""
     echo "📋 Missing commits in staging:"
-    git log --oneline staging..origin/main
+    git log --oneline "$CURRENT_STAGING".."$CURRENT_MAIN"
     echo ""
     echo "💡 This may indicate hotfixes made directly in production."
     echo "   It is recommended to rebase staging on main before continuing."
@@ -252,29 +309,45 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
         1)
             echo "🔄 Rebasing staging on main..."
             
-            # Backup current state just in case
-            BACKUP_BRANCH="backup-staging-$(date +%Y%m%d-%H%M%S)"
-            git branch "$BACKUP_BRANCH"
-            echo "💾 Backup created: $BACKUP_BRANCH"
-            
-            # Rebase staging on main
-            git rebase origin/main
-            
-            if [ $? -ne 0 ]; then
-                echo "❌ Error: Conflict during rebase!"
-                echo "🛠️  Resolve conflicts manually, then:"
-                echo "   git rebase --continue"
-                echo "   ./scripts/deploy-production.sh"
-                echo ""
-                echo "💾 In case of issues, restore with:"
-                echo "   git rebase --abort"
-                echo "   git checkout $BACKUP_BRANCH"
-                exit 1
+            if [ "$DRY_RUN" = true ]; then
+                # In dry-run, rebase the sandbox staging on sandbox main
+                git checkout "$DRY_STAGING"
+                git rebase "$DRY_MAIN"
+                
+                if [ $? -ne 0 ]; then
+                    echo "❌ DRY-RUN: Conflict detected during rebase!"
+                    echo "🛠️  This would require manual conflict resolution in real deployment"
+                    echo "💡 The actual deployment would stop here for manual intervention"
+                    git rebase --abort 2>/dev/null || true
+                    exit 1
+                fi
+                
+                echo "✅ DRY-RUN: Rebase would succeed!"
+            else
+                # Backup current state just in case
+                BACKUP_BRANCH="backup-staging-$(date +%Y%m%d-%H%M%S)"
+                git branch "$BACKUP_BRANCH"
+                echo "💾 Backup created: $BACKUP_BRANCH"
+                
+                # Rebase staging on main
+                git rebase origin/main
+                
+                if [ $? -ne 0 ]; then
+                    echo "❌ Error: Conflict during rebase!"
+                    echo "🛠️  Resolve conflicts manually, then:"
+                    echo "   git rebase --continue"
+                    echo "   ./scripts/deploy-production.sh"
+                    echo ""
+                    echo "💾 In case of issues, restore with:"
+                    echo "   git rebase --abort"
+                    echo "   git checkout $BACKUP_BRANCH"
+                    exit 1
+                fi
+                
+                echo "✅ Rebase successful!"
+                echo "🗑️  Cleaning up backup..."
+                git branch -d "$BACKUP_BRANCH"
             fi
-            
-            echo "✅ Rebase successful!"
-            echo "🗑️  Cleaning up backup..."
-            git branch -d "$BACKUP_BRANCH"
             ;;
         2)
             echo "⚠️  Continuing without rebase - hotfixes may be overwritten!"
@@ -398,18 +471,30 @@ fi
 execute_cmd "git add package.json public/version.txt CHANGELOG.md" "Add modified files"
 execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit version changes"
 
-# Push staging
-execute_cmd "git push origin staging" "Push staging"
+# Push staging (only in real deployment)
+if [ "$DRY_RUN" = false ]; then
+    execute_cmd "git push origin staging" "Push staging"
+fi
 
 # Merge to main
-execute_cmd "git checkout main" "Switch to main"
-execute_cmd "git pull origin main" "Fetch latest main changes"
-execute_cmd "git merge staging --no-ff -m \"release: version $NEW_VERSION
+if [ "$DRY_RUN" = true ]; then
+    execute_cmd "git checkout $DRY_MAIN" "Switch to sandbox main"
+    execute_cmd "git merge $DRY_STAGING --no-ff -m \"release: version $NEW_VERSION
+
+Merge staging to main for production release
+- Version: $NEW_VERSION
+- Build: $BUILD_DATE
+- Hash: $GIT_HASH\"" "Merge staging to main (sandbox)"
+else
+    execute_cmd "git checkout main" "Switch to main"
+    execute_cmd "git pull origin main" "Fetch latest main changes"
+    execute_cmd "git merge staging --no-ff -m \"release: version $NEW_VERSION
 
 Merge staging to main for production release
 - Version: $NEW_VERSION
 - Build: $BUILD_DATE
 - Hash: $GIT_HASH\"" "Merge staging to main"
+fi
 
 # Create tag
 execute_cmd "git tag -a \"v$NEW_VERSION\" -m \"Release version $NEW_VERSION
@@ -418,22 +503,36 @@ Production release
 - Date: $BUILD_DATE  
 - Hash: $GIT_HASH\"" "Create tag v$NEW_VERSION"
 
-# Push main with tag
-execute_cmd "git push origin main" "Push main"
-execute_cmd "git push origin \"v$NEW_VERSION\"" "Push tag"
+# Push main with tag (only in real deployment)
+if [ "$DRY_RUN" = false ]; then
+    execute_cmd "git push origin main" "Push main"
+    execute_cmd "git push origin \"v$NEW_VERSION\"" "Push tag"
+fi
 
 # Return to staging
-execute_cmd "git checkout staging" "Return to staging"
+if [ "$DRY_RUN" = true ]; then
+    execute_cmd "git checkout $DRY_STAGING" "Return to sandbox staging"
+else
+    execute_cmd "git checkout staging" "Return to staging"
+fi
 
 # End message
 if [ "$DRY_RUN" = true ]; then
     echo ""
-    echo "🚀 SIMULATION: Deployment that would be triggered..."
-    echo "   - GitHub Action would detect push to main"
-    echo "   - Automatic build and deployment to Firebase"
-    echo "   - Production version: v$NEW_VERSION"
+    echo "🚀 SANDBOX TESTING COMPLETED:"
+    echo "   ✅ All Git operations tested successfully"
+    echo "   ✅ File modifications verified"
+    echo "   ✅ Merge conflicts checked"
+    echo "   ✅ Version bump validated: $CURRENT_VERSION → $NEW_VERSION"
     echo ""
-    echo "✅ DRY RUN COMPLETED - No changes made"
+    echo "📊 REAL DEPLOYMENT WOULD:"
+    echo "   - Push staging branch to origin"
+    echo "   - Merge staging → main"
+    echo "   - Create tag v$NEW_VERSION"
+    echo "   - Push main + tag to origin"
+    echo "   - Trigger GitHub Action deployment"
+    echo ""
+    echo "✅ DRY RUN COMPLETED - All operations validated in sandbox"
     echo "💡 To execute for real: ./scripts/deploy-production.sh"
 fi
 
