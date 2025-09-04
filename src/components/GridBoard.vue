@@ -1481,13 +1481,13 @@
     background: rgba(100,116,139,0.08); /* extra veil */
     pointer-events: none;
   }
-.col-left { width: 11rem; }
-.col-event { width: 15rem; }
+.col-left { width: 12rem; }
+.col-event { width: 14rem; }
 .col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
-  .col-left { width: 12rem; }
-  .left-col-td { width: 12rem; max-width: 12rem; min-width: 12rem; }
+  .col-left { width: 13rem; }
+  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
   .col-event { width: 7.5rem; }
   .col-right { width: 3rem; }
 }
@@ -1503,9 +1503,9 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 9.25rem; }
-  .col-event { width: 12.25rem; }
-  .left-col-td { width: 9.25rem; max-width: 9.25rem; min-width: 9.25rem; }
+  .col-left { width: 10.5rem; }
+  .col-event { width: 11.5rem; }
+  .left-col-td { width: 10.5rem; max-width: 10.5rem; min-width: 10.5rem; }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
