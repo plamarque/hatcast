@@ -439,12 +439,15 @@ if [ "$DRY_RUN" = true ]; then
     # Generate changelog in simulation mode to display it
     generate_changelog "$NEW_VERSION" "$BUILD_DATE" >/dev/null
     
-    echo "📄 CHANGELOG PREVIEW THAT WILL BE GENERATED:"
+    echo "📄 NEW CHANGES FOR THIS VERSION:"
     echo "┌─────────────────────────────────────────────────"
     
-    # Display only new section (up to first "---")
+    # Generate and display only the new version section
+    generate_changelog "$NEW_VERSION" "$BUILD_DATE" >/dev/null
+    
+    # Extract and display only the new version section (between header and first "---")
     if [ -f "CHANGELOG.md" ]; then
-        awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
+        awk '/^## \['"$NEW_VERSION"'\]/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
     fi
     
     echo "└─────────────────────────────────────────────────"
@@ -457,11 +460,11 @@ else
     generate_changelog "$NEW_VERSION" "$BUILD_DATE"
     
     echo ""
-    echo "📄 GENERATED CHANGELOG:"
+    echo "📄 NEW CHANGES ADDED TO CHANGELOG:"
     echo "┌─────────────────────────────────────────────────"
     
-    # Display generated new section
-    awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
+    # Display only the new version section that was just added
+    awk '/^## \['"$NEW_VERSION"'\]/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
     
     echo "└─────────────────────────────────────────────────"
     echo ""
