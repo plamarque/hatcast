@@ -1,2 +1,4 @@
-2.4.0
-HatCast - Masque qui sourit avec vraie checkmark
+0.9.1
+Production build - 2025-09-04
+Git: c5f7261
+Build: 2025-09-04T23:31:44+0200
