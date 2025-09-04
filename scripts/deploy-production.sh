@@ -245,6 +245,9 @@ EOF
     # Replace changelog
     mv "$TEMP_CHANGELOG" "CHANGELOG.md"
     
+    # Copy to public directory for web access (lowercase for browser compatibility)
+    cp "CHANGELOG.md" "public/changelog.md"
+    
     return 0
 }
 

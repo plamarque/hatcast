@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1] - 2025-09-05
+
+### 🐛 Bug Fixes
+- fix: resolve changelog display issues in help page
+
+---
+
+## [0.9.1] - 2025-09-05
+
+### 🐛 Bug Fixes
+- fix: resolve changelog display issues in help page
+
+---
+
 ## [0.9.0] - 2025-09-04
 
 ### ✨ New Features

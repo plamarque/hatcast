@@ -36,8 +36,8 @@
               <h1 class="text-3xl md:text-4xl font-bold text-white">Aide</h1>
               <p class="text-purple-300">L'appli pour organiser vos événements d'improvisation de manière simple et apaisée</p>
                                 <div class="mt-2">
-                    <span class="text-gray-400 text-sm">
-                      Version <button @click="toggleChangelog" class="text-white font-mono hover:text-blue-300 underline cursor-pointer transition-colors">{{ appVersion }}</button>
+                                          <span class="text-gray-400 text-sm">
+                        Version <button @click="toggleChangelog" class="text-white font-mono hover:text-blue-300 underline cursor-pointer transition-colors">{{ appVersion }}</button>
                       <span v-if="buildInfo" class="text-gray-500">• {{ buildInfo }}</span>
                     </span>
                   </div>
@@ -356,8 +356,16 @@ const keywordTranslations = {
 // Fonction pour traduire un texte avec l'API Google Translate
 async function translateText(text, targetLang = 'fr') {
   try {
+    // Créer un AbortController pour le timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 secondes timeout
+    
     // Utiliser l'API Google Translate gratuite (avec limitations)
-    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`)
+    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`, {
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeoutId)
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`)
@@ -390,8 +398,8 @@ async function translateCommit(commit) {
         if (apiTranslation) {
           translatedDescription = apiTranslation
         } else {
-          // Fallback : traduction manuelle des mots clés
-          translatedDescription = translateKeywords(description)
+          // Si l'API échoue, garder l'anglais original
+          translatedDescription = description
         }
       }
       
@@ -411,10 +419,10 @@ async function translateCommit(commit) {
     }
   }
   
-  // Fallback final : traduction manuelle des mots clés
+  // Fallback final : garder l'anglais original
   return {
     emoji: '🔧',
-    description: translateKeywords(commit)
+    description: commit
   }
 }
 
@@ -437,7 +445,7 @@ async function loadChangelog() {
   changelogError.value = false
   
   try {
-    const response = await fetch('/CHANGELOG.md')
+    const response = await fetch('/changelog.md')
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`)
     }
@@ -462,6 +470,7 @@ async function parseChangelog(content) {
   
   let currentVersion = null
   let currentChanges = []
+  let inFeatureSection = false
   
   for (const line of lines) {
     // Détecter une nouvelle version (## [1.0.0] - 2025-01-01)
@@ -482,12 +491,31 @@ async function parseChangelog(content) {
         date: versionMatch[2] || ''
       }
       currentChanges = []
+      inFeatureSection = false
       continue
     }
     
-    // Détecter les changements (- feat: ...)
+    // Détecter les sections de fonctionnalités
+    if (line.includes('### ✨') || line.includes('### New Features') || line.includes('### Nouvelles fonctionnalités')) {
+      inFeatureSection = true
+      continue
+    }
+    
+    // Détecter la fin d'une section (nouvelle section ou fin de version)
+    if (line.startsWith('### ') && !line.includes('✨') && !line.includes('New Features') && !line.includes('Nouvelles fonctionnalités')) {
+      inFeatureSection = false
+      continue
+    }
+    
+    // Détecter la fin d'une version (---)
+    if (line.trim() === '---') {
+      inFeatureSection = false
+      continue
+    }
+    
+    // Détecter les changements (- feat: ...) seulement dans les sections de fonctionnalités
     const changeMatch = line.match(/^-\s*(.+)/)
-    if (changeMatch && currentVersion) {
+    if (changeMatch && currentVersion && inFeatureSection) {
       const commit = changeMatch[1]
       const translated = await translateCommit(commit)
       
