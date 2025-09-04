@@ -37,8 +37,42 @@ jobs:
         VITE_STORAGE_PREFIX=staging/
         EOF
         
+    - name: Update version.txt for staging
+      run: |
+        GIT_HASH=$(git rev-parse --short HEAD)
+        BUILD_DATE=$(date '+%Y-%m-%d')
+        BUILD_TIME=$(date '+%Y-%m-%dT%H:%M:%S%z')
+        cat > public/version.txt << EOF
+        $(node -p "require('./package.json').version")
+        Staging build - $BUILD_DATE
+        Git: $GIT_HASH
+        Build: $BUILD_TIME
+        EOF
+        
+    - name: Ensure changelog.md exists in public directory
+      run: |
+        if [ -f "CHANGELOG.md" ]; then
+          cp CHANGELOG.md public/changelog.md
+        elif [ -f "public/changelog.md" ]; then
+          echo "changelog.md already exists in public/"
+        else
+          echo "# Changelog" > public/changelog.md
+          echo "" >> public/changelog.md
+          echo "Aucune nouveauté récente." >> public/changelog.md
+        fi
+      
     - name: Build application
       run: npm run build
+      
+    - name: Copy changelog.md to build directory
+      run: |
+        if [ -f "public/changelog.md" ]; then
+          cp public/changelog.md dist/changelog.md
+        else
+          echo "# Changelog" > dist/changelog.md
+          echo "" >> dist/changelog.md
+          echo "Aucune nouveauté récente." >> dist/changelog.md
+        fi
       
     - name: Deploy to Firebase Staging
       uses: FirebaseExtended/action-hosting-deploy@v0
