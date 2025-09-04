@@ -2991,42 +2991,12 @@ function cancelDelete() {
   eventToDelete.value = null
 }
 
-function startEditing(event) {
-  editingEvent.value = event.id
-  editingTitle.value = event.title
-  editingDate.value = event.date
-  editingDescription.value = event.description || ''
-  editingArchived.value = !!event.archived
-  
-  // Initialiser les rôles avec les valeurs existantes ou par défaut
-  if (event.roles) {
-    editingRoles.value = {
-      [ROLES.PLAYER]: event.roles[ROLES.PLAYER] ?? event.playerCount ?? 6,
-      [ROLES.DJ]: event.roles[ROLES.DJ] ?? 1,
-      [ROLES.MC]: event.roles[ROLES.MC] ?? 1,
-      [ROLES.VOLUNTEER]: event.roles[ROLES.VOLUNTEER] ?? 5,
-      [ROLES.REFEREE]: event.roles[ROLES.REFEREE] ?? 1,
-      [ROLES.ASSISTANT_REFEREE]: event.roles[ROLES.ASSISTANT_REFEREE] ?? 2,
-      [ROLES.LIGHTING]: event.roles[ROLES.LIGHTING] ?? 0,
-      [ROLES.COACH]: event.roles[ROLES.COACH] ?? 0,
-      [ROLES.STAGE_MANAGER]: event.roles[ROLES.STAGE_MANAGER] ?? 1
-    }
-  } else {
-    // Fallback pour les anciens événements sans rôles
-    editingRoles.value = {
-      [ROLES.PLAYER]: event.playerCount ?? 6,
-      [ROLES.DJ]: 1,
-      [ROLES.MC]: 1,
-      [ROLES.VOLUNTEER]: 5,
-      [ROLES.REFEREE]: 1,
-      [ROLES.ASSISTANT_REFEREE]: 2,
-      [ROLES.LIGHTING]: 0,
-      [ROLES.COACH]: 0,
-      [ROLES.STAGE_MANAGER]: 1
-    }
-  }
-  
-  editingShowAllRoles.value = false
+async function startEditing(event) {
+  // Demander le PIN code avant d'ouvrir l'édition
+  await requirePin({
+    type: 'editEvent',
+    data: { eventId: event.id }
+  })
 }
 
 async function saveEdit() {
@@ -3134,7 +3104,22 @@ async function handleEditEvent(eventData) {
           const successCount = reminderResults.filter(r => r.success).length
         }
       } catch (error) {
-        console.error('Erreur lors de la mise à jour des rappels:', error)
+        // Gestion spécifique des erreurs de permissions sur reminderQueue
+        if (error.code === 'permission-denied' || error.message?.includes('insufficient permissions')) {
+          logger.info('⚠️ Accès refusé à reminderQueue (normal pour utilisateurs anonymes)', {
+            eventId: editingEvent.value,
+            error: error.message
+          })
+          // Message informatif pour l'utilisateur sans exposer les détails techniques
+          showSuccessMessage.value = true
+          successMessage.value = 'Événement mis à jour avec succès ! (Rappels automatiques non disponibles)'
+          setTimeout(() => {
+            showSuccessMessage.value = false
+          }, 5000)
+        } else {
+          console.error('Erreur lors de la mise à jour des rappels:', error)
+          logger.error('Erreur lors de la mise à jour des rappels:', error)
+        }
       }
     }
     
@@ -4907,6 +4892,7 @@ function getPinModalMessage() {
   const messages = {
     deleteEvent: 'Suppression d\'événement - Code PIN requis',
     addEvent: 'Ajout d\'événement - Code PIN requis',
+    editEvent: 'Modification d\'événement - Code PIN requis',
     deletePlayer: 'Suppression de joueur - Code PIN requis',
     launchSelection: 'Lancement de sélection - Code PIN requis',
     toggleArchive: 'Archivage d\'événement - Code PIN requis',
@@ -5219,6 +5205,49 @@ async function executePendingOperation(operation) {
         // Ouvrir la modal de création d'événement après validation du PIN
         newEventForm.value = true
         break
+      case 'editEvent':
+        // Ouvrir la modal d'édition d'événement après validation du PIN
+        {
+          const event = events.value.find(e => e.id === data.eventId)
+          if (event) {
+            editingEvent.value = event.id
+            editingTitle.value = event.title
+            editingDate.value = event.date
+            editingDescription.value = event.description || ''
+            editingArchived.value = !!event.archived
+            
+            // Initialiser les rôles avec les valeurs existantes ou par défaut
+            if (event.roles) {
+              editingRoles.value = {
+                [ROLES.PLAYER]: event.roles[ROLES.PLAYER] ?? event.playerCount ?? 6,
+                [ROLES.DJ]: event.roles[ROLES.DJ] ?? 1,
+                [ROLES.MC]: event.roles[ROLES.MC] ?? 1,
+                [ROLES.VOLUNTEER]: event.roles[ROLES.VOLUNTEER] ?? 5,
+                [ROLES.REFEREE]: event.roles[ROLES.REFEREE] ?? 1,
+                [ROLES.ASSISTANT_REFEREE]: event.roles[ROLES.ASSISTANT_REFEREE] ?? 2,
+                [ROLES.LIGHTING]: event.roles[ROLES.LIGHTING] ?? 0,
+                [ROLES.COACH]: event.roles[ROLES.COACH] ?? 0,
+                [ROLES.STAGE_MANAGER]: event.roles[ROLES.STAGE_MANAGER] ?? 1
+              }
+            } else {
+              // Fallback pour les anciens événements sans rôles
+              editingRoles.value = {
+                [ROLES.PLAYER]: event.playerCount ?? 6,
+                [ROLES.DJ]: 1,
+                [ROLES.MC]: 1,
+                [ROLES.VOLUNTEER]: 5,
+                [ROLES.REFEREE]: 1,
+                [ROLES.ASSISTANT_REFEREE]: 2,
+                [ROLES.LIGHTING]: 0,
+                [ROLES.COACH]: 0,
+                [ROLES.STAGE_MANAGER]: 1
+              }
+            }
+            
+            editingShowAllRoles.value = false
+          }
+        }
+        break
       case 'deletePlayer':
         // Afficher la modal de confirmation après validation du PIN
         playerToDelete.value = data.playerId
@@ -5265,13 +5294,52 @@ async function executePendingOperation(operation) {
         console.warn('toggleAvailability action is deprecated')
         break
       case 'toggleArchive':
-        await setEventArchived(data.eventId, data.archived, seasonId.value)
         {
-          const idx = events.value.findIndex(e => e.id === data.eventId)
-          if (idx !== -1) {
-            events.value[idx] = { ...events.value[idx], archived: !!data.archived }
+          const newArchivedState = data.archived
+          const eventData = {
+            ...selectedEvent.value,
+            archived: newArchivedState
           }
-          editingArchived.value = !!data.archived
+          
+          await updateEvent(data.eventId, eventData, seasonId.value)
+          
+          // Mettre à jour l'événement localement
+          selectedEvent.value.archived = newArchivedState
+          
+          // Mettre à jour la liste des événements
+          const eventIndex = events.value.findIndex(e => e.id === data.eventId)
+          if (eventIndex !== -1) {
+            events.value[eventIndex].archived = newArchivedState
+          }
+          
+          editingArchived.value = !!newArchivedState
+          
+          // Logger l'audit
+          try {
+            const { default: AuditClient } = await import('../services/auditClient.js')
+            if (newArchivedState) {
+              await AuditClient.logEventArchived(selectedEvent.value.title, props.slug, {
+                eventId: data.eventId,
+                action: 'archive',
+                timestamp: new Date().toISOString()
+              })
+            } else {
+              await AuditClient.logEventUnarchived(selectedEvent.value.title, props.slug, {
+                eventId: data.eventId,
+                action: 'unarchive',
+                timestamp: new Date().toISOString()
+              })
+            }
+          } catch (auditError) {
+            console.warn('Erreur audit toggleEventArchived:', auditError)
+          }
+          
+          // Message de succès
+          showSuccessMessage.value = true
+          successMessage.value = newArchivedState ? 'Événement archivé avec succès !' : 'Événement désarchivé avec succès !'
+          setTimeout(() => {
+            showSuccessMessage.value = false
+          }, 3000)
         }
         break
       case 'updateSelection':
@@ -5640,101 +5708,25 @@ async function handlePasswordVerified(verificationData) {
   passwordVerificationPlayer.value = null;
 }
 
-function startEditingFromDetails() {
-  editingEvent.value = selectedEvent.value.id;
-  editingTitle.value = selectedEvent.value.title;
-  editingDate.value = selectedEvent.value.date;
-  editingDescription.value = selectedEvent.value.description || '';
-  editingArchived.value = !!selectedEvent.value.archived;
-  
-  // Initialiser les rôles avec les valeurs existantes ou par défaut
-  if (selectedEvent.value.roles) {
-    editingRoles.value = {
-      [ROLES.PLAYER]: selectedEvent.value.roles[ROLES.PLAYER] ?? selectedEvent.value.playerCount ?? 6,
-      [ROLES.DJ]: selectedEvent.value.roles[ROLES.DJ] ?? 1,
-      [ROLES.MC]: selectedEvent.value.roles[ROLES.MC] ?? 1,
-      [ROLES.VOLUNTEER]: selectedEvent.value.roles[ROLES.VOLUNTEER] ?? 5,
-      [ROLES.REFEREE]: selectedEvent.value.roles[ROLES.REFEREE] ?? 1,
-      [ROLES.ASSISTANT_REFEREE]: selectedEvent.value.roles[ROLES.ASSISTANT_REFEREE] ?? 2,
-      [ROLES.LIGHTING]: selectedEvent.value.roles[ROLES.LIGHTING] ?? 0,
-      [ROLES.COACH]: selectedEvent.value.roles[ROLES.COACH] ?? 0,
-      [ROLES.STAGE_MANAGER]: selectedEvent.value.roles[ROLES.STAGE_MANAGER] ?? 1
-    }
-  } else {
-    // Fallback pour les anciens événements sans rôles
-    editingRoles.value = {
-      [ROLES.PLAYER]: selectedEvent.value.playerCount ?? 6,
-      [ROLES.DJ]: 1,
-      [ROLES.MC]: 1,
-      [ROLES.VOLUNTEER]: 5,
-      [ROLES.REFEREE]: 1,
-      [ROLES.ASSISTANT_REFEREE]: 2,
-      [ROLES.LIGHTING]: 0,
-      [ROLES.COACH]: 0,
-      [ROLES.STAGE_MANAGER]: 1
-    }
-  }
-  
-  editingShowAllRoles.value = false;
-  
-  // Détecter automatiquement le type d'événement correspondant aux rôles
-  editingSelectedRoleTemplate.value = determineRoleTemplate(editingRoles.value);
-  
-  showEventDetailsModal.value = false; // Fermer le popin
+async function startEditingFromDetails() {
+  // Demander le PIN code avant d'ouvrir l'édition
+  await requirePin({
+    type: 'editEvent',
+    data: { eventId: selectedEvent.value.id }
+  })
 }
 
 async function toggleEventArchived() {
   if (!selectedEvent.value) return;
   
-  try {
-    const newArchivedState = !selectedEvent.value.archived;
-    const eventData = {
-      ...selectedEvent.value,
-      archived: newArchivedState
-    };
-    
-    await updateEvent(selectedEvent.value.id, eventData, seasonId.value);
-    
-    // Mettre à jour l'événement localement
-    selectedEvent.value.archived = newArchivedState;
-    
-    // Mettre à jour la liste des événements
-    const eventIndex = events.value.findIndex(e => e.id === selectedEvent.value.id);
-    if (eventIndex !== -1) {
-      events.value[eventIndex].archived = newArchivedState;
+  // Demander le PIN code avant d'archiver/désarchiver
+  await requirePin({
+    type: 'toggleArchive',
+    data: { 
+      eventId: selectedEvent.value.id, 
+      archived: !selectedEvent.value.archived 
     }
-    
-    // Logger l'audit
-    try {
-      const { default: AuditClient } = await import('../services/auditClient.js')
-      if (newArchivedState) {
-        await AuditClient.logEventArchived(selectedEvent.value.title, props.slug, {
-          eventId: selectedEvent.value.id,
-          action: 'archive',
-          timestamp: new Date().toISOString()
-        })
-      } else {
-        await AuditClient.logEventUnarchived(selectedEvent.value.title, props.slug, {
-          eventId: selectedEvent.value.id,
-          action: 'unarchive',
-          timestamp: new Date().toISOString()
-        })
-      }
-    } catch (auditError) {
-      console.warn('Erreur audit toggleEventArchived:', auditError)
-    }
-    
-    showSuccessMessage.value = true;
-    successMessage.value = newArchivedState ? 'Événement archivé avec succès !' : 'Événement désarchivé avec succès !';
-    setTimeout(() => {
-      showSuccessMessage.value = false;
-    }, 3000);
-    
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Erreur lors de la modification de l\'archivage');
-    alert('Erreur lors de la modification de l\'archivage. Veuillez réessayer.');
-  }
+  })
 }
 
 // Fonctions pour le modal joueur
