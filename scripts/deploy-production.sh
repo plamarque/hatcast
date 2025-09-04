@@ -418,7 +418,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Update package.json
-modify_file "sed -i \"s/\\\"version\\\": \\\"$CURRENT_VERSION\\\"/\\\"version\\\": \\\"$NEW_VERSION\\\"/\" package.json" "package.json" "Update package.json"
+modify_file "sed -i '' \"s/\\\"version\\\": \\\"$CURRENT_VERSION\\\"/\\\"version\\\": \\\"$NEW_VERSION\\\"/\" package.json" "package.json" "Update package.json"
 
 # Create version.txt with complete info
 modify_file "cat > public/version.txt << 'EOF'
