@@ -66,6 +66,14 @@
           <span class="text-base md:text-lg flex-shrink-0">❓</span>
           <span class="truncate">Aide</span>
         </button>
+        <button 
+          @click="installApp"
+          class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
+          role="menuitem"
+        >
+          <span class="text-base md:text-lg flex-shrink-0">📱</span>
+          <span class="truncate">Installer l'app</span>
+        </button>
         
         <!-- Item Développement (admin uniquement) -->
         <button 
@@ -194,6 +202,20 @@ function openNotifications() {
 function openDevelopment() {
   isOpen.value = false
   emit('open-development')
+}
+
+function installApp() {
+  isOpen.value = false
+  logger.info('📱 Déclenchement manuel de l\'installation PWA depuis le menu utilisateur')
+  
+  // Déclencher l'événement global pour afficher la barre d'installation
+  const installEvent = new CustomEvent('show-pwa-install-banner', {
+    detail: { 
+      source: 'user-menu',
+      timestamp: Date.now()
+    }
+  })
+  window.dispatchEvent(installEvent)
 }
 
 async function logout() {
