@@ -1,14 +1,53 @@
 #!/bin/bash
 
 # Script de déploiement en production avec versioning automatique
-# Usage: ./scripts/deploy-production.sh [--dry-run]
+# Usage: ./scripts/deploy-production.sh [--dry-run] [--major|--minor|--patch]
 
 set -e
 
-# Vérifier l'option dry-run
+# Analyser les arguments
 DRY_RUN=false
-if [ "$1" = "--dry-run" ] || [ "$1" = "-n" ]; then
-    DRY_RUN=true
+VERSION_BUMP="patch"  # par défaut
+
+for arg in "$@"; do
+    case $arg in
+        --dry-run|-n)
+            DRY_RUN=true
+            ;;
+        --major)
+            VERSION_BUMP="major"
+            ;;
+        --minor)
+            VERSION_BUMP="minor"
+            ;;
+        --patch)
+            VERSION_BUMP="patch"
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --dry-run, -n     Mode simulation (aucune modification)"
+            echo "  --major           Bump version majeure (1.2.3 → 2.0.0)"
+            echo "  --minor           Bump version mineure (1.2.3 → 1.3.0)"
+            echo "  --patch           Bump version patch (1.2.3 → 1.2.4) [défaut]"
+            echo "  --help, -h        Afficher cette aide"
+            echo ""
+            echo "Exemples:"
+            echo "  $0 --dry-run --minor    # Simuler bump mineur"
+            echo "  $0 --major              # Bump majeur réel"
+            echo "  $0                      # Bump patch réel (défaut)"
+            exit 0
+            ;;
+        *)
+            echo "❌ Option inconnue: $arg"
+            echo "Utilisez --help pour voir les options disponibles"
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$DRY_RUN" = true ]; then
     echo "🔍 DRY RUN - Simulation du déploiement en production"
     echo "=================================================="
     echo "⚠️  Mode simulation : aucune modification ne sera effectuée"
@@ -16,6 +55,7 @@ else
     echo "🚀 Déploiement en production avec versioning automatique"
     echo "========================================================="
 fi
+echo "📋 Type de bump: $VERSION_BUMP"
 
 # Fonction wrapper pour exécuter les commandes
 execute_cmd() {
@@ -154,7 +194,24 @@ CURRENT_VERSION=$(grep -o '"version": "[^"]*"' package.json | cut -d'"' -f4)
 VERSION_PARTS=(${CURRENT_VERSION//./ })
 MAJOR=${VERSION_PARTS[0]}
 MINOR=${VERSION_PARTS[1]}
-PATCH=$((${VERSION_PARTS[2]} + 1))
+PATCH=${VERSION_PARTS[2]}
+
+# Calculer la nouvelle version selon le type de bump
+case $VERSION_BUMP in
+    major)
+        MAJOR=$((MAJOR + 1))
+        MINOR=0
+        PATCH=0
+        ;;
+    minor)
+        MINOR=$((MINOR + 1))
+        PATCH=0
+        ;;
+    patch)
+        PATCH=$((PATCH + 1))
+        ;;
+esac
+
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
 
 BUILD_DATE=$(date +%Y-%m-%d)
