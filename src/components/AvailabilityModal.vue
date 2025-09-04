@@ -31,16 +31,39 @@
         <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3 mb-4">
           <button
             @click="handleSave"
-            class="px-4 py-3 bg-green-500/60 text-white rounded-lg hover:bg-green-500/80 transition-all duration-300"
+            :class="[
+              'px-4 py-3 text-white rounded-lg transition-all duration-300',
+              currentlyAvailable 
+                ? 'bg-green-600 border-2 border-green-400 shadow-lg shadow-green-500/25 hover:bg-green-700' 
+                : 'bg-green-500/60 hover:bg-green-500/80'
+            ]"
           >
-            Disponible
+            <span class="flex items-center justify-center gap-2">
+              <span v-if="currentlyAvailable" class="text-green-200">✓</span>
+              Disponible
+            </span>
           </button>
           <button
             @click="handleNotAvailable"
-            class="px-4 py-3 bg-red-500/60 text-white rounded-lg hover:bg-red-500/80 transition-colors"
+            :class="[
+              'px-4 py-3 text-white rounded-lg transition-all duration-300',
+              currentlyNotAvailable 
+                ? 'bg-red-600 border-2 border-red-400 shadow-lg shadow-red-500/25 hover:bg-red-700' 
+                : 'bg-red-500/60 hover:bg-red-500/80'
+            ]"
           >
-            Pas dispo
+            <span class="flex items-center justify-center gap-2">
+              <span v-if="currentlyNotAvailable" class="text-red-200">✓</span>
+              Pas dispo
+            </span>
           </button>
+        </div>
+        
+        <!-- Indicateur d'état pour les cas sans état défini -->
+        <div v-if="!isReadOnly && !hasCurrentState" class="text-center mb-3">
+          <span class="text-xs text-gray-400">
+            Aucune disponibilité définie pour ce spectacle
+          </span>
         </div>
         
         <!-- Rôles disponibles (seulement si des rôles sont définis) -->
@@ -56,29 +79,29 @@
             </div>
           </div>
           
-          <div v-else class="space-y-2">
-            <!-- Tous les rôles (toujours visibles) -->
-            <div class="grid grid-cols-2 gap-2">
+          <div v-else class="space-y-3">
+            <!-- Tous les rôles (version compacte, 2 colonnes partout) -->
+            <div class="grid grid-cols-2 gap-1 md:gap-2">
               <label 
                 v-for="role in availableRoles" 
                 :key="role"
-                class="flex items-center p-3 bg-gray-800 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors relative"
-                :class="{ 'border-purple-500 bg-purple-500/10': selectedRoles.includes(role) }"
+                class="flex items-center gap-2 md:gap-3 p-2 rounded cursor-pointer hover:bg-gray-800/50 transition-colors group"
+                :class="{ 'bg-purple-500/10': selectedRoles.includes(role) }"
               >
                 <input
                   type="checkbox"
                   :value="role"
                   v-model="selectedRoles"
                   :disabled="isReadOnly"
-                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 flex-shrink-0"
                 >
-                <span class="ml-3 text-lg">{{ ROLE_EMOJIS[role] }}</span>
-                <span class="ml-2 text-sm text-white">{{ ROLE_LABELS_SINGULAR[role] }}</span>
+                <span class="text-base md:text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
+                <span class="text-xs md:text-sm text-white flex-1 min-w-0">{{ ROLE_LABELS_SINGULAR[role] }}</span>
                 
                 <!-- Pourcentage pour le rôle Comédien -->
                 <span 
                   v-if="role === 'player' && chancePercent !== null"
-                  class="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200"
                   :title="`~${chancePercent}% de chances d'être sélectionné`"
                 >
                   {{ chancePercent }}%
@@ -206,6 +229,19 @@ const availableRoles = computed(() => {
     const count = props.eventRoles[role] || 0
     return count > 0
   })
+})
+
+// Computed properties pour l'état actuel
+const currentlyAvailable = computed(() => {
+  return props.currentAvailability?.available === true
+})
+
+const currentlyNotAvailable = computed(() => {
+  return props.currentAvailability?.available === false
+})
+
+const hasCurrentState = computed(() => {
+  return props.currentAvailability?.available !== undefined && props.currentAvailability?.available !== null
 })
 
 // Initialiser les valeurs quand la modale s'ouvre
