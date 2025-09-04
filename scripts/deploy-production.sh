@@ -371,7 +371,7 @@ if [ "$DRY_RUN" = true ]; then
     
     # Afficher seulement la nouvelle section (jusqu'au premier "---")
     if [ -f "CHANGELOG.md" ]; then
-        awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md | head -n -1
+        awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
     fi
     
     echo "└─────────────────────────────────────────────────"
@@ -388,7 +388,7 @@ else
     echo "┌─────────────────────────────────────────────────"
     
     # Afficher la nouvelle section générée
-    awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md | head -n -1
+    awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
     
     echo "└─────────────────────────────────────────────────"
     echo ""
