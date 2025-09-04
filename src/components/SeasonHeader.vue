@@ -125,7 +125,8 @@ function openAccountCreation() {
 }
 
 function openHelp() {
-  emit('open-help')
+  // Naviguer vers la page d'aide
+  window.location.href = '/help'
 }
 
 function openNotifications() {

@@ -6,6 +6,7 @@ import { registerSW } from 'virtual:pwa-register'
 import SeasonResolver from './components/SeasonResolver.vue'
 import HomePage from './views/HomePage.vue'
 import SeasonsPage from './views/SeasonsPage.vue'
+import HelpPage from './views/HelpPage.vue'
 import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
@@ -26,6 +27,7 @@ const routes = [
   { path: '/', component: HomePage },
   { path: '/redirect', component: SeasonResolver },
   { path: '/seasons', component: SeasonsPage },
+  { path: '/help', component: HelpPage },
   { path: '/season/:slug', component: GridBoard, props: true },
   { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
   { path: '/season/:slug/join', component: JoinSeason, props: true },
