@@ -2,7 +2,7 @@
 
 Toutes les modifications notables de ce projet seront documentées dans ce fichier.
 
-## [0.9.0] - 2025-09-04
+## [0.8.0] - 2025-09-04
 
 ### ✨ Nouvelles fonctionnalités
 - feat: add version display and help page improvements
