@@ -128,7 +128,7 @@
           <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] bg-gray-900 h-full"></div>
 
           <!-- Toggle archived events (top-right, above right chevron) -->
-          <div class="absolute right-2 top-2 z-[150]">
+          <div class="absolute right-2 top-2 z-[150] hidden md:block">
             <!-- Bouton de filtres -->
             <button
               @click="toggleFiltersDropdown"
