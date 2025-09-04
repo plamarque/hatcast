@@ -606,7 +606,7 @@
                <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
              </div>
              
-             <!-- Boutons agenda et notifications sur la même ligne -->
+             <!-- Boutons agenda, partage et notifications sur la même ligne -->
              <div class="flex items-center gap-3 mb-3 pl-0 md:pl-0">
                <div class="relative">
                  <button 
@@ -615,7 +615,10 @@
                    title="Ajouter à votre agenda"
                  >
                    <span class="text-purple-300">📅</span>
-                   <span class="text-purple-200">Ajouter à mon Agenda</span>
+                   <span class="text-purple-200">
+                     <span class="hidden md:inline">Ajouter à mon Agenda</span>
+                     <span class="md:hidden">Agenda</span>
+                   </span>
                  </button>
                  
                  <!-- Menu déroulant d'agenda pour la modal -->
@@ -652,10 +655,31 @@
                  </div>
                </div>
                
+               <!-- Bouton de partage de lien -->
+               <div class="relative">
+                 <button 
+                   @click="copyEventLinkToClipboard(selectedEvent)"
+                   class="px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm flex items-center gap-2 hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
+                   title="Copier le lien direct vers cet événement pour le partager"
+                 >
+                   <span class="text-purple-300">🔗</span>
+                   <span class="text-purple-200">
+                     <span class="hidden md:inline">Partager le lien</span>
+                     <span class="md:hidden">Partager</span>
+                   </span>
+                 </button>
+                 <div v-if="showShareLinkCopied" class="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 text-xs text-green-400 whitespace-nowrap">
+                   ✓ Lien copié !
+                 </div>
+               </div>
+               
                <!-- Bouton notifications -->
                <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm">
                  <span class="text-purple-300">✅</span>
-                 <span class="text-purple-200">Notifications activées</span>
+                 <span class="text-purple-200">
+                   <span class="hidden md:inline">Notifications activées</span>
+                   <span class="md:hidden">Notifié</span>
+                 </span>
                </div>
                <button 
                  v-else 
@@ -664,7 +688,10 @@
                  title="Reçois des alertes en temps réel : sélections, changements d'horaires, et plus !"
                >
                  <span class="text-purple-300">🔔</span>
-                 <span class="text-purple-200">Notifiez-moi</span>
+                 <span class="text-purple-200">
+                   <span class="hidden md:inline">Notifiez-moi</span>
+                   <span class="md:hidden">Notifier</span>
+                 </span>
                </button>
              </div>
             
@@ -1790,6 +1817,9 @@ const eventMoreActionsMobileStyle = ref({ position: 'fixed', top: '0px', left: '
 // Variables pour les menus d'agenda
 const showCalendarMenuDetails = ref(false)
 
+// Variables pour le partage de lien
+const showShareLinkCopied = ref(false)
+
 // Variables pour l'incitation aux notifications
 const showNotificationPrompt = ref(false)
 const notificationPromptData = ref(null)
@@ -1895,6 +1925,47 @@ function toggleCalendarMenuDetails() {
 
 function closeCalendarMenuDetails() {
   showCalendarMenuDetails.value = false
+}
+
+// Fonction pour copier le lien direct de l'événement
+async function copyEventLinkToClipboard(event) {
+  if (!event) return;
+  
+  try {
+    // Générer le lien direct vers l'événement
+    const eventUrl = `${window.location.origin}/season/${props.slug}?event=${event.id}&modal=event_details`;
+    
+    // Copier dans le presse-papiers
+    await navigator.clipboard.writeText(eventUrl);
+    
+    // Afficher le message de confirmation
+    showShareLinkCopied.value = true;
+    
+    // Masquer le message après 2 secondes
+    setTimeout(() => {
+      showShareLinkCopied.value = false;
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Erreur lors de la copie du lien:', error);
+    
+    // Fallback pour les navigateurs qui ne supportent pas l'API Clipboard
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = `${window.location.origin}/season/${props.slug}?event=${event.id}&modal=event_details`;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      showShareLinkCopied.value = true;
+      setTimeout(() => {
+        showShareLinkCopied.value = false;
+      }, 2000);
+    } catch (fallbackError) {
+      console.error('Erreur lors de la copie du lien (fallback):', fallbackError);
+    }
+  }
 }
 
 // Variables pour la vérification de mot de passe des joueurs protégés
@@ -5395,6 +5466,9 @@ function closeEventDetails() {
   
   // Fermer les menus d'agenda
   closeCalendarMenuDetails();
+  
+  // Réinitialiser l'état du partage de lien
+  showShareLinkCopied.value = false;
   
   // Nettoyer les styles des dropdowns
   eventMoreActionsStyle.value = { position: 'fixed', top: '0px', left: '0px' };
