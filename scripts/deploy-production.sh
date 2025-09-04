@@ -88,11 +88,124 @@ modify_file() {
             echo "      Production build - $BUILD_DATE"
             echo "      Git: $GIT_HASH"
             echo "      Build: $BUILD_TIME"
+        elif [ "$file" = "CHANGELOG.md" ]; then
+            echo "   └─ CHANGELOG mis à jour avec les commits depuis la dernière version"
         fi
     else
         echo "📝 $description"
         eval "$operation"
     fi
+}
+
+# Fonction pour générer le changelog
+generate_changelog() {
+    local new_version="$1"
+    local build_date="$2"
+    
+    # Trouver le dernier tag (version précédente)
+    LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    
+    if [ -z "$LAST_TAG" ]; then
+        # Premier release, prendre tous les commits
+        COMMIT_RANGE="HEAD"
+        echo "📋 Premier release - incluant tous les commits"
+    else
+        # Commits depuis le dernier tag
+        COMMIT_RANGE="$LAST_TAG..HEAD"
+        echo "📋 Génération du changelog depuis $LAST_TAG"
+    fi
+    
+    # Créer le contenu du changelog temporaire
+    TEMP_CHANGELOG="/tmp/changelog_new.md"
+    
+    # Header de la nouvelle version
+    cat > "$TEMP_CHANGELOG" << EOF
+# Changelog
+
+## [${new_version}] - ${build_date}
+
+EOF
+    
+    # Collecter les commits par type
+    local features=()
+    local fixes=()
+    local improvements=()
+    local others=()
+    
+    # Lire les commits et les catégoriser
+    while IFS= read -r commit_line; do
+        # Extraire le hash et le message
+        commit_hash=$(echo "$commit_line" | cut -d' ' -f1)
+        commit_msg=$(echo "$commit_line" | cut -d' ' -f2-)
+        
+        # Ignorer les commits de version/release automatiques
+        if [[ "$commit_msg" =~ ^(chore: bump version|release: version) ]]; then
+            continue
+        fi
+        
+        # Catégoriser selon le préfixe conventional commits
+        if [[ "$commit_msg" =~ ^feat ]]; then
+            features+=("- $commit_msg")
+        elif [[ "$commit_msg" =~ ^fix ]]; then
+            fixes+=("- $commit_msg")
+        elif [[ "$commit_msg" =~ ^(improve|perf|refactor|style) ]]; then
+            improvements+=("- $commit_msg")
+        else
+            others+=("- $commit_msg")
+        fi
+    done < <(git log --oneline "$COMMIT_RANGE" 2>/dev/null)
+    
+    # Ajouter les sections au changelog
+    if [ ${#features[@]} -gt 0 ]; then
+        echo "### ✨ Nouvelles fonctionnalités" >> "$TEMP_CHANGELOG"
+        printf '%s\n' "${features[@]}" >> "$TEMP_CHANGELOG"
+        echo "" >> "$TEMP_CHANGELOG"
+    fi
+    
+    if [ ${#improvements[@]} -gt 0 ]; then
+        echo "### 🔧 Améliorations" >> "$TEMP_CHANGELOG"
+        printf '%s\n' "${improvements[@]}" >> "$TEMP_CHANGELOG"
+        echo "" >> "$TEMP_CHANGELOG"
+    fi
+    
+    if [ ${#fixes[@]} -gt 0 ]; then
+        echo "### 🐛 Corrections" >> "$TEMP_CHANGELOG"
+        printf '%s\n' "${fixes[@]}" >> "$TEMP_CHANGELOG"
+        echo "" >> "$TEMP_CHANGELOG"
+    fi
+    
+    if [ ${#others[@]} -gt 0 ]; then
+        echo "### 📝 Autres changements" >> "$TEMP_CHANGELOG"
+        printf '%s\n' "${others[@]}" >> "$TEMP_CHANGELOG"
+        echo "" >> "$TEMP_CHANGELOG"
+    fi
+    
+    # Si pas de commits trouvés
+    if [ ${#features[@]} -eq 0 ] && [ ${#fixes[@]} -eq 0 ] && [ ${#improvements[@]} -eq 0 ] && [ ${#others[@]} -eq 0 ]; then
+        echo "### 📦 Release" >> "$TEMP_CHANGELOG"
+        echo "- Version release" >> "$TEMP_CHANGELOG"
+        echo "" >> "$TEMP_CHANGELOG"
+    fi
+    
+    echo "---" >> "$TEMP_CHANGELOG"
+    echo "" >> "$TEMP_CHANGELOG"
+    
+    # Fusionner avec l'ancien changelog s'il existe
+    if [ -f "CHANGELOG.md" ]; then
+        # Garder le header existant et ajouter le nouveau contenu avant l'ancien
+        if grep -q "^# Changelog" CHANGELOG.md; then
+            # Garder seulement les anciennes versions (supprimer le header)
+            tail -n +3 CHANGELOG.md >> "$TEMP_CHANGELOG"
+        else
+            # Ajouter tout l'ancien contenu
+            cat CHANGELOG.md >> "$TEMP_CHANGELOG"
+        fi
+    fi
+    
+    # Remplacer le changelog
+    mv "$TEMP_CHANGELOG" "CHANGELOG.md"
+    
+    return 0
 }
 
 # Vérifier qu'on est sur staging
@@ -242,8 +355,19 @@ Git: $GIT_HASH
 Build: $BUILD_TIME
 EOF" "public/version.txt" "Création de version.txt"
 
+# Générer le changelog automatique
+if [ "$DRY_RUN" = true ]; then
+    echo "📝 SIMULATION: Génération du changelog automatique"
+    echo "   └─ Analyse des commits depuis le dernier tag"
+    echo "   └─ Catégorisation par type (feat/fix/improve/autres)"
+    echo "   └─ Création/mise à jour de CHANGELOG.md"
+else
+    echo "📝 Génération du changelog automatique..."
+    generate_changelog "$NEW_VERSION" "$BUILD_DATE"
+fi
+
 # Committer les changements de version
-execute_cmd "git add package.json public/version.txt" "Ajout des fichiers modifiés"
+execute_cmd "git add package.json public/version.txt CHANGELOG.md" "Ajout des fichiers modifiés"
 execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit des changements de version"
 
 # Pousser staging
