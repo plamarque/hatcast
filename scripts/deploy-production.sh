@@ -361,9 +361,37 @@ if [ "$DRY_RUN" = true ]; then
     echo "   └─ Analyse des commits depuis le dernier tag"
     echo "   └─ Catégorisation par type (feat/fix/improve/autres)"
     echo "   └─ Création/mise à jour de CHANGELOG.md"
+    echo ""
+    
+    # Générer le changelog en mode simulation pour l'afficher
+    generate_changelog "$NEW_VERSION" "$BUILD_DATE" >/dev/null
+    
+    echo "📄 APERÇU DU CHANGELOG QUI SERA GÉNÉRÉ:"
+    echo "┌─────────────────────────────────────────────────"
+    
+    # Afficher seulement la nouvelle section (jusqu'au premier "---")
+    if [ -f "CHANGELOG.md" ]; then
+        awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md | head -n -1
+    fi
+    
+    echo "└─────────────────────────────────────────────────"
+    echo ""
+    
+    # Restaurer l'état original (supprimer le changelog temporaire)
+    git checkout -- CHANGELOG.md 2>/dev/null || true
 else
     echo "📝 Génération du changelog automatique..."
     generate_changelog "$NEW_VERSION" "$BUILD_DATE"
+    
+    echo ""
+    echo "📄 CHANGELOG GÉNÉRÉ:"
+    echo "┌─────────────────────────────────────────────────"
+    
+    # Afficher la nouvelle section générée
+    awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md | head -n -1
+    
+    echo "└─────────────────────────────────────────────────"
+    echo ""
 fi
 
 # Committer les changements de version
@@ -414,4 +442,4 @@ if [ "$DRY_RUN" = false ]; then
     echo "🌐 La GitHub Action va maintenant déployer en production"
     echo "📊 Vérifiez: https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"
     echo "🎯 Version déployée: $NEW_VERSION"
-fi
+fi 
