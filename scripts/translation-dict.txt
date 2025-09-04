@@ -1,0 +1,66 @@
+# Dictionnaire de traduction pour le changelog
+# Format: anglais|français
+# Les corrections sont appliquées dans l'ordre
+
+# Corrections d'articles
+implémentation le|implémentation du
+ajout l'|ajout de l'
+activation l'|activation de l'
+
+# Corrections de verbes (impératif vers nom)
+ajouter le|ajout du
+ajouter des|ajout des
+ajouter|ajout
+afficher|affichage
+implémenter|implémentation
+améliorer|amélioration
+corriger|correction
+fixer|correction
+résoudre|résolution
+masquer|masquage
+élargir|élargissement
+préserver|préservation
+mettre à jour|mise à jour
+gérer|gestion
+supprimer|suppression
+configurer|configuration
+installer|installation
+utiliser|utilisation
+synchroniser|synchronisation
+désactiver|désactivation
+activer|activation
+optimiser|optimisation
+restaurer|restauration
+migrer|migration
+refactoriser|refactorisation
+centraliser|centralisation
+intégrer|intégration
+associer|association
+déverrouiller|déverrouillage
+verrouiller|verrouillage
+déclencher|déclenchement
+confirmer|confirmation
+annuler|annulation
+valider|validation
+accepter|acceptation
+refuser|refus
+ignorer|ignorance
+passer|passage
+continuer|continuation
+arrêter|arrêt
+démarrer|démarrage
+lancer|lancement
+exécuter|exécution
+traiter|traitement
+analyser|analyse
+vérifier|vérification
+contrôler|contrôle
+surveiller|surveillance
+observer|observation
+examiner|examen
+inspecter|inspection
+tester|test
+
+# Corrections spécifiques
+modique|modale
+résolvez|résolution

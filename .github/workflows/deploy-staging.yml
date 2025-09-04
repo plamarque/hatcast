@@ -49,9 +49,14 @@ jobs:
         Build: $BUILD_TIME
         EOF
         
-    - name: Ensure changelog.md exists in public directory
+    - name: Ensure changelog files exist in public directory
       run: |
-        if [ -f "CHANGELOG.md" ]; then
+        if [ -f "changelog.json" ]; then
+          cp changelog.json public/changelog.json
+        fi
+        if [ -f "CHANGELOG_FR.md" ]; then
+          cp CHANGELOG_FR.md public/changelog_fr.md
+        elif [ -f "CHANGELOG.md" ]; then
           cp CHANGELOG.md public/changelog.md
         elif [ -f "public/changelog.md" ]; then
           echo "changelog.md already exists in public/"
@@ -64,9 +69,14 @@ jobs:
     - name: Build application
       run: npm run build
       
-    - name: Copy changelog.md to build directory
+    - name: Copy changelog files to build directory
       run: |
-        if [ -f "public/changelog.md" ]; then
+        if [ -f "public/changelog.json" ]; then
+          cp public/changelog.json dist/changelog.json
+        fi
+        if [ -f "public/changelog_fr.md" ]; then
+          cp public/changelog_fr.md dist/changelog_fr.md
+        elif [ -f "public/changelog.md" ]; then
           cp public/changelog.md dist/changelog.md
         else
           echo "# Changelog" > dist/changelog.md

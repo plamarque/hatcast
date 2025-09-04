@@ -249,46 +249,7 @@ const toggleChangelog = () => {
   showChangelog.value = !showChangelog.value
 }
 
-// Dictionnaire de traductions prédéfinies
-const predefinedTranslations = {
-  // Nouvelles fonctionnalités
-  'feat': { emoji: '✨', prefix: 'Nouvelle fonctionnalité' },
-  'feature': { emoji: '✨', prefix: 'Nouvelle fonctionnalité' },
-  
-  // Corrections
-  'fix': { emoji: '🐛', prefix: 'Correction' },
-  'bugfix': { emoji: '🐛', prefix: 'Correction' },
-  
-  // Améliorations
-  'improve': { emoji: '⚡', prefix: 'Amélioration' },
-  'enhance': { emoji: '⚡', prefix: 'Amélioration' },
-  'optimize': { emoji: '⚡', prefix: 'Optimisation' },
-  
-  // Interface utilisateur
-  'ui': { emoji: '🎨', prefix: 'Interface' },
-  'design': { emoji: '🎨', prefix: 'Design' },
-  'style': { emoji: '🎨', prefix: 'Style' },
-  
-  // Mobile
-  'mobile': { emoji: '📱', prefix: 'Mobile' },
-  'responsive': { emoji: '📱', prefix: 'Responsive' },
-  
-  // Sécurité
-  'security': { emoji: '🛡️', prefix: 'Sécurité' },
-  'protect': { emoji: '🛡️', prefix: 'Protection' },
-  
-  // Performance
-  'perf': { emoji: '🚀', prefix: 'Performance' },
-  'performance': { emoji: '🚀', prefix: 'Performance' },
-  
-  // Documentation
-  'docs': { emoji: '📚', prefix: 'Documentation' },
-  'doc': { emoji: '📚', prefix: 'Documentation' },
-  
-  // Tests
-  'test': { emoji: '🧪', prefix: 'Tests' },
-  'testing': { emoji: '🧪', prefix: 'Tests' }
-}
+// Translation dictionaries removed - now handled server-side
 
 // Dictionnaire de traductions de mots clés
 const keywordTranslations = {
@@ -302,7 +263,6 @@ const keywordTranslations = {
   'player': 'joueur',
   'players': 'joueurs',
   'event': 'événement',
-  'modique': 'modale',
   'events': 'événements',
   'season': 'saison',
   'seasons': 'saisons',
@@ -355,105 +315,26 @@ const keywordTranslations = {
 }
 
 // Fonction pour traduire un texte avec l'API Google Translate
-async function translateText(text, targetLang = 'fr') {
-  try {
-    // Créer un AbortController pour le timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 secondes timeout
-    
-    // Utiliser l'API Google Translate gratuite (avec limitations)
-    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`, {
-      signal: controller.signal
-    })
-    
-    clearTimeout(timeoutId)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-    
-    const data = await response.json()
-    if (data && data[0] && data[0][0] && data[0][0][0]) {
-      return data[0][0][0]
-    }
-    
-    throw new Error('Invalid response format')
-  } catch (error) {
-    console.debug('Translation API failed:', error)
-    return null
-  }
-}
+// Translation functions removed - now handled server-side
 
-// Fonction pour traduire et simplifier les commits
-async function translateCommit(commit) {
-  // D'abord, essayer les traductions prédéfinies
-  for (const [key, value] of Object.entries(predefinedTranslations)) {
-    if (commit.toLowerCase().includes(key)) {
-      const description = commit.replace(new RegExp(`^${key}:?\\s*`, 'i'), '').trim()
-      
-      // Traduire la description si elle n'est pas vide
-      let translatedDescription = description
-      if (description) {
-        // Essayer de traduire avec l'API
-        const apiTranslation = await translateText(description)
-        if (apiTranslation) {
-          translatedDescription = apiTranslation
-        } else {
-          // Si l'API échoue, garder l'anglais original
-          translatedDescription = description
-        }
-      }
-      
-      return {
-        emoji: value.emoji,
-        description: translatedDescription
-      }
-    }
-  }
-  
-  // Si pas de correspondance prédéfinie, essayer de traduire tout le commit
-  const apiTranslation = await translateText(commit)
-  if (apiTranslation) {
-    return {
-      emoji: '🔧',
-      description: apiTranslation
-    }
-  }
-  
-  // Fallback final : garder l'anglais original
-  return {
-    emoji: '🔧',
-    description: commit
-  }
-}
+// Translation functions removed - now handled server-side
 
-// Fonction de traduction manuelle des mots clés
-function translateKeywords(text) {
-  let translated = text
-  
-  // Remplacer les mots clés connus
-  for (const [english, french] of Object.entries(keywordTranslations)) {
-    const regex = new RegExp(`\\b${english}\\b`, 'gi')
-    translated = translated.replace(regex, french)
-  }
-  
-  return translated
-}
+// Translation functions removed - now handled server-side
 
-// Fonction pour charger le changelog
+// Fonction pour charger le changelog (JSON pré-généré uniquement)
 async function loadChangelog() {
   changelogLoading.value = true
   changelogError.value = false
   
   try {
-    const response = await fetch('/changelog.md')
+    // Load pre-generated JSON (last 3 versions, ready to display)
+    const response = await fetch('/changelog.json')
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`)
     }
     
-    const content = await response.text()
-    const versions = await parseChangelog(content)
-    userFriendlyChangelog.value = versions.slice(0, 3) // Limiter aux 3 dernières versions
+    const versions = await response.json()
+    userFriendlyChangelog.value = versions // Already limited to 3 versions by the script
     
   } catch (error) {
     console.debug('Could not load changelog:', error)
@@ -464,87 +345,9 @@ async function loadChangelog() {
   }
 }
 
-// Fonction pour parser le changelog
-async function parseChangelog(content) {
-  const versions = []
-  const lines = content.split('\n')
-  
-  let currentVersion = null
-  let currentChanges = []
-  let inFeatureSection = false
-  
-  for (const line of lines) {
-    // Détecter une nouvelle version (## [1.0.0] - 2025-01-01)
-    const versionMatch = line.match(/^## \[([^\]]+)\](?:\s*-\s*(.+))?/)
-    if (versionMatch) {
-      // Sauvegarder la version précédente
-      if (currentVersion) {
-        versions.push({
-          version: currentVersion.version,
-          date: currentVersion.date,
-          changes: currentChanges
-        })
-      }
-      
-      // Commencer une nouvelle version
-      currentVersion = {
-        version: versionMatch[1],
-        date: versionMatch[2] || ''
-      }
-      currentChanges = []
-      inFeatureSection = false
-      continue
-    }
-    
-    // Détecter les sections de fonctionnalités
-    if (line.includes('### ✨') || line.includes('### New Features') || line.includes('### Nouvelles fonctionnalités')) {
-      inFeatureSection = true
-      continue
-    }
-    
-    // Détecter la fin d'une section (nouvelle section ou fin de version)
-    if (line.startsWith('### ') && !line.includes('✨') && !line.includes('New Features') && !line.includes('Nouvelles fonctionnalités')) {
-      inFeatureSection = false
-      continue
-    }
-    
-    // Détecter la fin d'une version (---)
-    if (line.trim() === '---') {
-      inFeatureSection = false
-      continue
-    }
-    
-    // Détecter les changements (- feat: ...) seulement dans les sections de fonctionnalités
-    const changeMatch = line.match(/^-\s*(.+)/)
-    if (changeMatch && currentVersion && inFeatureSection) {
-      const commit = changeMatch[1]
-      const translated = await translateCommit(commit)
-      
-      // Filtrer les commits techniques
-      const technicalKeywords = ['chore:', 'refactor:', 'build:', 'ci:', 'deps:', 'dependencies']
-      const isTechnical = technicalKeywords.some(keyword => commit.toLowerCase().startsWith(keyword))
-      
-      if (!isTechnical) {
-        currentChanges.push({
-          id: `${currentVersion.version}-${currentChanges.length}`,
-          emoji: translated.emoji,
-          description: translated.description
-        })
-      }
-    }
-  }
-  
-  // Ajouter la dernière version
-  if (currentVersion) {
-    versions.push({
-      version: currentVersion.version,
-      date: currentVersion.date,
-      changes: currentChanges
-    })
-  }
-  
-  return versions
-}
+// All parsing logic moved to deployment script - no client-side processing needed
+
+// All parsing logic moved to deployment script - no client-side processing needed
 
 // Gestion des modales (réutilisé depuis HomePage)
 const openAccountMenu = () => {
