@@ -54,14 +54,14 @@
                 v-model="selectedRoleTemplate"
                 @change="applyRoleTemplate(selectedRoleTemplate)"
                 :disabled="mode === 'edit' && !showRoleInputs"
-                class="w-44 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-52 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option
                   v-for="templateId in TEMPLATE_DISPLAY_ORDER"
                   :key="templateId"
                   :value="templateId"
                 >
-                  {{ ROLE_TEMPLATES[templateId].name }}
+                  {{ EVENT_TYPE_ICONS[templateId] }} {{ ROLE_TEMPLATES[templateId].name }}
                 </option>
               </select>
               <div class="inline-flex items-center gap-2 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg">
@@ -210,7 +210,8 @@ import {
   ROLE_LABELS, 
   ROLE_DISPLAY_ORDER, 
   ROLE_TEMPLATES, 
-  TEMPLATE_DISPLAY_ORDER 
+  TEMPLATE_DISPLAY_ORDER,
+  EVENT_TYPE_ICONS 
 } from '../services/storage.js'
 
 // Props

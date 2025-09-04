@@ -585,9 +585,9 @@
         
         <!-- Layout horizontal compact -->
         <div class="flex items-start gap-4 md:gap-6">
-          <!-- Icône illustrative -->
+          <!-- Icône illustrative du type d'événement -->
           <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex-shrink-0 flex items-center justify-center">
-            <span class="text-xl md:text-2xl">🎭</span>
+            <span class="text-xl md:text-2xl">{{ getEventTypeIcon(selectedEvent) }}</span>
           </div>
           
                      <!-- Informations principales -->
@@ -596,6 +596,7 @@
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
                <!-- Badge du type d'événement -->
                <div v-if="selectedEvent?.roles" class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
+                 <span class="text-sm">{{ getEventTypeIcon(selectedEvent) }}</span>
                  <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[determineRoleTemplate(selectedEvent.roles)]?.name || 'Simple sondage' }}</span>
                </div>
              </div>
@@ -1564,7 +1565,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -3445,6 +3446,13 @@ function determineRoleTemplate(roles) {
   
   // Si aucun type ne correspond, retourner 'custom'
   return 'custom'
+}
+
+// Fonction pour obtenir l'icône du type d'événement
+function getEventTypeIcon(event) {
+  if (!event?.roles) return '🎭' // Icône par défaut
+  const templateId = determineRoleTemplate(event.roles)
+  return EVENT_TYPE_ICONS[templateId] || '🎭'
 }
 
 // Fonction pour obtenir la couleur du compteur de rôle selon le détail événement

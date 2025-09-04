@@ -66,6 +66,14 @@ export const ROLE_DISPLAY_ORDER = [
   ROLES.STAGE_MANAGER
 ]
 
+// Icônes pour chaque type d'événement
+export const EVENT_TYPE_ICONS = {
+  match: '⚔️',
+  cabaret: '🎭',
+  deplacement: '🚌',
+  custom: '📊'
+}
+
 // Modèles de rôles prédéfinis pour différents types d'événements
 export const ROLE_TEMPLATES = {
   match: {
