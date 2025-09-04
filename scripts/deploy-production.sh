@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Script de déploiement en production avec versioning automatique
+# Automated production deployment script with intelligent versioning
 # Usage: ./scripts/deploy-production.sh [--dry-run] [--major|--minor|--patch]
 
 set -e
 
-# Analyser les arguments
+# Parse command line arguments
 DRY_RUN=false
-VERSION_BUMP="patch"  # par défaut
+VERSION_BUMP="patch"  # default
 
 for arg in "$@"; do
     case $arg in
@@ -27,37 +27,37 @@ for arg in "$@"; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --dry-run, -n     Mode simulation (aucune modification)"
-            echo "  --major           Bump version majeure (1.2.3 → 2.0.0)"
-            echo "  --minor           Bump version mineure (1.2.3 → 1.3.0)"
-            echo "  --patch           Bump version patch (1.2.3 → 1.2.4) [défaut]"
-            echo "  --help, -h        Afficher cette aide"
+            echo "  --dry-run, -n     Simulation mode (no changes made)"
+            echo "  --major           Major version bump (1.2.3 → 2.0.0)"
+            echo "  --minor           Minor version bump (1.2.3 → 1.3.0)"
+            echo "  --patch           Patch version bump (1.2.3 → 1.2.4) [default]"
+            echo "  --help, -h        Show this help"
             echo ""
-            echo "Exemples:"
-            echo "  $0 --dry-run --minor    # Simuler bump mineur"
-            echo "  $0 --major              # Bump majeur réel"
-            echo "  $0                      # Bump patch réel (défaut)"
+            echo "Examples:"
+            echo "  $0 --dry-run --minor    # Simulate minor bump"
+            echo "  $0 --major              # Real major bump"
+            echo "  $0                      # Real patch bump (default)"
             exit 0
             ;;
         *)
-            echo "❌ Option inconnue: $arg"
-            echo "Utilisez --help pour voir les options disponibles"
+            echo "❌ Unknown option: $arg"
+            echo "Use --help to see available options"
             exit 1
             ;;
     esac
 done
 
 if [ "$DRY_RUN" = true ]; then
-    echo "🔍 DRY RUN - Simulation du déploiement en production"
-    echo "=================================================="
-    echo "⚠️  Mode simulation : aucune modification ne sera effectuée"
+    echo "🔍 DRY RUN - Production deployment simulation"
+    echo "============================================="
+    echo "⚠️  Simulation mode: no changes will be made"
 else
-    echo "🚀 Déploiement en production avec versioning automatique"
-    echo "========================================================="
+    echo "🚀 Production deployment with automatic versioning"
+    echo "=================================================="
 fi
-echo "📋 Type de bump: $VERSION_BUMP"
+echo "📋 Version bump type: $VERSION_BUMP"
 
-# Fonction wrapper pour exécuter les commandes
+# Command wrapper function
 execute_cmd() {
     local cmd="$1"
     local description="$2"
@@ -71,7 +71,7 @@ execute_cmd() {
     fi
 }
 
-# Fonction wrapper pour les modifications de fichiers
+# File modification wrapper function
 modify_file() {
     local operation="$1"
     local file="$2"
@@ -83,13 +83,13 @@ modify_file() {
         if [ "$file" = "package.json" ]; then
             echo "   └─ \"version\": \"$CURRENT_VERSION\" → \"version\": \"$NEW_VERSION\""
         elif [ "$file" = "public/version.txt" ]; then
-            echo "   └─ Contenu qui serait créé:"
+            echo "   └─ Content that would be created:"
             echo "      $NEW_VERSION"
             echo "      Production build - $BUILD_DATE"
             echo "      Git: $GIT_HASH"
             echo "      Build: $BUILD_TIME"
         elif [ "$file" = "CHANGELOG.md" ]; then
-            echo "   └─ CHANGELOG mis à jour avec les commits depuis la dernière version"
+            echo "   └─ CHANGELOG updated with commits since last version"
         fi
     else
         echo "📝 $description"
@@ -97,28 +97,28 @@ modify_file() {
     fi
 }
 
-# Fonction pour générer le changelog
+# Changelog generation function
 generate_changelog() {
     local new_version="$1"
     local build_date="$2"
     
-    # Trouver le dernier tag (version précédente)
+    # Find last tag (previous version)
     LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
     
     if [ -z "$LAST_TAG" ]; then
-        # Premier release, prendre tous les commits
+        # First release, include all commits
         COMMIT_RANGE="HEAD"
-        echo "📋 Premier release - incluant tous les commits"
+        echo "📋 First release - including all commits"
     else
-        # Commits depuis le dernier tag
+        # Commits since last tag
         COMMIT_RANGE="$LAST_TAG..HEAD"
-        echo "📋 Génération du changelog depuis $LAST_TAG"
+        echo "📋 Generating changelog since $LAST_TAG"
     fi
     
-    # Créer le contenu du changelog temporaire
+    # Create temporary changelog content
     TEMP_CHANGELOG="/tmp/changelog_new.md"
     
-    # Header de la nouvelle version
+    # New version header
     cat > "$TEMP_CHANGELOG" << EOF
 # Changelog
 
@@ -126,24 +126,24 @@ generate_changelog() {
 
 EOF
     
-    # Collecter les commits par type
+    # Collect commits by type
     local features=()
     local fixes=()
     local improvements=()
     local others=()
     
-    # Lire les commits et les catégoriser
+    # Read commits and categorize them
     while IFS= read -r commit_line; do
-        # Extraire le hash et le message
+        # Extract hash and message
         commit_hash=$(echo "$commit_line" | cut -d' ' -f1)
         commit_msg=$(echo "$commit_line" | cut -d' ' -f2-)
         
-        # Ignorer les commits de version/release automatiques
+        # Skip automatic version/release commits
         if [[ "$commit_msg" =~ ^(chore: bump version|release: version) ]]; then
             continue
         fi
         
-        # Catégoriser selon le préfixe conventional commits
+        # Categorize according to conventional commits prefix
         if [[ "$commit_msg" =~ ^feat ]]; then
             features+=("- $commit_msg")
         elif [[ "$commit_msg" =~ ^fix ]]; then
@@ -155,32 +155,32 @@ EOF
         fi
     done < <(git log --oneline "$COMMIT_RANGE" 2>/dev/null)
     
-    # Ajouter les sections au changelog
+    # Add sections to changelog
     if [ ${#features[@]} -gt 0 ]; then
-        echo "### ✨ Nouvelles fonctionnalités" >> "$TEMP_CHANGELOG"
+        echo "### ✨ New Features" >> "$TEMP_CHANGELOG"
         printf '%s\n' "${features[@]}" >> "$TEMP_CHANGELOG"
         echo "" >> "$TEMP_CHANGELOG"
     fi
     
     if [ ${#improvements[@]} -gt 0 ]; then
-        echo "### 🔧 Améliorations" >> "$TEMP_CHANGELOG"
+        echo "### 🔧 Improvements" >> "$TEMP_CHANGELOG"
         printf '%s\n' "${improvements[@]}" >> "$TEMP_CHANGELOG"
         echo "" >> "$TEMP_CHANGELOG"
     fi
     
     if [ ${#fixes[@]} -gt 0 ]; then
-        echo "### 🐛 Corrections" >> "$TEMP_CHANGELOG"
+        echo "### 🐛 Bug Fixes" >> "$TEMP_CHANGELOG"
         printf '%s\n' "${fixes[@]}" >> "$TEMP_CHANGELOG"
         echo "" >> "$TEMP_CHANGELOG"
     fi
     
     if [ ${#others[@]} -gt 0 ]; then
-        echo "### 📝 Autres changements" >> "$TEMP_CHANGELOG"
+        echo "### 📝 Other Changes" >> "$TEMP_CHANGELOG"
         printf '%s\n' "${others[@]}" >> "$TEMP_CHANGELOG"
         echo "" >> "$TEMP_CHANGELOG"
     fi
     
-    # Si pas de commits trouvés
+    # If no commits found
     if [ ${#features[@]} -eq 0 ] && [ ${#fixes[@]} -eq 0 ] && [ ${#improvements[@]} -eq 0 ] && [ ${#others[@]} -eq 0 ]; then
         echo "### 📦 Release" >> "$TEMP_CHANGELOG"
         echo "- Version release" >> "$TEMP_CHANGELOG"
@@ -190,126 +190,126 @@ EOF
     echo "---" >> "$TEMP_CHANGELOG"
     echo "" >> "$TEMP_CHANGELOG"
     
-    # Fusionner avec l'ancien changelog s'il existe
+    # Merge with existing changelog if it exists
     if [ -f "CHANGELOG.md" ]; then
-        # Garder le header existant et ajouter le nouveau contenu avant l'ancien
+        # Keep existing header and add new content before old content
         if grep -q "^# Changelog" CHANGELOG.md; then
-            # Garder seulement les anciennes versions (supprimer le header)
+            # Keep only old versions (remove header)
             tail -n +3 CHANGELOG.md >> "$TEMP_CHANGELOG"
         else
-            # Ajouter tout l'ancien contenu
+            # Add all old content
             cat CHANGELOG.md >> "$TEMP_CHANGELOG"
         fi
     fi
     
-    # Remplacer le changelog
+    # Replace changelog
     mv "$TEMP_CHANGELOG" "CHANGELOG.md"
     
     return 0
 }
 
-# Vérifier qu'on est sur staging
+# Verify we're on staging branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" != "staging" ]; then
-    echo "❌ Erreur: Ce script doit être exécuté depuis la branche staging"
-    echo "   Branche actuelle: $CURRENT_BRANCH"
+    echo "❌ Error: This script must be run from the staging branch"
+    echo "   Current branch: $CURRENT_BRANCH"
     exit 1
 fi
 
-# Vérifier que staging est propre
+# Verify staging is clean
 if [ -n "$(git status --porcelain)" ]; then
-    echo "❌ Erreur: La branche staging a des changements non commitéd"
+    echo "❌ Error: Staging branch has uncommitted changes"
     git status
     exit 1
 fi
 
-# Récupérer les dernières versions des branches
-echo "📡 Récupération des dernières versions..."
+# Fetch latest branch versions
+echo "📡 Fetching latest versions..."
 git fetch origin
 
-# Vérifier s'il y a des commits sur main qui ne sont pas dans staging (hotfixes potentiels)
+# Check if there are commits on main not in staging (potential hotfixes)
 COMMITS_MAIN_NOT_IN_STAGING=$(git rev-list staging..origin/main --count)
 if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
-    echo "⚠️  ATTENTION: $COMMITS_MAIN_NOT_IN_STAGING commit(s) sur main ne sont pas dans staging !"
+    echo "⚠️  WARNING: $COMMITS_MAIN_NOT_IN_STAGING commit(s) on main are not in staging!"
     echo ""
-    echo "📋 Commits manquants dans staging:"
+    echo "📋 Missing commits in staging:"
     git log --oneline staging..origin/main
     echo ""
-    echo "💡 Cela peut indiquer des hotfixes faits directement en production."
-    echo "   Il est recommandé de rebaser staging sur main avant de continuer."
+    echo "💡 This may indicate hotfixes made directly in production."
+    echo "   It is recommended to rebase staging on main before continuing."
     echo ""
     
-    # Options pour l'utilisateur
-    echo "Que voulez-vous faire ?"
-    echo "1) Rebaser staging sur main automatiquement (recommandé)"
-    echo "2) Continuer sans rebaser (risqué - peut écraser les hotfixes)"
-    echo "3) Arrêter le déploiement pour investigation manuelle"
+    # User options
+    echo "What would you like to do?"
+    echo "1) Rebase staging on main automatically (recommended)"
+    echo "2) Continue without rebasing (risky - may overwrite hotfixes)"
+    echo "3) Stop deployment for manual investigation"
     echo ""
-    read -p "Votre choix (1/2/3): " -n 1 -r
+    read -p "Your choice (1/2/3): " -n 1 -r
     echo ""
     
     case $REPLY in
         1)
-            echo "🔄 Rebase de staging sur main..."
+            echo "🔄 Rebasing staging on main..."
             
-            # Sauvegarder l'état actuel au cas où
+            # Backup current state just in case
             BACKUP_BRANCH="backup-staging-$(date +%Y%m%d-%H%M%S)"
             git branch "$BACKUP_BRANCH"
-            echo "💾 Sauvegarde créée: $BACKUP_BRANCH"
+            echo "💾 Backup created: $BACKUP_BRANCH"
             
-            # Rebaser staging sur main
+            # Rebase staging on main
             git rebase origin/main
             
             if [ $? -ne 0 ]; then
-                echo "❌ Erreur: Conflit lors du rebase !"
-                echo "🛠️  Résolvez les conflits manuellement, puis :"
+                echo "❌ Error: Conflict during rebase!"
+                echo "🛠️  Resolve conflicts manually, then:"
                 echo "   git rebase --continue"
                 echo "   ./scripts/deploy-production.sh"
                 echo ""
-                echo "💾 En cas de problème, restaurez avec :"
+                echo "💾 In case of issues, restore with:"
                 echo "   git rebase --abort"
                 echo "   git checkout $BACKUP_BRANCH"
                 exit 1
             fi
             
-            echo "✅ Rebase réussi !"
-            echo "🗑️  Suppression de la sauvegarde..."
+            echo "✅ Rebase successful!"
+            echo "🗑️  Cleaning up backup..."
             git branch -d "$BACKUP_BRANCH"
             ;;
         2)
-            echo "⚠️  Continuation sans rebase - les hotfixes risquent d'être écrasés !"
-            read -p "Êtes-vous VRAIMENT sûr ? (tapez 'OUI' en majuscules): " CONFIRM
-            if [ "$CONFIRM" != "OUI" ]; then
-                echo "❌ Déploiement annulé"
+            echo "⚠️  Continuing without rebase - hotfixes may be overwritten!"
+            read -p "Are you REALLY sure? (type 'YES' in capitals): " CONFIRM
+            if [ "$CONFIRM" != "YES" ]; then
+                echo "❌ Deployment cancelled"
                 exit 1
             fi
             ;;
         3)
-            echo "❌ Déploiement arrêté pour investigation manuelle"
+            echo "❌ Deployment stopped for manual investigation"
             echo ""
-            echo "💡 Commandes utiles pour investiguer :"
-            echo "   git log --oneline staging..origin/main  # Voir les commits manquants"
-            echo "   git diff staging..origin/main           # Voir les différences"
-            echo "   git rebase origin/main                  # Rebaser manuellement"
+            echo "💡 Useful commands to investigate:"
+            echo "   git log --oneline staging..origin/main  # See missing commits"
+            echo "   git diff staging..origin/main           # See differences"
+            echo "   git rebase origin/main                  # Rebase manually"
             exit 1
             ;;
         *)
-            echo "❌ Choix invalide. Déploiement annulé."
+            echo "❌ Invalid choice. Deployment cancelled."
             exit 1
             ;;
     esac
 else
-    echo "✅ Staging est à jour avec main - aucun hotfix détecté"
+    echo "✅ Staging is up to date with main - no hotfixes detected"
 fi
 
-# Générer le nouveau numéro de version
+# Generate new version number
 CURRENT_VERSION=$(grep -o '"version": "[^"]*"' package.json | cut -d'"' -f4)
 VERSION_PARTS=(${CURRENT_VERSION//./ })
 MAJOR=${VERSION_PARTS[0]}
 MINOR=${VERSION_PARTS[1]}
 PATCH=${VERSION_PARTS[2]}
 
-# Calculer la nouvelle version selon le type de bump
+# Calculate new version according to bump type
 case $VERSION_BUMP in
     major)
         MAJOR=$((MAJOR + 1))
@@ -331,45 +331,45 @@ BUILD_DATE=$(date +%Y-%m-%d)
 GIT_HASH=$(git rev-parse --short HEAD)
 BUILD_TIME=$(date '+%Y-%m-%dT%H:%M:%S%z')
 
-echo "📋 Version actuelle: $CURRENT_VERSION"
-echo "📋 Nouvelle version: $NEW_VERSION"
+echo "📋 Current version: $CURRENT_VERSION"
+echo "📋 New version: $NEW_VERSION"
 echo "📋 Hash: $GIT_HASH"
 echo "📋 Date: $BUILD_DATE"
 
-# Confirmer avec l'utilisateur
-read -p "🤔 Confirmer le déploiement en production ? (y/N): " -n 1 -r
+# Confirm with user
+read -p "🤔 Confirm production deployment? (y/N): " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "❌ Déploiement annulé"
+    echo "❌ Deployment cancelled"
     exit 1
 fi
 
-# Mise à jour package.json
-modify_file "sed -i \"s/\\\"version\\\": \\\"$CURRENT_VERSION\\\"/\\\"version\\\": \\\"$NEW_VERSION\\\"/\" package.json" "package.json" "Mise à jour de package.json"
+# Update package.json
+modify_file "sed -i \"s/\\\"version\\\": \\\"$CURRENT_VERSION\\\"/\\\"version\\\": \\\"$NEW_VERSION\\\"/\" package.json" "package.json" "Update package.json"
 
-# Créer version.txt avec infos complètes
+# Create version.txt with complete info
 modify_file "cat > public/version.txt << 'EOF'
 $NEW_VERSION
 Production build - $BUILD_DATE
 Git: $GIT_HASH
 Build: $BUILD_TIME
-EOF" "public/version.txt" "Création de version.txt"
+EOF" "public/version.txt" "Create version.txt"
 
-# Générer le changelog automatique
+# Generate automatic changelog
 if [ "$DRY_RUN" = true ]; then
-    echo "📝 SIMULATION: Génération du changelog automatique"
-    echo "   └─ Analyse des commits depuis le dernier tag"
-    echo "   └─ Catégorisation par type (feat/fix/improve/autres)"
-    echo "   └─ Création/mise à jour de CHANGELOG.md"
+    echo "📝 SIMULATION: Automatic changelog generation"
+    echo "   └─ Analyzing commits since last tag"
+    echo "   └─ Categorizing by type (feat/fix/improve/others)"
+    echo "   └─ Creating/updating CHANGELOG.md"
     echo ""
     
-    # Générer le changelog en mode simulation pour l'afficher
+    # Generate changelog in simulation mode to display it
     generate_changelog "$NEW_VERSION" "$BUILD_DATE" >/dev/null
     
-    echo "📄 APERÇU DU CHANGELOG QUI SERA GÉNÉRÉ:"
+    echo "📄 CHANGELOG PREVIEW THAT WILL BE GENERATED:"
     echo "┌─────────────────────────────────────────────────"
     
-    # Afficher seulement la nouvelle section (jusqu'au premier "---")
+    # Display only new section (up to first "---")
     if [ -f "CHANGELOG.md" ]; then
         awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
     fi
@@ -377,69 +377,69 @@ if [ "$DRY_RUN" = true ]; then
     echo "└─────────────────────────────────────────────────"
     echo ""
     
-    # Restaurer l'état original (supprimer le changelog temporaire)
+    # Restore original state (remove temporary changelog)
     git checkout -- CHANGELOG.md 2>/dev/null || true
 else
-    echo "📝 Génération du changelog automatique..."
+    echo "📝 Automatic changelog generation..."
     generate_changelog "$NEW_VERSION" "$BUILD_DATE"
     
     echo ""
-    echo "📄 CHANGELOG GÉNÉRÉ:"
+    echo "📄 GENERATED CHANGELOG:"
     echo "┌─────────────────────────────────────────────────"
     
-    # Afficher la nouvelle section générée
+    # Display generated new section
     awk '/^# Changelog/,/^---$/{if(/^---$/) exit; print}' CHANGELOG.md
     
     echo "└─────────────────────────────────────────────────"
     echo ""
 fi
 
-# Committer les changements de version
-execute_cmd "git add package.json public/version.txt CHANGELOG.md" "Ajout des fichiers modifiés"
-execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit des changements de version"
+# Commit version changes
+execute_cmd "git add package.json public/version.txt CHANGELOG.md" "Add modified files"
+execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit version changes"
 
-# Pousser staging
-execute_cmd "git push origin staging" "Push de staging"
+# Push staging
+execute_cmd "git push origin staging" "Push staging"
 
-# Merger vers main
-execute_cmd "git checkout main" "Basculement vers main"
-execute_cmd "git pull origin main" "Récupération des derniers changements de main"
+# Merge to main
+execute_cmd "git checkout main" "Switch to main"
+execute_cmd "git pull origin main" "Fetch latest main changes"
 execute_cmd "git merge staging --no-ff -m \"release: version $NEW_VERSION
 
 Merge staging to main for production release
 - Version: $NEW_VERSION
 - Build: $BUILD_DATE
-- Hash: $GIT_HASH\"" "Merge de staging vers main"
+- Hash: $GIT_HASH\"" "Merge staging to main"
 
-# Créer un tag
+# Create tag
 execute_cmd "git tag -a \"v$NEW_VERSION\" -m \"Release version $NEW_VERSION
 
 Production release
 - Date: $BUILD_DATE  
-- Hash: $GIT_HASH\"" "Création du tag v$NEW_VERSION"
+- Hash: $GIT_HASH\"" "Create tag v$NEW_VERSION"
 
-# Pousser main avec le tag
-execute_cmd "git push origin main" "Push de main"
-execute_cmd "git push origin \"v$NEW_VERSION\"" "Push du tag"
+# Push main with tag
+execute_cmd "git push origin main" "Push main"
+execute_cmd "git push origin \"v$NEW_VERSION\"" "Push tag"
 
-# Retourner sur staging
-execute_cmd "git checkout staging" "Retour sur staging"
+# Return to staging
+execute_cmd "git checkout staging" "Return to staging"
 
-# Message de fin
+# End message
 if [ "$DRY_RUN" = true ]; then
     echo ""
-    echo "🚀 SIMULATION: Déploiement qui serait déclenché..."
-    echo "   - GitHub Action détecterait le push sur main"
-    echo "   - Build et déploiement automatique sur Firebase"
-    echo "   - URLs mises à jour: https://selections.la-malice.fr → v$NEW_VERSION"
+    echo "🚀 SIMULATION: Deployment that would be triggered..."
+    echo "   - GitHub Action would detect push to main"
+    echo "   - Automatic build and deployment to Firebase"
+    echo "   - Production version: v$NEW_VERSION"
     echo ""
-    echo "✅ DRY RUN TERMINÉ - Aucune modification effectuée"
-    echo "💡 Pour exécuter réellement: ./scripts/deploy-production.sh"
+    echo "✅ DRY RUN COMPLETED - No changes made"
+    echo "💡 To execute for real: ./scripts/deploy-production.sh"
 fi
 
 if [ "$DRY_RUN" = false ]; then
-    echo "✅ Déploiement initié !"
-    echo "🌐 La GitHub Action va maintenant déployer en production"
-    echo "📊 Vérifiez: https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"
-    echo "🎯 Version déployée: $NEW_VERSION"
+    echo "✅ Deployment initiated!"
+    echo "🌐 GitHub Action will now deploy to production"
+    echo "📊 Check: https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"
+    echo "🎯 Deployed version: $NEW_VERSION"
 fi 
