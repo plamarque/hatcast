@@ -5,7 +5,7 @@
       :is-scrolled="isScrolled"
       :is-connected="isConnected"
       @open-account-menu="openAccountMenu"
-      @open-help="scrollToHelp"
+      @open-help="() => {}"
       @open-notifications="openNotifications"
       @open-players="openPlayers"
       @logout="handleLogout"
@@ -211,6 +211,9 @@
       </div>
     </section>
 
+    <!-- Footer -->
+    <AppFooter @open-help="scrollToHelp" />
+
     <!-- Gestionnaire de modales unifié -->
     <ModalManager
       ref="modalManager"
@@ -222,7 +225,7 @@
       :show-development-modal="showDevelopmentModal"
       @post-login-navigation="handlePostLoginNavigation"
       @account-created="handlePostLoginNavigation"
-      @open-help="scrollToHelp"
+      @open-help="() => {}"
       @logout="handleLogout"
       @close-account-login="showAccountLogin = false"
       @close-account-creation="showAccountCreation = false"
@@ -240,6 +243,7 @@ import { useRouter } from 'vue-router'
 import { getLastVisitedSeason } from '../services/seasonPreferences.js'
 import { currentUser, isConnected } from '../services/authState.js'
 import AppHeader from '../components/AppHeader.vue'
+import AppFooter from '../components/AppFooter.vue'
 import ModalManager from '../components/ModalManager.vue'
 import logger from '../services/logger.js'
 

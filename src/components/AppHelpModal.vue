@@ -56,6 +56,12 @@
             Application <span class="text-white">en cours de développement</span>, <span class="text-white">sans garanties</span> à ce stade. Licence libre <span class="text-white">MIT</span>.
           </p>
           <p>Contact & retours : <a href="mailto:impropick@gmail.com" class="text-blue-300 underline">impropick@gmail.com</a></p>
+          <div class="pt-2 border-t border-white/10">
+            <p class="text-gray-400 text-xs">
+              Version <span class="text-white font-mono">{{ appVersion }}</span>
+              <span v-if="buildInfo" class="text-gray-500">• {{ buildInfo }}</span>
+            </p>
+          </div>
         </div>
       </div>
 
@@ -67,11 +73,43 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
 const props = defineProps({
   show: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['close'])
+
+// Version de l'application
+const appVersion = ref('1.0.0')
+const buildInfo = ref('')
+
+// Charger la version depuis le fichier version.txt
+onMounted(async () => {
+  try {
+    const response = await fetch('/version.txt')
+    if (response.ok) {
+      const content = await response.text()
+      const lines = content.split('\n')
+      
+      // Première ligne = version
+      if (lines[0]) {
+        appVersion.value = lines[0]
+      }
+      
+      // Deuxième ligne = info de build (si disponible)
+      if (lines[1] && lines[1].includes('Production build')) {
+        buildInfo.value = 'Production'
+      } else if (lines[1] && lines[1].includes('Development')) {
+        buildInfo.value = 'Development'
+      }
+    }
+  } catch (error) {
+    // En cas d'erreur, garder la version par défaut
+    console.debug('Could not load version from version.txt:', error)
+  }
+})
 </script>
 
 

@@ -8,7 +8,7 @@
       :is-connected="!!currentUser?.email"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
-      @open-help="showHowItWorksGlobal = true"
+      @open-help="() => {}"
       @open-notifications="openNotifications"
       @open-players="openPlayers"
       @logout="handleAccountLogoutDevice"
@@ -20,7 +20,7 @@
 
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[100] bg-gray-900 overflow-hidden">
+      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900/80 backdrop-blur-sm">
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-gray-900 h-full">
@@ -57,12 +57,12 @@
           </div>
           <!-- Event headers -->
           <div class="flex-1 overflow-hidden">
-            <div ref="headerEventsRef" class="flex relative z-[60]" :style="{ transform: `translateX(-${headerScrollX}px)` }">
+            <div ref="headerEventsRef" class="flex relative z-[60] bg-transparent" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
                 v-for="event in displayedEvents"
                 :key="'h-'+event.id"
                 :data-event-id="event.id"
-                class="col-event flex-shrink-0 p-3 text-center flex flex-col justify-between"
+                class="col-event flex-shrink-0 p-3 text-center flex flex-col justify-between bg-transparent"
                 :class="{ 'archived-header': event.archived }"
               >
                 <!-- Zone cliquable principale (titre + date) -->
@@ -125,10 +125,10 @@
             </div>
           </div>
           <!-- Right spacer (keeps end alignment) -->
-          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] bg-gray-900 h-full"></div>
+          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
 
           <!-- Toggle archived events (top-right, above right chevron) -->
-          <div class="absolute right-2 top-2 z-[150]">
+          <div class="absolute right-2 top-2 z-[150] hidden md:block">
             <!-- Bouton de filtres -->
             <button
               @click="toggleFiltersDropdown"
@@ -925,6 +925,9 @@
         <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
     </div>
+
+    <!-- Footer principal -->
+    <AppFooter @open-help="showHowItWorksGlobal = true" />
   </div>
 
   <!-- Dropdown mobile pour actions d'événements (positionné absolument) -->
@@ -1481,13 +1484,13 @@
     background: rgba(100,116,139,0.08); /* extra veil */
     pointer-events: none;
   }
-.col-left { width: 11rem; }
-.col-event { width: 15rem; }
+.col-left { width: 12rem; }
+.col-event { width: 14rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
-  .col-left { width: 12rem; }
-  .left-col-td { width: 12rem; max-width: 12rem; min-width: 12rem; }
+  .col-left { width: 13rem; }
+  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
   .col-event { width: 7.5rem; }
   .col-right { width: 3rem; }
 }
@@ -1503,9 +1506,9 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 9.25rem; }
-  .col-event { width: 12.25rem; }
-  .left-col-td { width: 9.25rem; max-width: 9.25rem; min-width: 9.25rem; }
+  .col-left { width: 10.5rem; }
+  .col-event { width: 11.5rem; }
+  .left-col-td { width: 10.5rem; max-width: 10.5rem; min-width: 10.5rem; }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
@@ -1648,6 +1651,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
+import AppFooter from './AppFooter.vue'
 
 // Déclarer les props
 const props = defineProps({

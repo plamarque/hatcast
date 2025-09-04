@@ -115,6 +115,32 @@
                 </button>
               </div>
               
+              <!-- Détails de version.txt -->
+              <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                <div class="text-sm text-gray-300 font-medium">📄 Contenu de version.txt</div>
+                <div class="text-xs text-gray-400 space-y-1">
+                  <div v-if="versionInfo.version" class="flex items-center gap-2">
+                    <span class="text-green-300">Version:</span>
+                    <span class="text-white font-mono">{{ versionInfo.version }}</span>
+                  </div>
+                  <div v-if="versionInfo.buildType" class="flex items-center gap-2">
+                    <span class="text-blue-300">Build:</span>
+                    <span class="text-white">{{ versionInfo.buildType }}</span>
+                  </div>
+                  <div v-if="versionInfo.gitHash" class="flex items-center gap-2">
+                    <span class="text-purple-300">Git:</span>
+                    <span class="text-white font-mono">{{ versionInfo.gitHash }}</span>
+                  </div>
+                  <div v-if="versionInfo.buildDate" class="flex items-center gap-2">
+                    <span class="text-yellow-300">Date:</span>
+                    <span class="text-white font-mono">{{ versionInfo.buildDate }}</span>
+                  </div>
+                  <div v-if="!versionInfo.version" class="text-red-300">
+                    ❌ Impossible de charger version.txt
+                  </div>
+                </div>
+              </div>
+              
               <!-- Message de succès -->
               <div v-if="logLevelSuccessMessage" class="p-3 bg-green-900/30 border border-green-500/30 rounded-lg">
                 <div class="text-sm text-green-300 flex items-center gap-2">
@@ -862,6 +888,14 @@ const selectedLogLevel = ref('info');
 const logLevelUpdating = ref(false);
 const logLevelSuccessMessage = ref('');
 
+// Version info state
+const versionInfo = ref({
+  version: '',
+  buildType: '',
+  gitHash: '',
+  buildDate: ''
+});
+
 const closeModal = () => {
   emit('close');
   // Reset state
@@ -1006,6 +1040,42 @@ const formattedFirebaseSecrets = computed(() => {
   flattenObject(environmentInfo.value.firebaseSecrets.secrets);
   return formatted;
 });
+
+// Version info functions
+async function loadVersionInfo() {
+  try {
+    const response = await fetch('/version.txt');
+    if (response.ok) {
+      const content = await response.text();
+      const lines = content.split('\n').filter(line => line.trim());
+      
+      versionInfo.value = {
+        version: lines[0] || '',
+        buildType: lines[1] || '',
+        gitHash: lines[2] ? lines[2].replace('Git: ', '') : '',
+        buildDate: lines[3] ? lines[3].replace('Build: ', '') : ''
+      };
+      
+      logger.debug('📄 Version info loaded:', versionInfo.value);
+    } else {
+      logger.warn('⚠️ Could not load version.txt:', response.status);
+      versionInfo.value = {
+        version: '',
+        buildType: '',
+        gitHash: '',
+        buildDate: ''
+      };
+    }
+  } catch (error) {
+    logger.error('❌ Error loading version info:', error);
+    versionInfo.value = {
+      version: '',
+      buildType: '',
+      gitHash: '',
+      buildDate: ''
+    };
+  }
+}
 
 // Environment debug functions
 async function refreshEnvironmentInfo() {
@@ -1201,6 +1271,9 @@ onMounted(async () => {
   
   // Vérifier le niveau de log
   await checkLogLevel();
+  
+  // Charger les informations de version
+  await loadVersionInfo();
 });
 
 // Watcher pour actualiser les informations quand la modale de debug s'ouvre

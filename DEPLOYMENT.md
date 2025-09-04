@@ -10,14 +10,15 @@
 - **Tests** : Intercepteur local (fichiers JSON)
 
 ### **🌐 Staging**
-- **URL** : `https://votre-projet-staging.web.app`
+- **URL** : `https://hatcast-staging.web.app`
 - **Base Firestore** : `staging` (région `us-central1`)
 - **Storage** : `staging/` prefix
 - **Email** : Ethereal Email (capture)
 - **Déploiement** : Automatique sur push `staging`
 
 ### **🚀 Production**
-- **URL** : `https://votre-projet-production.web.app`
+- **URL** : `https://selections.la-malice.fr` (domaine personnalisé)
+- **URL Alternative** : `https://impro-selector.web.app`
 - **Base Firestore** : `default` (région `us-central1`)
 - **Storage** : `production/` prefix
 - **Email** : Gmail (envoi réel)
@@ -25,8 +26,7 @@
 ### **🔄 Workflow Simplifié**
 1. **Développement** : Branches `feature/*` → Tests locaux
 2. **Staging** : Merge `feature/*` → `staging` → Déploiement automatique
-3. **Production** : Merge `staging` → `main` → Déploiement automatique
-- **Déploiement** : Automatique sur push `main`
+3. **Production** : Script `./scripts/deploy-production.sh` → Versioning automatique → Déploiement automatique
 
 ## 🔄 **Workflow de Développement**
 
@@ -53,18 +53,182 @@ git merge feature/nouvelle-fonctionnalite
 # Déployer en staging
 ./deploy-staging.sh
 
-# Tester sur https://votre-projet-staging.web.app
+# Tester sur https://hatcast-staging.web.app
 ```
 
 ### **3. Déploiement en Production**
 ```bash
-# Merger staging → main
+# Utiliser le script intelligent de déploiement
+./scripts/deploy-production.sh --dry-run   # Simuler le déploiement
+./scripts/deploy-production.sh             # Exécuter le déploiement
+
+# OU manuellement (non recommandé)
 git checkout main
 git merge staging
-
-# Déploiement automatique sur push main
-# Vérifier sur https://votre-projet-production.web.app
 ```
+
+## 📦 **Gestion des Versions Automatique**
+
+### **🚀 Script de Déploiement Intelligent**
+
+Le projet utilise un script automatisé pour gérer les versions et les déploiements en production :
+
+```bash
+# Script principal de déploiement
+./scripts/deploy-production.sh [OPTIONS]
+```
+
+### **📋 Options Disponibles**
+
+#### **Types de Versioning (Sémantique)**
+```bash
+# Patch : Corrections de bugs, petites améliorations (1.2.3 → 1.2.4)
+./scripts/deploy-production.sh --patch     # Par défaut
+./scripts/deploy-production.sh             # Équivalent
+
+# Minor : Nouvelles fonctionnalités compatibles (1.2.3 → 1.3.0)
+./scripts/deploy-production.sh --minor
+
+# Major : Breaking changes, refonte majeure (1.2.3 → 2.0.0)
+./scripts/deploy-production.sh --major
+```
+
+#### **Mode Simulation**
+```bash
+# Dry-run : Voir exactement ce qui va être fait (recommandé)
+./scripts/deploy-production.sh --dry-run --minor
+./scripts/deploy-production.sh --dry-run --major
+
+# Aide complète
+./scripts/deploy-production.sh --help
+```
+
+### **🔍 Fonctionnalités Intelligentes**
+
+#### **Détection des Hotfixes**
+Le script détecte automatiquement les hotfixes faits directement en production :
+
+```bash
+⚠️  ATTENTION: 2 commit(s) sur main ne sont pas dans staging !
+
+📋 Commits manquants dans staging:
+abc123f fix: hotfix critique en production
+def456g fix: correction urgente
+
+💡 Cela peut indiquer des hotfixes faits directement en production.
+   Il est recommandé de rebaser staging sur main avant de continuer.
+
+Que voulez-vous faire ?
+1) Rebaser staging sur main automatiquement (recommandé)
+2) Continuer sans rebaser (risqué - peut écraser les hotfixes)
+3) Arrêter le déploiement pour investigation manuelle
+```
+
+#### **Workflow Git Automatisé**
+Le script gère automatiquement :
+- ✅ **Validation** : Vérifie l'état de la branche et des commits
+- ✅ **Versioning** : Incrémente la version selon le type choisi
+- ✅ **Fichiers** : Met à jour `package.json` et `public/version.txt`
+- ✅ **Git** : Commit, merge staging → main, création de tags
+- ✅ **Déploiement** : Déclenche la GitHub Action automatiquement
+
+#### **Exemple de Dry-Run**
+```bash
+$ ./scripts/deploy-production.sh --dry-run --minor
+
+🔍 DRY RUN - Simulation du déploiement en production
+==================================================
+⚠️  Mode simulation : aucune modification ne sera effectuée
+📋 Type de bump: minor
+📡 Récupération des dernières versions...
+✅ Staging est à jour avec main - aucun hotfix détecté
+📋 Version actuelle: 1.0.0
+📋 Nouvelle version: 1.1.0
+📋 Hash: abc123f
+📋 Date: 2025-09-04
+
+📝 SIMULATION: Mise à jour de package.json
+   └─ sed -i "s/\"version\": \"1.0.0\"/\"version\": \"1.1.0\"/" package.json
+   └─ "version": "1.0.0" → "version": "1.1.0"
+
+📝 SIMULATION: Création de version.txt
+   └─ Contenu qui serait créé:
+      1.1.0
+      Production build - 2025-09-04
+      Git: abc123f
+      Build: 2025-09-04T14:30:00+0200
+
+📝 SIMULATION: Commits qui seraient créés...
+   └─ git commit -m "chore: bump version to 1.1.0 for production release"
+   └─ git merge staging --no-ff -m "release: version 1.1.0"
+   └─ git tag -a "v1.1.0"
+
+🚀 SIMULATION: Déploiement qui serait déclenché...
+   - GitHub Action détecterait le push sur main
+   - Build et déploiement automatique sur Firebase
+   - URLs mises à jour: https://selections.la-malice.fr → v1.1.0
+
+✅ DRY RUN TERMINÉ - Aucune modification effectuée
+```
+
+### **📈 Historique des Versions**
+
+Le script génère automatiquement :
+
+#### **Tags Git**
+```bash
+git tag -l
+v1.0.0
+v1.1.0
+v1.2.0
+v2.0.0
+```
+
+#### **Fichier version.txt**
+```
+1.2.0
+Production build - 2025-09-04
+Git: abc123f
+Build: 2025-09-04T14:30:00+0200
+```
+
+#### **Commits Structurés**
+```
+chore: bump version to 1.2.0 for production release
+release: version 1.2.0
+
+Merge staging to main for production release
+- Version: 1.2.0
+- Build: 2025-09-04
+- Hash: abc123f
+```
+
+### **🎯 Recommandations d'Usage**
+
+#### **Choix du Type de Version**
+- **🔧 --patch** : Corrections de bugs, optimisations, petites améliorations
+- **✨ --minor** : Nouvelles fonctionnalités, améliorations UX majeures
+- **💥 --major** : Refonte complète, breaking changes, nouvelle architecture
+
+#### **Workflow Recommandé**
+```bash
+# 1. Toujours commencer par un dry-run
+./scripts/deploy-production.sh --dry-run --minor
+
+# 2. Vérifier les changements qui vont être faits
+# 3. Si tout est correct, exécuter le déploiement
+./scripts/deploy-production.sh --minor
+
+# 4. Vérifier le déploiement
+# GitHub Actions: https://github.com/VOTRE_REPO/actions
+# Production: https://selections.la-malice.fr
+```
+
+#### **Sécurité et Rollback**
+- ✅ **Branches de sauvegarde** automatiques en cas de conflit
+- ✅ **Validation à chaque étape** avec possibilité d'annulation
+- ✅ **Tags Git** pour rollback facile vers une version antérieure
+- ✅ **Dry-run obligatoire** pour les déploiements critiques
 
 ## 🛠️ **Workflows GitHub Actions**
 
@@ -215,12 +379,12 @@ npm run test:email
 
 ### **Tests en Staging**
 - Déploiement automatique sur push `staging`
-- Tests manuels sur `votre-projet-staging.web.app`
+- Tests manuels sur `https://hatcast-staging.web.app`
 - Validation des nouvelles fonctionnalités
 
 ### **Validation Production**
-- Déploiement automatique sur push `main`
-- Tests de régression sur `impro-selector.web.app`
+- Déploiement via script intelligent avec versioning
+- Tests de régression sur `https://selections.la-malice.fr`
 - Monitoring des performances
 
 ## 🚨 **Sécurité et Bonnes Pratiques**
