@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Automated production deployment script with intelligent versioning
-# Usage: ./scripts/deploy-production.sh [--dry-run] [--major|--minor|--patch]
+# Automated version management and release script
+# Usage: ./scripts/release-version.sh [--dry-run] [--major|--minor|--patch]
 
 set -e
 
@@ -26,6 +26,10 @@ for arg in "$@"; do
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
+            echo "Version management and release script for HatCast"
+            echo "Handles versioning, changelog generation, and Git operations"
+            echo "Actual deployment is handled by GitHub Actions"
+            echo ""
             echo "Options:"
             echo "  --dry-run, -n     Simulation mode (no changes made)"
             echo "  --major           Major version bump (1.2.3 → 2.0.0)"
@@ -34,9 +38,9 @@ for arg in "$@"; do
             echo "  --help, -h        Show this help"
             echo ""
             echo "Examples:"
-            echo "  $0 --dry-run --minor    # Simulate minor bump"
-            echo "  $0 --major              # Real major bump"
-            echo "  $0                      # Real patch bump (default)"
+            echo "  $0 --dry-run --minor    # Simulate minor release"
+            echo "  $0 --major              # Real major release"
+            echo "  $0                      # Real patch release (default)"
             exit 0
             ;;
         *)
@@ -245,10 +249,264 @@ EOF
     # Replace changelog
     mv "$TEMP_CHANGELOG" "CHANGELOG.md"
     
+    # Generate French translation
+    generate_french_changelog
+    
+    # Generate ready-to-display JSON for the app
+    generate_changelog_json
+    
     # Copy to public directory for web access (lowercase for browser compatibility)
-    cp "CHANGELOG.md" "public/changelog.md"
+    cp "CHANGELOG_FR.md" "public/changelog_fr.md"
+    cp "changelog.json" "public/changelog.json"
     
     return 0
+}
+
+# Function to translate changelog to French
+generate_french_changelog() {
+    echo "🌐 Translating changelog to French..."
+    
+    # Create French changelog with header
+    echo "# Changelog" > "CHANGELOG_FR.md"
+    echo "" >> "CHANGELOG_FR.md"
+    
+    # Read the English changelog and translate each line
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^##\ \[([0-9]+\.[0-9]+\.[0-9]+)\]\ -\ ([0-9]{4}-[0-9]{2}-[0-9]{2})$ ]]; then
+            # Version line - keep as is
+            echo "$line" >> "CHANGELOG_FR.md"
+        elif [[ "$line" =~ ^###\ ✨\ New\ Features$ ]]; then
+            echo "### ✨ Nouvelles fonctionnalités" >> "CHANGELOG_FR.md"
+        elif [[ "$line" =~ ^###\ 🔧\ Improvements$ ]]; then
+            echo "### ⚡ Améliorations" >> "CHANGELOG_FR.md"
+        elif [[ "$line" =~ ^###\ 🐛\ Bug\ Fixes$ ]]; then
+            echo "### 🐛 Corrections" >> "CHANGELOG_FR.md"
+        elif [[ "$line" =~ ^###\ 📝\ Other\ Changes$ ]]; then
+            echo "### 📝 Autres modifications" >> "CHANGELOG_FR.md"
+        elif [[ "$line" =~ ^###\ 📦\ Release$ ]]; then
+            echo "### 📦 Version" >> "CHANGELOG_FR.md"
+        elif [[ "$line" =~ ^-.*$ ]]; then
+            # Commit line - translate it
+            translated_line=$(translate_commit_line "$line")
+            echo "$translated_line" >> "CHANGELOG_FR.md"
+        else
+            # Other lines (empty lines, separators) - keep as is
+            echo "$line" >> "CHANGELOG_FR.md"
+        fi
+    done < "CHANGELOG.md"
+    
+    echo "✅ French changelog generated"
+}
+
+# Function to generate ready-to-display JSON for the app (last 3 versions only)
+generate_changelog_json() {
+    echo "📄 Generating ready-to-display JSON (last 3 versions)..."
+    
+    # Create temporary file to collect all versions
+    local temp_versions="/tmp/changelog_versions.json"
+    echo "[" > "$temp_versions"
+    
+    local first_version=true
+    local current_version=""
+    local current_date=""
+    local current_changes=""
+    local in_feature_section=false
+    local version_count=0
+    
+    # Read the French changelog and convert to JSON
+    while IFS= read -r line; do
+        # Detect version line (## [1.0.0] - 2025-01-01)
+        if [[ "$line" =~ ^##\ \[([^\]]+)\](?:\s*-\s*(.+))? ]]; then
+            # Save previous version if exists
+            if [ -n "$current_version" ] && [ -n "$current_changes" ]; then
+                if [ "$first_version" = true ]; then
+                    first_version=false
+                else
+                    echo "," >> "$temp_versions"
+                fi
+                
+                echo "  {" >> "$temp_versions"
+                echo "    \"version\": \"$current_version\"," >> "$temp_versions"
+                echo "    \"date\": \"$current_date\"," >> "$temp_versions"
+                echo "    \"changes\": [" >> "$temp_versions"
+                echo "$current_changes" >> "$temp_versions"
+                echo "    ]" >> "$temp_versions"
+                echo "  }" >> "$temp_versions"
+                
+                version_count=$((version_count + 1))
+            fi
+            
+            current_version="${BASH_REMATCH[1]}"
+            current_date="${BASH_REMATCH[2]:-}"
+            current_changes=""
+            in_feature_section=false
+            continue
+        fi
+        
+        # Detect feature sections
+        if [[ "$line" =~ ^###\ ✨.*Nouvelles\ fonctionnalités ]] || [[ "$line" =~ ^###\ 🐛.*Corrections ]]; then
+            in_feature_section=true
+            continue
+        fi
+        
+        # Detect end of section
+        if [[ "$line" =~ ^###\  ]] && [[ ! "$line" =~ ✨ ]] && [[ ! "$line" =~ 🐛 ]]; then
+            in_feature_section=false
+            continue
+        fi
+        
+        # Detect end of version
+        if [[ "$line" =~ ^---$ ]]; then
+            in_feature_section=false
+            continue
+        fi
+        
+        # Detect commit lines in feature sections
+        if [[ "$line" =~ ^-\ (.+)$ ]] && [ "$in_feature_section" = true ] && [ -n "$current_version" ]; then
+            local commit="${BASH_REMATCH[1]}"
+            
+            # Filter technical commits
+            if [[ ! "$commit" =~ ^(chore:|refactor:|build:|ci:|deps:|dependencies): ]]; then
+                # Determine emoji
+                local emoji="🔧"
+                if [[ "$commit" =~ feat: ]] || [[ "$commit" =~ ✨ ]]; then
+                    emoji="✨"
+                elif [[ "$commit" =~ fix: ]] || [[ "$commit" =~ 🐛 ]]; then
+                    emoji="🐛"
+                elif [[ "$commit" =~ improve: ]] || [[ "$commit" =~ ⚡ ]]; then
+                    emoji="⚡"
+                fi
+                
+                # Add comma if not first change
+                if [ -n "$current_changes" ]; then
+                    current_changes+=","
+                fi
+                
+                # Escape quotes in commit message
+                local escaped_commit=$(echo "$commit" | sed 's/"/\\"/g')
+                
+                current_changes+="
+      {
+        \"id\": \"$current_version-$(echo "$current_changes" | grep -o "," | wc -l)\",
+        \"emoji\": \"$emoji\",
+        \"description\": \"$escaped_commit\"
+      }"
+            fi
+        fi
+    done < "CHANGELOG_FR.md"
+    
+    # Add last version
+    if [ -n "$current_version" ] && [ -n "$current_changes" ]; then
+        if [ "$first_version" = true ]; then
+            first_version=false
+        else
+            echo "," >> "$temp_versions"
+        fi
+        
+        echo "  {" >> "$temp_versions"
+        echo "    \"version\": \"$current_version\"," >> "$temp_versions"
+        echo "    \"date\": \"$current_date\"," >> "$temp_versions"
+        echo "    \"changes\": [" >> "$temp_versions"
+        echo "$current_changes" >> "$temp_versions"
+        echo "    ]" >> "$temp_versions"
+        echo "  }" >> "$temp_versions"
+        
+        version_count=$((version_count + 1))
+    fi
+    
+    echo "]" >> "$temp_versions"
+    
+    # Extract only the last 3 versions using jq (if available) or awk
+    if command -v jq >/dev/null 2>&1; then
+        jq '.[0:3]' "$temp_versions" > "changelog.json"
+    else
+        # Fallback: use awk to extract first 3 versions
+        awk '
+        BEGIN { in_version = 0; version_count = 0; print "[" }
+        /^  {/ { 
+            if (version_count > 0) print ","
+            in_version = 1
+            version_count++
+        }
+        in_version == 1 { print }
+        /^  }/ { 
+            in_version = 0
+            if (version_count >= 3) exit
+        }
+        END { print "]" }
+        ' "$temp_versions" > "changelog.json"
+    fi
+    
+    # Clean up
+    rm -f "$temp_versions"
+    
+    echo "✅ Ready-to-display JSON generated (last 3 versions)"
+}
+
+# Function to translate a single commit line
+translate_commit_line() {
+    local line="$1"
+    
+    # Extract the commit message (remove the leading "- ")
+    local commit_msg="${line#- }"
+    
+    # First try Google Translate
+    local translated=$(translate_with_google "$commit_msg")
+    
+    # If Google Translate fails, use dictionary fallback
+    if [ -z "$translated" ]; then
+        translated=$(apply_translations "$commit_msg")
+    else
+        # Apply post-translation corrections to Google Translate result
+        translated=$(apply_translations "$translated")
+    fi
+    
+    echo "- $translated"
+}
+
+# Function to translate text using Google Translate API
+translate_with_google() {
+    local text="$1"
+    
+    # Use Google Translate API (free tier)
+    local response=$(curl -s "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q=$(echo "$text" | sed 's/ /%20/g')" 2>/dev/null)
+    
+    if [ $? -eq 0 ] && [ -n "$response" ]; then
+        # Extract translation from JSON response
+        echo "$response" | sed 's/\[\[\["\([^"]*\)".*/\1/' 2>/dev/null
+    else
+        echo ""
+    fi
+}
+
+# Function to apply translations from dictionary file
+apply_translations() {
+    local text="$1"
+    local translated="$text"
+    
+    # Check if dictionary file exists
+    if [ ! -f "scripts/translation-dict.txt" ]; then
+        echo "Warning: translation dictionary not found, using original text" >&2
+        echo "$text"
+        return
+    fi
+    
+    # Read dictionary and apply translations
+    while IFS='|' read -r english french; do
+        # Skip comments and empty lines
+        if [[ "$english" =~ ^#.*$ ]] || [[ -z "$english" ]]; then
+            continue
+        fi
+        
+        # Escape special characters for sed
+        english_escaped=$(printf '%s\n' "$english" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        french_escaped=$(printf '%s\n' "$french" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        
+        # Apply translation
+        translated=$(echo "$translated" | sed "s/$english_escaped/$french_escaped/g")
+    done < "scripts/translation-dict.txt"
+    
+    echo "$translated"
 }
 
 # Verify we're on staging branch
@@ -474,7 +732,7 @@ else
 fi
 
 # Commit version changes
-execute_cmd "git add package.json public/version.txt CHANGELOG.md" "Add modified files"
+execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md changelog.json" "Add modified files"
 execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit version changes"
 
 # Push staging (only in real deployment)

@@ -1,4 +1,4 @@
-# 🚀 Guide de Déploiement Multi-Environnement HatCast
+# 🚀 Guide de Release et Déploiement Multi-Environnement HatCast
 
 ## 🌍 **Environnements Disponibles**
 
@@ -25,8 +25,8 @@
 
 ### **🔄 Workflow Simplifié**
 1. **Développement** : Branches `feature/*` → Tests locaux
-2. **Staging** : Merge `feature/*` → `staging` → Déploiement automatique
-3. **Production** : Script `./scripts/deploy-production.sh` → Versioning automatique → Déploiement automatique
+2. **Staging** : Merge `feature/*` → `staging` → **Déploiement automatique** (GitHub Actions)
+3. **Production** : Script `./scripts/release-version.sh` → **Release management** → **Déploiement automatique** (GitHub Actions)
 
 ## 🔄 **Workflow de Développement**
 
@@ -56,26 +56,33 @@ git merge feature/nouvelle-fonctionnalite
 # Tester sur https://hatcast-staging.web.app
 ```
 
-### **3. Déploiement en Production**
+### **3. Release en Production**
 ```bash
-# Utiliser le script intelligent de déploiement
-./scripts/deploy-production.sh --dry-run   # Simuler le déploiement
-./scripts/deploy-production.sh             # Exécuter le déploiement
+# Utiliser le script de gestion des versions
+./scripts/release-version.sh --dry-run   # Simuler le release
+./scripts/release-version.sh             # Exécuter le release
 
+# Le script gère le versioning et déclenche le déploiement automatique
 # OU manuellement (non recommandé)
 git checkout main
 git merge staging
 ```
 
-## 📦 **Gestion des Versions Automatique**
+## 📦 **Gestion des Versions et Release**
 
-### **🚀 Script de Déploiement Intelligent**
+### **🚀 Script de Release Management**
 
-Le projet utilise un script automatisé pour gérer les versions et les déploiements en production :
+Le projet utilise un script automatisé pour gérer les versions et les releases en production :
+
+> **⚠️ Important** : Le script ne fait **PAS** le déploiement technique. Il gère uniquement :
+> - Versioning (incrémentation des versions)
+> - Génération de changelog
+> - Opérations Git (commits, merges, tags)
+> - Déclenchement du déploiement via GitHub Actions
 
 ```bash
-# Script principal de déploiement
-./scripts/deploy-production.sh [OPTIONS]
+# Script principal de release management
+./scripts/release-version.sh [OPTIONS]
 ```
 
 ### **📋 Options Disponibles**
@@ -83,24 +90,24 @@ Le projet utilise un script automatisé pour gérer les versions et les déploie
 #### **Types de Versioning (Sémantique)**
 ```bash
 # Patch : Corrections de bugs, petites améliorations (1.2.3 → 1.2.4)
-./scripts/deploy-production.sh --patch     # Par défaut
-./scripts/deploy-production.sh             # Équivalent
+./scripts/release-version.sh --patch     # Par défaut
+./scripts/release-version.sh             # Équivalent
 
 # Minor : Nouvelles fonctionnalités compatibles (1.2.3 → 1.3.0)
-./scripts/deploy-production.sh --minor
+./scripts/release-version.sh --minor
 
 # Major : Breaking changes, refonte majeure (1.2.3 → 2.0.0)
-./scripts/deploy-production.sh --major
+./scripts/release-version.sh --major
 ```
 
 #### **Mode Simulation**
 ```bash
 # Dry-run : Voir exactement ce qui va être fait (recommandé)
-./scripts/deploy-production.sh --dry-run --minor
-./scripts/deploy-production.sh --dry-run --major
+./scripts/release-version.sh --dry-run --minor
+./scripts/release-version.sh --dry-run --major
 
 # Aide complète
-./scripts/deploy-production.sh --help
+./scripts/release-version.sh --help
 ```
 
 ### **🔍 Fonctionnalités Intelligentes**
@@ -129,14 +136,15 @@ Le script gère automatiquement :
 - ✅ **Validation** : Vérifie l'état de la branche et des commits
 - ✅ **Versioning** : Incrémente la version selon le type choisi
 - ✅ **Fichiers** : Met à jour `package.json` et `public/version.txt`
+- ✅ **Changelog** : Génère `CHANGELOG.md` et `CHANGELOG_FR.md`
 - ✅ **Git** : Commit, merge staging → main, création de tags
-- ✅ **Déploiement** : Déclenche la GitHub Action automatiquement
+- ✅ **Déclenchement** : Push sur `main` → GitHub Actions déploie automatiquement
 
 #### **Exemple de Dry-Run**
 ```bash
-$ ./scripts/deploy-production.sh --dry-run --minor
+$ ./scripts/release-version.sh --dry-run --minor
 
-🔍 DRY RUN - Simulation du déploiement en production
+🔍 DRY RUN - Simulation du release en production
 ==================================================
 ⚠️  Mode simulation : aucune modification ne sera effectuée
 📋 Type de bump: minor
@@ -164,8 +172,8 @@ $ ./scripts/deploy-production.sh --dry-run --minor
    └─ git tag -a "v1.1.0"
 
 🚀 SIMULATION: Déploiement qui serait déclenché...
-   - GitHub Action détecterait le push sur main
-   - Build et déploiement automatique sur Firebase
+   - Push sur main → GitHub Action détecte automatiquement
+   - Build et déploiement automatique sur Firebase Hosting
    - URLs mises à jour: https://selections.la-malice.fr → v1.1.0
 
 ✅ DRY RUN TERMINÉ - Aucune modification effectuée
@@ -213,13 +221,14 @@ Merge staging to main for production release
 #### **Workflow Recommandé**
 ```bash
 # 1. Toujours commencer par un dry-run
-./scripts/deploy-production.sh --dry-run --minor
+./scripts/release-version.sh --dry-run --minor
 
 # 2. Vérifier les changements qui vont être faits
-# 3. Si tout est correct, exécuter le déploiement
-./scripts/deploy-production.sh --minor
+# 3. Si tout est correct, exécuter le release
+./scripts/release-version.sh --minor
 
-# 4. Vérifier le déploiement
+# 4. Le script déclenche automatiquement le déploiement via GitHub Actions
+# 5. Vérifier le déploiement
 # GitHub Actions: https://github.com/VOTRE_REPO/actions
 # Production: https://selections.la-malice.fr
 ```
@@ -230,21 +239,44 @@ Merge staging to main for production release
 - ✅ **Tags Git** pour rollback facile vers une version antérieure
 - ✅ **Dry-run obligatoire** pour les déploiements critiques
 
-## 🛠️ **Workflows GitHub Actions**
+## 🛠️ **Responsabilités : Release vs Déploiement**
 
-### **Déploiement Staging**
+### **📦 Script `release-version.sh` (Release Management)**
+**Responsabilités :**
+- ✅ **Versioning** : Incrémentation automatique des versions
+- ✅ **Changelog** : Génération de `CHANGELOG.md` et `CHANGELOG_FR.md`
+- ✅ **Git Operations** : Commits, merges, tags
+- ✅ **Validation** : Vérification des branches et hotfixes
+- ✅ **Déclenchement** : Push sur `main` pour déclencher le déploiement
+
+**Ne fait PAS :**
+- ❌ Build de l'application
+- ❌ Déploiement sur Firebase
+- ❌ Configuration des environnements
+
+### **🚀 GitHub Actions (Déploiement Technique)**
+**Responsabilités :**
+- ✅ **Build** : Compilation de l'application
+- ✅ **Deploy** : Déploiement sur Firebase Hosting
+- ✅ **Functions** : Déploiement des Cloud Functions
+- ✅ **Rules** : Déploiement des règles Firestore et Storage
+- ✅ **Environment** : Configuration spécifique à l'environnement
+
+### **🔄 Workflows GitHub Actions**
+
+#### **Déploiement Staging**
 - **Déclencheur** : Push sur la branche `staging`
 - ✅ Vérifie la branche `staging`
 - 🔧 Déploie les Firebase Functions
-- 🌐 Déploie l'application sur `votre-projet-staging.web.app`
+- 🌐 Déploie l'application sur `hatcast-staging.web.app`
 - 🗄️ Déploie les règles Firestore
 - 📁 Déploie les règles Storage
 
-### **Déploiement Production**
-- **Déclencheur** : Push sur la branche `main`
+#### **Déploiement Production**
+- **Déclencheur** : Push sur la branche `main` (déclenché par le script de release)
 - ✅ Vérifie la branche `main`
 - 🔧 Déploie les Firebase Functions
-- 🌐 Déploie l'application sur `votre-projet-production.web.app`
+- 🌐 Déploie l'application sur `selections.la-malice.fr`
 - 🗄️ Déploie les règles Firestore
 - 📁 Déploie les règles Storage
 
