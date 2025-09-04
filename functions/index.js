@@ -383,5 +383,6 @@ exports.checkAdminConfig = adminFunctions.checkAdminConfig;
 exports.testAdminAccess = adminFunctions.testAdminAccess;
 exports.getLogLevel = adminFunctions.getLogLevel;
 exports.setLogLevel = adminFunctions.setLogLevel;
+exports.resetPasswordWithCustomToken = adminFunctions.resetPasswordWithCustomToken;
 
 

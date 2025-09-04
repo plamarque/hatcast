@@ -4952,9 +4952,10 @@ async function requirePlayerPassword(operation) {
     }
   } catch {}
 
-  // Vérifier si le mot de passe du joueur est déjà en cache
-  if (isPlayerPasswordCached(playerId)) {
-            // Mot de passe du joueur en cache trouvé, utilisation automatique
+  // Vérifier si le mot de passe du joueur est déjà en cache ET que l'utilisateur est connecté
+  const isConnected = !!currentUser.value?.email
+  if (isConnected && isPlayerPasswordCached(playerId)) {
+            // Mot de passe du joueur en cache trouvé ET utilisateur connecté, utilisation automatique
     // Exécuter directement l'opération
     await executePendingOperation(operation)
     return

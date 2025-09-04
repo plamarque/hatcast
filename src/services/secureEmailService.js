@@ -61,7 +61,8 @@ class SecureEmailService {
     if (hostname.includes('staging')) {
       return 'https://us-central1-impro-selector.cloudfunctions.net';
     } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134')) {
-      // En développement local, utiliser les emulators ou la production
+      // En développement local, utiliser les vraies functions de production (comme avant)
+      // Les emails Ethereal sont gérés côté production via les credentials passés en paramètres
       return 'https://us-central1-impro-selector.cloudfunctions.net';
     } else {
       return 'https://us-central1-impro-selector.cloudfunctions.net';
@@ -208,7 +209,7 @@ class SecureEmailService {
     
     try {
       logger.info('🧪 Test email - Environnement:', environment);
-      const url = `${this.baseUrl}/testEmail?environment=${environment}`;
+      let url = `${this.baseUrl}/testEmail?environment=${environment}`;
       
       logger.info('🌐 URL de test:', url);
       

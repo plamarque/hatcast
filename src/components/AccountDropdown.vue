@@ -75,9 +75,9 @@
           <span class="truncate">Installer l'app</span>
         </button>
         
-        <!-- Item Développement (admin uniquement) -->
+        <!-- Item Développement (admin ou développement local) -->
         <button 
-          v-if="isAdmin"
+          v-if="isAdmin || isDevelopment"
           @click="openDevelopment"
           class="w-full text-left px-4 py-2 text-sm text-purple-300 hover:bg-purple-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
@@ -102,10 +102,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
 import adminService from '../services/adminService.js'
+import configService from '../services/configService.js'
 import logger from '../services/logger.js'
 import UserAvatar from './UserAvatar.vue'
 
@@ -129,6 +130,11 @@ const isLoading = ref(true)
 const dropdownButton = ref(null)
 const dropdownStyle = ref({})
 const isAdmin = ref(false)
+
+// Détecter l'environnement de développement
+const isDevelopment = computed(() => {
+  return configService.getEnvironment() === 'development'
+})
 
 // Réinitialiser isLoading immédiatement quand isConnected change
 watch(() => props.isConnected, (newValue) => {

@@ -214,6 +214,7 @@ import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
+import { currentUser } from '../services/authState.js'
 
 const props = defineProps({
   show: {
@@ -335,13 +336,14 @@ async function saveEdit() {
   // Vérifier si le joueur est protégé
   const isProtected = await isPlayerProtected(props.player?.id, props.seasonId)
   if (isProtected) {
-    // Vérifier s'il y a une session active
+    // Vérifier s'il y a une session active ET que l'utilisateur est connecté
     const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
-    if (hasCachedPassword) {
-      // Session active, procéder directement
+    const isConnected = !!currentUser.value?.email
+    if (isConnected && hasCachedPassword) {
+      // Session active ET utilisateur connecté, procéder directement
       await performUpdate()
     } else {
-      // Pas de session, demander le mot de passe
+      // Pas de session ou pas connecté, demander le mot de passe
       pendingAction.value = 'update'
       showPasswordVerification.value = true
     }
@@ -368,13 +370,14 @@ async function handleDelete() {
   // Vérifier si le joueur est protégé
   const isProtected = await isPlayerProtected(props.player?.id, props.seasonId)
   if (isProtected) {
-    // Vérifier s'il y a une session active
+    // Vérifier s'il y a une session active ET que l'utilisateur est connecté
     const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
-    if (hasCachedPassword) {
-      // Session active, procéder directement
+    const isConnected = !!currentUser.value?.email
+    if (isConnected && hasCachedPassword) {
+      // Session active ET utilisateur connecté, procéder directement
       performDelete()
     } else {
-      // Pas de session, demander le mot de passe
+      // Pas de session ou pas connecté, demander le mot de passe
       pendingAction.value = 'delete'
       showPasswordVerification.value = true
     }
@@ -507,7 +510,11 @@ watch(() => props.show, (newValue) => {
   if (newValue && props.player?.id) {
     isPlayerProtected(props.player.id, props.seasonId).then(v => { isProtectedForPlayer.value = !!v })
     import('../services/playerProtection.js').then(mod => {
-      try { isOwnerForPlayer.value = !!mod.isPlayerPasswordCached(props.player.id) } catch { isOwnerForPlayer.value = false }
+      try { 
+        // Seulement considérer comme owner si l'utilisateur est connecté ET a un cache
+        const isConnected = !!currentUser.value?.email
+        isOwnerForPlayer.value = isConnected && !!mod.isPlayerPasswordCached(props.player.id) 
+      } catch { isOwnerForPlayer.value = false }
     })
   }
 })

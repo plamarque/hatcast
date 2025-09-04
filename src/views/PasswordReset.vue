@@ -88,7 +88,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { confirmPasswordReset, signInWithEmailAndPassword, verifyPasswordResetCode } from 'firebase/auth'
+import { confirmPasswordReset, signInWithEmailAndPassword, verifyPasswordResetCode, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import logger from '../services/logger.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
@@ -116,23 +116,40 @@ const canResetPassword = computed(() => {
 
 onMounted(async () => {
   try {
-    // Récupérer les paramètres de l'URL
-    const { oobCode: token } = route.query
+    // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
+    const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
     
-    logger.debug('Token reçu (masqué)')
+    logger.info('🔍 DEBUG PasswordReset - Paramètres URL reçus:', {
+      hasFirebaseToken: !!firebaseToken,
+      hasMagicToken: !!magicToken,
+      hasEmail: !!emailParam,
+      hasPlayer: !!playerId,
+      allParams: route.query
+    })
     
-    if (!token) {
+    // Support pour les magic links (ancien système)
+    if (magicToken && playerId) {
+      logger.info('🔗 Utilisation du système Magic Link')
+      oobCode.value = magicToken
+      email.value = playerId // Dans notre cas, playerId = email
+      loading.value = false
+      return
+    }
+    
+    // Support pour Firebase Auth (nouveau système)
+    if (!firebaseToken) {
+      logger.warn('❌ Aucun token (oobCode ou magic token) trouvé dans l\'URL')
       error.value = 'Lien de réinitialisation incomplet'
       loading.value = false
       return
     }
 
-    oobCode.value = token
+    oobCode.value = firebaseToken
     
     // Récupérer l'email depuis le token Firebase
     try {
       logger.debug('Vérification du token et récupération de l\'email...')
-      const emailFromToken = await verifyPasswordResetCode(auth, token)
+      const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
       email.value = emailFromToken
       logger.info('Email récupéré depuis le token:', emailFromToken)
     } catch (verifyError) {
@@ -161,9 +178,58 @@ async function resetPassword() {
   try {
     logger.debug('Début réinitialisation avec token (masqué)')
     
-    // Réinitialisation avec token Firebase
-    await confirmPasswordReset(auth, oobCode.value, newPassword.value)
-    logger.info('Mot de passe Firebase Auth mis à jour')
+    // Déterminer si c'est un magic link ou Firebase Auth
+    const isUsingMagicLink = route.query.player && route.query.token
+    
+    if (isUsingMagicLink) {
+      logger.info('🔗 Réinitialisation via Magic Link avec Cloud Function')
+      
+      // Utiliser la Cloud Function pour réinitialiser avec token custom
+      logger.info('🔍 Paramètres envoyés à la Cloud Function:', {
+        email: email.value,
+        token: oobCode.value?.substring(0, 6) + '••••••',
+        passwordLength: newPassword.value?.length
+      })
+      
+      const { getFunctions, httpsCallable } = await import('firebase/functions')
+      const functions = getFunctions()
+      logger.info('🔍 Functions instance créée')
+      
+      const resetPasswordFunction = httpsCallable(functions, 'resetPasswordWithCustomToken')
+      logger.info('🔍 Callable function créée')
+      
+      logger.info('🔍 Appel de la Cloud Function...')
+      const result = await resetPasswordFunction({
+        email: email.value,
+        token: oobCode.value, // Notre token custom
+        newPassword: newPassword.value
+      })
+      
+      logger.info('🔍 Réponse reçue, type:', typeof result)
+      logger.info('🔍 Result complet:', result)
+      logger.info('🔍 Result.data type:', typeof result?.data)
+      logger.info('🔍 Result.data:', result?.data)
+      
+      if (result?.data) {
+        logger.info('🔍 Success:', result.data.success)
+        logger.info('🔍 Error:', result.data.error)
+        logger.info('🔍 Details:', result.data.details)
+        logger.info('🔍 Message:', result.data.message)
+      } else {
+        logger.error('❌ Aucune data dans la réponse!')
+      }
+      
+      if (!result.data.success) {
+        const errorMessage = result.data.details || result.data.error || 'Erreur lors de la réinitialisation'
+        throw new Error(errorMessage)
+      }
+      
+      logger.info('✅ Mot de passe réinitialisé via Cloud Function')
+    } else {
+      logger.info('🔑 Réinitialisation via Firebase Auth avec oobCode')
+      await confirmPasswordReset(auth, oobCode.value, newPassword.value)
+      logger.info('✅ Mot de passe Firebase Auth mis à jour')
+    }
     
     // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !
     logger.info('Réinitialisation terminée avec Firebase Auth')
@@ -196,7 +262,12 @@ async function resetPassword() {
       }, 3000)
     }
   } catch (err) {
-    logger.error('Erreur lors de la réinitialisation', err)
+    logger.error('❌ Erreur lors de la réinitialisation', {
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+      fullError: err
+    })
     
     if (err.code === 'auth/weak-password') {
       resetError.value = 'Le mot de passe doit contenir au moins 6 caractères'

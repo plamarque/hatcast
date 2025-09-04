@@ -59,6 +59,7 @@ class AdminService {
     if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
       return 'https://us-central1-impro-selector.cloudfunctions.net';
     } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134')) {
+      // En développement local, utiliser les vraies functions de production (comme avant)
       return 'https://us-central1-impro-selector.cloudfunctions.net';
     } else {
       return 'https://us-central1-impro-selector.cloudfunctions.net';

@@ -6,6 +6,7 @@ import logger from './logger.js'
 import { queuePushMessage } from './pushService'
 import { buildAvailabilityEmailTemplate, buildNotificationActivationTemplate } from './emailTemplates.js'
 import { serverTimestamp } from 'firebase/firestore'
+import AuditClient from './auditClient.js'
 
 // Fonction utilitaire pour configurer l'expéditeur selon l'environnement
 function getFromEmailConfig(customFromEmail = null) {
@@ -39,7 +40,7 @@ function getFromEmailConfig(customFromEmail = null) {
 // Fonction pour générer un lien de réinitialisation
 export function generateResetLink(playerId, token) {
   // En production, utilisez votre domaine
-  return `${window.location.origin}/reset-password?player=${playerId}&token=${token}`
+  return `${window.location.origin}/reset-password?player=${encodeURIComponent(playerId)}&token=${encodeURIComponent(token)}`
 }
 
 // Enqueue email for Firebase Trigger Email (SendGrid/SMTP) via Firestore
@@ -182,8 +183,14 @@ export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'pl
     database: 'development'
   })
   
-  await firestoreService.addDocument('mail', docData)
-  logger.info('✅ Document email ajouté avec succès dans Firestore')
+  const documentRef = await firestoreService.addDocument('mail', docData)
+  const documentId = documentRef.id || 'unknown'
+  
+  logger.info('✅ Document email ajouté avec succès dans Firestore', {
+    documentId: documentId,
+    recipient: AuditClient.obfuscateEmail(toEmail),
+    purpose: purpose
+  })
   
   if (emailConfig.service === 'ethereal' && emailConfig.capture) {
     return { success: true, captured: true }
@@ -195,6 +202,83 @@ export async function queueVerificationEmail({ toEmail, verifyUrl, purpose = 'pl
 // Ancien alias conservé pour compat: protection joueur
 export async function queueProtectionVerificationEmail({ toEmail, playerName, verifyUrl, fromEmail = undefined }) {
   return queueVerificationEmail({ toEmail, verifyUrl, purpose: 'player_protection', displayName: playerName, fromEmail })
+}
+
+// Envoi d'un email de réinitialisation de mot de passe via la queue Firestore (pour Ethereal en dev)
+export async function queuePasswordResetEmail({ toEmail, resetUrl, displayName = 'utilisateur', fromEmail = undefined }) {
+  const greeting = displayName && displayName !== 'utilisateur' ? `Salut ${displayName} !` : 'Salut !'
+  const subject = '🔑 Réinitialise ton mot de passe'
+  
+  // Récupérer la durée d'expiration depuis la configuration
+  const expirationDays = configService.getMagicLinkExpirationDays()
+  const expirationText = expirationDays === 1 ? '1 jour' : `${expirationDays} jours`
+  
+  const html = `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting}</p>
+      <p>Tu as demandé à réinitialiser ton mot de passe. Clique sur le bouton ci-dessous pour créer un nouveau mot de passe.</p>
+      <p>
+        <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #dc2626, #b91c1c);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(220, 38, 38, 0.3);">Réinitialiser mon mot de passe</a>
+      </p>
+      <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans ${expirationText}.</p>
+      <p style="font-size:12px;color:#6b7280;">Si tu n'as pas demandé cette réinitialisation, tu peux ignorer cet email.</p>
+    </div>
+  `
+  const docData = {
+    to: toEmail,
+    message: { subject, html },
+    createdAt: serverTimestamp(),
+    meta: { reason: 'password_reset', displayName }
+  }
+  
+  // Configurer l'expéditeur (HatCast par défaut)
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
+  
+  try {
+    logger.info('🔍 DEBUG: Tentative d\'ajout du document', {
+      collection: 'mail',
+      hasFirestoreService: !!firestoreService,
+      to: toEmail,
+      subject: docData.message.subject,
+      database: 'development'
+    })
+    
+    // Ajouter à la collection mail pour traitement par les Firebase Functions
+    const documentRef = await firestoreService.addDocument('mail', docData)
+    const documentId = documentRef.id || 'unknown'
+    
+    // Logger l'ID du document pour debug
+    logger.info('📧 Email de reset ajouté à la queue Firestore', {
+      documentId: documentId,
+      recipient: AuditClient.obfuscateEmail(toEmail),
+      reason: 'password_reset'
+    })
+    
+    // Logger à des fins d'audit (anonymisé)
+    try {
+      await AuditClient.logUserAction({
+        type: 'password_reset_email_queued',
+        category: 'email',
+        severity: 'info',
+        data: {
+          recipient: AuditClient.obfuscateEmail(toEmail),
+          reason: 'password_reset',
+          documentId: documentId,
+          timestamp: new Date().toISOString()
+        },
+        success: true,
+        tags: ['email', 'password_reset']
+      })
+    } catch (auditError) {
+      logger.warn('Impossible de logger l\'audit:', auditError.message)
+    }
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'ajout de l\'email de reset à la queue:', error)
+    throw error
+  }
+  return { success: true }
 }
 
 // Fonction pour envoyer des emails de notification de sélection

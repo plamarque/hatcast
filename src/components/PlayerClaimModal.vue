@@ -268,9 +268,10 @@ async function checkProtectionStatus() {
   if (props.player?.id) {
     isProtected.value = await isPlayerProtected(props.player.id, props.seasonId)
     // Heuristique propriétaire: si un mot de passe a été validé récemment (session), considérer comme owner
+    // MAIS seulement si l'utilisateur est connecté
     try {
       const { isPlayerPasswordCached } = await import('../services/playerProtection.js')
-      isOwner.value = isPlayerPasswordCached(props.player.id)
+      isOwner.value = isUserConnected.value && isPlayerPasswordCached(props.player.id)
     } catch { isOwner.value = false }
   }
 }
@@ -336,9 +337,9 @@ async function activateProtection() {
 
 function startDeactivateProtection() {
   error.value = ''
-  // Si le mot de passe du joueur est déjà en cache, on peut dissocier directement
+  // Si le mot de passe du joueur est déjà en cache ET que l'utilisateur est connecté, on peut dissocier directement
   try {
-    if (props.player?.id && isPlayerPasswordCached(props.player.id)) {
+    if (props.player?.id && isUserConnected.value && isPlayerPasswordCached(props.player.id)) {
       performUnprotect()
       return
     }

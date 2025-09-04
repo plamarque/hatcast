@@ -190,7 +190,38 @@ export async function resetPlayerPassword(email) {
     if (!auth) {
       throw new Error('Firebase Auth n\'est pas encore initialisé')
     }
-    await sendPasswordResetEmail(auth, email)
+    
+    const environment = configService.getEnvironment()
+    
+    if (environment === 'development') {
+      // En développement, utiliser notre queue Firestore pour que l'email arrive dans Ethereal
+      const { queuePasswordResetEmail, generateResetLink } = await import('./emailService.js')
+      
+      // Générer un token personnalisé (système magic link)
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      
+      // Utiliser l'ancien système de lien avec player/token
+      const resetUrl = generateResetLink(email, token) // Utilise email comme playerId temporairement
+      
+      logger.info('🔗 Génération magic link pour reset password', { 
+        email: email.substring(0, 3) + '••@••••.com', 
+        token: token.substring(0, 6) + '••••••',
+        resetUrl: resetUrl.substring(0, 50) + '...'
+      })
+      
+      await queuePasswordResetEmail({
+        toEmail: email,
+        resetUrl: resetUrl,
+        displayName: 'utilisateur' // On n'a pas le nom ici
+      })
+      
+      logger.info('📧 Email de reset mis en queue Firestore pour Ethereal en développement')
+    } else {
+      // En production/staging, utiliser Firebase Auth directement
+      const { sendPasswordResetEmail } = await import('firebase/auth')
+      await sendPasswordResetEmail(auth, email)
+      logger.info('Reset email envoyé via Firebase Auth (Gmail)')
+    }
   } catch (error) {
     // Capturer proprement les erreurs de reset de mot de passe
     if (error.code === 'auth/user-not-found') {
