@@ -90,6 +90,20 @@
         </div>
       </template>
       
+      <!-- Icône commentaire pour les "Pas disponible" avec commentaire -->
+      <template v-if="isAvailable === false && hasComment">
+        <div class="flex items-center justify-center mt-1">
+          <span 
+            :class="compact ? 'text-xs' : 'text-base md:text-sm'"
+            class="cursor-pointer hover:text-yellow-300 transition-colors"
+            @click.stop="showCommentModal"
+            title="Voir le commentaire"
+          >
+            📝
+          </span>
+        </div>
+      </template>
+      
       <!-- Debug des computed properties -->
       <template v-if="isAvailable === true && !compact && false">
         <div class="text-xs text-gray-400 mt-1">

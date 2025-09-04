@@ -318,7 +318,7 @@ function handleNotAvailable() {
   emit('not-available', {
     available: false,
     roles: [],
-    comment: null
+    comment: comment.value.trim() || null
   })
 }
 

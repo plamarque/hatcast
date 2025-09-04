@@ -6853,7 +6853,7 @@ async function handleAvailabilityNotAvailable(availabilityData) {
       eventId: availabilityModalData.value.eventId,
       available: false,
       roles: [],
-      comment: null
+      comment: availabilityData.comment
     })
     
     // Mettre à jour les données locales
@@ -6863,7 +6863,7 @@ async function handleAvailabilityNotAvailable(availabilityData) {
     availability.value[availabilityModalData.value.playerName][availabilityModalData.value.eventId] = {
       available: false,
       roles: [],
-      comment: null
+      comment: availabilityData.comment
     }
     
     showAvailabilityModal.value = false
