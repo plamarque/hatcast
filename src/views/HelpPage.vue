@@ -302,6 +302,7 @@ const keywordTranslations = {
   'player': 'joueur',
   'players': 'joueurs',
   'event': 'événement',
+  'modique': 'modale',
   'events': 'événements',
   'season': 'saison',
   'seasons': 'saisons',
