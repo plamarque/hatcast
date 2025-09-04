@@ -7,7 +7,7 @@
           <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-2xl">❓</div>
           <div>
             <h2 class="text-xl md:text-2xl font-bold text-white">Kezako ?</h2>
-            <p class="text-sm text-purple-300">L'appli pour organiser vos spectacles d'improvisation de manière simple et apaisée</p>
+            <p class="text-sm text-purple-300">L'appli pour organiser vos événements d'improvisation de manière simple et apaisée</p>
           </div>
         </div>
       </div>
@@ -16,7 +16,7 @@
         <div class="bg-white/5 border border-white/10 rounded-lg p-4 space-y-3">
           <h3 class="text-white font-semibold">C'est quoi ?</h3>
           <p>
-            HatCast est une appli conçue pour faciliter <span class="text-white">la sélection des joueurs d'impro</span> pour les spectacles.
+            HatCast est une appli conçue pour faciliter <span class="text-white">la sélection des joueurs d'impro</span> pour les événements.
             L'idée est née au sein de <span class="text-purple-300">La Malice</span> pour <span class="text-white">dépersonnaliser une tâche délicate</span> qui créait des tensions depuis des années.
           </p>
         </div>

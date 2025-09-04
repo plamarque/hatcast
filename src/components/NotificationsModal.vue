@@ -38,14 +38,14 @@
             <div class="text-blue-200 text-sm">Nous enverrons des emails à l'adresse : <span class="text-blue-100 font-semibold">{{ email || 'Non connecté' }}</span></div>
           </div>
           
-          <!-- Notifications de spectacles -->
+          <!-- Notifications d'événements -->
            <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
-             <h4 class="text-sm font-medium text-gray-300 mb-3">Spectacles</h4>
+             <h4 class="text-sm font-medium text-gray-300 mb-3">Événements</h4>
              <div class="space-y-3">
                <div class="flex items-center justify-between">
                  <label class="flex items-center gap-2">
                    <input type="checkbox" v-model="prefs.notifyAvailability" class="w-4 h-4">
-                   <span class="text-sm text-white">M'envoyer un email lorsqu'un spectacle a besoin de personnes</span>
+                   <span class="text-sm text-white">M'envoyer un email lorsqu'un événement a besoin de personnes</span>
                  </label>
                </div>
                <div class="flex items-center justify-between">
@@ -65,13 +65,13 @@
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 cursor-not-allowed">
                   <input type="checkbox" v-model="prefs.notifyReminder7Days" disabled class="w-4 h-4 cursor-not-allowed">
-                  <span class="text-sm text-gray-400">Rappel automatique 7 jours avant un spectacle</span>
+                  <span class="text-sm text-gray-400">Rappel automatique 7 jours avant un événement</span>
                 </label>
               </div>
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 cursor-not-allowed">
                   <input type="checkbox" v-model="prefs.notifyReminder1Day" disabled class="w-4 h-4 cursor-not-allowed">
-                  <span class="text-sm text-gray-400">Rappel automatique 1 jour avant un spectacle</span>
+                  <span class="text-sm text-gray-400">Rappel automatique 1 jour avant un événement</span>
                 </label>
               </div>
             </div>
@@ -111,9 +111,9 @@
             </div>
           </div>
 
-                     <!-- Notifications de spectacles -->
+                     <!-- Notifications d'événements -->
            <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
-             <h4 class="text-sm font-medium text-gray-300 mb-3">Spectacles</h4>
+             <h4 class="text-sm font-medium text-gray-300 mb-3">Événements</h4>
              <div class="space-y-3">
                <div class="flex items-center justify-between">
                  <label class="flex items-center gap-2">
@@ -124,7 +124,7 @@
                <div class="flex items-center justify-between">
                  <label class="flex items-center gap-2">
                    <input type="checkbox" v-model="prefs.notifyAvailabilityPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
-                   <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsqu'un spectacle a besoin de joueurs</span>
+                   <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsqu'un événement a besoin de joueurs</span>
                  </label>
                </div>
              </div>

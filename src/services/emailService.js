@@ -510,7 +510,7 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
               </div>
               <p>🎭 <em>Préparez-vous à briller sur scène ! ✨</em></p>
               <p style="text-align: center;">
-                <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);">📋 Voir les détails du spectacle</a>
+                <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);">📋 Voir les détails de l'événement</a>
               </p>
             </div>
           `

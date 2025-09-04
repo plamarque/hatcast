@@ -62,7 +62,7 @@
         <!-- Indicateur d'état pour les cas sans état défini -->
         <div v-if="!isReadOnly && !hasCurrentState" class="text-center mb-3">
           <span class="text-xs text-gray-400">
-            Aucune disponibilité définie pour ce spectacle
+            Aucune disponibilité définie pour cet événement
           </span>
         </div>
         
@@ -74,7 +74,7 @@
           
           <div v-if="availableRoles.length === 0" class="space-y-3">
             <div class="text-center py-4 text-gray-400">
-              <p>Aucun rôle spécifique n'est attendu pour ce spectacle.</p>
+              <p>Aucun rôle spécifique n'est attendu pour cet événement.</p>
               <p class="text-sm mt-2">Tu peux indiquer ta disponibilité et ajouter un commentaire optionnel.</p>
             </div>
           </div>

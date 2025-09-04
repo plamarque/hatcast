@@ -289,7 +289,7 @@ onMounted(async () => {
             message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Un compte a été créé avec ton email et tu recevras un email pour définir ton mot de passe.`
           } else {
             console.log('ℹ️ Compte existant, pas de modal de succès')
-            message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Tu recevras des alertes pour tes spectacles.`
+            message.value = `Parfait ! Tes notifications sont maintenant actives pour ${result.playerName}. Tu recevras des alertes pour tes événements.`
           }
           
           // Ajouter une proposition de création de mot de passe

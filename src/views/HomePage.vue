@@ -193,7 +193,7 @@
             </div>
             <h3 class="text-xl font-semibold text-white mb-2">Ajoutez vos événements</h3>
             <p class="text-gray-300">
-              Planifiez vos spectacles avec dates, horaires et nombre de joueurs requis.
+              Planifiez vos événements avec dates, horaires et nombre de joueurs requis.
             </p>
           </div>
 

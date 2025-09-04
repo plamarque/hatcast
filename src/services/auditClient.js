@@ -484,10 +484,10 @@ class AuditClient {
     }
   }
 
-  // ===== GESTION DES SPECTACLES =====
+  // ===== GESTION DES ÉVÉNEMENTS =====
   
   /**
-   * Logger l'ajout d'un spectacle
+   * Logger l'ajout d'un événement
    */
   static async logEventAdded(eventTitle, seasonSlug, data = {}) {
     await this.safeLogUserAction({
@@ -506,7 +506,7 @@ class AuditClient {
   }
 
   /**
-   * Logger la réinitialisation d'un spectacle
+   * Logger la réinitialisation d'un événement
    */
   static async logEventReset(eventTitle, seasonSlug, data = {}) {
     await this.safeLogUserAction({
@@ -525,7 +525,7 @@ class AuditClient {
   }
 
   /**
-   * Logger la suppression d'un spectacle
+   * Logger la suppression d'un événement
    */
   static async logEventDeleted(eventTitle, seasonSlug, data = {}) {
     await this.safeLogUserAction({
@@ -544,7 +544,7 @@ class AuditClient {
   }
 
   /**
-   * Logger l'archivage d'un spectacle
+   * Logger l'archivage d'un événement
    */
   static async logEventArchived(eventTitle, seasonSlug, data = {}) {
     try {
@@ -567,7 +567,7 @@ class AuditClient {
   }
 
   /**
-   * Logger le désarchivage d'un spectacle
+   * Logger le désarchivage d'un événement
    */
   static async logEventUnarchived(eventTitle, seasonSlug, data = {}) {
     try {
@@ -590,7 +590,7 @@ class AuditClient {
   }
 
   /**
-   * Logger la modification d'un spectacle
+   * Logger la modification d'un événement
    */
   static async logEventModified(eventTitle, seasonSlug, changes = {}, data = {}) {
     await this.safeLogUserAction({
@@ -610,7 +610,7 @@ class AuditClient {
   }
 
   /**
-   * Logger l'annonce d'un nouveau spectacle
+   * Logger l'annonce d'un nouvel événement
    */
   static async logEventAnnounced(eventTitle, seasonSlug, data = {}) {
     await this.safeLogUserAction({
@@ -653,7 +653,7 @@ class AuditClient {
   }
 
   /**
-   * Logger la validation de la sélection de spectacles
+   * Logger la validation de la sélection d'événements
    */
   static async logSelectionValidated(seasonSlug, data = {}) {
     try {

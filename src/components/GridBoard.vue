@@ -25,15 +25,15 @@
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter spectacle -->
+              <!-- Bouton ajouter événement -->
               <button
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
-                title="Ajouter un nouveau spectacle"
+                title="Ajouter un nouvel événement"
               >
                 <span class="text-lg">➕</span>
-                <span class="hidden sm:inline">Ajouter un spectacle</span>
-                <span class="sm:hidden">Spectacle</span>
+                <span class="hidden sm:inline">Ajouter un événement</span>
+                <span class="sm:hidden">Événement</span>
               </button>
               
               <!-- Icône de la saison - cliquable pour rafraîchir -->
@@ -517,7 +517,7 @@
           <span class="text-2xl">⚠️</span>
         </div>
         <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
-        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer ce spectacle ?</p>
+        <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer cet événement ?</p>
       </div>
       <div class="flex justify-end space-x-3">
         <button
@@ -1356,7 +1356,7 @@
   <!-- Modal de prompt pour annoncer après création/modification -->
   <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
-              <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer ce spectacle ?</h3>
+              <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer cet événement ?</h3>
               <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux personnes pour qu'elles indiquent leur disponibilité</p>
       
       <div class="flex gap-3">
@@ -1801,7 +1801,7 @@ const playerResetLoading = ref(false)
 const playerResetError = ref('')
 const playerResetSuccess = ref('')
 
-// Variables pour les détails du spectacle
+// Variables pour les détails de l'événement
 const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
 const editingDescription = ref('')
@@ -3445,7 +3445,7 @@ function determineRoleTemplate(roles) {
   return 'custom'
 }
 
-// Fonction pour obtenir la couleur du compteur de rôle selon le détail spectacle
+// Fonction pour obtenir la couleur du compteur de rôle selon le détail événement
 function getRoleCountColor(count) {
   if (count === 0) return 'text-blue-500' // Bleu pour 0
   if (count === 1) return 'text-purple-500' // Violet pour 1
@@ -6699,7 +6699,7 @@ function promptForNotifications(event) {
   // Préparer les données pour la modal d'incitation
   notificationPromptData.value = {
     playerName: 'Vous', // Utilisateur générique
-    eventTitle: event.title || 'ce spectacle',
+    eventTitle: event.title || 'cet événement',
     seasonId: seasonId.value,
     seasonSlug: props.slug,
     eventId: event.id
@@ -6857,7 +6857,7 @@ function handlePlayerClaimUpdate(data) {
 
 // Fonctions pour la modale de disponibilité avec rôles
 function openAvailabilityModal(data) {
-  // Récupérer les rôles attendus pour ce spectacle
+  // Récupérer les rôles attendus pour cet événement
   let eventRoles = {}
   if (data.eventId) {
     const event = events.value.find(e => e.id === data.eventId)

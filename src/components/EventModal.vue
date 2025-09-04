@@ -4,7 +4,7 @@
       <!-- Header fixe -->
       <div class="p-6 pb-4 border-b border-gray-700/50">
         <h2 class="text-2xl font-bold text-white text-center">
-          {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
+          {{ mode === 'create' ? '✨ Nouvel événement' : '✏️ Modifier l\'événement' }}
         </h2>
       </div>
 
@@ -21,7 +21,7 @@
                 v-model="formData.title"
                 type="text"
                 class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-                placeholder="Titre du spectacle"
+                placeholder="Titre de l'événement"
                 @keydown.esc="handleCancel"
                 @keydown.enter="handleSubmit"
                 ref="titleInput"
@@ -157,7 +157,7 @@
             v-model="formData.description"
             class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             rows="3"
-            placeholder="Description du spectacle (optionnel)"
+            placeholder="Description de l'événement (optionnel)"
             @keydown.esc="handleCancel"
           ></textarea>
         </div>
@@ -171,7 +171,7 @@
             class="w-4 h-4" 
           />
           <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
-            {{ mode === 'create' ? 'Créer comme archivé' : 'Archiver ce spectacle' }}
+            {{ mode === 'create' ? 'Créer comme archivé' : 'Archiver cet événement' }}
           </label>
         </div>
         </form>

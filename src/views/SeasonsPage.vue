@@ -75,7 +75,7 @@
                 <div class="flex justify-center gap-6 text-sm">
                   <div class="text-center">
                     <div class="text-white font-semibold">{{ season.events?.length || 0 }}</div>
-                    <div class="text-gray-400 text-xs">Spectacles</div>
+                    <div class="text-gray-400 text-xs">Événements</div>
                   </div>
                   <div class="text-center">
                     <div class="text-white font-semibold">{{ season.players?.length || 0 }}</div>
@@ -139,7 +139,7 @@
               <span class="text-4xl">🎪</span>
             </div>
             <h3 class="text-2xl font-bold text-white mb-4">Aucune saison créée</h3>
-            <p class="text-gray-300 mb-8">Commencez par créer votre première saison de spectacles !</p>
+            <p class="text-gray-300 mb-8">Commencez par créer votre première saison d'événements !</p>
             
             <!-- Bouton Nouvelle saison -->
             <button
@@ -546,7 +546,7 @@ async function loadSeasons() {
     )
     
     seasons.value = seasonsWithData
-    logger.debug(`Saisons chargées avec données: ${seasonsWithData.map(s => `${s.name}: ${s.events?.length || 0} spectacles, ${s.players?.length || 0} participants`).join(', ')}`)
+    logger.debug(`Saisons chargées avec données: ${seasonsWithData.map(s => `${s.name}: ${s.events?.length || 0} événements, ${s.players?.length || 0} participants`).join(', ')}`)
   } catch (error) {
     logger.error('Erreur lors du chargement des saisons', error)
   } finally {

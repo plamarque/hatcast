@@ -133,7 +133,7 @@ const testResults = ref([])
 // Configuration de test
 const testEvent = ref({
   id: 'test-event',
-  title: 'Spectacle de test - Rappels automatiques',
+  title: 'Événement de test - Rappels automatiques',
   date: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000), // 8 jours dans le futur
   playerCount: 6
 })

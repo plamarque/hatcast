@@ -13,7 +13,7 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
       <p>${greeting},</p>
-      <p>🎯 <strong>Nouveau spectacle à l'horizon !</strong></p>
+      <p>🎯 <strong>Nouvel événement à l'horizon !</strong></p>
       <p>Es-tu dispo le ${eventDate} pour <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;font-weight:600;">${eventTitle}</a> ?</p>
       <p>🎭 <em>On a besoin de toi pour que ça brille ! ✨</em></p>
       <p style="margin-top: 12px; text-align: center;">
@@ -75,7 +75,7 @@ export function buildAvailabilityTextTemplate({ playerName, eventTitle, eventDat
   const greeting = playerName ? `${playerName}` : 'Hello'
   return `${greeting},
 
-🎯 Nouveau spectacle à l'horizon ! 
+🎯 Nouvel événement à l'horizon ! 
 
 Es-tu dispo le ${eventDate} pour ${eventTitle} ?
 
@@ -99,7 +99,7 @@ Tu es PRÉSÉLECTIONNÉ(E) pour ${eventTitle} le ${eventDate}!
 📋 Détails : ${eventUrl}
 
 Un imprévu ?😬 
-Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la sélection du spectacle : ${eventUrl}`
+Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la sélection de l'événement : ${eventUrl}`
 }
 
 /**
@@ -191,7 +191,7 @@ export function buildReminderEmailTemplate({
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Rappel spectacle - ${eventTitle}</title>
+      <title>Rappel événement - ${eventTitle}</title>
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -206,7 +206,7 @@ export function buildReminderEmailTemplate({
     <body>
       <div class="container">
         <div class="header">
-          <h1>${emoji} Rappel spectacle</h1>
+          <h1>${emoji} Rappel événement</h1>
           <p>${eventTitle}</p>
         </div>
         
@@ -215,12 +215,12 @@ export function buildReminderEmailTemplate({
           
           <div class="highlight">
             <strong>${urgencyText}</strong><br>
-            Ton spectacle <strong>${eventTitle}</strong> a lieu dans <strong>${daysText}</strong> !
+            Ton événement <strong>${eventTitle}</strong> a lieu dans <strong>${daysText}</strong> !
           </div>
           
           <p>Date : <strong>${eventDate}</strong></p>
           
-          <p>Es-tu toujours disponible pour ce spectacle ?</p>
+          <p>Es-tu toujours disponible pour cet événement ?</p>
           
           <div style="text-align: center; margin: 30px 0;">
             <a href="${eventUrl}" class="button">📋 Voir les détails</a>
@@ -260,7 +260,7 @@ export function buildConfirmedTeamEmailTemplate({ playerName, eventTitle, eventD
       <p>🎭 <em>Préparez-vous à briller sur scène ! ✨</em></p>
       
       <div style="margin: 20px 0; text-align: center;">
-        <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);">📋 Voir les détails du spectacle</a>
+        <a href="${eventUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #10b981, #059669);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);">📋 Voir les détails de l'événement</a>
       </div>
     </div>
   `
@@ -282,7 +282,7 @@ L'équipe pour ${eventTitle} le ${eventDate} est maintenant DÉFINITIVE !
 
 🎭 Préparez-vous à briller sur scène ! ✨
 
-📋 Détails du spectacle : ${eventUrl}`
+📋 Détails de l'événement : ${eventUrl}`
 }
 
 /**
@@ -300,7 +300,7 @@ ${eventTitle}
 
 🎭 Préparez-vous à briller sur scène ! ✨
 
-🔗 Détails du spectacle : ${eventUrl}`
+🔗 Détails de l'événement : ${eventUrl}`
 }
 
 /**

@@ -85,7 +85,7 @@ export const ROLE_TEMPLATES = {
   },
   cabaret: {
     name: 'Cabaret',
-    description: 'Spectacle avec MC et DJ',
+    description: 'Événement avec MC et DJ',
     roles: {
       [ROLES.PLAYER]: 5,
       [ROLES.MC]: 1,

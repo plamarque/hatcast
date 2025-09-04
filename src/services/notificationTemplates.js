@@ -21,7 +21,7 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     }
     payloads.push = {
       enabled: pushEnabled,
-      title: reason === 'availability_reminder' ? '⏰ Rappel disponibilité' : `🎯 Nouveau spectacle !`,
+      title: reason === 'availability_reminder' ? '⏰ Rappel disponibilité' : `🎯 Nouvel événement !`,
       body: reason === 'availability_reminder' ? `${recipientName}, ${eventTitle} (${eventDate})` : `🎭 On a besoin de toi pour ${eventTitle} le ${eventDate} !`,
       data: { url: urls.eventUrl, yesUrl: urls.yesUrl, noUrl: urls.noUrl, reason }
     }
@@ -85,7 +85,7 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     
     payloads.push = {
       enabled: pushEnabled,
-      title: `${emoji} Rappel spectacle`,
+      title: `${emoji} Rappel événement`,
       body: `${recipientName}, ${eventTitle} dans ${daysText} ! Es-tu prêt(e) ?`,
       data: { 
         url: urls.eventUrl, 
@@ -128,7 +128,7 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
  */
 export function buildAvailabilityPushPreview({ recipientName, eventTitle, eventDate }) {
   return {
-    title: `🎯 Nouveau spectacle !`,
+    title: `🎯 Nouvel événement !`,
     body: `🎭 On a besoin de toi pour ${eventTitle} le ${eventDate} !`
   }
 }

@@ -20,7 +20,7 @@
       
       <!-- Message principal condensé -->
       <p class="text-gray-300 mb-6">
-        Nous enverrons désormais les alertes spectacle à <span class="font-semibold text-white">{{ email }}</span>
+        Nous enverrons désormais les alertes événement à <span class="font-semibold text-white">{{ email }}</span>
       </p>
       
       <!-- Conseil avec bénéfices expandables -->
