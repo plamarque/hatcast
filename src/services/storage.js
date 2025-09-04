@@ -114,7 +114,7 @@ export const ROLE_TEMPLATES = {
     }
   },
   custom: {
-    name: 'Autre',
+    name: 'Simple sondage',
     description: 'Configuration personnalisée',
     roles: {
       [ROLES.PLAYER]: 0,

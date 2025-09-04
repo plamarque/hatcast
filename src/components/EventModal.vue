@@ -54,7 +54,7 @@
                 v-model="selectedRoleTemplate"
                 @change="applyRoleTemplate(selectedRoleTemplate)"
                 :disabled="mode === 'edit' && !showRoleInputs"
-                class="w-36 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-44 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option
                   v-for="templateId in TEMPLATE_DISPLAY_ORDER"
@@ -66,7 +66,9 @@
               </select>
               <div class="inline-flex items-center gap-2 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg">
                 <span class="text-gray-300">👥</span>
-                <span class="text-sm text-gray-200 font-medium">{{ totalTeamSize }} personnes</span>
+                <span class="text-sm text-gray-200 font-medium">
+                  {{ totalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+                </span>
               </div>
             </div>
           </div>

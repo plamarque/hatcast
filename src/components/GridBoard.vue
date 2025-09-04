@@ -596,7 +596,7 @@
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
                <!-- Badge du type d'événement -->
                <div v-if="selectedEvent?.roles" class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
-                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[determineRoleTemplate(selectedEvent.roles)]?.name || 'Autre' }}</span>
+                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[determineRoleTemplate(selectedEvent.roles)]?.name || 'Simple sondage' }}</span>
                </div>
              </div>
              
@@ -720,7 +720,9 @@
               title="Cliquer pour voir le détail des rôles"
             >
               <span class="text-blue-300">👥</span>
-              <span class="text-blue-200">{{ selectedEventTotalTeamSize }} personnes</span>
+              <span class="text-blue-200">
+                {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+              </span>
             </button>
           </div>
           
@@ -1842,7 +1844,7 @@ function updateEventMoreActionsPosition() {
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
     const gap = 8
-    const dropdownHeight = 200 // estimation de la hauteur du dropdown
+    const dropdownHeight = 250 // estimation de la hauteur du dropdown (rallongé)
     
     // Sur desktop, positionner intelligemment
     if (window.innerWidth > 768) {
@@ -1889,7 +1891,7 @@ function updateEventMoreActionsMobilePosition() {
     // Pour mobile, positionner le dropdown au-dessus du bouton 3-points du footer
     const gap = 8
     const buttonHeight = 48 // hauteur du bouton 3-points (h-12)
-    const dropdownHeight = 200 // estimation de la hauteur du dropdown
+    const dropdownHeight = 250 // estimation de la hauteur du dropdown (rallongé)
     
     // Positionner au-dessus du footer (pull-up style)
     const top = Math.max(gap, window.innerHeight - gap - buttonHeight - dropdownHeight)
