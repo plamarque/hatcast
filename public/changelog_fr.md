@@ -4,459 +4,224 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 
 # Changelog
 
-## [0.9.2] - 2025-09-05
+---
 
+## [0.9.1] - 05/09/2025
 
-### ✨ Nouvelles fonctionnalités
+### 🐛 Corrections de bugs
+- résolution des problèmes d’affichage du journal des modifications dans la page d’aide
 
-### 🐛 Corrections
+---
 
-
-## [0.9.1] - 2025-09-05
-
-
-### 🐛 Corrections
-- fix: resolve changelog display issues in help page
-
-- ---
-
-## [0.9.0] - 2025-09-04
-
+## [0.9.0] - 04/09/2025
 
 ### ✨ Nouvelles fonctionnalités
-- feat: add user-friendly changelog with automatic translation
-- feat: add version display and help page improvements
-- feat: display only new changes in changelog preview
-- feat: implement ultra-faithful dry-run with sandbox branches
-- feat: translate deployment script to English and remove production URL
-- feat: display changelog preview in deployment script
-- feat: add automatic changelog generation
-- feat: add version bump control options (major/minor/patch)
-- feat: add intelligent production deployment script with automatic versioning
-- feat: improve PWA installation experience
-- feat: add event type icons and improve dropdown width
-- feat: add event sharing link with responsive mobile labels
-- feat: improve availability modal UI with current state display and compact roles
-- feat: replace Hatcast logo with back chevron on seasons page
-- feat: translate Google auth buttons to French
-- feat: add detailed logging for Cloud Function calls to debug CORS issues
-- feat: implement dynamic log level control system
-- feat: Prepare Firebase production deployment workflow
-- feat: optimize EventModal layout and mobile responsiveness
-- feat: amélioration le rafraîchissement des avatars après protection/déprotection
-- feat: make PlayerAvatar flexible and remove redundant status icons in player modal
-- feat: add player avatars in event detail modal
-- feat: add player avatars in detail and selection modals
-- feat: add player avatars in main grid with status icons
-- feat: implement Google avatar display system
-- feat: add Google authentication
-- feat: improve availability modal UX
-- feat: add permanent create season button
-- feat: implement lazy loading for Firebase secrets
-- feat: fix email test modal and enable real email sending with Ethereal
-- feat: disable audit by default in development environment
-- feat(storage): Clean up season logos when deleting seasons
-- feat(auth): Require authentication for season creation
-- feat: Add environment badge for development and staging
-- feat: Complete Firebase migration and restore logo upload functionality
-- feat: Migrate notifications to firestoreService and configure PWA for staging
-- feat: Migrate seasons to firestoreService and fix sortOrder issues
-- feat: Add detailed debugging logs to track Firestore database selection
-- feat: Make code robust for empty databases with graceful error handling and auto-initialization
-- feat: Refactor development tools and security improvements
-- feat: Refactor EventModal component and add event type badge
-- feat: Remplacer le bouton œil par un système de filtres avancé avec dropdown
-- feat: amélioration l'interface de la page Saisons - Aligner verticalement logo, titre et icône utilisateur - Renommer 'Saisons en cours' en 'Saisons' - Ajouter tooltip 'Retour à l'accueil HatCast' sur le logo - Corriger l'affichage du logo masque (proportions et largeur)
-- feat: Implémentation du système de rôles multi-disponibilité avec commentaires
-- feat: Améliorer l'UX de la présélection avec libellé 'Demander confirmation' et messages clairs
-- feat: Amélioration du système de protection des joueurs
-- feat: implémentation l'association directe des joueurs pour les utilisateurs connectés
-- feat: intégration les tests de protection des joueurs dans la suite principale
-- feat: désactivation déclenchements automatiques modale 'Ne Rate rien' et simplifier message
-- feat: ajout de tests automatisés Playwright
-- feat: mise à jour Firebase SDK vers v12 pour préparer la migration Dynamic Links
-- feat: Amélioration du flow de protection de compte avec connexion automatique
-- feat: ajout fonction de réinitialisation de sélection et amélioration l'interface
-- feat: ajout dus messages d'équipe confirmée
-- feat: implémentation système de confirmation des sélections + UI améliorée
-- feat: ajout message d'annonce globale pour WhatsApp lors des sélections
-- feat: amélioration l'UX d'activation des notifications avec logique intelligente
-- feat: optimisation affichage liste joueurs en 2 colonnes
-- feat: masquage emojis des badges en mobile et amélioration texte bouton agenda
-- feat: Restore official GitHub Pages deployment with environment
-- feat: Use GitHub variables for session durations in workflow
-- feat: Add secure GitHub Actions workflow for production deployment
-- feat: ajout mockup téléphone pour prévisualisation notifications push
+- ajout d’un journal des modifications convivial avec traduction automatique
+- ajout d’améliorations de l’affichage des versions et de la page d’aide
+- affichage des nouvelles modifications uniquement dans l’aperçu du journal des modifications
+- implémentation d’un essai à blanc ultra-fidèle avec les branches sandbox
+- traduction du script de déploiement en anglais et suppression de l’URL de production
+- affichage de l’aperçu du journal des modifications dans le script de déploiement
+- génération automatique du journal des modifications
+- ajout d’options de gestion des mises à jour de version (majeures/mineures/correctifs)
+- ajout d’un script de déploiement de production intelligent avec gestion automatique des versions
+- amélioration de l’expérience d’installation des PWA
+- ajout d’icônes de type d’événement et amélioration de la largeur du menu déroulant
+- ajout du partage d’événements Lien avec des libellés mobiles réactifs
+- amélioration de l'interface modale de disponibilité avec affichage de l'état actuel et rôles compacts
+- remplacement du logo Hatcast par un chevron arrière sur la page des saisons
+- traduction des boutons d'authentification Google en français
+- ajout d'une journalisation détaillée pour les appels de fonctions Cloud afin de déboguer les problèmes CORS
+- implémentation d'un système de contrôle dynamique du niveau de journalisation
+- préparation du workflow de déploiement en production de Firebase
+- optimisation de la présentation d'EventModal et de la réactivité mobile
+- amélioration du rafraîchissement des avatars après protection/déprotection
+- flexibilité de PlayerAvatar et suppression des icônes d'état redondantes dans la modale du joueur
+- ajout des avatars des joueurs dans la modale de détail de l'événement
+- ajout des avatars des joueurs dans les modales de détail et de sélection
+- ajout des avatars des joueurs dans la grille principale avec des icônes d'état
+- implémentation du système d'affichage des avatars Google
+- ajout de l'authentification Google
+- amélioration de l'expérience utilisateur de la modale de disponibilité
+- ajout d'un bouton permanent de création de saison
+- implémentation du chargement différé pour les secrets Firebase
+- Correction de la fenêtre modale de test des e-mails et activation de l'envoi réel d'e-mails avec Ethereal
+- Désactivation de l'audit par défaut dans l'environnement de développement
+- Nettoyage des logos des saisons lors de leur suppression
+- Exigence d'authentification pour la création d'une saison
+- Ajout d'un badge d'environnement pour le développement et la préproduction
+- Migration complète de Firebase et restauration de la fonctionnalité de téléchargement de logos
+- Migration des notifications vers FirestoreService et configuration de PWA pour la préproduction
+- Migration des saisons vers FirestoreService et correction des problèmes de tri
+- Ajout de journaux de débogage détaillés pour suivre la sélection des bases de données Firestore
+- Renforcement du code pour les bases de données vides grâce à une gestion des erreurs simplifiée et à l'initialisation automatique
+- Refactorisation des outils de développement et améliorations de sécurité
+- Refactorisation du composant EventModal et ajout d'un badge de type d'événement
+- Remplacement du bouton œil par un système de filtres avancé avec liste déroulante
+- Amélioration de l'interface de la page Saisons - Alignement vertical du logo, du titre et de l'icône utilisateur - Renommer 'Saisons en cours' en 'Saisons' - Ajouter une info-bulle 'Retour à l'accueil HatCast' sur le logo - Corriger l'affichage du logo masque (proportions et largeur)
+- Implémentation du système de rôles multi-disponibilité avec commentaires
+- Améliorer l'UX de la présélection avec libellé 'Demander confirmation' et messages clairs
+- Amélioration du système de protection des joueurs
+- implémenter l'association directe des joueurs pour les utilisateurs connectés
+- intégrer les tests de protection des joueurs dans la suite principale
+- désactiver les déclenchements automatiques modale 'Ne Rate rien' et simplifier le message
+- ajout de tests automatisés Playwright
+- mise à jour Firebase SDK vers v12 pour préparer la migration Dynamic Links
+- Amélioration du flux de protection de compte avec connexion automatique
+- ajouter une fonction de réinitialisation de sélection et améliorer l'interface
+- ajouter les messages d'équipe confirmée
+- implémentation système de confirmation des sélections + UI améliorée
+- ajouter un message d'annonce globale pour WhatsApp lors des sélections
+- améliorer l'UX d'activation des notifications avec logique intelligente
+- optimiser l'affichage de la liste des joueurs en 2 colonnes
+- masquer les emojis des badges en mobile et améliorer le texte bouton agenda
+- restaurer le déploiement officiel des pages GitHub avec l'environnement
+- utiliser les variables GitHub pour les durées de session dans le workflow
+- ajouter un workflow GitHub Actions sécurisé pour le déploiement en production
+- ajouter une maquette de téléphone pour la prévisualisation des notifications push
 
-### ⚡ Améliorations
-- improve: add spam folder instructions to all email success messages
-- refactor: replace 'spectacle' with 'événement' throughout the application
-- refactor: centralize CORS configuration to eliminate code duplication
-- refactor: Centralize environment detection using configService
-- refactoring storage service to handle multi-environments
-- style atténué pour archives
+### 🔧 Améliorations
+- ajouter des instructions sur le dossier spam à tous les messages de réussite par e-mail
+- remplacer 'spectacle' par 'événement' dans toute l'application
+- centraliser la configuration CORS pour éliminer la duplication de code
+- centraliser la détection de l'environnement à l'aide de configService
+- refactorisation du service de stockage pour gérer plusieurs environnements
+- style atténué pour Archives
 
-### 🐛 Corrections
-- fix: macOS sed compatibility for package.json version update
-- fix: correct changelog display command for macOS compatibility
-- fix: masquage icône filtres en mobile
-- fix: élargissement colonne joueurs mobile pour icônes
-- fix: correct security vulnerability in player protection and implement custom password reset system
-- fix: add missing PIN protection for event editing and archiving
-- fix: improve event modal UX and dropdown positioning
-- fix: preserve comments when setting not available and show note icon
-- fix: update localStorage when changing log level in development modal
-- fix: handle null etherealCredentials in EmailTestModal
-- fix: persist log level in localStorage across page refreshes
-- fix: remove Ethereal warning in staging/prod environments
-- fix: add debug logs for userPushTokens collection error
-- fix: reduce verbose logging in configService to minimize console warnings
-- fix: correct default role values for cabaret template
-- fix: correction la sauvegarde des avatars lors de la protection des joueurs
-- fix: improve mobile modal positioning and z-index hierarchy
-- fix: résolution erreur vérification PIN code non connecté
-- fix: resolve creator onboarding modal loop on direct URL access
-- fix: remove dumpEnvironmentInfo causing auth errors
-- fix: resolve account menu email display and password reset issues
-- fix: resolve player protection association error
-- fix: resolve PIN verification errors when creating events
-- fix: Correction complète de l'upload et suppression de logos
-- fix: résolution l'erreur de la modal de création d'événement et amélioration la réinitialisation du formulaire
-- fix: resolve Firebase Auth initialization error in account creation
-- fix: open account creation modal
-- fix: résolution la fermeture automatique de la modal de connexion sur /seasons
-- fix: résolution les problèmes de connexion/déconnexion sur la page d'accueil
-- fix: Add missing Firestore rules for collections causing permission errors
-- fix: Complete Firebase migration by removing last direct imports from seasons.js
-- fix: Remove stray text causing build error
-- fix: Restore environment debug modal functionality
-- fix: Correction des règles Firestore pour la collection availability - Corrige l'incohérence availability/availabilities qui causait l'erreur de permissions
-- fix: Correction des règles Firestore pour la collection availability - Corrige l'incohérence availability/availabilities qui causait l'erreur de permissions
-- fix: Use direct Firebase API for loadAvailability subcollections
-- fix: Complete firestoreService migration and fix event creation
-- fix: Improve error handling for new season onboarding and migrate storage functions
-- fix: Use storage service functions instead of direct Firebase calls in GridBoard
-- fix: Use existing Firebase secrets instead of staging-specific ones
-- fix: Force close existing Firestore connections to prevent database conflicts
-- fix: Configure Firestore to use correct database based on environment (staging/dev/prod)
-- fix: Add Firebase environment variables to staging workflow
-- fix: Install functions dependencies before Firebase deployment
-- fix: Use GOOGLE_APPLICATION_CREDENTIALS env var for Firebase CLI auth
-- fix: Update staging workflow to use new Firebase service account JSON
-- fix: Remove invalid Firestore targets configuration from firebase.json
-- fix: Update Node.js version to 20 for Firebase CLI compatibility
-- fix: correction du bug de sélection multi-rôles - un joueur ne peut être sélectionné que pour un seul rôle par événement
-- fix: corrige le z-index des chevrons de scroll et ajoute la documentation complète
-- fix: Logique de sélection basée sur les rôles - Seuls les joueurs avec le rôle 'Joueur' sont sélectionnables
-- fix: correction les z-index des modales pour éviter les chevauchements
-- fix: Correction du chemin de collection dans le trigger d'audit
-- fix: correction du bug des doublons lors du déverrouillage de sélection
-- fix: Corriger les z-index des modales de vérification et confirmation
-- fix: résolution les erreurs de protection avec des paramètres invalides
-- fix: correction le masquage des types d'événements d'audit dans le logger
-- fix: désactivation les notifications push et Service Worker en mode développement pour éviter les erreurs 404
-- fix: correction le tri des joueurs pour remonter les favoris en premier
-- fix: suppression la gestion locale des favoris pour éviter l'affichage erroné des ⭐ en mode déconnecté
-- fix: suppression l'ancien workflow deploy.yml pour éviter les conflits
-- fix: résolution conflit de déploiement GitHub Pages - remplace deploy.yml par pages.yml pour éviter le conflit avec le workflow natif
-- fix: synchronisation les favoris avec l'état de connexion Firebase
-- fix: correction la logique du bouton Annoncer quand des joueurs déclinent
-- fix: fermeture modale d'envoi de messages après envoi
-- fix: correction le déverrouillage de sélection et l'empilement des modales
-- fix: résolution l'erreur confirmUrl non défini lors de l'envoi d'emails de sélection
-- fix: Empêcher l'affichage de la popup de connexion pour les joueurs protégés
-- fix: Remove environment protection to fix deployment issue
-- fix maj dispo sur event detail
-- fix build error
-- fix scrol horiz gltich
-- fix pin password prompt cache on availabnilities
-- fix password reset
-- fix cohérence des états
-- fix probleme de 'affichage pin sur selection
-- fixed availability toggle and added visual hints for edits
+### 🐛 Corrections de bugs
+- compatibilité macOS sed pour la mise à jour de la version package.json
+- correction de la commande d'affichage du journal des modificationsis pin
 
-### 📝 Autres modifications
-- chore: prepare for 0.9.0 release by setting current version to 0.8.0
-- docs: update deployment guide with intelligent versioning system
-- docs: add Firebase Storage Admin permissions to deployment guide
-- docs: add Firestore Rules Admin permissions to deployment guide
-- docs: add Cloud Scheduler Admin permissions to deployment guide
-- docs: add Firebase Extensions Admin permissions to deployment guide
-- docs: update deployment documentation with correct IAM permissions and service accounts
-- docs: Add missing IAM permission for Cloud Functions deployment
-- docs: Add IAM permissions configuration and deployment troubleshooting
-- test: Trigger production deployment with corrected Firebase service account
-- test: Trigger production deployment with corrected workflow
-- Merge branch 'staging'
-- temp: Disable GitHub Pages workflow for Firebase migration
-- docs: Add commit message guidelines following conventional commits standard
-- generalisation du logger et configservice, a refonte env debug pour affichage plus de choses
-- conf cors pour staging
-- Fix: Update Firebase Storage bucket to correct name for CORS compatibility
-- 🔧 Migration de notifications.js vers firestoreService et centralisation de la VAPID key
-- 🗑️ Suppression complète de navigationTracker.js et nettoyage des usages
-- adoption du firestoreService pour audit
-- 🔧 Migration de reminderService.js vers firestoreService
-- 🔧 Correction de la protection de joueurs et migration complète vers firestoreService
-- Migration de GridBoard.vue et amélioration de firestoreService
-- 🎉 Migration complète de storage.js vers firestoreService
-- 🔧 Migration de updatePlayerSelectionStatus() vers firestoreService
-- 🔧 Migration de setEventArchived() vers firestoreService
-- 🔧 Migration de saveEvent() et updateEvent() vers firestoreService
-- 🔧 Corrections d'interface et nettoyage du code legacy
-- 🧹 Nettoyage complet du code legacy des sélections
-- 🔧 Suppression du if(seasonId) inutile dans saveSelection()
-- 🧹 Nettoyage complet du code legacy des disponibilités et sélections
-- 🔧 Correction du chargement des sélections après refresh
-- 🔧 Amélioration de la validation pour le renommage des joueurs
-- 🔧 Migration complète de deletePlayer() vers firestoreService
-- 🎨 Amélioration UX - Validation des noms de joueurs dans la modale
-- 🔧 Correction de deletePlayer() - suppression des disponibilités par nom
-- 🔧 Migration de addPlayer() vers firestoreService avec validation renforcée
-- 🗑️ Suppression de reorderPlayersAlphabetically() obsolète
-- 🔧 Migration et simplification de loadAvailability() vers firestoreService
-- 🗑️ Suppression de Seasons.vue obsolète
-- 🔧 Migration de loadPlayers() vers firestoreService
-- 🔧 Migration de loadEvents() vers firestoreService
-- 🗑️ Suppression de la fonction initializeStorage() obsolète
-- 🗑️ Suppression de la fonction migrateToSeasons() obsolète
-- 🧹 Nettoyage complet du mode mock dans storage.js
-- chore: Force workflow reload to use latest staging branch
-- Refactor navigation: new homepage structure and seasons page
-- 🔧 Fix audit logging system for Malice 2025-2026 season
-- test: ajout un test Playwright pour vérification la logique des favoris selon l'état de connexion
-- 🐛 fix: handle Firestore serverTimestamp in audit CLI
-- ✨ feat: implement comprehensive audit trail system
-- test: déclenchement déploiement avec nouveau workflow GitHub Pages
-- todos
-- todo : maj gestion des liens necessaire
-- todo
-- todo list
-- Désactivation temporairement la popup de protection automatique lors du clic sur disponibilité
-- 🐛 Correction de la persistance de l'état de protection des joueurs
-- ✨ Amélioration de l'interface de protection des joueurs
-- adoption du terme personnes plutôt que joueur
-- Supprimer le pulldown menu d'agenda de l'en-tête des spectacles pour simplifier l'interface
-- Improve selection confirmation email message
-- Add decline button to selection confirmation email
-- Fix magic link confirmation and clean debug logs
-- condensation popup verif joueur
-- rappell email address sur modale preferences
-- flow de création de compte depuis bouton connexion
-- affiche le logo de la saison sur le gridboard
-- optimisation entête saison
-- notifications de rappel
-- nettoyahe modale notificaitons. deplacement tests et debugs PWA dans nouvelle seciton dev dans Mon Compte
-- changement d'url à la fermeture devenement
-- toast app mise à jour plus discret.
-- nettoyage console (less errors, warnings  and debugs)
-- reset password depuis on compte
-- feedback visuel en cas de suivi par notification
-- affichage % chances sur cellule dispo
-- Pas maintenant sur active notificaitons
-- nettoyahe logs debuggage
-- password reset géré en interne avec retour à ll'événément en cours
-- incitaitn à activation les notifs et à créer un compte lors du dépôt de disponibilité.
-- message splus dynamiques
-- refonte de la logique d'annonce.
-- polsih messages et préviews
-- reviewed pemail and notif previews
-- amélioraiton preview notification mobile
-- Fix notifications debug page and Firebase getProvider error - Remove module imports and fix getMessaging(app) undefined error
-- Add notifications debug page and fix Firebase Messaging errors - Fix getProvider undefined error in notifications service
-- Fix service worker syntax error - Use demo config to avoid Firebase injection issues
-- Fix Firebase Messaging errors in PWA - Fix getProvider undefined error and inject Firebase config in service worker
-- Add PWA engagement booster and force install guide - Solutions for beforeinstallprompt not triggering
-- Add detailed PWA diagnostic page to identify beforeinstallprompt issues
-- Fix PWA banner z-index conflict - Increase z-index to 99999 and add test page
-- Fix PWA manifest configuration in vite.config.js - Update with proper French description and PWA metadata
-- Fix PWA installation issues - Update manifest, add diagnostic tools, and improve PWA configuration
-- Fix PWA installation issues
-- amélioraiton du footer
-- amélioraiton lisibilité logo hatcast sur topbat
-- suppression semi transpi top bar home
-- changmetn descrition pour mieux décrire objectf de HatCast
-- ajout logos torupes sur saisons
-- ajout description et fonctione edition de saison
-- améliorations UI mise à jour PWA
-- amélioration notifs et templates
-- barre install appli mobile plus sympa
-- renommage impro-selector > Hatcast
-- amélioraiton emails envoyés et preview
-- erreur synchro etat de connexion et chargemtn des saisons
-- relooking modale notifications
-- suppression menu item mes joueurs
-- refonte  modale Mon compte
-- refonte menu connexion
-- composant commun de connexion
-- changemtn style celliules de disponibiltié pour ep^tr eplus explicite
-- erreur 404 sur icon-192.png
-- correctiona ffichage stats sur cartes de saison
-- refonte home et ajout du logo hatcast
-- force renommage appli PWA
-- rebranding HatCast
-- ajout de logo
-- add logo
-- suppression bouton Nouvelle saison
-- redesign page accueil avec hero.
-- headers modales plus compacts
-- ajout à l'agenda
-- revue modale sélection
-- harmnisation boutons des modales
-- revue barre bouton s détail événement
-- amélioration affichafge entêtes et indicateurs de sélection
-- distinction des joueurs favoris
-- mémorisation de la saison
-- unification des notifications.
-- notifications push de demande de dispo avec réponse rpaide
-- notification push sur sélecitons
-- troubleshooting issue with SW in prod
-- correction chargemtnd es service workers
-- troubleshooting problmes ntofications sur gh pages
-- WA + push (experimental) UI + fixes
-- experimental : support des notificaitons push
-- support PWA pour installation appli sur mobile
-- tous les joueurs associés au compte sont remontés dans la liste
-- réduction fréquence saisie des PIN
-- améliorations dispos sur modale événement
-- envoi  de notification si plus dans la sélection
-- simplifications wording et flow verrouillage joueur
-- rappel bénéfices d'avoir un compte à la création
-- export csv uniqueent depuis home
-- export csv
-- retouches cosmétiques et reecritaire page de présentation
-- sessions longue durée
-- changmetn ordre onglets mon compte
-- utilisasion composant mot de passe pour dissocier joiueur - compte
-- traitmetn noms trop longs
-- refonte et implémentaiton Mon compte
-- correction : perte de disponiblités sinrenommage de joueur$
-- refonte association joueur/compte
-- correctif modifer
-- mise en haut du joueur loggué
-- support sélection/désélection manuelle
-- amélioration des logs
-- (in progress) calage vertical bulle onboarding joueur
-- bouton lancemnt onboaridn utilsiateur.
-- correction eptit décalage mobile portrait
-- correction décalage sur petit nombre dévénements
-- onboardings saison et joueur
-- simplification aide globale
-- refonte flow de protection
-- nouveau nom ImproPick. et ajout d'une mini aide sur accueil et entête.
-- licence et copyright
-- hscroll scroll controls fix
-- cix bug z-index sur popup creation d'événement
-- suppression pavé numérique
-- page d'aide pour comprehension de la sélection
-- harmonisation annonces d'événementet de sélection
-- refonte notifications avec lien daisir directe d'événement
-- pas de notifications pour les spectacles archivés.
-- correctioj liens magiques
-- adaptations pour déploiement racine
-- déploiement sur la-malice.fr
-- ajout fonction d'archivage des événements
-- écran chargement accueil
-- acces direct aux saisons par url
-- mire de chargement
-- correction des tris
-- gestion de l'odre des saisons
-- ajout de chevrons pour révéler les événements.
-- ajustmeent bordureres grid
-- correciton sticky header
-- suppression sous-titre dans grille
-- déplacmeent boutons d'ajouts de joueur et d'événement
-- redesign mobile popup sélection
-- amélioration popin utilsiateur en mobile.
-- amélioraiton popin mot de passe mobile
-- amélioraiton de l'affichage mobile.
-- meilleur utilsiation de l'espace disponible sur la grille et améloraiton des scrolls
-- ajout de notification en cas de nouvel event
-- Revert to Firebase default password reset page
-- Fix Firebase token handling in password reset
-- Fix password reset page for GitHub Pages
-- add player protection and password reset
-- cas des reselections completes
-- cohérence des etats des joueurs entre gridboard et popin selection
-- indicateurs lorsque selection à refaire
-- simplification popin sélection
-- pin plus simple et moins souvent
-- nouvelle popin de sélection dédiée
-- Gestion du nob de joueur à sélecitonner par match
-- popin joueurs
-- popin spectacle et améliorations ui selection
-- navigation saison > accueil
-- operations protégées par pin code
-- design spectaculaire
-- Migration de données gestion des saisons
-- ajout d'une gestion des saisons
-- amélioration des boutons de sélection  et confirmation en cas de relance de sélection
-- added support for editing players
-- added deletion support for players
-- ficed alignement and added possibility to add players
-- events  add/edit/delete
-- deploy with github pages
-- Add production env file for GitHub Pages
-- remove wrong licene notice from README
-- Add MIT license
-- Add MIT license and usage notice
-- Initial commit for impro selector
-- Initial commit
 
-- ---
-
-Toutes les modifications notables de ce projet seront documentées dans ce fichier.
+---
 
 ## [0.8.0] - 2025-09-04
 
-
 ### ✨ Nouvelles fonctionnalités
-- feat: add version display and help page improvements
-- feat: add player protection system
-- feat: add mobile-first responsive design
-- feat: add PWA support with installation prompts
-- feat: add push notifications system
-- feat: add comprehensive audit trail
-- feat: add automatic reminder system
-- feat: add navigation tracking
-- feat: add season and event management
-- feat: add player availability system
-- feat: add automatic selection algorithm
-- feat: add email notifications with templates
-- feat: add user authentication and accounts
-- feat: add responsive grid interface
-- feat: add filter system for events
-- feat: add development tools and debugging
+- ajout de l'affichage des versions et des améliorations de la page d'aide
+- ajout d'un système de protection des joueurs
+- ajout d'un design responsive pour mobile
+- ajout de la prise en charge des PWA avec invites d'installation
+- ajout d'un système de notifications push
+- ajout d'une piste d'audit complète
+- ajout d'un système de rappel automatique
+- ajout du suivi de navigation
+- ajout de la gestion des saisons et des événements
+- ajout d'un système de disponibilité des joueurs
+- ajout d'un algorithme de sélection automatique
+- ajout de notifications par e-mail avec modèles
+- ajout de l'authentification et des comptes utilisateurs
+- ajout d'une interface de grille responsive
+- ajout d'un système de filtrage pour les événements
+- ajout d'outils de développement et de débogage
 
 ### 🐛 Corrections
-- fix: resolve availability selection bug
-- fix: correct text parasite in grid display
-- fix: resolve authentication issues
-- fix: correct email sending problems
-- fix: resolve navigation issues
-- fix: correct data synchronization
+- correction d'un bug de sélection de disponibilité
+- correction d'un texte parasite dans l'affichage de la grille
+- correction des problèmes d'authentification
+- correction des problèmes d'envoi d'e-mails
+- correction de la navigation Problèmes
+- synchronisation des données correcte
 
 ### ⚡ Améliorations
-- improve: enhance mobile responsiveness
-- improve: optimize loading performance
-- improve: enhance user experience
-- improve: optimize database queries
-- improve: enhance security
-- improve: optimize performance
+- amélioration de la réactivité mobile
+- optimisation des performances de chargement
+- amélioration de l'expérience utilisateur
+- optimisation des requêtes de base de données
+- amélioration de la sécurité
+- optimisation des performances
 
 ### 🎨 Interface
-- ui: update help page design
-- style: improve footer layout
-- ui: add modern gradient design
-- ui: implement mobile-first approach
-- ui: add PWA installation prompts
-- ui: improve accessibility and usability
-🔄 Translating batch 1...
-- FEAT: Améliorer le bac à sable à sec avec répertoire dédié \\ nFEAT: Optimiser la traduction de changelog avec un traitement par lots \\ nFEAT: implémentation de la traduction de modale de change côté serveur et de renommée Script de déploiement \\ nfix: la traduction correcte de la «modale» à `` modale »dans ChangeLog \\ nfix: Supprimez le double 0.9.1
-- feat: optimize changelog translation with batch processing
-- feat: implement server-side changelog translation and rename deployment script
-- fix: correct translation of 'modale' to 'modale' in changelog
-- fix: remove duplicate 0.9.1 entry in changelog
-🔄 Translating batch 2...
-- Correction: résolution les problèmes d'affichage des modifications dans la page d'aide \\ n ---
-- ---
+- mise à jour de la page d'aide
+- amélioration de la mise en page du pied de page
+- ajout d'un dégradé moderne
+- implémentation d'une approche mobile-first
+- ajout d'invites d'installation PWA
+
+
+
+## [0.9.1] - 05/09/2025
+
+### 🐛 Corrections de bugs
+- résolution des problèmes d’affichage du journal des modifications dans la page d’aide
+
+---
+
+## [0.9.0] - 04/09/2025
+
+### ✨ Nouvelles fonctionnalités
+- ajout d’un journal des modifications convivial avec traduction automatique
+- ajout d’améliorations de l’affichage des versions et de la page d’aide
+- affichage des nouvelles modifications uniquement dans l’aperçu du journal des modifications
+- implémentation d’un essai à blanc ultra-fidèle avec les branches sandbox
+- traduction du script de déploiement en anglais et suppression de l’URL de production
+- affichage de l’aperçu du journal des modifications dans le script de déploiement
+- génération automatique du journal des modifications
+- ajout d’options de gestion des mises à jour de version (majeures/mineures/correctifs)
+- ajout d’un script de déploiement de production intelligent avec gestion automatique des versions
+- amélioration de l’expérience d’installation des PWA
+- ajout d’icônes de type d’événement et amélioration de la largeur du menu déroulant
+- ajout du partage d’événements Lien avec des libellés mobiles réactifs
+- amélioration de l'interface modale de disponibilité avec affichage de l'état actuel et rôles compacts
+- remplacement du logo Hatcast par un chevron arrière sur la page des saisons
+- traduction des boutons d'authentification Google en français
+- ajout d'une journalisation détaillée pour les appels de fonctions Cloud afin de déboguer les problèmes CORS
+- implémentation d'un système de contrôle dynamique du niveau de journalisation
+- préparation du workflow de déploiement en production de Firebase
+- optimisation de la présentation d'EventModal et de la réactivité mobile
+- amélioration du rafraîchissement des avatars après protection/déprotection
+- flexibilité de PlayerAvatar et suppression des icônes d'état redondantes dans la modale du joueur
+- ajout des avatars des joueurs dans la modale de détail de l'événement
+- ajout des avatars des joueurs dans les modales de détail et de sélection
+- ajout des avatars des joueurs dans la grille principale avec des icônes d'état
+- implémentation du système d'affichage des avatars Google
+- ajout de l'authentification Google
+- amélioration de l'expérience utilisateur de la modale de disponibilité
+- ajout d'un bouton permanent de création de saison
+- implémentation du chargement différé pour les secrets Firebase
+- Correction de la fenêtre modale de test des e-mails et activation de l'envoi réel d'e-mails avec Ethereal
+- Désactivation de l'audit par défaut dans l'environnement de développement
+- Nettoyage des logos des saisons lors de leur suppression
+- Exigence d'authentification pour la création d'une saison
+- Ajout d'un badge d'environnement pour le développement et la préproduction
+- Migration complète de Firebase et restauration de la fonctionnalité de téléchargement de logos
+- Migration des notifications vers FirestoreService et configuration de PWA pour la préproduction
+- Migration des saisons vers FirestoreService et correction des problèmes de tri
+- Ajout de journaux de débogage détaillés pour suivre la sélection des bases de données Firestore
+- Renforcement du code pour les bases de données vides grâce à une gestion des erreurs simplifiée et à l'initialisation automatique
+- Refactorisation des outils de développement et améliorations de sécurité
+- Refactorisation du composant EventModal et ajout d'un badge de type d'événement
+- Remplacement du bouton œil par un système de filtres avancé avec liste déroulante
+- Amélioration de l'interface de la page Saisons - Alignement vertical du logo, du titre et de l'icône utilisateur - Renommer 'Saisons en cours' en 'Saisons' - Ajouter une info-bulle 'Retour à l'accueil HatCast' sur le logo - Corriger l'affichage du logo masque (proportions et largeur)
+- Implémentation du système de rôles multi-disponibilité avec commentaires
+- Améliorer l'UX de la présélection avec libellé 'Demander confirmation' et messages clairs
+- Amélioration du système de protection des joueurs
+- implémenter l'association directe des joueurs pour les utilisateurs connectés
+- intégrer les tests de protection des joueurs dans la suite principale
+- désactiver les déclenchements automatiques modale 'Ne Rate rien' et simplifier le message
+- ajout de tests automatisés Playwright
+- mise à jour Firebase SDK vers v12 pour préparer la migration Dynamic Links
+- Amélioration du flux de protection de compte avec connexion automatique
+- ajouter une fonction de réinitialisation de sélection et améliorer l'interface
+- ajouter les messages d'équipe confirmée
+- implémentation système de confirmation des sélections + UI améliorée
+- ajouter un message d'annonce globale pour WhatsApp lors des sélections
+- améliorer l'UX d'activation des notifications avec logique intelligente
+- optimiser l'affichage de la liste des joueurs en 2 colonnes
+- masquer les emojis des badges en mobile et améliorer le texte bouton agenda
+- restaurer le déploiement officiel des pages GitHub avec l'environnement
+- utiliser les variables GitHub pour les durées de session dans le workflow
+- ajouter un workflow GitHub Actions sécurisé pour le déploiement en production
+- ajouter une maquette de téléphone pour la prévisualisation des notifications push
+
+### 🔧 Améliorations
+- ajouter des instructions sur le dossier spam à tous les messages de réussite par e-mail
+- remplacer 'spectacle' par 'événement' dans toute l'application
+- centraliser la configuration CORS pour éliminer la duplication de code
+- centraliser la détection de l'environnement à l'aide de configService
+- refactorisation du service de stockage pour gérer plusieurs environnements
+- style atténué pour Archives
+
+### 🐛 Corrections de bugs
+- compatibilité macOS sed pour la mise à jour de la version package.json
+- correction de la commande d'affichage du journal des modifications

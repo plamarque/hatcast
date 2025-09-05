@@ -6,8 +6,9 @@
 set -e
 
 # Parse command line arguments
-DRY_RUN=false
+DRY_RUN=${DRY_RUN:-false}  # Use environment variable or default to false
 VERSION_BUMP="patch"  # default
+stashed_before_switch=false
 
 for arg in "$@"; do
     case $arg in
@@ -51,15 +52,24 @@ for arg in "$@"; do
     esac
 done
 
+echo "📋 Version bump type: $VERSION_BUMP"
+
+# Working directory management
+setup_working_directory() {
 if [ "$DRY_RUN" = true ]; then
     echo "🔍 DRY RUN - Production deployment simulation"
     echo "============================================="
     echo "⚠️  Simulation mode: no changes will be made"
+        
+        # Create sandbox (already changes to sandbox directory)
+        create_dry_run_sandbox
+        echo "📁 Working in sandbox: $(pwd)"
 else
     echo "🚀 Production deployment with automatic versioning"
     echo "=================================================="
+        echo "📁 Working in project root: $(pwd)"
 fi
-echo "📋 Version bump type: $VERSION_BUMP"
+}
 
 # Sandbox management functions
 create_dry_run_sandbox() {
@@ -77,6 +87,15 @@ create_dry_run_sandbox() {
     rm -rf "$DRY_SANDBOX_DIR"
     mkdir -p "$DRY_SANDBOX_DIR"
     
+    # Copy project files to sandbox (excluding .dry-run-sandbox to avoid recursion)
+    echo "   └─ Copying project files to sandbox..."
+    find . -maxdepth 1 -not -name '.dry-run-sandbox' -not -name '.' -exec cp -r {} "$DRY_SANDBOX_DIR/" \; 2>/dev/null || true
+    cd "$DRY_SANDBOX_DIR"
+    
+    # Fetch latest tags from remote
+    echo "   └─ Fetching latest tags from remote..."
+    git fetch --tags origin
+    
     # Create sandbox branches
     git branch "$DRY_STAGING" staging
     git branch "$DRY_MAIN" origin/main
@@ -93,6 +112,12 @@ cleanup_dry_run_sandbox() {
         
         # Return to original branch
         git checkout staging
+        
+        # Restore stashed changes if any
+        if [ "$stashed_before_switch" = true ]; then
+            echo "   └─ Restoring stashed changes after dry-run..."
+            git stash pop 2>/dev/null || true
+        fi
         
         # Delete sandbox branches
         git branch -D "$DRY_STAGING" "$DRY_MAIN" 2>/dev/null || true
@@ -158,21 +183,30 @@ generate_changelog() {
     local new_version="$1"
     local build_date="$2"
     
-    # Find last tag (previous version)
-    LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
     
-    if [ -z "$LAST_TAG" ]; then
-        # First release, include all commits
+    # Read current version from public/version.txt on main branch
+    echo "📋 Reading current version from public/version.txt on main..."
+    CURRENT_VERSION=$(git show main:public/version.txt 2>/dev/null | head -1 | tr -d '\n\r')
+    
+    if [ -z "$CURRENT_VERSION" ]; then
+        # No version file found, include all commits
         COMMIT_RANGE="HEAD"
-        echo "📋 First release - including all commits"
+        echo "📋 No version found in public/version.txt - including all commits"
     else
-        # Commits since last tag
+        echo "📋 Current version: $CURRENT_VERSION"
+        # Find the last tag for this version
+        LAST_TAG="v$CURRENT_VERSION"
+        if git show-ref --tags --quiet "$LAST_TAG"; then
+            echo "📋 Found corresponding tag: $LAST_TAG"
         COMMIT_RANGE="$LAST_TAG..HEAD"
-        echo "📋 Generating changelog since $LAST_TAG"
+        else
+            echo "📋 No tag found for $CURRENT_VERSION - including all commits"
+            COMMIT_RANGE="HEAD"
+        fi
     fi
     
     # Create temporary changelog content
-    TEMP_CHANGELOG="/tmp/changelog_new.md"
+    TEMP_CHANGELOG="changelog_new.md"
     
     # New version header
     cat > "$TEMP_CHANGELOG" << EOF
@@ -268,40 +302,28 @@ EOF
     fi
     
     # Replace changelog
-    mv "$TEMP_CHANGELOG" "CHANGELOG.md"
+    if [ -f "$TEMP_CHANGELOG" ]; then
+        mv "$TEMP_CHANGELOG" "CHANGELOG.md"
+    fi
     
     # Generate French translation
     echo "   └─ Generating French translation..."
-    generate_french_changelog
+    generate_french_changelog "$new_version"
     
-    # Generate ready-to-display JSON for the app
+    # Generate ready-to-display JSON for the app directly in public/
     echo "   └─ Generating JSON for app..."
     generate_changelog_json
-    
-    # Copy to public directory for web access (lowercase for browser compatibility)
-    # Only in real deployment, not in dry-run
-    if [ "$DRY_RUN" = false ]; then
-        cp "CHANGELOG_FR.md" "public/changelog_fr.md"
-        cp "changelog.json" "public/changelog.json"
-    fi
-    
-    # In dry-run mode, copy generated files to sandbox for inspection
-    if [ "$DRY_RUN" = true ] && [ -n "$DRY_SANDBOX_DIR" ]; then
-        cp "CHANGELOG.md" "$DRY_SANDBOX_DIR/"
-        cp "CHANGELOG_FR.md" "$DRY_SANDBOX_DIR/"
-        cp "changelog.json" "$DRY_SANDBOX_DIR/"
-        echo "📁 Generated files saved to sandbox: $DRY_SANDBOX_DIR/"
-    fi
     
     return 0
 }
 
 # Function to translate changelog to French (optimized for new version only)
 generate_french_changelog() {
+    local new_version="$1"
     echo "🌐 Translating changelog to French..."
     
     # Create temporary file for initial translation
-    local temp_changelog="/tmp/changelog_fr_temp.md"
+    local temp_changelog="changelog_fr_temp.md"
     echo "# Changelog" > "$temp_changelog"
     echo "" >> "$temp_changelog"
     echo "Toutes les modifications notables de ce projet seront documentées dans ce fichier." >> "$temp_changelog"
@@ -344,7 +366,7 @@ generate_french_changelog() {
             fi
             # Store commit line for batch processing
             echo "$line" >> "$temp_changelog"
-        # Other lines (empty lines, separators) - keep as is
+            # Other lines (empty lines, separators) - keep as is
         else
             echo "$line" >> "$temp_changelog"
         fi
@@ -354,7 +376,7 @@ generate_french_changelog() {
     
     # Extract only the new version section for translation
     echo "   └─ Extracting new version section for translation..."
-    local temp_translated="/tmp/changelog_fr_translated.md"
+    local temp_translated="changelog_fr_translated.md"
     
     # Start with existing CHANGELOG_FR.md (if it exists)
     if [ -f "CHANGELOG_FR.md" ]; then
@@ -368,18 +390,18 @@ generate_french_changelog() {
         echo "" >> "$temp_translated"
     fi
     
-    # Find the new version section (everything from ## [NEW_VERSION] to the next ## or end)
-    # Extract from NEW_VERSION to the next ## header using sed
-    new_version_section=$(sed -n "/^## \\[$NEW_VERSION\\]/,/^## \\[0.9.1\\]/p" "CHANGELOG.md" | sed '$d')
+    # Find the new version section (everything from ## [new_version] to the next ## or end)
+    # Extract from new_version to the next ## header using sed
+    new_version_section=$(sed -n "/^## \\[$new_version\\]/,/^## \\[0.9.1\\]/p" "CHANGELOG.md" | sed '$d')
     
     # If no content found, try with 0.9.0
     if [ ${#new_version_section} -lt 50 ]; then
-        new_version_section=$(sed -n "/^## \\[$NEW_VERSION\\]/,/^## \\[0.9.0\\]/p" "CHANGELOG.md" | sed '$d')
+        new_version_section=$(sed -n "/^## \\[$new_version\\]/,/^## \\[0.9.0\\]/p" "CHANGELOG.md" | sed '$d')
     fi
     
     # If still no content, capture until end of file
     if [ ${#new_version_section} -lt 50 ]; then
-        new_version_section=$(sed -n "/^## \\[$NEW_VERSION\\]/,\$p" "CHANGELOG.md")
+        new_version_section=$(sed -n "/^## \\[$new_version\\]/,\$p" "CHANGELOG.md")
     fi
     
     echo "   └─ Extracted new version section (${#new_version_section} chars)"
@@ -401,7 +423,7 @@ generate_french_changelog() {
             echo ""
             echo "📝 MANUAL TRANSLATION REQUIRED"
             echo "================================"
-            echo "Please provide the French translation for version $NEW_VERSION:"
+            echo "Please provide the French translation for version $new_version:"
             echo ""
             echo "English content to translate:"
             echo "----------------------------------------"
@@ -434,23 +456,28 @@ generate_french_changelog() {
             fi
         fi
         
-        # Add the translated section at the top
-        local header_lines=$(grep -n "^---$" "$temp_translated" | head -1 | cut -d: -f1)
-        if [ -n "$header_lines" ]; then
-            # Insert after the --- separator
-            head -n "$header_lines" "$temp_translated" > "/tmp/changelog_header.md"
-            echo "" >> "/tmp/changelog_header.md"
-            echo "$translated_section" >> "/tmp/changelog_header.md"
-            echo "" >> "/tmp/changelog_header.md"
-            tail -n +$((header_lines + 1)) "$temp_translated" >> "/tmp/changelog_header.md"
-            mv "/tmp/changelog_header.md" "$temp_translated"
+        # Add the translated section at the very top (before all existing versions)
+        # Find the first version header (## [version])
+        local first_version_line=$(grep -n "^## \\[" "$temp_translated" | head -1 | cut -d: -f1)
+        if [ -n "$first_version_line" ]; then
+            # Insert before the first version
+            head -n $((first_version_line - 1)) "$temp_translated" > "changelog_header.md"
+            echo "" >> "changelog_header.md"
+            echo "$translated_section" >> "changelog_header.md"
+            echo "" >> "changelog_header.md"
+            echo "---" >> "changelog_header.md"
+            echo "" >> "changelog_header.md"
+            tail -n +$first_version_line "$temp_translated" >> "changelog_header.md"
+            mv "changelog_header.md" "$temp_translated"
         else
-            # No separator found, add at the top
-            echo "" > "/tmp/changelog_new.md"
-            echo "$translated_section" >> "/tmp/changelog_new.md"
-            echo "" >> "/tmp/changelog_new.md"
-            cat "$temp_translated" >> "/tmp/changelog_new.md"
-            mv "/tmp/changelog_new.md" "$temp_translated"
+            # No version found, add at the top
+            echo "" > "changelog_new.md"
+            echo "$translated_section" >> "changelog_new.md"
+            echo "" >> "changelog_new.md"
+            echo "---" >> "changelog_new.md"
+            echo "" >> "changelog_new.md"
+            cat "$temp_translated" >> "changelog_new.md"
+            mv "changelog_new.md" "$temp_translated"
         fi
     fi
     
@@ -466,147 +493,200 @@ generate_french_changelog() {
 
 # Function to generate ready-to-display JSON for the app (last 3 versions only)
 generate_changelog_json() {
-    echo "📄 Generating ready-to-display JSON (last 3 versions)..."
+    echo "📄 Generating ready-to-display JSON (incremental update)..."
     
-    # Create temporary file to collect all versions
-    local temp_versions="/tmp/changelog_versions.json"
-    echo "[" > "$temp_versions"
+    # Check if French changelog exists
+    if [ ! -f "CHANGELOG_FR.md" ]; then
+        echo "   └─ No French changelog found, creating empty JSON"
+        echo "[]" > "public/changelog.json"
+        return
+    fi
     
-    local first_version=true
-    local current_version=""
-    local current_date=""
-    local current_changes=""
-    local in_feature_section=false
-    local version_count=0
+    # Get the latest version from CHANGELOG_FR.md
+    local latest_version=$(grep "^## \\[" "CHANGELOG_FR.md" | head -1 | awk -F'[][]' '{print $2}')
     
-    # Read the French changelog and convert to JSON
-    while IFS= read -r line; do
-        # Detect version line (## [1.0.0] - 2025-01-01)
-        if [[ "$line" =~ ^##\ \[([^\]]+)\](?:\s*-\s*(.+))? ]]; then
-            # Save previous version if exists
-            if [ -n "$current_version" ] && [ -n "$current_changes" ]; then
-                if [ "$first_version" = true ]; then
-                    first_version=false
+    if [ -z "$latest_version" ]; then
+        echo "   └─ No versions found, creating empty JSON"
+        echo "[]" > "public/changelog.json"
+        return
+    fi
+    
+    echo "   └─ Latest version found: $latest_version"
+    
+    # Check if changelog.json already exists
+    if [ -f "public/changelog.json" ] && [ -s "public/changelog.json" ]; then
+        echo "   └─ Existing changelog.json found, checking if update needed..."
+        
+        # Check if the latest version is already in the JSON and has content
+        if grep -q "\"version\": \"$latest_version\"" ""public/changelog.json""; then
+            # Check if the version has empty changes array
+            if grep -A 10 "\"version\": \"$latest_version\"" ""public/changelog.json"" | grep -q '"changes": \[[[:space:]]*\]'; then
+                echo "   └─ Version $latest_version exists but has empty changes, updating..."
+            else
+                echo "   └─ Version $latest_version already in JSON with content, no update needed"
+                return
+            fi
+        fi
+        
+        # Check if we need to replace existing version or add new one
+        if grep -q "\"version\": \"$latest_version\"" ""public/changelog.json""; then
+            echo "   └─ Replacing existing version $latest_version with updated content..."
+            
+            # Remove the existing version entry and regenerate
+            # This is complex, so let's regenerate from scratch for simplicity
+            echo "   └─ Regenerating entire JSON to replace version..."
+            
+            # Generate JSON for all versions in CHANGELOG_FR.md
+            local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}'))
+            
+            echo "[" > ""public/changelog.json""
+            local first=true
+            
+            for version in "${versions[@]}"; do
+                if [ "$first" = true ]; then
+                    first=false
                 else
-                    echo "," >> "$temp_versions"
+                    echo "," >> ""public/changelog.json""
                 fi
                 
-                echo "  {" >> "$temp_versions"
-                echo "    \"version\": \"$current_version\"," >> "$temp_versions"
-                echo "    \"date\": \"$current_date\"," >> "$temp_versions"
-                echo "    \"changes\": [" >> "$temp_versions"
-                echo "$current_changes" >> "$temp_versions"
-                echo "    ]" >> "$temp_versions"
-                echo "  }" >> "$temp_versions"
-                
-                version_count=$((version_count + 1))
+                local version_json=$(generate_single_version_json "$version")
+                echo "$version_json" >> ""public/changelog.json""
+            done
+            
+            echo "]" >> ""public/changelog.json""
+        else
+            echo "   └─ Version $latest_version not in JSON, adding it..."
+            
+            # Extract existing JSON content (remove last ])
+            local existing_content=$(sed '$d' ""public/changelog.json"")
+            
+            # Generate new version content
+            local new_version_json=$(generate_single_version_json "$latest_version")
+            
+            # Combine: existing content + comma + new version + closing bracket
+            echo "$existing_content" > ""public/changelog.json""
+            echo "," >> ""public/changelog.json""
+            echo "$new_version_json" >> ""public/changelog.json""
+            echo "]" >> ""public/changelog.json""
+        fi
+        
+        echo "✅ Incremental JSON update completed"
+    else
+        echo "   └─ No existing changelog.json, generating from scratch..."
+        
+        # Generate JSON for all versions in CHANGELOG_FR.md
+        local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}'))
+        
+        echo "[" > ""public/changelog.json""
+        local first=true
+        
+        for version in "${versions[@]}"; do
+            if [ "$first" = true ]; then
+                first=false
+            else
+                echo "," >> ""public/changelog.json""
             fi
             
-            current_version="${BASH_REMATCH[1]}"
-            current_date="${BASH_REMATCH[2]:-}"
-            current_changes=""
-            in_feature_section=false
+            local version_json=$(generate_single_version_json "$version")
+            echo "$version_json" >> ""public/changelog.json""
+        done
+        
+        echo "]" >> ""public/changelog.json""
+        
+        echo "✅ Full JSON generated (${#versions[@]} versions)"
+    fi
+}
+
+# Helper function to generate JSON for a single version
+generate_single_version_json() {
+    local version="$1"
+    local changes=()
+    local in_version=false
+    local in_section=false
+    local current_section=""
+    
+    # Debug output to stderr to avoid mixing with JSON
+    echo "   └─ Processing version $version" >&2
+    
+    while IFS= read -r line; do
+        # Escape dots in version for regex
+        local escaped_version=$(echo "$version" | sed 's/\./\\./g')
+        
+        # Start of this version
+        if [[ "$line" =~ ^##\ \[$escaped_version\] ]]; then
+            in_version=true
+            echo "   └─ DEBUG: Found version header: $line" >&2
             continue
         fi
         
-        # Detect feature sections
-        if [[ "$line" =~ ^###\ ✨.*Nouvelles\ fonctionnalités ]] || [[ "$line" =~ ^###\ 🐛.*Corrections ]]; then
-            in_feature_section=true
-            continue
+        # End of this version (next version or end)
+        if [[ "$line" =~ ^##\ \[ ]] && [[ ! "$line" =~ ^##\ \[$escaped_version\] ]]; then
+            echo "   └─ DEBUG: End of version $version, found: $line" >&2
+            break
         fi
         
-        # Detect end of section
-        if [[ "$line" =~ ^###\  ]] && [[ ! "$line" =~ ✨ ]] && [[ ! "$line" =~ 🐛 ]]; then
-            in_feature_section=false
-            continue
-        fi
-        
-        # Detect end of version
-        if [[ "$line" =~ ^---$ ]]; then
-            in_feature_section=false
-            continue
-        fi
-        
-        # Detect commit lines in feature sections
-        if [[ "$line" =~ ^-\ (.+)$ ]] && [ "$in_feature_section" = true ] && [ -n "$current_version" ]; then
-            local commit="${BASH_REMATCH[1]}"
+        if [ "$in_version" = true ]; then
+            # Section headers
+            if [[ "$line" =~ ^###\ (.*) ]]; then
+                in_section=true
+                current_section="${BASH_REMATCH[1]}"
+                echo "   └─ DEBUG: Found section: $line" >&2
+                continue
+            fi
             
-            # Filter technical commits
-            if [[ ! "$commit" =~ ^(chore:|refactor:|build:|ci:|deps:|dependencies): ]]; then
-                # Determine emoji
-                local emoji="🔧"
-                if [[ "$commit" =~ feat: ]] || [[ "$commit" =~ ✨ ]]; then
-                    emoji="✨"
-                elif [[ "$commit" =~ fix: ]] || [[ "$commit" =~ 🐛 ]]; then
-                    emoji="🐛"
-                elif [[ "$commit" =~ improve: ]] || [[ "$commit" =~ ⚡ ]]; then
-                    emoji="⚡"
+            # Change items (skip separators like "---")
+            if [[ "$line" =~ ^-\ (.+)$ ]] && [ "$in_section" = true ] && [[ ! "$line" =~ ^--- ]]; then
+                local change="${BASH_REMATCH[1]}"
+                if [ -n "$change" ]; then
+                    # Add emoji based on section
+                    local emoji=""
+                    case "$current_section" in
+                        *"Nouvelles fonctionnalités"*|*"New Features"*) emoji="✨" ;;
+                        *"Corrections"*|*"Bug Fixes"*) emoji="🐛" ;;
+                        *"Améliorations"*|*"Improvements"*) emoji="🔧" ;;
+                        *"Autre"*|*"Other"*) emoji="📝" ;;
+                    esac
+                    
+                    changes+=("\"$emoji $change\"")
+                    echo "   └─ DEBUG: Found change: $change" >&2
                 fi
-                
-                # Add comma if not first change
-                if [ -n "$current_changes" ]; then
-                    current_changes+=","
+            elif [ "$in_section" = true ] && [[ ! "$line" =~ ^--- ]] && [[ ! "$line" =~ ^### ]]; then
+                echo "   └─ DEBUG: Line in section but not matched: '$line'" >&2
+            elif [[ "$line" =~ ^[[:space:]]+[^-] ]] && [ "$in_section" = true ] && [ ${#changes[@]} -gt 0 ]; then
+                # Continuation of previous change (multi-line)
+                local continuation="${line##*[[:space:]]}"
+                if [ -n "$continuation" ]; then
+                    # Append to the last change
+                    local last_change_index=$((${#changes[@]} - 1))
+                    local last_change="${changes[$last_change_index]}"
+                    # Remove the closing quote and add continuation
+                    last_change="${last_change%\"} $continuation\""
+                    changes[$last_change_index]="$last_change"
+                    echo "   └─ DEBUG: Continued change: $continuation" >&2
                 fi
-                
-                # Escape quotes in commit message
-                local escaped_commit=$(echo "$commit" | sed 's/"/\\"/g')
-                
-                current_changes+="
-      {
-        \"id\": \"$current_version-$(echo "$current_changes" | grep -o "," | wc -l)\",
-        \"emoji\": \"$emoji\",
-        \"description\": \"$escaped_commit\"
-      }"
             fi
         fi
     done < "CHANGELOG_FR.md"
     
-    # Add last version
-    if [ -n "$current_version" ] && [ -n "$current_changes" ]; then
-        if [ "$first_version" = true ]; then
-            first_version=false
-        else
-            echo "," >> "$temp_versions"
+    echo "   └─ DEBUG: Final changes for $version: ${changes[*]}" >&2
+    
+    # Generate JSON for this version
+    echo "  {"
+    echo "    \"version\": \"$version\","
+    echo "    \"date\": \"$(date '+%Y-%m-%d')\","
+    echo "    \"changes\": ["
+    
+    local change_count=0
+    for change in "${changes[@]}"; do
+        if [ $change_count -gt 0 ]; then
+            echo ","
         fi
-        
-        echo "  {" >> "$temp_versions"
-        echo "    \"version\": \"$current_version\"," >> "$temp_versions"
-        echo "    \"date\": \"$current_date\"," >> "$temp_versions"
-        echo "    \"changes\": [" >> "$temp_versions"
-        echo "$current_changes" >> "$temp_versions"
-        echo "    ]" >> "$temp_versions"
-        echo "  }" >> "$temp_versions"
-        
-        version_count=$((version_count + 1))
-    fi
+        echo "      $change"
+        change_count=$((change_count + 1))
+    done
     
-    echo "]" >> "$temp_versions"
-    
-    # Extract only the last 3 versions using jq (if available) or awk
-    if command -v jq >/dev/null 2>&1; then
-        jq '.[0:3]' "$temp_versions" > "changelog.json"
-    else
-        # Fallback: use awk to extract first 3 versions
-        awk '
-        BEGIN { in_version = 0; version_count = 0; print "[" }
-        /^  {/ { 
-            if (version_count > 0) print ","
-            in_version = 1
-            version_count++
-        }
-        in_version == 1 { print }
-        /^  }/ { 
-            in_version = 0
-            if (version_count >= 3) exit
-        }
-        END { print "]" }
-        ' "$temp_versions" > "changelog.json"
-    fi
-    
-    # Clean up
-    rm -f "$temp_versions"
-    
-    echo "✅ Ready-to-display JSON generated (last 3 versions)"
+    echo "    ]"
+    echo "  }"
 }
 
 # Function to translate a single commit line (with Google Translate for new commits)
@@ -739,7 +819,7 @@ translate_with_google() {
             return 0
         else
             echo "KO" >&2
-            echo ""
+        echo ""
             return 1
         fi
     else
@@ -773,17 +853,17 @@ apply_translations() {
     # Apply translations from cached dictionary
     if [ -n "$TRANSLATION_DICT_CACHE" ]; then
         echo "$TRANSLATION_DICT_CACHE" | while IFS='|' read -r english french; do
-            # Skip comments and empty lines
-            if [[ "$english" =~ ^#.*$ ]] || [[ -z "$english" ]]; then
-                continue
-            fi
-            
-            # Escape special characters for sed
-            english_escaped=$(printf '%s\n' "$english" | sed 's/[[\.*^$()+?{|]/\\&/g')
-            french_escaped=$(printf '%s\n' "$french" | sed 's/[[\.*^$()+?{|]/\\&/g')
-            
-            # Apply translation
-            translated=$(echo "$translated" | sed "s/$english_escaped/$french_escaped/g")
+        # Skip comments and empty lines
+        if [[ "$english" =~ ^#.*$ ]] || [[ -z "$english" ]]; then
+            continue
+        fi
+        
+        # Escape special characters for sed
+        english_escaped=$(printf '%s\n' "$english" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        french_escaped=$(printf '%s\n' "$french" | sed 's/[[\.*^$()+?{|]/\\&/g')
+        
+        # Apply translation
+        translated=$(echo "$translated" | sed "s/$english_escaped/$french_escaped/g")
         done
     fi
     
@@ -798,23 +878,25 @@ if [ "$CURRENT_BRANCH" != "staging" ]; then
     exit 1
 fi
 
-# Verify staging is clean
-if [ -n "$(git status --porcelain)" ]; then
+# Verify staging is clean (only in production mode)
+if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain)" ]; then
     echo "❌ Error: Staging branch has uncommitted changes"
     git status
     exit 1
 fi
 
-# Create sandbox for dry-run
+# Setup working directory (change to sandbox in dry-run mode)
+setup_working_directory
+
+# Set up trap to cleanup on exit (only in dry-run mode)
 if [ "$DRY_RUN" = true ]; then
-    create_dry_run_sandbox
-    # Set up trap to cleanup on exit
     trap cleanup_dry_run_sandbox EXIT
 fi
 
-# Fetch latest branch versions
-echo "📡 Fetching latest versions..."
+# Fetch latest branch versions and tags
+echo "📡 Fetching latest versions and tags..."
 git fetch origin
+git fetch --tags origin
 
 # Check if there are commits on main not in staging (potential hotfixes)
 if [ "$DRY_RUN" = true ]; then
@@ -854,6 +936,16 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
             if [ "$DRY_RUN" = true ]; then
                 # In dry-run, rebase the sandbox staging on sandbox main
                 git checkout "$DRY_STAGING"
+                
+                # Stash any uncommitted changes for dry-run
+                if [ -n "$(git status --porcelain)" ]; then
+                    echo "   └─ Stashing uncommitted changes for dry-run rebase..."
+                    git stash push -m "dry-run-temp-stash"
+                    stashed=true
+                else
+                    stashed=false
+                fi
+                
                 git rebase "$DRY_MAIN"
                 
                 if [ $? -ne 0 ]; then
@@ -862,6 +954,12 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
                     echo "💡 The actual deployment would stop here for manual intervention"
                     git rebase --abort 2>/dev/null || true
                     exit 1
+                fi
+                
+                # Restore stashed changes if any
+                if [ "$stashed" = true ]; then
+                    echo "   └─ Restoring stashed changes after dry-run rebase..."
+                    git stash pop
                 fi
                 
                 echo "✅ DRY-RUN: Rebase would succeed!"
@@ -957,10 +1055,10 @@ if [ "$DRY_RUN" = true ]; then
     echo "✅ Auto-confirmed for dry-run"
 else
     read -p "🤔 Confirm release version $NEW_VERSION? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "❌ Deployment cancelled"
-        exit 1
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Deployment cancelled"
+    exit 1
     fi
 fi
 
@@ -1000,8 +1098,8 @@ if [ "$DRY_RUN" = true ]; then
     echo "└─────────────────────────────────────────────────"
     echo ""
     
-    # Restore original state (remove temporary changelog)
-    git checkout -- CHANGELOG.md 2>/dev/null || true
+    # Keep generated changelog in sandbox for inspection
+    echo "   └─ Changelog generated in sandbox for inspection"
 else
     echo "📝 Automatic changelog generation..."
     generate_changelog "$NEW_VERSION" "$BUILD_DATE"
@@ -1028,6 +1126,15 @@ fi
 
 # Merge to main
 if [ "$DRY_RUN" = true ]; then
+    # Stash any uncommitted changes before switching branches
+    if [ -n "$(git status --porcelain)" ]; then
+        execute_cmd "git stash push -m 'dry-run-temp-stash-2'" "Stash changes before branch switch"
+        stashed_before_switch=true
+    else
+        stashed_before_switch=false
+    fi
+    
+    # In dry-run mode, we're already in the sandbox, just simulate the merge
     execute_cmd "git checkout $DRY_MAIN" "Switch to sandbox main"
     execute_cmd "git merge $DRY_STAGING --no-ff -m \"release: version $NEW_VERSION
 

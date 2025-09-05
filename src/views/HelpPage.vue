@@ -334,7 +334,35 @@ async function loadChangelog() {
     }
     
     const versions = await response.json()
-    userFriendlyChangelog.value = versions // Already limited to 3 versions by the script
+    console.debug('🔍 DEBUG: Raw changelog data loaded:', versions)
+    
+    // Transform the data to match expected format
+    const transformedVersions = versions.map(version => {
+      console.debug(`🔍 DEBUG: Processing version ${version.version}:`, version.changes)
+      
+      const transformedChanges = version.changes.map((change, index) => {
+        // Extract emoji and description from the change string
+        const emojiMatch = change.match(/^([^\s]+)\s(.+)$/)
+        if (emojiMatch) {
+          const emoji = emojiMatch[1]
+          const description = emojiMatch[2]
+          console.debug(`🔍 DEBUG: Change ${index}: emoji="${emoji}", description="${description}"`)
+          return { id: `${version.version}-${index}`, emoji, description }
+        } else {
+          console.debug(`🔍 DEBUG: Change ${index}: no emoji found, using as description: "${change}"`)
+          return { id: `${version.version}-${index}`, emoji: '📝', description: change }
+        }
+      })
+      
+      return {
+        version: version.version,
+        date: version.date,
+        changes: transformedChanges
+      }
+    })
+    
+    console.debug('🔍 DEBUG: Transformed changelog data:', transformedVersions)
+    userFriendlyChangelog.value = transformedVersions
     
   } catch (error) {
     console.debug('Could not load changelog:', error)
