@@ -46,3 +46,6 @@ playwright.config.local.js
 # Firebase cache files
 .firebase/
 firebase-debug.log
+
+# Dry-run sandbox
+.dry-run-sandbox/
