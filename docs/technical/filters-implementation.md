@@ -65,7 +65,8 @@ const displayedEvents = computed(() => {
 
 ### Dropdown
 - **Positionnement** : `fixed` avec calcul dynamique de position
-- **Z-index** : `z-[200]` (priorité maximale)
+- **Z-index** : `z-[1000]` (priorité maximale, au-dessus de tous les éléments)
+- **Contexte de stacking** : Placé en dehors du conteneur parent pour éviter les limitations
 - **Fermeture** : Automatique au clic extérieur
 
 ### Indicateurs visuels
@@ -75,20 +76,11 @@ const displayedEvents = computed(() => {
 
 ## 🔄 Gestion des événements
 
-### Positionnement dynamique
-```javascript
-const filtersDropdownStyle = computed(() => {
-  if (!showFiltersDropdown.value) return {}
-  
-  const button = document.querySelector('[data-filters-button]')
-  if (!button) return {}
-  
-  const rect = button.getBoundingClientRect()
-  return {
-    top: `${rect.bottom + 8}px`,
-    right: `${window.innerWidth - rect.right}px`
-  }
-})
+### Positionnement simple
+```html
+<div class="absolute top-12 right-0 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1000] overflow-hidden">
+  <!-- Contenu du dropdown -->
+</div>
 ```
 
 ### Fermeture automatique
@@ -112,6 +104,9 @@ onMounted(() => {
 1. **Z-index** : Dropdown masqué par le bouton → Résolu avec `z-[200]`
 2. **Positionnement** : Dropdown en dessous de la grille → Résolu avec `fixed` + calcul dynamique
 3. **Logique inverse** : Filtre "Passés" affichait les non-passés → Résolu avec `return isPast`
+4. **Conflit avec popup changelog** : Dropdown masqué par le popup de changelog → Résolu avec `z-[1000]`
+5. **Positionnement CSS simple** : Dropdown positionné avec `absolute top-12 right-0` → Plus de calculs dynamiques complexes
+6. **Conflit avec zone de saisie** : Dropdown masqué par les zones de saisie → Résolu en sortant le dropdown du contexte de stacking parent
 
 ### Bonnes pratiques
 - Utilisation de `computed()` pour la réactivité

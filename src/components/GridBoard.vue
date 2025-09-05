@@ -148,14 +148,14 @@
                 class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-gray-900"
               ></div>
             </button>
+          </div>
 
-            <!-- Dropdown des filtres -->
-            <div
-              v-if="showFiltersDropdown"
-              data-filters-dropdown
-              class="fixed w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[200] overflow-hidden"
-              :style="filtersDropdownStyle"
-            >
+          <!-- Dropdown des filtres (positionnement simple) -->
+          <div
+            v-if="showFiltersDropdown"
+            data-filters-dropdown
+            class="absolute top-12 right-0 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1000] overflow-hidden"
+          >
               <div class="p-3 border-b border-white/10">
                 <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
               </div>
@@ -181,7 +181,6 @@
                 <span class="ml-3 text-sm text-white">Passés</span>
                 <span class="ml-auto text-xs text-gray-400">📅</span>
               </label>
-            </div>
           </div>
 
           <!-- Horizontal scroll chevrons -->
@@ -462,18 +461,18 @@
     :mode="'edit'"
     :is-visible="!!editingEvent"
     :event-data="editingEvent ? {
-      title: editingTitle,
-      date: editingDate,
-      description: editingDescription,
-      archived: editingArchived,
-      roles: editingRoles
+      title: editingTitle.value,
+      date: editingDate.value,
+      description: editingDescription.value,
+      archived: editingArchived.value,
+      roles: editingRoles.value
     } : null"
     @save="handleEditEvent"
     @cancel="cancelEdit"
   />
 
   <!-- Modale de création de joueur -->
-  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
+  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
       <div class="mb-6">
@@ -577,7 +576,7 @@
 
 
   <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[500] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1000] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
@@ -1360,7 +1359,7 @@
   />
 
   <!-- Modal de prompt pour annoncer après création/modification -->
-  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[500] p-4">
+  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
               <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer cet événement ?</h3>
               <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux personnes pour qu'elles indiquent leur disponibilité</p>
@@ -4067,20 +4066,7 @@ function toggleFiltersDropdown() {
   showFiltersDropdown.value = !showFiltersDropdown.value
 }
 
-// Calculer la position du dropdown des filtres
-const filtersDropdownStyle = computed(() => {
-  if (!showFiltersDropdown.value) return {}
-  
-  // Trouver le bouton de filtres
-  const button = document.querySelector('[data-filters-button]')
-  if (!button) return {}
-  
-  const rect = button.getBoundingClientRect()
-  return {
-    top: `${rect.bottom + 8}px`,
-    right: `${window.innerWidth - rect.right}px`
-  }
-})
+// Positionnement simple du dropdown des filtres (plus de calcul dynamique)
 
 // Fermer le dropdown si on clique ailleurs
 function closeFiltersDropdown() {
