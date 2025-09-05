@@ -460,13 +460,7 @@
   <EventModal
     :mode="'edit'"
     :is-visible="!!editingEvent"
-    :event-data="editingEvent ? {
-      title: editingTitle.value,
-      date: editingDate.value,
-      description: editingDescription.value,
-      archived: editingArchived.value,
-      roles: editingRoles.value
-    } : null"
+    :event-data="editingEventData"
     @save="handleEditEvent"
     @cancel="cancelEdit"
   />
@@ -924,10 +918,10 @@
         <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
     </div>
-
-    <!-- Footer principal -->
-    <AppFooter @open-help="showHowItWorksGlobal = true" />
   </div>
+
+  <!-- Footer principal -->
+  <AppFooter @open-help="showHowItWorksGlobal = true" />
 
   <!-- Dropdown mobile pour actions d'événements (positionné absolument) -->
   <teleport to="body">
@@ -3141,6 +3135,14 @@ async function handleEditEvent(eventData) {
       events.value = newEvents
       availability.value = newAvailability
       selections.value = newSelections
+      
+      // Mettre à jour selectedEvent avec les nouvelles données si la modale de détails est ouverte
+      if (selectedEvent.value) {
+        const updatedEvent = newEvents.find(e => e.id === selectedEvent.value.id)
+        if (updatedEvent) {
+          selectedEvent.value = updatedEvent
+        }
+      }
     })
     
     // Réinitialiser l'état d'édition
@@ -3385,6 +3387,19 @@ const selectedEventTotalTeamSize = computed(() => {
   } else {
     // Fallback vers l'ancien système (playerCount)
     return selectedEvent.value.playerCount || 6
+  }
+})
+
+// Computed property pour les données de l'événement en cours d'édition
+const editingEventData = computed(() => {
+  // Retourner les données même si editingEvent.value est falsy
+  // car les données peuvent être assignées avant que editingEvent.value soit défini
+  return {
+    title: editingTitle.value,
+    date: editingDate.value,
+    description: editingDescription.value,
+    archived: editingArchived.value,
+    roles: editingRoles.value
   }
 })
 
@@ -5518,6 +5533,8 @@ async function showEventDetails(event) {
     console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
   }
 
+  // S'assurer que la modale s'ouvre après que les données soient assignées
+  await nextTick()
   showEventDetailsModal.value = true
   
   // Mettre à jour l'état de surveillance de l'événement
