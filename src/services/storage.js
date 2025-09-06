@@ -29,28 +29,28 @@ export const ROLE_EMOJIS = {
 }
 
 export const ROLE_LABELS = {
-  [ROLES.PLAYER]: 'Comédiens',
+  [ROLES.PLAYER]: 'Comédien.nes',
   [ROLES.VOLUNTEER]: 'Bénévoles',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
   [ROLES.REFEREE]: 'Arbitre',
-  [ROLES.ASSISTANT_REFEREE]: 'Assistant',
+  [ROLES.ASSISTANT_REFEREE]: 'Assistant.es',
   [ROLES.LIGHTING]: 'Lumière',
   [ROLES.COACH]: 'Coach',
-  [ROLES.STAGE_MANAGER]: 'Régisseur'
+  [ROLES.STAGE_MANAGER]: 'Régisseur.euses'
 }
 
 // Labels au singulier pour les modales de disponibilité (individuelles)
 export const ROLE_LABELS_SINGULAR = {
-  [ROLES.PLAYER]: 'Comédien',
+  [ROLES.PLAYER]: 'Comédien.ne',
   [ROLES.VOLUNTEER]: 'Bénévole',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
   [ROLES.REFEREE]: 'Arbitre',
-  [ROLES.ASSISTANT_REFEREE]: 'Assistant',
+  [ROLES.ASSISTANT_REFEREE]: 'Assistant.e',
   [ROLES.LIGHTING]: 'Lumière',
   [ROLES.COACH]: 'Coach',
-  [ROLES.STAGE_MANAGER]: 'Régisseur'
+  [ROLES.STAGE_MANAGER]: 'Régisseur.euse'
 }
 
 // Ordre d'affichage des rôles
