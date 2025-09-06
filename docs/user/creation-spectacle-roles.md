@@ -14,7 +14,7 @@ La nouvelle section "Équipe" remplace l'ancien champ "Nombre de personnes à s�
   - 🎭 Comédiens
   - 🎧 DJ
   - 🎤 MC
-  - 🤝 Volontaires
+  - 🤝 Bénévoles
 
 - **Rôles supplémentaires** (révélés par "Plus de rôles...") :
   - 🙅 Arbitre
@@ -38,7 +38,7 @@ La nouvelle section "Équipe" remplace l'ancien champ "Nombre de personnes à s�
   comédiens: 6,
   DJ: 1,
   MC: 1,
-  volontaires: 5,
+  bénévoles: 5,
   arbitre: 1,
   assistants: 2,
   lumière: 0,
@@ -106,7 +106,7 @@ Les rôles sont stockés dans un format simple et cohérent :
     player: 6,        // 6 comédiens
     dj: 1,           // 1 DJ
     mc: 1,           // 1 MC
-    volunteer: 5,     // 5 volontaires
+    volunteer: 5,     // 5 bénévoles
     referee: 1,      // 1 arbitre
     assistant_referee: 2, // 2 assistants
     lighting: 0,      // 0 éclairagiste (non affiché)
@@ -144,7 +144,7 @@ Cette correction garantit que les modifications de rôles dans la modale de modi
 **Troisième problème identifié** : Il y avait un bug subtil dans l'initialisation des rôles qui empêchait la valeur `0` d'être correctement préservée :
 
 - ❌ **Problème** : L'opérateur `||` remplaçait `0` par les valeurs par défaut car `0` est "falsy" en JavaScript
-- ❌ **Exemple** : Si tu mettais "Volontaires" à 0, la modale le remettait à 5 lors de la réouverture
+- ❌ **Exemple** : Si tu mettais "Bénévoles" à 0, la modale le remettait à 5 lors de la réouverture
 - ✅ **Solution** : Remplacement de `||` par `??` (coalescence nulle) pour distinguer `0` de `undefined`/`null`
 
 **Différence entre `||` et `??`** :
@@ -239,7 +239,7 @@ Dans la liste des personnes de la modale de détail spectacle, les informations 
 
 ```
 🎭 🎧 📝  (Comédien + DJ + Commentaire)
-🎤 🤝     (MC + Volontaire)
+🎤 🤝     (MC + Bénévole)
 🎭 ...     (Comédien + autres rôles cachés)
 ```
 
@@ -253,11 +253,11 @@ Dans la liste des personnes de la modale de détail spectacle, les informations 
 
 Lors de l'ouverture de la modale de disponibilité pour une nouvelle personne, les rôles sont automatiquement cochés selon la logique suivante :
 
-1. **Priorité aux rôles par défaut** : Si "Comédien" et/ou "Volontaire" sont attendus pour le spectacle, ils sont cochés en priorité
+1. **Priorité aux rôles par défaut** : Si "Comédien" et/ou "Bénévole" sont attendus pour le spectacle, ils sont cochés en priorité
 2. **Fallback intelligent** : Si aucun des rôles par défaut n'est attendu, le premier rôle attendu est coché automatiquement
 3. **Adaptation contextuelle** : Les rôles cochés par défaut s'adaptent automatiquement aux besoins réels du spectacle
 
-Cette approche incite les personnes à se porter volontaire pour tous les rôles, pas seulement pour les rôles considérés comme "prestigieux", favorisant ainsi une participation équilibrée dans l'équipe.
+Cette approche incite les personnes à se porter bénévole pour tous les rôles, pas seulement pour les rôles considérés comme "prestigieux", favorisant ainsi une participation équilibrée dans l'équipe.
 
 ### Filtrage des rôles affichés
 
@@ -316,7 +316,7 @@ Cette fonctionnalité maintient la compatibilité avec l'ancien système en cons
     comédiens: 6,
     DJ: 1,
     MC: 1,
-    volontaires: 5,
+    bénévoles: 5,
     arbitre: 1,
     assistants: 2,
     lumière: 0,
@@ -330,11 +330,11 @@ Cette fonctionnalité maintient la compatibilité avec l'ancien système en cons
 
 ### Labels au pluriel (création de spectacle)
 - **🎭 Comédiens** : Pour définir le nombre de comédiens dans l'équipe
-- **🤝 Volontaires** : Pour définir le nombre de volontaires dans l'équipe
+- **🤝 Bénévoles** : Pour définir le nombre de bénévoles dans l'équipe
 
 ### Labels au singulier (disponibilités individuelles)
 - **🎭 Comédien** : Pour indiquer sa disponibilité personnelle en tant que comédien
-- **🤝 Volontaire** : Pour indiquer sa disponibilité personnelle en tant que volontaire
+- **🤝 Bénévole** : Pour indiquer sa disponibilité personnelle en tant que bénévole
 
 Cette distinction permet d'avoir une interface claire et contextuellement appropriée selon l'usage :
 - **Pluriel** pour la configuration d'équipe (création de spectacle)

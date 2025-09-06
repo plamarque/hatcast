@@ -250,7 +250,7 @@ watch(() => props.show, (newShow) => {
     // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
     if (!props.currentAvailability.available && props.currentAvailability.roles.length === 0) {
       if (availableRoles.value.length > 0) {
-        // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
+        // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
         const defaultRoles = []
         if (props.eventRoles[ROLES.PLAYER] > 0) {
           defaultRoles.push(ROLES.PLAYER)
@@ -281,7 +281,7 @@ watch(() => props.currentAvailability, (newAvailability) => {
             // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
         if (!newAvailability.available && (!newAvailability.roles || newAvailability.roles.length === 0)) {
           if (availableRoles.value.length > 0) {
-            // Pré-cocher les rôles attendus, en priorité Comédien et Volontaire s'ils sont disponibles
+            // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
             const defaultRoles = []
             if (props.eventRoles[ROLES.PLAYER] > 0) {
               defaultRoles.push(ROLES.PLAYER)

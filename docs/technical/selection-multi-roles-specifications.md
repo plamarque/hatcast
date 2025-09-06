@@ -35,7 +35,7 @@ selections: {
     player: ['Alice', 'Bob', 'Charlie', 'David', 'Eva'],     // 5 comédiens
     mc: ['Fanny'],                                            // 1 MC
     dj: ['Georges'],                                          // 1 DJ
-    volunteer: ['Hélène', 'Ismaël'],                          // 2 volontaires
+    volunteer: ['Hélène', 'Ismaël'],                          // 2 bénévoles
     referee: [],                                               // 0 arbitre (count = 0)
     assistant_referee: [],                                     // 0 assistant (count = 0)
     lighting: [],                                              // 0 éclairagiste (count = 0)
@@ -49,7 +49,7 @@ selections: {
 
 ### **Nombre de slots**
 - **Total des slots** = Somme de tous les rôles attendus (count > 0)
-- **Exemple** : 5 comédiens + 1 MC + 1 DJ + 2 volontaires = 9 slots
+- **Exemple** : 5 comédiens + 1 MC + 1 DJ + 2 bénévoles = 9 slots
 
 ### **Affichage groupé par rôle**
 ```
@@ -60,7 +60,7 @@ selections: {
 ```
 
 ### **Slots vides (non remplis)**
-- **Libellé court** : "Comédien", "MC", "DJ", "Volontaire"...
+- **Libellé court** : "Comédien", "MC", "DJ", "Bénévole"...
 - **Tooltip complet** : "Ajouter un comédien", "Ajouter un MC", "Ajouter un DJ"...
 - **Style** : Pointillés (déjà existant)
 - **Position** : Après les personnes sélectionnées pour ce rôle
@@ -145,7 +145,7 @@ MC (1/1) :
 DJ (1/1) :
 [Georges 🎧]
 
-Volontaires (2/2) :
+Bénévoles (2/2) :
 [Hélène 🤝] [Ismaël 🤝]
 ```
 

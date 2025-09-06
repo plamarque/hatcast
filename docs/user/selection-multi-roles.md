@@ -25,7 +25,7 @@ Chaque slot affiche :
 - 🎭 Comédien
 - 🎧 DJ
 - 🎤 MC
-- 🤝 Volontaire
+- 🤝 Bénévole
 - 🙅 Arbitre
 - 💁 Assistant
 - 🔦 Lumière
@@ -51,7 +51,7 @@ L'équipe est affichée groupée par rôle dans l'ordre logique :
 
 ### **Principe d'indépendance des rôles**
 - Être sélectionné pour un rôle **NE RÉDUIT PAS** tes chances d'être sélectionné pour un autre rôle
-- **Exemple** : Si tu es sélectionné comme "Volontaire", ça n'affecte PAS tes chances d'être sélectionné comme "Comédien"
+- **Exemple** : Si tu es sélectionné comme "Bénévole", ça n'affecte PAS tes chances d'être sélectionné comme "Comédien"
 
 ### **Pénalités spécifiques au rôle**
 - Les pénalités ne s'appliquent que si tu es **déjà sélectionné pour le même rôle**
@@ -67,7 +67,7 @@ L'équipe est affichée groupée par rôle dans l'ordre logique :
 - 5 Comédiens
 - 1 MC
 - 1 DJ
-- 2 Volontaires
+- 2 Bénévoles
 - **Total** : 9 personnes
 
 ### **Résultat de la sélection automatique**
@@ -81,7 +81,7 @@ MC (1/1) :
 DJ (1/1) :
 [Georges 🎧]
 
-Volontaires (2/2) :
+Bénévoles (2/2) :
 [Hélène 🤝] [Ismaël 🤝]
 ```
 
@@ -93,7 +93,7 @@ Si la sélection n'est pas complète, les slots vides s'affichent :
 [Fanny 🎤]
 [--- DJ ---]  // 1 slot vide pour DJ
 [Hélène 🤝]
-[--- Volontaire ---]  // 1 slot vide pour volontaire
+[--- Bénévole ---]  // 1 slot vide pour bénévole
 ```
 
 ## 🎲 **Comment sont calculées tes chances**
@@ -141,8 +141,8 @@ Alice - DJ :
 ### **Q : Pourquoi suis-je sélectionné pour ce rôle et pas pour celui que je préfère ?**
 **R :** La sélection automatique prend en compte tes disponibilités, tes chances de base et les pénalités. Si tu préfères un autre rôle, assure-toi d'être disponible pour ce rôle.
 
-### **Q : Être sélectionné comme volontaire réduit-il mes chances d'être comédien ?**
-**R :** **NON !** Les rôles sont indépendants. Être sélectionné comme volontaire n'affecte PAS tes chances d'être sélectionné comme comédien.
+### **Q : Être sélectionné comme bénévole réduit-il mes chances d'être comédien ?**
+**R :** **NON !** Les rôles sont indépendants. Être sélectionné comme bénévole n'affecte PAS tes chances d'être sélectionné comme comédien.
 
 ### **Q : Comment augmenter mes chances pour un rôle spécifique ?**
 **R :** Indique ta disponibilité pour ce rôle, participe régulièrement, et évite d'être sélectionné pour ce même rôle trop souvent.

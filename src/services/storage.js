@@ -30,7 +30,7 @@ export const ROLE_EMOJIS = {
 
 export const ROLE_LABELS = {
   [ROLES.PLAYER]: 'Comédiens',
-  [ROLES.VOLUNTEER]: 'Volontaires',
+  [ROLES.VOLUNTEER]: 'Bénévoles',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
   [ROLES.REFEREE]: 'Arbitre',
@@ -43,7 +43,7 @@ export const ROLE_LABELS = {
 // Labels au singulier pour les modales de disponibilité (individuelles)
 export const ROLE_LABELS_SINGULAR = {
   [ROLES.PLAYER]: 'Comédien',
-  [ROLES.VOLUNTEER]: 'Volontaire',
+  [ROLES.VOLUNTEER]: 'Bénévole',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
   [ROLES.REFEREE]: 'Arbitre',
