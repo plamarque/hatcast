@@ -113,11 +113,20 @@
                   type="checkbox"
                   :value="role"
                   v-model="selectedRoles"
-                  :disabled="isReadOnly"
+                  :disabled="isReadOnly || !canDisableRole(role)"
                   class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 flex-shrink-0"
                 >
                 <span class="text-base md:text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
                 <span class="text-xs md:text-sm text-white flex-1 min-w-0">{{ ROLE_LABELS_SINGULAR[role] }}</span>
+                
+                <!-- Indicateur pour le rôle bénévole non modifiable -->
+                <span 
+                  v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200"
+                  title="Rôle bénévole toujours sélectionné"
+                >
+                  Fixe
+                </span>
                 
                 <!-- Pourcentage pour le rôle Comédien -->
                 <span 
@@ -182,8 +191,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER } from '../services/storage.js'
+import { getUserRolePreferences, getPreferredRolesForEvent, canDisableRole } from '../services/rolePreferencesService.js'
+import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { currentUser } from '../services/authState.js'
 
 const props = defineProps({
   show: {
@@ -193,6 +205,10 @@ const props = defineProps({
   playerName: {
     type: String,
     required: true
+  },
+  playerId: {
+    type: String,
+    required: false
   },
   eventId: {
     type: String,
@@ -241,6 +257,8 @@ const emit = defineEmits(['close', 'save', 'not-available', 'clear', 'requestEdi
 const selectedRoles = ref([])
 const comment = ref('')
 const selectedAvailability = ref(null) // null = pas défini, true = dispo, false = pas dispo
+const userRolePreferences = ref(null)
+const favoritePlayerIds = ref(new Set())
 
 // Computed property pour gérer l'affichage des rôles
 const availableRoles = computed(() => {
@@ -268,9 +286,131 @@ const hasCurrentState = computed(() => {
   return props.currentAvailability?.available !== undefined && props.currentAvailability?.available !== null
 })
 
+// Charger les préférences de rôles de l'utilisateur
+async function loadUserRolePreferences() {
+  try {
+    console.log('Chargement des préférences de rôles...')
+    userRolePreferences.value = await getUserRolePreferences()
+    console.log('Préférences de rôles chargées:', userRolePreferences.value)
+  } catch (error) {
+    console.warn('Erreur lors du chargement des préférences de rôles:', error)
+    userRolePreferences.value = null
+  }
+}
+
+// Charger les joueurs favoris de l'utilisateur
+async function loadFavoritePlayers() {
+  try {
+    const user = currentUser.value
+    if (!user?.email || !props.seasonId) {
+      favoritePlayerIds.value = new Set()
+      return
+    }
+    
+    console.log('Chargement des joueurs favoris...')
+    const assocs = await listAssociationsForEmail(user.email)
+    const seasonal = assocs.filter(a => a.seasonId === props.seasonId)
+    
+    if (seasonal.length > 0) {
+      const playerIds = seasonal.map(a => a.playerId)
+      favoritePlayerIds.value = new Set(playerIds)
+      console.log('Joueurs favoris chargés:', playerIds)
+    } else {
+      favoritePlayerIds.value = new Set()
+      console.log('Aucun joueur favori trouvé')
+    }
+  } catch (error) {
+    console.warn('Erreur lors du chargement des favoris:', error)
+    favoritePlayerIds.value = new Set()
+  }
+}
+
+// Fonction pour vérifier si le joueur actuel est un favori de l'utilisateur connecté
+function isCurrentPlayerFavorite() {
+  // Vérifier si le joueur actuel est dans la liste des favoris
+  const currentPlayerId = props.playerId
+  const isFavorite = currentPlayerId ? favoritePlayerIds.value.has(currentPlayerId) : false
+  
+  console.log('Vérification joueur favori:', {
+    currentPlayerId,
+    currentPlayerName: props.playerName,
+    favoritePlayerIds: Array.from(favoritePlayerIds.value),
+    isFavorite
+  })
+  
+  return isFavorite
+}
+
+// Fonction pour obtenir les rôles à pré-cocher selon les préférences
+function getDefaultRolesToSelect() {
+  console.log('getDefaultRolesToSelect appelée:', {
+    userRolePreferences: userRolePreferences.value,
+    availableRoles: availableRoles.value,
+    eventRoles: props.eventRoles,
+    isFavorite: isCurrentPlayerFavorite()
+  })
+  
+  // Vérifier si le joueur actuel est un favori de l'utilisateur connecté
+  if (!isCurrentPlayerFavorite()) {
+    console.log('Joueur non favori, utilisation du comportement par défaut')
+    // Fallback vers l'ancien comportement si pas un favori
+    const defaultRoles = []
+    if (props.eventRoles[ROLES.PLAYER] > 0) {
+      defaultRoles.push(ROLES.PLAYER)
+    }
+    if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+      defaultRoles.push(ROLES.VOLUNTEER)
+    }
+    if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+      defaultRoles.push(availableRoles.value[0])
+    }
+    console.log('Rôles par défaut (joueur non favori):', defaultRoles)
+    return defaultRoles
+  }
+  
+  if (!userRolePreferences.value || availableRoles.value.length === 0) {
+    console.log('Fallback vers comportement par défaut (pas de préférences)')
+    // Fallback vers l'ancien comportement si pas de préférences
+    const defaultRoles = []
+    if (props.eventRoles[ROLES.PLAYER] > 0) {
+      defaultRoles.push(ROLES.PLAYER)
+    }
+    if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+      defaultRoles.push(ROLES.VOLUNTEER)
+    }
+    if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+      defaultRoles.push(availableRoles.value[0])
+    }
+    console.log('Rôles par défaut (fallback):', defaultRoles)
+    return defaultRoles
+  }
+
+  // Utiliser les préférences de l'utilisateur (seulement pour les favoris)
+  console.log('Appel de getPreferredRolesForEvent avec:', {
+    availableRoles: availableRoles.value,
+    userPreferences: userRolePreferences.value
+  })
+  const preferredRoles = getPreferredRolesForEvent(availableRoles.value, userRolePreferences.value)
+  console.log('Rôles préférés selon les préférences (joueur favori):', preferredRoles)
+  return preferredRoles
+}
+
+// Fonction pour s'assurer que le rôle bénévole est toujours sélectionné
+function ensureVolunteerRoleSelected() {
+  if (availableRoles.value.includes(ROLES.VOLUNTEER) && !selectedRoles.value.includes(ROLES.VOLUNTEER)) {
+    selectedRoles.value.push(ROLES.VOLUNTEER)
+  }
+}
+
 // Initialiser les valeurs quand la modale s'ouvre
-watch(() => props.show, (newShow) => {
+watch(() => props.show, async (newShow) => {
   if (newShow) {
+    // Charger les préférences de rôles de l'utilisateur
+    await loadUserRolePreferences()
+    
+    // Charger les joueurs favoris
+    await loadFavoritePlayers()
+    
     // Initialiser selectedAvailability basé sur l'état actuel
     if (props.currentAvailability.available === null || props.currentAvailability.available === undefined) {
       // Aucune disponibilité définie : pré-cocher "Je sais pas" par défaut
@@ -280,33 +420,33 @@ watch(() => props.show, (newShow) => {
     }
     
     // Initialiser les rôles selon l'état de disponibilité
+    console.log('Initialisation des rôles:', {
+      currentAvailability: props.currentAvailability,
+      availableRoles: availableRoles.value,
+      isAvailable: props.currentAvailability.available === true
+    })
+    
     if (props.currentAvailability.available === true) {
-      // Disponible : utiliser les rôles existants ou pré-cocher par défaut
+      console.log('Utilisateur disponible, initialisation des rôles')
+      // Disponible : utiliser les rôles existants ou pré-cocher selon les préférences
       if (props.currentAvailability.roles && props.currentAvailability.roles.length > 0) {
+        console.log('Utilisation des rôles existants:', props.currentAvailability.roles)
         selectedRoles.value = [...props.currentAvailability.roles]
       } else if (availableRoles.value.length > 0) {
-        // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
-        const defaultRoles = []
-        if (props.eventRoles[ROLES.PLAYER] > 0) {
-          defaultRoles.push(ROLES.PLAYER)
-        }
-        if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
-          defaultRoles.push(ROLES.VOLUNTEER)
-        }
-        // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
-        if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
-          defaultRoles.push(availableRoles.value[0])
-        }
-        selectedRoles.value = defaultRoles
+        console.log('Appel de getDefaultRolesToSelect pour les rôles par défaut')
+        // Utiliser les préférences de l'utilisateur pour pré-cocher les rôles
+        selectedRoles.value = getDefaultRolesToSelect()
+        console.log('Rôles sélectionnés après getDefaultRolesToSelect:', selectedRoles.value)
       } else {
+        console.log('Aucun rôle disponible')
         selectedRoles.value = []
       }
     } else {
+      console.log('Utilisateur non disponible, pas de rôles')
       // Pas disponible ou je sais pas : pas de rôles sélectionnés
       selectedRoles.value = []
     }
     comment.value = props.currentAvailability.comment || ''
-    // Rôles affichés
   }
 })
 
@@ -323,23 +463,12 @@ watch(() => props.currentAvailability, (newAvailability) => {
     
     // Initialiser les rôles selon l'état de disponibilité
     if (newAvailability.available === true) {
-      // Disponible : utiliser les rôles existants ou pré-cocher par défaut
+      // Disponible : utiliser les rôles existants ou pré-cocher selon les préférences
       if (newAvailability.roles && newAvailability.roles.length > 0) {
         selectedRoles.value = [...newAvailability.roles]
       } else if (availableRoles.value.length > 0) {
-        // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
-        const defaultRoles = []
-        if (props.eventRoles[ROLES.PLAYER] > 0) {
-          defaultRoles.push(ROLES.PLAYER)
-        }
-        if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
-          defaultRoles.push(ROLES.VOLUNTEER)
-        }
-        // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
-        if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
-          defaultRoles.push(availableRoles.value[0])
-        }
-        selectedRoles.value = defaultRoles
+        // Utiliser les préférences de l'utilisateur pour pré-cocher les rôles
+        selectedRoles.value = getDefaultRolesToSelect()
       } else {
         selectedRoles.value = []
       }
@@ -349,6 +478,11 @@ watch(() => props.currentAvailability, (newAvailability) => {
     }
     comment.value = newAvailability.comment || ''
   }
+}, { deep: true })
+
+// Watcher pour s'assurer que le rôle bénévole reste toujours sélectionné
+watch(selectedRoles, () => {
+  ensureVolunteerRoleSelected()
 }, { deep: true })
 
 function formatDate(dateString) {
@@ -387,32 +521,45 @@ function handleSaveAndClose() {
 }
 
 function handleSave() {
+  console.log('handleSave appelée:', {
+    selectedRolesLength: selectedRoles.value.length,
+    availableRolesLength: availableRoles.value.length,
+    selectedAvailability: selectedAvailability.value
+  })
+  
   // Mettre à jour l'état sélectionné
   selectedAvailability.value = true
+  console.log('selectedAvailability mis à true')
   
-  // Si aucun rôle n'est sélectionné, pré-cocher les rôles par défaut
-  if (selectedRoles.value.length === 0 && availableRoles.value.length > 0) {
-    const defaultRoles = []
-    if (props.eventRoles[ROLES.PLAYER] > 0) {
-      defaultRoles.push(ROLES.PLAYER)
-    }
-    if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
-      defaultRoles.push(ROLES.VOLUNTEER)
-    }
-    // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
-    if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
-      defaultRoles.push(availableRoles.value[0])
-    }
-    selectedRoles.value = defaultRoles
+  // Si aucun rôle n'est sélectionné OU seulement le rôle bénévole (ajouté automatiquement), pré-cocher selon les préférences
+  const hasOnlyVolunteerRole = selectedRoles.value.length === 1 && selectedRoles.value.includes(ROLES.VOLUNTEER)
+  const hasNoRoles = selectedRoles.value.length === 0
+  
+  if ((hasNoRoles || hasOnlyVolunteerRole) && availableRoles.value.length > 0) {
+    console.log('Rôles par défaut détectés, appel de getDefaultRolesToSelect:', {
+      hasNoRoles,
+      hasOnlyVolunteerRole,
+      selectedRoles: selectedRoles.value
+    })
+    selectedRoles.value = getDefaultRolesToSelect()
+    console.log('Rôles sélectionnés après getDefaultRolesToSelect:', selectedRoles.value)
+  } else {
+    console.log('Rôles déjà sélectionnés ou aucun rôle disponible:', {
+      selectedRoles: selectedRoles.value,
+      availableRoles: availableRoles.value
+    })
   }
   
   // Si aucun rôle n'est attendu, fermer directement la modale
   if (availableRoles.value.length === 0) {
+    console.log('Aucun rôle attendu, fermeture de la modale')
     emit('save', {
       available: true,
       roles: selectedRoles.value,
       comment: comment.value.trim() || null
     })
+  } else {
+    console.log('Rôles disponibles, modale reste ouverte pour sélection')
   }
   // Sinon, laisser la modale ouverte pour que l'utilisateur puisse choisir les rôles
 }

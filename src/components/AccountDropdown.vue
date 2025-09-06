@@ -51,12 +51,12 @@
           <span class="truncate">Mon compte</span>
         </button>
         <button 
-          @click="openNotifications"
+          @click="openPreferences"
           class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
         >
-          <span class="text-base md:text-lg flex-shrink-0">🔔</span>
-          <span class="truncate">Notifications</span>
+          <span class="text-base md:text-lg flex-shrink-0">⚙️</span>
+          <span class="truncate">Préférences</span>
         </button>
         <button 
           @click="openHelp"
@@ -123,7 +123,7 @@ watch(() => props.isConnected, (connected) => {
   })
 }, { immediate: true })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-notifications', 'logout', 'open-login', 'open-account-creation', 'open-development'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-preferences', 'logout', 'open-login', 'open-account-creation', 'open-development'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
@@ -200,9 +200,9 @@ function openHelp() {
   emit('open-help')
 }
 
-function openNotifications() {
+function openPreferences() {
   isOpen.value = false
-  emit('open-notifications')
+  emit('open-preferences')
 }
 
 function openDevelopment() {

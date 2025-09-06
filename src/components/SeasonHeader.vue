@@ -29,7 +29,7 @@
           :button-class="buttonClass"
           @open-account-menu="openAccountMenu"
           @open-help="openHelp"
-          @open-notifications="openNotifications"
+          @open-preferences="openPreferences"
           @open-players="openPlayers"
           @logout="logout"
           @open-login="openLogin"
@@ -55,7 +55,7 @@
           :button-class="buttonClass"
           @open-account-menu="openAccountMenu"
           @open-help="openHelp"
-          @open-notifications="openNotifications"
+          @open-preferences="openPreferences"
           @open-players="openPlayers"
           @logout="logout"
           @open-login="openLogin"
@@ -78,7 +78,7 @@ const props = defineProps({
   isConnected: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-notifications', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development'])
 
 // État de connexion reçu depuis le composant parent (GridBoard)
 // Plus besoin de logique locale d'authentification
@@ -129,8 +129,8 @@ function openHelp() {
   window.location.href = '/help'
 }
 
-function openNotifications() {
-  emit('open-notifications')
+function openPreferences() {
+  emit('open-preferences')
 }
 
 function openPlayers() {

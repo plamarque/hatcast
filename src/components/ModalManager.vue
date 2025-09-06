@@ -26,11 +26,11 @@
     @logout="$emit('logout')"
   />
 
-  <!-- Modales de notifications et joueurs -->
-  <NotificationsModal 
-    v-if="showNotifications" 
-    :show="showNotifications"
-    @close="closeNotifications"
+  <!-- Modale de préférences -->
+  <PreferencesModal 
+    v-if="showPreferences" 
+    :show="showPreferences"
+    @close="closePreferences"
   />
   
   <PlayersModal 
@@ -51,7 +51,7 @@
 import AccountLoginModal from './AccountLoginModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import AccountMenu from './AccountMenu.vue'
-import NotificationsModal from './NotificationsModal.vue'
+import PreferencesModal from './PreferencesModal.vue'
 import PlayersModal from './PlayersModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
 
@@ -60,7 +60,7 @@ const props = defineProps({
   showAccountLogin: { type: Boolean, default: false },
   showAccountCreation: { type: Boolean, default: false },
   showAccountMenu: { type: Boolean, default: false },
-  showNotifications: { type: Boolean, default: false },
+  showPreferences: { type: Boolean, default: false },
   showPlayers: { type: Boolean, default: false },
   showDevelopmentModal: { type: Boolean, default: false }
 })
@@ -74,7 +74,7 @@ const emit = defineEmits([
   'close-account-login',
   'close-account-creation',
   'close-account-menu',
-  'close-notifications',
+  'close-preferences',
   'close-players',
   'close-development-modal'
 ])
@@ -92,8 +92,8 @@ function openAccountMenu() {
   emit('update:showAccountMenu', true)
 }
 
-function openNotifications() {
-  emit('update:showNotifications', true)
+function openPreferences() {
+  emit('update:showPreferences', true)
 }
 
 function openPlayers() {
@@ -117,8 +117,8 @@ function closeAccountMenu() {
   emit('close-account-menu')
 }
 
-function closeNotifications() {
-  emit('close-notifications')
+function closePreferences() {
+  emit('close-preferences')
 }
 
 function closePlayers() {
@@ -134,7 +134,7 @@ defineExpose({
   openAccountLogin,
   openAccountCreation,
   openAccountMenu,
-  openNotifications,
+  openPreferences,
   openPlayers,
   openDevelopment
 })
