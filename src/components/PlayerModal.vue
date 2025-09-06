@@ -336,7 +336,29 @@ function closeModal() {
   playerMoreActionsMobileStyle.value = { position: 'fixed', top: '0px', left: '0px' }
 }
 
-function startEditing() {
+async function startEditing() {
+  // Vérifier si le joueur est protégé avant d'ouvrir la modale d'édition
+  const isProtected = await isPlayerProtected(props.player?.id, props.seasonId)
+  if (isProtected) {
+    // Vérifier s'il y a une session active ET que l'utilisateur est connecté
+    const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
+    const isConnected = !!currentUser.value?.email
+    if (isConnected && hasCachedPassword) {
+      // Session active ET utilisateur connecté, procéder directement
+      openEditModal()
+    } else {
+      // Pas de session ou pas connecté, demander le mot de passe
+      pendingAction.value = 'edit'
+      showPasswordVerification.value = true
+    }
+    return
+  }
+  
+  // Si non protégé, procéder directement
+  openEditModal()
+}
+
+function openEditModal() {
   editingName.value = props.player?.name || ''
   editingGender.value = props.player?.gender || 'non-specified'
   editNameError.value = ''
@@ -465,7 +487,9 @@ async function handleProtectionUpdate() {
 
 async function handlePasswordVerified(verificationData) {
   // Le mot de passe a été vérifié, procéder à l'action en cours
-  if (pendingAction.value === 'update') {
+  if (pendingAction.value === 'edit') {
+    openEditModal()
+  } else if (pendingAction.value === 'update') {
     await performUpdate()
   } else if (pendingAction.value === 'delete') {
     performDelete()
