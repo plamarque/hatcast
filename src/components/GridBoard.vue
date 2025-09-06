@@ -306,6 +306,7 @@
                           :player-id="player.id"
                           :season-id="seasonId"
                           :player-name="player.name"
+                          :player-gender="player.gender || 'non-specified'"
                           size="sm"
                         />
                         <!-- Superposed status icons -->
@@ -368,7 +369,7 @@
               <td class="px-0 py-4 md:py-5 sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 flex items-center">
                   <button
-                    @click="newPlayerForm = true"
+                    @click="openNewPlayerForm"
                     class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
                     title="Ajouter une nouvelle personne"
                     data-onboarding="add-player"
@@ -417,7 +418,7 @@
     :events-count="events.length"
     :onboarding-done="seasonMeta?.onboardingCreatorDone === true"
     @create-event="openNewEventForm"
-    @add-player="() => { newPlayerForm = true }"
+    @add-player="openNewPlayerForm"
     @copy-link="copyJoinLink"
     @dismissed="afterCloseOnboarding"
   />
@@ -469,9 +470,12 @@
   <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
+      
+      <!-- Nom -->
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nom</label>
         <input
+          ref="newPlayerNameInput"
           v-model="newPlayerName"
           type="text"
           :class="[
@@ -485,6 +489,41 @@
           {{ newPlayerNameError }}
         </div>
       </div>
+
+      <!-- Comment on t'appelle ? -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-3">Qu'est-ce qui désigne le mieux cette personne ?</label>
+        <div class="space-y-3">
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="newPlayerGender"
+              type="radio"
+              value="non-specified"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un.e improvisateur.trice</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="newPlayerGender"
+              type="radio"
+              value="female"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">C'est une improvisatrice</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="newPlayerGender"
+              type="radio"
+              value="male"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un improvisateur</span>
+          </label>
+        </div>
+      </div>
+
       <div class="flex justify-end space-x-3">
         <button
           @click="closeNewPlayerForm"
@@ -786,6 +825,7 @@
                     :player-id="player.id"
                     :season-id="seasonId"
                     :player-name="player.name"
+                    :player-gender="player.gender || 'non-specified'"
                     size="sm"
                   />
                   <!-- Statuts superposés -->
@@ -1756,7 +1796,27 @@ const editingShowAllRoles = ref(false)
 
 const newPlayerForm = ref(false)
 const newPlayerName = ref('')
+const newPlayerGender = ref('non-specified')
 const newPlayerNameError = ref('')
+const newPlayerNameInput = ref(null)
+
+// Fonction pour ouvrir le formulaire avec focus
+function openNewPlayerForm() {
+  console.log('🔍 openNewPlayerForm appelé')
+  newPlayerForm.value = true
+  newPlayerName.value = ''
+  newPlayerGender.value = 'non-specified'
+  newPlayerNameError.value = ''
+  
+  // Focus automatique sur le champ nom après que le DOM soit mis à jour
+  nextTick(() => {
+    console.log('🔍 nextTick - newPlayerNameInput.value:', newPlayerNameInput.value)
+    if (newPlayerNameInput.value) {
+      newPlayerNameInput.value.focus()
+      console.log('🔍 Focus appliqué sur le champ nom')
+    }
+  })
+}
 const highlightedPlayer = ref(null)
 const guidedPlayerId = ref(null)
 const guidedEventId = ref(null)
@@ -3233,23 +3293,36 @@ function validateNewPlayerName() {
 function closeNewPlayerForm() {
   newPlayerForm.value = false
   newPlayerName.value = ''
+  newPlayerGender.value = 'non-specified'
   newPlayerNameError.value = ''
 }
 
 async function addNewPlayer() {
-  if (!newPlayerName.value.trim()) return
+  console.log('🔍 addNewPlayer appelé:', { 
+    name: newPlayerName.value, 
+    gender: newPlayerGender.value,
+    nameError: newPlayerNameError.value,
+    inputElement: newPlayerNameInput.value,
+    inputValue: newPlayerNameInput.value?.value
+  })
+  
+  if (!newPlayerName.value.trim()) {
+    console.log('❌ Nom vide - newPlayerName.value:', JSON.stringify(newPlayerName.value))
+    return
+  }
 
   const newName = newPlayerName.value.trim()
   
   // Vérifier si un joueur avec ce nom existe déjà (validation côté client)
   const existingPlayer = players.value.find(player => player.name.toLowerCase() === newName.toLowerCase())
   if (existingPlayer) {
+    console.log('❌ Nom déjà existant:', existingPlayer)
     newPlayerNameError.value = `Une personne nommée "${newName}" existe déjà dans cette saison.`
     return
   }
 
   try {
-    const newId = await addPlayer(newName, seasonId.value)
+    const newId = await addPlayer(newName, seasonId.value, newPlayerGender.value)
     
     // Recharger les données
     const [newPlayers, newSelections] = await Promise.all([
@@ -3312,6 +3385,7 @@ async function addNewPlayer() {
     
     newPlayerForm.value = false
     newPlayerName.value = ''
+    newPlayerGender.value = 'non-specified'
     newPlayerNameError.value = ''
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -5800,9 +5874,9 @@ function closePlayerModal() {
   }
 }
 
-async function handlePlayerUpdate({ playerId, newName }) {
+async function handlePlayerUpdate({ playerId, newName, newGender }) {
   try {
-    await updatePlayer(playerId, newName, seasonId.value);
+    await updatePlayer(playerId, newName, seasonId.value, newGender);
     
     // Recharger les données
     await Promise.all([

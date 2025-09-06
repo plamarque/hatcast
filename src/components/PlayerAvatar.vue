@@ -1,7 +1,7 @@
 <template>
   <div 
     :class="containerClass"
-    class="relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-700"
+    class="relative overflow-hidden flex items-center justify-center"
   >
     <!-- User Avatar (if player is associated) -->
     <img 
@@ -40,7 +40,7 @@
       :class="emojiClass"
       class="select-none"
     >
-      👤
+      {{ fallbackEmoji }}
     </span>
 
     <!-- Status icons (only if showStatusIcons is true) -->
@@ -83,6 +83,11 @@ const props = defineProps({
   playerName: {
     type: String,
     default: ''
+  },
+  playerGender: {
+    type: String,
+    default: 'non-specified',
+    validator: (value) => ['male', 'female', 'non-specified'].includes(value)
   },
   size: {
     type: String,
@@ -156,9 +161,26 @@ const roundedClasses = {
   full: 'rounded-full'
 }
 
+// Gender-based styling
+const genderStyles = {
+  male: {
+    emoji: '👨',
+    bgGradient: 'from-blue-500 to-blue-600'
+  },
+  female: {
+    emoji: '👩',
+    bgGradient: 'from-pink-500 to-pink-600'
+  },
+  'non-specified': {
+    emoji: '👤',
+    bgGradient: 'from-gray-600 to-gray-700'
+  }
+}
+
 // Computed classes
 const containerClass = computed(() => {
-  return `${sizeClasses[props.size].container} ${roundedClasses[props.rounded]}`
+  const genderStyle = genderStyles[props.playerGender] || genderStyles['non-specified']
+  return `${sizeClasses[props.size].container} ${roundedClasses[props.rounded]} bg-gradient-to-br ${genderStyle.bgGradient}`
 })
 
 const imageClass = computed(() => {
@@ -167,6 +189,11 @@ const imageClass = computed(() => {
 
 const emojiClass = computed(() => {
   return sizeClasses[props.size].emoji
+})
+
+const fallbackEmoji = computed(() => {
+  const genderStyle = genderStyles[props.playerGender] || genderStyles['non-specified']
+  return genderStyle.emoji
 })
 
 const loadingClass = computed(() => {
