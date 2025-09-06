@@ -13,6 +13,7 @@
               :player-id="player?.id"
               :season-id="seasonId"
               :player-name="player?.name"
+              :player-gender="player?.gender || 'non-specified'"
               size="xl"
               :show-status-icons="false"
             />
@@ -22,6 +23,15 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
+              
+              <!-- Icône Modifier -->
+              <button
+                @click="startEditing"
+                class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                title="Modifier cette personne"
+              >
+                <span class="text-lg">✏️</span>
+              </button>
               
               <!-- Indicateurs de statut compacts (optionnel, gardés pour la lisibilité) -->
               <div class="flex items-center gap-2">
@@ -100,7 +110,7 @@
                 @click="startEditing(); showPlayerMoreActionsDesktop = false" 
                 class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
               >
-                <span>✏️</span><span>Renommer</span>
+                <span>✏️</span><span>Modifier</span>
               </button>
               <button 
                 @click="handleDelete(); showPlayerMoreActionsDesktop = false" 
@@ -140,7 +150,7 @@
     >
       <!-- Actions secondaires -->
       <button @click="startEditing(); showPlayerMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10">
-        <span>✏️</span><span>Renommer</span>
+        <span>✏️</span><span>Modifier</span>
       </button>
       <button @click="handleDelete(); showPlayerMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2">
         <span>🗑️</span><span>Supprimer</span>
@@ -151,7 +161,9 @@
   <!-- Modal d'édition du nom -->
   <div v-if="editing" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-              <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Renommer la personne</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">✏️ Modifier la personne</h2>
+      
+      <!-- Nom -->
       <div class="mb-6">
         <label class="block text-sm font-medium text-gray-300 mb-2">Nom</label>
         <input
@@ -170,6 +182,41 @@
           {{ editNameError }}
         </div>
       </div>
+
+      <!-- Comment on t'appelle ? -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-300 mb-3">Qu'est-ce qui désigne le mieux cette personne ?</label>
+        <div class="space-y-3">
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="editingGender"
+              type="radio"
+              value="non-specified"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un.e improvisateur.trice</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="editingGender"
+              type="radio"
+              value="female"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">C'est une improvisatrice</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="editingGender"
+              type="radio"
+              value="male"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un improvisateur</span>
+          </label>
+        </div>
+      </div>
+
       <div class="flex justify-end space-x-3">
         <button
           @click="cancelEdit"
@@ -257,6 +304,7 @@ const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboa
 
 const editing = ref(false)
 const editingName = ref('')
+const editingGender = ref('non-specified')
 const editNameInput = ref(null)
 const showProtectionModal = ref(false)
 const showPasswordVerification = ref(false)
@@ -290,6 +338,7 @@ function closeModal() {
 
 function startEditing() {
   editingName.value = props.player?.name || ''
+  editingGender.value = props.player?.gender || 'non-specified'
   editNameError.value = ''
   editing.value = true
   nextTick(() => {
@@ -302,6 +351,7 @@ function startEditing() {
 function cancelEdit() {
   editing.value = false
   editingName.value = ''
+  editingGender.value = 'non-specified'
   editNameError.value = ''
 }
 
@@ -358,7 +408,8 @@ function performUpdate() {
   return new Promise((resolve, reject) => {
     emit('update', {
       playerId: props.player?.id,
-      newName: editingName.value.trim()
+      newName: editingName.value.trim(),
+      newGender: editingGender.value
     })
     
     // Ne pas fermer le mode d'édition ici, attendre la réponse
@@ -585,6 +636,7 @@ defineExpose({
   closeEditMode: () => {
     editing.value = false
     editingName.value = ''
+    editingGender.value = 'non-specified'
     editNameError.value = ''
   }
 })

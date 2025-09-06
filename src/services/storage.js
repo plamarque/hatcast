@@ -29,7 +29,7 @@ export const ROLE_EMOJIS = {
 }
 
 export const ROLE_LABELS = {
-  [ROLES.PLAYER]: 'Comédien.nes',
+  [ROLES.PLAYER]: 'Improvisateur.trices',
   [ROLES.VOLUNTEER]: 'Bénévoles',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
@@ -42,7 +42,7 @@ export const ROLE_LABELS = {
 
 // Labels au singulier pour les modales de disponibilité (individuelles)
 export const ROLE_LABELS_SINGULAR = {
-  [ROLES.PLAYER]: 'Comédien.ne',
+  [ROLES.PLAYER]: 'Improvisateur.trice',
   [ROLES.VOLUNTEER]: 'Bénévole',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
@@ -65,6 +65,98 @@ export const ROLE_DISPLAY_ORDER = [
   ROLES.COACH,
   ROLES.STAGE_MANAGER
 ]
+
+// Labels par genre (nouveau système inclusif)
+export const ROLE_LABELS_BY_GENDER = {
+  male: {
+    [ROLES.PLAYER]: 'Improvisateur',
+    [ROLES.VOLUNTEER]: 'Bénévole',
+    [ROLES.MC]: 'MC',
+    [ROLES.DJ]: 'DJ',
+    [ROLES.REFEREE]: 'Arbitre',
+    [ROLES.ASSISTANT_REFEREE]: 'Assistant',
+    [ROLES.LIGHTING]: 'Lumière',
+    [ROLES.COACH]: 'Coach',
+    [ROLES.STAGE_MANAGER]: 'Régisseur'
+  },
+  female: {
+    [ROLES.PLAYER]: 'Improvisatrice',
+    [ROLES.VOLUNTEER]: 'Bénévole',
+    [ROLES.MC]: 'MC',
+    [ROLES.DJ]: 'DJ',
+    [ROLES.REFEREE]: 'Arbitre',
+    [ROLES.ASSISTANT_REFEREE]: 'Assistante',
+    [ROLES.LIGHTING]: 'Lumière',
+    [ROLES.COACH]: 'Coach',
+    [ROLES.STAGE_MANAGER]: 'Régisseuse'
+  },
+  'non-specified': {
+    [ROLES.PLAYER]: 'Improvisateur.trice',
+    [ROLES.VOLUNTEER]: 'Bénévole',
+    [ROLES.MC]: 'MC',
+    [ROLES.DJ]: 'DJ',
+    [ROLES.REFEREE]: 'Arbitre',
+    [ROLES.ASSISTANT_REFEREE]: 'Assistant.e',
+    [ROLES.LIGHTING]: 'Lumière',
+    [ROLES.COACH]: 'Coach',
+    [ROLES.STAGE_MANAGER]: 'Régisseur.euse'
+  }
+}
+
+export const ROLE_LABELS_PLURAL_BY_GENDER = {
+  male: {
+    [ROLES.PLAYER]: 'Improvisateurs',
+    [ROLES.VOLUNTEER]: 'Bénévoles',
+    [ROLES.MC]: 'MC',
+    [ROLES.DJ]: 'DJ',
+    [ROLES.REFEREE]: 'Arbitres',
+    [ROLES.ASSISTANT_REFEREE]: 'Assistants',
+    [ROLES.LIGHTING]: 'Lumières',
+    [ROLES.COACH]: 'Coachs',
+    [ROLES.STAGE_MANAGER]: 'Régisseurs'
+  },
+  female: {
+    [ROLES.PLAYER]: 'Improvisatrices',
+    [ROLES.VOLUNTEER]: 'Bénévoles',
+    [ROLES.MC]: 'MC',
+    [ROLES.DJ]: 'DJ',
+    [ROLES.REFEREE]: 'Arbitres',
+    [ROLES.ASSISTANT_REFEREE]: 'Assistantes',
+    [ROLES.LIGHTING]: 'Lumières',
+    [ROLES.COACH]: 'Coachs',
+    [ROLES.STAGE_MANAGER]: 'Régisseuses'
+  },
+  'non-specified': {
+    [ROLES.PLAYER]: 'Improvisateur.trices',
+    [ROLES.VOLUNTEER]: 'Bénévoles',
+    [ROLES.MC]: 'MC',
+    [ROLES.DJ]: 'DJ',
+    [ROLES.REFEREE]: 'Arbitres',
+    [ROLES.ASSISTANT_REFEREE]: 'Assistant.es',
+    [ROLES.LIGHTING]: 'Lumières',
+    [ROLES.COACH]: 'Coachs',
+    [ROLES.STAGE_MANAGER]: 'Régisseur.euses'
+  }
+}
+
+/**
+ * Fonction rétro-compatible pour obtenir le label d'un rôle
+ * @param {string} role - Le rôle (ex: ROLES.PLAYER)
+ * @param {string} userGender - Le genre de l'utilisateur ('male', 'female', 'non-specified', ou undefined)
+ * @param {boolean} plural - Si true, retourne la forme plurielle
+ * @returns {string} Le label du rôle adapté au genre
+ */
+export function getRoleLabel(role, userGender = 'non-specified', plural = false) {
+  // Rétro-compatibilité : si userGender n'est pas défini ou invalide, utiliser 'non-specified'
+  const validGenders = ['male', 'female', 'non-specified']
+  const gender = validGenders.includes(userGender) ? userGender : 'non-specified'
+  
+  if (plural) {
+    return ROLE_LABELS_PLURAL_BY_GENDER[gender][role] || ROLE_LABELS[role] || role
+  } else {
+    return ROLE_LABELS_BY_GENDER[gender][role] || ROLE_LABELS_SINGULAR[role] || role
+  }
+}
 
 // Icônes pour chaque type d'événement
 export const EVENT_TYPE_ICONS = {
@@ -176,13 +268,17 @@ export async function loadPlayers(seasonId) {
 
 
 
-export async function addPlayer(name, seasonId) {
+export async function addPlayer(name, seasonId, gender = 'non-specified') {
   // Validation côté serveur
   if (!name || !name.trim()) {
     throw new Error('Le nom du joueur ne peut pas être vide')
   }
   
   const trimmedName = name.trim()
+  
+  // Validation du genre
+  const validGenders = ['male', 'female', 'non-specified']
+  const playerGender = validGenders.includes(gender) ? gender : 'non-specified'
   
   // Vérifier si un joueur avec ce nom existe déjà
   const existingPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
@@ -192,7 +288,10 @@ export async function addPlayer(name, seasonId) {
     throw new Error('Un joueur avec ce nom existe déjà dans cette saison')
   }
   
-  const newId = await firestoreService.addDocument('seasons', { name: trimmedName }, seasonId, 'players')
+  const newId = await firestoreService.addDocument('seasons', { 
+    name: trimmedName, 
+    gender: playerGender 
+  }, seasonId, 'players')
   return newId
 }
 
@@ -210,13 +309,17 @@ export async function deletePlayer(playerId, seasonId) {
   }
 }
 
-export async function updatePlayer(playerId, newName, seasonId) {
+export async function updatePlayer(playerId, newName, seasonId, gender = null) {
   // Validation : vérifier que le nouveau nom n'existe pas déjà
   if (!newName || !newName.trim()) {
     throw new Error('Le nom du joueur ne peut pas être vide')
   }
   
   const trimmedNewName = newName.trim()
+  
+  // Validation du genre
+  const validGenders = ['male', 'female', 'non-specified']
+  const playerGender = gender && validGenders.includes(gender) ? gender : null
   
   // Vérifier si un autre joueur a déjà ce nom
   const existingPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
@@ -232,8 +335,14 @@ export async function updatePlayer(playerId, newName, seasonId) {
   const player = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
   const oldName = player?.name || null
 
-  // Mettre à jour uniquement le nom et préserver les autres champs. Crée le doc s'il n'existe pas.
-  await firestoreService.setDocument('seasons', seasonId, { name: trimmedNewName }, true, 'players', playerId)
+  // Préparer les données à mettre à jour
+  const updateData = { name: trimmedNewName }
+  if (playerGender !== null) {
+    updateData.gender = playerGender
+  }
+  
+  // Mettre à jour les champs et préserver les autres champs. Crée le doc s'il n'existe pas.
+  await firestoreService.setDocument('seasons', seasonId, updateData, true, 'players', playerId)
 
   // Si le nom change, renommer les dépendances (availability + selections)
   if (oldName && oldName !== trimmedNewName) {
