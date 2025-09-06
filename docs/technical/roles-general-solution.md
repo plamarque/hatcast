@@ -257,7 +257,7 @@ Interface compacte et extensible avec sélecteur de types en onglets horizontaux
 
 ### **Types disponibles**
 1. **🎭 Cabaret** : 5 Comédiens, 1 MC, 1 DJ
-2. **🏆 Match** : 5 Comédiens, 1 MC, 1 Arbitre, 2 Assistants, 5 Volontaires
+2. **🏆 Match** : 5 Comédiens, 1 MC, 1 Arbitre, 2 Assistants, 5 Bénévoles
 3. **🚗 Déplacement** : 5 Comédiens
 4. **⚙️ Autre** : Configuration personnalisée
 
