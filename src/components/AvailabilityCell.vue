@@ -28,13 +28,13 @@
         Décliné
       </span>
       <span v-else-if="isAvailable === true" class="text-center">
-        Disponible
+        Dispo
       </span>
       <span v-else-if="isAvailable === false" class="text-center">
-        Pas disponible
+        Pas dispo
       </span>
       <span v-else class="text-center text-gray-400">
-        –
+        Je sais pas
       </span>
       
       <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
@@ -90,8 +90,22 @@
         </div>
       </template>
       
-      <!-- Icône commentaire pour les "Pas disponible" avec commentaire -->
+      <!-- Icône commentaire pour les "Pas dispo" avec commentaire -->
       <template v-if="isAvailable === false && hasComment">
+        <div class="flex items-center justify-center mt-1">
+          <span 
+            :class="compact ? 'text-xs' : 'text-base md:text-sm'"
+            class="cursor-pointer hover:text-yellow-300 transition-colors"
+            @click.stop="showCommentModal"
+            title="Voir le commentaire"
+          >
+            📝
+          </span>
+        </div>
+      </template>
+      
+      <!-- Icône commentaire pour les "Je sais pas" avec commentaire -->
+      <template v-if="(isAvailable === null || isAvailable === undefined) && hasComment">
         <div class="flex items-center justify-center mt-1">
           <span 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"

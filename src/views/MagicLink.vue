@@ -405,9 +405,9 @@ onMounted(async () => {
     } else if (action === 'decline') {
       message.value = 'Votre participation a été déclinée. Vous êtes maintenant "Décliné" dans cette sélection.'
     } else if (action === 'yes') {
-      message.value = 'Votre disponibilité a été enregistrée: Disponible.'
+      message.value = 'Votre disponibilité a été enregistrée: Dispo.'
     } else if (action === 'no') {
-      message.value = 'Votre disponibilité a été enregistrée: Non disponible. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
+      message.value = 'Votre disponibilité a été enregistrée: Pas dispo. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
     }
 
     // Redirection vers la page de l'événement pour afficher les détails

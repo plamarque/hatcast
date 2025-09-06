@@ -28,11 +28,11 @@
       <div class="p-4">
         
         <!-- Actions rapides (déplacées en haut pour être toujours visibles) -->
-        <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3 mb-4">
+        <div v-if="!isReadOnly" class="grid grid-cols-3 gap-2 mb-4">
           <button
             @click="handleSave"
             :class="[
-              'px-4 py-3 text-white rounded-lg transition-all duration-300',
+              'px-3 py-3 text-white rounded-lg transition-all duration-300',
               currentlyAvailable 
                 ? 'bg-green-600 border-2 border-green-400 shadow-lg shadow-green-500/25 hover:bg-green-700' 
                 : 'bg-green-500/60 hover:bg-green-500/80'
@@ -40,13 +40,13 @@
           >
             <span class="flex items-center justify-center gap-2">
               <span v-if="currentlyAvailable" class="text-green-200">✓</span>
-              Disponible
+              Dispo
             </span>
           </button>
           <button
             @click="handleNotAvailable"
             :class="[
-              'px-4 py-3 text-white rounded-lg transition-all duration-300',
+              'px-3 py-3 text-white rounded-lg transition-all duration-300',
               currentlyNotAvailable 
                 ? 'bg-red-600 border-2 border-red-400 shadow-lg shadow-red-500/25 hover:bg-red-700' 
                 : 'bg-red-500/60 hover:bg-red-500/80'
@@ -55,6 +55,20 @@
             <span class="flex items-center justify-center gap-2">
               <span v-if="currentlyNotAvailable" class="text-red-200">✓</span>
               Pas dispo
+            </span>
+          </button>
+          <button
+            @click="handleClear"
+            :class="[
+              'px-3 py-3 text-white rounded-lg transition-all duration-300',
+              currentlyUnknown 
+                ? 'bg-gray-600 border-2 border-gray-400 shadow-lg shadow-gray-500/25 hover:bg-gray-700' 
+                : 'bg-gray-500/60 hover:bg-gray-500/80'
+            ]"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <span v-if="currentlyUnknown" class="text-gray-200">✓</span>
+              Je sais pas
             </span>
           </button>
         </div>
@@ -66,10 +80,17 @@
           </span>
         </div>
         
-        <!-- Rôles disponibles (seulement si des rôles sont définis) -->
-        <div v-if="availableRoles.length > 0" class="mb-4">
-          <label class="block text-sm font-medium text-gray-300 mb-3">
-            {{ isReadOnly ? 'Rôles sélectionnés' : 'Pour quels rôles es-tu disponible ?' }}
+        <!-- Indication pour choisir les rôles -->
+        <div v-if="!isReadOnly && currentlyAvailable && availableRoles.length > 0" class="text-center mb-3">
+          <span class="text-sm text-purple-300">
+            ✨ Choisis les rôles pour lesquels tu es disponible
+          </span>
+        </div>
+        
+        <!-- Rôles disponibles (seulement si des rôles sont définis ET que "Dispo" est sélectionné) -->
+        <div v-if="availableRoles.length > 0 && currentlyAvailable" class="mb-4">
+          <label v-if="isReadOnly" class="block text-sm font-medium text-gray-300 mb-3">
+            Rôles sélectionnés
           </label>
           
           <div v-if="availableRoles.length === 0" class="space-y-3">
@@ -126,19 +147,17 @@
         </div>
 
         <!-- Actions secondaires -->
-        <div v-if="!isReadOnly" class="grid grid-cols-2 gap-3">
-          <button
-            @click="handleClear"
-            class="px-4 py-3 bg-gray-500/40 text-white rounded-lg hover:bg-gray-500/60 transition-colors"
-            title="Remettre à l'état initial (aucune disponibilité)"
-          >
-            Effacer
-          </button>
+        <div v-if="!isReadOnly" class="flex justify-end">
           <button
             @click="handleSaveAndClose"
-            class="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            :class="[
+              'px-6 py-3 text-white rounded-lg transition-colors',
+              currentlyAvailable && availableRoles.length > 0 
+                ? 'bg-purple-600 hover:bg-purple-700 border-2 border-purple-400 shadow-lg shadow-purple-500/25' 
+                : 'bg-purple-600 hover:bg-purple-700'
+            ]"
           >
-            Enregistrer
+            {{ currentlyAvailable && availableRoles.length > 0 ? 'Enregistrer avec rôles' : 'Enregistrer' }}
           </button>
         </div>
         
@@ -190,7 +209,7 @@ const props = defineProps({
   currentAvailability: {
     type: Object,
     default: () => ({
-      available: false,
+      available: null,
       roles: [],
       comment: null
     })
@@ -221,6 +240,7 @@ const emit = defineEmits(['close', 'save', 'not-available', 'clear', 'requestEdi
 
 const selectedRoles = ref([])
 const comment = ref('')
+const selectedAvailability = ref(null) // null = pas défini, true = dispo, false = pas dispo
 
 // Computed property pour gérer l'affichage des rôles
 const availableRoles = computed(() => {
@@ -233,11 +253,15 @@ const availableRoles = computed(() => {
 
 // Computed properties pour l'état actuel
 const currentlyAvailable = computed(() => {
-  return props.currentAvailability?.available === true
+  return selectedAvailability.value === true
 })
 
 const currentlyNotAvailable = computed(() => {
-  return props.currentAvailability?.available === false
+  return selectedAvailability.value === false
+})
+
+const currentlyUnknown = computed(() => {
+  return selectedAvailability.value === null
 })
 
 const hasCurrentState = computed(() => {
@@ -247,9 +271,20 @@ const hasCurrentState = computed(() => {
 // Initialiser les valeurs quand la modale s'ouvre
 watch(() => props.show, (newShow) => {
   if (newShow) {
-    // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
-    if (!props.currentAvailability.available && props.currentAvailability.roles.length === 0) {
-      if (availableRoles.value.length > 0) {
+    // Initialiser selectedAvailability basé sur l'état actuel
+    if (props.currentAvailability.available === null || props.currentAvailability.available === undefined) {
+      // Aucune disponibilité définie : pré-cocher "Je sais pas" par défaut
+      selectedAvailability.value = null
+    } else {
+      selectedAvailability.value = props.currentAvailability.available
+    }
+    
+    // Initialiser les rôles selon l'état de disponibilité
+    if (props.currentAvailability.available === true) {
+      // Disponible : utiliser les rôles existants ou pré-cocher par défaut
+      if (props.currentAvailability.roles && props.currentAvailability.roles.length > 0) {
+        selectedRoles.value = [...props.currentAvailability.roles]
+      } else if (availableRoles.value.length > 0) {
         // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
         const defaultRoles = []
         if (props.eventRoles[ROLES.PLAYER] > 0) {
@@ -264,11 +299,11 @@ watch(() => props.show, (newShow) => {
         }
         selectedRoles.value = defaultRoles
       } else {
-        // Aucun rôle défini : pas de rôles sélectionnés (disponible "en général")
         selectedRoles.value = []
       }
     } else {
-      selectedRoles.value = [...props.currentAvailability.roles]
+      // Pas disponible ou je sais pas : pas de rôles sélectionnés
+      selectedRoles.value = []
     }
     comment.value = props.currentAvailability.comment || ''
     // Rôles affichés
@@ -278,28 +313,39 @@ watch(() => props.show, (newShow) => {
 // Initialiser aussi quand currentAvailability change
 watch(() => props.currentAvailability, (newAvailability) => {
   if (props.show) {
-            // Si aucune disponibilité n'a été saisie, pré-cocher les rôles attendus par défaut
-        if (!newAvailability.available && (!newAvailability.roles || newAvailability.roles.length === 0)) {
-          if (availableRoles.value.length > 0) {
-            // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
-            const defaultRoles = []
-            if (props.eventRoles[ROLES.PLAYER] > 0) {
-              defaultRoles.push(ROLES.PLAYER)
-            }
-            if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
-              defaultRoles.push(ROLES.VOLUNTEER)
-            }
-            // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
-            if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
-              defaultRoles.push(availableRoles.value[0])
-            }
-            selectedRoles.value = defaultRoles
-          } else {
-            // Aucun rôle défini : pas de rôles sélectionnés (disponible "en général")
-            selectedRoles.value = []
-          }
+    // Initialiser selectedAvailability basé sur l'état actuel
+    if (newAvailability.available === null || newAvailability.available === undefined) {
+      // Aucune disponibilité définie : pré-cocher "Je sais pas" par défaut
+      selectedAvailability.value = null
     } else {
-      selectedRoles.value = [...(newAvailability.roles || [])]
+      selectedAvailability.value = newAvailability.available
+    }
+    
+    // Initialiser les rôles selon l'état de disponibilité
+    if (newAvailability.available === true) {
+      // Disponible : utiliser les rôles existants ou pré-cocher par défaut
+      if (newAvailability.roles && newAvailability.roles.length > 0) {
+        selectedRoles.value = [...newAvailability.roles]
+      } else if (availableRoles.value.length > 0) {
+        // Pré-cocher les rôles attendus, en priorité Comédien et Bénévole s'ils sont disponibles
+        const defaultRoles = []
+        if (props.eventRoles[ROLES.PLAYER] > 0) {
+          defaultRoles.push(ROLES.PLAYER)
+        }
+        if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+          defaultRoles.push(ROLES.VOLUNTEER)
+        }
+        // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
+        if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+          defaultRoles.push(availableRoles.value[0])
+        }
+        selectedRoles.value = defaultRoles
+      } else {
+        selectedRoles.value = []
+      }
+    } else {
+      // Pas disponible ou je sais pas : pas de rôles sélectionnés
+      selectedRoles.value = []
     }
     comment.value = newAvailability.comment || ''
   }
@@ -317,40 +363,67 @@ function formatDate(dateString) {
 }
 
 function handleSaveAndClose() {
-  // Déterminer automatiquement la disponibilité selon les rôles sélectionnés
-  const hasSelectedRoles = selectedRoles.value.length > 0
-  const hasComment = comment.value.trim().length > 0
-  
-  // Si des rôles sont sélectionnés ou qu'il y a un commentaire, considérer comme disponible
-  const isAvailable = hasSelectedRoles || hasComment
-  
-  if (isAvailable) {
+  // Utiliser l'état sélectionné par l'utilisateur
+  if (selectedAvailability.value === true) {
     emit('save', {
       available: true,
       roles: selectedRoles.value,
       comment: comment.value.trim() || null
     })
-  } else {
-    // Aucun rôle sélectionné et pas de commentaire = pas disponible
+  } else if (selectedAvailability.value === false) {
     emit('not-available', {
       available: false,
       roles: [],
-      comment: null
+      comment: comment.value.trim() || null
+    })
+  } else {
+    // selectedAvailability.value === null, "Je sais pas" avec commentaire possible
+    emit('clear', {
+      available: null,
+      roles: [],
+      comment: comment.value.trim() || null
     })
   }
 }
 
 function handleSave() {
-  // Permettre la sauvegarde même sans rôles sélectionnés
-  // L'utilisateur peut vouloir être disponible "en général"
-  emit('save', {
-    available: true,
-    roles: selectedRoles.value,
-    comment: comment.value.trim() || null
-  })
+  // Mettre à jour l'état sélectionné
+  selectedAvailability.value = true
+  
+  // Si aucun rôle n'est sélectionné, pré-cocher les rôles par défaut
+  if (selectedRoles.value.length === 0 && availableRoles.value.length > 0) {
+    const defaultRoles = []
+    if (props.eventRoles[ROLES.PLAYER] > 0) {
+      defaultRoles.push(ROLES.PLAYER)
+    }
+    if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+      defaultRoles.push(ROLES.VOLUNTEER)
+    }
+    // Si aucun des rôles par défaut n'est attendu, prendre le premier rôle attendu
+    if (defaultRoles.length === 0 && availableRoles.value.length > 0) {
+      defaultRoles.push(availableRoles.value[0])
+    }
+    selectedRoles.value = defaultRoles
+  }
+  
+  // Si aucun rôle n'est attendu, fermer directement la modale
+  if (availableRoles.value.length === 0) {
+    emit('save', {
+      available: true,
+      roles: selectedRoles.value,
+      comment: comment.value.trim() || null
+    })
+  }
+  // Sinon, laisser la modale ouverte pour que l'utilisateur puisse choisir les rôles
 }
 
 function handleNotAvailable() {
+  // Mettre à jour l'état sélectionné
+  selectedAvailability.value = false
+  // Vider les rôles car on n'est pas disponible
+  selectedRoles.value = []
+  
+  // Fermer directement la modale car pas de rôles à choisir
   emit('not-available', {
     available: false,
     roles: [],
@@ -359,10 +432,16 @@ function handleNotAvailable() {
 }
 
 function handleClear() {
+  // Mettre à jour l'état sélectionné
+  selectedAvailability.value = null
+  selectedRoles.value = []
+  // Ne pas vider le commentaire, il peut être utile pour "Je sais pas"
+  
+  // Fermer directement la modale car pas de rôles à choisir
   emit('clear', {
-    available: undefined,
+    available: null,
     roles: [],
-    comment: null
+    comment: comment.value.trim() || null
   })
 }
 </script>
