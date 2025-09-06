@@ -6,7 +6,7 @@
       :is-connected="isConnected"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
-      @open-notifications="openNotifications"
+      @open-preferences="openPreferences"
       @open-players="openPlayers"
       @logout="handleLogout"
       @open-login="openAccountLogin"
@@ -220,7 +220,7 @@
       :show-account-login="showAccountLogin"
       :show-account-creation="showAccountCreation"
       :show-account-menu="showAccountMenu"
-      :show-notifications="showNotifications"
+      :show-preferences="showPreferences"
       :show-players="showPlayers"
       :show-development-modal="showDevelopmentModal"
       @post-login-navigation="handlePostLoginNavigation"
@@ -230,7 +230,7 @@
       @close-account-login="showAccountLogin = false"
       @close-account-creation="showAccountCreation = false"
       @close-account-menu="showAccountMenu = false"
-      @close-notifications="showNotifications = false"
+      @close-preferences="showPreferences = false"
       @close-players="showPlayers = false"
       @close-development-modal="showDevelopmentModal = false"
     />
@@ -256,7 +256,7 @@ const isScrolled = ref(false)
 const showAccountLogin = ref(false)
 const showAccountCreation = ref(false)
 const showAccountMenu = ref(false)
-const showNotifications = ref(false)
+const showPreferences = ref(false)
 const showPlayers = ref(false)
 const showDevelopmentModal = ref(false)
 
@@ -312,8 +312,8 @@ function openAccountCreation() {
   showAccountCreation.value = true
 }
 
-function openNotifications() {
-  showNotifications.value = true
+function openPreferences() {
+  showPreferences.value = true
 }
 
 function openPlayers() {

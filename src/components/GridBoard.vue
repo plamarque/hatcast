@@ -9,7 +9,7 @@
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
-      @open-notifications="openNotifications"
+      @open-preferences="openPreferences"
       @open-players="openPlayers"
       @logout="handleAccountLogoutDevice"
       @open-login="openAccount"
@@ -1323,10 +1323,10 @@
     @delete-account="handleAccountDeleteAccount"
   />
   
-  <!-- Modale Notifications -->
-  <NotificationsModal
-    :show="showNotifications"
-    @close="closeNotifications"
+  <!-- Modale Préférences -->
+  <PreferencesModal
+    :show="showPreferences"
+    @close="closePreferences"
   />
   
   <!-- Modale Mes Joueurs -->
@@ -1419,6 +1419,7 @@
   <AvailabilityModal
     :show="showAvailabilityModal"
     :player-name="availabilityModalData.playerName"
+    :player-id="availabilityModalData.playerId"
     :event-id="availabilityModalData.eventId"
     :event-title="availabilityModalData.eventTitle"
     :event-date="availabilityModalData.eventDate"
@@ -1674,7 +1675,7 @@ import AccountMenu from './AccountMenu.vue'
 import AccountClaimModal from './AccountClaimModal.vue'
 import AccountLoginModal from './AccountLoginModal.vue'
 import SeasonHeader from './SeasonHeader.vue'
-import NotificationsModal from './NotificationsModal.vue'
+import PreferencesModal from './PreferencesModal.vue'
 import PlayersModal from './PlayersModal.vue'
 import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
@@ -2129,7 +2130,7 @@ const showAccountMenu = ref(false)
 const showAccountAuth = ref(false)
 const showAccountLogin = ref(false)
 const showAccountCreation = ref(false)
-const showNotifications = ref(false)
+const showPreferences = ref(false)
 const showPlayers = ref(false)
 const accountAuthPlayer = ref(null)
 
@@ -2137,6 +2138,7 @@ const accountAuthPlayer = ref(null)
 const showAvailabilityModal = ref(false)
 const availabilityModalData = ref({
   playerName: '',
+  playerId: '',
   eventId: '',
   eventTitle: '',
   eventDate: '',
@@ -2186,19 +2188,19 @@ function closeAccountMenu() {
   router.push(newUrl)
 }
 
-async function openNotifications() {
-  showNotifications.value = true
+async function openPreferences() {
+  showPreferences.value = true
   
   // Logger l'audit d'ouverture de modale
   try {
     const { default: AuditClient } = await import('../services/auditClient.js')
-    await AuditClient.logModalOpen('notifications', { seasonSlug: props.slug })
+    await AuditClient.logModalOpen('preferences', { seasonSlug: props.slug })
   } catch (auditError) {
     console.warn('Erreur audit modal:', auditError)
   }
 }
-function closeNotifications() { 
-  showNotifications.value = false 
+function closePreferences() { 
+  showPreferences.value = false 
 }
 
 async function openPlayers() {
@@ -4256,6 +4258,7 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   
   openAvailabilityModal({
     playerName: player.name,
+    playerId: player.id,
     eventId: eventItem.id,
     eventTitle: eventItem.title,
     eventDate: eventItem.date,
@@ -6961,6 +6964,7 @@ function openAvailabilityModal(data) {
   
   availabilityModalData.value = {
     playerName: data.playerName,
+    playerId: data.playerId,
     eventId: data.eventId,
     eventTitle: data.eventTitle,
     eventDate: data.eventDate,
