@@ -88,8 +88,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { confirmPasswordReset, signInWithEmailAndPassword, verifyPasswordResetCode, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../services/firebase.js'
+import { confirmPasswordReset, signInWithEmailAndPassword, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, verifyPasswordResetCode } from '../services/firebase.js'
 import logger from '../services/logger.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -116,6 +116,28 @@ const canResetPassword = computed(() => {
 
 onMounted(async () => {
   try {
+    // 🔍 DEBUG: Capture complete environment info
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      route: {
+        path: route.path,
+        query: route.query,
+        params: route.params
+      },
+      auth: {
+        instance: !!auth,
+        currentUser: auth?.currentUser?.email || 'none'
+      },
+      functions: {
+        verifyPasswordResetCode: !!verifyPasswordResetCode,
+        type: typeof verifyPasswordResetCode
+      }
+    }
+    
+    logger.debug('🔍 PasswordReset COMPLETE DEBUG INFO:', debugInfo)
+    
     // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
     const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
     
@@ -124,7 +146,9 @@ onMounted(async () => {
       hasMagicToken: !!magicToken,
       hasEmail: !!emailParam,
       hasPlayer: !!playerId,
-      allParams: route.query
+      allParams: route.query,
+      firebaseTokenLength: firebaseToken?.length || 0,
+      magicTokenLength: magicToken?.length || 0
     })
     
     // Support pour les magic links (ancien système)
@@ -146,14 +170,56 @@ onMounted(async () => {
 
     oobCode.value = firebaseToken
     
+    // 🔍 DEBUG: Pre-verification checks
+    logger.debug('🔍 Pre-verification checks:', {
+      authInstance: !!auth,
+      authType: typeof auth,
+      verifyFunction: !!verifyPasswordResetCode,
+      verifyFunctionType: typeof verifyPasswordResetCode,
+      tokenLength: firebaseToken.length,
+      tokenStart: firebaseToken.substring(0, 10) + '...',
+      tokenEnd: '...' + firebaseToken.substring(firebaseToken.length - 10)
+    })
+    
     // Récupérer l'email depuis le token Firebase
     try {
-      logger.debug('Vérification du token et récupération de l\'email...')
+      logger.debug('🔍 Starting verifyPasswordResetCode call...')
+      logger.debug('🔍 Auth instance details:', {
+        app: auth?.app?.name,
+        config: auth?.config,
+        currentUser: auth?.currentUser?.email || 'none'
+      })
+      
       const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
+      
+      logger.info('✅ Token verification SUCCESS!')
+      logger.info('🔍 Email récupéré depuis le token:', emailFromToken)
+      logger.debug('🔍 Email details:', {
+        email: emailFromToken,
+        length: emailFromToken?.length,
+        type: typeof emailFromToken
+      })
+      
       email.value = emailFromToken
-      logger.info('Email récupéré depuis le token:', emailFromToken)
+      
     } catch (verifyError) {
-      logger.error('Erreur lors de la vérification du token:', verifyError)
+      logger.error('❌ Token verification FAILED!')
+      logger.error('❌ Error details:', {
+        message: verifyError.message,
+        code: verifyError.code,
+        name: verifyError.name,
+        stack: verifyError.stack,
+        type: typeof verifyError,
+        cause: verifyError.cause
+      })
+      
+      // 🔍 DEBUG: Additional error context
+      logger.debug('🔍 Error context:', {
+        tokenUsed: firebaseToken.substring(0, 20) + '...',
+        authState: auth?.currentUser ? 'authenticated' : 'not authenticated',
+        timestamp: new Date().toISOString()
+      })
+      
       error.value = 'Lien de réinitialisation invalide ou expiré'
       loading.value = false
       return
@@ -162,7 +228,13 @@ onMounted(async () => {
     loading.value = false
     
   } catch (err) {
-    logger.error('Erreur lors de la vérification du lien', err)
+    logger.error('❌ CRITICAL ERROR in onMounted:', {
+      message: err.message,
+      code: err.code,
+      name: err.name,
+      stack: err.stack,
+      type: typeof err
+    })
     error.value = 'Erreur lors de la vérification du lien'
     loading.value = false
   }

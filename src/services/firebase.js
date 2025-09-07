@@ -4,7 +4,7 @@ import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, verifyPasswordResetCode } from 'firebase/auth'
 import configService from './configService.js'
 import logger from './logger.js'
 
@@ -344,4 +344,4 @@ export const db = getFirebaseDb();
 export const auth = getFirebaseAuth();
 export const storage = getFirebaseStorage();
 export const functions = getFirebaseFunctions();
-export { getMessaging };
+export { getMessaging, verifyPasswordResetCode };
