@@ -629,7 +629,12 @@
                <!-- Badge du type d'événement -->
                <div v-if="selectedEvent?.roles" class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
                  <span class="text-sm">{{ getEventTypeIcon(selectedEvent) }}</span>
-                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[determineRoleTemplate(selectedEvent.roles)]?.name || 'Simple sondage' }}</span>
+                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[selectedEvent.templateType || 'custom']?.name || 'Autre' }}</span>
+               </div>
+               <!-- Events without roles -->
+               <div v-else class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
+                 <span class="text-sm">🎭</span>
+                 <span class="text-gray-300 text-sm">Simple sondage</span>
                </div>
              </div>
              
@@ -3077,7 +3082,8 @@ async function saveEdit() {
     date: editingDate.value,
     description: editingDescription.value,
     archived: editingArchived.value,
-    roles: editingRoles.value
+    roles: editingRoles.value,
+    templateType: editingSelectedRoleTemplate.value // Ajouter le type de template
   })
 }
 
@@ -3102,6 +3108,7 @@ async function handleEditEvent(eventData) {
       description: eventData.description.trim() || '',
       playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
       roles: eventData.roles, // Nouveau champ pour les rôles
+      templateType: eventData.templateType, // Sauvegarder le type de template
       archived: !!eventData.archived
     }
     
@@ -3214,6 +3221,7 @@ async function handleEditEvent(eventData) {
     editingDescription.value = ''
     editingPlayerCount.value = 6
     editingArchived.value = false
+    editingSelectedRoleTemplate.value = 'cabaret'
     editingRoles.value = {
       [ROLES.PLAYER]: 6,
       [ROLES.DJ]: 1,
@@ -3505,33 +3513,17 @@ function applyRoleTemplateForEdit(templateId) {
 }
 
 // Fonction pour déterminer quel type correspond aux rôles actuels
-function determineRoleTemplate(roles) {
-  // Comparer avec chaque type
-  for (const [templateId, template] of Object.entries(ROLE_TEMPLATES)) {
-    if (templateId === 'custom') continue // Ignorer le type personnalisé
-    
-    let matches = true
-    for (const [role, count] of Object.entries(template.roles)) {
-      if (roles[role] !== count) {
-        matches = false
-        break
-      }
-    }
-    
-    if (matches) {
-      return templateId
-    }
-  }
-  
-  // Si aucun type ne correspond, retourner 'custom'
-  return 'custom'
-}
+// SUPPRIMÉE : On ne devine plus le type, on utilise le type sauvegardé ou 'autre' comme fallback
 
 // Fonction pour obtenir l'icône du type d'événement
 function getEventTypeIcon(event) {
-  if (!event?.roles) return '🎭' // Icône par défaut
-  const templateId = determineRoleTemplate(event.roles)
-  return EVENT_TYPE_ICONS[templateId] || '🎭'
+  if (!event?.roles) {
+    logger.debug('🔍 getEventTypeIcon: No event roles, returning default icon')
+    return '🎭' // Icône par défaut
+  }
+  const templateId = event.templateType || 'custom'
+  logger.debug('🔍 getEventTypeIcon: Template ID:', templateId, 'Icon:', EVENT_TYPE_ICONS[templateId])
+  return EVENT_TYPE_ICONS[templateId] || '❓'
 }
 
 // Fonction pour obtenir la couleur du compteur de rôle selon le détail événement
@@ -5308,7 +5300,14 @@ async function executePendingOperation(operation) {
             editingDescription.value = event.description || ''
             editingArchived.value = !!event.archived
             
+            // Initialiser le type de template
+            editingSelectedRoleTemplate.value = event.templateType || 'custom'
+            logger.debug('🔍 Editing event template type:', event.templateType, '->', editingSelectedRoleTemplate.value)
+            
             // Initialiser les rôles avec les valeurs existantes ou par défaut
+            logger.debug('🔍 Editing event roles initialization:', event.roles)
+            logger.debug('🔍 Event playerCount:', event.playerCount)
+            
             if (event.roles) {
               editingRoles.value = {
                 [ROLES.PLAYER]: event.roles[ROLES.PLAYER] ?? event.playerCount ?? 6,
@@ -5321,8 +5320,10 @@ async function executePendingOperation(operation) {
                 [ROLES.COACH]: event.roles[ROLES.COACH] ?? 0,
                 [ROLES.STAGE_MANAGER]: event.roles[ROLES.STAGE_MANAGER] ?? 1
               }
+              logger.debug('🔍 Initialized editingRoles with event.roles:', editingRoles.value)
             } else {
               // Fallback pour les anciens événements sans rôles
+              logger.debug('🔍 No event.roles found, using fallback initialization')
               editingRoles.value = {
                 [ROLES.PLAYER]: event.playerCount ?? 6,
                 [ROLES.DJ]: 1,
@@ -5334,9 +5335,17 @@ async function executePendingOperation(operation) {
                 [ROLES.COACH]: 0,
                 [ROLES.STAGE_MANAGER]: 1
               }
+              logger.debug('🔍 Initialized editingRoles with fallback values:', editingRoles.value)
             }
             
             editingShowAllRoles.value = false
+            
+            // Debug: Log the final state
+            logger.debug('🔍 Final editing state after initialization:')
+            logger.debug('🔍 - editingEvent:', editingEvent.value)
+            logger.debug('🔍 - editingTitle:', editingTitle.value)
+            logger.debug('🔍 - editingRoles:', editingRoles.value)
+            logger.debug('🔍 - selectedEvent:', selectedEvent.value)
           }
         }
         break
