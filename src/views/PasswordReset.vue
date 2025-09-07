@@ -90,6 +90,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { confirmPasswordReset, signInWithEmailAndPassword, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth, verifyPasswordResetCode } from '../services/firebase.js'
+import { waitForInitialization } from '../services/authState.js'
 import logger from '../services/logger.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -189,6 +190,13 @@ onMounted(async () => {
         config: auth?.config,
         currentUser: auth?.currentUser?.email || 'none'
       })
+      
+      // 🔍 DEBUG: Wait for auth to be fully initialized using existing service
+      logger.debug('🔍 Waiting for auth initialization...')
+      await waitForInitialization()
+      logger.debug('🔍 Auth initialization completed')
+      
+      logger.debug('🔍 Auth instance is ready, proceeding with verification...')
       
       const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
       
