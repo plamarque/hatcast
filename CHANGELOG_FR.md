@@ -1,5 +1,28 @@
 # Journal des modifications
 
+
+## [0.9.2] - 07/09/2025
+
+### ✨ Nouvelles fonctionnalités
+- appliquer les préférences de rôle uniquement aux joueurs favoris
+- refonte de la fenêtre de saisie de disponibilité
+- ajouter une personnalisation d'avatar basée sur le genre et une icône d'édition
+- ajouter une écriture inclusive avec un point central pour les libellés de rôle
+- implémenter un système complet de traduction du journal des modifications côté serveur
+- implémenter un système complet de traduction du journal des modifications côté serveur
+- implémenter un script de traduction et de renommage du journal des modifications côté serveur
+
+### 🐛 Corrections de bugs
+- protéger l'accès au menu d'édition des joueurs par une vérification par mot de passe
+- remplacer « volontaire » par « bénévole »
+- résoudre les problèmes de superposition des modes et de formulaire d'édition d'événements
+- améliorer le positionnement du menu déroulant des filtres
+- corriger la traduction de « modique » en « modale » dans le journal des modifications
+- supprimer l'entrée 0.9.1 en double dans le journal des modifications
+- résoudre problèmes d'affichage du journal des modifications dans la page d'aide
+
+---
+
 ## [0.9.1] - 05/09/2025
 
 ### 🐛 Corrections de bugs

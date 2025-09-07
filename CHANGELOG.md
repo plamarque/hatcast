@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.2] - 2025-09-07
+
+### ✨ New Features
+- feat: apply role preferences only to favorite players
+- feat(ui): Redesign availability input modal
+- feat: add gender-based avatar customization and edit icon
+- feat: add inclusive writing with middle dot for role labels
+- feat: implement complete server-side changelog translation system
+- feat: implement complete server-side changelog translation system
+- feat: implement server-side changelog translation and rename deployment script
+
+### 🐛 Bug Fixes
+- fix: protect player edit modal access with password verification
+- fix: replace 'volontaire' with 'bénévole' terminology
+- fix: resolve modal layering and event editing form issues
+- fix: improve filter dropdown positioning
+- fix: correct translation of 'modique' to 'modale' in changelog
+- fix: remove duplicate 0.9.1 entry in changelog
+- fix: resolve changelog display issues in help page
+
+### 📝 Other Changes
+- chore: prepare for 0.9.0 release by setting current version to 0.8.0
+
+---
+
 ## [0.9.1] - 2025-09-05
 
 ### 🐛 Bug Fixes
