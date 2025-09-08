@@ -77,4 +77,11 @@
       "🐛 résoudre problèmes d'affichage du journal des modifications dans la page d'aide"
     ]
   }
+,
+  {
+    "version": "0.9.3",
+    "date": "2025-09-08",
+    "changes": [
+    ]
+  }
 ]
