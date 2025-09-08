@@ -116,6 +116,7 @@ const canResetPassword = computed(() => {
 })
 
 onMounted(async () => {
+  console.log('🚀 PasswordReset onMounted STARTED')
   try {
     // 🔍 DEBUG: Capture complete environment info
     const debugInfo = {
@@ -137,10 +138,21 @@ onMounted(async () => {
       }
     }
     
+    console.log('🔍 PasswordReset COMPLETE DEBUG INFO:', debugInfo)
     logger.debug('🔍 PasswordReset COMPLETE DEBUG INFO:', debugInfo)
     
     // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
     const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
+    
+    console.log('🔍 URL PARAMETERS EXTRACTED:', {
+      hasFirebaseToken: !!firebaseToken,
+      hasMagicToken: !!magicToken,
+      hasEmail: !!emailParam,
+      hasPlayer: !!playerId,
+      allParams: route.query,
+      firebaseTokenLength: firebaseToken?.length || 0,
+      magicTokenLength: magicToken?.length || 0
+    })
     
     logger.info('🔍 DEBUG PasswordReset - Paramètres URL reçus:', {
       hasFirebaseToken: !!firebaseToken,
@@ -163,12 +175,14 @@ onMounted(async () => {
     
     // Support pour Firebase Auth (nouveau système)
     if (!firebaseToken) {
+      console.log('❌ NO FIREBASE TOKEN FOUND')
       logger.warn('❌ Aucun token (oobCode ou magic token) trouvé dans l\'URL')
       error.value = 'Lien de réinitialisation incomplet'
       loading.value = false
       return
     }
 
+    console.log('✅ FIREBASE TOKEN FOUND, setting oobCode.value')
     oobCode.value = firebaseToken
     
     // 🔍 DEBUG: Pre-verification checks
@@ -184,6 +198,7 @@ onMounted(async () => {
     
     // Récupérer l'email depuis le token Firebase
     try {
+      console.log('🔍 STARTING TOKEN VERIFICATION...')
       logger.debug('🔍 Starting verifyPasswordResetCode call...')
       logger.debug('🔍 Auth instance details:', {
         app: auth?.app?.name,
@@ -192,10 +207,13 @@ onMounted(async () => {
       })
       
       // 🔍 DEBUG: Wait for auth to be fully initialized using existing service
+      console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
       logger.debug('🔍 Waiting for auth initialization...')
       await waitForInitialization()
+      console.log('🔍 AUTH INITIALIZATION COMPLETED')
       logger.debug('🔍 Auth initialization completed')
       
+      console.log('🔍 AUTH READY, PROCEEDING WITH VERIFICATION...')
       logger.debug('🔍 Auth instance is ready, proceeding with verification...')
       
       const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
@@ -211,6 +229,7 @@ onMounted(async () => {
       email.value = emailFromToken
       
     } catch (verifyError) {
+      console.log('❌ TOKEN VERIFICATION FAILED!', verifyError)
       logger.error('❌ Token verification FAILED!')
       logger.error('❌ Error details:', {
         message: verifyError.message,
@@ -236,6 +255,7 @@ onMounted(async () => {
     loading.value = false
     
   } catch (err) {
+    console.log('❌ CRITICAL ERROR in onMounted:', err)
     logger.error('❌ CRITICAL ERROR in onMounted:', {
       message: err.message,
       code: err.code,
