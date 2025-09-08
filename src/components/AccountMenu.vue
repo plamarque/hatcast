@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[150] p-2 md:p-4" @click="close">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1040] p-2 md:p-4" @click="close">
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto" @click.stop>
       <button @click="close" class="absolute right-2 md:right-3 top-2 md:top-3 text-white/80 hover:text-white" aria-label="Fermer" title="Fermer">✖️</button>
 
@@ -83,7 +83,7 @@
     </div>
 
     <!-- Modal de modification d'email -->
-    <div v-if="showEmailUpdate" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[160] p-4" @click="showEmailUpdate = false">
+    <div v-if="showEmailUpdate" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1050] p-4" @click="showEmailUpdate = false">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
@@ -110,7 +110,7 @@
     </div>
 
     <!-- Modal de gestion des joueurs -->
-    <div v-if="showPlayersList" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[160] p-4" @click="showPlayersList = false">
+    <div v-if="showPlayersList" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1060] p-4" @click="showPlayersList = false">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-lg" @click.stop>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60">
+  <div v-if="show" class="fixed inset-0 z-[1360] flex items-center justify-center p-4 bg-black/60">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center relative">
       <!-- Bouton de fermeture -->
       <button

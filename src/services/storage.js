@@ -162,8 +162,10 @@ export function getRoleLabel(role, userGender = 'non-specified', plural = false)
 export const EVENT_TYPE_ICONS = {
   match: '⚔️',
   cabaret: '🎭',
+  longform: '🎪',
   deplacement: '🚌',
-  custom: '📊'
+  survey: '📊',
+  custom: '❓'
 }
 
 // Modèles de rôles prédéfinis pour différents types d'événements
@@ -198,6 +200,21 @@ export const ROLE_TEMPLATES = {
       [ROLES.STAGE_MANAGER]: 0
     }
   },
+  longform: {
+    name: 'Long Form',
+    description: 'Spectacle long format avec MC et DJ',
+    roles: {
+      [ROLES.PLAYER]: 4,
+      [ROLES.MC]: 1,
+      [ROLES.DJ]: 1,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
   deplacement: {
     name: 'Déplacement',
     description: 'Événement extérieur simple',
@@ -213,9 +230,24 @@ export const ROLE_TEMPLATES = {
       [ROLES.STAGE_MANAGER]: 0
     }
   },
-  custom: {
+  survey: {
     name: 'Simple sondage',
     description: 'Configuration personnalisée',
+    roles: {
+      [ROLES.PLAYER]: 0,
+      [ROLES.MC]: 0,
+      [ROLES.DJ]: 0,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
+  custom: {
+    name: 'Autre',
+    description: 'Type non défini',
     roles: {
       [ROLES.PLAYER]: 0,
       [ROLES.MC]: 0,
@@ -231,7 +263,7 @@ export const ROLE_TEMPLATES = {
 }
 
 // Ordre d'affichage des types
-export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'match', 'deplacement', 'custom']
+export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'longform', 'match', 'deplacement', 'survey', 'custom']
 
 export async function loadEvents(seasonId) {
   const events = await firestoreService.getDocuments('seasons', seasonId, 'events')

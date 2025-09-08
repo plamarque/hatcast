@@ -137,7 +137,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER } from '../services/storage.js'
+import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
 
 const props = defineProps({
   playerName: {
@@ -209,6 +209,10 @@ const props = defineProps({
   isProtected: {
     type: Boolean,
     default: false
+  },
+  playerGender: {
+    type: String,
+    default: 'non-specified'
   }
 })
 
@@ -266,7 +270,7 @@ function getConfirmedRoleLabel() {
   
   // Prendre le premier rôle (normalement il n'y en a qu'un en cas de sélection)
   const role = props.availabilityData.roles[0]
-  return ROLE_LABELS_SINGULAR[role] || 'Joue'
+  return getRoleLabel(role, props.playerGender, false) || 'Joue'
 }
 
 const shouldShowChance = computed(() => {

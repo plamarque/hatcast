@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[170] p-4" @click="$emit('close')">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9997] p-4" @click="$emit('close')">
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" @click.stop>
       <button @click="$emit('close')" class="absolute right-3 top-3 text-white/80 hover:text-white" aria-label="Fermer" title="Fermer">✖️</button>
       
@@ -116,7 +116,8 @@ import AuditClient from '../services/auditClient.js'
 import AccountBenefitsHint from './AccountBenefitsHint.vue'
 
 const props = defineProps({
-  show: { type: Boolean, default: false }
+  show: { type: Boolean, default: false },
+  returnUrl: { type: String, default: null }
 })
 
 const emit = defineEmits(['close', 'success'])
@@ -175,7 +176,8 @@ async function signUpWithGoogle() {
     emit('success', { 
       email: user.email,
       action: 'google_signup_success',
-      isNewUser: user.metadata.creationTime === user.metadata.lastSignInTime
+      isNewUser: user.metadata.creationTime === user.metadata.lastSignInTime,
+      returnUrl: props.returnUrl
     })
   } catch (e) {
     error.value = e.message || 'Erreur lors de l\'inscription avec Google'
@@ -222,7 +224,8 @@ async function sendVerificationEmail() {
     const currentNavigation = {
       lastVisitedPage: window.location.pathname + window.location.search,
       timestamp: Date.now(),
-      email: email.value.trim()
+      email: email.value.trim(),
+      returnUrl: props.returnUrl // Inclure le returnUrl
     }
     localStorage.setItem('pendingAccountCreationNavigation', JSON.stringify(currentNavigation))
     

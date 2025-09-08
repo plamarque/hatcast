@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isActive && showModal" class="fixed inset-0 z-[130] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+  <div v-if="isActive && showModal" class="fixed inset-0 z-[1100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="w-full max-w-xl bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl text-center">
       <div class="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center">
         <span class="text-3xl">🎬</span>

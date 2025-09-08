@@ -88,8 +88,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { confirmPasswordReset, signInWithEmailAndPassword, verifyPasswordResetCode, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../services/firebase.js'
+import { signInWithEmailAndPassword, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, safeVerifyPasswordResetCode, safeConfirmPasswordReset } from '../services/firebase.js'
 import logger from '../services/logger.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -115,21 +115,38 @@ const canResetPassword = computed(() => {
 })
 
 onMounted(async () => {
+  logger.debug('🚀 PasswordReset onMounted STARTED')
   try {
+    // 🔍 DEBUG: Capture environment info
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      route: {
+        path: route.path,
+        query: route.query,
+        params: route.params
+      }
+    }
+    
+    logger.debug('🔍 PasswordReset DEBUG INFO:', debugInfo)
+    
     // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
     const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
     
-    logger.info('🔍 DEBUG PasswordReset - Paramètres URL reçus:', {
+    logger.debug('🔍 URL PARAMETERS EXTRACTED:', {
       hasFirebaseToken: !!firebaseToken,
       hasMagicToken: !!magicToken,
       hasEmail: !!emailParam,
       hasPlayer: !!playerId,
-      allParams: route.query
+      allParams: route.query,
+      firebaseTokenLength: firebaseToken?.length || 0,
+      magicTokenLength: magicToken?.length || 0
     })
     
     // Support pour les magic links (ancien système)
     if (magicToken && playerId) {
-      logger.info('🔗 Utilisation du système Magic Link')
+      logger.debug('🔗 Utilisation du système Magic Link')
       oobCode.value = magicToken
       email.value = playerId // Dans notre cas, playerId = email
       loading.value = false
@@ -138,22 +155,61 @@ onMounted(async () => {
     
     // Support pour Firebase Auth (nouveau système)
     if (!firebaseToken) {
-      logger.warn('❌ Aucun token (oobCode ou magic token) trouvé dans l\'URL')
+      logger.warn('❌ NO FIREBASE TOKEN FOUND')
       error.value = 'Lien de réinitialisation incomplet'
       loading.value = false
       return
     }
 
+    logger.debug('✅ FIREBASE TOKEN FOUND, setting oobCode.value')
     oobCode.value = firebaseToken
+    
+    // 🔍 DEBUG: Pre-verification checks
+    logger.debug('🔍 PRE-VERIFICATION CHECKS:', {
+      authInstance: !!auth,
+      authType: typeof auth,
+      safeVerifyFunction: !!safeVerifyPasswordResetCode,
+      safeVerifyFunctionType: typeof safeVerifyPasswordResetCode,
+      tokenLength: firebaseToken.length,
+      tokenStart: firebaseToken.substring(0, 10) + '...',
+      tokenEnd: '...' + firebaseToken.substring(firebaseToken.length - 10)
+    })
     
     // Récupérer l'email depuis le token Firebase
     try {
-      logger.debug('Vérification du token et récupération de l\'email...')
-      const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
+      logger.debug('🔍 STARTING TOKEN VERIFICATION...')
+      
+      // 🔍 Utiliser le wrapper sécurisé qui gère l'initialisation automatiquement
+      const emailFromToken = await safeVerifyPasswordResetCode(firebaseToken)
+      
+      logger.debug('✅ TOKEN VERIFICATION SUCCESS!')
+      logger.debug('🔍 Email récupéré depuis le token:', emailFromToken)
+      logger.debug('🔍 Email details:', {
+        email: emailFromToken,
+        length: emailFromToken?.length,
+        type: typeof emailFromToken
+      })
+      
       email.value = emailFromToken
-      logger.info('Email récupéré depuis le token:', emailFromToken)
+      
     } catch (verifyError) {
-      logger.error('Erreur lors de la vérification du token:', verifyError)
+      logger.error('❌ TOKEN VERIFICATION FAILED!', verifyError)
+      logger.error('❌ Error details:', {
+        message: verifyError.message,
+        code: verifyError.code,
+        name: verifyError.name,
+        stack: verifyError.stack,
+        type: typeof verifyError,
+        cause: verifyError.cause
+      })
+      
+      // 🔍 DEBUG: Additional error context
+      logger.error('🔍 Error context:', {
+        tokenUsed: firebaseToken.substring(0, 20) + '...',
+        authState: auth?.currentUser ? 'authenticated' : 'not authenticated',
+        timestamp: new Date().toISOString()
+      })
+      
       error.value = 'Lien de réinitialisation invalide ou expiré'
       loading.value = false
       return
@@ -162,7 +218,14 @@ onMounted(async () => {
     loading.value = false
     
   } catch (err) {
-    logger.error('Erreur lors de la vérification du lien', err)
+    logger.error('❌ CRITICAL ERROR in onMounted:', err)
+    logger.error('❌ Error details:', {
+      message: err.message,
+      code: err.code,
+      name: err.name,
+      stack: err.stack,
+      type: typeof err
+    })
     error.value = 'Erreur lors de la vérification du lien'
     loading.value = false
   }
@@ -226,9 +289,9 @@ async function resetPassword() {
       
       logger.info('✅ Mot de passe réinitialisé via Cloud Function')
     } else {
-      logger.info('🔑 Réinitialisation via Firebase Auth avec oobCode')
-      await confirmPasswordReset(auth, oobCode.value, newPassword.value)
-      logger.info('✅ Mot de passe Firebase Auth mis à jour')
+      logger.debug('🔑 Réinitialisation via Firebase Auth avec oobCode')
+      await safeConfirmPasswordReset(oobCode.value, newPassword.value)
+      logger.debug('✅ Mot de passe Firebase Auth mis à jour')
     }
     
     // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !
@@ -244,6 +307,25 @@ async function resetPassword() {
       const pendingAccountCreation = localStorage.getItem('pendingAccountCreationNavigation')
       if (pendingAccountCreation) {
         resetSuccess.value = 'Compte créé avec succès ! Redirection...'
+        
+        // Vérifier s'il y a un returnUrl pour la protection
+        try {
+          const navigationData = JSON.parse(pendingAccountCreation)
+          if (navigationData.returnUrl) {
+            logger.debug('🔑 ReturnUrl détecté, redirection vers:', navigationData.returnUrl)
+            // Nettoyer le localStorage après utilisation
+            localStorage.removeItem('pendingAccountCreationNavigation')
+            setTimeout(() => {
+              router.push(navigationData.returnUrl)
+            }, 2000)
+            return
+          }
+        } catch (e) {
+          logger.warn('Erreur parsing navigation data:', e)
+        }
+        
+        // Nettoyer le localStorage même si pas de returnUrl
+        localStorage.removeItem('pendingAccountCreationNavigation')
       } else {
         resetSuccess.value = 'Mot de passe réinitialisé et connexion réussie ! Redirection...'
       }

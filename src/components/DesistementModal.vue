@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+  <div v-if="show" class="fixed inset-0 z-[1400] flex items-center justify-center p-4 bg-black/50">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
       <div class="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center bg-red-500">
         <span class="text-3xl">🚫</span>

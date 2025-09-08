@@ -11,6 +11,8 @@ Ce dossier contient la documentation technique et utilisateur du projet HatCast.
 
 ### 🔧 Documentation technique
 - **[Documentation Technique](technical/README.md)** - Guides techniques et d'implémentation
+- **[Hiérarchie des Z-Index](technical/Z_INDEX_HIERARCHY.md)** - Gestion des z-index et modales
+- **[Référence Rapide Z-Index](technical/Z_INDEX_QUICK_REFERENCE.md)** - Guide rapide pour les développeurs
 - **[Implémentation des Filtres](technical/filters-implementation.md)** - Détails techniques du système de filtres
 - **[Système de Scroll Horizontal](technical/scroll-system.md)** - Architecture et implémentation du système de navigation
 - **[AUDIT.md](../AUDIT.md)** - Système d'audit et de logs

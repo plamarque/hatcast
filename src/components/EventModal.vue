@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1100] p-4">
+  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1010] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
       <!-- Header fixe -->
       <div class="p-6 pb-4 border-b border-gray-700/50">
@@ -326,26 +326,8 @@ function applyRoleTemplate(templateId) {
   })
 }
 
-function determineRoleTemplate(roles) {
-  if (!roles) return 'custom'
-  
-  // Comparer avec chaque template
-  for (const [templateId, template] of Object.entries(ROLE_TEMPLATES)) {
-    if (templateId === 'custom') continue
-    
-    let matches = true
-    for (const [role, count] of Object.entries(template.roles)) {
-      if (roles[role] !== count) {
-        matches = false
-        break
-      }
-    }
-    
-    if (matches) return templateId
-  }
-  
-  return 'custom'
-}
+// Fonction pour déterminer quel type correspond aux rôles actuels
+// SUPPRIMÉE : On ne devine plus le type, on utilise le type sauvegardé ou 'autre' comme fallback
 
 function getRoleCountColor(count) {
   if (count === 0) return 'text-blue-500' // Bleu pour 0
@@ -363,7 +345,8 @@ function handleSubmit() {
   
   emit('save', {
     ...formData.value,
-    roles: { ...formData.value.roles }
+    roles: { ...formData.value.roles },
+    templateType: selectedRoleTemplate.value // Sauvegarder le type de template
   })
 }
 
@@ -406,6 +389,10 @@ watch(() => props.isVisible, (visible) => {
 
 watch(() => props.eventData, (data) => {
   if (data && props.mode === 'edit') {
+    console.log('🔍 EventModal: Initializing form with event data:', data)
+    console.log('🔍 EventModal: Event roles:', data.roles)
+    console.log('🔍 EventModal: Event templateType:', data.templateType)
+    
     // Initialiser le formulaire avec les données existantes
     formData.value = {
       title: data.title || '',
@@ -415,9 +402,14 @@ watch(() => props.eventData, (data) => {
       roles: { ...data.roles } || {}
     }
     
-    // Déterminer le template de rôles
-    const templateId = determineRoleTemplate(data.roles)
+    console.log('🔍 EventModal: Form data initialized:', formData.value)
+    
+    // Utiliser le type de template sauvegardé, ou fallback sur 'custom'
+    const templateId = data.templateType || 'custom'
+    console.log('🔍 EventModal: Using template ID:', templateId, '(saved:', data.templateType, 'fallback: custom)')
     selectedRoleTemplate.value = templateId
+    
+    console.log('🔍 EventModal: Selected role template set to:', selectedRoleTemplate.value)
     
     // Réinitialiser l'affichage des rôles
     showRoleInputs.value = false

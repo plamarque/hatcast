@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4" @click="closeModal">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1330] p-4" @click="closeModal">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -73,7 +73,7 @@ import { ref, computed } from 'vue'
 import { updatePassword } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import logger from '../services/logger.js'
-import { updatePlayerPasswordInFirestore } from '../services/playerProtection.js'
+import { updatePlayerPasswordInFirebaseAuth } from '../services/playerProtection.js'
 
 const props = defineProps({
   show: {
@@ -118,10 +118,7 @@ async function resetPassword() {
   
   try {
     // Mettre à jour le mot de passe dans Firebase Auth
-    await updatePassword(auth.currentUser, newPassword.value)
-    
-    // Mettre à jour le hash dans Firestore
-    await updatePlayerPasswordInFirestore(props.playerId, newPassword.value, props.seasonId)
+    await updatePlayerPasswordInFirebaseAuth(newPassword.value)
     
     success.value = 'Mot de passe réinitialisé avec succès !'
     
