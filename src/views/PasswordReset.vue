@@ -190,8 +190,13 @@ onMounted(async () => {
       
       // 🔍 DEBUG: Wait for auth to be fully initialized using existing service
       console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
-      await waitForInitialization()
-      console.log('🔍 AUTH INITIALIZATION COMPLETED')
+      try {
+        await waitForInitialization()
+        console.log('🔍 AUTH INITIALIZATION COMPLETED')
+      } catch (initError) {
+        console.log('❌ AUTH INITIALIZATION FAILED:', initError)
+        throw new Error('Impossible d\'initialiser l\'authentification: ' + initError.message)
+      }
       
       // 🔍 DEBUG: Now auth is ready, we can safely access it
       console.log('🔍 Auth instance details:', {
