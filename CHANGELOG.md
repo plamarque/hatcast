@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.9.3] - 2025-09-08
+
+### ✨ New Features
+- feat: implement complete z-index hierarchy system with comprehensive documentation
+- feat: unify password reset systems on Firebase Auth
+- feat: use player gender for role labels in availability cells
+- feat: add Long Form show type with 4 players, 1 MC, 1 DJ
+
+### 🔧 Improvements
+- refactor: replace console.log with logger calls in PasswordReset.vue
+
+### 🐛 Bug Fixes
+- fix: improve waitForInitialization to handle early calls
+- fix: wait for Firebase initialization before auth service
+- fix: move waitForInitialization to very beginning of onMounted
+- fix: add specific error handling for waitForInitialization failures
+- fix: move auth access after waitForInitialization to prevent crashes
+- fix: replace logger calls with console.log to avoid Firebase dependency
+- fix: use existing waitForInitialization service for auth readiness
+- fix: resolve password reset token verification issue
+- fix: persist event template type and improve template structure
+
+### 📝 Other Changes
+- unify: replace magic link system with Firebase Auth for player protection
+- debug: add console.log statements for password reset debugging
+
+---
+
 ## [0.9.2] - 2025-09-07
 
 ### ✨ New Features

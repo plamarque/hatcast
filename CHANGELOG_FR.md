@@ -1,6 +1,57 @@
 # Journal des modifications
 
 
+
+## [0.9.3] - 08/09/2025
+
+### ✨ Nouvelles fonctionnalités
+- implémentation d’un système complet de hiérarchie z-index avec documentation complète
+- unification des systèmes de réinitialisation de mot de passe sur Firebase Auth
+- utilisation du sexe du joueur pour les libellés de rôle dans les cellules de disponibilité
+- ajout d’un type d’émission longue durée avec 4 joueurs, 1 MC, 1 DJ
+
+### 🔧 Améliorations
+- remplacement de console.log par des appels de journalisation dans PasswordReset.vue
+
+### 🐛 Corrections de bugs
+- amélioration de waitForInitialization pour gérer les appels précoces
+- attente de l’initialisation de Firebase avant le service d’authentification
+- déplacement de waitForInitialization au tout début de onMounted
+- ajout d’une gestion des erreurs spécifique pour les échecs de waitForInitialization
+- déplacement de l’accès à l’authentification après waitForInitialization pour éviter les plantages
+- remplacement des appels de journalisation par console.log pour éviter la dépendance à Firebase
+- utilisation du service waitForInitialization existant pour la préparation à l'authentification
+- résolution du problème de vérification du jeton de réinitialisation de mot de passe
+- conservation du type de modèle d'événement et amélioration de la structure du modèle
+
+### 📝 Autres modifications
+- remplacement du système de lien magique par Firebase Auth pour la protection des joueurs
+- ajout d'instructions console.log pour le débogage de la réinitialisation du mot de passe
+
+---
+
+## [0.9.2] - 07/09/2025
+
+### ✨ Nouvelles fonctionnalités
+- application des préférences de rôle uniquement aux joueurs favoris
+- refonte de la fenêtre modale de disponibilité
+- ajout d'une personnalisation d'avatar basée sur le sexe et d'une icône d'édition
+- ajout d'un point central pour les libellés de rôle
+- implémentation d'un système complet de traduction du journal des modifications côté serveur
+- implémentation d'un système complet de traduction du journal des modifications côté serveur
+- implémentation d'un système complet de traduction du journal des modifications côté serveur et renommage du script de déploiement
+
+### 🐛 Corrections de bugs
+- protection de l'accès à la fenêtre modale d'édition des joueurs par la vérification du mot de passe
+- remplacement de « volontaire » par « bénévole »
+- résolution des problèmes de superposition modale et de formulaire d’édition d’événements
+- amélioration du positionnement du menu déroulant des filtres
+- correction de la traduction de « modique » en « modale » dans le journal des modifications
+- suppression de l’entrée 0.9.1 en double dans le journal des modifications
+- résolution des problèmes d’affichage du journal des modifications dans la page d’aide
+
+---
+
 ## [0.9.2] - 07/09/2025
 
 ### ✨ Nouvelles fonctionnalités
