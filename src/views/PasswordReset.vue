@@ -187,16 +187,18 @@ onMounted(async () => {
     // Récupérer l'email depuis le token Firebase
     try {
       console.log('🔍 STARTING TOKEN VERIFICATION...')
-      console.log('🔍 Auth instance details:', {
-        app: auth?.app?.name,
-        config: auth?.config,
-        currentUser: auth?.currentUser?.email || 'none'
-      })
       
       // 🔍 DEBUG: Wait for auth to be fully initialized using existing service
       console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
       await waitForInitialization()
       console.log('🔍 AUTH INITIALIZATION COMPLETED')
+      
+      // 🔍 DEBUG: Now auth is ready, we can safely access it
+      console.log('🔍 Auth instance details:', {
+        app: auth?.app?.name,
+        config: auth?.config,
+        currentUser: auth?.currentUser?.email || 'none'
+      })
       
       console.log('🔍 AUTH READY, PROCEEDING WITH VERIFICATION...')
       
