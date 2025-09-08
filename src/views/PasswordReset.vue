@@ -118,14 +118,35 @@ const canResetPassword = computed(() => {
 onMounted(async () => {
   console.log('🚀 PasswordReset onMounted STARTED')
   try {
-    // 🔍 DEBUG: Wait for auth to be fully initialized FIRST
-    console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
+    // 🔍 DEBUG: Wait for Firebase to be fully initialized FIRST
+    console.log('🔍 WAITING FOR FIREBASE INITIALIZATION...')
+    let firebaseReady = false
+    let attempts = 0
+    const maxAttempts = 50 // 5 secondes max
+    
+    while (!firebaseReady && attempts < maxAttempts) {
+      if (window.firebaseInitialized && auth && auth.app) {
+        firebaseReady = true
+        console.log('🔍 Firebase is ready after', attempts, 'attempts')
+      } else {
+        console.log('🔍 Firebase not ready, attempt', attempts + 1, '/', maxAttempts)
+        await new Promise(resolve => setTimeout(resolve, 100))
+        attempts++
+      }
+    }
+    
+    if (!firebaseReady) {
+      throw new Error('Firebase initialization timeout after ' + maxAttempts + ' attempts')
+    }
+    
+    // 🔍 DEBUG: Now wait for auth service to be initialized
+    console.log('🔍 WAITING FOR AUTH SERVICE INITIALIZATION...')
     try {
       await waitForInitialization()
-      console.log('🔍 AUTH INITIALIZATION COMPLETED')
+      console.log('🔍 AUTH SERVICE INITIALIZATION COMPLETED')
     } catch (initError) {
-      console.log('❌ AUTH INITIALIZATION FAILED:', initError)
-      throw new Error('Impossible d\'initialiser l\'authentification: ' + initError.message)
+      console.log('❌ AUTH SERVICE INITIALIZATION FAILED:', initError)
+      throw new Error('Impossible d\'initialiser le service d\'authentification: ' + initError.message)
     }
     
     // 🔍 DEBUG: Now capture complete environment info (auth is ready)
