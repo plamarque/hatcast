@@ -128,7 +128,7 @@
     />
 
     <!-- Modal des Nouveautés -->
-    <div v-if="showChangelog" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4" @click="toggleChangelog">
+    <div v-if="showChangelog" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="toggleChangelog">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto" @click.stop>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">

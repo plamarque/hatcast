@@ -1,7 +1,7 @@
 <template>
   <div 
     v-if="environment !== 'production'" 
-    class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[200] pointer-events-none"
+    class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999] pointer-events-none"
   >
     <div 
       class="px-3 py-2 rounded-full text-sm font-bold text-white shadow-lg border-2"

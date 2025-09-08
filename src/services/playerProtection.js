@@ -5,17 +5,8 @@ import { createEmailVerificationLink } from './magicLinks.js'
 import playerPasswordSessionManager from './playerPasswordSession.js'
 import { queueVerificationEmail } from './emailService.js'
 
-// Fonction simple pour hasher un mot de passe (pour la démo)
-// En production, utilisez bcrypt ou une bibliothèque de hachage sécurisée
-function simpleHash(password) {
-  let hash = 0
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
-  }
-  return hash.toString()
-}
+// Note: Le système de hash local a été supprimé pour simplifier
+// La vérification se fait maintenant uniquement via Firebase Auth
 
 // Clé de préférence locale pour remonter le(s) joueur(s) protégé(s) en tête du tri
 function getPreferredPlayerStorageKey(seasonId) {
@@ -64,7 +55,7 @@ export function removePreferredPlayerLocal(seasonId, playerId) {
 // {
 //   playerId: string,
 //   email: string,
-//   passwordHash: string,
+//   firebaseUid: string,
 //   isProtected: boolean,
 //   createdAt: timestamp
 // }
@@ -102,15 +93,11 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     logger.info('Compte Firebase Auth créé', { uid: userCredential.user.uid })
     
-    // Hasher le mot de passe pour Firestore
-    const passwordHash = simpleHash(password)
-    
     // Sauvegarder dans Firestore
     if (seasonId) {
       await firestoreService.setDocument('seasons', seasonId, {
         playerId,
         email,
-        passwordHash,
         firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
         isProtected: true,
         createdAt: new Date()
@@ -119,7 +106,6 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
       await firestoreService.setDocument('playerProtection', playerId, {
         playerId,
         email,
-        passwordHash,
         firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
         isProtected: true,
         createdAt: new Date()
@@ -138,7 +124,7 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
 }
 
 // Etape 1: Démarrer la vérification email - envoie un magic link de vérification
-export async function startEmailVerificationForProtection({ playerId, email, seasonId = null }) {
+export async function startEmailVerificationForProtection({ playerId, email, seasonId = null, returnUrl = null }) {
   // On n'empêche plus l'envoi si l'email existe déjà.
   // La vérification par email prouvera la possession, et l'association sera gérée après vérification.
 
@@ -161,7 +147,7 @@ export async function startEmailVerificationForProtection({ playerId, email, sea
   }
 
   // Créer et retourner le lien de vérification
-  const { url } = await createEmailVerificationLink({ seasonId, playerId, email })
+  const { url } = await createEmailVerificationLink({ seasonId, playerId, email, returnUrl })
   
   // Envoyer l'email de vérification
   logger.info('🚀 Début envoi email de vérification', { playerId, email, url })
@@ -462,7 +448,7 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
       return false
     }
     
-    // Si on a un email, tenter Firebase Auth
+    // Vérification uniquement avec Firebase Auth
     if (protectionData.email) {
       logger.debug('Vérification avec Firebase Auth')
       
@@ -486,20 +472,11 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
         logger.debug('Mot de passe Firebase Auth invalide', { code: firebaseError.code })
         return false
       }
-    } else {
-      // Fallback : vérifier avec le hash stocké (pour les anciens comptes)
-      logger.debug('Vérification avec hash local')
-      const inputHash = simpleHash(password)
-      const isValid = protectionData.passwordHash === inputHash
-      
-        if (isValid) {
-        playerPasswordSessionManager.saveSession(playerId)
-        // Enregistrer la préférence locale de joueur privilégié pour cette saison (multi)
-        if (seasonId) addPreferredPlayerLocal(seasonId, playerId)
-      }
-      
-      return isValid
     }
+    
+    // Si pas d'email, pas de vérification possible
+    logger.debug('Aucun email associé, vérification impossible')
+    return false
   } catch (error) {
     logger.error('Erreur lors de la vérification du mot de passe', error)
     return false
@@ -667,23 +644,47 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
       throw new Error('Email non disponible pour ce joueur')
     }
     
-    // Si pas de firebaseUid, créer le compte Firebase Auth d'abord
-    if (!protectionData.firebaseUid) {
-      logger.debug('Pas de firebaseUid, création du compte Firebase Auth...')
+    // Vérifier si on a un firebaseUid (compte Firebase Auth créé)
+    if (protectionData.firebaseUid) {
+      logger.debug('Utilisation du compte Firebase Auth existant')
+      const { sendPasswordResetEmail } = await import('firebase/auth')
+      const { getFirebaseAuth } = await import('./firebase.js')
       
-      // Utiliser la fonction unifiée qui gère l'initialisation
-      const { createPlayerAccount } = await import('./firebase.js')
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        throw new Error('Firebase Auth non initialisé')
+      }
+      
+      logger.debug('Tentative d\'envoi d\'email')
+      await sendPasswordResetEmail(auth, protectionData.email)
+      logger.info('Email envoyé avec succès via Firebase Auth')
+    } else {
+      logger.debug('Pas de compte Firebase Auth, création temporaire...')
+      
+      // Créer un compte Firebase Auth temporaire pour envoyer l'email
+      const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth')
+      const { getFirebaseAuth } = await import('./firebase.js')
+      
+      const auth = getFirebaseAuth()
+      if (!auth) {
+        throw new Error('Firebase Auth non initialisé')
+      }
       
       // Générer un mot de passe temporaire
       const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
       
       try {
-        const userCredential = await createPlayerAccount(protectionData.email, tempPassword)
+        const userCredential = await createUserWithEmailAndPassword(auth, protectionData.email, tempPassword)
         logger.info('Compte Firebase Auth créé pour le reset', { uid: userCredential.user.uid })
         
         // Mettre à jour Firestore avec le firebaseUid
-        const { updateDoc } = await import('firebase/firestore')
-        const { db } = await import('./firebase.js')
+        const { updateDoc, doc } = await import('firebase/firestore')
+        const { getFirebaseDb } = await import('./firebase.js')
+        
+        const db = getFirebaseDb()
+        if (!db) {
+          throw new Error('Firebase Firestore non initialisé')
+        }
         
         const protectionRef = seasonId
           ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
@@ -697,28 +698,27 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
         
       } catch (createError) {
         if (createError.code === 'auth/email-already-in-use') {
-          logger.debug('Email déjà utilisé, continuer avec le reset...')
+          logger.debug('Email déjà utilisé, tentative d\'envoi direct...')
+          // L'email existe déjà, essayer d'envoyer directement
+          await sendPasswordResetEmail(auth, protectionData.email)
         } else {
           throw createError
         }
       }
     }
     
-    logger.debug('Envoi de l\'email de reset via Firebase Auth')
-    
-    // Utiliser la fonction unifiée qui gère l'initialisation
-    const { resetPlayerPassword } = await import('./firebase.js')
-    await resetPlayerPassword(protectionData.email)
-    
-    logger.info('Email de reset envoyé avec succès via Firebase Auth')
+    // Envoyer l'email de réinitialisation
+    await sendPasswordResetEmail(auth, protectionData.email)
+    logger.info('Email envoyé avec succès')
     
     return { success: true, message: 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.' }
   } catch (error) {
-    logger.error('Erreur lors de l\'envoi de l\'email de réinitialisation', {
-      message: error.message,
-      code: error.code,
-      name: error.name,
-      stack: error.stack
+    logger.error('Erreur lors de l\'envoi de l\'email de réinitialisation', { 
+      error,
+      message: error?.message,
+      code: error?.code,
+      playerId,
+      seasonId
     })
     
     // Gestion des erreurs spécifiques Firebase
@@ -734,21 +734,17 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
   }
 }
 
-// Mettre à jour le mot de passe d'un joueur dans Firestore
-export async function updatePlayerPasswordInFirestore(playerId, newPassword, seasonId = null) {
+// Mettre à jour le mot de passe d'un joueur dans Firebase Auth
+export async function updatePlayerPasswordInFirebaseAuth(newPassword) {
   try {
-    // Hasher le nouveau mot de passe
-    const passwordHash = simpleHash(newPassword)
+    const { updatePassword } = await import('firebase/auth')
+    const { auth } = await import('./firebase.js')
     
-    // Mettre à jour dans Firestore
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
+    if (!auth.currentUser) {
+      throw new Error('Aucun utilisateur connecté')
+    }
     
-    await updateDoc(protectionRef, {
-      passwordHash,
-      updatedAt: new Date()
-    })
+    await updatePassword(auth.currentUser, newPassword)
     
     return { success: true }
   } catch (error) {

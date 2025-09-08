@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[200] p-0 md:p-4" @click="closeModal">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[9995] p-0 md:p-4" @click="closeModal">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh] md:max-h-none" @click.stop>
       <!-- En-tête condensé -->
       <div class="text-center p-4 md:p-6 pb-3 md:pb-4 border-b border-white/10">
@@ -72,7 +72,7 @@
   </div>
 
   <!-- Modal mot de passe oublié -->
-  <div v-if="showForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[800] p-0 md:p-4" @click="showForgotPassword = false">
+  <div v-if="showForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[9996] p-0 md:p-4" @click="showForgotPassword = false">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh] md:max-h-none" @click.stop>
       <!-- En-tête condensé -->
       <div class="text-center p-4 md:p-6 pb-3 md:pb-4 border-b border-white/10">
@@ -235,8 +235,14 @@ async function sendResetEmail() {
     const result = await sendPasswordResetEmail(props.player.id, props.seasonId)
     forgotPasswordSuccess.value = result.message || 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.'
   } catch (err) {
-    logger.error('Erreur lors de l\'envoi de l\'email', err)
-    forgotPasswordError.value = 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
+    logger.error('Erreur lors de l\'envoi de l\'email', {
+      error: err,
+      message: err?.message,
+      code: err?.code,
+      playerId: props.player?.id,
+      seasonId: props.seasonId
+    })
+    forgotPasswordError.value = err?.message || 'Erreur lors de l\'envoi de l\'email. Veuillez réessayer.'
   } finally {
     loading.value = false
   }

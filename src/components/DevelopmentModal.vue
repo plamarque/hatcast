@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[160] p-4" @click="closeModal">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1260] p-4" @click="closeModal">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" @click.stop>
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
@@ -198,7 +198,7 @@
     <EmailTestModal :is-visible="showEmailTest" @close="showEmailTest = false" />
 
     <!-- Modal de debug des variables d'environnement -->
-    <div v-if="showEnvironmentDebug" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[170] p-4" @click="showEnvironmentDebug = false">
+    <div v-if="showEnvironmentDebug" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1270] p-4" @click="showEnvironmentDebug = false">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" @click.stop>
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">

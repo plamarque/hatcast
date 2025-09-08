@@ -154,7 +154,7 @@
           <div
             v-if="showFiltersDropdown"
             data-filters-dropdown
-            class="absolute top-12 right-0 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1000] overflow-hidden"
+            class="absolute top-12 right-0 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
           >
               <div class="p-3 border-b border-white/10">
                 <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
@@ -436,7 +436,7 @@
   
 
   <!-- Message de succès -->
-  <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm z-[200]">
+  <div v-if="showSuccessMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-2xl border border-green-400/30 backdrop-blur-sm z-[9999]">
     <div class="flex items-center space-x-2">
       <span class="text-xl">✨</span>
       <span>{{ successMessage }}</span>
@@ -444,7 +444,7 @@
   </div>
 
   <!-- Message d'erreur -->
-  <div v-if="showErrorMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl shadow-2xl border border-red-400/30 backdrop-blur-sm z-[200]">
+  <div v-if="showErrorMessage" class="fixed bottom-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-xl shadow-2xl border border-red-400/30 backdrop-blur-sm z-[9999]">
     <div class="flex items-center space-x-2">
       <span class="text-xl">⚠️</span>
       <span>{{ errorMessage }}</span>
@@ -468,7 +468,7 @@
   />
 
   <!-- Modale de création de joueur -->
-  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+  <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
       
@@ -543,7 +543,7 @@
   </div>
 
   <!-- Modale de confirmation de suppression -->
-  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[600] p-4">
+  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1310] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -570,7 +570,7 @@
   </div>
 
   <!-- Modale de confirmation de suppression de joueur -->
-  <div v-if="confirmPlayerDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+  <div v-if="confirmPlayerDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1320] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -587,7 +587,7 @@
   </div>
 
   <!-- Modale de confirmation de relance de sélection -->
-          <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[750] p-4">
+          <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1330] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -610,7 +610,7 @@
 
 
   <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1000] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
@@ -663,7 +663,7 @@
                  <!-- Menu déroulant d'agenda pour la modal -->
                  <div 
                    v-if="showCalendarMenuDetails"
-                   class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[99999] overflow-hidden"
+                   class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[1370] overflow-hidden"
                  >
                    <div class="p-2">
                      <button 
@@ -921,7 +921,7 @@
             <div 
               v-if="showEventMoreActionsDesktop"
               ref="eventMoreActionsDropdownRef"
-              class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[1000] overflow-hidden"
+              class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[9998] overflow-hidden"
               :style="eventMoreActionsStyle"
             >
               <button 
@@ -968,14 +968,14 @@
   </div>
 
   <!-- Footer principal -->
-  <AppFooter @open-help="showHowItWorksGlobal = true" />
+  <AppFooter @open-help="goToHelpPage" />
 
   <!-- Dropdown mobile pour actions d'événements (positionné absolument) -->
   <teleport to="body">
     <div 
       v-if="showEventMoreActions"
       ref="eventMoreActionsMobileDropdownRef"
-      class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[1000] overflow-hidden md:hidden"
+      class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[9998] overflow-hidden md:hidden"
       :style="eventMoreActionsMobileStyle"
     >
       <!-- Boutons principaux en premier -->
@@ -1031,7 +1031,7 @@
   />
 
   <!-- Modal de vérification du mot de passe du joueur -->
-  <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[700] p-4">
+  <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1340] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -1097,7 +1097,7 @@
   </div>
 
   <!-- Modal de vérification du mot de passe pour les disponibilités -->
-  <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[800] p-0 md:p-4">
+  <div v-if="showAvailabilityPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1350] p-0 md:p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 shadow-2xl w-full max-w-md rounded-t-2xl md:rounded-2xl flex flex-col max-h-[90vh]">
       <!-- En-tête -->
       <div class="text-center p-6 pb-4 border-b border-white/10">
@@ -1165,7 +1165,7 @@
   </div>
 
   <!-- Modal mot de passe oublié pour les disponibilités -->
-  <div v-if="showAvailabilityForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[800] p-4" @click="showAvailabilityForgotPassword = false">
+  <div v-if="showAvailabilityForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1410] p-4" @click="showAvailabilityForgotPassword = false">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -1213,7 +1213,7 @@
   </div>
 
   <!-- Modal mot de passe oublié pour la suppression de joueur -->
-  <div v-if="showPlayerForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[800] p-4" @click="showPlayerForgotPassword = false">
+  <div v-if="showPlayerForgotPassword" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="showPlayerForgotPassword = false">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -1316,8 +1316,6 @@
     @send-notifications="handleSendNotifications"
   />
 
-  <!-- Popin Aide (global) -->
-  <AppHelpModal :show="showHowItWorksGlobal" @close="showHowItWorksGlobal = false" />
 
   <!-- Menu Compte (global) -->
   <AccountMenu
@@ -1400,7 +1398,7 @@
   />
 
   <!-- Modal de prompt pour annoncer après création/modification -->
-  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+  <div v-if="showAnnouncePrompt" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1370] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-6 rounded-2xl shadow-2xl max-w-md">
               <h3 class="text-xl font-bold text-white mb-4 text-center">Voulez-vous annoncer cet événement ?</h3>
               <p class="text-gray-300 text-center mb-6">Envoyer des notifications aux personnes pour qu'elles indiquent leur disponibilité</p>
@@ -1668,7 +1666,6 @@ import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
-import AppHelpModal from './AppHelpModal.vue'
 import PasswordResetModal from './PasswordResetModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PinModal from './PinModal.vue'
@@ -2132,13 +2129,17 @@ const showEventAnnounceModal = ref(false)
 const eventToAnnounce = ref(null)
 const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
-const showHowItWorksGlobal = ref(false)
 const showAccountMenu = ref(false)
 const showAccountAuth = ref(false)
 const showAccountLogin = ref(false)
 const showAccountCreation = ref(false)
 const showPreferences = ref(false)
 const showPlayers = ref(false)
+
+// Fonction pour rediriger vers la page d'aide
+function goToHelpPage() {
+  window.location.href = '/help'
+}
 const accountAuthPlayer = ref(null)
 
 // Variables pour la modale de disponibilité avec rôles
@@ -2422,6 +2423,22 @@ onMounted(async () => {
       if (targetPlayer) {
         nextTick(() => {
           showPlayerDetails(targetPlayer)
+          
+          // Si action=protect, ouvrir directement la modale de protection
+          if (urlParams.get('action') === 'protect') {
+            // Attendre que la modale de joueur soit ouverte, puis ouvrir la protection
+            setTimeout(() => {
+              // Déclencher l'ouverture de la modale de protection
+              const playerModal = document.querySelector('[data-testid="player-modal"]')
+              if (playerModal) {
+                // Simuler un clic sur le bouton de protection
+                const protectButton = playerModal.querySelector('button[data-testid="protect-button"]')
+                if (protectButton) {
+                  protectButton.click()
+                }
+              }
+            }, 500)
+          }
         })
       }
     }

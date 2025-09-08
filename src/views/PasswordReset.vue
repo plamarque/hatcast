@@ -307,6 +307,25 @@ async function resetPassword() {
       const pendingAccountCreation = localStorage.getItem('pendingAccountCreationNavigation')
       if (pendingAccountCreation) {
         resetSuccess.value = 'Compte créé avec succès ! Redirection...'
+        
+        // Vérifier s'il y a un returnUrl pour la protection
+        try {
+          const navigationData = JSON.parse(pendingAccountCreation)
+          if (navigationData.returnUrl) {
+            logger.debug('🔑 ReturnUrl détecté, redirection vers:', navigationData.returnUrl)
+            // Nettoyer le localStorage après utilisation
+            localStorage.removeItem('pendingAccountCreationNavigation')
+            setTimeout(() => {
+              router.push(navigationData.returnUrl)
+            }, 2000)
+            return
+          }
+        } catch (e) {
+          logger.warn('Erreur parsing navigation data:', e)
+        }
+        
+        // Nettoyer le localStorage même si pas de returnUrl
+        localStorage.removeItem('pendingAccountCreationNavigation')
       } else {
         resetSuccess.value = 'Mot de passe réinitialisé et connexion réussie ! Redirection...'
       }

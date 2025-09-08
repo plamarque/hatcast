@@ -36,7 +36,7 @@
     <teleport to="body">
       <div
         v-if="isOpen && isConnected"
-        class="fixed w-auto min-w-[180px] max-w-[200px] md:min-w-[200px] md:max-w-[240px] bg-gray-900 border border-white/20 rounded-lg shadow-xl py-1 z-[9999]"
+        class="fixed w-auto min-w-[180px] max-w-[200px] md:min-w-[200px] md:max-w-[240px] bg-gray-900 border border-white/20 rounded-lg shadow-xl py-1 z-[1250]"
         :style="dropdownStyle"
         role="menu"
       >

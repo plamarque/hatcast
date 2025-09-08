@@ -39,7 +39,7 @@ export async function createMagicLink({ seasonId, playerId, eventId, action, slu
 
 // Magic link pour vérification d'email de protection joueur
 // Utilise eventId spécial "protection" et action "verify_email"
-export async function createEmailVerificationLink({ seasonId, playerId, email }) {
+export async function createEmailVerificationLink({ seasonId, playerId, email, returnUrl = null }) {
   try {
     // S'assurer que firestoreService est initialisé
     await firestoreService.initialize()
@@ -50,9 +50,15 @@ export async function createEmailVerificationLink({ seasonId, playerId, email })
     const token = randomToken(40)
     const expirationDays = configService.getMagicLinkExpirationDays()
     const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
-    await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, email, expiresAt })
+    await firestoreService.setDocument(COLLECTION, id, { seasonId, playerId, eventId, token, action, email, returnUrl, expiresAt })
     const base = window.location.origin + '/'
-    const url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+    let url = `${base}magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&t=${encodeURIComponent(token)}&a=${encodeURIComponent(action)}`
+    
+    // Ajouter returnUrl si fourni
+    if (returnUrl) {
+      url += `&returnUrl=${encodeURIComponent(returnUrl)}`
+    }
+    
     return { id, token, url }
   } catch (error) {
     console.error('Error creating email verification link:', error)

@@ -1,6 +1,6 @@
 <template>
   <!-- Contenu migré depuis l'ancien PlayerProtectionModal.vue -->
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[130] p-4" @click="closeModal">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1320] p-4" @click="closeModal">
     <div class="relative bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <button
         @click="closeModal"
@@ -76,7 +76,7 @@
         </button>
         <button
           v-else-if="!isProtected && !isUserConnected"
-          @click="showAccountClaim = true"
+          @click="showAccountLogin = true"
           class="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300"
         >
           C'est moi !
@@ -102,31 +102,35 @@
     </div>
   </div>
   
-  <!-- Modal de création de compte / claim -->
-  <AccountClaimModal
-    :show="showAccountClaim"
-    :player="player"
-    :season-id="seasonId"
-    @close="showAccountClaim = false"
-    @success="handleClaimSuccess"
+  <!-- Modal de connexion avec returnUrl -->
+  <AccountLoginModal
+    :show="showAccountLogin"
+    :return-url="protectionReturnUrl"
+    @close="showAccountLogin = false"
+    @success="handleLoginSuccess"
+    @open-account-creation="showAccountCreation = true"
   />
 
-  <!-- Modal de vérification du mot de passe -->
-  <PasswordVerificationModal
-    :show="showPasswordVerification"
-    :player="player"
-    :seasonId="seasonId"
-    @close="showPasswordVerification = false"
-    @verified="handlePasswordVerified"
+  <!-- Modal de création de compte avec returnUrl -->
+  <AccountCreationModal
+    :show="showAccountCreation"
+    :return-url="protectionReturnUrl"
+    @close="showAccountCreation = false"
+    @success="handleAccountCreationSuccess"
   />
+
+
+  <!-- Note: Modal de vérification de mot de passe supprimée - remplacée par la connexion Firebase Auth -->
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { unprotectPlayer, isPlayerProtected, isPlayerPasswordCached, getPlayerProtectionData } from '../services/playerProtection.js'
+import { unprotectPlayer, isPlayerProtected, getPlayerProtectionData } from '../services/playerProtection.js'
 import { useRoute } from 'vue-router'
 import { currentUser } from '../services/authState.js'
-import AccountClaimModal from './AccountClaimModal.vue'
+import logger from '../services/logger.js'
+import AccountLoginModal from './AccountLoginModal.vue'
+import AccountCreationModal from './AccountCreationModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 
 
@@ -149,46 +153,55 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 // Hint state is now inside AccountBenefitsHint component
-const showAccountClaim = ref(false)
+const showAccountLogin = ref(false)
+const showAccountCreation = ref(false)
 const route = useRoute()
-const showPasswordVerification = ref(false)
+// Note: showPasswordVerification supprimé - remplacé par la connexion Firebase Auth
 
-const validEmail = computed(() => false)
-const passwordsValid = computed(() => false)
+// URL de retour pour la protection
+const protectionReturnUrl = computed(() => {
+  if (!props.player?.id) return null
+  return `/season/${route.params.slug}?player=${props.player.id}&modal=player_details&action=protect`
+})
 
-async function handleClaimSuccess(data) {
-  success.value = 'Compte créé et personne associée !'
-  isProtected.value = true
-  showAccountClaim.value = false
+
+async function handleLoginSuccess(data) {
+  logger.debug('🔑 Login success dans PlayerClaimModal:', data)
   
-  // Connecter automatiquement l'utilisateur après l'association
-  if (data?.email && data?.password) {
-    try {
-      // Stocker l'email pour pré-remplir dans la modale "Ne rate rien"
-      localStorage.setItem('prefilledEmail', data.email)
-      
-      // Connecter l'utilisateur avec Firebase Auth
-      const { signInWithEmailAndPassword } = await import('firebase/auth')
-      const { auth } = await import('../services/firebase.js')
-      
-      await signInWithEmailAndPassword(auth, data.email, data.password)
-      
-      // Émettre un événement pour informer le parent que l'utilisateur est connecté
-      emit('update', { 
-        action: 'protection_activated',
-        email: data.email,
-        playerId: props.player?.id
-      })
-      
-      console.log('✅ Utilisateur connecté automatiquement après activation de la protection')
-    } catch (error) {
-      console.error('Erreur lors de la connexion automatique:', error)
-      // En cas d'erreur, on continue normalement
-    }
+  // Fermer la modale de connexion
+  showAccountLogin.value = false
+  
+  // Si on a un returnUrl, on laisse le système de navigation gérer
+  if (data.returnUrl) {
+    logger.debug('🔑 ReturnUrl détecté, navigation automatique vers:', data.returnUrl)
+    return
   }
   
-  emit('update')
+  // Si on était en train de déprotéger, continuer avec la déprotection
+  if (isProtected.value) {
+    await performUnprotect()
+  } else {
+    // Sinon, association directe
+    await associatePlayerDirectly()
+  }
 }
+
+async function handleAccountCreationSuccess(data) {
+  logger.debug('🔑 Account creation success dans PlayerClaimModal:', data)
+  
+  // Fermer la modale de création de compte
+  showAccountCreation.value = false
+  
+  // Si on a un returnUrl, on laisse le système de navigation gérer
+  if (data.returnUrl) {
+    logger.debug('🔑 ReturnUrl détecté, navigation automatique vers:', data.returnUrl)
+    return
+  }
+  
+  // Sinon, continuer avec la protection directe
+  await associatePlayerDirectly()
+}
+
 
 async function associatePlayerDirectly() {
   console.log('🔒 Début de associatePlayerDirectly')
@@ -270,8 +283,8 @@ async function checkProtectionStatus() {
     // Heuristique propriétaire: si un mot de passe a été validé récemment (session), considérer comme owner
     // MAIS seulement si l'utilisateur est connecté
     try {
-      const { isPlayerPasswordCached } = await import('../services/playerProtection.js')
-      isOwner.value = isUserConnected.value && isPlayerPasswordCached(props.player.id)
+      // L'utilisateur est propriétaire s'il est connecté et que le joueur est protégé
+      isOwner.value = isUserConnected.value && isProtected.value
     } catch { isOwner.value = false }
   }
 }
@@ -337,15 +350,15 @@ async function activateProtection() {
 
 function startDeactivateProtection() {
   error.value = ''
-  // Si le mot de passe du joueur est déjà en cache ET que l'utilisateur est connecté, on peut dissocier directement
-  try {
-    if (props.player?.id && isUserConnected.value && isPlayerPasswordCached(props.player.id)) {
-      performUnprotect()
-      return
-    }
-  } catch {}
-  // Sinon, ouvrir la modal standard de vérification (gère aussi le PIN et MDP oublié)
-  showPasswordVerification.value = true
+  
+  // Si l'utilisateur est connecté, on peut dissocier directement
+  if (isUserConnected.value) {
+    performUnprotect()
+    return
+  }
+  
+  // Sinon, ouvrir la modal de connexion avec returnUrl
+  showAccountLogin.value = true
 }
 
 async function performUnprotect() {
@@ -367,10 +380,7 @@ async function performUnprotect() {
   }
 }
 
-function handlePasswordVerified() {
-  showPasswordVerification.value = false
-  performUnprotect()
-}
+// Note: handlePasswordVerified supprimé - remplacé par la connexion Firebase Auth
 
 function closeModal() { emit('close') }
 
@@ -380,7 +390,7 @@ watch(() => props.show, (newValue) => {
   if (newValue && props.player) {
     error.value = ''
     success.value = ''
-    showPasswordVerification.value = false
+    // Note: showPasswordVerification supprimé
     checkProtectionStatus()
     if (props.onboarding) { nextTick(() => {}) }
   }
