@@ -118,7 +118,17 @@ const canResetPassword = computed(() => {
 onMounted(async () => {
   console.log('🚀 PasswordReset onMounted STARTED')
   try {
-    // 🔍 DEBUG: Capture complete environment info
+    // 🔍 DEBUG: Wait for auth to be fully initialized FIRST
+    console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
+    try {
+      await waitForInitialization()
+      console.log('🔍 AUTH INITIALIZATION COMPLETED')
+    } catch (initError) {
+      console.log('❌ AUTH INITIALIZATION FAILED:', initError)
+      throw new Error('Impossible d\'initialiser l\'authentification: ' + initError.message)
+    }
+    
+    // 🔍 DEBUG: Now capture complete environment info (auth is ready)
     const debugInfo = {
       timestamp: new Date().toISOString(),
       url: window.location.href,
@@ -188,15 +198,7 @@ onMounted(async () => {
     try {
       console.log('🔍 STARTING TOKEN VERIFICATION...')
       
-      // 🔍 DEBUG: Wait for auth to be fully initialized using existing service
-      console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
-      try {
-        await waitForInitialization()
-        console.log('🔍 AUTH INITIALIZATION COMPLETED')
-      } catch (initError) {
-        console.log('❌ AUTH INITIALIZATION FAILED:', initError)
-        throw new Error('Impossible d\'initialiser l\'authentification: ' + initError.message)
-      }
+      // 🔍 DEBUG: Auth is already initialized at the top of onMounted
       
       // 🔍 DEBUG: Now auth is ready, we can safely access it
       console.log('🔍 Auth instance details:', {
