@@ -88,9 +88,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { confirmPasswordReset, signInWithEmailAndPassword, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth, verifyPasswordResetCode } from '../services/firebase.js'
-import { waitForInitialization } from '../services/authState.js'
+import { signInWithEmailAndPassword, updatePassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, safeVerifyPasswordResetCode, safeConfirmPasswordReset } from '../services/firebase.js'
 import logger from '../services/logger.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
@@ -118,38 +117,7 @@ const canResetPassword = computed(() => {
 onMounted(async () => {
   console.log('🚀 PasswordReset onMounted STARTED')
   try {
-    // 🔍 DEBUG: Wait for Firebase to be fully initialized FIRST
-    console.log('🔍 WAITING FOR FIREBASE INITIALIZATION...')
-    let firebaseReady = false
-    let attempts = 0
-    const maxAttempts = 50 // 5 secondes max
-    
-    while (!firebaseReady && attempts < maxAttempts) {
-      if (window.firebaseInitialized && auth && auth.app) {
-        firebaseReady = true
-        console.log('🔍 Firebase is ready after', attempts, 'attempts')
-      } else {
-        console.log('🔍 Firebase not ready, attempt', attempts + 1, '/', maxAttempts)
-        await new Promise(resolve => setTimeout(resolve, 100))
-        attempts++
-      }
-    }
-    
-    if (!firebaseReady) {
-      throw new Error('Firebase initialization timeout after ' + maxAttempts + ' attempts')
-    }
-    
-    // 🔍 DEBUG: Now wait for auth service to be initialized
-    console.log('🔍 WAITING FOR AUTH SERVICE INITIALIZATION...')
-    try {
-      await waitForInitialization()
-      console.log('🔍 AUTH SERVICE INITIALIZATION COMPLETED')
-    } catch (initError) {
-      console.log('❌ AUTH SERVICE INITIALIZATION FAILED:', initError)
-      throw new Error('Impossible d\'initialiser le service d\'authentification: ' + initError.message)
-    }
-    
-    // 🔍 DEBUG: Now capture complete environment info (auth is ready)
+    // 🔍 DEBUG: Capture environment info
     const debugInfo = {
       timestamp: new Date().toISOString(),
       url: window.location.href,
@@ -158,18 +126,10 @@ onMounted(async () => {
         path: route.path,
         query: route.query,
         params: route.params
-      },
-      auth: {
-        instance: !!auth,
-        currentUser: auth?.currentUser?.email || 'none'
-      },
-      functions: {
-        verifyPasswordResetCode: !!verifyPasswordResetCode,
-        type: typeof verifyPasswordResetCode
       }
     }
     
-    console.log('🔍 PasswordReset COMPLETE DEBUG INFO:', debugInfo)
+    console.log('🔍 PasswordReset DEBUG INFO:', debugInfo)
     
     // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
     const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
@@ -208,8 +168,8 @@ onMounted(async () => {
     console.log('🔍 PRE-VERIFICATION CHECKS:', {
       authInstance: !!auth,
       authType: typeof auth,
-      verifyFunction: !!verifyPasswordResetCode,
-      verifyFunctionType: typeof verifyPasswordResetCode,
+      safeVerifyFunction: !!safeVerifyPasswordResetCode,
+      safeVerifyFunctionType: typeof safeVerifyPasswordResetCode,
       tokenLength: firebaseToken.length,
       tokenStart: firebaseToken.substring(0, 10) + '...',
       tokenEnd: '...' + firebaseToken.substring(firebaseToken.length - 10)
@@ -219,18 +179,8 @@ onMounted(async () => {
     try {
       console.log('🔍 STARTING TOKEN VERIFICATION...')
       
-      // 🔍 DEBUG: Auth is already initialized at the top of onMounted
-      
-      // 🔍 DEBUG: Now auth is ready, we can safely access it
-      console.log('🔍 Auth instance details:', {
-        app: auth?.app?.name,
-        config: auth?.config,
-        currentUser: auth?.currentUser?.email || 'none'
-      })
-      
-      console.log('🔍 AUTH READY, PROCEEDING WITH VERIFICATION...')
-      
-      const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
+      // 🔍 Utiliser le wrapper sécurisé qui gère l'initialisation automatiquement
+      const emailFromToken = await safeVerifyPasswordResetCode(firebaseToken)
       
       console.log('✅ TOKEN VERIFICATION SUCCESS!')
       console.log('🔍 Email récupéré depuis le token:', emailFromToken)
@@ -339,9 +289,9 @@ async function resetPassword() {
       
       logger.info('✅ Mot de passe réinitialisé via Cloud Function')
     } else {
-      logger.info('🔑 Réinitialisation via Firebase Auth avec oobCode')
-      await confirmPasswordReset(auth, oobCode.value, newPassword.value)
-      logger.info('✅ Mot de passe Firebase Auth mis à jour')
+      console.log('🔑 Réinitialisation via Firebase Auth avec oobCode')
+      await safeConfirmPasswordReset(oobCode.value, newPassword.value)
+      console.log('✅ Mot de passe Firebase Auth mis à jour')
     }
     
     // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !

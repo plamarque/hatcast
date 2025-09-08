@@ -161,10 +161,35 @@ function waitForInitialization() {
       return
     }
     
-    // Si le service n'est pas en cours d'initialisation, c'est un problème
+    // Si le service n'est pas en cours d'initialisation, attendre qu'il commence
     if (!isInitializing.value) {
-      logger.warn('Service d\'authentification non initialisé et non en cours d\'initialisation')
-      reject(new Error('Service d\'authentification non initialisé'))
+      logger.info('Service d\'authentification pas encore initialisé, attente du démarrage...')
+      
+      // Attendre que l'initialisation commence
+      const checkStartInterval = setInterval(() => {
+        if (isInitializing.value) {
+          clearInterval(checkStartInterval)
+          // Maintenant attendre que l'initialisation se termine
+          const checkCompleteInterval = setInterval(() => {
+            if (isInitialized.value) {
+              clearInterval(checkCompleteInterval)
+              resolve()
+            }
+          }, 100)
+          
+          // Timeout pour l'initialisation complète
+          setTimeout(() => {
+            clearInterval(checkCompleteInterval)
+            reject(new Error('Timeout d\'initialisation du service d\'authentification'))
+          }, 10000)
+        }
+      }, 100)
+      
+      // Timeout pour le démarrage de l'initialisation
+      setTimeout(() => {
+        clearInterval(checkStartInterval)
+        reject(new Error('Timeout d\'attente du démarrage du service d\'authentification'))
+      }, 5000)
       return
     }
     

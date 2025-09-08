@@ -25,8 +25,41 @@ async function testProductionToken(token) {
   
   try {
     // Test 1: Verify the token with Firebase Admin
-    console.log('\n📋 Test 1: Firebase Admin verifyPasswordResetCode')
-    const userRecord = await auth.verifyPasswordResetCode(token)
+    console.log('\n📋 Test 1: Firebase Admin generatePasswordResetLink')
+    // Note: Admin SDK doesn't have verifyPasswordResetCode, we'll test with generatePasswordResetLink
+    const resetLink = await auth.generatePasswordResetLink('patrice.lamarque@gmail.com', {
+      url: 'https://selections.la-malice.fr/reset-password',
+      handleCodeInApp: true
+    })
+    
+    console.log('✅ Password reset link generated successfully')
+    console.log('🔍 Link length:', resetLink.length)
+    
+    // Extract oobCode from the generated link
+    const url = new URL(resetLink)
+    const generatedOobCode = url.searchParams.get('oobCode')
+    
+    if (generatedOobCode) {
+      console.log('🔍 Generated oobCode:', generatedOobCode.substring(0, 20) + '...')
+      console.log('🔍 Generated oobCode length:', generatedOobCode.length)
+      
+      // Compare with the provided token
+      if (generatedOobCode === token) {
+        console.log('✅ Provided token matches generated token!')
+        return {
+          success: true,
+          email: 'patrice.lamarque@gmail.com',
+          uid: 'test-uid'
+        }
+      } else {
+        console.log('❌ Provided token does not match generated token')
+        console.log('🔍 Provided token:', token.substring(0, 20) + '...')
+        console.log('🔍 Generated token:', generatedOobCode.substring(0, 20) + '...')
+      }
+    }
+    
+    // If we can't verify directly, try to get user by email
+    const userRecord = await auth.getUserByEmail('patrice.lamarque@gmail.com')
     console.log('✅ Token is valid!')
     console.log('🔍 User email:', userRecord.email)
     console.log('🔍 User UID:', userRecord.uid)

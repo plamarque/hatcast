@@ -4,7 +4,7 @@ import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
-import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, verifyPasswordResetCode } from 'firebase/auth'
+import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth'
 import configService from './configService.js'
 import logger from './logger.js'
 
@@ -191,37 +191,12 @@ export async function resetPlayerPassword(email) {
       throw new Error('Firebase Auth n\'est pas encore initialisé')
     }
     
-    const environment = configService.getEnvironment()
+    // Utiliser Firebase Auth partout (dev, staging, production)
+    const { sendPasswordResetEmail } = await import('firebase/auth')
+    await sendPasswordResetEmail(auth, email)
     
-    if (environment === 'development') {
-      // En développement, utiliser notre queue Firestore pour que l'email arrive dans Ethereal
-      const { queuePasswordResetEmail, generateResetLink } = await import('./emailService.js')
-      
-      // Générer un token personnalisé (système magic link)
-      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      
-      // Utiliser l'ancien système de lien avec player/token
-      const resetUrl = generateResetLink(email, token) // Utilise email comme playerId temporairement
-      
-      logger.info('🔗 Génération magic link pour reset password', { 
-        email: email.substring(0, 3) + '••@••••.com', 
-        token: token.substring(0, 6) + '••••••',
-        resetUrl: resetUrl.substring(0, 50) + '...'
-      })
-      
-      await queuePasswordResetEmail({
-        toEmail: email,
-        resetUrl: resetUrl,
-        displayName: 'utilisateur' // On n'a pas le nom ici
-      })
-      
-      logger.info('📧 Email de reset mis en queue Firestore pour Ethereal en développement')
-    } else {
-      // En production/staging, utiliser Firebase Auth directement
-      const { sendPasswordResetEmail } = await import('firebase/auth')
-      await sendPasswordResetEmail(auth, email)
-      logger.info('Reset email envoyé via Firebase Auth (Gmail)')
-    }
+    const environment = configService.getEnvironment()
+    logger.info(`📧 Reset email envoyé via Firebase Auth (${environment})`)
   } catch (error) {
     // Capturer proprement les erreurs de reset de mot de passe
     if (error.code === 'auth/user-not-found') {
@@ -335,6 +310,27 @@ export function getFirebaseStorage() {
 
 export function getFirebaseFunctions() {
   return window.firebaseServices?.functions || null;
+}
+
+// Wrapper sécurisé pour verifyPasswordResetCode
+export async function safeVerifyPasswordResetCode(oobCode) {
+  // Attendre que le service auth soit complètement initialisé
+  const { waitForInitialization } = await import('./authState.js')
+  await waitForInitialization()
+  
+  // Maintenant on peut appeler la fonction Firebase
+  const auth = getFirebaseAuth()
+  return await verifyPasswordResetCode(auth, oobCode)
+}
+
+// Wrapper sécurisé pour confirmPasswordReset
+export async function safeConfirmPasswordReset(oobCode, newPassword) {
+  // Attendre que le service auth soit complètement initialisé
+  const { waitForInitialization } = await import('./authState.js')
+  await waitForInitialization()
+  
+  const auth = getFirebaseAuth()
+  return await confirmPasswordReset(auth, oobCode, newPassword)
 }
 
 // Export des services pour compatibilité
