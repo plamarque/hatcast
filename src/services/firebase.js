@@ -137,6 +137,10 @@ initializeFirestoreInstance().catch(error => {
 // Fonctions d'authentification pour les joueurs
 export async function createPlayerAccount(email, password) {
   try {
+    // Attendre que le service auth soit complètement initialisé
+    const { waitForInitialization } = await import('./authState.js')
+    await waitForInitialization()
+    
     const auth = getFirebaseAuth()
     if (!auth) {
       throw new Error('Firebase Auth n\'est pas encore initialisé')

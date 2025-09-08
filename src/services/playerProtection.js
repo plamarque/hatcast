@@ -651,7 +651,13 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
     logger.info('Début sendPasswordResetEmail', { playerId, seasonId })
     
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
-    logger.debug('Protection data disponible')
+    logger.debug('Protection data disponible', {
+      hasProtectionData: !!protectionData,
+      isProtected: protectionData?.isProtected,
+      hasEmail: !!protectionData?.email,
+      hasFirebaseUid: !!protectionData?.firebaseUid,
+      email: protectionData?.email ? protectionData.email.substring(0, 3) + '***@***.com' : 'none'
+    })
     
     if (!protectionData || !protectionData.isProtected) {
       throw new Error('Joueur non protégé')
@@ -661,16 +667,59 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
       throw new Error('Email non disponible pour ce joueur')
     }
     
-    logger.debug('Utilisation de Firebase Auth pour le reset password')
-    const { sendPasswordResetEmail } = await import('firebase/auth')
-    const { auth } = await import('./firebase.js')
+    // Si pas de firebaseUid, créer le compte Firebase Auth d'abord
+    if (!protectionData.firebaseUid) {
+      logger.debug('Pas de firebaseUid, création du compte Firebase Auth...')
+      
+      // Utiliser la fonction unifiée qui gère l'initialisation
+      const { createPlayerAccount } = await import('./firebase.js')
+      
+      // Générer un mot de passe temporaire
+      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
+      
+      try {
+        const userCredential = await createPlayerAccount(protectionData.email, tempPassword)
+        logger.info('Compte Firebase Auth créé pour le reset', { uid: userCredential.user.uid })
+        
+        // Mettre à jour Firestore avec le firebaseUid
+        const { updateDoc } = await import('firebase/firestore')
+        const { db } = await import('./firebase.js')
+        
+        const protectionRef = seasonId
+          ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+          : doc(db, 'playerProtection', playerId)
+        
+        await updateDoc(protectionRef, {
+          firebaseUid: userCredential.user.uid
+        })
+        
+        logger.info('firebaseUid mis à jour dans Firestore')
+        
+      } catch (createError) {
+        if (createError.code === 'auth/email-already-in-use') {
+          logger.debug('Email déjà utilisé, continuer avec le reset...')
+        } else {
+          throw createError
+        }
+      }
+    }
     
-    await sendPasswordResetEmail(auth, protectionData.email)
+    logger.debug('Envoi de l\'email de reset via Firebase Auth')
+    
+    // Utiliser la fonction unifiée qui gère l'initialisation
+    const { resetPlayerPassword } = await import('./firebase.js')
+    await resetPlayerPassword(protectionData.email)
+    
     logger.info('Email de reset envoyé avec succès via Firebase Auth')
     
     return { success: true, message: 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.' }
   } catch (error) {
-    logger.error('Erreur lors de l\'envoi de l\'email de réinitialisation', { error })
+    logger.error('Erreur lors de l\'envoi de l\'email de réinitialisation', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack
+    })
     
     // Gestion des erreurs spécifiques Firebase
     if (error.code === 'auth/user-not-found') {
