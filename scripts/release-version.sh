@@ -1116,7 +1116,7 @@ else
 fi
 
 # Commit version changes
-execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md changelog.json" "Add modified files"
+execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md public/changelog.json" "Add modified files"
 execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit version changes"
 
 # Push staging (only in real deployment)
