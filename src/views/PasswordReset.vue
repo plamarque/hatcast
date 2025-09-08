@@ -115,7 +115,7 @@ const canResetPassword = computed(() => {
 })
 
 onMounted(async () => {
-  console.log('🚀 PasswordReset onMounted STARTED')
+  logger.debug('🚀 PasswordReset onMounted STARTED')
   try {
     // 🔍 DEBUG: Capture environment info
     const debugInfo = {
@@ -129,12 +129,12 @@ onMounted(async () => {
       }
     }
     
-    console.log('🔍 PasswordReset DEBUG INFO:', debugInfo)
+    logger.debug('🔍 PasswordReset DEBUG INFO:', debugInfo)
     
     // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
     const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
     
-    console.log('🔍 URL PARAMETERS EXTRACTED:', {
+    logger.debug('🔍 URL PARAMETERS EXTRACTED:', {
       hasFirebaseToken: !!firebaseToken,
       hasMagicToken: !!magicToken,
       hasEmail: !!emailParam,
@@ -146,7 +146,7 @@ onMounted(async () => {
     
     // Support pour les magic links (ancien système)
     if (magicToken && playerId) {
-      console.log('🔗 Utilisation du système Magic Link')
+      logger.debug('🔗 Utilisation du système Magic Link')
       oobCode.value = magicToken
       email.value = playerId // Dans notre cas, playerId = email
       loading.value = false
@@ -155,17 +155,17 @@ onMounted(async () => {
     
     // Support pour Firebase Auth (nouveau système)
     if (!firebaseToken) {
-      console.log('❌ NO FIREBASE TOKEN FOUND')
+      logger.warn('❌ NO FIREBASE TOKEN FOUND')
       error.value = 'Lien de réinitialisation incomplet'
       loading.value = false
       return
     }
 
-    console.log('✅ FIREBASE TOKEN FOUND, setting oobCode.value')
+    logger.debug('✅ FIREBASE TOKEN FOUND, setting oobCode.value')
     oobCode.value = firebaseToken
     
     // 🔍 DEBUG: Pre-verification checks
-    console.log('🔍 PRE-VERIFICATION CHECKS:', {
+    logger.debug('🔍 PRE-VERIFICATION CHECKS:', {
       authInstance: !!auth,
       authType: typeof auth,
       safeVerifyFunction: !!safeVerifyPasswordResetCode,
@@ -177,14 +177,14 @@ onMounted(async () => {
     
     // Récupérer l'email depuis le token Firebase
     try {
-      console.log('🔍 STARTING TOKEN VERIFICATION...')
+      logger.debug('🔍 STARTING TOKEN VERIFICATION...')
       
       // 🔍 Utiliser le wrapper sécurisé qui gère l'initialisation automatiquement
       const emailFromToken = await safeVerifyPasswordResetCode(firebaseToken)
       
-      console.log('✅ TOKEN VERIFICATION SUCCESS!')
-      console.log('🔍 Email récupéré depuis le token:', emailFromToken)
-      console.log('🔍 Email details:', {
+      logger.debug('✅ TOKEN VERIFICATION SUCCESS!')
+      logger.debug('🔍 Email récupéré depuis le token:', emailFromToken)
+      logger.debug('🔍 Email details:', {
         email: emailFromToken,
         length: emailFromToken?.length,
         type: typeof emailFromToken
@@ -193,8 +193,8 @@ onMounted(async () => {
       email.value = emailFromToken
       
     } catch (verifyError) {
-      console.log('❌ TOKEN VERIFICATION FAILED!', verifyError)
-      console.log('❌ Error details:', {
+      logger.error('❌ TOKEN VERIFICATION FAILED!', verifyError)
+      logger.error('❌ Error details:', {
         message: verifyError.message,
         code: verifyError.code,
         name: verifyError.name,
@@ -204,7 +204,7 @@ onMounted(async () => {
       })
       
       // 🔍 DEBUG: Additional error context
-      console.log('🔍 Error context:', {
+      logger.error('🔍 Error context:', {
         tokenUsed: firebaseToken.substring(0, 20) + '...',
         authState: auth?.currentUser ? 'authenticated' : 'not authenticated',
         timestamp: new Date().toISOString()
@@ -218,8 +218,8 @@ onMounted(async () => {
     loading.value = false
     
   } catch (err) {
-    console.log('❌ CRITICAL ERROR in onMounted:', err)
-    console.log('❌ Error details:', {
+    logger.error('❌ CRITICAL ERROR in onMounted:', err)
+    logger.error('❌ Error details:', {
       message: err.message,
       code: err.code,
       name: err.name,
@@ -289,9 +289,9 @@ async function resetPassword() {
       
       logger.info('✅ Mot de passe réinitialisé via Cloud Function')
     } else {
-      console.log('🔑 Réinitialisation via Firebase Auth avec oobCode')
+      logger.debug('🔑 Réinitialisation via Firebase Auth avec oobCode')
       await safeConfirmPasswordReset(oobCode.value, newPassword.value)
-      console.log('✅ Mot de passe Firebase Auth mis à jour')
+      logger.debug('✅ Mot de passe Firebase Auth mis à jour')
     }
     
     // Pas besoin de mettre à jour Firestore, Firebase Auth gère tout !
