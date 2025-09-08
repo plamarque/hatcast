@@ -139,7 +139,6 @@ onMounted(async () => {
     }
     
     console.log('🔍 PasswordReset COMPLETE DEBUG INFO:', debugInfo)
-    logger.debug('🔍 PasswordReset COMPLETE DEBUG INFO:', debugInfo)
     
     // Récupérer les paramètres de l'URL (support Firebase Auth + Magic Links)
     const { oobCode: firebaseToken, email: emailParam, player: playerId, token: magicToken } = route.query
@@ -154,19 +153,9 @@ onMounted(async () => {
       magicTokenLength: magicToken?.length || 0
     })
     
-    logger.info('🔍 DEBUG PasswordReset - Paramètres URL reçus:', {
-      hasFirebaseToken: !!firebaseToken,
-      hasMagicToken: !!magicToken,
-      hasEmail: !!emailParam,
-      hasPlayer: !!playerId,
-      allParams: route.query,
-      firebaseTokenLength: firebaseToken?.length || 0,
-      magicTokenLength: magicToken?.length || 0
-    })
-    
     // Support pour les magic links (ancien système)
     if (magicToken && playerId) {
-      logger.info('🔗 Utilisation du système Magic Link')
+      console.log('🔗 Utilisation du système Magic Link')
       oobCode.value = magicToken
       email.value = playerId // Dans notre cas, playerId = email
       loading.value = false
@@ -176,7 +165,6 @@ onMounted(async () => {
     // Support pour Firebase Auth (nouveau système)
     if (!firebaseToken) {
       console.log('❌ NO FIREBASE TOKEN FOUND')
-      logger.warn('❌ Aucun token (oobCode ou magic token) trouvé dans l\'URL')
       error.value = 'Lien de réinitialisation incomplet'
       loading.value = false
       return
@@ -186,7 +174,7 @@ onMounted(async () => {
     oobCode.value = firebaseToken
     
     // 🔍 DEBUG: Pre-verification checks
-    logger.debug('🔍 Pre-verification checks:', {
+    console.log('🔍 PRE-VERIFICATION CHECKS:', {
       authInstance: !!auth,
       authType: typeof auth,
       verifyFunction: !!verifyPasswordResetCode,
@@ -199,8 +187,7 @@ onMounted(async () => {
     // Récupérer l'email depuis le token Firebase
     try {
       console.log('🔍 STARTING TOKEN VERIFICATION...')
-      logger.debug('🔍 Starting verifyPasswordResetCode call...')
-      logger.debug('🔍 Auth instance details:', {
+      console.log('🔍 Auth instance details:', {
         app: auth?.app?.name,
         config: auth?.config,
         currentUser: auth?.currentUser?.email || 'none'
@@ -208,19 +195,16 @@ onMounted(async () => {
       
       // 🔍 DEBUG: Wait for auth to be fully initialized using existing service
       console.log('🔍 WAITING FOR AUTH INITIALIZATION...')
-      logger.debug('🔍 Waiting for auth initialization...')
       await waitForInitialization()
       console.log('🔍 AUTH INITIALIZATION COMPLETED')
-      logger.debug('🔍 Auth initialization completed')
       
       console.log('🔍 AUTH READY, PROCEEDING WITH VERIFICATION...')
-      logger.debug('🔍 Auth instance is ready, proceeding with verification...')
       
       const emailFromToken = await verifyPasswordResetCode(auth, firebaseToken)
       
-      logger.info('✅ Token verification SUCCESS!')
-      logger.info('🔍 Email récupéré depuis le token:', emailFromToken)
-      logger.debug('🔍 Email details:', {
+      console.log('✅ TOKEN VERIFICATION SUCCESS!')
+      console.log('🔍 Email récupéré depuis le token:', emailFromToken)
+      console.log('🔍 Email details:', {
         email: emailFromToken,
         length: emailFromToken?.length,
         type: typeof emailFromToken
@@ -230,8 +214,7 @@ onMounted(async () => {
       
     } catch (verifyError) {
       console.log('❌ TOKEN VERIFICATION FAILED!', verifyError)
-      logger.error('❌ Token verification FAILED!')
-      logger.error('❌ Error details:', {
+      console.log('❌ Error details:', {
         message: verifyError.message,
         code: verifyError.code,
         name: verifyError.name,
@@ -241,7 +224,7 @@ onMounted(async () => {
       })
       
       // 🔍 DEBUG: Additional error context
-      logger.debug('🔍 Error context:', {
+      console.log('🔍 Error context:', {
         tokenUsed: firebaseToken.substring(0, 20) + '...',
         authState: auth?.currentUser ? 'authenticated' : 'not authenticated',
         timestamp: new Date().toISOString()
@@ -256,7 +239,7 @@ onMounted(async () => {
     
   } catch (err) {
     console.log('❌ CRITICAL ERROR in onMounted:', err)
-    logger.error('❌ CRITICAL ERROR in onMounted:', {
+    console.log('❌ Error details:', {
       message: err.message,
       code: err.code,
       name: err.name,
