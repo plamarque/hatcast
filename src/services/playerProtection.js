@@ -657,59 +657,16 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
       throw new Error('Joueur non protégé')
     }
     
-    logger.debug('Email à utiliser (masqué)')
-    
-    // Vérifier si on a un firebaseUid (compte Firebase Auth créé)
-    if (protectionData.firebaseUid) {
-      logger.debug('Utilisation du compte Firebase Auth existant')
-      const { sendPasswordResetEmail } = await import('firebase/auth')
-      const { auth } = await import('./firebase.js')
-      
-          logger.debug('Tentative d\'envoi d\'email')
-    await sendPasswordResetEmail(auth, protectionData.email)
-    logger.info('Email envoyé avec succès via Firebase Auth')
-    } else {
-      logger.debug('Pas de compte Firebase Auth, création temporaire...')
-      
-      // Créer un compte Firebase Auth temporaire pour envoyer l'email
-      const { createUserWithEmailAndPassword, sendPasswordResetEmail } = await import('firebase/auth')
-      const { auth } = await import('./firebase.js')
-      
-      // Générer un mot de passe temporaire
-      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
-      
-      try {
-        // Créer le compte
-        const userCredential = await createUserWithEmailAndPassword(auth, protectionData.email, tempPassword)
-        logger.info('Compte temporaire créé', { uid: userCredential.user.uid })
-        
-        // Envoyer l'email de réinitialisation
-        await sendPasswordResetEmail(auth, protectionData.email)
-        logger.info('Email envoyé avec succès')
-        
-        // Mettre à jour Firestore avec le firebaseUid
-        const { updateDoc } = await import('firebase/firestore')
-        const { db } = await import('./firebase.js')
-        
-        const protectionRef = seasonId
-          ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-          : doc(db, 'playerProtection', playerId)
-        
-        await updateDoc(protectionRef, {
-          firebaseUid: userCredential.user.uid
-        })
-        
-      } catch (createError) {
-        if (createError.code === 'auth/email-already-in-use') {
-          logger.debug('Email déjà utilisé, tentative d\'envoi direct...')
-          // L'email existe déjà, essayer d'envoyer directement
-          await sendPasswordResetEmail(auth, protectionData.email)
-          logger.info('Email envoyé avec succès')
-        } else {
-          throw createError
-        }
-      }
+    if (!protectionData.email) {
+      throw new Error('Email non disponible pour ce joueur')
     }
+    
+    logger.debug('Utilisation de Firebase Auth pour le reset password')
+    const { sendPasswordResetEmail } = await import('firebase/auth')
+    const { auth } = await import('./firebase.js')
+    
+    await sendPasswordResetEmail(auth, protectionData.email)
+    logger.info('Email de reset envoyé avec succès via Firebase Auth')
     
     return { success: true, message: 'Email de réinitialisation envoyé ! Si vous ne recevez pas l\'email dans quelques minutes, vérifiez vos dossiers de spam/courrier indésirable.' }
   } catch (error) {
