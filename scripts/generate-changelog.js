@@ -27,10 +27,11 @@ GUIDELINES POUR LA TRANSFORMATION :
 2. **Langage accessible** : Éviter le jargon technique (PWA → appli mobile, z-index → superposition, etc.)
 3. **Termes spécialisés** : Conserver les termes de l'impro (Long Form, MC, DJ, etc.)
 4. **Langage inclusif** : Utiliser féminin/masculin et inclusif
-5. **Synthèse** : Tu peux supprimer des lignes non pertinentes et regrouper des changements similaires
-6. **Reformulation** : Reformuler en français pour que ce soit accessible aux utilisateurs finaux
-7. **Emojis** : Conserver ✨ 🐛 🔧 📝 🎨
-8. **Structure** : Respecter exactement la structure JSON fournie
+5. **Filtrage automatique** : IGNORER complètement les commits de debug, cleanup, test, et autres changements techniques internes
+6. **Synthèse** : Tu peux supprimer des lignes non pertinentes et regrouper des changements similaires
+7. **Reformulation** : Reformuler en français pour que ce soit accessible aux utilisateurs finaux
+8. **Emojis** : Conserver ✨ 🐛 🔧 📝 🎨
+9. **Structure** : Respecter exactement la structure JSON fournie
 
 STRUCTURE JSON À RESPECTER :
 {

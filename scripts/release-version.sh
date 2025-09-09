@@ -5,6 +5,11 @@
 
 set -e
 
+# Load environment variables from .env.local if it exists
+if [ -f ".env.local" ]; then
+    export $(grep -v '^#' .env.local | xargs)
+fi
+
 # Parse command line arguments
 DRY_RUN=${DRY_RUN:-false}  # Use environment variable or default to false
 VERSION_BUMP="patch"  # default
@@ -90,6 +95,12 @@ create_dry_run_sandbox() {
     # Copy project files to sandbox (excluding .dry-run-sandbox to avoid recursion)
     echo "   └─ Copying project files to sandbox..."
     find . -maxdepth 1 -not -name '.dry-run-sandbox' -not -name '.' -exec cp -r {} "$DRY_SANDBOX_DIR/" \; 2>/dev/null || true
+    
+    # Copy .env.local for OpenAI API key access
+    if [ -f ".env.local" ]; then
+        echo "   └─ Copying .env.local for OpenAI API access..."
+        cp .env.local "$DRY_SANDBOX_DIR/" 2>/dev/null || true
+    fi
     cd "$DRY_SANDBOX_DIR"
     
     # Fetch latest tags from remote
@@ -347,7 +358,7 @@ generate_changelog_json() {
     echo "   └─ Step 3: Transforming technical JSON to user-focused JSON with OpenAI..."
     local user_focused_json=$(transform_technical_json_with_openai "$technical_json" "$latest_version")
     
-    if [ -n "$user_focused_json" ]; then
+    if [ -n "$user_focused_json" ] && [ "$user_focused_json" != "null" ]; then
         echo "   └─ ✅ OpenAI transformation successful!"
         
         # Validate JSON structure
@@ -406,6 +417,7 @@ create_technical_json_from_commits() {
     for commit in "${commits[@]}"; do
         # Extract commit message (remove hash and first space)
         local commit_msg=$(echo "$commit" | sed 's/^[a-f0-9]\{7,\} //')
+        
         
         if [[ "$commit_msg" =~ ^feat: ]]; then
             features+=("$commit_msg")
@@ -475,11 +487,6 @@ create_technical_json_from_commits() {
     
     printf '\n  ]\n}' >> "$temp_json"
     
-    # Debug: Display the generated JSON to stderr
-    echo "   └─ DEBUG: Generated technical JSON:" >&2
-    echo "==========================================" >&2
-    cat "$temp_json" >&2
-    echo "==========================================" >&2
     
     # Output the JSON and clean up
     cat "$temp_json"
@@ -493,18 +500,6 @@ generate_changelog_md_from_json() {
     local version="$2"
     
     echo "   └─ Converting technical JSON to CHANGELOG.md format..."
-    
-    # Debug: Display the received JSON to stderr
-    echo "   └─ DEBUG: Received technical JSON:" >&2
-    echo "==========================================" >&2
-    echo "$technical_json" >&2
-    echo "==========================================" >&2 
-    
-    # Extract version and date (clean JSON first)
-    echo "DEBUG: About to parse JSON with jq..." >&2
-    echo "DEBUG: First 50 chars of JSON: '$(echo "$technical_json" | head -c 50)'" >&2
-    echo "DEBUG: Last 50 chars of JSON: '$(echo "$technical_json" | tail -c 50)'" >&2
-    echo "DEBUG: JSON length: $(echo "$technical_json" | wc -c)" >&2
     local date=$(echo "$technical_json" | tr -d '\r' | jq -r '.date')
     
     # Create markdown section
@@ -584,17 +579,29 @@ transform_technical_json_with_openai() {
     local technical_json="$1"
     local version="$2"
     
-    echo "   └─ Sending technical JSON to OpenAI for transformation..."
+    echo "   └─ Sending technical JSON to OpenAI for transformation..." >&2
     
-    # Call OpenAI script with technical JSON
-    local transformed_json=$(node scripts/generate-changelog.js "$technical_json" "$version" 2>/dev/null)
+    # Load environment variables from .env.local if it exists
+    if [ -f ".env.local" ]; then
+        export $(grep -v '^#' .env.local | xargs)
+    fi
+    
+    # Call OpenAI script with technical JSON and save to file
+    local temp_file="/tmp/openai_output_$$.json"
+    if OPENAI_API_KEY="$OPENAI_API_KEY" node scripts/generate-changelog.js "$technical_json" "$version" > "$temp_file" 2>/dev/null; then
+        # Node.js script executed successfully
+        true
+    else
+        echo "null" > "$temp_file"
+    fi
+    
+    # Read the complete JSON from file
+    local transformed_json=$(cat "$temp_file")
     
     if [ -n "$transformed_json" ] && [ "$transformed_json" != "null" ]; then
         echo "$transformed_json"
-        return 0
     else
-        echo "   └─ ❌ OpenAI transformation failed"
-        return 1
+        echo "null"
     fi
 }
 
@@ -634,8 +641,8 @@ generate_json_from_english_changelog() {
             json+="\n    $change"
         else
             json+=",\n    $change"
-            fi
-        done
+                fi
+            done
         
     json+="\n  ]\n}"
     
@@ -695,7 +702,7 @@ generate_user_focused_changelog() {
     fi
 
     # Display the technical changelog in terminal for reference
-        echo ""
+    echo ""
     echo "📋 CHANGELOG TECHNIQUE (version $version) :"
     echo "=========================================="
     echo "$english_section"
