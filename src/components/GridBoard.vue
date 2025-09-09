@@ -1203,6 +1203,7 @@
     @update-selection="handleUpdateSelectionFromModal"
     @confirm-selection="handleConfirmSelectionFromModal"
     @unconfirm-selection="handleUnconfirmCastFromModal"
+    @reset-selection="handleResetSelectionFromModal"
     @confirm-reselect="handleConfirmReselectFromModal"
         />
 
@@ -5400,10 +5401,7 @@ function closeEventDetails() {
   
   // Réinitialiser l'état du partage de lien
   showShareLinkCopied.value = false;
-  
-  // Nettoyer les styles des dropdowns
-  eventMoreActionsStyle.value = { position: 'fixed', top: '0px', left: '0px' };
-  eventMoreActionsMobileStyle.value = { position: 'fixed', top: '0px', left: '0px' };
+  // Cache fix: removed eventMoreActionsStyle references
 }
 
 // Fonction pour ajouter un événement à l'agenda
@@ -6310,6 +6308,17 @@ async function handleUnconfirmCastFromModal() {
   } catch (error) {
     console.error('Erreur lors de la demande de déverrouillage:', error)
   }
+}
+
+function handleResetSelectionFromModal() {
+  // La logique de réinitialisation est maintenant dans SelectionModal
+  // Cette fonction ne fait que gérer la mise à jour de l'interface parent
+  if (!selectionModalEvent.value) return
+  
+  // Recharger les données pour refléter les changements
+  loadCasts(seasonId.value).then(newSelections => {
+    selections.value = newSelections
+  })
 }
 
 

@@ -882,6 +882,38 @@ function handlePerfect() {
   emit('perfect')
 }
 
+async function handleResetSelection() {
+  if (!props.event?.id || !props.seasonId) return
+  
+  try {
+    // Importer les fonctions nécessaires depuis storage.js
+    const { deleteCast } = await import('../services/storage.js')
+    
+    // Supprimer la composition existante
+    await deleteCast(props.event.id, props.seasonId)
+    
+    // Émettre l'événement pour mettre à jour l'interface parent
+    emit('reset-selection')
+    
+    // Fermer la modale
+    emit('close')
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessageText.value = 'Composition réinitialisée !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('Erreur lors de la réinitialisation de la sélection:', error)
+    showSuccessMessage.value = true
+    successMessageText.value = 'Erreur lors de la réinitialisation'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
+}
+
 async function handleConfirmSelection() {
   try {
     // Émettre l'événement de confirmation vers le parent
