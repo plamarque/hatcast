@@ -1318,6 +1318,7 @@
     :show="showAvailabilityModal"
     :player-name="availabilityModalData.playerName"
     :player-id="availabilityModalData.playerId"
+    :player-gender="availabilityModalData.playerGender"
     :event-id="availabilityModalData.eventId"
     :event-title="availabilityModalData.eventTitle"
     :event-date="availabilityModalData.eventDate"
@@ -4033,6 +4034,7 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   openAvailabilityModal({
     playerName: player.name,
     playerId: player.id,
+    playerGender: player.gender || 'non-specified',
     eventId: eventItem.id,
     eventTitle: eventItem.title,
     eventDate: eventItem.date,
@@ -6749,6 +6751,7 @@ function openAvailabilityModal(data) {
   availabilityModalData.value = {
     playerName: data.playerName,
     playerId: data.playerId,
+    playerGender: data.playerGender || 'non-specified',
     eventId: data.eventId,
     eventTitle: data.eventTitle,
     eventDate: data.eventDate,
