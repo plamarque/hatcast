@@ -5896,12 +5896,22 @@ function getEventStatus(eventId) {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isAvailable(playerName, eventId))
     const hasInsufficientPlayers = availableCount < requiredCount
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers) {
+    // Vérifier si des joueurs sélectionnés ont décliné
+    const selection = selections.value[eventId]
+    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
+      return selection?.playerStatuses?.[playerName] === 'declined'
+    })
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
+        hasDeclinedPlayers,
         unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
+        declinedPlayers: selectedPlayers.filter(playerName => 
+          selection?.playerStatuses?.[playerName] === 'declined'
+        ),
         availableCount,
         requiredCount,
         isConfirmedByOrganizer,
@@ -5963,7 +5973,13 @@ function getEventTooltip(eventId) {
   
   switch (status.type) {
     case 'incomplete':
-      if (status.hasUnavailablePlayers) {
+      if (status.hasDeclinedPlayers) {
+        if (status.declinedPlayers.length === 1) {
+          return `Composition incomplète : ${status.declinedPlayers[0]} a décliné`
+        } else {
+          return `Composition incomplète : ${status.declinedPlayers.length} joueurs ont décliné`
+        }
+      } else if (status.hasUnavailablePlayers) {
         if (status.unavailablePlayers.length === 1) {
           return `Composition incomplète : ${status.unavailablePlayers[0]} n'est plus disponible`
         } else {

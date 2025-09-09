@@ -643,12 +643,21 @@ function getSelectionStatus() {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isPlayerAvailable(playerName))
     const hasInsufficientPlayers = availableCount < requiredCount
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers) {
+    // Vérifier si des joueurs sélectionnés ont décliné
+    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
+      return props.currentSelection?.playerStatuses?.[playerName] === 'declined'
+    })
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
+        hasDeclinedPlayers,
         unavailablePlayers: selectedPlayers.filter(playerName => !isPlayerAvailable(playerName)),
+        declinedPlayers: selectedPlayers.filter(playerName => 
+          props.currentSelection?.playerStatuses?.[playerName] === 'declined'
+        ),
         availableCount,
         requiredCount
       }
@@ -724,13 +733,18 @@ const hasIncompleteSelection = computed(() => {
   // Vérifier si des joueurs composés ne sont plus disponibles
   const hasUnavailablePlayers = selectedPlayers.some(player => !isPlayerAvailable(player))
   
+  // Vérifier si des joueurs sélectionnés ont décliné
+  const hasDeclinedPlayers = selectedPlayers.some(player => {
+    return props.currentSelection?.playerStatuses?.[player] === 'declined'
+  })
+  
   // Vérifier s'il y a assez de joueurs disponibles pour compléter la composition
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
     ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
     : (props.event?.playerCount || 6)
   const hasInsufficientPlayers = props.availableCount < requiredCount
   
-  return hasUnavailablePlayers || hasInsufficientPlayers
+  return hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers
 })
 
 // Vérifier si des joueurs ont décliné leur participation
@@ -782,11 +796,20 @@ const selectionIncompleteReason = computed(() => {
   }
   
   const unavailablePlayers = selectedPlayers.filter(player => !isPlayerAvailable(player))
+  const declinedPlayers = selectedPlayers.filter(player => 
+    props.currentSelection?.playerStatuses?.[player] === 'declined'
+  )
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
     ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
     : (props.event?.playerCount || 6)
   
-  if (unavailablePlayers.length > 0) {
+  if (declinedPlayers.length > 0) {
+    if (declinedPlayers.length === 1) {
+      return `Sélection incomplète : ${declinedPlayers[0]} a décliné`
+    } else {
+      return `Sélection incomplète : ${declinedPlayers.length} joueurs ont décliné`
+    }
+  } else if (unavailablePlayers.length > 0) {
     if (unavailablePlayers.length === 1) {
       return `Sélection incomplète : ${unavailablePlayers[0]} n'est plus disponible`
     } else {
