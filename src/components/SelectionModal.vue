@@ -13,50 +13,32 @@
           
           <!-- Informations principales -->
           <div class="flex-1 min-w-0">
-            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Composition de l'équipe pour {{ event?.title }}</h2>
+             <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">
+               Composition d'équipe {{ event?.title }}
+             </h2>
             
-            <!-- Date + Badge nombre de joueurs + Statut de composition -->
+            <!-- Date + Badge nombre de joueurs -->
             <div class="flex items-center gap-3">
               <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(event?.date) }}</p>
-              
-
-              
-              <!-- Indicateur de statut de composition -->
-              <div 
-                v-if="getSelectionStatus().type === 'ready'"
-                class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
-                title="Prêt pour la composition"
-              >
-                <span class="text-blue-300 text-xs hidden md:inline">🆕</span>
-                <span class="text-blue-200 text-xs">Nouveau</span>
-              </div>
-              
-              <SelectionStatusBadge
-                v-else-if="getSelectionStatus().type"
-                :status="getSelectionStatus().type"
-                :show="true"
-                :clickable="false"
-                class="text-sm"
-              />
-              
-              <div 
-                v-else-if="getSelectionStatus().type === 'insufficient'"
-                class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded text-sm flex items-center gap-1"
-                title="Pas assez de personnes disponibles"
-              >
-                <span class="text-red-300 text-xs hidden md:inline">❌</span>
-                <span class="text-red-200 text-xs">Manque</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
       
+      <!-- Content scrollable -->
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
         <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
+            
+            <!-- Badge statut de composition -->
+            <SelectionStatusBadge
+              :status="getSelectionStatus().type"
+              :show="true"
+              :clickable="false"
+              class="text-sm"
+            />
             
             <!-- Badge nombre de personnes -->
             <div class="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs">
@@ -649,7 +631,10 @@ function getSelectionStatus() {
     // Retourner un tableau unique (sans doublons)
     selectedPlayers = [...new Set(allPlayers)]
   }
-  const requiredCount = props.event?.playerCount || 6
+  // Calculer le nombre total requis (même logique que getTotalRequiredCount dans GridBoard)
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   const availableCount = props.availableCount || 0
   
   // Cas 1: Composition incomplète (composition existante avec problèmes)
@@ -739,7 +724,9 @@ const hasIncompleteSelection = computed(() => {
   const hasUnavailablePlayers = selectedPlayers.some(player => !isPlayerAvailable(player))
   
   // Vérifier s'il y a assez de joueurs disponibles pour compléter la composition
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   const hasInsufficientPlayers = props.availableCount < requiredCount
   
   return hasUnavailablePlayers || hasInsufficientPlayers
@@ -759,7 +746,9 @@ const hasDeclinedPlayers = computed(() => {
 // Vérifier si la composition est complète (assez de joueurs pour l'événement)
 const isSelectionComplete = computed(() => {
   const selectedPlayers = getSelectedPlayersArray()
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   return selectedPlayers.length >= requiredCount
 })
 
@@ -791,7 +780,9 @@ const incompleteSelectionMessage = computed(() => {
   }
   
   const unavailablePlayers = selectedPlayers.filter(player => !isPlayerAvailable(player))
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   
   if (unavailablePlayers.length > 0) {
     if (unavailablePlayers.length === 1) {
@@ -1121,13 +1112,9 @@ function isInSavedSelectionAndAvailable(playerName) {
 
 // Fonction pour calculer la taille totale de l'équipe
 function getTotalTeamSize() {
-  if (props.event?.roles) {
-    // Nouveau format avec rôles
-    return Object.values(props.event.roles).reduce((total, count) => total + (count || 0), 0)
-  } else {
-    // Ancien format (fallback)
-    return props.event?.playerCount || 6
-  }
+  return props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((total, count) => total + (count || 0), 0)
+    : (props.event?.playerCount || 6)
 }
 
 // Fonction helper pour récupérer l'ID du joueur à partir de son nom
@@ -1139,7 +1126,9 @@ function getPlayerIdFromName(playerName) {
 
 // Fonctions pour l'invitation à la composition
 function getInvitationIcon() {
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   
   if (props.availableCount === 0) {
     return '⚠️'

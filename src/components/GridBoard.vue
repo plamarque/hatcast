@@ -5866,11 +5866,24 @@ function getPlayerStats(player) {
   return { availability, selection, ratio };
 }
 
+// Fonction helper pour calculer le nombre total requis d'un événement
+function getTotalRequiredCount(event) {
+  if (!event) return 6
+  
+  // Si l'événement a des rôles définis, calculer le total
+  if (event.roles && typeof event.roles === 'object') {
+    return Object.values(event.roles).reduce((sum, count) => sum + (count || 0), 0)
+  }
+  
+  // Fallback pour les anciens événements
+  return event.playerCount || 6
+}
+
 // Fonctions pour détecter l'état des événements
 function getEventStatus(eventId) {
   const selectedPlayers = getSelectionPlayers(eventId)
   const event = events.value.find(e => e.id === eventId)
-  const requiredCount = event?.playerCount || 6
+  const requiredCount = getTotalRequiredCount(event)
   const availableCount = countAvailablePlayers(eventId)
   const isConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
   const isConfirmedByAllPlayers = isSelectionConfirmed(eventId)
