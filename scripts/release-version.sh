@@ -5,6 +5,11 @@
 
 set -e
 
+# Load environment variables from .env.local if it exists
+if [ -f ".env.local" ]; then
+    export $(grep -v '^#' .env.local | xargs)
+fi
+
 # Parse command line arguments
 DRY_RUN=${DRY_RUN:-false}  # Use environment variable or default to false
 VERSION_BUMP="patch"  # default
@@ -90,6 +95,12 @@ create_dry_run_sandbox() {
     # Copy project files to sandbox (excluding .dry-run-sandbox to avoid recursion)
     echo "   └─ Copying project files to sandbox..."
     find . -maxdepth 1 -not -name '.dry-run-sandbox' -not -name '.' -exec cp -r {} "$DRY_SANDBOX_DIR/" \; 2>/dev/null || true
+    
+    # Copy .env.local for OpenAI API key access
+    if [ -f ".env.local" ]; then
+        echo "   └─ Copying .env.local for OpenAI API access..."
+        cp .env.local "$DRY_SANDBOX_DIR/" 2>/dev/null || true
+    fi
     cd "$DRY_SANDBOX_DIR"
     
     # Fetch latest tags from remote
@@ -306,10 +317,6 @@ EOF
         mv "$TEMP_CHANGELOG" "CHANGELOG.md"
     fi
     
-    # Generate French translation
-    echo "   └─ Generating French translation..."
-    generate_french_changelog "$new_version"
-    
     # Generate ready-to-display JSON for the app directly in public/
     echo "   └─ Generating JSON for app..."
     generate_changelog_json
@@ -317,193 +324,13 @@ EOF
     return 0
 }
 
-# Function to translate changelog to French (optimized for new version only)
-generate_french_changelog() {
-    local new_version="$1"
-    echo "🌐 Translating changelog to French..."
-    
-    # Create temporary file for initial translation
-    local temp_changelog="changelog_fr_temp.md"
-    echo "# Changelog" > "$temp_changelog"
-    echo "" >> "$temp_changelog"
-    echo "Toutes les modifications notables de ce projet seront documentées dans ce fichier." >> "$temp_changelog"
-    echo "" >> "$temp_changelog"
-    
-    local line_count=0
-    local commit_count=0
-    
-    # Read the English changelog and translate
-    while IFS= read -r line; do
-        line_count=$((line_count + 1))
-        
-        # Show progress every 50 lines
-        if [ $((line_count % 50)) -eq 0 ]; then
-            echo "   └─ Processed $line_count lines..."
-        fi
-        
-        # Detect version lines
-        if [[ "$line" =~ ^##\ \[([0-9]+\.[0-9]+\.[0-9]+)\]\ -\ ([0-9]{4}-[0-9]{2}-[0-9]{2})$ ]]; then
-            local version="${BASH_REMATCH[1]}"
-            local date="${BASH_REMATCH[2]}"
-            echo "## [$version] - $date" >> "$temp_changelog"
-            echo "" >> "$temp_changelog"
-        # Translate section headers
-        elif [[ "$line" =~ ^###\ ✨\ New\ Features$ ]]; then
-            echo "### ✨ Nouvelles fonctionnalités" >> "$temp_changelog"
-        elif [[ "$line" =~ ^###\ 🔧\ Improvements$ ]]; then
-            echo "### ⚡ Améliorations" >> "$temp_changelog"
-        elif [[ "$line" =~ ^###\ 🐛\ Bug\ Fixes$ ]]; then
-            echo "### 🐛 Corrections" >> "$temp_changelog"
-        elif [[ "$line" =~ ^###\ 📝\ Other\ Changes$ ]]; then
-            echo "### 📝 Autres modifications" >> "$temp_changelog"
-        elif [[ "$line" =~ ^###\ 📦\ Release$ ]]; then
-            echo "### 📦 Version" >> "$temp_changelog"
-        # Collect commit lines for batch translation
-        elif [[ "$line" =~ ^-.*$ ]]; then
-            commit_count=$((commit_count + 1))
-            if [ $((commit_count % 10)) -eq 0 ]; then
-                echo "   └─ Collecting commit $commit_count for batch translation..."
-            fi
-            # Store commit line for batch processing
-            echo "$line" >> "$temp_changelog"
-            # Other lines (empty lines, separators) - keep as is
-        else
-            echo "$line" >> "$temp_changelog"
-        fi
-    done < "CHANGELOG.md"
-    
-    echo "   └─ Processed $line_count total lines, $commit_count commits"
-    
-    # Extract only the new version section for translation
-    echo "   └─ Extracting new version section for translation..."
-    local temp_translated="changelog_fr_translated.md"
-    
-    # Start with existing CHANGELOG_FR.md (if it exists)
-    if [ -f "CHANGELOG_FR.md" ]; then
-        echo "   └─ Using existing French changelog as base..."
-        cp "CHANGELOG_FR.md" "$temp_translated"
-    else
-        echo "   └─ Creating new French changelog..."
-        echo "# Changelog" > "$temp_translated"
-        echo "" >> "$temp_translated"
-        echo "Toutes les modifications notables de ce projet seront documentées dans ce fichier." >> "$temp_translated"
-        echo "" >> "$temp_translated"
-    fi
-    
-    # Find the new version section (everything from ## [new_version] to the next ## or end)
-    # Extract from new_version to the next ## header using sed
-    new_version_section=$(sed -n "/^## \\[$new_version\\]/,/^## \\[0.9.1\\]/p" "CHANGELOG.md" | sed '$d')
-    
-    # If no content found, try with 0.9.0
-    if [ ${#new_version_section} -lt 50 ]; then
-        new_version_section=$(sed -n "/^## \\[$new_version\\]/,/^## \\[0.9.0\\]/p" "CHANGELOG.md" | sed '$d')
-    fi
-    
-    # If still no content, capture until end of file
-    if [ ${#new_version_section} -lt 50 ]; then
-        new_version_section=$(sed -n "/^## \\[$new_version\\]/,\$p" "CHANGELOG.md")
-    fi
-    
-    echo "   └─ Extracted new version section (${#new_version_section} chars)"
-    
-    if [ -n "$new_version_section" ]; then
-        echo "   └─ Translating new version section with Google Translate..."
-        local translated_section=$(batch_translate_with_google "$new_version_section")
-        
-        # Check if translation succeeded (contains French words)
-        local translation_success=false
-        if [ -n "$translated_section" ] && echo "$translated_section" | grep -q -E "(ajout|amélioration|correction|fonctionnalité|version|déploiement|traduction|génération|optimisation|implémentation|refactorisation|migration|authentification|notification|interface|utilisateur|système|configuration|développement|production|staging|changelog|journal|modifications|nouvelles|corrections|améliorations|fonctionnalités|versions|déploiements|traductions|générations|optimisations|implémentations|refactorisations|migrations|authentifications|notifications|interfaces|utilisateurs|systèmes|configurations|développements|productions|stagings|changelogs|journaux)" 2>/dev/null; then
-            translation_success=true
-        fi
-        
-        if [ "$translation_success" = true ]; then
-            echo "   └─ Translation successful! Adding to top of French changelog..."
-        else
-            echo "   └─ Translation failed! Google Translate API is not working."
-            echo ""
-            echo "📝 MANUAL TRANSLATION REQUIRED"
-            echo "================================"
-            echo "Please provide the French translation for version $new_version:"
-            echo ""
-            echo "English content to translate:"
-            echo "----------------------------------------"
-            echo "$new_version_section"
-            echo "----------------------------------------"
-            echo ""
-            echo "Please paste the French translation below (press Ctrl+D when done):"
-            
-            # Read manual translation
-            local manual_translation=""
-            while IFS= read -r line; do
-                manual_translation+="$line"$'\n'
-            done
-            
-            if [ -n "$manual_translation" ]; then
-                echo "   └─ Manual translation received!"
-                echo "   └─ Sanitizing prefixes (removing text between - and :)..."
-                # Remove prefixes like "Fonctionnalité :", "Prouesse :", "Correction :", etc.
-                translated_section=$(echo "$manual_translation" | sed -E 's/- [^:]+: /- /g')
-                echo "   └─ Sanitization complete!"
-            else
-                echo "   └─ No manual translation provided, using untranslated with manual headers..."
-                # Add untranslated section with manual header translation
-                translated_section="$new_version_section"
-                translated_section=$(echo "$translated_section" | sed 's/### ✨ New Features/### ✨ Nouvelles fonctionnalités/g')
-                translated_section=$(echo "$translated_section" | sed 's/### 🔧 Improvements/### ⚡ Améliorations/g')
-                translated_section=$(echo "$translated_section" | sed 's/### 🐛 Bug Fixes/### 🐛 Corrections/g')
-                translated_section=$(echo "$translated_section" | sed 's/### 📝 Other Changes/### 📝 Autres modifications/g')
-                translated_section=$(echo "$translated_section" | sed 's/### 📦 Release/### 📦 Version/g')
-            fi
-        fi
-        
-        # Add the translated section at the very top (before all existing versions)
-        # Find the first version header (## [version])
-        local first_version_line=$(grep -n "^## \\[" "$temp_translated" | head -1 | cut -d: -f1)
-        if [ -n "$first_version_line" ]; then
-            # Insert before the first version
-            head -n $((first_version_line - 1)) "$temp_translated" > "changelog_header.md"
-            echo "" >> "changelog_header.md"
-            echo "$translated_section" >> "changelog_header.md"
-            echo "" >> "changelog_header.md"
-            echo "---" >> "changelog_header.md"
-            echo "" >> "changelog_header.md"
-            tail -n +$first_version_line "$temp_translated" >> "changelog_header.md"
-            mv "changelog_header.md" "$temp_translated"
-        else
-            # No version found, add at the top
-            echo "" > "changelog_new.md"
-            echo "$translated_section" >> "changelog_new.md"
-            echo "" >> "changelog_new.md"
-            echo "---" >> "changelog_new.md"
-            echo "" >> "changelog_new.md"
-            cat "$temp_translated" >> "changelog_new.md"
-            mv "changelog_new.md" "$temp_translated"
-        fi
-    fi
-    
-    # Apply dictionary corrections to the entire changelog at once
-    echo "   └─ Applying dictionary corrections to entire changelog..."
-    apply_translations "$(cat "$temp_translated")" > "CHANGELOG_FR.md"
-    
-    # Clean up temporary files
-    rm -f "$temp_changelog" "$temp_translated"
-    
-    echo "✅ French changelog generated"
-}
 
-# Function to generate ready-to-display JSON for the app (last 3 versions only)
+# Function to generate ready-to-display JSON for the app using new architecture
 generate_changelog_json() {
-    echo "📄 Generating ready-to-display JSON (incremental update)..."
+    echo "📄 Generating changelog with new architecture..."
     
-    # Check if French changelog exists
-    if [ ! -f "CHANGELOG_FR.md" ]; then
-        echo "   └─ No French changelog found, creating empty JSON"
-        echo "[]" > "public/changelog.json"
-        return
-    fi
-    
-    # Get the latest version from CHANGELOG_FR.md
-    local latest_version=$(grep "^## \\[" "CHANGELOG_FR.md" | head -1 | awk -F'[][]' '{print $2}')
+    # Get the latest version from CHANGELOG.md
+    local latest_version=$(grep "^## \\[" "CHANGELOG.md" | head -1 | awk -F'[][]' '{print $2}')
     
     if [ -z "$latest_version" ]; then
         echo "   └─ No versions found, creating empty JSON"
@@ -513,362 +340,390 @@ generate_changelog_json() {
     
     echo "   └─ Latest version found: $latest_version"
     
-    # Check if changelog.json already exists
-    if [ -f "public/changelog.json" ] && [ -s "public/changelog.json" ]; then
-        echo "   └─ Existing changelog.json found, checking if update needed..."
+    # Step 1: Read commits and create technical JSON
+    echo "   └─ Step 1: Creating technical JSON from commits..."
+    local technical_json=$(create_technical_json_from_commits "$latest_version")
+    
+    if [ -z "$technical_json" ]; then
+        echo "   └─ ❌ Failed to create technical JSON, using fallback..."
+        generate_json_from_english_changelog "$(sed -n "/^## \\[$latest_version\\]/,/^## \\[/p" "CHANGELOG.md" | head -n -1)" "$latest_version"
+        return
+    fi
+    
+    # Step 2: Generate CHANGELOG.md from technical JSON
+    echo "   └─ Step 2: Generating CHANGELOG.md from technical JSON..."
+    generate_changelog_md_from_json "$technical_json" "$latest_version"
+    
+    # Step 3: Transform technical JSON to user-focused JSON with OpenAI (same source)
+    echo "   └─ Step 3: Transforming technical JSON to user-focused JSON with OpenAI..."
+    local user_focused_json=$(transform_technical_json_with_openai "$technical_json" "$latest_version")
+    
+    if [ -n "$user_focused_json" ] && [ "$user_focused_json" != "null" ]; then
+        echo "   └─ ✅ OpenAI transformation successful!"
         
-        # Check if the latest version is already in the JSON and has content
-        if grep -q "\"version\": \"$latest_version\"" ""public/changelog.json""; then
-            # Check if the version has empty changes array
-            if grep -A 10 "\"version\": \"$latest_version\"" ""public/changelog.json"" | grep -q '"changes": \[[[:space:]]*\]'; then
-                echo "   └─ Version $latest_version exists but has empty changes, updating..."
-            else
-                echo "   └─ Version $latest_version already in JSON with content, no update needed"
-                return
-            fi
+        # Validate JSON structure
+        if echo "$user_focused_json" | jq empty 2>/dev/null; then
+            echo "   └─ ✅ JSON validation successful!"
+            
+            # Step 4: Update changelog.json with new version
+            echo "   └─ Step 4: Updating changelog.json..."
+            update_changelog_json "$user_focused_json" "$latest_version"
+        else
+            echo "   └─ ❌ JSON validation failed, using technical JSON as fallback..."
+            update_changelog_json "$technical_json" "$latest_version"
         fi
+    else
+        echo "   └─ ❌ OpenAI transformation failed, using technical JSON as fallback..."
+        update_changelog_json "$technical_json" "$latest_version"
+    fi
+}
+
+# Function to create technical JSON from commits
+create_technical_json_from_commits() {
+    local version="$1"
+    local date=$(date +%Y-%m-%d)
+    
+    echo "   └─ Extracting commits for version $version..." >&2
+    
+    # Get commits since last tag
+    local last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    local commits_cmd="git log --oneline"
+    
+    if [ -n "$last_tag" ]; then
+        commits_cmd="$commits_cmd $last_tag..HEAD"
+    else
+        commits_cmd="$commits_cmd --max-count=50"
+    fi
+    
+    # Get commits as array, properly handling spaces in commit messages
+    local commits=()
+    while IFS= read -r commit; do
+        commits+=("$commit")
+    done < <($commits_cmd)
+    
+    if [ ${#commits[@]} -eq 0 ]; then
+        echo "   └─ No commits found" >&2
+        return 1
+    fi
+    
+    echo "   └─ Found ${#commits[@]} commits" >&2
+    
+    # Categorize commits
+    local features=()
+    local fixes=()
+    local improvements=()
+    local other=()
+    
+    for commit in "${commits[@]}"; do
+        # Extract commit message (remove hash and first space)
+        local commit_msg=$(echo "$commit" | sed 's/^[a-f0-9]\{7,\} //')
         
-        # Check if we need to replace existing version or add new one
-        if grep -q "\"version\": \"$latest_version\"" ""public/changelog.json""; then
-            echo "   └─ Replacing existing version $latest_version with updated content..."
-            
-            # Remove the existing version entry and regenerate
-            # This is complex, so let's regenerate from scratch for simplicity
-            echo "   └─ Regenerating entire JSON to replace version..."
-            
-            # Generate JSON for all versions in CHANGELOG_FR.md
-            local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}'))
-            
-            echo "[" > ""public/changelog.json""
+        
+        if [[ "$commit_msg" =~ ^feat: ]]; then
+            features+=("$commit_msg")
+        elif [[ "$commit_msg" =~ ^fix: ]]; then
+            fixes+=("$commit_msg")
+        elif [[ "$commit_msg" =~ ^(improve|refactor|perf): ]]; then
+            improvements+=("$commit_msg")
+        else
+            other+=("$commit_msg")
+        fi
+    done
+    
+    # Build JSON using printf for proper formatting
+    local temp_json="/tmp/technical_json_$$.json"
+    
+    printf '{\n  "version": "%s",\n  "date": "%s",\n  "changes": [' "$version" "$date" > "$temp_json"
+    
             local first=true
             
-            for version in "${versions[@]}"; do
+    # Add features
+    for feature in "${features[@]}"; do
                 if [ "$first" = true ]; then
                     first=false
                 else
-                    echo "," >> ""public/changelog.json""
-                fi
-                
-                local version_json=$(generate_single_version_json "$version")
-                echo "$version_json" >> ""public/changelog.json""
-            done
-            
-            echo "]" >> ""public/changelog.json""
-        else
-            echo "   └─ Version $latest_version not in JSON, adding it..."
-            
-            # Extract existing JSON content (remove last ])
-            local existing_content=$(sed '$d' ""public/changelog.json"")
-            
-            # Generate new version content
-            local new_version_json=$(generate_single_version_json "$latest_version")
-            
-            # Combine: existing content + comma + new version + closing bracket
-            echo "$existing_content" > ""public/changelog.json""
-            echo "," >> ""public/changelog.json""
-            echo "$new_version_json" >> ""public/changelog.json""
-            echo "]" >> ""public/changelog.json""
+            printf "," >> "$temp_json"
         fi
-        
-        echo "✅ Incremental JSON update completed"
-    else
-        echo "   └─ No existing changelog.json, generating from scratch..."
-        
-        # Generate JSON for all versions in CHANGELOG_FR.md
-        local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}'))
-        
-        echo "[" > ""public/changelog.json""
-        local first=true
-        
-        for version in "${versions[@]}"; do
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_feature=$(echo "$feature" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+        printf '\n    "✨ %s"' "$escaped_feature" >> "$temp_json"
+    done
+    
+    # Add fixes
+    for fix in "${fixes[@]}"; do
+        if [ "$first" = true ]; then
+            first=false
+        else
+            printf "," >> "$temp_json"
+        fi
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_fix=$(echo "$fix" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+        printf '\n    "🐛 %s"' "$escaped_fix" >> "$temp_json"
+    done
+    
+    # Add improvements
+    for improvement in "${improvements[@]}"; do
+        if [ "$first" = true ]; then
+            first=false
+        else
+            printf "," >> "$temp_json"
+        fi
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_improvement=$(echo "$improvement" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+        printf '\n    "🔧 %s"' "$escaped_improvement" >> "$temp_json"
+    done
+    
+    # Add other changes
+    for other_change in "${other[@]}"; do
             if [ "$first" = true ]; then
                 first=false
             else
-                echo "," >> ""public/changelog.json""
-            fi
-            
-            local version_json=$(generate_single_version_json "$version")
-            echo "$version_json" >> ""public/changelog.json""
+            printf "," >> "$temp_json"
+        fi
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_other=$(echo "$other_change" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+        printf '\n    "📝 %s"' "$escaped_other" >> "$temp_json"
+    done
+    
+    printf '\n  ]\n}' >> "$temp_json"
+    
+    
+    # Output the JSON and clean up
+    cat "$temp_json"
+    echo  # Add newline after JSON
+    rm -f "$temp_json"
+}
+
+# Function to generate CHANGELOG.md from technical JSON
+generate_changelog_md_from_json() {
+    local technical_json="$1"
+    local version="$2"
+    
+    echo "   └─ Converting technical JSON to CHANGELOG.md format..."
+    local date=$(echo "$technical_json" | tr -d '\r' | jq -r '.date')
+    
+    # Create markdown section
+    local markdown_section="## [$version] - $date\n\n"
+    
+    # Extract changes and categorize them
+    local features=()
+    local fixes=()
+    local improvements=()
+    local other=()
+    
+    # Parse changes from JSON
+    while IFS= read -r change; do
+        if [[ "$change" =~ ^✨ ]]; then
+            features+=("${change#✨ }")
+        elif [[ "$change" =~ ^🐛 ]]; then
+            fixes+=("${change#🐛 }")
+        elif [[ "$change" =~ ^🔧 ]]; then
+            improvements+=("${change#🔧 }")
+        else
+            other+=("${change#📝 }")
+        fi
+    done < <(echo "$technical_json" | jq -r '.changes[]')
+    
+    # Add sections
+    if [ ${#features[@]} -gt 0 ]; then
+        markdown_section+="### ✨ New Features\n\n"
+        for feature in "${features[@]}"; do
+            markdown_section+="- $feature\n"
         done
-        
-        echo "]" >> ""public/changelog.json""
-        
-        echo "✅ Full JSON generated (${#versions[@]} versions)"
+        markdown_section+="\n"
+    fi
+    
+    if [ ${#fixes[@]} -gt 0 ]; then
+        markdown_section+="### 🐛 Bug Fixes\n\n"
+        for fix in "${fixes[@]}"; do
+            markdown_section+="- $fix\n"
+        done
+        markdown_section+="\n"
+    fi
+    
+    if [ ${#improvements[@]} -gt 0 ]; then
+        markdown_section+="### 🔧 Improvements\n\n"
+        for improvement in "${improvements[@]}"; do
+            markdown_section+="- $improvement\n"
+        done
+        markdown_section+="\n"
+    fi
+    
+    if [ ${#other[@]} -gt 0 ]; then
+        markdown_section+="### 📝 Other Changes\n\n"
+        for other_change in "${other[@]}"; do
+            markdown_section+="- $other_change\n"
+        done
+        markdown_section+="\n"
+    fi
+    
+    # Insert at the beginning of CHANGELOG.md
+    local temp_changelog="/tmp/changelog_temp.md"
+    echo -e "$markdown_section" > "$temp_changelog"
+    
+    if [ -f "CHANGELOG.md" ]; then
+        # Remove existing version if it exists
+        sed "/^## \\[$version\\]/,/^## \\[/{ /^## \\[/!d; }" "CHANGELOG.md" > "/tmp/changelog_clean.md"
+        cat "/tmp/changelog_clean.md" >> "$temp_changelog"
+        mv "$temp_changelog" "CHANGELOG.md"
+        rm -f "/tmp/changelog_clean.md"
+    else
+        mv "$temp_changelog" "CHANGELOG.md"
+    fi
+    
+    echo "   └─ ✅ CHANGELOG.md updated"
+}
+
+# Function to transform technical JSON with OpenAI
+transform_technical_json_with_openai() {
+    local technical_json="$1"
+    local version="$2"
+    
+    echo "   └─ Sending technical JSON to OpenAI for transformation..." >&2
+    
+    # Load environment variables from .env.local if it exists
+    if [ -f ".env.local" ]; then
+        export $(grep -v '^#' .env.local | xargs)
+    fi
+    
+    # Call OpenAI script with technical JSON and save to file
+    local temp_file="/tmp/openai_output_$$.json"
+    if OPENAI_API_KEY="$OPENAI_API_KEY" node scripts/generate-changelog.js "$technical_json" "$version" > "$temp_file" 2>/dev/null; then
+        # Node.js script executed successfully
+        true
+    else
+        echo "null" > "$temp_file"
+    fi
+    
+    # Read the complete JSON from file
+    local transformed_json=$(cat "$temp_file")
+    
+    if [ -n "$transformed_json" ] && [ "$transformed_json" != "null" ]; then
+        echo "$transformed_json"
+    else
+        echo "null"
     fi
 }
 
-# Helper function to generate JSON for a single version
-generate_single_version_json() {
-    local version="$1"
+# Function to generate JSON from English changelog (fallback)
+generate_json_from_english_changelog() {
+    local english_changelog="$1"
+    local version="$2"
+    
+    echo "   └─ Using fallback: parsing English changelog..."
+    
+    # Extract date from version header
+    local date=$(echo "$english_changelog" | grep "^## \\[" | head -1 | sed 's/.*\[.*\] - //')
+    if [ -z "$date" ]; then
+        date=$(date +%Y-%m-%d)
+    fi
+    
+    # Extract changes (lines starting with -)
     local changes=()
-    local in_version=false
-    local in_section=false
-    local current_section=""
-    
-    # Debug output to stderr to avoid mixing with JSON
-    echo "   └─ Processing version $version" >&2
-    
     while IFS= read -r line; do
-        # Escape dots in version for regex
-        local escaped_version=$(echo "$version" | sed 's/\./\\./g')
-        
-        # Start of this version
-        if [[ "$line" =~ ^##\ \[$escaped_version\] ]]; then
-            in_version=true
-            echo "   └─ DEBUG: Found version header: $line" >&2
-            continue
+        if [[ "$line" =~ ^- ]]; then
+            # Remove leading "- " and add to changes array
+            local change="${line#- }"
+            changes+=("\"$change\"")
         fi
-        
-        # End of this version (next version or end)
-        if [[ "$line" =~ ^##\ \[ ]] && [[ ! "$line" =~ ^##\ \[$escaped_version\] ]]; then
-            echo "   └─ DEBUG: End of version $version, found: $line" >&2
-            break
-        fi
-        
-        if [ "$in_version" = true ]; then
-            # Section headers
-            if [[ "$line" =~ ^###\ (.*) ]]; then
-                in_section=true
-                current_section="${BASH_REMATCH[1]}"
-                echo "   └─ DEBUG: Found section: $line" >&2
-                continue
-            fi
-            
-            # Change items (skip separators like "---")
-            if [[ "$line" =~ ^-\ (.+)$ ]] && [ "$in_section" = true ] && [[ ! "$line" =~ ^--- ]]; then
-                local change="${BASH_REMATCH[1]}"
-                if [ -n "$change" ]; then
-                    # Add emoji based on section
-                    local emoji=""
-                    case "$current_section" in
-                        *"Nouvelles fonctionnalités"*|*"New Features"*) emoji="✨" ;;
-                        *"Corrections"*|*"Bug Fixes"*) emoji="🐛" ;;
-                        *"Améliorations"*|*"Improvements"*) emoji="🔧" ;;
-                        *"Autre"*|*"Other"*) emoji="📝" ;;
-                    esac
-                    
-                    changes+=("\"$emoji $change\"")
-                    echo "   └─ DEBUG: Found change: $change" >&2
-                fi
-            elif [ "$in_section" = true ] && [[ ! "$line" =~ ^--- ]] && [[ ! "$line" =~ ^### ]]; then
-                echo "   └─ DEBUG: Line in section but not matched: '$line'" >&2
-            elif [[ "$line" =~ ^[[:space:]]+[^-] ]] && [ "$in_section" = true ] && [ ${#changes[@]} -gt 0 ]; then
-                # Continuation of previous change (multi-line)
-                local continuation="${line##*[[:space:]]}"
-                if [ -n "$continuation" ]; then
-                    # Append to the last change
-                    local last_change_index=$((${#changes[@]} - 1))
-                    local last_change="${changes[$last_change_index]}"
-                    # Remove the closing quote and add continuation
-                    last_change="${last_change%\"} $continuation\""
-                    changes[$last_change_index]="$last_change"
-                    echo "   └─ DEBUG: Continued change: $continuation" >&2
-                fi
-            fi
-        fi
-    done < "CHANGELOG_FR.md"
+    done <<< "$english_changelog"
     
-    echo "   └─ DEBUG: Final changes for $version: ${changes[*]}" >&2
+    # Generate JSON
+    local json="{
+  \"version\": \"$version\",
+  \"date\": \"$date\",
+  \"changes\": ["
     
-    # Generate JSON for this version
-    echo "  {"
-    echo "    \"version\": \"$version\","
-    echo "    \"date\": \"$(date '+%Y-%m-%d')\","
-    echo "    \"changes\": ["
-    
-    local change_count=0
+    local first=true
     for change in "${changes[@]}"; do
-        if [ $change_count -gt 0 ]; then
-            echo ","
-        fi
-        echo "      $change"
-        change_count=$((change_count + 1))
-    done
-    
-    echo "    ]"
-    echo "  }"
-}
-
-# Function to translate a single commit line (with Google Translate for new commits)
-translate_commit_line_simple() {
-    local line="$1"
-    
-    # Extract the commit message (remove the leading "- ")
-    local commit_msg="${line#- }"
-    
-    # Check if this is a new commit (has conventional commit prefix)
-    if [[ "$commit_msg" =~ ^(feat|fix|improve|ui|docs|style|refactor|perf|test|chore): ]]; then
-        # Remove conventional commit prefixes
-        commit_msg=$(echo "$commit_msg" | sed -E 's/^(feat|fix|ui|docs|style|refactor|perf|test|chore|improve):\s*//')
-        
-        # Try Google Translate first
-        
-        # Call Google Translate and capture both output and exit code
-        local google_translation
-        local translate_exit_code
-        
-        # Use a temporary file to capture the translation
-        local temp_translation="/tmp/translate_$$"
-        translate_with_google "$commit_msg" > "$temp_translation"
-        translate_exit_code=$?
-        google_translation=$(cat "$temp_translation" 2>/dev/null)
-        rm -f "$temp_translation"
-        
-        if [ -n "$google_translation" ] && [[ "$google_translation" != *"<!DOCTYPE html>"* ]]; then
-            # Don't apply dictionary here - will be done at the end
-            echo "- $google_translation"
+        if [ "$first" = true ]; then
+            first=false
+            json+="\n    $change"
         else
-            # Fallback to original text
-            echo "- $commit_msg"
-        fi
-    else
-        # For old commits, keep original (dictionary will be applied at the end)
-        echo "- $commit_msg"
-    fi
-}
-
-# Function to batch translate commits (for new version only)
-batch_translate_commits() {
-    local commits=("$@")
-    local batch_text=""
-    local batch_size=100  # Translate 100 commits at once
-    
-    for ((i=0; i<${#commits[@]}; i+=batch_size)); do
-        # Build batch text
-        batch_text=""
-        for ((j=i; j<i+batch_size && j<${#commits[@]}; j++)); do
-            local commit_msg="${commits[j]#- }"
-            if [ -n "$batch_text" ]; then
-                batch_text+="\n$commit_msg"
-            else
-                batch_text="$commit_msg"
-            fi
-        done
-        
-        # Translate batch
-        echo "🔄 Translating batch $((i/batch_size + 1))..." >&2
-        local translated_batch=$(batch_translate_with_google "$batch_text")
-        
-        # Split and output individual commits
-        if [ -n "$translated_batch" ]; then
-            IFS=$'\n' read -ra translated_commits <<< "$translated_batch"
-            for ((j=i; j<i+batch_size && j<${#commits[@]}; j++)); do
-                local translated_commit="${translated_commits[j-i]}"
-                if [ -n "$translated_commit" ]; then
-                    # Remove conventional commit prefixes from translated text
-                    translated_commit=$(echo "$translated_commit" | sed -E 's/^(feat|fix|ui|docs|style|refactor|perf|test|chore|improve):\s*//')
-                    # Apply post-translation corrections
-                    translated_commit=$(apply_translations "$translated_commit")
-                    echo "- $translated_commit"
-                else
-                    # Fallback to simple translation
-                    echo "$(translate_commit_line_simple "${commits[j]}")"
+            json+=",\n    $change"
                 fi
             done
+        
+    json+="\n  ]\n}"
+    
+    # Update or create changelog.json
+    update_changelog_json "$json" "$version"
+}
+
+# Function to update changelog.json with new version
+update_changelog_json() {
+    local new_version_json="$1"
+    local version="$2"
+    
+    echo "   └─ Updating changelog.json with version $version..."
+    
+    # Check if changelog.json exists
+    if [ -f "public/changelog.json" ] && [ -s "public/changelog.json" ]; then
+        echo "   └─ Existing changelog.json found, adding new version..."
+        
+        # Check if version already exists
+        if grep -q "\"version\": \"$version\"" "public/changelog.json"; then
+            echo "   └─ Version $version already exists, replacing..."
+            # Remove existing version and add new one
+            # This is complex, so let's regenerate from scratch
+            echo "   └─ Regenerating entire JSON..."
+            echo "[$new_version_json]" > "public/changelog.json"
         else
-            # Fallback to simple translation for all commits in batch
-            for ((j=i; j<i+batch_size && j<${#commits[@]}; j++)); do
-                echo "$(translate_commit_line_simple "${commits[j]}")"
-            done
+            echo "   └─ Adding new version $version at the beginning..."
+            # Add new version at the beginning of existing JSON array
+            local existing_content=$(sed '1d' "public/changelog.json" | sed '$d')
+            echo "[" > "public/changelog.json"
+            echo "$new_version_json" >> "public/changelog.json"
+            echo "," >> "public/changelog.json"
+            echo "$existing_content" >> "public/changelog.json"
+            echo "]" >> "public/changelog.json"
         fi
-    done
-}
-
-# Function to batch translate text using Google Translate API
-batch_translate_with_google() {
-    local text="$1"
-    
-    
-    # Escape text for URL
-    local escaped_text=$(echo "$text" | sed 's/ /%20/g' | sed 's/\n/%0A/g')
-    
-    # Use Google Translate API with better error handling
-    local response=$(curl -s --max-time 10 --retry 2 "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q=$escaped_text" 2>/dev/null)
-    local curl_exit_code=$?
-    
-    # Small pause to avoid rate limiting
-    sleep 0.3
-    
-    if [ $curl_exit_code -eq 0 ] && [ -n "$response" ] && [[ "$response" != *"error"* ]]; then
-        echo "OK" >&2
-        # Extract translations from JSON response
-        echo "$response" | sed 's/\[\[\["\([^"]*\)".*/\1/g' | sed 's/","/\n/g'
     else
-        echo "KO" >&2
-        echo ""
+        echo "   └─ No existing changelog.json, creating new one..."
+        echo "[$new_version_json]" > "public/changelog.json"
     fi
+    
+    echo "✅ Changelog.json updated successfully"
 }
 
-# Function to translate text using Google Translate API
-translate_with_google() {
-    local text="$1"
+# Verify we're on staging branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Function to generate user-focused changelog with OpenAI
+generate_user_focused_changelog() {
+    local english_section="$1"
+    local version="$2"
+
+    echo "   └─ Generating user-focused changelog with OpenAI..."
+
+    # Check if OpenAI API key is available
+    if [ -z "$OPENAI_API_KEY" ]; then
+        echo "   └─ ❌ OPENAI_API_KEY not found, using fallback..."
+        return 1
+    fi
+
+    # Display the technical changelog in terminal for reference
+    echo ""
+    echo "📋 CHANGELOG TECHNIQUE (version $version) :"
+    echo "=========================================="
+    echo "$english_section"
+    echo "=========================================="
+    echo ""
+
+    # Call OpenAI script
+    local translation=$(node scripts/generate-changelog.js "$english_section" "$version" 2>/dev/null)
     
-    # Use Google Translate API (free tier)
-    local response=$(curl -s "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=fr&dt=t&q=$(echo "$text" | sed 's/ /%20/g')" 2>/dev/null)
-    local curl_exit_code=$?
-    
-    # Small pause to avoid rate limiting
-    sleep 0.3
-    
-    if [ $curl_exit_code -eq 0 ] && [ -n "$response" ] && [[ "$response" != *"error"* ]]; then
-        # Extract translation from JSON response
-        local translation=$(echo "$response" | sed 's/\[\[\["\([^"]*\)".*/\1/' 2>/dev/null)
-        if [ -n "$translation" ]; then
-            echo "OK" >&2
+    if [ -n "$translation" ] && [ "$translation" != "null" ]; then
+        echo "   └─ ✅ OpenAI translation successful!"
             echo "$translation"
             return 0
         else
-            echo "KO" >&2
-        echo ""
-            return 1
-        fi
-    else
-        echo "KO" >&2
-        echo ""
+        echo "   └─ ❌ OpenAI translation failed, using fallback..."
         return 1
     fi
 }
 
-# Global variable to cache translation dictionary
-TRANSLATION_DICT_CACHE=""
 
-# Function to load translation dictionary once
-load_translation_dict() {
-    if [ -z "$TRANSLATION_DICT_CACHE" ] && [ -f "scripts/translation-dict.txt" ]; then
-        echo "   └─ Loading translation dictionary..." >&2
-        TRANSLATION_DICT_CACHE=$(cat "scripts/translation-dict.txt")
-        local dict_count=$(echo "$TRANSLATION_DICT_CACHE" | grep -v '^#' | grep -v '^$' | wc -l)
-        echo "   └─ Dictionary loaded with $dict_count entries" >&2
-    fi
-}
-
-# Function to apply translations from cached dictionary
-apply_translations() {
-    local text="$1"
-    local translated="$text"
-    
-    # Load dictionary if not cached
-    load_translation_dict
-    
-    # Apply translations from cached dictionary
-    if [ -n "$TRANSLATION_DICT_CACHE" ]; then
-        echo "$TRANSLATION_DICT_CACHE" | while IFS='|' read -r english french; do
-        # Skip comments and empty lines
-        if [[ "$english" =~ ^#.*$ ]] || [[ -z "$english" ]]; then
-            continue
-        fi
-        
-        # Escape special characters for sed
-        english_escaped=$(printf '%s\n' "$english" | sed 's/[[\.*^$()+?{|]/\\&/g')
-        french_escaped=$(printf '%s\n' "$french" | sed 's/[[\.*^$()+?{|]/\\&/g')
-        
-        # Apply translation
-        translated=$(echo "$translated" | sed "s/$english_escaped/$french_escaped/g")
-        done
-    fi
-    
-    echo "$translated"
-}
 
 # Verify we're on staging branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -1116,7 +971,7 @@ else
 fi
 
 # Commit version changes
-execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md changelog.json" "Add modified files"
+execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md public/changelog.json" "Add modified files"
 execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit version changes"
 
 # Push staging (only in real deployment)

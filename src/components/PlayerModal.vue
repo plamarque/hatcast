@@ -72,11 +72,11 @@
             </div>
             <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Sélections</div>
+              <div class="text-xs md:text-sm text-gray-300">Compositions</div>
             </div>
             <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}</div>
-              <div class="text-xs md:text-sm text-gray-300">% de sélection</div>
+              <div class="text-xs md:text-sm text-gray-300">% de composition</div>
             </div>
           </div>
         </div>
@@ -268,6 +268,7 @@ const showPasswordVerification = ref(false)
 const pendingAction = ref(null) // 'update' ou 'delete'
 const showMoreActions = ref(false)
 const editNameError = ref('')
+const isEditSessionVerified = ref(false) // Mémorise si la vérification a été faite pour cette session d'édition
 const isProtectedForPlayer = ref(false)
 const isOwnerForPlayer = ref(false)
 
@@ -319,6 +320,7 @@ function cancelEdit() {
   editingName.value = ''
   editingGender.value = 'non-specified'
   editNameError.value = ''
+  isEditSessionVerified.value = false
 }
 
 function validateEditName() {
@@ -352,6 +354,12 @@ async function saveEdit() {
   // Vérifier si le joueur est protégé
   const isProtected = await isPlayerProtected(props.player?.id, props.seasonId)
   if (isProtected) {
+    // Si la session d'édition a déjà été vérifiée, procéder directement
+    if (isEditSessionVerified.value) {
+      await performUpdate()
+      return
+    }
+    
     // Vérifier s'il y a une session active ET que l'utilisateur est connecté
     const hasCachedPassword = isPlayerPasswordCached(props.player?.id)
     const isConnected = !!currentUser.value?.email
@@ -433,6 +441,8 @@ async function handlePasswordVerified(verificationData) {
   // Le mot de passe a été vérifié, procéder à l'action en cours
   if (pendingAction.value === 'edit') {
     openEditModal()
+    // Marquer que la session d'édition est vérifiée
+    isEditSessionVerified.value = true
   } else if (pendingAction.value === 'update') {
     await performUpdate()
   } else if (pendingAction.value === 'delete') {
@@ -450,6 +460,7 @@ watch(() => props.show, (newValue) => {
     editing.value = false
     editingName.value = ''
     pendingAction.value = null
+    isEditSessionVerified.value = false
     // Sécurité: s'assurer que le sous-modal protection est bien fermé
     showProtectionModal.value = false
   }

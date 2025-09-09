@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1060] p-4">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1370] p-4">
     <div class="bg-gray-900 border border-gray-700 rounded-lg max-w-sm w-full max-h-[80vh] overflow-y-auto">
       <!-- Header -->
       <div class="p-4 border-b border-gray-700">
@@ -117,7 +117,7 @@
                   class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 flex-shrink-0"
                 >
                 <span class="text-base md:text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
-                <span class="text-xs md:text-sm text-white flex-1 min-w-0">{{ ROLE_LABELS_SINGULAR[role] }}</span>
+                <span class="text-xs md:text-sm text-white flex-1 min-w-0">{{ getRoleLabel(role, props.playerGender, false) }}</span>
                 
                 <!-- Indicateur pour le rôle bénévole non modifiable -->
                 <span 
@@ -128,14 +128,6 @@
                   Fixe
                 </span>
                 
-                <!-- Pourcentage pour le rôle Comédien -->
-                <span 
-                  v-if="role === 'player' && chancePercent !== null"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200"
-                  :title="`~${chancePercent}% de chances d'être sélectionné`"
-                >
-                  {{ chancePercent }}%
-                </span>
               </label>
             </div>
           </div>
@@ -192,7 +184,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
 import { getUserRolePreferences, getPreferredRolesForEvent, canDisableRole } from '../services/rolePreferencesService.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
 import { currentUser } from '../services/authState.js'
@@ -209,6 +201,10 @@ const props = defineProps({
   playerId: {
     type: String,
     required: false
+  },
+  playerGender: {
+    type: String,
+    default: 'non-specified'
   },
   eventId: {
     type: String,

@@ -52,7 +52,7 @@
           <div class="bg-white/5 border border-white/10 rounded-lg p-6 space-y-3">
             <h2 class="text-xl font-semibold text-white">C'est quoi ?</h2>
             <p class="text-gray-200">
-              HatCast est une appli conçue pour faciliter <span class="text-white">la sélection des joueurs d'impro</span> pour les événements.
+              HatCast est une appli conçue pour faciliter <span class="text-white">la composition des joueurs d'impro</span> pour les spectacles.
               L'idée est née au sein de <span class="text-purple-300">La Malice</span> pour <span class="text-white">dépersonnaliser une tâche délicate</span> qui créait des tensions depuis des années.
             </p>
           </div>
@@ -61,15 +61,15 @@
           <div class="bg-white/5 border border-white/10 rounded-lg p-6 space-y-3">
             <h2 class="text-xl font-semibold text-white">Comment ça marche</h2>
             <p class="text-gray-200">
-              L'asso déclare ses dates et le nombre de personnes nécessaires. Les joueurs indiquent leurs disponibilités. L'appli propose des sélections.
+              L'asso déclare ses dates et le nombre de personnes nécessaires. Les joueurs indiquent leurs disponibilités. L'appli propose des compositions.
             </p>
           </div>
 
-          <!-- Sélection auto ou manuelle -->
+          <!-- Composition auto ou manuelle -->
           <div class="bg-white/5 border border-white/10 rounded-lg p-6 space-y-3">
-            <h2 class="text-xl font-semibold text-white">Sélection auto ou manuelle</h2>
+            <h2 class="text-xl font-semibold text-white">Composition auto ou manuelle</h2>
             <p class="text-gray-200">
-              Le <span class="text-white">mode sélection auto</span> s'appuie sur le hasard (pondéré) pour simplifier la vie. Vous pouvez aussi repasser en mode <span class="text-white">manuel</span> si besoin.
+              Le <span class="text-white">mode composition auto</span> s'appuie sur le hasard (pondéré) pour simplifier la vie. Vous pouvez aussi repasser en mode <span class="text-white">manuel</span> si besoin.
             </p>
           </div>
 
@@ -259,7 +259,7 @@ const keywordTranslations = {
   'support': 'support',
   'system': 'système',
   'automatic': 'automatique',
-  'selection': 'sélection',
+  'composition': 'composition',
   'player': 'joueur',
   'players': 'joueurs',
   'event': 'événement',
@@ -361,8 +361,24 @@ async function loadChangelog() {
       }
     })
     
-    console.debug('🔍 DEBUG: Transformed changelog data:', transformedVersions)
-    userFriendlyChangelog.value = transformedVersions
+    // Sort versions by version number (descending) as final safety barrier
+    const sortedVersions = transformedVersions.sort((a, b) => {
+      const versionA = a.version.split('.').map(Number)
+      const versionB = b.version.split('.').map(Number)
+      
+      // Compare major, minor, patch in order
+      for (let i = 0; i < Math.max(versionA.length, versionB.length); i++) {
+        const numA = versionA[i] || 0
+        const numB = versionB[i] || 0
+        if (numA !== numB) {
+          return numB - numA // Descending order (newest first)
+        }
+      }
+      return 0
+    })
+    
+    console.debug('🔍 DEBUG: Sorted changelog data:', sortedVersions)
+    userFriendlyChangelog.value = sortedVersions
     
   } catch (error) {
     console.debug('Could not load changelog:', error)

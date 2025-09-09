@@ -87,7 +87,7 @@
                   </div>
                 </div>
                 
-                <!-- Section basse : indicateur de statut -->
+                <!-- Section basse : badge de type d'événement -->
                 <div class="flex flex-col items-center mt-2">
                   
                   <!-- Indicateur de statut archivé (priorité sur les autres) -->
@@ -100,26 +100,15 @@
                     <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
                   </div>
                   
-                  <!-- Indicateur de statut de sélection (seulement si pas archivé) -->
+                  <!-- Badge de type d'événement (seulement si pas archivé) -->
                   <div 
-                    v-else-if="getEventStatus(event.id).type === 'ready'"
-                    class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
+                    v-else-if="event.roles"
+                    class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
+                    :title="getEventTypeName(event)"
                   >
-                    <span class="text-xs text-blue-300 font-medium group-hover:text-blue-200">🆕</span>
-                    <span class="text-xs text-blue-200 font-medium ml-1 group-hover:text-blue-100">Nouveau</span>
+                    <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(event) }}</span>
+                    <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(event) }}</span>
                   </div>
-                  
-                  <SelectionStatusBadge
-                    v-else-if="getEventStatus(event.id).type"
-                    :status="getEventStatus(event.id).type"
-                    :show="true"
-                    :clickable="true"
-                    class="mx-auto cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la sélection'"
-                    @click.stop="openSelectionModal(event)"
-                  />
                 </div>
               </div>
             </div>
@@ -543,7 +532,7 @@
   </div>
 
   <!-- Modale de confirmation de suppression -->
-  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1310] p-4">
+  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1380] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -586,26 +575,6 @@
     </div>
   </div>
 
-  <!-- Modale de confirmation de relance de sélection -->
-          <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1330] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-2xl">🎭</span>
-        </div>
-        <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
-        <p class="text-gray-300">
-          <span v-if="eventIdToReselect && getSelectionPlayers(eventIdToReselect).every(playerName => isAvailable(playerName, eventIdToReselect))">Attention, toute la sélection sera refaite en fonction des disponibilités actuelles.</span>
-          <span v-else>La sélection sera mise à jour : les personnes disponibles seront conservées, les slots vides seront complétés.</span>
-        </p>
-      </div>
-
-      <div class="flex justify-end space-x-3">
-        <button @click="cancelTirage" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
-        <button @click="confirmTirage" class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300">Confirmer</button>
-      </div>
-    </div>
-  </div>
 
 
 
@@ -627,16 +596,24 @@
            <div class="flex-1 min-w-0">
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
-               <!-- Badge du type d'événement -->
-               <div v-if="selectedEvent?.roles" class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
-                 <span class="text-sm">{{ getEventTypeIcon(selectedEvent) }}</span>
-                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[selectedEvent.templateType || 'custom']?.name || 'Autre' }}</span>
-               </div>
-               <!-- Events without roles -->
-               <div v-else class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
-                 <span class="text-sm">🎭</span>
-                 <span class="text-gray-300 text-sm">Simple sondage</span>
-               </div>
+               
+               <!-- Icône Modifier -->
+               <button
+                 @click="startEditingFromDetails"
+                 class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                 title="Modifier cet événement"
+               >
+                 <span class="text-lg">✏️</span>
+               </button>
+               
+               <!-- Icône Supprimer -->
+               <button
+                 @click="confirmDeleteEvent(selectedEvent?.id)"
+                 class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
+                 title="Supprimer cet événement"
+               >
+                 <span class="text-lg">🗑️</span>
+               </button>
              </div>
              
 
@@ -724,7 +701,7 @@
                  v-else 
                  @click="promptForNotifications(selectedEvent)"
                  class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
-                 title="Reçois des alertes en temps réel : sélections, changements d'horaires, et plus !"
+                 title="Reçois des alertes en temps réel : compositions, changements d'horaires, et plus !"
                >
                  <span class="text-purple-300">🔔</span>
                  <span class="text-purple-200">
@@ -746,23 +723,40 @@
 
         <!-- Content scrollable -->
   <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-    <!-- Section Équipe à Constituer -->
+        <!-- Section Équipe à Constituer -->
         <div class="mb-4 md:mb-6">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
               <span>🎭</span>
               <span>Équipe à Constituer</span>
             </h3>
-            <button 
-              @click="showRoleDetails = !showRoleDetails"
-              class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
-              title="Cliquer pour voir le détail des rôles"
-            >
-              <span class="text-blue-300">👥</span>
-              <span class="text-blue-200">
-                {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
-              </span>
-            </button>
+            <div class="flex items-center gap-2">
+              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages -->
+              <button 
+                @click="showRoleChances = !showRoleChances"
+                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer"
+                :class="showRoleChances 
+                  ? 'bg-emerald-500/20 border border-emerald-400/30 hover:bg-emerald-500/30' 
+                  : 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'"
+                :title="showRoleChances ? 'Voir les disponibilités' : 'Voir les pourcentages de chances'"
+              >
+                <span :class="showRoleChances ? 'text-emerald-300' : 'text-gray-300'">📊</span>
+                <span :class="showRoleChances ? 'text-emerald-200' : 'text-gray-200'">
+                  {{ showRoleChances ? 'Dispos' : 'Chances' }}
+                </span>
+              </button>
+              
+              <button 
+                @click="showRoleDetails = !showRoleDetails"
+                class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
+                title="Cliquer pour voir le détail des rôles"
+              >
+                <span class="text-blue-300">👥</span>
+                <span class="text-blue-200">
+                  {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+                </span>
+              </button>
+            </div>
           </div>
           
           <!-- Détails des rôles -->
@@ -808,7 +802,7 @@
               <span class="truncate">{{ eventWarningText }}</span>
             </div>
 
-            <!-- Badge statut de la sélection -->
+            <!-- Badge statut de la composition -->
             <SelectionStatusBadge
               v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
               :status="eventStatus?.type"
@@ -817,72 +811,149 @@
             />
           </div>
 
-          <!-- Liste des joueurs (2 par ligne) - Toutes les personnes qui ont répondu -->
-          <div class="grid grid-cols-2 gap-2">
+          <!-- Liste des joueurs (2 par ligne sur mobile, 3 sur desktop) - Toutes les personnes qui ont répondu -->
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
             <div
               v-for="player in sortedPlayers"
               :key="player.id"
-              class="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-gray-800/40 transition-colors"
+              :class="showRoleChances 
+                ? 'flex flex-col px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'
+                : 'flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
             >
-              <div class="flex items-center min-w-0 gap-2">
-                <!-- Avatar du joueur -->
-                <div class="relative flex-shrink-0">
-                  <PlayerAvatar 
-                    :player-id="player.id"
-                    :season-id="seasonId"
-                    :player-name="player.name"
-                    :player-gender="player.gender || 'non-specified'"
-                    size="sm"
-                  />
-                  <!-- Statuts superposés -->
+              <!-- Mode disponibilités : layout horizontal -->
+              <template v-if="!showRoleChances">
+                <div class="flex items-center min-w-0 gap-2">
+                  <!-- Avatar du joueur -->
+                  <div class="relative flex-shrink-0">
+                    <PlayerAvatar 
+                      :player-id="player.id"
+                      :season-id="seasonId"
+                      :player-name="player.name"
+                      :player-gender="player.gender || 'non-specified'"
+                      size="sm"
+                    />
+                    <!-- Statuts superposés -->
+                    <span
+                      v-if="preferredPlayerIdsSet.has(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Ma personne"
+                    >
+                      ⭐
+                    </span>
+                    <span
+                      v-else-if="isPlayerProtectedInGrid(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Personne protégée par mot de passe"
+                    >
+                      🔒
+                    </span>
+                  </div>
+                  <!-- Nom du joueur -->
                   <span
-                    v-if="preferredPlayerIdsSet.has(player.id)"
-                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                    title="Ma personne"
+                    class="text-white text-sm md:text-base block flex-1 min-w-0"
+                    :title="player.name"
                   >
-                    ⭐
-                  </span>
-                  <span
-                    v-else-if="isPlayerProtectedInGrid(player.id)"
-                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                    title="Personne protégée par mot de passe"
-                  >
-                    🔒
+                    {{ player.name }}
                   </span>
                 </div>
-                <!-- Nom du joueur -->
-                <span
-                  class="text-white text-sm md:text-base block truncate max-w-full flex-1 min-w-0"
-                  :title="player.name"
-                >
-                  {{ player.name }}
-                </span>
-              </div>
 
-              <div class="flex-0 p-0">
-                <AvailabilityCell
-                  :player-name="player.name"
-                  :event-id="selectedEvent.id"
-                  :is-available="isAvailable(player.name, selectedEvent.id)"
-                  :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                  :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                  :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                  :season-id="seasonId"
-                  :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                  :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                  :disabled="selectedEvent?.archived === true"
-                  :compact="true"
-                  :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                  :event-title="selectedEvent.title"
-                  :event-date="selectedEvent.date"
-                  :is-protected="isPlayerProtectedInGrid(player.id)"
-                  :player-gender="player.gender || 'non-specified'"
-                  @toggle="handleAvailabilityToggle"
-                  @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                  @show-availability-modal="openAvailabilityModal"
-                />
-              </div>
+                <div class="flex-0 p-0">
+                  <AvailabilityCell
+                    :player-name="player.name"
+                    :event-id="selectedEvent.id"
+                    :is-available="isAvailable(player.name, selectedEvent.id)"
+                    :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                    :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                    :season-id="seasonId"
+                    :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
+                    :show-selected-chance="isSelectionComplete(selectedEvent.id)"
+                    :disabled="selectedEvent?.archived === true"
+                    :compact="true"
+                    :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                    :event-title="selectedEvent.title"
+                    :event-date="selectedEvent.date"
+                    :is-protected="isPlayerProtectedInGrid(player.id)"
+                    :player-gender="player.gender || 'non-specified'"
+                    @toggle="handleAvailabilityToggle"
+                    @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                    @show-availability-modal="openAvailabilityModal"
+                  />
+                </div>
+              </template>
+
+              <!-- Mode pourcentages : layout vertical -->
+              <template v-else>
+                <!-- Ligne du nom et avatar -->
+                <div class="flex items-center gap-2 mb-1">
+                  <!-- Avatar du joueur -->
+                  <div class="relative flex-shrink-0">
+                    <PlayerAvatar 
+                      :player-id="player.id"
+                      :season-id="seasonId"
+                      :player-name="player.name"
+                      :player-gender="player.gender || 'non-specified'"
+                      size="sm"
+                    />
+                    <!-- Statuts superposés -->
+                    <span
+                      v-if="preferredPlayerIdsSet.has(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Ma personne"
+                    >
+                      ⭐
+                    </span>
+                    <span
+                      v-else-if="isPlayerProtectedInGrid(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Personne protégée par mot de passe"
+                    >
+                      🔒
+                    </span>
+                  </div>
+                  <!-- Nom du joueur -->
+                  <span
+                    class="text-white text-sm md:text-base block flex-1 min-w-0"
+                    :title="player.name"
+                  >
+                    {{ player.name }}
+                  </span>
+                </div>
+
+                <!-- Ligne des pourcentages -->
+                <div class="flex justify-end">
+                  <div class="flex flex-col items-end gap-1">
+                    <!-- Pourcentages par rôle (seulement pour les rôles choisis par le joueur) -->
+                    <div v-if="getPlayerSelectedRoleChances(player.name, selectedEvent.id).length > 0" class="flex flex-wrap gap-1 justify-end">
+                      <span
+                        v-for="roleChance in getPlayerSelectedRoleChances(player.name, selectedEvent.id)"
+                        :key="roleChance.role"
+                        class="text-[10px] px-1.5 py-0.5 rounded-full border text-center"
+                        :class="{
+                          'bg-emerald-500/20 border-emerald-400/30 text-emerald-200': roleChance.role === 'player',
+                          'bg-purple-500/20 border-purple-400/30 text-purple-200': roleChance.role === 'dj',
+                          'bg-pink-500/20 border-pink-400/30 text-pink-200': roleChance.role === 'mc',
+                          'bg-orange-500/20 border-orange-400/30 text-orange-200': roleChance.role === 'volunteer',
+                          'bg-yellow-500/20 border-yellow-400/30 text-yellow-200': roleChance.role === 'referee',
+                          'bg-green-500/20 border-green-400/30 text-green-200': roleChance.role === 'assistant_referee',
+                          'bg-blue-500/20 border-blue-400/30 text-blue-200': roleChance.role === 'lighting',
+                          'bg-indigo-500/20 border-indigo-400/30 text-indigo-200': roleChance.role === 'coach',
+                          'bg-gray-500/20 border-gray-400/30 text-white': roleChance.role === 'stage_manager'
+                        }"
+                        :title="`~${roleChance.chance}% de chances d'être sélectionné comme ${ROLE_LABELS[roleChance.role] || roleChance.role}`"
+                      >
+                        {{ ROLE_EMOJIS[roleChance.role] || '🎭' }} {{ roleChance.chance }}%
+                      </span>
+                    </div>
+                    
+                    <!-- Message si aucun rôle choisi -->
+                    <div v-else class="text-xs text-gray-500 italic">
+                      Aucun rôle choisi
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -898,60 +969,12 @@
           >
             <span>📢</span><span>Annoncer</span>
           </button>
-          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la sélection">
-            <span>🎭</span><span>Sélection Équipe</span>
+          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la composition">
+            <span>🎭</span><span>Composition Équipe</span>
           </button>
-          
-          <!-- Menu 3-points pour actions secondaires -->
-          <div class="relative" ref="eventMoreActionsRef">
-            <button 
-              @click="toggleEventMoreActionsDesktop()"
-              class="px-5 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
-              title="Plus d'actions"
-            >
-              <span>⋯</span>
-            </button>
-          </div>
           
           <!-- Bouton Fermer -->
           <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
-          
-          <!-- Dropdown des actions secondaires (positionné absolument) -->
-          <teleport to="body">
-            <div 
-              v-if="showEventMoreActionsDesktop"
-              ref="eventMoreActionsDropdownRef"
-              class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[9998] overflow-hidden"
-              :style="eventMoreActionsStyle"
-            >
-              <button 
-                @click="startEditingFromDetails(); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-              >
-                <span>✏️</span><span>Modifier</span>
-              </button>
-              <button 
-                @click="toggleEventArchived(); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-                :title="selectedEvent?.archived ? 'Désarchiver cet événement' : 'Archiver cet événement'"
-              >
-                <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
-              </button>
-              <button 
-                @click="handleResetEventSelection(selectedEvent?.id); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-                title="Supprimer complètement la sélection et remettre le statut à 'Nouveau'"
-              >
-                <span>🔄</span><span>Réinitialiser</span>
-              </button>
-              <button 
-                @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-              >
-                <span>🗑️</span><span>Supprimer</span>
-              </button>
-            </div>
-          </teleport>
         </div>
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
@@ -960,9 +983,8 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">Annoncer</button>
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">Sélection</button>
+        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">Composition</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
-        <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
     </div>
   </div>
@@ -970,43 +992,6 @@
   <!-- Footer principal -->
   <AppFooter @open-help="goToHelpPage" />
 
-  <!-- Dropdown mobile pour actions d'événements (positionné absolument) -->
-  <teleport to="body">
-    <div 
-      v-if="showEventMoreActions"
-      ref="eventMoreActionsMobileDropdownRef"
-      class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[9998] overflow-hidden md:hidden"
-      :style="eventMoreActionsMobileStyle"
-    >
-      <!-- Boutons principaux en premier -->
-      <button 
-        @click="openEventAnnounceModal(selectedEvent); showEventMoreActions = false" 
-        :disabled="selectedEvent?.archived"
-        class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-        :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
-      >
-        <span>📢</span><span>Annoncer</span>
-      </button>
-      
-      <!-- Actions secondaires -->
-      <button @click="startEditingFromDetails(); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10">
-        <span>✏️</span><span>Modifier</span>
-      </button>
-      <button @click="toggleEventArchived(); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10">
-        <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
-      </button>
-      <button 
-        @click="handleResetEventSelection(selectedEvent?.id); showEventMoreActions = false" 
-        class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-        title="Supprimer complètement la sélection et remettre le statut à 'Nouveau'"
-      >
-        <span>🔄</span><span>Réinitialiser</span>
-      </button>
-      <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2">
-        <span>🗑️</span><span>Supprimer</span>
-      </button>
-    </div>
-  </teleport>
 
   <!-- Modal de vérification du mot de passe pour joueur protégé -->
   <PasswordVerificationModal
@@ -1279,7 +1264,7 @@
     @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
   />
 
-  <!-- Modal de sélection -->
+  <!-- Modal de composition -->
   <SelectionModal
     ref="selectionModalRef"
     :show="showSelectionModal"
@@ -1300,7 +1285,9 @@
     @send-notifications="handleSendNotifications"
     @update-selection="handleUpdateSelectionFromModal"
     @confirm-selection="handleConfirmSelectionFromModal"
-    @unconfirm-selection="handleUnconfirmSelectionFromModal"
+    @unconfirm-selection="handleUnconfirmCastFromModal"
+    @reset-selection="handleResetSelectionFromModal"
+    @confirm-reselect="handleConfirmReselectFromModal"
         />
 
   <!-- Modal d'annonce d'événement -->
@@ -1425,6 +1412,7 @@
     :show="showAvailabilityModal"
     :player-name="availabilityModalData.playerName"
     :player-id="availabilityModalData.playerId"
+    :player-gender="availabilityModalData.playerGender"
     :event-id="availabilityModalData.eventId"
     :event-title="availabilityModalData.eventTitle"
     :event-date="availabilityModalData.eventDate"
@@ -1644,14 +1632,14 @@ import {
   loadPlayers,
   loadEvents,
   loadAvailability,
-  loadSelections,
+  loadCasts,
   addPlayer,
   deletePlayer,
   deleteEvent,
   updateEvent,
   saveEvent,
   updatePlayer,
-  saveSelection
+  saveCast
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
@@ -1828,8 +1816,6 @@ const guidedEventId = ref(null)
 const addPlayerCoachmark = ref({ position: null, side: null })
 const availabilityCoachmark = ref({ position: null })
 const playerNameCoachmark = ref({ position: null })
-const confirmReselect = ref(false)
-const eventIdToReselect = ref(null)
 
 // Variables pour le modal joueur
 const showPlayerModal = ref(false)
@@ -1871,13 +1857,6 @@ const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
 const editingDescription = ref('')
 const editingArchived = ref(false)
-const showEventMoreActions = ref(false)
-const showEventMoreActionsDesktop = ref(false)
-const eventMoreActionsRef = ref(null)
-const eventMoreActionsDropdownRef = ref(null)
-const eventMoreActionsStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
-const eventMoreActionsMobileDropdownRef = ref(null)
-const eventMoreActionsMobileStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
 
 // Variables pour les menus d'agenda
 const showCalendarMenuDetails = ref(false)
@@ -1900,88 +1879,8 @@ const playerClaimData = ref(null)
 // Variables pour la modale de développement
 const showDevelopmentModal = ref(false)
 
-// Fonctions pour gérer le dropdown des actions d'événements
-function updateEventMoreActionsPosition() {
-  try {
-    const anchor = eventMoreActionsRef.value
-    if (!anchor) return
-    const rect = anchor.getBoundingClientRect()
-    const gap = 8
-    const dropdownHeight = 250 // estimation de la hauteur du dropdown (rallongé)
-    
-    // Sur desktop, positionner intelligemment
-    if (window.innerWidth > 768) {
-      let top, left
-      
-      // Vérifier s'il y a assez d'espace en haut
-      const spaceAbove = rect.top
-      const spaceBelow = window.innerHeight - rect.bottom
-      
-      if (spaceAbove >= dropdownHeight + gap) {
-        // Positionner au-dessus du bouton
-        top = Math.max(gap, Math.round(rect.top - dropdownHeight - gap))
-      } else if (spaceBelow >= dropdownHeight + gap) {
-        // Positionner en dessous du bouton
-        top = Math.round(rect.bottom + gap)
-      } else {
-        // Positionner au centre de l'écran
-        top = Math.max(gap, Math.round((window.innerHeight - dropdownHeight) / 2))
-      }
-      
-      left = Math.max(gap, Math.round(rect.left))
-      eventMoreActionsStyle.value = {
-        position: 'fixed',
-        top: `${top}px`,
-        left: `${left}px`,
-        zIndex: 1000
-      }
-    } else {
-      // Sur mobile, positionner en dessous (pull-up style)
-      const top = Math.min(window.innerHeight - gap, Math.round(rect.bottom + gap))
-      const left = Math.max(gap, Math.round(rect.left))
-      eventMoreActionsStyle.value = {
-        position: 'fixed',
-        top: `${top}px`,
-        left: `${left}px`,
-        zIndex: 1000
-      }
-    }
-  } catch {}
-}
 
-function updateEventMoreActionsMobilePosition() {
-  try {
-    // Pour mobile, positionner le dropdown au-dessus du bouton 3-points du footer
-    const gap = 8
-    const buttonHeight = 48 // hauteur du bouton 3-points (h-12)
-    const dropdownHeight = 250 // estimation de la hauteur du dropdown (rallongé)
-    
-    // Positionner au-dessus du footer (pull-up style)
-    const top = Math.max(gap, window.innerHeight - gap - buttonHeight - dropdownHeight)
-    const left = Math.max(gap, Math.round(window.innerWidth - 200 - gap)) // 200 = largeur du dropdown (w-48)
-    
-    eventMoreActionsMobileStyle.value = {
-      position: 'fixed',
-      top: `${top}px`,
-      left: `${left}px`,
-      zIndex: 1000
-    }
-  } catch {}
-}
 
-function toggleEventMoreActionsDesktop() {
-  showEventMoreActionsDesktop.value = !showEventMoreActionsDesktop.value
-  if (showEventMoreActionsDesktop.value) {
-    nextTick(() => updateEventMoreActionsPosition())
-  }
-}
-
-function toggleEventMoreActionsMobile() {
-  showEventMoreActions.value = !showEventMoreActions.value
-  if (showEventMoreActions.value) {
-    nextTick(() => updateEventMoreActionsMobilePosition())
-  }
-}
 
 // Fonctions pour gérer les menus d'agenda
 function toggleCalendarMenuDetails() {
@@ -2119,7 +2018,7 @@ function evaluatePlayerTourStart() {
   } catch {}
 }
 
-// Variables pour la nouvelle popin de sélection
+// Variables pour la nouvelle popin de composition
 const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
 const selectionModalRef = ref(null)
@@ -2499,60 +2398,7 @@ onMounted(async () => {
   }
   window.addEventListener('scroll', handleScroll, { passive: true })
   
-  // Gestionnaire de clic en dehors du dropdown desktop pour fermer automatiquement
-  document.addEventListener('click', (event) => {
-    // Gestion du dropdown desktop
-    if (showEventMoreActionsDesktop.value) {
-      const anchorEl = eventMoreActionsRef.value
-      const dropdownEl = eventMoreActionsDropdownRef.value
-      const clickedInsideAnchor = anchorEl && anchorEl.contains(event.target)
-      const clickedInsideDropdown = dropdownEl && dropdownEl.contains(event.target)
-      if (!clickedInsideAnchor && !clickedInsideDropdown) {
-        showEventMoreActionsDesktop.value = false
-      }
-    }
-    
-    // Gestion du dropdown mobile
-    if (showEventMoreActions.value) {
-      const dropdownEl = eventMoreActionsMobileDropdownRef.value
-      const clickedInsideDropdown = dropdownEl && dropdownEl.contains(event.target)
-      if (!clickedInsideDropdown) {
-        showEventMoreActions.value = false
-      }
-    }
-  })
   
-  // Gestionnaire de la touche Échap pour fermer le dropdown desktop
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      if (showEventMoreActionsDesktop.value) {
-        showEventMoreActionsDesktop.value = false
-      }
-      if (showEventMoreActions.value) {
-        showEventMoreActions.value = false
-      }
-    }
-  })
-  
-  // Gestionnaires pour repositionner le dropdown des actions d'événements
-  // Gestionnaires pour repositionner les dropdowns des actions d'événements
-  window.addEventListener('resize', () => {
-    if (showEventMoreActionsDesktop.value) {
-      updateEventMoreActionsPosition()
-    }
-    if (showEventMoreActions.value) {
-      updateEventMoreActionsMobilePosition()
-    }
-  })
-  
-  window.addEventListener('scroll', () => {
-    if (showEventMoreActionsDesktop.value) {
-      updateEventMoreActionsPosition()
-    }
-    if (showEventMoreActions.value) {
-      updateEventMoreActionsMobilePosition()
-    }
-  }, { passive: true })
   
   // Retourner la fonction de cleanup
   return () => {
@@ -3009,17 +2855,17 @@ async function confirmDeleteEvent(eventId) {
 }
 
 async function handleResetEventSelection(eventId) {
-  // Vérifier s'il y a une sélection existante
+  // Vérifier s'il y a une composition existante
   if (!selections.value[eventId]) {
     showSuccessMessage.value = true
-    successMessage.value = 'Aucune sélection à réinitialiser pour cet événement'
+    successMessage.value = 'Aucune composition à réinitialiser pour cet événement'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
     return
   }
   
-  // Demander le PIN code avant de réinitialiser la sélection
+  // Demander le PIN code avant de réinitialiser la composition
   await requirePin({
     type: 'resetSelection',
     data: { eventId }
@@ -3043,7 +2889,7 @@ async function deleteEventConfirmed(eventId = null) {
     await Promise.all([
       loadEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
@@ -3138,7 +2984,7 @@ async function handleEditEvent(eventData) {
     
     await updateEvent(editingEvent.value, eventDataToSave, seasonId.value)
     
-    // Si la date a changé et qu'il y a des joueurs sélectionnés, recréer les rappels
+    // Si la date a changé et qu'il y a des joueurs compositionnés, recréer les rappels
     if (dateChanged && !eventData.archived) {
       try {
         const { createRemindersForSelection, removeRemindersForEvent } = await import('../services/reminderService.js')
@@ -3149,10 +2995,10 @@ async function handleEditEvent(eventData) {
           eventId: editingEvent.value
         })
         
-        // Récupérer les joueurs sélectionnés (toujours un tableau)
+        // Récupérer les joueurs compositionnés (toujours un tableau)
         const selectedPlayers = getSelectionPlayers(editingEvent.value)
         
-        // Recréer les rappels pour chaque joueur sélectionné
+        // Recréer les rappels pour chaque joueur compositionné
         const reminderResults = []
         for (const playerName of selectedPlayers) {
           try {
@@ -3218,7 +3064,7 @@ async function handleEditEvent(eventData) {
     await Promise.all([
       loadEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
@@ -3280,7 +3126,7 @@ async function confirmDeletePlayer(playerId) {
     await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
       availability.value = newAvailability
@@ -3356,7 +3202,7 @@ async function addNewPlayer() {
     // Recharger les données
     const [newPlayers, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ])
     
     // Charger les disponibilités avec les nouveaux joueurs
@@ -3508,6 +3354,7 @@ const editingEventData = computed(() => {
 
 // État pour afficher/masquer les détails des rôles
 const showRoleDetails = ref(false)
+const showRoleChances = ref(false)
 
 // Fonction pour appliquer un type de rôles
 function applyRoleTemplate(templateId) {
@@ -3543,6 +3390,18 @@ function getEventTypeIcon(event) {
   const templateId = event.templateType || 'custom'
   logger.debug('🔍 getEventTypeIcon: Template ID:', templateId, 'Icon:', EVENT_TYPE_ICONS[templateId])
   return EVENT_TYPE_ICONS[templateId] || '❓'
+}
+
+// Fonction pour obtenir le nom du type d'événement
+function getEventTypeName(event) {
+  if (!event?.roles) {
+    logger.debug('🔍 getEventTypeName: No event roles, returning default name')
+    return 'Autre' // Nom par défaut
+  }
+  const templateId = event.templateType || 'custom'
+  const template = ROLE_TEMPLATES[templateId]
+  logger.debug('🔍 getEventTypeName: Template ID:', templateId, 'Name:', template?.name)
+  return template?.name || 'Autre'
 }
 
 // Fonction pour obtenir la couleur du compteur de rôle selon le détail événement
@@ -3773,11 +3632,11 @@ onMounted(async () => {
         availability.value = {}
       }
 
-      // Étape 4: sélections
-      currentLoadingLabel.value = 'Chargement des sélections'
+      // Étape 4: compositions
+      currentLoadingLabel.value = 'Chargement des compositions'
       loadingProgress.value = 80
       try {
-        selections.value = await loadSelections(seasonId.value)
+        selections.value = await loadCasts(seasonId.value)
       } catch (error) {
         logger.debug('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
         selections.value = {}
@@ -3901,11 +3760,11 @@ onMounted(async () => {
   
   if (magicLinkAction === 'confirm' && magicLinkEventId) {
     console.debug('🔄 Détection d\'un magic link de confirmation, rechargement des données...')
-    // Forcer le rechargement des sélections pour cet événement
-    await loadSelections(seasonId.value)
-    // Mettre à jour les sélections locales
-    selections.value = await loadSelections(seasonId.value)
-    console.debug('✅ Sélections rechargées après magic link')
+    // Forcer le rechargement des compositions pour cet événement
+    await loadCasts(seasonId.value)
+    // Mettre à jour les compositions locales
+    selections.value = await loadCasts(seasonId.value)
+    console.debug('✅ Compositions rechargées après magic link')
     // Nettoyer l'URL
     router.replace({ query: { ...route.query, a: undefined, eid: undefined } })
   }
@@ -4190,7 +4049,7 @@ onMounted(() => {
 
 
 
-  // Avertissements pour l'événement sélectionné
+  // Avertissements pour l'événement compositionné
   const eventStatus = computed(() => selectedEvent.value ? getEventStatus(selectedEvent.value.id) : null)
   const hasEventWarningForSelectedEvent = computed(() => {
     if (!selectedEvent.value) return false
@@ -4226,7 +4085,7 @@ async function toggleAvailability(playerName, eventId) {
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
-  // Vérifier si le joueur est sélectionné ET la sélection est confirmée par l'organisateur
+  // Vérifier si le joueur est compositionné ET la composition est confirmée par l'organisateur
   const playerIsSelected = isSelected(playerName, eventId)
   const playerIsAvailable = isAvailable(playerName, eventId)
   const playerSelectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
@@ -4270,6 +4129,7 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   openAvailabilityModal({
     playerName: player.name,
     playerId: player.id,
+    playerGender: player.gender || 'non-specified',
     eventId: eventItem.id,
     eventTitle: eventItem.title,
     eventDate: eventItem.date,
@@ -4282,12 +4142,12 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
 
 // Fonction performToggleAvailability supprimée - toutes les disponibilités passent maintenant par la modale
 
-// Fonction pour gérer le changement de statut individuel d'un joueur dans une sélection
+// Fonction pour gérer le changement de statut individuel d'un joueur dans une composition
 async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus, seasonId) {
   try {
     // Mettre à jour le statut dans le stockage
-    const { updatePlayerSelectionStatus } = await import('../services/storage.js')
-    const result = await updatePlayerSelectionStatus(eventId, playerName, newStatus, seasonId)
+    const { updatePlayerCastStatus } = await import('../services/storage.js')
+    const result = await updatePlayerCastStatus(eventId, playerName, newStatus, seasonId)
     
     // Logger l'audit de confirmation de participation
     try {
@@ -4318,7 +4178,7 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
         selections.value[eventId].playerStatuses = { [playerName]: newStatus }
       }
       
-      // Mettre à jour l'état global de la sélection
+      // Mettre à jour l'état global de la composition
       if (typeof result.confirmedByAllPlayers === 'boolean') {
         selections.value[eventId].confirmedByAllPlayers = result.confirmedByAllPlayers
       }
@@ -4454,14 +4314,14 @@ function getAvailabilityData(player, eventId) {
   
   // Gestion du nouveau format avec rôles
   if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
-    // Si le joueur est sélectionné, on ne retourne que le rôle de sélection
+    // Si le joueur est compositionné, on ne retourne que le rôle de composition
     const selectionRole = getPlayerSelectionRole(player, eventId)
     if (selectionRole) {
       return {
         ...availabilityData,
-        // Remplacer les rôles de disponibilité par le seul rôle de sélection
+        // Remplacer les rôles de disponibilité par le seul rôle de composition
         roles: [selectionRole],
-        // Indiquer que c'est un affichage de sélection
+        // Indiquer que c'est un affichage de composition
         isSelectionDisplay: true
       }
     }
@@ -4515,11 +4375,11 @@ async function drawMultiRoles(eventId) {
   const roles = event.roles || { player: event.playerCount || 6 }
   logger.debug('📅 Événement trouvé:', { eventTitle: event.title, roles })
   
-  // Récupérer la sélection actuelle
+  // Récupérer la composition actuelle
   const currentSelection = selections.value[eventId]
-  logger.debug('👥 Sélection actuelle:', currentSelection)
+  logger.debug('👥 Composition actuelle:', currentSelection)
   
-  // Nouvelle structure de sélection par rôle
+  // Nouvelle structure de composition par rôle
   const newSelections = {}
   
   // Pour chaque rôle dans l'ordre d'affichage
@@ -4529,10 +4389,10 @@ async function drawMultiRoles(eventId) {
     if (requiredCount > 0) {
       logger.debug(`🎭 Draw pour le rôle ${role}: ${requiredCount} personnes`)
       
-      // Récupérer les joueurs déjà sélectionnés pour ce rôle
+      // Récupérer les joueurs déjà compositionnés pour ce rôle
       const currentRoleSelection = currentSelection?.roles?.[role] || []
       
-      // Récupérer TOUS les joueurs déjà sélectionnés pour TOUS les rôles
+      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles
       const allAlreadySelected = Object.values(newSelections).flat().filter(Boolean)
       
       // Déterminer si on refait un tirage complet ou si on complète
@@ -4555,7 +4415,7 @@ async function drawMultiRoles(eventId) {
     }
   }
   
-  // Sauvegarder la nouvelle sélection
+  // Sauvegarder la nouvelle composition
   const allPlayers = Object.values(newSelections).flat().filter(Boolean)
   selections.value[eventId] = {
     // Ancien format (rétrocompatible)
@@ -4569,12 +4429,12 @@ async function drawMultiRoles(eventId) {
     updatedAt: new Date()
   }
   
-  logger.debug('💾 Nouvelle sélection sauvegardée:', selections.value[eventId])
+  logger.debug('💾 Nouvelle composition sauvegardée:', selections.value[eventId])
   logger.debug('👥 Nombre total de joueurs:', allPlayers.length)
   logger.debug('🎭 Rôles et joueurs:', newSelections)
   
   // Sauvegarder en base
-  await saveSelection(eventId, newSelections, seasonId.value)
+  await saveCast(eventId, newSelections, seasonId.value)
   
   updateAllStats()
   updateAllChances()
@@ -4585,7 +4445,7 @@ async function drawMultiRoles(eventId) {
 async function drawForRole(role, count, eventId, alreadySelected = []) {
   logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected })
   
-  // Exclure les joueurs qui ont décliné cette sélection
+  // Exclure les joueurs qui ont décliné cette composition
   const declinedPlayers = getDeclinedPlayers(eventId)
   
   // Filtrer les candidats disponibles pour ce rôle
@@ -4603,12 +4463,12 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
     return []
   }
   
-  // Draw pondéré : moins sélectionné = plus de chances
+  // Draw pondéré : moins compositionné = plus de chances
   const weightedCandidates = candidates.map(player => {
     const s = countSelections(player.name)
     return {
       name: player.name,
-      weight: 1 / (1 + s) // poids inverse du nombre de sélections
+      weight: 1 / (1 + s) // poids inverse du nombre de compositions
     }
   })
   
@@ -4637,7 +4497,7 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
 async function drawProtected(eventId) {
   logger.debug('🛡️ drawProtected appelé:', { eventId })
   // Tirage protégé
-  // État de la modal de sélection avant
+  // État de la modal de composition avant
   
   // Sauvegarder l'état de la popin avant le tirage
   const wasSelectionModalOpen = showSelectionModal.value
@@ -4646,31 +4506,31 @@ async function drawProtected(eventId) {
   // Vérifier si c'est une reselection avant de faire le draw
   const wasReselection = getSelectionPlayers(eventId).length > 0
   
-  // Sauvegarder l'ancienne sélection pour comparer
+  // Sauvegarder l'ancienne composition pour comparer
   const oldSelection = wasReselection ? [...getSelectionPlayers(eventId)] : []
   
   logger.debug('🎲 Appel de drawMultiRoles...')
   await drawMultiRoles(eventId)
   
   
-  // État de la modal de sélection après
+  // État de la modal de composition après
   
-  // S'assurer que la popin de sélection reste ouverte si elle était ouverte
+  // S'assurer que la popin de composition reste ouverte si elle était ouverte
   if (wasSelectionModalOpen && !showSelectionModal.value) {
-    // Restauration de la popin de sélection
+    // Restauration de la popin de composition
     showSelectionModal.value = true
     selectionModalEvent.value = events.value.find(e => e.id === selectionModalEventId)
   }
   
-  // Mettre à jour les données de la popin de sélection si elle est ouverte
+  // Mettre à jour les données de la popin de composition si elle est ouverte
   if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
-    // Popin de sélection ouverte, mise à jour
+    // Popin de composition ouverte, mise à jour
     // Forcer la mise à jour des données
     await nextTick()
     
-    // Afficher le message de succès dans la popin de sélection
+    // Afficher le message de succès dans la popin de composition
     if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
-      // Appel de showSuccess sur la popin de sélection
+      // Appel de showSuccess sur la popin de composition
       const newSelection = getSelectionPlayers(eventId)
       const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
       const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
@@ -4679,16 +4539,16 @@ async function drawProtected(eventId) {
       // showSuccess indisponible
     }
   } else {
-    // Popin de sélection fermée, affichage message global
+    // Popin de composition fermée, affichage message global
     // Afficher un message de succès global si la popin n'est pas ouverte
     showSuccessMessage.value = true
     const event = events.value.find(e => e.id === eventId)
     const selectedPlayers = getSelectionPlayers(eventId)
     
     if (wasReselection) {
-      successMessage.value = 'Sélection mise à jour avec succès !'
+      successMessage.value = 'Composition mise à jour avec succès !'
     } else {
-      successMessage.value = 'Sélection effectuée avec succès !'
+      successMessage.value = 'Composition effectuée avec succès !'
     }
     
     setTimeout(() => {
@@ -4845,7 +4705,7 @@ function chanceToBeSelected(playerName, eventId, count = null) {
     count = event?.playerCount || 6
   }
 
-  // Calcul du poids basé sur le nombre de sélections déjà faites
+  // Calcul du poids basé sur le nombre de compositions déjà faites
   const weights = availablePlayers.map(p => {
     const pastSelections = countSelections(p.name)
     return {
@@ -4959,32 +4819,12 @@ async function handleTirage(eventId, count = null) {
       data: { eventId, count }
     })
   } else {
-    // Demander le PIN code avant de lancer la sélection
+    // Demander le PIN code avant de lancer la composition
     await requirePin({
       type: 'launchSelection',
       data: { eventId, count }
     })
   }
-}
-async function confirmTirage() {
-  if (eventIdToReselect.value) {
-    try {
-      // Lancer directement la sélection (le PIN a déjà été validé)
-      await drawProtected(eventIdToReselect.value)
-    } catch (error) {
-      console.error('Erreur lors de la confirmation du tirage:', error)
-    } finally {
-      // Toujours fermer le dialogue de confirmation, même en cas d'erreur
-      confirmReselect.value = false
-      eventIdToReselect.value = null
-    }
-    // Ne pas fermer la popin de sélection, elle restera ouverte avec la nouvelle sélection
-  }
-}
-function cancelTirage() {
-  confirmReselect.value = false
-  eventIdToReselect.value = null
-  // La popin de sélection reste ouverte
 }
 
 // Fonctions pour la protection par PIN
@@ -4996,11 +4836,11 @@ function getPinModalMessage() {
     addEvent: 'Ajout d\'événement - Code PIN requis',
     editEvent: 'Modification d\'événement - Code PIN requis',
     deletePlayer: 'Suppression de joueur - Code PIN requis',
-    launchSelection: 'Lancement de sélection - Code PIN requis',
+    launchSelection: 'Lancement de composition - Code PIN requis',
     toggleArchive: 'Archivage d\'événement - Code PIN requis',
-    updateSelection: 'Mise à jour de sélection - Code PIN requis',
-    resetSelection: 'Réinitialisation de sélection - Code PIN requis',
-    unconfirmSelection: 'Déverrouillage de sélection - Code PIN requis'
+    updateSelection: 'Mise à jour de composition - Code PIN requis',
+    resetSelection: 'Réinitialisation de composition - Code PIN requis',
+    unconfirmCast: 'Déverrouillage de composition - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -5376,7 +5216,7 @@ async function executePendingOperation(operation) {
       case 'launchSelection':
         logger.debug('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
         
-        // Logger l'audit de sélection automatique
+        // Logger l'audit de composition automatique
         try {
           const { default: AuditClient } = await import('../services/auditClient.js')
           const event = events.value.find(e => e.id === data.eventId)
@@ -5390,24 +5230,16 @@ async function executePendingOperation(operation) {
           logger.warn('Erreur audit launchSelection:', auditError)
         }
         
-        // Vérifier si une sélection complète existe déjà pour afficher la confirmation
+        // Vérifier si une composition complète existe déjà pour afficher la confirmation
         const currentSelection = getSelectionPlayers(data.eventId)
         const event = events.value.find(e => e.id === data.eventId)
         const requiredCount = event?.playerCount || 6
         const isSelectionComplete = currentSelection.length >= requiredCount
         
-        if (isSelectionComplete) {
-          // Afficher la modal de confirmation de relance complète
-          eventIdToReselect.value = data.eventId
-          confirmReselect.value = true
-          // Fermer seulement la popin de détails, garder la popin de sélection
-          showEventDetailsModal.value = false
-        } else {
-          // Lancer directement la sélection pour compléter les slots vides
-          await drawProtected(data.eventId)
-          // Fermer seulement la popin de détails, garder la popin de sélection
-          showEventDetailsModal.value = false
-        }
+        // Lancer directement la composition (la confirmation est maintenant gérée dans SelectionModal)
+        await drawProtected(data.eventId)
+        // Fermer seulement la popin de détails, garder la popin de composition
+        showEventDetailsModal.value = false
         break
       case 'toggleAvailability':
         // Cette action n'est plus utilisée - toutes les disponibilités passent par la modale
@@ -5463,7 +5295,7 @@ async function executePendingOperation(operation) {
         }
         break
       case 'updateSelection':
-        // Persister la sélection manuelle après validation du PIN
+        // Persister la composition manuelle après validation du PIN
         {
           const { eventId, players } = data
           // Détecter les joueurs retirés avant de sauvegarder
@@ -5471,7 +5303,7 @@ async function executePendingOperation(operation) {
           const nextSelection = Array.isArray(players) ? players : []
           // Convertir en format par rôle
           const roles = { player: nextSelection }
-          await saveSelection(eventId, roles, seasonId.value)
+          await saveCast(eventId, roles, seasonId.value)
           
           // Mettre à jour la structure locale
           if (selections.value[eventId]) {
@@ -5495,7 +5327,7 @@ async function executePendingOperation(operation) {
               updatedAt: new Date()
             }
           }
-          // Emails de désélection si applicable
+          // Emails de décomposition si applicable
           try {
             const removedPlayers = oldSelection.filter(name => !nextSelection.includes(name))
             if (removedPlayers.length > 0) {
@@ -5511,33 +5343,33 @@ async function executePendingOperation(operation) {
               })
             }
           } catch {}
-          // Feedback via la modale de sélection si ouverte
+          // Feedback via la modale de composition si ouverte
           try {
             selectionModalRef.value?.showSuccess(true, true)
           } catch {}
         }
         break
-      case 'unconfirmSelection':
-        // Déverrouiller une sélection confirmée (admin uniquement)
+      case 'unconfirmCast':
+        // Déverrouiller une composition confirmée (admin uniquement)
         {
           const { eventId } = data
           try {
-            const { unconfirmSelection, loadSelections } = await import('../services/storage.js')
-            await unconfirmSelection(eventId, seasonId.value)
+            const { unconfirmCast, loadCasts } = await import('../services/storage.js')
+            await unconfirmCast(eventId, seasonId.value)
             
-            // Recharger les sélections depuis Firestore pour avoir les données à jour
-            const newSelections = await loadSelections(seasonId.value)
+            // Recharger les compositions depuis Firestore pour avoir les données à jour
+            const newSelections = await loadCasts(seasonId.value)
             selections.value = newSelections
             
             showSuccessMessage.value = true
-            successMessage.value = 'Sélection déverrouillée !'
+            successMessage.value = 'Composition déverrouillée !'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
           } catch (error) {
-            console.error('Erreur lors du déverrouillage de la sélection:', error)
+            console.error('Erreur lors du déverrouillage de la composition:', error)
             showSuccessMessage.value = true
-            successMessage.value = 'Erreur lors du déverrouillage de la sélection'
+            successMessage.value = 'Erreur lors du déverrouillage de la composition'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
@@ -5545,12 +5377,12 @@ async function executePendingOperation(operation) {
         }
         break
       case 'resetSelection':
-        // Réinitialiser complètement une sélection (admin uniquement)
+        // Réinitialiser complètement une composition (admin uniquement)
         {
           const { eventId } = data
           try {
-            const { deleteSelection, loadSelections } = await import('../services/storage.js')
-            await deleteSelection(eventId, seasonId.value)
+            const { deleteCast, loadCasts } = await import('../services/storage.js')
+            await deleteCast(eventId, seasonId.value)
             
             // Logger l'audit de réinitialisation
             try {
@@ -5567,19 +5399,19 @@ async function executePendingOperation(operation) {
               console.warn('Erreur audit resetSelection:', auditError)
             }
             
-            // Recharger les sélections depuis Firestore pour avoir les données à jour
-            const newSelections = await loadSelections(seasonId.value)
+            // Recharger les compositions depuis Firestore pour avoir les données à jour
+            const newSelections = await loadCasts(seasonId.value)
             selections.value = newSelections
             
             showSuccessMessage.value = true
-            successMessage.value = 'Sélection réinitialisée ! Le statut est maintenant "Nouveau"'
+            successMessage.value = 'Composition réinitialisée ! Le statut est maintenant "Nouveau"'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
           } catch (error) {
-            console.error('Erreur lors de la réinitialisation de la sélection:', error)
+            console.error('Erreur lors de la réinitialisation de la composition:', error)
             showSuccessMessage.value = true
-            successMessage.value = 'Erreur lors de la réinitialisation de la sélection'
+            successMessage.value = 'Erreur lors de la réinitialisation de la composition'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
@@ -5639,7 +5471,7 @@ async function showEventDetails(event) {
   try {
     const [newAvailability, newSelections] = await Promise.all([
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ])
     availability.value = newAvailability
     selections.value = newSelections
@@ -5661,18 +5493,13 @@ function closeEventDetails() {
   showEventDetailsModal.value = false;
   selectedEvent.value = null;
   editingDescription.value = '';
-  showEventMoreActions.value = false;
-  showEventMoreActionsDesktop.value = false;
   
   // Fermer les menus d'agenda
   closeCalendarMenuDetails();
   
   // Réinitialiser l'état du partage de lien
   showShareLinkCopied.value = false;
-  
-  // Nettoyer les styles des dropdowns
-  eventMoreActionsStyle.value = { position: 'fixed', top: '0px', left: '0px' };
-  eventMoreActionsMobileStyle.value = { position: 'fixed', top: '0px', left: '0px' };
+  // Cache fix: removed eventMoreActionsStyle references
 }
 
 // Fonction pour ajouter un événement à l'agenda
@@ -5750,7 +5577,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
-  // Vérifier si le joueur est sélectionné ET la sélection est confirmée par l'organisateur
+  // Vérifier si le joueur est compositionné ET la composition est confirmée par l'organisateur
   const playerIsSelected = isSelected(playerName, eventId)
   const playerIsAvailable = isAvailable(playerName, eventId)
   const playerSelectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
@@ -5781,7 +5608,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
   }
 }
 
-// Fonction pour vérifier si un joueur est sélectionné pour un événement spécifique
+// Fonction pour vérifier si un joueur est compositionné pour un événement spécifique
 function isPlayerSelected(playerName, eventId) {
   const selected = getSelectionPlayers(eventId);
   return selected.includes(playerName);
@@ -5922,7 +5749,7 @@ async function handlePlayerUpdate({ playerId, newName, newGender }) {
     await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers;
       availability.value = newAvailability;
@@ -5967,7 +5794,7 @@ async function handlePlayerRefresh() {
     const [newPlayers, newAvailability, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]);
     
     players.value = newPlayers;
@@ -6045,7 +5872,7 @@ function getEventStatus(eventId) {
   const isConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
   const isConfirmedByAllPlayers = isSelectionConfirmed(eventId)
   
-  // Cas 0: Aucune sélection → afficher "Nouveau" (prioritaire)
+  // Cas 0: Aucune composition → afficher "Nouveau" (prioritaire)
   if (selectedPlayers.length === 0) {
     return {
       type: 'ready',
@@ -6056,7 +5883,7 @@ function getEventStatus(eventId) {
     }
   }
 
-  // Cas 1: Sélection incomplète (sélection existante avec problèmes)
+  // Cas 1: Composition incomplète (composition existante avec problèmes)
   if (selectedPlayers.length > 0) {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isAvailable(playerName, eventId))
     const hasInsufficientPlayers = availableCount < requiredCount
@@ -6075,7 +5902,7 @@ function getEventStatus(eventId) {
     }
   }
   
-  // Cas 2: Pas assez de joueurs pour faire une sélection (si une sélection existe)
+  // Cas 2: Pas assez de joueurs pour faire une composition (si une composition existe)
   if (availableCount < requiredCount) {
     return {
       type: 'insufficient',
@@ -6086,7 +5913,7 @@ function getEventStatus(eventId) {
     }
   }
   
-  // Cas 4: Sélection confirmée par l'organisateur ET par tous les joueurs
+  // Cas 4: Composition confirmée par l'organisateur ET par tous les joueurs
   if (isConfirmedByAllPlayers) {
     return {
       type: 'confirmed',
@@ -6097,7 +5924,7 @@ function getEventStatus(eventId) {
     }
   }
   
-  // Cas 5: Sélection confirmée par l'organisateur mais pas encore par tous les joueurs
+  // Cas 5: Composition confirmée par l'organisateur mais pas encore par tous les joueurs
   if (isConfirmedByOrganizer) {
     return {
       type: 'pending_confirmation',
@@ -6108,7 +5935,7 @@ function getEventStatus(eventId) {
     }
   }
   
-  // Cas 6: Sélection complète mais non confirmée par l'organisateur
+  // Cas 6: Composition complète mais non confirmée par l'organisateur
   return {
     type: 'complete',
     availableCount,
@@ -6130,23 +5957,23 @@ function getEventTooltip(eventId) {
     case 'incomplete':
       if (status.hasUnavailablePlayers) {
         if (status.unavailablePlayers.length === 1) {
-          return `Sélection incomplète : ${status.unavailablePlayers[0]} n'est plus disponible`
+          return `Composition incomplète : ${status.unavailablePlayers[0]} n'est plus disponible`
         } else {
-          return `Sélection incomplète : ${status.unavailablePlayers.length} joueurs ne sont plus disponibles`
+          return `Composition incomplète : ${status.unavailablePlayers.length} joueurs ne sont plus disponibles`
         }
       } else {
-        return `Sélection incomplète : ${status.availableCount} joueurs disponibles pour ${status.requiredCount} requis`
+        return `Composition incomplète : ${status.availableCount} joueurs disponibles pour ${status.requiredCount} requis`
       }
     case 'insufficient':
       return `Pas assez de joueurs : ${status.availableCount} disponibles pour ${status.requiredCount} requis`
     case 'ready':
-      return `Prêt pour la sélection : ${status.availableCount} joueurs disponibles`
+      return `Prêt pour la composition : ${status.availableCount} joueurs disponibles`
     case 'complete':
-      return `Sélection complète : ${status.availableCount} joueurs disponibles (non confirmée)`
+      return `Composition complète : ${status.availableCount} joueurs disponibles (non confirmée)`
     case 'pending_confirmation':
-      return `Sélection à confirmer : ${status.availableCount} joueurs disponibles (en attente de confirmation des joueurs)`
+      return `Composition à confirmer : ${status.availableCount} joueurs disponibles (en attente de confirmation des joueurs)`
     case 'confirmed':
-      return `Sélection confirmée : ${status.availableCount} joueurs disponibles (tous ont confirmé)`
+      return `Composition confirmée : ${status.availableCount} joueurs disponibles (tous ont confirmé)`
     default:
       return ''
   }
@@ -6212,17 +6039,17 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
   let success = false
   try {
     if (reason === 'selection') {
-      // Vérifier que l'organisateur a validé la sélection avant d'envoyer les notifications
+      // Vérifier que l'organisateur a validé la composition avant d'envoyer les notifications
       if (!isSelectionConfirmedByOrganizer(eventId)) {
         showSuccessMessage.value = true
-        successMessage.value = 'Impossible d\'envoyer les notifications : la sélection n\'est pas encore validée par l\'organisateur'
+        successMessage.value = 'Impossible d\'envoyer les notifications : la composition n\'est pas encore validée par l\'organisateur'
         setTimeout(() => { showSuccessMessage.value = false }, 3000)
         isSendingNotifications.value = false
         return
       }
       
       if (scope === 'single' && recipient?.email) {
-        // Envoi ciblé pour un joueur sélectionné
+        // Envoi ciblé pour un joueur compositionné
         await sendSelectionNotificationsForEvent({
           eventId,
           eventData,
@@ -6233,7 +6060,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
           isConfirmedTeam: isSelectionConfirmed(eventId)
         })
       } else {
-        // Batch pour tous les sélectionnés
+        // Batch pour tous les compositionnés
         await sendSelectionNotificationsForEvent({ 
           eventId, 
           eventData, 
@@ -6252,7 +6079,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
         ? `Notification envoyée à ${recipient?.name || '1 joueur'}`
         : isConfirmedTeam 
           ? 'Notifications d\'équipe confirmée envoyées à tous les joueurs !'
-          : 'Notifications de sélection envoyées à tous les joueurs sélectionnés !'
+          : 'Notifications de composition envoyées à tous les joueurs compositionnés !'
       setTimeout(() => { showSuccessMessage.value = false }, 3000)
     } else {
       // Mode événement : envoi multi-canal
@@ -6310,15 +6137,75 @@ function getPlayerAvailabilityForEvent(eventId) {
   
   const availabilityMap = {}
   players.value.forEach(player => {
-    // Utiliser isAvailableForPlayerRole pour la sélection manuelle
-    // Seuls les joueurs disponibles pour le rôle "Joueur" peuvent être sélectionnés
+    // Utiliser isAvailableForPlayerRole pour la composition manuelle
+    // Seuls les joueurs disponibles pour le rôle "Joueur" peuvent être compositionnés
     availabilityMap[player.name] = isAvailableForPlayerRole(player.name, eventId)
   })
   
   return availabilityMap
 }
 
-// Fonction helper pour extraire les joueurs d'une sélection
+// Fonction pour calculer les chances par rôle pour chaque joueur
+function getPlayerRoleChances(eventId) {
+  if (!eventId) return {}
+  
+  const event = events.value.find(e => e.id === eventId)
+  if (!event || !event.roles) return {}
+  
+  const roleChances = {}
+  
+  // Pour chaque rôle requis dans l'événement
+  Object.entries(event.roles).forEach(([role, requiredCount]) => {
+    if (requiredCount <= 0) return
+    
+    // Récupérer les joueurs disponibles pour ce rôle
+    const availablePlayers = players.value.filter(p => isAvailableForRole(p.name, role, eventId))
+    
+    if (availablePlayers.length === 0) return
+    
+    // Calculer les poids basés sur le nombre de compositions déjà faites
+    const weights = availablePlayers.map(player => {
+      const pastSelections = countSelections(player.name)
+      return {
+        name: player.name,
+        weight: 1 / (1 + pastSelections)
+      }
+    })
+    
+    const totalWeight = weights.reduce((sum, p) => sum + p.weight, 0)
+    
+    // Calculer les chances pour chaque joueur pour ce rôle
+    weights.forEach(player => {
+      if (!roleChances[player.name]) roleChances[player.name] = {}
+      
+      const chance = Math.min(1, (player.weight / totalWeight) * requiredCount)
+      roleChances[player.name][role] = Math.round(chance * 100)
+    })
+  })
+  
+  return roleChances
+}
+
+// Fonction pour récupérer les chances par rôle seulement pour les rôles choisis par le joueur
+function getPlayerSelectedRoleChances(playerName, eventId) {
+  const allRoleChances = getPlayerRoleChances(eventId)
+  const playerChances = allRoleChances[playerName] || {}
+  
+  // Récupérer les rôles choisis par le joueur dans sa disponibilité
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  const selectedRoles = availabilityData?.roles || []
+  
+  // Retourner seulement les chances pour les rôles choisis par le joueur
+  return selectedRoles
+    .filter(role => playerChances[role] !== undefined)
+    .map(role => ({
+      role,
+      chance: playerChances[role]
+    }))
+    .sort((a, b) => b.chance - a.chance) // Trier par pourcentage décroissant
+}
+
+// Fonction helper pour extraire les joueurs d'une composition
 function getSelectionPlayers(eventId) {
   const selection = selections.value[eventId]
   
@@ -6352,7 +6239,7 @@ function getSelectionPlayers(eventId) {
   return []
 }
 
-// Fonction helper pour vérifier si une sélection est confirmée
+// Fonction helper pour vérifier si une composition est confirmée
 function isSelectionConfirmed(eventId) {
   const selection = selections.value[eventId]
   if (!selection) return false
@@ -6376,7 +6263,7 @@ function isSelectionConfirmed(eventId) {
   return false
 }
 
-// Fonction helper pour vérifier si l'organisateur a confirmé la sélection (sans vérifier les confirmations individuelles)
+// Fonction helper pour vérifier si l'organisateur a confirmé la composition (sans vérifier les confirmations individuelles)
 function isSelectionConfirmedByOrganizer(eventId) {
   const selection = selections.value[eventId]
   if (!selection) return false
@@ -6390,7 +6277,7 @@ function isSelectionConfirmedByOrganizer(eventId) {
   return false
 }
 
-// Fonction helper pour obtenir le statut individuel d'un joueur dans une sélection
+// Fonction helper pour obtenir le statut individuel d'un joueur dans une composition
 function getPlayerSelectionStatus(playerName, eventId) {
   const selection = selections.value[eventId]
   
@@ -6407,7 +6294,7 @@ function getPlayerSelectionStatus(playerName, eventId) {
   return 'pending'
 }
 
-// Fonction helper pour obtenir le rôle de sélection d'un joueur
+// Fonction helper pour obtenir le rôle de composition d'un joueur
 function getPlayerSelectionRole(playerName, eventId) {
   const selection = selections.value[eventId]
   
@@ -6415,7 +6302,7 @@ function getPlayerSelectionRole(playerName, eventId) {
     return null
   }
   
-  // Chercher dans quel rôle le joueur a été sélectionné
+  // Chercher dans quel rôle le joueur a été compositionné
   for (const [role, players] of Object.entries(selection.roles)) {
     if (Array.isArray(players) && players.includes(playerName)) {
       return role
@@ -6425,11 +6312,11 @@ function getPlayerSelectionRole(playerName, eventId) {
   return null
 }
 
-// Fonctions pour la nouvelle popin de sélection
+// Fonctions pour la nouvelle popin de composition
 function openSelectionModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'ouvrir la sélection sur un événement archivé'
+    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement archivé'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -6474,7 +6361,7 @@ async function handleSelectionFromModal() {
     return
   }
   
-  // Demander le PIN code avant de lancer la sélection
+  // Demander le PIN code avant de lancer la composition
   await requirePin({
     type: 'launchSelection',
     data: { eventId, count }
@@ -6484,10 +6371,24 @@ async function handleSelectionFromModal() {
 async function handlePerfectFromModal() {
   closeSelectionModal()
   showSuccessMessage.value = true
-  successMessage.value = 'Sélection validée !'
+  successMessage.value = 'Composition validée !'
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
+}
+
+async function handleConfirmReselectFromModal() {
+  if (!selectionModalEvent.value) return
+  
+  const eventId = selectionModalEvent.value.id
+  
+  try {
+    // Lancer directement la composition (le PIN a déjà été validé)
+    await drawProtected(eventId)
+  } catch (error) {
+    console.error('Erreur lors de la confirmation du tirage:', error)
+  }
+  // Ne pas fermer la popin de composition, elle restera ouverte avec la nouvelle composition
 }
 
 async function handleConfirmSelectionFromModal() {
@@ -6496,11 +6397,11 @@ async function handleConfirmSelectionFromModal() {
   const eventId = selectionModalEvent.value.id
   
   try {
-    // Confirmer la sélection
-    const { confirmSelection } = await import('../services/storage.js')
-    await confirmSelection(eventId, seasonId.value)
+    // Confirmer la composition
+    const { confirmCast } = await import('../services/storage.js')
+    await confirmCast(eventId, seasonId.value)
     
-    // Logger l'audit de validation de sélection
+    // Logger l'audit de validation de composition
     try {
       const { default: AuditClient } = await import('../services/auditClient.js')
       const event = events.value.find(e => e.id === eventId)
@@ -6512,7 +6413,7 @@ async function handleConfirmSelectionFromModal() {
         playerCount: selectedPlayers.length
       })
     } catch (auditError) {
-      console.warn('Erreur audit confirmSelection:', auditError)
+      console.warn('Erreur audit confirmCast:', auditError)
     }
     
     // Mettre à jour la structure locale
@@ -6537,29 +6438,29 @@ async function handleConfirmSelectionFromModal() {
     
     // Afficher un message de succès
     showSuccessMessage.value = true
-    successMessage.value = 'Sélection validée !'
+    successMessage.value = 'Composition validée !'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
   } catch (error) {
-    console.error('Erreur lors de la confirmation de la sélection:', error)
+    console.error('Erreur lors de la confirmation de la composition:', error)
     showSuccessMessage.value = true
-    successMessage.value = 'Erreur lors de la confirmation de la sélection'
+    successMessage.value = 'Erreur lors de la confirmation de la composition'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
   }
 }
 
-async function handleUnconfirmSelectionFromModal() {
+async function handleUnconfirmCastFromModal() {
   if (!selectionModalEvent.value) return
   
   const eventId = selectionModalEvent.value.id
   
   try {
-    // Demander le PIN code avant de déverrouiller la sélection
+    // Demander le PIN code avant de déverrouiller la composition
     await requirePin({
-      type: 'unconfirmSelection',
+      type: 'unconfirmCast',
       data: { eventId }
     })
   } catch (error) {
@@ -6567,7 +6468,19 @@ async function handleUnconfirmSelectionFromModal() {
   }
 }
 
-// Sauvegarde d'une sélection manuelle via PIN
+function handleResetSelectionFromModal() {
+  // La logique de réinitialisation est maintenant dans SelectionModal
+  // Cette fonction ne fait que gérer la mise à jour de l'interface parent
+  if (!selectionModalEvent.value) return
+  
+  // Recharger les données pour refléter les changements
+  loadCasts(seasonId.value).then(newSelections => {
+    selections.value = newSelections
+  })
+}
+
+
+// Sauvegarde d'une composition manuelle via PIN
 async function handleUpdateSelectionFromModal(payload) {
   if (!payload || !payload.eventId) return
   const { eventId, players } = payload
@@ -6993,6 +6906,7 @@ function openAvailabilityModal(data) {
   availabilityModalData.value = {
     playerName: data.playerName,
     playerId: data.playerId,
+    playerGender: data.playerGender || 'non-specified',
     eventId: data.eventId,
     eventTitle: data.eventTitle,
     eventDate: data.eventDate,

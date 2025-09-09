@@ -406,7 +406,7 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
       // On continue car le joueur a déjà été renommé
     }
 
-    // Mettre à jour les sélections (nouveau format par rôles)
+    // Mettre à jour les compositions (nouveau format par rôles)
     try {
       const selections = await firestoreService.getDocuments('seasons', seasonId, 'selections')
       let updatedSelections = 0
@@ -432,10 +432,10 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
         }
       }
       if (updatedSelections > 0) {
-        logger.info(`✅ ${updatedSelections} sélection(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
+        logger.info(`✅ ${updatedSelections} composition(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
       }
     } catch (error) {
-              logger.warn(`⚠️ Échec de la mise à jour des sélections pour "${oldName}":`, error.message)
+              logger.warn(`⚠️ Échec de la mise à jour des compositions pour "${oldName}":`, error.message)
       // On continue car le joueur a déjà été renommé
     }
   }
@@ -452,7 +452,7 @@ export async function loadAvailability(players, events, seasonId) {
   return availability
 }
 
-export async function loadSelections(seasonId) {
+export async function loadCasts(seasonId) {
   const selectionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'selections')
   const res = {}
   
@@ -514,9 +514,9 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
   await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
 }
 
-export async function saveSelection(eventId, roles, seasonId) {
+export async function saveCast(eventId, roles, seasonId) {
   try {
-    // Récupérer l'ancienne sélection pour comparer
+    // Récupérer l'ancienne composition pour comparer
     const oldSelectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
     
     // Extraire tous les joueurs de tous les rôles
@@ -536,7 +536,7 @@ export async function saveSelection(eventId, roles, seasonId) {
       // Nouveau format (par rôle)
       roles: roles,
       
-      confirmed: false, // Nouvelle sélection = non confirmée
+      confirmed: false, // Nouvelle composition = non confirmée
       confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
       playerStatuses, // Statuts individuels des joueurs
       updatedAt: new Date()
@@ -553,7 +553,7 @@ export async function saveSelection(eventId, roles, seasonId) {
       
       if (eventData && seasonData) {
           
-          // Supprimer les rappels pour les joueurs désélectionnés
+          // Supprimer les rappels pour les joueurs décomposés
           const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
           
           for (const playerName of removedPlayers) {
@@ -573,10 +573,10 @@ export async function saveSelection(eventId, roles, seasonId) {
             }
           }
           
-          // Créer les rappels pour les nouveaux joueurs sélectionnés
+          // Créer les rappels pour les nouveaux joueurs composés
           const newPlayers = allPlayers.filter(name => !oldSelection.includes(name))
           
-          // Créer les rappels pour les nouveaux joueurs sélectionnés
+          // Créer les rappels pour les nouveaux joueurs composés
           for (const playerName of newPlayers) {
             try {
               // Récupérer l'email du joueur depuis playerProtection
@@ -601,26 +601,26 @@ export async function saveSelection(eventId, roles, seasonId) {
         }
     } catch (error) {
       logger.error('Erreur lors de la gestion des rappels automatiques:', error)
-      // Ne pas faire échouer la sauvegarde de la sélection à cause des rappels
+      // Ne pas faire échouer la sauvegarde de la composition à cause des rappels
     }
   } catch (error) {
-    logger.error('❌ Erreur dans saveSelection:', error)
+    logger.error('❌ Erreur dans saveCast:', error)
     throw error
   }
 }
 
 /**
- * Confirmer une sélection (la verrouille)
+ * Confirmer une composition (la verrouille)
  */
-export async function confirmSelection(eventId, seasonId) {
+export async function confirmCast(eventId, seasonId) {
   try {
-    // Récupérer la sélection actuelle pour initialiser les statuts des joueurs
-    const currentSelection = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { roles: {} }
+    // Récupérer la composition actuelle pour initialiser les statuts des joueurs
+    const currentCast = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { roles: {} }
     
     // Initialiser les statuts individuels des joueurs si pas encore fait
     // Préserver les statuts "declined" existants
-    const playerStatuses = currentSelection.playerStatuses || {}
-    const allPlayers = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
+    const playerStatuses = currentCast.playerStatuses || {}
+    const allPlayers = Object.values(currentCast.roles || {}).flat().filter(Boolean)
     allPlayers.forEach((playerName) => {
       if (!playerStatuses[playerName]) {
         playerStatuses[playerName] = 'pending' // En attente de confirmation
@@ -635,15 +635,15 @@ export async function confirmSelection(eventId, seasonId) {
       playerStatuses
     }, 'selections', eventId)
   } catch (error) {
-    logger.error('❌ Erreur dans confirmSelection:', error)
+    logger.error('❌ Erreur dans confirmCast:', error)
     throw error
   }
 }
 
 /**
- * Annuler la confirmation d'une sélection (admin uniquement)
+ * Annuler la confirmation d'une composition (admin uniquement)
  */
-export async function unconfirmSelection(eventId, seasonId) {
+export async function unconfirmCast(eventId, seasonId) {
   try {
     // Préserver TOUS les statuts des joueurs lors du déverrouillage
     const currentData = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
@@ -664,26 +664,26 @@ export async function unconfirmSelection(eventId, seasonId) {
       confirmedByAllPlayers: false
     }, 'selections', eventId)
   } catch (error) {
-    logger.error('❌ Erreur dans unconfirmSelection:', error)
+    logger.error('❌ Erreur dans unconfirmCast:', error)
     throw error
   }
 }
 
 /**
- * Supprimer complètement une sélection (remet le statut à "Nouveau")
+ * Supprimer complètement une composition (remet le statut à "Nouveau")
  * @param {string} eventId - ID de l'événement
  * @param {string} seasonId - ID de la saison (optionnel)
  */
-export async function deleteSelection(eventId, seasonId) {
-          logger.info('🗑️ deleteSelection appelé:', { eventId, seasonId })
+export async function deleteCast(eventId, seasonId) {
+          logger.info('🗑️ deleteCast appelé:', { eventId, seasonId })
   
   try {
-    // Supprimer complètement le document de sélection
+    // Supprimer complètement le document de composition
     await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
     
-    logger.info('✅ Sélection supprimée avec succès')
+    logger.info('✅ Composition supprimée avec succès')
   } catch (error) {
-    logger.error('❌ Erreur dans deleteSelection:', error)
+    logger.error('❌ Erreur dans deleteCast:', error)
     throw error
   }
 }
@@ -696,8 +696,8 @@ export async function deleteEvent(eventId, seasonId) {
     logger.debug('Suppression de l\'événement dans Firestore')
     await firestoreService.deleteDocument('seasons', seasonId, 'events', eventId)
     
-    // Supprimer la sélection associée
-    logger.debug('Suppression de la sélection associée')
+    // Supprimer la composition associée
+    logger.debug('Suppression de la composition associée')
     await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
     
     // Supprimer les disponibilités pour cet événement
@@ -757,36 +757,36 @@ export async function setEventArchived(eventId, archived, seasonId) {
 }
 
 /**
- * Mettre à jour le statut individuel d'un joueur dans une sélection
+ * Mettre à jour le statut individuel d'un joueur dans une composition
  * @param {string} eventId - ID de l'événement
  * @param {string} playerName - Nom du joueur
  * @param {string} status - Statut: 'pending', 'confirmed', 'declined'
  * @param {string} seasonId - ID de la saison (optionnel)
  */
-export async function updatePlayerSelectionStatus(eventId, playerName, status, seasonId) {
-  logger.info('🔄 updatePlayerSelectionStatus appelé:', { eventId, playerName, status, seasonId })
+export async function updatePlayerCastStatus(eventId, playerName, status, seasonId) {
+  logger.info('🔄 updatePlayerCastStatus appelé:', { eventId, playerName, status, seasonId })
   
   try {
-    // Récupérer la sélection actuelle pour vérifier l'état global
-    const selectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
-    if (!selectionDoc) {
-      throw new Error('Sélection non trouvée')
+    // Récupérer la composition actuelle pour vérifier l'état global
+    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    if (!castDoc) {
+      throw new Error('Composition non trouvée')
     }
     
-    const { playerStatuses = {} } = selectionDoc
+    const { playerStatuses = {} } = castDoc
     
     // Mettre à jour le statut du joueur
     const updatedPlayerStatuses = { ...playerStatuses, [playerName]: status }
     
-    // Récupérer tous les joueurs de la sélection (tous rôles confondus)
-    const allPlayers = getAllPlayersFromSelection(selectionDoc)
+    // Récupérer tous les joueurs de la composition (tous rôles confondus)
+    const allPlayers = getAllPlayersFromCast(castDoc)
     
     // Vérifier si tous les joueurs ont maintenant confirmé
     const allPlayersConfirmed = allPlayers.every(playerName => 
       updatedPlayerStatuses[playerName] === 'confirmed'
     )
     
-    // Mettre à jour le statut du joueur ET l'état global de la sélection
+    // Mettre à jour le statut du joueur ET l'état global de la composition
     await firestoreService.updateDocument('seasons', seasonId, {
       [`playerStatuses.${playerName}`]: status,
       confirmedByAllPlayers: allPlayersConfirmed
@@ -794,25 +794,25 @@ export async function updatePlayerSelectionStatus(eventId, playerName, status, s
     
     return { confirmedByAllPlayers: allPlayersConfirmed }
   } catch (error) {
-    logger.error('❌ Erreur dans updatePlayerSelectionStatus:', error)
+    logger.error('❌ Erreur dans updatePlayerCastStatus:', error)
     throw error
   }
 }
 
 /**
- * Vérifier si tous les joueurs d'une sélection ont confirmé leur participation
+ * Vérifier si tous les joueurs d'une composition ont confirmé leur participation
  * @param {string} eventId - ID de l'événement
  * @param {string} seasonId - ID de la saison
  * @returns {Promise<boolean>} - true si tous ont confirmé
  */
 export async function isAllPlayersConfirmed(eventId, seasonId) {
   try {
-    const selectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
-    if (!selectionDoc) {
+    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    if (!castDoc) {
       return false
     }
     
-    const { confirmedByAllPlayers = false } = selectionDoc
+    const { confirmedByAllPlayers = false } = castDoc
     
     // Utiliser le champ pré-calculé pour de meilleures performances
     return confirmedByAllPlayers
@@ -827,16 +827,16 @@ export async function isAllPlayersConfirmed(eventId, seasonId) {
  */
 
 /**
- * Extraire tous les joueurs d'une sélection (tous rôles confondus)
- * @param {Object} selection - Objet de sélection
+ * Extraire tous les joueurs d'une composition (tous rôles confondus)
+ * @param {Object} composition - Objet de composition
  * @returns {Array} - Array de noms de joueurs
  */
-export function getAllPlayersFromSelection(selection) {
-  if (!selection) return []
+export function getAllPlayersFromCast(cast) {
+  if (!cast) return []
   
-  if (selection.roles && typeof selection.roles === 'object') {
+  if (cast.roles && typeof cast.roles === 'object') {
     // Nouveau format : extraire de tous les rôles
-    return Object.values(selection.roles).flat().filter(Boolean)
+    return Object.values(cast.roles).flat().filter(Boolean)
   }
   
   // Aucun format valide trouvé
@@ -845,40 +845,40 @@ export function getAllPlayersFromSelection(selection) {
 
 /**
  * Extraire les joueurs d'un rôle spécifique
- * @param {Object} selection - Objet de sélection
+ * @param {Object} composition - Objet de composition
  * @param {string} role - Rôle recherché
  * @returns {Array} - Array de noms de joueurs pour ce rôle
  */
-export function getPlayersForRole(selection, role) {
-  if (!selection || !selection.roles) return []
+export function getPlayersForRole(cast, role) {
+  if (!cast || !cast.roles) return []
   
-  return selection.roles[role] || []
+  return cast.roles[role] || []
 }
 
 /**
- * Vérifier si un joueur est sélectionné pour un rôle spécifique
- * @param {Object} selection - Objet de sélection
+ * Vérifier si un joueur est composé pour un rôle spécifique
+ * @param {Object} composition - Objet de composition
  * @param {string} playerName - Nom du joueur
  * @param {string} role - Rôle recherché
- * @returns {boolean} - true si le joueur est sélectionné pour ce rôle
+ * @returns {boolean} - true si le joueur est composé pour ce rôle
  */
-export function isPlayerSelectedForRole(selection, playerName, role) {
-  if (!selection || !selection.roles) return false
+export function isPlayerCastForRole(cast, playerName, role) {
+  if (!cast || !cast.roles) return false
   
-  const rolePlayers = selection.roles[role] || []
+  const rolePlayers = cast.roles[role] || []
   return rolePlayers.includes(playerName)
 }
 
 /**
- * Obtenir le rôle d'un joueur dans une sélection
- * @param {Object} selection - Objet de sélection
+ * Obtenir le rôle d'un joueur dans une composition
+ * @param {Object} composition - Objet de composition
  * @param {string} playerName - Nom du joueur
  * @returns {string|null} - Rôle du joueur ou null si non trouvé
  */
-export function getPlayerRole(selection, playerName) {
-  if (!selection || !selection.roles) return null
+export function getPlayerRole(cast, playerName) {
+  if (!cast || !cast.roles) return null
   
-  for (const [role, players] of Object.entries(selection.roles)) {
+  for (const [role, players] of Object.entries(cast.roles)) {
     if (players.includes(playerName)) {
       return role
     }

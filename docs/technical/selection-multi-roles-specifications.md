@@ -1,17 +1,17 @@
-# Spécifications - Sélection Multi-Rôles
+# Spécifications - Composition Multi-Rôles
 
 ## Vue d'ensemble
 
-Le système de sélection automatique d'équipe doit être étendu pour gérer la sélection par rôle au lieu de la sélection globale de "joueurs". Chaque rôle a sa propre logique de tirage et de pénalités.
+Le système de composition automatique d'équipe doit être étendu pour gérer la composition par rôle au lieu de la composition globale de "joueurs". Chaque rôle a sa propre logique de tirage et de pénalités.
 
 ## 🎯 **Principes fondamentaux**
 
 ### **Indépendance des rôles**
-- Être sélectionné pour un rôle **NE RÉDUIT PAS** les chances d'être sélectionné pour un autre rôle
-- Les pénalités sont **spécifiques au rôle** : si déjà sélectionné comme "DJ", ça réduit seulement les chances d'être re-sélectionné comme "DJ"
+- Être compositionné pour un rôle **NE RÉDUIT PAS** les chances d'être compositionné pour un autre rôle
+- Les pénalités sont **spécifiques au rôle** : si déjà compositionné comme "DJ", ça réduit seulement les chances d'être re-compositionné comme "DJ"
 
-### **Sélection unique par personne**
-- Une personne ne peut être sélectionnée que pour **UN SEUL RÔLE** par spectacle
+### **Composition unique par personne**
+- Une personne ne peut être compositionnée que pour **UN SEUL RÔLE** par spectacle
 - Pas de cumul de rôles pour la même personne
 
 ### **Ordre des tirages**
@@ -24,7 +24,7 @@ Le système de sélection automatique d'équipe doit être étendu pour gérer l
 ```javascript
 selections: {
   eventId: ['Alice', 'Bob', 'Charlie', 'David', 'Eva', 'Fanny']
-  // Implicitement : tous sélectionnés comme "Comédiens"
+  // Implicitement : tous compositionnés comme "Comédiens"
 }
 ```
 
@@ -45,7 +45,7 @@ selections: {
 }
 ```
 
-## 🎭 **Affichage de l'équipe sélectionnée**
+## 🎭 **Affichage de l'équipe compositionnée**
 
 ### **Nombre de slots**
 - **Total des slots** = Somme de tous les rôles attendus (count > 0)
@@ -63,13 +63,13 @@ selections: {
 - **Libellé court** : "Comédien", "MC", "DJ", "Bénévole"...
 - **Tooltip complet** : "Ajouter un comédien", "Ajouter un MC", "Ajouter un DJ"...
 - **Style** : Pointillés (déjà existant)
-- **Position** : Après les personnes sélectionnées pour ce rôle
+- **Position** : Après les personnes compositionnées pour ce rôle
 
 ### **Rôles avec count = 0**
 - **Aucun slot affiché** pour ces rôles
 - **Exemple** : Si "Lumière" = 0, pas de slot "Lumière"
 
-## 🔄 **Algorithme de sélection automatique**
+## 🔄 **Algorithme de composition automatique**
 
 ### **Phase 1 : Calcul des besoins**
 ```javascript
@@ -103,7 +103,7 @@ function drawPeopleForRole(role, count, event) {
   // 2. Calculer les chances de base (disponibilité + protection)
   const chances = available.map(p => calculateBaseChances(p, event))
   
-  // 3. Appliquer les pénalités si déjà sélectionné pour ce rôle
+  // 3. Appliquer les pénalités si déjà compositionné pour ce rôle
   const finalChances = available.map(p => 
     applyRolePenalty(p, role, chances[p], event)
   )
@@ -116,7 +116,7 @@ function drawPeopleForRole(role, count, event) {
 ### **Phase 4 : Pénalités par rôle**
 ```javascript
 function applyRolePenalty(player, role, baseChances, event) {
-  // Si déjà sélectionné pour ce rôle → chances réduites
+  // Si déjà compositionné pour ce rôle → chances réduites
   if (isAlreadySelectedForRole(player, role, event)) {
     return baseChances * PENALTY_MULTIPLIER // Ex: 0.5
   }
@@ -153,19 +153,19 @@ Bénévoles (2/2) :
 
 ### **Fichiers à modifier**
 1. **`src/components/GridBoard.vue`**
-   - Structure des sélections
-   - Logique de sélection automatique
+   - Structure des compositions
+   - Logique de composition automatique
    - Affichage des slots
 
 2. **`src/services/storage.js`**
-   - Fonctions de sauvegarde des sélections
+   - Fonctions de sauvegarde des compositions
    - Structure des données
 
 3. **`src/components/SelectionModal.vue`** (si existe)
-   - Affichage de la sélection par rôle
+   - Affichage de la composition par rôle
 
 ### **Fonctions à créer/modifier**
-1. **`drawMultiRoles(event)`** - Sélection automatique complète ✅
+1. **`drawMultiRoles(event)`** - Composition automatique complète ✅
 2. **`drawForRole(role, count, event)`** - Draw pour un rôle spécifique ✅
 3. **`applyRolePenalty(player, role, chances, event)`** - Pénalités par rôle ✅
 4. **`displayTeamSlots(selections, roles)`** - Affichage des slots groupés ✅
@@ -173,20 +173,20 @@ Bénévoles (2/2) :
 ## 🧪 **Tests et validation**
 
 ### **Scénarios de test**
-1. **Sélection simple** : 1 rôle avec plusieurs personnes
-2. **Sélection multiple** : Plusieurs rôles avec différentes personnes
+1. **Composition simple** : 1 rôle avec plusieurs personnes
+2. **Composition multiple** : Plusieurs rôles avec différentes personnes
 3. **Gestion des pénalités** : Vérifier que les pénalités sont spécifiques au rôle
 4. **Affichage des slots** : Vérifier le regroupement et les libellés
 
 ### **Validation des règles**
-- ✅ Une personne ne peut être sélectionnée que pour un rôle
+- ✅ Une personne ne peut être compositionnée que pour un rôle
 - ✅ Les pénalités n'affectent que le rôle concerné
 - ✅ L'ordre d'affichage suit ROLE_DISPLAY_ORDER
 - ✅ Les rôles avec count = 0 n'ont pas de slots
 
 ## 📋 **Checklist d'implémentation**
 
-- [x] Modifier la structure des sélections (par rôle)
+- [x] Modifier la structure des compositions (par rôle)
 - [x] Implémenter la logique de tirage par rôle
 - [x] Adapter l'affichage des slots (groupés par rôle)
 - [x] Ajouter les emojis des rôles dans les slots
@@ -199,9 +199,9 @@ Bénévoles (2/2) :
 
 ### **✅ Implémenté et testé**
 - Structure des données par rôle dans `storage.js`
-- Logique de sélection multi-rôles dans `GridBoard.vue`
+- Logique de composition multi-rôles dans `GridBoard.vue`
 - Interface utilisateur avec emojis et libellés dans `SelectionModal.vue`
-- Sauvegarde et chargement des sélections par rôle
+- Sauvegarde et chargement des compositions par rôle
 - Rétrocompatibilité avec l'ancien système
 - Fonctions helper pour manipulation des données
 
@@ -218,7 +218,7 @@ Bénévoles (2/2) :
 
 ## 🚀 **Ordre d'implémentation recommandé**
 
-1. **Structure des données** - Modifier la structure des sélections
+1. **Structure des données** - Modifier la structure des compositions
 2. **Logique de base** - Implémenter le tirage par rôle
 3. **Affichage** - Adapter l'interface des slots
 4. **Pénalités** - Implémenter les pénalités spécifiques au rôle

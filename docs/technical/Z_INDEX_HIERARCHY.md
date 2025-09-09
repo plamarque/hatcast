@@ -25,11 +25,11 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 │                    NIVEAU 1300+ (Sécurité)                  │
 ├─────────────────────────────────────────────────────────────┤
 │ z-[1380] HowItWorksModal                                   │
-│ z-[1370] PlayersModal, AnnouncePromptModal                 │
+│ z-[1370] PlayersModal, AnnouncePromptModal, AvailabilityModal │
 │ z-[1360] NotificationSuccessModal, EventDetailsModal       │
 │ z-[1350] NotificationPromptModal, AvailabilityPasswordModal│
 │ z-[1340] AnnounceModal, PlayerPasswordModal                │
-│ z-[1330] PasswordResetModal, ConfirmReselectModal          │
+│ z-[1330] PasswordResetModal                                │
 │ z-[1320] PlayerClaimModal, ConfirmPlayerDeleteModal        │
 │ z-[1310] AccountClaimModal, ConfirmDeleteModal             │
 │ z-[1300] AccountLoginModal, NewPlayerFormModal             │
@@ -40,7 +40,6 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 │ z-[1280] AppHelpModal (supprimé)                           │
 │ z-[1260] DevelopmentModal                                  │
 │ z-[1250] AccountDropdown                                   │
-│ z-[1230] PinModal                                          │
 │ z-[1220] PasswordVerificationModal                         │
 │ z-[1200] FiltersDropdown                                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -81,11 +80,11 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[1010]` | EventModal | Création/édition d'événement | `src/components/EventModal.vue` |
-| `z-[1020]` | SelectionModal | Sélection des joueurs | `src/components/SelectionModal.vue` |
+| `z-[1020]` | SelectionModal | Composition des joueurs | `src/components/SelectionModal.vue` |
 | `z-[1030]` | EventAnnounceModal | Annonce d'événement | `src/components/EventAnnounceModal.vue` |
 | `z-[1040]` | AccountMenu | Menu compte utilisateur | `src/components/AccountMenu.vue` |
 | `z-[1050]` | PlayerModal | Détails du joueur | `src/components/PlayerModal.vue` |
-| `z-[1060]` | AvailabilityModal | Gestion des disponibilités | `src/components/AvailabilityModal.vue` |
+| `z-[1370]` | AvailabilityModal | Gestion des disponibilités | `src/components/AvailabilityModal.vue` |
 | `z-[1070]` | PreferencesModal | Préférences utilisateur | `src/components/PreferencesModal.vue` |
 
 ### 🔧 Niveau 1200+ : Modales secondaires et dropdowns
@@ -120,6 +119,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 |---------|-----------|-------------|---------|
 | `z-[1400]` | ChangelogModal | Nouveautés (inline) | `src/views/HelpPage.vue` |
 | `z-[1400]` | DesistementModal | Désistement | `src/components/DesistementModal.vue` |
+| `z-[1400]` | PinModal | Vérification PIN | `src/components/PinModal.vue` |
 | `z-[1400]` | PWAInstallModal | Installation PWA | `src/components/PWAInstallModal.vue` |
 | `z-[1400]` | ReminderTestModal | Test rappels | `src/components/ReminderTestModal.vue` |
 | `z-[1410]` | AvailabilityForgotPasswordModal | Mot de passe oublié (disponibilité) | `src/components/GridBoard.vue` |
@@ -130,6 +130,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[9995]` | PasswordVerificationModal | Vérification mot de passe (critique) | `src/components/PasswordVerificationModal.vue` |
+| `z-[9995]` | ConfirmReselectModal | Confirmation Composition Auto (critique) | `src/components/GridBoard.vue` |
 | `z-[9996]` | ForgotPasswordModal | Mot de passe oublié (critique) | `src/components/PasswordVerificationModal.vue` |
 | `z-[9996]` | PlayerEditModal | Édition joueur (inline) | `src/components/PlayerModal.vue` |
 | `z-[9997]` | PlayerActionDropdowns | Actions joueur (supprimés) | `src/components/PlayerModal.vue` |
@@ -146,7 +147,7 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 | `z-[1300]` | NewPlayerFormModal | Formulaire nouveau joueur |
 | `z-[1310]` | ConfirmDeleteModal | Confirmation suppression |
 | `z-[1320]` | ConfirmPlayerDeleteModal | Confirmation suppression joueur |
-| `z-[1330]` | ConfirmReselectModal | Confirmation re-sélection |
+| `z-[9995]` | ConfirmReselectModal | Confirmation re-composition |
 | `z-[1340]` | PlayerPasswordModal | Mot de passe joueur |
 | `z-[1350]` | AvailabilityPasswordModal | Mot de passe disponibilité |
 | `z-[1360]` | EventDetailsModal | Détails événement |

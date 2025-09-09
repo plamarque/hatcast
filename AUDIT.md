@@ -65,16 +65,16 @@ Timestamp | Action | Changement | User | Saison | Spectacle | Joueur
 - `event_modified` - Modification d'un spectacle
 - `event_announced` - Annonce d'un spectacle
 
-### **Sélection & Participation**
-- `auto_selection_triggered` - Auto-sélection déclenchée
-- `selection_validated` - Sélection validée par organisateur
+### **Composition & Participation**
+- `auto_selection_triggered` - Auto-composition déclenchée
+- `selection_validated` - Composition validée par organisateur
 - `pin_entered` - Saisie du code PIN
-- `selection_unlocked` - Déverrouillage de sélection
+- `selection_unlocked` - Déverrouillage de composition
 - `player_confirmed` - Joueur confirme participation
 - `player_withdrawn` - Joueur se désiste
-- `player_deselected` - Joueur désélectionné manuellement
-- `player_reselected` - Joueur resélectionné manuellement
-- `selection_announced` - Annonce de la sélection
+- `player_deselected` - Joueur décomposé manuellement
+- `player_reselected` - Joueur recomposé manuellement
+- `selection_announced` - Annonce de la composition
 - `team_announced` - Annonce de l'équipe
 
 ### **Gestion des Joueurs**
@@ -236,7 +236,7 @@ await AuditClient.logEventModified(eventTitle, seasonSlug, changes, data)
 await AuditClient.logEventAnnounced(eventTitle, seasonSlug, data)
 ```
 
-#### **Sélection & Participation**
+#### **Composition & Participation**
 ```javascript
 await AuditClient.logAutoSelectionTriggered(seasonSlug, data)
 await AuditClient.logSelectionValidated(seasonSlug, data)

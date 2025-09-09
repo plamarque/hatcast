@@ -14,7 +14,7 @@ Le problème se situait dans la logique de la modale de disponibilité (`Availab
    - La condition `v-if="availableRoles.length === 0"` affiche le message "Aucun rôle n'est attendu pour ce spectacle"
    - Les boutons d'action sont désactivés car `selectedRoles.length === 0`
 
-3. **Résultat** : L'utilisateur ne peut pas indiquer sa disponibilité car aucun rôle n'est sélectionnable.
+3. **Résultat** : L'utilisateur ne peut pas indiquer sa disponibilité car aucun rôle n'est compositionnable.
 
 ## ✅ Solution implémentée
 
@@ -45,7 +45,7 @@ if (availabilityData.available && availabilityData.roles) {
 
 #### 3. **Interface utilisateur adaptative**
 - **Avec rôles** : Affichage normal des rôles spécifiques
-- **Sans rôles** : Pas de rôles sélectionnés par défaut (disponible "en général")
+- **Sans rôles** : Pas de rôles compositionnés par défaut (disponible "en général")
 
 ## 🔧 Modifications techniques
 
@@ -126,7 +126,7 @@ export const ROLE_LABELS_SINGULAR = {
 
 ### **Cas 1 : Événement avec rôles définis**
 - Affichage normal des rôles spécifiques
-- Sélection possible des rôles attendus
+- Composition possible des rôles attendus
 - Comportement inchangé par rapport à l'existant
 
 ### **Cas 2 : Événement sans rôles définis**
@@ -136,10 +136,10 @@ export const ROLE_LABELS_SINGULAR = {
 - **Création autorisée** : Les événements sans rôles peuvent être créés et sauvegardés
 - **Interface optimisée** : Les cellules de disponibilité n'affichent que la couleur (pas d'émojis inutiles)
 
-## 🔄 Intégration avec l'algorithme de sélection
+## 🔄 Intégration avec l'algorithme de composition
 
-### **Logique de sélection étendue**
-Un joueur disponible "en général" peut être sélectionné pour n'importe quel rôle lors de la sélection automatique :
+### **Logique de composition étendue**
+Un joueur disponible "en général" peut être compositionné pour n'importe quel rôle lors de la composition automatique :
 
 ```javascript
 // Dans drawForRole()
@@ -218,12 +218,12 @@ if (totalRoles > 0 && playerCount === 0) {
 3. Vérifier que le message informatif est affiché et qu'aucun rôle n'est pré-coché
 4. Vérifier que le bouton "Disponible" est activé
 5. Sauvegarder la disponibilité
-6. Lancer une sélection automatique et vérifier que le joueur peut être sélectionné
+6. Lancer une composition automatique et vérifier que le joueur peut être compositionné
 
 ### **Tests automatisés recommandés**
 - Test de l'affichage de la modale avec/sans rôles
 - Test de la logique `isAvailableForRole` avec un tableau de rôles vide
-- Test de l'intégration dans l'algorithme de sélection
+- Test de l'intégration dans l'algorithme de composition
 - Test de la sauvegarde et du chargement des disponibilités
 
 ## 🚀 Déploiement
@@ -242,8 +242,8 @@ if (totalRoles > 0 && playerCount === 0) {
 ## 📚 Références
 
 - **Fichiers modifiés** : `AvailabilityModal.vue`, `GridBoard.vue`, `AvailabilityCell.vue`, `storage.js`
-- **Fonctionnalité liée** : [Sélection multi-rôles](../user/selection-multi-roles.md)
-- **Spécifications techniques** : [Sélection multi-rôles](../technical/selection-multi-roles-specifications.md)
+- **Fonctionnalité liée** : [Composition multi-rôles](../user/selection-multi-roles.md)
+- **Spécifications techniques** : [Composition multi-rôles](../technical/selection-multi-roles-specifications.md)
 
 ---
 
@@ -267,7 +267,7 @@ Interface compacte et extensible avec sélecteur de types en onglets horizontaux
 - **Extensibilité** : Facile d'ajouter de nouveaux types sans redimensionner la modale
 
 ### **Fonctionnalités**
-- **Application automatique** : Les rôles et effectifs sont appliqués automatiquement lors de la sélection d'un type
+- **Application automatique** : Les rôles et effectifs sont appliqués automatiquement lors de la composition d'un type
 - **Détection automatique** : Le type correspondant est automatiquement détecté lors de l'édition
 - **Ajustement manuel** : Les rôles et effectifs restent ajustables après application du type
 
