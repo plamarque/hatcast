@@ -37,6 +37,7 @@
               :status="getSelectionStatus().type"
               :show="true"
               :clickable="false"
+              :reason="selectionIncompleteReason"
               class="text-sm"
             />
             
@@ -757,7 +758,8 @@ const canAnnounce = computed(() => {
   return isSelectionComplete.value && !hasDeclinedPlayers.value
 })
 
-const incompleteSelectionMessage = computed(() => {
+// Raison de l'incomplétude pour le tooltip du badge
+const selectionIncompleteReason = computed(() => {
   if (!hasIncompleteSelection.value) return ''
   
   // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
@@ -786,16 +788,17 @@ const incompleteSelectionMessage = computed(() => {
   
   if (unavailablePlayers.length > 0) {
     if (unavailablePlayers.length === 1) {
-      return `${unavailablePlayers[0]} n'est plus disponible. Veuillez relancer la composition.`
+      return `Sélection incomplète : ${unavailablePlayers[0]} n'est plus disponible`
     } else {
-      return `${unavailablePlayers.length} personnes ne sont plus disponibles. Veuillez relancer la composition.`
+      return `Sélection incomplète : ${unavailablePlayers.length} joueurs ne sont plus disponibles`
     }
   } else if (props.availableCount < requiredCount) {
-    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à composer.`
+    return `Sélection incomplète : Seulement ${props.availableCount} joueurs disponibles sur ${requiredCount} requis`
   }
   
-  return 'Composition incomplète'
+  return 'Sélection incomplète : Problèmes détectés'
 })
+
 
 // Fonction helper pour récupérer le statut de confirmation d'un joueur
 function getPlayerSelectionStatus(playerName) {

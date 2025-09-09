@@ -735,6 +735,7 @@
                   :status="eventStatus?.type"
                   :show="true"
                   :clickable="false"
+                  :reason="eventWarningText"
                   class="text-sm"
                 />
               </span>
@@ -802,16 +803,7 @@
         <div v-if="selectedEvent" class="mb-4 md:mb-6">
           <!-- Alerte + Badge statut -->
           <div class="mb-3 flex items-center gap-3">
-            <div
-              v-if="hasEventWarningForSelectedEvent"
-              class="flex items-center gap-2 px-2 py-1 rounded-md border text-[11px] md:text-xs max-w-[50%] truncate"
-              :class="eventStatus?.type === 'incomplete' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-200' : 'bg-orange-500/10 border-orange-500/30 text-orange-200'"
-              :title="eventWarningText"
-            >
-              <span>⚠️</span>
-              <span class="truncate">{{ eventWarningText }}</span>
-            </div>
-
+            <!-- Message redondant supprimé - la raison est maintenant dans le tooltip du badge -->
           </div>
 
           <!-- Liste des joueurs (2 par ligne sur mobile, 3 sur desktop) - Toutes les personnes qui ont répondu -->
