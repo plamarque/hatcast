@@ -15,7 +15,7 @@
     />
 
     <!-- Contenu principal -->
-    <div class="pt-24 pb-8 px-4">
+    <div class="pt-24 pb-16 px-4">
       <div class="max-w-4xl mx-auto">
         
         <!-- Header de la page -->
@@ -105,6 +105,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Espace pour s'assurer que le footer est visible -->
+    <div class="h-8"></div>
 
     <!-- Gestionnaire de modales unifié -->
     <ModalManager
