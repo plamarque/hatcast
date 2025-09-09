@@ -669,12 +669,13 @@ update_changelog_json() {
             echo "   └─ Regenerating entire JSON..."
             echo "[$new_version_json]" > "public/changelog.json"
         else
-            echo "   └─ Adding new version $version..."
-            # Add new version to existing JSON
-            local existing_content=$(sed '$d' "public/changelog.json")
-            echo "$existing_content" > "public/changelog.json"
-            echo "," >> "public/changelog.json"
+            echo "   └─ Adding new version $version at the beginning..."
+            # Add new version at the beginning of existing JSON array
+            local existing_content=$(sed '1d' "public/changelog.json" | sed '$d')
+            echo "[" > "public/changelog.json"
             echo "$new_version_json" >> "public/changelog.json"
+            echo "," >> "public/changelog.json"
+            echo "$existing_content" >> "public/changelog.json"
             echo "]" >> "public/changelog.json"
         fi
     else
