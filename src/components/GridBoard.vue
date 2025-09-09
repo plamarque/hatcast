@@ -87,7 +87,7 @@
                   </div>
                 </div>
                 
-                <!-- Section basse : indicateur de statut -->
+                <!-- Section basse : badge de type d'événement -->
                 <div class="flex flex-col items-center mt-2">
                   
                   <!-- Indicateur de statut archivé (priorité sur les autres) -->
@@ -100,26 +100,15 @@
                     <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
                   </div>
                   
-                  <!-- Indicateur de statut de composition (seulement si pas archivé) -->
+                  <!-- Badge de type d'événement (seulement si pas archivé) -->
                   <div 
-                    v-else-if="getEventStatus(event.id).type === 'ready'"
-                    class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-md mx-auto flex items-center justify-center hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la composition'"
-                    @click.stop="openSelectionModal(event)"
+                    v-else-if="event.roles"
+                    class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
+                    :title="getEventTypeName(event)"
                   >
-                    <span class="text-xs text-blue-300 font-medium group-hover:text-blue-200">🆕</span>
-                    <span class="text-xs text-blue-200 font-medium ml-1 group-hover:text-blue-100">Nouveau</span>
+                    <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(event) }}</span>
+                    <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(event) }}</span>
                   </div>
-                  
-                  <SelectionStatusBadge
-                    v-else-if="getEventStatus(event.id).type"
-                    :status="getEventStatus(event.id).type"
-                    :show="true"
-                    :clickable="true"
-                    class="mx-auto cursor-pointer group"
-                    :title="getEventTooltip(event.id) + ' - Cliquez pour ouvrir la composition'"
-                    @click.stop="openSelectionModal(event)"
-                  />
                 </div>
               </div>
             </div>
@@ -3305,6 +3294,18 @@ function getEventTypeIcon(event) {
   const templateId = event.templateType || 'custom'
   logger.debug('🔍 getEventTypeIcon: Template ID:', templateId, 'Icon:', EVENT_TYPE_ICONS[templateId])
   return EVENT_TYPE_ICONS[templateId] || '❓'
+}
+
+// Fonction pour obtenir le nom du type d'événement
+function getEventTypeName(event) {
+  if (!event?.roles) {
+    logger.debug('🔍 getEventTypeName: No event roles, returning default name')
+    return 'Autre' // Nom par défaut
+  }
+  const templateId = event.templateType || 'custom'
+  const template = ROLE_TEMPLATES[templateId]
+  logger.debug('🔍 getEventTypeName: Template ID:', templateId, 'Name:', template?.name)
+  return template?.name || 'Autre'
 }
 
 // Fonction pour obtenir la couleur du compteur de rôle selon le détail événement
