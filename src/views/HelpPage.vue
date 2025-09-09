@@ -132,6 +132,9 @@
       :show="showChangelog" 
       @close="showChangelog = false" 
     />
+
+    <!-- Footer principal -->
+    <AppFooter @open-help="() => {}" />
   </div>
 </template>
 
@@ -140,6 +143,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { currentUser, isConnected } from '../services/authState.js'
 import AppHeader from '../components/AppHeader.vue'
+import AppFooter from '../components/AppFooter.vue'
 import ModalManager from '../components/ModalManager.vue'
 import ChangelogModal from '../components/ChangelogModal.vue'
 import logger from '../services/logger.js'
