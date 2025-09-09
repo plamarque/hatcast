@@ -45,9 +45,9 @@
       "✨ ajout d'un design responsive mobile-first avec support PWA",
       "✨ ajout des notifications push et du système de notifications par email",
       "✨ ajout de l'authentification utilisateur et de la gestion des comptes",
-      "✨ ajout de l'algorithme de sélection automatique et du système de rappels",
+      "✨ ajout de l'algorithme de composition automatique et du système de rappels",
       "✨ ajout d'une piste d'audit complète et d'outils de développement",
-      "🐛 correction des problèmes de sélection de disponibilité et d'authentification",
+      "🐛 correction des problèmes de composition de disponibilité et d'authentification",
       "🐛 correction des problèmes d'affichage de l'interface et de synchronisation des données",
       "🐛 correction des problèmes d'envoi d'emails et de navigation",
       "🔧 amélioration de la réactivité mobile et de l'expérience utilisateur",
@@ -57,7 +57,7 @@
       "🎨 amélioration de l'accessibilité, de la facilité d'utilisation et du design visuel"
     ]
   }
-,
+  ,
   {
     "version": "0.9.2",
     "date": "2025-09-07",
@@ -75,13 +75,6 @@
       "🐛 corriger la traduction de « modique » en « modale » dans le journal des modifications",
       "🐛 supprimer l'entrée 0.9.1 en double dans le journal des modifications",
       "🐛 résoudre problèmes d'affichage du journal des modifications dans la page d'aide"
-    ]
-  }
-,
-  {
-    "version": "0.9.3",
-    "date": "2025-09-08",
-    "changes": [
     ]
   }
 ]

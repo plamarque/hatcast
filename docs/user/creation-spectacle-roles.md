@@ -8,7 +8,7 @@ La modale de création de spectacle a été améliorée pour permettre de défin
 
 ### Section "Équipe"
 
-La nouvelle section "Équipe" remplace l'ancien champ "Nombre de personnes à sélectionner" et propose :
+La nouvelle section "Équipe" remplace l'ancien champ "Nombre de personnes à compositionner" et propose :
 
 - **Rôles principaux** (toujours visibles) :
   - 🎭 Comédiens
@@ -89,7 +89,7 @@ Ce rôle est particulièrement utile pour les spectacles complexes nécessitant 
 
 Les rôles sont sauvegardés dans la structure de l'événement et peuvent être utilisés pour :
 - La gestion des disponibilités par rôle
-- La sélection d'équipe
+- La composition d'équipe
 - Les notifications et annonces
 - Les statistiques et rapports
 
@@ -190,7 +190,7 @@ props.eventRoles = {}  // ❌ Vide à cause de la prop manquante !
 ## 📚 **Documentation complète**
 
 - **[Création de spectacle avec rôles](./creation-spectacle-roles.md)** - Ce document
-- **[Sélection d'équipe multi-rôles](./selection-multi-roles.md)** - Nouveau système de sélection par rôle
+- **[Sélection d'équipe multi-rôles](./selection-multi-roles.md)** - Nouveau système de composition par rôle
 - **[Spécifications techniques](./../technical/selection-multi-roles-specifications.md)** - Détails techniques pour les développeurs
 
 ## 🚀 **Implémentation progressive terminée**
@@ -201,11 +201,11 @@ props.eventRoles = {}  // ❌ Vide à cause de la prop manquante !
 - ✅ Ajout de fonctions helper pour manipuler la nouvelle structure
 - ✅ Rétrocompatibilité maintenue
 
-### **Étape 2 : Logique de sélection ✅**
+### **Étape 2 : Logique de composition ✅**
 - ✅ Remplacement de `tirer()` par `drawMultiRoles()`
 - ✅ Création de `drawForRole()` pour un rôle spécifique
 - ✅ Logique de pénalités par rôle implémentée
-- ✅ Gestion des sélections existantes et complétion
+- ✅ Gestion des compositions existantes et complétion
 
 ### **Étape 3 : Interface utilisateur ✅**
 - ✅ Modification de `SelectionModal.vue` pour afficher par rôle
@@ -279,7 +279,7 @@ La modale de disponibilité a été positionnée avec un z-index de `z-[600]` po
 - `z-[500]` : Modales principales (création, modification, détails)
 - `z-[550]` : Modale "Ne rate rien !" (notifications)
 - `z-[600]` : **Modale de disponibilité**, Modale de confirmation de suppression, Coachmarks d'onboarding
-- `z-[700]` : Modale de sélection d'équipe
+- `z-[700]` : Modale de composition d'équipe
 - `z-[800]` : Modale PIN (sécurité)
 - `z-[900]` : Modale "Demander confirmation"
 - `z-[1000]` : Dropdowns des actions (détail spectacle)

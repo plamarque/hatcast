@@ -67,7 +67,7 @@
                 <span 
                   v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
                   class="text-[10px] px-2 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200"
-                  title="Rôle bénévole toujours sélectionné"
+                  title="Rôle bénévole toujours composé"
                 >
                   Fixe
                 </span>
@@ -100,7 +100,7 @@
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2">
                   <input type="checkbox" v-model="notificationPrefs.notifySelection" class="w-4 h-4">
-                  <span class="text-sm text-white">M'envoyer un email lorsque je suis concerné par une sélection</span>
+                  <span class="text-sm text-white">M'envoyer un email lorsque je suis concerné par une composition</span>
                 </label>
               </div>
             </div>
@@ -166,7 +166,7 @@
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2">
                   <input type="checkbox" v-model="notificationPrefs.notifySelectionPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
-                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une sélection</span>
+                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une composition</span>
                 </label>
               </div>
               <div class="flex items-center justify-between">
@@ -506,7 +506,7 @@ function close() {
   emit('close') 
 }
 
-// Watcher pour s'assurer que le rôle bénévole reste toujours sélectionné
+// Watcher pour s'assurer que le rôle bénévole reste toujours composé
 watch(() => rolePreferences.value.preferredRoles, (newRoles) => {
   if (newRoles && !newRoles.includes(ROLES.VOLUNTEER)) {
     newRoles.push(ROLES.VOLUNTEER)

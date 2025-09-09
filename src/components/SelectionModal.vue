@@ -13,19 +13,19 @@
           
           <!-- Informations principales -->
           <div class="flex-1 min-w-0">
-            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Sélection de l'équipe pour {{ event?.title }}</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Composition de l'équipe pour {{ event?.title }}</h2>
             
-            <!-- Date + Badge nombre de joueurs + Statut de sélection -->
+            <!-- Date + Badge nombre de joueurs + Statut de composition -->
             <div class="flex items-center gap-3">
               <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(event?.date) }}</p>
               
 
               
-              <!-- Indicateur de statut de sélection -->
+              <!-- Indicateur de statut de composition -->
               <div 
                 v-if="getSelectionStatus().type === 'ready'"
                 class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
-                title="Prêt pour la sélection"
+                title="Prêt pour la composition"
               >
                 <span class="text-blue-300 text-xs hidden md:inline">🆕</span>
                 <span class="text-blue-200 text-xs">Nouveau</span>
@@ -53,7 +53,7 @@
       </div>
       
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <!-- Équipe sélectionnée (avec édition inline et slots vides) -->
+        <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
@@ -64,7 +64,7 @@
               <span class="text-blue-200">{{ getTotalTeamSize() }} personnes</span>
             </div>
             
-            <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la sélection automatique ?">
+            <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la composition automatique ?">
               <span class="text-sm">❓</span>
             </button>
 
@@ -153,33 +153,33 @@
           </div>
         </div>
         
-        <!-- Message d'information pour sélection à confirmer -->
+        <!-- Message d'information pour composition à confirmer -->
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Sélection temporaire verrouillée :</strong> Les personnes sélectionnées doivent confirmer leur participation. La sélection sera définitivement confirmée une fois que toutes auront validé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
+            <span><strong>Composition temporaire verrouillée :</strong> Les personnes composées doivent confirmer leur participation. La composition sera définitivement confirmée une fois que toutes auront validé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
           </div>
         </div>
 
-        <!-- Message d'information pour sélection avec joueurs déclinés -->
+        <!-- Message d'information pour composition avec joueurs déclinés -->
         <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-orange-200 text-sm">
             <span>⚠️</span>
-            <span><strong>Sélection incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la sélection et remplacer les personnes manquantes.</span>
+            <span><strong>Composition incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la composition et remplacer les personnes manquantes.</span>
           </div>
         </div>
 
-        <!-- Message d'information pour sélection définitive -->
+        <!-- Message d'information pour composition définitive -->
         <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-green-200 text-sm">
             <span>✅</span>
-            <span><strong>Sélection définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la sélection.</span>
+            <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
           </div>
         </div>
 
 
 
-        <!-- 6) Message de succès après sélection -->
+        <!-- 6) Message de succès après composition -->
         <div v-if="showSuccessMessage" class="mb-3">
           <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
             <div class="text-blue-400 text-xl">✨</div>
@@ -205,15 +205,15 @@
       </div>
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Bouton Sélection Auto (visible seulement si organisateur n'a pas encore validé) -->
+        <!-- Bouton Composition Auto (visible seulement si organisateur n'a pas encore validé) -->
         <button 
           v-if="!isSelectionConfirmedByOrganizer"
           @click="handleSelection" 
           :disabled="availableCount === 0" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la sélection' : 'Compléter les slots vides')"
+          :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
         >
-          ✨ <span class="hidden sm:inline">Sélection Auto</span><span class="sm:hidden">Auto</span>
+          ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé) -->
@@ -221,17 +221,17 @@
           v-if="isSelectionConfirmedByOrganizer" 
           @click="handleUnconfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
-          title="Déverrouiller la sélection pour permettre les modifications"
+          title="Déverrouiller la composition pour permettre les modifications"
         >
           🔓 <span class="hidden sm:inline">Déverrouiller</span><span class="sm:hidden">Déverrouiller</span>
         </button>
 
-        <!-- Bouton Valider (visible seulement si sélection complète et organisateur n'a pas encore validé) -->
+        <!-- Bouton Valider (visible seulement si composition complète et organisateur n'a pas encore validé) -->
         <button 
           v-if="hasSelection && !isSelectionConfirmedByOrganizer" 
           @click="handleConfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Valider la sélection et demander confirmation aux personnes"
+          title="Valider la composition et demander confirmation aux personnes"
         >
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
@@ -241,7 +241,7 @@
           v-if="hasSelection && isSelectionConfirmedByOrganizer && canAnnounce" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Demander confirmation aux personnes sélectionnées"
+          title="Demander confirmation aux personnes composées"
         >
           ⏳ <span class="hidden sm:inline">Demander confirmation</span><span class="sm:hidden">Confirmation</span>
         </button>
@@ -394,7 +394,7 @@ function generateSlotsForMultiRoleEvent() {
   for (const role of ROLE_DISPLAY_ORDER) {
     const count = roles[role] || 0
     if (count > 0) {
-      // Récupérer les joueurs déjà sélectionnés pour ce rôle
+      // Récupérer les joueurs déjà composés pour ce rôle
       const selectedPlayers = props.currentSelection?.roles?.[role] || []
       
       // Créer les slots pour ce rôle
@@ -446,7 +446,7 @@ function availableOptionsForSlot(index) {
 }
 
 function startEditSlot(index) {
-  // Ne pas permettre l'édition si l'organisateur a validé la sélection
+  // Ne pas permettre l'édition si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
   editingSlotIndex.value = index
 }
@@ -456,7 +456,7 @@ function cancelEditSlot() {
 }
 
 async function onChooseForSlot(event, index) {
-  // Ne pas permettre la modification si l'organisateur a validé la sélection
+  // Ne pas permettre la modification si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
   
   const value = event?.target?.value || ''
@@ -474,7 +474,7 @@ async function onChooseForSlot(event, index) {
       slots.value[index] = value
     }
     
-    // Logger l'audit de resélection
+    // Logger l'audit de recomposition
     try {
       const { default: AuditClient } = await import('../services/auditClient.js')
       await AuditClient.logUserAction({
@@ -503,7 +503,7 @@ async function onChooseForSlot(event, index) {
 }
 
 async function clearSlot(index) {
-  // Ne pas permettre la suppression si l'organisateur a validé la sélection
+  // Ne pas permettre la suppression si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
   
   // Trouver le slot dans teamSlots
@@ -521,7 +521,7 @@ async function clearSlot(index) {
     slots.value[index] = null
   }
   
-  // Logger l'audit de désélection
+    // Logger l'audit de décomposition
   if (removedPlayer) {
     try {
       const { default: AuditClient } = await import('../services/auditClient.js')
@@ -570,7 +570,7 @@ const hasSelection = computed(() => {
   return false
 })
 
-// Fonction pour déterminer le statut de sélection (même logique que getEventStatus dans GridBoard)
+// Fonction pour déterminer le statut de composition (même logique que getEventStatus dans GridBoard)
 function getSelectionStatus() {
   // Extraire le tableau de joueurs selon la structure
   let selectedPlayers = []
@@ -582,7 +582,7 @@ function getSelectionStatus() {
   const requiredCount = props.event?.playerCount || 6
   const availableCount = props.availableCount || 0
   
-  // Cas 1: Sélection incomplète (sélection existante avec problèmes)
+  // Cas 1: Composition incomplète (composition existante avec problèmes)
   if (selectedPlayers.length > 0) {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isPlayerAvailable(playerName))
     const hasInsufficientPlayers = availableCount < requiredCount
@@ -599,7 +599,7 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 2: Pas assez de joueurs pour faire une sélection
+  // Cas 2: Pas assez de joueurs pour faire une composition
   if (availableCount < requiredCount) {
     return {
       type: 'insufficient',
@@ -608,7 +608,7 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 3: Assez de joueurs mais pas de sélection
+  // Cas 3: Assez de joueurs mais pas de composition
   if (selectedPlayers.length === 0) {
     return {
       type: 'ready',
@@ -635,7 +635,7 @@ function getSelectionStatus() {
     }
   }
   
-  // Cas 6: Sélection complète mais non confirmée par l'organisateur
+  // Cas 6: Composition complète mais non confirmée par l'organisateur
   return {
     type: 'complete',
     availableCount,
@@ -654,10 +654,10 @@ const hasIncompleteSelection = computed(() => {
     selectedPlayers = props.currentSelection.players || []
   }
   
-  // Vérifier si des joueurs sélectionnés ne sont plus disponibles
+  // Vérifier si des joueurs composés ne sont plus disponibles
   const hasUnavailablePlayers = selectedPlayers.some(player => !isPlayerAvailable(player))
   
-  // Vérifier s'il y a assez de joueurs disponibles pour compléter la sélection
+  // Vérifier s'il y a assez de joueurs disponibles pour compléter la composition
   const requiredCount = props.event?.playerCount || 6
   const hasInsufficientPlayers = props.availableCount < requiredCount
   
@@ -675,14 +675,14 @@ const hasDeclinedPlayers = computed(() => {
   return hasDeclined
 })
 
-// Vérifier si la sélection est complète (assez de joueurs pour l'événement)
+// Vérifier si la composition est complète (assez de joueurs pour l'événement)
 const isSelectionComplete = computed(() => {
   const selectedPlayers = getSelectedPlayersArray()
   const requiredCount = props.event?.playerCount || 6
   return selectedPlayers.length >= requiredCount
 })
 
-// Vérifier si on peut demander confirmation (sélection complète ET pas de joueurs déclinés)
+// Vérifier si on peut demander confirmation (composition complète ET pas de joueurs déclinés)
 const canAnnounce = computed(() => {
   return isSelectionComplete.value && !hasDeclinedPlayers.value
 })
@@ -703,15 +703,15 @@ const incompleteSelectionMessage = computed(() => {
   
   if (unavailablePlayers.length > 0) {
     if (unavailablePlayers.length === 1) {
-      return `${unavailablePlayers[0]} n'est plus disponible. Veuillez relancer la sélection.`
+      return `${unavailablePlayers[0]} n'est plus disponible. Veuillez relancer la composition.`
     } else {
-      return `${unavailablePlayers.length} personnes ne sont plus disponibles. Veuillez relancer la sélection.`
+      return `${unavailablePlayers.length} personnes ne sont plus disponibles. Veuillez relancer la composition.`
     }
   } else if (props.availableCount < requiredCount) {
-    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à sélectionner.`
+    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à composer.`
   }
   
-  return 'Sélection incomplète'
+  return 'Composition incomplète'
 })
 
 // Fonction helper pour récupérer le statut de confirmation d'un joueur
@@ -763,7 +763,7 @@ const selectionMessage = computed(() => {
   
   const eventDate = formatDateFull(props.event.date)
   const playersList = selectedPlayers.join(', ')
-  return `Sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
+  return `Composition pour ${props.event.title} du ${eventDate} : ${playersList}`
 })
 
 // Watchers
@@ -852,9 +852,9 @@ async function handleConfirmSelection() {
     
     // Le toast de succès est affiché par le parent (GridBoard.vue)
   } catch (error) {
-    console.error('Erreur lors de la confirmation de la sélection:', error)
+    console.error('Erreur lors de la confirmation de la composition:', error)
     showSuccessMessage.value = true
-    successMessageText.value = 'Erreur lors de la validation de la sélection'
+    successMessageText.value = 'Erreur lors de la validation de la composition'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -868,9 +868,9 @@ async function handleUnconfirmSelection() {
     
     // Le toast de succès est affiché par le parent (GridBoard.vue)
   } catch (error) {
-    console.error('Erreur lors de la déverrouillage de la sélection:', error)
+    console.error('Erreur lors de la déverrouillage de la composition:', error)
     showSuccessMessage.value = true
-    successMessageText.value = 'Erreur lors de la déverrouillage de la sélection'
+    successMessageText.value = 'Erreur lors de la déverrouillage de la composition'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -883,7 +883,7 @@ async function handleUnconfirmSelection() {
 async function autoSaveSelection() {
   if (!props.event?.id || !props.seasonId) return
   
-  // Ne pas sauvegarder automatiquement si l'organisateur a validé la sélection
+  // Ne pas sauvegarder automatiquement si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
   
   try {
@@ -903,7 +903,7 @@ async function autoSaveSelection() {
     await saveSelection(props.event.id, roles, props.seasonId)
     
     // Feedback visuel subtil (optionnel)
-    console.debug('Sélection sauvegardée automatiquement avec structure par rôle')
+    console.debug('Composition sauvegardée automatiquement avec structure par rôle')
   } catch (error) {
     console.error('Erreur lors de la sauvegarde automatique:', error)
     // En cas d'erreur, on peut afficher un message discret
@@ -938,7 +938,7 @@ function getSelectedPlayersArray() {
 }
 
 function isPlayerSelected(playerName) {
-  // Un joueur est "sélectionné" s'il est dans la sélection actuelle ET disponible
+  // Un joueur est "composé" s'il est dans la composition actuelle ET disponible
   return getSelectedPlayersArray().includes(playerName) && isPlayerAvailable(playerName)
 }
 
@@ -964,7 +964,7 @@ function getPlayerIdFromName(playerName) {
   return player?.id || null
 }
 
-// Fonctions pour l'invitation à la sélection
+// Fonctions pour l'invitation à la composition
 function getInvitationIcon() {
   const requiredCount = props.event?.playerCount || 6
   
@@ -985,7 +985,7 @@ function getInvitationTitle() {
   } else if (props.availableCount < requiredCount) {
     return 'Pas assez de personnes disponibles'
   } else {
-    return 'Aucune sélection effectuée'
+    return 'Aucune composition effectuée'
   }
 }
 
@@ -995,9 +995,9 @@ function getInvitationMessage() {
   if (props.availableCount === 0) {
     return 'Aucune personne n\'est disponible pour cet événement. Veuillez d\'abord indiquer les disponibilités.'
   } else if (props.availableCount < requiredCount) {
-    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à sélectionner.`
+    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à composer.`
   } else {
-            return 'Cliquez sur "Sélection Auto" pour constituer une équipe automatiquement'
+            return 'Cliquez sur "Composition Auto" pour constituer une équipe automatiquement'
   }
 }
 
@@ -1010,12 +1010,12 @@ function showSuccess(reselection = false, isPartialUpdate = false) {
     const playersList = getSelectedPlayersArray().join(', ')
     
     if (isPartialUpdate) {
-      successMessageText.value = `Sélection mise à jour pour ${props.event.title} du ${eventDate} : ${playersList}`
+      successMessageText.value = `Composition mise à jour pour ${props.event.title} du ${eventDate} : ${playersList}`
     } else {
-      successMessageText.value = `Nouvelle sélection pour ${props.event.title} du ${eventDate} : ${playersList}`
+      successMessageText.value = `Nouvelle composition pour ${props.event.title} du ${eventDate} : ${playersList}`
     }
   } else {
-            successMessageText.value = 'Sélection effectuée avec succès ! Cliquez sur "Valider" pour notifier les personnes.'
+            successMessageText.value = 'Composition effectuée avec succès ! Cliquez sur "Valider" pour notifier les personnes.'
   }
   
   showSuccessMessage.value = true
@@ -1033,7 +1033,7 @@ defineExpose({
   showSuccess
 })
 
-// Fonction pour gérer l'envoi d'emails de sélection
+// Fonction pour gérer l'envoi d'emails de composition
 function handleSendNotifications(data) {
   // Émettre l'événement vers le parent (GridBoard)
   emit('send-notifications', data)

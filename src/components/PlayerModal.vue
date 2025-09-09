@@ -72,11 +72,11 @@
             </div>
             <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Sélections</div>
+              <div class="text-xs md:text-sm text-gray-300">Compositions</div>
             </div>
             <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}</div>
-              <div class="text-xs md:text-sm text-gray-300">% de sélection</div>
+              <div class="text-xs md:text-sm text-gray-300">% de composition</div>
             </div>
           </div>
         </div>

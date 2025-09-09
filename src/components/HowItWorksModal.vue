@@ -6,7 +6,7 @@
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-2xl">❓</div>
           <div>
-            <h2 class="text-xl md:text-2xl font-bold text-white">Comment fonctionne la sélection automatique ?</h2>
+            <h2 class="text-xl md:text-2xl font-bold text-white">Comment fonctionne la composition automatique ?</h2>
             <p class="text-sm text-blue-300">Tirage au sort pondéré pour favoriser l'équité</p>
           </div>
         </div>
@@ -38,8 +38,8 @@
           <h3 class="text-white font-semibold">Pourquoi c’est juste</h3>
           <ul class="list-disc list-inside space-y-1 text-gray-300">
             <li>Ceux qui ont moins joué ont automatiquement plus de chances.</li>
-            <li>Après une sélection, vos chances diminuent un peu pour laisser la place aux autres.</li>
-            <li>Sur la durée, les sélections s’<span class="text-green-300">équilibrent naturellement</span>.</li>
+            <li>Après une composition, vos chances diminuent un peu pour laisser la place aux autres.</li>
+            <li>Sur la durée, les compositions s'<span class="text-green-300">équilibrent naturellement</span>.</li>
           </ul>
         </div>
 

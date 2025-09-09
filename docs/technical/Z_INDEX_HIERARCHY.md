@@ -81,7 +81,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[1010]` | EventModal | Création/édition d'événement | `src/components/EventModal.vue` |
-| `z-[1020]` | SelectionModal | Sélection des joueurs | `src/components/SelectionModal.vue` |
+| `z-[1020]` | SelectionModal | Composition des joueurs | `src/components/SelectionModal.vue` |
 | `z-[1030]` | EventAnnounceModal | Annonce d'événement | `src/components/EventAnnounceModal.vue` |
 | `z-[1040]` | AccountMenu | Menu compte utilisateur | `src/components/AccountMenu.vue` |
 | `z-[1050]` | PlayerModal | Détails du joueur | `src/components/PlayerModal.vue` |
@@ -146,7 +146,7 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 | `z-[1300]` | NewPlayerFormModal | Formulaire nouveau joueur |
 | `z-[1310]` | ConfirmDeleteModal | Confirmation suppression |
 | `z-[1320]` | ConfirmPlayerDeleteModal | Confirmation suppression joueur |
-| `z-[1330]` | ConfirmReselectModal | Confirmation re-sélection |
+| `z-[1330]` | ConfirmReselectModal | Confirmation re-composition |
 | `z-[1340]` | PlayerPasswordModal | Mot de passe joueur |
 | `z-[1350]` | AvailabilityPasswordModal | Mot de passe disponibilité |
 | `z-[1360]` | EventDetailsModal | Détails événement |

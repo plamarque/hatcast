@@ -17,7 +17,7 @@ Ce dossier contient la documentation destinée aux utilisateurs finaux de HatCas
 ### 👥 Gestion des participants
 - Ajout de personnes à la grille
 - Gestion des disponibilités
-- Sélection automatique des équipes
+- Composition automatique des équipes
 
 ### 📱 Interface
 - Design responsive (mobile-first)
