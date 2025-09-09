@@ -813,11 +813,11 @@
               :key="player.id"
               :class="showRoleChances 
                 ? 'flex flex-col px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'
-                : 'flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
+                : 'flex items-center justify-center gap-3 px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
             >
-              <!-- Mode disponibilités : layout horizontal -->
+              <!-- Mode disponibilités : layout vertical pour avatar/nom, horizontal avec cellule -->
               <template v-if="!showRoleChances">
-                <div class="flex items-center min-w-0 gap-2">
+                <div class="flex flex-col items-center gap-1 flex-1 min-w-0">
                   <!-- Avatar du joueur -->
                   <div class="relative flex-shrink-0">
                     <PlayerAvatar 
@@ -845,36 +845,38 @@
                   </div>
                   <!-- Nom du joueur -->
                   <span
-                    class="text-white text-sm md:text-base block flex-1 min-w-0"
+                    class="text-white text-sm md:text-base text-center block flex-1 min-w-0"
                     :title="player.name"
                   >
                     {{ player.name }}
                   </span>
                 </div>
 
-                <div class="flex-0 p-0">
-                  <AvailabilityCell
-                    :player-name="player.name"
-                    :event-id="selectedEvent.id"
-                    :is-available="isAvailable(player.name, selectedEvent.id)"
-                    :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                    :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                    :season-id="seasonId"
-                    :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                    :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                    :disabled="selectedEvent?.archived === true"
-                    :compact="true"
-                    :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                    :event-title="selectedEvent.title"
-                    :event-date="selectedEvent.date"
-                    :is-protected="isPlayerProtectedInGrid(player.id)"
-                    :player-gender="player.gender || 'non-specified'"
-                    @toggle="handleAvailabilityToggle"
-                    @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                    @show-availability-modal="openAvailabilityModal"
-                  />
+                <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center">
+                  <div class="w-full h-full flex items-center justify-center">
+                    <AvailabilityCell
+                      :player-name="player.name"
+                      :event-id="selectedEvent.id"
+                      :is-available="isAvailable(player.name, selectedEvent.id)"
+                      :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                      :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                      :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                      :season-id="seasonId"
+                      :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
+                      :show-selected-chance="isSelectionComplete(selectedEvent.id)"
+                      :disabled="selectedEvent?.archived === true"
+                      :compact="true"
+                      :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                      :event-title="selectedEvent.title"
+                      :event-date="selectedEvent.date"
+                      :is-protected="isPlayerProtectedInGrid(player.id)"
+                      :player-gender="player.gender || 'non-specified'"
+                      @toggle="handleAvailabilityToggle"
+                      @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                      @show-availability-modal="openAvailabilityModal"
+                    />
+                  </div>
                 </div>
               </template>
 
