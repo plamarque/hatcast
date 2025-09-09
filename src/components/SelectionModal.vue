@@ -280,7 +280,7 @@ import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import { saveSelection } from '../services/storage.js'
+import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 
 const props = defineProps({
@@ -900,7 +900,7 @@ async function autoSaveSelection() {
     })
     
     // Sauvegarde avec la nouvelle structure par rôle
-    await saveSelection(props.event.id, roles, props.seasonId)
+    await saveCast(props.event.id, roles, props.seasonId)
     
     // Feedback visuel subtil (optionnel)
     console.debug('Composition sauvegardée automatiquement avec structure par rôle')

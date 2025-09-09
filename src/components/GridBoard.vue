@@ -1300,7 +1300,7 @@
     @send-notifications="handleSendNotifications"
     @update-selection="handleUpdateSelectionFromModal"
     @confirm-selection="handleConfirmSelectionFromModal"
-    @unconfirm-selection="handleUnconfirmSelectionFromModal"
+    @unconfirm-selection="handleUnconfirmCastFromModal"
         />
 
   <!-- Modal d'annonce d'événement -->
@@ -1644,14 +1644,14 @@ import {
   loadPlayers,
   loadEvents,
   loadAvailability,
-  loadSelections,
+  loadCasts,
   addPlayer,
   deletePlayer,
   deleteEvent,
   updateEvent,
   saveEvent,
   updatePlayer,
-  saveSelection
+  saveCast
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
@@ -3043,7 +3043,7 @@ async function deleteEventConfirmed(eventId = null) {
     await Promise.all([
       loadEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
@@ -3218,7 +3218,7 @@ async function handleEditEvent(eventData) {
     await Promise.all([
       loadEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
@@ -3280,7 +3280,7 @@ async function confirmDeletePlayer(playerId) {
     await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
       availability.value = newAvailability
@@ -3356,7 +3356,7 @@ async function addNewPlayer() {
     // Recharger les données
     const [newPlayers, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ])
     
     // Charger les disponibilités avec les nouveaux joueurs
@@ -3777,7 +3777,7 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des compositions'
       loadingProgress.value = 80
       try {
-        selections.value = await loadSelections(seasonId.value)
+        selections.value = await loadCasts(seasonId.value)
       } catch (error) {
         logger.debug('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
         selections.value = {}
@@ -3902,9 +3902,9 @@ onMounted(async () => {
   if (magicLinkAction === 'confirm' && magicLinkEventId) {
     console.debug('🔄 Détection d\'un magic link de confirmation, rechargement des données...')
     // Forcer le rechargement des compositions pour cet événement
-    await loadSelections(seasonId.value)
+    await loadCasts(seasonId.value)
     // Mettre à jour les compositions locales
-    selections.value = await loadSelections(seasonId.value)
+    selections.value = await loadCasts(seasonId.value)
     console.debug('✅ Compositions rechargées après magic link')
     // Nettoyer l'URL
     router.replace({ query: { ...route.query, a: undefined, eid: undefined } })
@@ -4286,8 +4286,8 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
 async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus, seasonId) {
   try {
     // Mettre à jour le statut dans le stockage
-    const { updatePlayerSelectionStatus } = await import('../services/storage.js')
-    const result = await updatePlayerSelectionStatus(eventId, playerName, newStatus, seasonId)
+    const { updatePlayerCastStatus } = await import('../services/storage.js')
+    const result = await updatePlayerCastStatus(eventId, playerName, newStatus, seasonId)
     
     // Logger l'audit de confirmation de participation
     try {
@@ -4574,7 +4574,7 @@ async function drawMultiRoles(eventId) {
   logger.debug('🎭 Rôles et joueurs:', newSelections)
   
   // Sauvegarder en base
-  await saveSelection(eventId, newSelections, seasonId.value)
+  await saveCast(eventId, newSelections, seasonId.value)
   
   updateAllStats()
   updateAllChances()
@@ -5000,7 +5000,7 @@ function getPinModalMessage() {
     toggleArchive: 'Archivage d\'événement - Code PIN requis',
     updateSelection: 'Mise à jour de composition - Code PIN requis',
     resetSelection: 'Réinitialisation de composition - Code PIN requis',
-    unconfirmSelection: 'Déverrouillage de composition - Code PIN requis'
+    unconfirmCast: 'Déverrouillage de composition - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -5471,7 +5471,7 @@ async function executePendingOperation(operation) {
           const nextSelection = Array.isArray(players) ? players : []
           // Convertir en format par rôle
           const roles = { player: nextSelection }
-          await saveSelection(eventId, roles, seasonId.value)
+          await saveCast(eventId, roles, seasonId.value)
           
           // Mettre à jour la structure locale
           if (selections.value[eventId]) {
@@ -5517,16 +5517,16 @@ async function executePendingOperation(operation) {
           } catch {}
         }
         break
-      case 'unconfirmSelection':
+      case 'unconfirmCast':
         // Déverrouiller une composition confirmée (admin uniquement)
         {
           const { eventId } = data
           try {
-            const { unconfirmSelection, loadSelections } = await import('../services/storage.js')
-            await unconfirmSelection(eventId, seasonId.value)
+            const { unconfirmCast, loadCasts } = await import('../services/storage.js')
+            await unconfirmCast(eventId, seasonId.value)
             
             // Recharger les compositions depuis Firestore pour avoir les données à jour
-            const newSelections = await loadSelections(seasonId.value)
+            const newSelections = await loadCasts(seasonId.value)
             selections.value = newSelections
             
             showSuccessMessage.value = true
@@ -5549,8 +5549,8 @@ async function executePendingOperation(operation) {
         {
           const { eventId } = data
           try {
-            const { deleteSelection, loadSelections } = await import('../services/storage.js')
-            await deleteSelection(eventId, seasonId.value)
+            const { deleteCast, loadCasts } = await import('../services/storage.js')
+            await deleteCast(eventId, seasonId.value)
             
             // Logger l'audit de réinitialisation
             try {
@@ -5568,7 +5568,7 @@ async function executePendingOperation(operation) {
             }
             
             // Recharger les compositions depuis Firestore pour avoir les données à jour
-            const newSelections = await loadSelections(seasonId.value)
+            const newSelections = await loadCasts(seasonId.value)
             selections.value = newSelections
             
             showSuccessMessage.value = true
@@ -5639,7 +5639,7 @@ async function showEventDetails(event) {
   try {
     const [newAvailability, newSelections] = await Promise.all([
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ])
     availability.value = newAvailability
     selections.value = newSelections
@@ -5922,7 +5922,7 @@ async function handlePlayerUpdate({ playerId, newName, newGender }) {
     await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers;
       availability.value = newAvailability;
@@ -5967,7 +5967,7 @@ async function handlePlayerRefresh() {
     const [newPlayers, newAvailability, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
-      loadSelections(seasonId.value)
+      loadCasts(seasonId.value)
     ]);
     
     players.value = newPlayers;
@@ -6497,8 +6497,8 @@ async function handleConfirmSelectionFromModal() {
   
   try {
     // Confirmer la composition
-    const { confirmSelection } = await import('../services/storage.js')
-    await confirmSelection(eventId, seasonId.value)
+    const { confirmCast } = await import('../services/storage.js')
+    await confirmCast(eventId, seasonId.value)
     
     // Logger l'audit de validation de composition
     try {
@@ -6512,7 +6512,7 @@ async function handleConfirmSelectionFromModal() {
         playerCount: selectedPlayers.length
       })
     } catch (auditError) {
-      console.warn('Erreur audit confirmSelection:', auditError)
+      console.warn('Erreur audit confirmCast:', auditError)
     }
     
     // Mettre à jour la structure locale
@@ -6551,7 +6551,7 @@ async function handleConfirmSelectionFromModal() {
   }
 }
 
-async function handleUnconfirmSelectionFromModal() {
+async function handleUnconfirmCastFromModal() {
   if (!selectionModalEvent.value) return
   
   const eventId = selectionModalEvent.value.id
@@ -6559,7 +6559,7 @@ async function handleUnconfirmSelectionFromModal() {
   try {
     // Demander le PIN code avant de déverrouiller la composition
     await requirePin({
-      type: 'unconfirmSelection',
+      type: 'unconfirmCast',
       data: { eventId }
     })
   } catch (error) {

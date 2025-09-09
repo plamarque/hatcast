@@ -330,7 +330,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSeasons, setSeasonSortOrder, updateSeason, deleteSeason } from '../services/seasons.js'
-import { loadEvents, loadPlayers, loadAvailability, loadSelections } from '../services/storage.js'
+import { loadEvents, loadPlayers, loadAvailability, loadCasts } from '../services/storage.js'
 import { currentUser, isConnected } from '../services/authState.js'
 import { clearLastSeasonPreference } from '../services/seasonPreferences.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
@@ -569,7 +569,7 @@ async function exportSeasonAvailabilityCsv(season) {
     ])
     const [availability, selections] = await Promise.all([
       loadAvailability(players, events, season.id),
-      loadSelections(season.id)
+      loadCasts(season.id)
     ])
 
     // Construire l'en-tête

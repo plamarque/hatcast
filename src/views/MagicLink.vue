@@ -375,8 +375,8 @@ onMounted(async () => {
     if (action === 'decline') {
       try {
         // Mettre à jour le statut du joueur dans la sélection
-        const { updatePlayerSelectionStatus } = await import('../services/storage.js')
-        await updatePlayerSelectionStatus(eventId, playerName, 'declined', seasonId)
+        const { updatePlayerCastStatus } = await import('../services/storage.js')
+        await updatePlayerCastStatus(eventId, playerName, 'declined', seasonId)
         console.log('✅ Statut du joueur mis à jour : declined')
       } catch (error) {
         console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
@@ -387,8 +387,8 @@ onMounted(async () => {
     if (action === 'confirm') {
       try {
         // Mettre à jour le statut du joueur dans la sélection
-        const { updatePlayerSelectionStatus } = await import('../services/storage.js')
-        await updatePlayerSelectionStatus(eventId, playerName, 'confirmed', seasonId)
+        const { updatePlayerCastStatus } = await import('../services/storage.js')
+        await updatePlayerCastStatus(eventId, playerName, 'confirmed', seasonId)
         console.log('✅ Statut du joueur mis à jour : confirmed')
       } catch (error) {
         console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
