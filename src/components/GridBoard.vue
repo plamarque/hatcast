@@ -722,7 +722,7 @@
       </div>
 
         <!-- Content scrollable -->
-  <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+  <div class="px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto flex-1 min-h-0">
         <!-- Section Équipe à Constituer -->
         <div class="mb-4 md:mb-6">
           <div class="flex items-center justify-between mb-3">
@@ -955,8 +955,12 @@
           </div>
         </div>
 
-        <!-- Actions desktop -->
-        <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
+        <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
+      </div>
+
+      <!-- Footer sticky (desktop) -->
+      <div class="hidden md:block sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm">
+        <div class="flex justify-center flex-wrap gap-3">
           <!-- Boutons principaux -->
           <button 
             @click="openEventAnnounceModal(selectedEvent)" 
@@ -973,8 +977,6 @@
           <!-- Bouton Fermer -->
           <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
         </div>
-
-        <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
       </div>
 
       <!-- Footer sticky (mobile) -->
