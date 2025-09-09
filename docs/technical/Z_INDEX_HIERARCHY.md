@@ -40,7 +40,6 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 │ z-[1280] AppHelpModal (supprimé)                           │
 │ z-[1260] DevelopmentModal                                  │
 │ z-[1250] AccountDropdown                                   │
-│ z-[1230] PinModal                                          │
 │ z-[1220] PasswordVerificationModal                         │
 │ z-[1200] FiltersDropdown                                   │
 ├─────────────────────────────────────────────────────────────┤
@@ -120,6 +119,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 |---------|-----------|-------------|---------|
 | `z-[1400]` | ChangelogModal | Nouveautés (inline) | `src/views/HelpPage.vue` |
 | `z-[1400]` | DesistementModal | Désistement | `src/components/DesistementModal.vue` |
+| `z-[1400]` | PinModal | Vérification PIN | `src/components/PinModal.vue` |
 | `z-[1400]` | PWAInstallModal | Installation PWA | `src/components/PWAInstallModal.vue` |
 | `z-[1400]` | ReminderTestModal | Test rappels | `src/components/ReminderTestModal.vue` |
 | `z-[1410]` | AvailabilityForgotPasswordModal | Mot de passe oublié (disponibilité) | `src/components/GridBoard.vue` |
