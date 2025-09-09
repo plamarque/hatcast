@@ -1,4 +1,4 @@
-# Spécifications - Sélection Multi-Rôles
+# Spécifications - Composition Multi-Rôles
 
 ## Vue d'ensemble
 
@@ -10,7 +10,7 @@ Le système de composition automatique d'équipe doit être étendu pour gérer 
 - Être compositionné pour un rôle **NE RÉDUIT PAS** les chances d'être compositionné pour un autre rôle
 - Les pénalités sont **spécifiques au rôle** : si déjà compositionné comme "DJ", ça réduit seulement les chances d'être re-compositionné comme "DJ"
 
-### **Sélection unique par personne**
+### **Composition unique par personne**
 - Une personne ne peut être compositionnée que pour **UN SEUL RÔLE** par spectacle
 - Pas de cumul de rôles pour la même personne
 
@@ -165,7 +165,7 @@ Bénévoles (2/2) :
    - Affichage de la composition par rôle
 
 ### **Fonctions à créer/modifier**
-1. **`drawMultiRoles(event)`** - Sélection automatique complète ✅
+1. **`drawMultiRoles(event)`** - Composition automatique complète ✅
 2. **`drawForRole(role, count, event)`** - Draw pour un rôle spécifique ✅
 3. **`applyRolePenalty(player, role, chances, event)`** - Pénalités par rôle ✅
 4. **`displayTeamSlots(selections, roles)`** - Affichage des slots groupés ✅
@@ -173,8 +173,8 @@ Bénévoles (2/2) :
 ## 🧪 **Tests et validation**
 
 ### **Scénarios de test**
-1. **Sélection simple** : 1 rôle avec plusieurs personnes
-2. **Sélection multiple** : Plusieurs rôles avec différentes personnes
+1. **Composition simple** : 1 rôle avec plusieurs personnes
+2. **Composition multiple** : Plusieurs rôles avec différentes personnes
 3. **Gestion des pénalités** : Vérifier que les pénalités sont spécifiques au rôle
 4. **Affichage des slots** : Vérifier le regroupement et les libellés
 

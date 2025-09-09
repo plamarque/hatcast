@@ -7,11 +7,11 @@ Le système de composition automatique d'équipe a été étendu pour gérer la 
 ## 🎯 **Comment ça fonctionne maintenant**
 
 ### **Avant (ancien système)**
-- Sélection automatique de X "joueurs" (implicitement tous comédiens)
+- Composition automatique de X "joueurs" (implicitement tous comédiens)
 - Affichage simple : [Alice] [Bob] [Charlie] [David] [Eva] [Fanny]
 
 ### **Après (nouveau système multi-rôles)**
-- Sélection automatique par rôle : X comédiens, Y DJ, Z MC, etc.
+- Composition automatique par rôle : X comédiens, Y DJ, Z MC, etc.
 - Affichage détaillé avec emojis des rôles : [Alice 🎭] [Bob 🎧] [Charlie 🎤]
 
 ## 🎭 **Affichage de l'équipe compositionnée**
@@ -57,7 +57,7 @@ L'équipe est affichée groupée par rôle dans l'ordre logique :
 - Les pénalités ne s'appliquent que si tu es **déjà compositionné pour le même rôle**
 - **Exemple** : Si tu as déjà été compositionné comme "DJ" récemment, tes chances d'être re-compositionné comme "DJ" sont réduites, mais pas tes chances pour les autres rôles
 
-### **Sélection unique par personne**
+### **Composition unique par personne**
 - Une personne ne peut être compositionnée que pour **UN SEUL RÔLE** par spectacle
 - Pas de cumul de rôles pour la même personne
 
@@ -123,7 +123,7 @@ Alice - DJ :
 ## 🔧 **Utilisation pratique**
 
 ### **Voir l'équipe compositionnée**
-1. Clique sur le bouton **"Sélection Équipe"** d'un spectacle
+1. Clique sur le bouton **"Composition Équipe"** d'un spectacle
 2. L'équipe s'affiche avec les emojis des rôles
 3. Les slots vides montrent les rôles manquants
 
@@ -163,7 +163,7 @@ Alice - DJ :
 Le nouveau système de composition multi-rôles a été entièrement implémenté et est maintenant disponible dans l'application Hatcast.
 
 ### **🎯 Fonctionnalités disponibles**
-- **Sélection automatique par rôle** : Chaque rôle est tiré indépendamment
+- **Composition automatique par rôle** : Chaque rôle est tiré indépendamment
 - **Affichage groupé des slots** : Les équipes sont organisées par rôle avec emojis
 - **Gestion des pénalités par rôle** : Les chances sont réduites uniquement pour le rôle concerné
 - **Interface intuitive** : Slots vides avec libellés informatifs et tooltips
@@ -171,7 +171,7 @@ Le nouveau système de composition multi-rôles a été entièrement implément�
 
 ### **🔧 Comment l'utiliser**
 1. **Créer un spectacle** avec des rôles et effectifs définis
-2. **Lancer la composition automatique** via le bouton "Sélection Auto" (appelle `drawMultiRoles`)
+2. **Lancer la composition automatique** via le bouton "Composition Auto" (appelle `drawMultiRoles`)
 3. **Visualiser l'équipe** organisée par rôle dans la modale de composition
 4. **Ajuster manuellement** si nécessaire en cliquant sur les slots
 5. **Confirmer la composition** une fois satisfait de l'équipe

@@ -34,7 +34,7 @@ Ethereal Email est un service gratuit qui **capture et stocke** les emails envoy
 
 ### **🎭 Notifications HatCast**
 - **Disponibilité** : Quand quelqu'un se déclare disponible
-- **Sélection** : Quand quelqu'un est compositionné pour un spectacle
+- **Composition** : Quand quelqu'un est composé pour un spectacle
 - **Rappels** : Notifications automatiques
 
 ## 🧪 **Comment tester ?**

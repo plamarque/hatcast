@@ -46,7 +46,7 @@
         <div class="space-y-2">
           <h3 class="text-white font-semibold">Exemples rapides</h3>
           <p>
-            • Alice n’a encore jamais été sélectionnée, Bob a été sélectionné une fois, Charlie plusieurs fois. Pour 1 place, on aura environ : Alice 57 %, Bob 29 %, Charlie 14 %.<br/>
+            • Alice n'a encore jamais été composée, Bob a été composé une fois, Charlie plusieurs fois. Pour 1 place, on aura environ : Alice 57 %, Bob 29 %, Charlie 14 %.<br/>
             • S’il y a 2 places, les chances de chacun augmentent, mais l’ordre reste aléatoire : un tirage peut donner Alice + Bob, un autre Alice + Charlie.
           </p>
         </div>

@@ -126,7 +126,7 @@ export const ROLE_LABELS_SINGULAR = {
 
 ### **Cas 1 : Événement avec rôles définis**
 - Affichage normal des rôles spécifiques
-- Sélection possible des rôles attendus
+- Composition possible des rôles attendus
 - Comportement inchangé par rapport à l'existant
 
 ### **Cas 2 : Événement sans rôles définis**
@@ -242,8 +242,8 @@ if (totalRoles > 0 && playerCount === 0) {
 ## 📚 Références
 
 - **Fichiers modifiés** : `AvailabilityModal.vue`, `GridBoard.vue`, `AvailabilityCell.vue`, `storage.js`
-- **Fonctionnalité liée** : [Sélection multi-rôles](../user/selection-multi-roles.md)
-- **Spécifications techniques** : [Sélection multi-rôles](../technical/selection-multi-roles-specifications.md)
+- **Fonctionnalité liée** : [Composition multi-rôles](../user/selection-multi-roles.md)
+- **Spécifications techniques** : [Composition multi-rôles](../technical/selection-multi-roles-specifications.md)
 
 ---
 

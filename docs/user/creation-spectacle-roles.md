@@ -190,7 +190,7 @@ props.eventRoles = {}  // ❌ Vide à cause de la prop manquante !
 ## 📚 **Documentation complète**
 
 - **[Création de spectacle avec rôles](./creation-spectacle-roles.md)** - Ce document
-- **[Sélection d'équipe multi-rôles](./selection-multi-roles.md)** - Nouveau système de composition par rôle
+- **[Composition d'équipe multi-rôles](./selection-multi-roles.md)** - Nouveau système de composition par rôle
 - **[Spécifications techniques](./../technical/selection-multi-roles-specifications.md)** - Détails techniques pour les développeurs
 
 ## 🚀 **Implémentation progressive terminée**
@@ -283,7 +283,7 @@ La modale de disponibilité a été positionnée avec un z-index de `z-[600]` po
 - `z-[800]` : Modale PIN (sécurité)
 - `z-[900]` : Modale "Demander confirmation"
 - `z-[1000]` : Dropdowns des actions (détail spectacle)
-- `z-[9999]` : Dropdown "Sélectionnés" (with `!important` inline style)
+- `z-[9999]` : Dropdown "Composés" (with `!important` inline style)
 - `z-[99999]` : Menu agenda (exceptionnellement élevé)
 
 ## Compatibilité et migration

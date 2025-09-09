@@ -43,13 +43,13 @@
       <!-- Afficher tous les rôles et l'icône de commentaire -->
       <template v-if="isAvailable === true && hasSpecificRoles">
         <div class="flex items-center gap-1 mt-1">
-          <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de sélection) -->
+          <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
             <span 
               v-for="(role, index) in displayRoles" 
               :key="role"
               :class="compact ? 'text-sm' : 'text-lg md:text-base'"
-              :title="isSelectionDisplay ? `Sélectionné comme ${ROLE_LABELS_SINGULAR[role]}` : `Rôle: ${ROLE_LABELS_SINGULAR[role]}`"
+              :title="isSelectionDisplay ? `Composé comme ${ROLE_LABELS_SINGULAR[role]}` : `Rôle: ${ROLE_LABELS_SINGULAR[role]}`"
             >
               {{ ROLE_EMOJIS[role] }}
             </span>
@@ -268,7 +268,7 @@ function getConfirmedRoleLabel() {
     return 'Joue' // Fallback si pas de rôle
   }
   
-  // Prendre le premier rôle (normalement il n'y en a qu'un en cas de sélection)
+  // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
   const role = props.availabilityData.roles[0]
   return getRoleLabel(role, props.playerGender, false) || 'Joue'
 }
@@ -289,23 +289,23 @@ const tooltipText = computed(() => {
       // Statut individuel du joueur
       switch (props.playerSelectionStatus) {
         case 'pending':
-          return `${props.playerName} est sélectionné et doit confirmer sa participation • Cliquer pour changer le statut`
+          return `${props.playerName} est composé et doit confirmer sa participation • Cliquer pour changer le statut`
         case 'confirmed':
           return `${props.playerName} a confirmé sa participation • Cliquer pour changer le statut`
         case 'declined':
           return `${props.playerName} a décliné sa participation • Cliquer pour changer le statut`
         default:
-          return `${props.playerName} est sélectionné • Cliquer pour changer le statut`
+          return `${props.playerName} est composé • Cliquer pour changer le statut`
       }
     } else {
       if (shouldShowChance.value) {
-        return `${props.playerName} est sélectionné et doit confirmer • avait ~${props.chancePercent}% de chances`
+        return `${props.playerName} est composé et doit confirmer • avait ~${props.chancePercent}% de chances`
       }
-      return `${props.playerName} est sélectionné et doit confirmer`
+      return `${props.playerName} est composé et doit confirmer`
     }
   } else if (props.isAvailable === true) {
     return props.chancePercent != null
-      ? `${props.playerName} est disponible • ~${props.chancePercent}% de chances d'être sélectionné`
+      ? `${props.playerName} est disponible • ~${props.chancePercent}% de chances d'être composé`
       : `${props.playerName} est disponible`
   } else if (props.isAvailable === false) {
     return `${props.playerName} n'est pas disponible`
@@ -317,7 +317,7 @@ const tooltipText = computed(() => {
 function toggleAvailability() {
   if (props.disabled) return
   
-  // Si le joueur est dans la sélection validée par l'organisateur, gérer le cycle de confirmation
+  // Si le joueur est dans la composition validée par l'organisateur, gérer le cycle de confirmation
   if (props.isSelected && props.isAvailable === true && props.isSelectionConfirmedByOrganizer) {
     // Cycle de confirmation : pending → confirmed → declined → pending
     const nextStatus = getNextSelectionStatus(props.playerSelectionStatus)
