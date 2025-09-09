@@ -1594,7 +1594,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -4381,8 +4381,8 @@ async function drawMultiRoles(eventId) {
   // Nouvelle structure de composition par rôle
   const newSelections = {}
   
-  // Pour chaque rôle dans l'ordre d'affichage
-  for (const role of ROLE_DISPLAY_ORDER) {
+  // Pour chaque rôle dans l'ordre de priorité (rôles critiques en premier)
+  for (const role of ROLE_PRIORITY_ORDER) {
     const requiredCount = roles[role] || 0
     
     if (requiredCount > 0) {

@@ -15,8 +15,22 @@ Le système de composition automatique d'équipe doit être étendu pour gérer 
 - Pas de cumul de rôles pour la même personne
 
 ### **Ordre des tirages**
-- L'ordre des tirages n'a **AUCUNE IMPORTANCE** car tous les tirages sont effectués
-- L'ordre d'affichage suit `ROLE_DISPLAY_ORDER` pour le regroupement visuel
+- L'ordre des tirages suit `ROLE_PRIORITY_ORDER` pour garantir que les rôles critiques (Arbitre, DJ, MC) sont attribués en priorité
+- L'ordre d'affichage suit `ROLE_DISPLAY_ORDER` pour le regroupement visuel dans l'interface
+
+### **Système de priorité des rôles**
+Les rôles sont tirés dans l'ordre de priorité suivant :
+1. **Arbitre** (Priorité 1) - Critique pour les matchs
+2. **DJ** (Priorité 2) - Critique pour le spectacle
+3. **MC** (Priorité 3) - Critique pour le spectacle
+4. **Improvisateurs** (Priorité 4) - Essentiels
+5. **Assistants arbitres** (Priorité 5)
+6. **Coach** (Priorité 6)
+7. **Régisseur** (Priorité 7) - Coordination
+8. **Éclairagiste** (Priorité 8)
+9. **Bénévoles** (Priorité 9) - Rôle le moins critique
+
+**Avantage** : Les rôles critiques sont attribués en premier, garantissant qu'un spectacle peut avoir lieu même si certains rôles secondaires ne peuvent pas être pourvus.
 
 ## 🏗️ **Structure des données**
 
