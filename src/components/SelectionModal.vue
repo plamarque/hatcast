@@ -404,10 +404,20 @@ const teamSlots = computed(() => {
 function generateSlotsForLegacyEvent() {
   // Ancienne logique : slots simples basés sur playerCount
   let filled = []
-  if (Array.isArray(props.currentSelection)) {
+  if (!props.currentSelection) {
+    filled = []
+  } else if (Array.isArray(props.currentSelection)) {
     filled = [...props.currentSelection]
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    filled = [...(props.currentSelection.players || [])]
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    filled = [...props.currentSelection.players]
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    filled = [...new Set(allPlayers)]
   }
   
   const len = requiredCount.value
@@ -835,12 +845,22 @@ function getPlayerSlotTooltip(playerName) {
 const selectionMessage = computed(() => {
   if (!props.event || !hasSelection.value) return ''
   
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    selectedPlayers = [...new Set(allPlayers)]
   }
   
   const eventDate = formatDateFull(props.event.date)
@@ -859,10 +879,20 @@ watch(() => props.show, (newValue) => {
     showAnnounce.value = false
     // Initialize slots from current selection and requiredCount
     let filled = []
-    if (Array.isArray(props.currentSelection)) {
+    if (!props.currentSelection) {
+      filled = []
+    } else if (Array.isArray(props.currentSelection)) {
       filled = [...props.currentSelection]
-    } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-      filled = [...(props.currentSelection.players || [])]
+    } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+      filled = [...props.currentSelection.players]
+    } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+      const allPlayers = []
+      for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+        if (Array.isArray(rolePlayers)) {
+          allPlayers.push(...rolePlayers)
+        }
+      }
+      filled = [...new Set(allPlayers)]
     }
     const len = requiredCount.value
     slots.value = Array.from({ length: len }, (_, i) => filled[i] || null)
@@ -875,10 +905,20 @@ watch([requiredCount, () => props.currentSelection, () => props.event?.id], () =
   if (!props.show) return
   
   let filled = []
-  if (Array.isArray(props.currentSelection)) {
+  if (!props.currentSelection) {
+    filled = []
+  } else if (Array.isArray(props.currentSelection)) {
     filled = [...props.currentSelection]
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    filled = [...(props.currentSelection.players || [])]
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    filled = [...props.currentSelection.players]
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    filled = [...new Set(allPlayers)]
   }
   const len = requiredCount.value
   
