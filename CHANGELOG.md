@@ -1,5 +1,65 @@
+## [0.9.4] - 2025-09-09
+
+### ✨ New Features
+
+- feat: add role-based chance percentages with toggle in event detail modal
+- feat: implement OpenAI-powered user-focused changelog generation
+- feat: implement new changelog architecture with OpenAI integration
+- feat: add dual sorting system for changelog version order
+- feat: replace composition status badges with event type badges in grid header
+- feat: replace 'Sélection' with 'Composition' in UI and documentation
+- feat: implement complete z-index hierarchy system with comprehensive documentation
+- feat: unify password reset systems on Firebase Auth
+- feat: use player gender for role labels in availability cells
+- feat: add Long Form show type with 4 players, 1 MC, 1 DJ
+
+### 🐛 Bug Fixes
+
+- fix: eliminate double password verification in player edit flow
+- fix: use player gender for role labels in availability modals
+- fix: increase AvailabilityModal z-index to appear above EventDetailsModal
+- fix: insert new changelog versions at the beginning for chronological order
+- fix: resolve JSON parsing error in release script
+- fix: improve changelog readability with user-focused language
+- fix: improve changelog readability with user-focused language
+- fix: increase PinModal z-index to appear above SelectionModal
+- fix: corriger régression bouton Réinitialiser et erreurs de cache
+- fix: move Composition Auto confirmation modal to SelectionModal with proper z-index
+- fix: complete replacement of 'Sélection' with 'Composition' in remaining files
+- fix: correct changelog.json path in release script
+- fix: update changelog.json with latest version information
+- fix: improve waitForInitialization to handle early calls
+- fix: wait for Firebase initialization before auth service
+- fix: move waitForInitialization to very beginning of onMounted
+- fix: add specific error handling for waitForInitialization failures
+- fix: move auth access after waitForInitialization to prevent crashes
+- fix: replace logger calls with console.log to avoid Firebase dependency
+- fix: use existing waitForInitialization service for auth readiness
+- fix: resolve password reset token verification issue
+- fix: persist event template type and improve template structure
+
+### 🔧 Improvements
+
+- refactor: déplacer actions événement dans entête et corriger z-index
+- refactor: rename selection functions to cast functions in code
+- refactor: replace console.log with logger calls in PasswordReset.vue
+
+### 📝 Other Changes
+
+- release: version 0.9.3
+- merge: update changelog.json from staging
+- hotfix: merge changelog readability improvements
+- chore: remove obsolete public/changelog.md file
+- chore: remove obsolete changelog_fr.md file
+- chore: add OpenAI dependency and environment configuration
+- chore: bump version to 0.9.3 for production release
+- unify: replace magic link system with Firebase Auth for player protection
+- debug: add console.log statements for password reset debugging
+
+
 # Changelog
 
+## [0.9.4] - 2025-09-09
 ## [0.9.3] - 2025-09-08
 
 ### ✨ New Features

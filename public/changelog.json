@@ -1,4 +1,23 @@
 [
+{
+  "version": "0.9.4",
+  "date": "2025-09-09",
+  "changes": [
+    "✨ Ajout de pourcentages de chance basés sur les rôles avec un bouton bascule dans le détail des événements",
+    "✨ Génération de changelog centrée sur l'utilisateur alimentée par OpenAI",
+    "✨ Nouvelle architecture de changelog intégrant OpenAI",
+    "✨ Système de tri dual pour l'ordre des versions du changelog",
+    "✨ Remplacement des badges de statut de composition par des badges de type d'événement dans l'en-tête de la grille",
+    "✨ Remplacement de 'Sélection' par 'Composition' dans l'interface et la documentation",
+    "✨ Unification des systèmes de réinitialisation de mot de passe sur Firebase Auth",
+    "✨ Utilisation du genre des joueurs pour les étiquettes de rôle dans les cellules de disponibilité",
+    "✨ Ajout d'un type de spectacle Long Form avec 4 joueurs, 1 MC, 1 DJ",
+    "🐛 Correction de la vérification double du mot de passe dans le flux d'édition des joueurs",
+    "🐛 Utilisation du genre des joueurs pour les étiquettes de rôle dans les modales de disponibilité",
+    "🐛 Amélioration de la lisibilité du changelog avec un langage centré sur l'utilisateur"
+  ]
+}
+,
   {
     "version": "0.9.3",
     "date": "2025-09-08",
