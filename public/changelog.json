@@ -1,5 +1,35 @@
 [
 {
+  "version": "0.10.0",
+  "date": "2025-09-10",
+  "changes": [
+    "✨ Ajout d'une section sur le système multi-rôles dans l'aide générale",
+    "✨ Ajout d'un système de priorité des rôles pour les sélections",
+    "✨ Ajout d'une version cliquable dans le pied de page avec un modal de changelog",
+    "✨ Réorganisation de la mise en page du pied de page",
+    "✨ Amélioration de la mise en page du modal d'événement pour les joueurs",
+    "✨ Optimisation de la mise en page mobile du modal d'événement",
+    "✨ Ajout de pourcentages de chances basés sur les rôles avec un interrupteur dans le modal de détails de l'événement",
+    "✨ Mise en œuvre d'une génération de changelog centrée sur l'utilisateur alimentée par OpenAI",
+    "✨ Mise en œuvre d'une nouvelle architecture de changelog avec intégration OpenAI",
+    "✨ Ajout d'un système de tri double pour l'ordre des versions du changelog",
+    "✨ Remplacement des badges de statut de composition par des badges de type d'événement dans l'en-tête de la grille",
+    "✨ Remplacement de 'Sélection' par 'Composition' dans l'interface et la documentation",
+    "✨ Unification des systèmes de réinitialisation de mot de passe sur Firebase Auth",
+    "✨ Utilisation du genre des joueurs pour les étiquettes de rôle dans les cellules de disponibilité",
+    "✨ Ajout d'un type de spectacle Long Form avec 4 joueurs, 1 MC, 1 DJ",
+    "🐛 Correction de la visibilité du pied de page sur la page d'aide",
+    "🐛 Ajout du pied de page manquant sur les pages de saisons et d'aide",
+    "🐛 Prévention du défilement masquant les boutons du modal d'événement",
+    "🐛 Gestion des refus des joueurs dans la logique de statut de sélection",
+    "🐛 Correction de la vérification de disponibilité des joueurs pour les événements multi-rôles",
+    "🐛 Amélioration de l'interface de sélection incomplète en supprimant un message redondant et en améliorant l'info-bulle",
+    "🐛 Correction du calcul de requiredCount pour les événements multi-rôles",
+    "🐛 Amélioration de la lisibilité du changelog avec un langage centré sur l'utilisateur"
+  ]
+}
+,
+{
   "version": "0.9.4",
   "date": "2025-09-09",
   "changes": [

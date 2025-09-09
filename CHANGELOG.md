@@ -1,7 +1,14 @@
-## [0.9.4] - 2025-09-09
+## [0.10.0] - 2025-09-10
 
 ### ✨ New Features
 
+- feat: add multi-role system section to general help
+- feat: add role priority system for selections
+- feat: add clickable version in footer with changelog modal
+- feat: reorganize footer layout
+- feat: improve event modal player layout
+- feat: optimize event modal mobile layout
+- feat: add database migration scripts for production data replication
 - feat: add role-based chance percentages with toggle in event detail modal
 - feat: implement OpenAI-powered user-focused changelog generation
 - feat: implement new changelog architecture with OpenAI integration
@@ -15,6 +22,17 @@
 
 ### 🐛 Bug Fixes
 
+- fix: ensure footer visibility on help page
+- fix: add missing AppFooter to seasons and help pages
+- fix: prevent scroll from hiding event modal buttons
+- fix: handle player declines in selection status logic
+- fix: correct player availability check for multi-role events
+- fix: improve incomplete selection UI by removing redundant message and enhancing tooltip
+- fix: correct requiredCount calculation for multi-role events
+- fix: increase HowItWorksModal z-index to display above SelectionModal
+- fix: correct slot initialization and watchers for multi-role selections
+- fix: correct selection status extraction in SelectionModal
+- fix: correct const to let for filled variable in SelectionModal
 - fix: eliminate double password verification in player edit flow
 - fix: use player gender for role labels in availability modals
 - fix: increase AvailabilityModal z-index to appear above EventDetailsModal
@@ -46,6 +64,7 @@
 
 ### 📝 Other Changes
 
+- chore: bump version to 0.9.4 for production release
 - release: version 0.9.3
 - merge: update changelog.json from staging
 - hotfix: merge changelog readability improvements
@@ -59,6 +78,7 @@
 
 # Changelog
 
+## [0.10.0] - 2025-09-10
 ## [0.9.4] - 2025-09-09
 ## [0.9.3] - 2025-09-08
 
