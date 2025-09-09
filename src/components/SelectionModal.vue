@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1020] p-0 md:p-4" @click="close">
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1390] p-0 md:p-4" @click="close">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
@@ -246,6 +246,16 @@
           ⏳ <span class="hidden sm:inline">Demander confirmation</span><span class="sm:hidden">Confirmation</span>
         </button>
 
+        <!-- Bouton Réinitialiser (visible seulement si il y a une sélection ET que la composition n'est pas verrouillée) -->
+        <button 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer" 
+          @click="handleResetSelection" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
+          title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
+        >
+          🔄 <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
+        </button>
+
         <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap">
           <span class="hidden sm:inline">Fermer</span><span class="sm:hidden">Fermer</span>
         </button>
@@ -339,7 +349,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -876,6 +886,7 @@ async function handleUnconfirmSelection() {
     }, 3000)
   }
 }
+
 
 
 

@@ -543,7 +543,7 @@
   </div>
 
   <!-- Modale de confirmation de suppression -->
-  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1310] p-4">
+  <div v-if="confirmDelete" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1380] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -627,16 +627,24 @@
            <div class="flex-1 min-w-0">
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
-               <!-- Badge du type d'événement -->
-               <div v-if="selectedEvent?.roles" class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
-                 <span class="text-sm">{{ getEventTypeIcon(selectedEvent) }}</span>
-                 <span class="text-gray-300 text-sm">{{ ROLE_TEMPLATES[selectedEvent.templateType || 'custom']?.name || 'Autre' }}</span>
-               </div>
-               <!-- Events without roles -->
-               <div v-else class="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-lg">
-                 <span class="text-sm">🎭</span>
-                 <span class="text-gray-300 text-sm">Simple sondage</span>
-               </div>
+               
+               <!-- Icône Modifier -->
+               <button
+                 @click="startEditingFromDetails"
+                 class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                 title="Modifier cet événement"
+               >
+                 <span class="text-lg">✏️</span>
+               </button>
+               
+               <!-- Icône Supprimer -->
+               <button
+                 @click="confirmDeleteEvent(selectedEvent?.id)"
+                 class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
+                 title="Supprimer cet événement"
+               >
+                 <span class="text-lg">🗑️</span>
+               </button>
              </div>
              
 
@@ -902,56 +910,8 @@
             <span>🎭</span><span>Composition Équipe</span>
           </button>
           
-          <!-- Menu 3-points pour actions secondaires -->
-          <div class="relative" ref="eventMoreActionsRef">
-            <button 
-              @click="toggleEventMoreActionsDesktop()"
-              class="px-5 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 flex items-center gap-2"
-              title="Plus d'actions"
-            >
-              <span>⋯</span>
-            </button>
-          </div>
-          
           <!-- Bouton Fermer -->
           <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
-          
-          <!-- Dropdown des actions secondaires (positionné absolument) -->
-          <teleport to="body">
-            <div 
-              v-if="showEventMoreActionsDesktop"
-              ref="eventMoreActionsDropdownRef"
-              class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[9998] overflow-hidden"
-              :style="eventMoreActionsStyle"
-            >
-              <button 
-                @click="startEditingFromDetails(); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-              >
-                <span>✏️</span><span>Modifier</span>
-              </button>
-              <button 
-                @click="toggleEventArchived(); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-                :title="selectedEvent?.archived ? 'Désarchiver cet événement' : 'Archiver cet événement'"
-              >
-                <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
-              </button>
-              <button 
-                @click="handleResetEventSelection(selectedEvent?.id); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-                title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
-              >
-                <span>🔄</span><span>Réinitialiser</span>
-              </button>
-              <button 
-                @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActionsDesktop = false" 
-                class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2"
-              >
-                <span>🗑️</span><span>Supprimer</span>
-              </button>
-            </div>
-          </teleport>
         </div>
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
@@ -962,7 +922,6 @@
         <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">Annoncer</button>
         <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">Composition</button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
-        <button @click="toggleEventMoreActionsMobile()" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex items-center justify-center w-12">⋯</button>
       </div>
     </div>
   </div>
@@ -970,43 +929,6 @@
   <!-- Footer principal -->
   <AppFooter @open-help="goToHelpPage" />
 
-  <!-- Dropdown mobile pour actions d'événements (positionné absolument) -->
-  <teleport to="body">
-    <div 
-      v-if="showEventMoreActions"
-      ref="eventMoreActionsMobileDropdownRef"
-      class="w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[9998] overflow-hidden md:hidden"
-      :style="eventMoreActionsMobileStyle"
-    >
-      <!-- Boutons principaux en premier -->
-      <button 
-        @click="openEventAnnounceModal(selectedEvent); showEventMoreActions = false" 
-        :disabled="selectedEvent?.archived"
-        class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-        :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
-      >
-        <span>📢</span><span>Annoncer</span>
-      </button>
-      
-      <!-- Actions secondaires -->
-      <button @click="startEditingFromDetails(); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10">
-        <span>✏️</span><span>Modifier</span>
-      </button>
-      <button @click="toggleEventArchived(); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10">
-        <span>{{ selectedEvent?.archived ? '📂' : '📁' }}</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
-      </button>
-      <button 
-        @click="handleResetEventSelection(selectedEvent?.id); showEventMoreActions = false" 
-        class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2 border-b border-white/10"
-        title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
-      >
-        <span>🔄</span><span>Réinitialiser</span>
-      </button>
-      <button @click="confirmDeleteEvent(selectedEvent?.id); showEventMoreActions = false" class="w-full text-left px-4 py-3 text-white hover:bg-white/10 flex items-center gap-2">
-        <span>🗑️</span><span>Supprimer</span>
-      </button>
-    </div>
-  </teleport>
 
   <!-- Modal de vérification du mot de passe pour joueur protégé -->
   <PasswordVerificationModal
@@ -1871,13 +1793,6 @@ const showEventDetailsModal = ref(false)
 const selectedEvent = ref(null)
 const editingDescription = ref('')
 const editingArchived = ref(false)
-const showEventMoreActions = ref(false)
-const showEventMoreActionsDesktop = ref(false)
-const eventMoreActionsRef = ref(null)
-const eventMoreActionsDropdownRef = ref(null)
-const eventMoreActionsStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
-const eventMoreActionsMobileDropdownRef = ref(null)
-const eventMoreActionsMobileStyle = ref({ position: 'fixed', top: '0px', left: '0px' })
 
 // Variables pour les menus d'agenda
 const showCalendarMenuDetails = ref(false)
@@ -1900,88 +1815,8 @@ const playerClaimData = ref(null)
 // Variables pour la modale de développement
 const showDevelopmentModal = ref(false)
 
-// Fonctions pour gérer le dropdown des actions d'événements
-function updateEventMoreActionsPosition() {
-  try {
-    const anchor = eventMoreActionsRef.value
-    if (!anchor) return
-    const rect = anchor.getBoundingClientRect()
-    const gap = 8
-    const dropdownHeight = 250 // estimation de la hauteur du dropdown (rallongé)
-    
-    // Sur desktop, positionner intelligemment
-    if (window.innerWidth > 768) {
-      let top, left
-      
-      // Vérifier s'il y a assez d'espace en haut
-      const spaceAbove = rect.top
-      const spaceBelow = window.innerHeight - rect.bottom
-      
-      if (spaceAbove >= dropdownHeight + gap) {
-        // Positionner au-dessus du bouton
-        top = Math.max(gap, Math.round(rect.top - dropdownHeight - gap))
-      } else if (spaceBelow >= dropdownHeight + gap) {
-        // Positionner en dessous du bouton
-        top = Math.round(rect.bottom + gap)
-      } else {
-        // Positionner au centre de l'écran
-        top = Math.max(gap, Math.round((window.innerHeight - dropdownHeight) / 2))
-      }
-      
-      left = Math.max(gap, Math.round(rect.left))
-      eventMoreActionsStyle.value = {
-        position: 'fixed',
-        top: `${top}px`,
-        left: `${left}px`,
-        zIndex: 1000
-      }
-    } else {
-      // Sur mobile, positionner en dessous (pull-up style)
-      const top = Math.min(window.innerHeight - gap, Math.round(rect.bottom + gap))
-      const left = Math.max(gap, Math.round(rect.left))
-      eventMoreActionsStyle.value = {
-        position: 'fixed',
-        top: `${top}px`,
-        left: `${left}px`,
-        zIndex: 1000
-      }
-    }
-  } catch {}
-}
 
-function updateEventMoreActionsMobilePosition() {
-  try {
-    // Pour mobile, positionner le dropdown au-dessus du bouton 3-points du footer
-    const gap = 8
-    const buttonHeight = 48 // hauteur du bouton 3-points (h-12)
-    const dropdownHeight = 250 // estimation de la hauteur du dropdown (rallongé)
-    
-    // Positionner au-dessus du footer (pull-up style)
-    const top = Math.max(gap, window.innerHeight - gap - buttonHeight - dropdownHeight)
-    const left = Math.max(gap, Math.round(window.innerWidth - 200 - gap)) // 200 = largeur du dropdown (w-48)
-    
-    eventMoreActionsMobileStyle.value = {
-      position: 'fixed',
-      top: `${top}px`,
-      left: `${left}px`,
-      zIndex: 1000
-    }
-  } catch {}
-}
 
-function toggleEventMoreActionsDesktop() {
-  showEventMoreActionsDesktop.value = !showEventMoreActionsDesktop.value
-  if (showEventMoreActionsDesktop.value) {
-    nextTick(() => updateEventMoreActionsPosition())
-  }
-}
-
-function toggleEventMoreActionsMobile() {
-  showEventMoreActions.value = !showEventMoreActions.value
-  if (showEventMoreActions.value) {
-    nextTick(() => updateEventMoreActionsMobilePosition())
-  }
-}
 
 // Fonctions pour gérer les menus d'agenda
 function toggleCalendarMenuDetails() {
@@ -2499,60 +2334,7 @@ onMounted(async () => {
   }
   window.addEventListener('scroll', handleScroll, { passive: true })
   
-  // Gestionnaire de clic en dehors du dropdown desktop pour fermer automatiquement
-  document.addEventListener('click', (event) => {
-    // Gestion du dropdown desktop
-    if (showEventMoreActionsDesktop.value) {
-      const anchorEl = eventMoreActionsRef.value
-      const dropdownEl = eventMoreActionsDropdownRef.value
-      const clickedInsideAnchor = anchorEl && anchorEl.contains(event.target)
-      const clickedInsideDropdown = dropdownEl && dropdownEl.contains(event.target)
-      if (!clickedInsideAnchor && !clickedInsideDropdown) {
-        showEventMoreActionsDesktop.value = false
-      }
-    }
-    
-    // Gestion du dropdown mobile
-    if (showEventMoreActions.value) {
-      const dropdownEl = eventMoreActionsMobileDropdownRef.value
-      const clickedInsideDropdown = dropdownEl && dropdownEl.contains(event.target)
-      if (!clickedInsideDropdown) {
-        showEventMoreActions.value = false
-      }
-    }
-  })
   
-  // Gestionnaire de la touche Échap pour fermer le dropdown desktop
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      if (showEventMoreActionsDesktop.value) {
-        showEventMoreActionsDesktop.value = false
-      }
-      if (showEventMoreActions.value) {
-        showEventMoreActions.value = false
-      }
-    }
-  })
-  
-  // Gestionnaires pour repositionner le dropdown des actions d'événements
-  // Gestionnaires pour repositionner les dropdowns des actions d'événements
-  window.addEventListener('resize', () => {
-    if (showEventMoreActionsDesktop.value) {
-      updateEventMoreActionsPosition()
-    }
-    if (showEventMoreActions.value) {
-      updateEventMoreActionsMobilePosition()
-    }
-  })
-  
-  window.addEventListener('scroll', () => {
-    if (showEventMoreActionsDesktop.value) {
-      updateEventMoreActionsPosition()
-    }
-    if (showEventMoreActions.value) {
-      updateEventMoreActionsMobilePosition()
-    }
-  }, { passive: true })
   
   // Retourner la fonction de cleanup
   return () => {
@@ -5661,8 +5443,6 @@ function closeEventDetails() {
   showEventDetailsModal.value = false;
   selectedEvent.value = null;
   editingDescription.value = '';
-  showEventMoreActions.value = false;
-  showEventMoreActionsDesktop.value = false;
   
   // Fermer les menus d'agenda
   closeCalendarMenuDetails();
@@ -6566,6 +6346,7 @@ async function handleUnconfirmCastFromModal() {
     console.error('Erreur lors de la demande de déverrouillage:', error)
   }
 }
+
 
 // Sauvegarde d'une composition manuelle via PIN
 async function handleUpdateSelectionFromModal(payload) {
