@@ -372,7 +372,7 @@ create_technical_json_from_commits() {
     local version="$1"
     local date=$(date +%Y-%m-%d)
     
-    echo "   └─ Extracting commits for version $version..."
+    echo "   └─ Extracting commits for version $version..." >&2
     
     # Get commits since last tag
     local last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -391,11 +391,11 @@ create_technical_json_from_commits() {
     done < <($commits_cmd)
     
     if [ ${#commits[@]} -eq 0 ]; then
-        echo "   └─ No commits found"
+        echo "   └─ No commits found" >&2
         return 1
     fi
     
-    echo "   └─ Found ${#commits[@]} commits"
+    echo "   └─ Found ${#commits[@]} commits" >&2
     
     # Categorize commits
     local features=()
@@ -423,17 +423,17 @@ create_technical_json_from_commits() {
     
     printf '{\n  "version": "%s",\n  "date": "%s",\n  "changes": [' "$version" "$date" > "$temp_json"
     
-    local first=true
-    
+            local first=true
+            
     # Add features
     for feature in "${features[@]}"; do
-        if [ "$first" = true ]; then
-            first=false
-        else
+                if [ "$first" = true ]; then
+                    first=false
+                else
             printf "," >> "$temp_json"
         fi
-        # Escape single quotes in commit messages by replacing with double quotes
-        local escaped_feature=$(echo "$feature" | sed "s/'/\"/g")
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_feature=$(echo "$feature" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
         printf '\n    "✨ %s"' "$escaped_feature" >> "$temp_json"
     done
     
@@ -444,8 +444,8 @@ create_technical_json_from_commits() {
         else
             printf "," >> "$temp_json"
         fi
-        # Escape single quotes in commit messages by replacing with double quotes
-        local escaped_fix=$(echo "$fix" | sed "s/'/\"/g")
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_fix=$(echo "$fix" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
         printf '\n    "🐛 %s"' "$escaped_fix" >> "$temp_json"
     done
     
@@ -456,33 +456,34 @@ create_technical_json_from_commits() {
         else
             printf "," >> "$temp_json"
         fi
-        # Escape single quotes in commit messages by replacing with double quotes
-        local escaped_improvement=$(echo "$improvement" | sed "s/'/\"/g")
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_improvement=$(echo "$improvement" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
         printf '\n    "🔧 %s"' "$escaped_improvement" >> "$temp_json"
     done
     
     # Add other changes
     for other_change in "${other[@]}"; do
-        if [ "$first" = true ]; then
-            first=false
-        else
+            if [ "$first" = true ]; then
+                first=false
+            else
             printf "," >> "$temp_json"
         fi
-        # Escape single quotes in commit messages by replacing with double quotes
-        local escaped_other=$(echo "$other_change" | sed "s/'/\"/g")
+        # Escape quotes and newlines in commit messages for JSON
+        local escaped_other=$(echo "$other_change" | tr -d '\n' | sed 's/"/\\"/g' | sed "s/'/\\'/g")
         printf '\n    "📝 %s"' "$escaped_other" >> "$temp_json"
     done
     
     printf '\n  ]\n}' >> "$temp_json"
     
-    # Debug: Display the generated JSON
-    echo "   └─ DEBUG: Generated technical JSON:"
-    echo "=========================================="
-    cat "$temp_json"
-    echo "=========================================="
+    # Debug: Display the generated JSON to stderr
+    echo "   └─ DEBUG: Generated technical JSON:" >&2
+    echo "==========================================" >&2
+    cat "$temp_json" >&2
+    echo "==========================================" >&2
     
     # Output the JSON and clean up
     cat "$temp_json"
+    echo  # Add newline after JSON
     rm -f "$temp_json"
 }
 
@@ -493,14 +494,18 @@ generate_changelog_md_from_json() {
     
     echo "   └─ Converting technical JSON to CHANGELOG.md format..."
     
-    # Debug: Display the received JSON
-    echo "   └─ DEBUG: Received technical JSON:"
-    echo "=========================================="
-    echo "$technical_json"
-    echo "=========================================="
+    # Debug: Display the received JSON to stderr
+    echo "   └─ DEBUG: Received technical JSON:" >&2
+    echo "==========================================" >&2
+    echo "$technical_json" >&2
+    echo "==========================================" >&2 
     
-    # Extract version and date
-    local date=$(echo "$technical_json" | jq -r '.date')
+    # Extract version and date (clean JSON first)
+    echo "DEBUG: About to parse JSON with jq..." >&2
+    echo "DEBUG: First 50 chars of JSON: '$(echo "$technical_json" | head -c 50)'" >&2
+    echo "DEBUG: Last 50 chars of JSON: '$(echo "$technical_json" | tail -c 50)'" >&2
+    echo "DEBUG: JSON length: $(echo "$technical_json" | wc -c)" >&2
+    local date=$(echo "$technical_json" | tr -d '\r' | jq -r '.date')
     
     # Create markdown section
     local markdown_section="## [$version] - $date\n\n"
@@ -629,9 +634,9 @@ generate_json_from_english_changelog() {
             json+="\n    $change"
         else
             json+=",\n    $change"
-        fi
-    done
-    
+            fi
+        done
+        
     json+="\n  ]\n}"
     
     # Update or create changelog.json
@@ -690,7 +695,7 @@ generate_user_focused_changelog() {
     fi
 
     # Display the technical changelog in terminal for reference
-    echo ""
+        echo ""
     echo "📋 CHANGELOG TECHNIQUE (version $version) :"
     echo "=========================================="
     echo "$english_section"
@@ -702,9 +707,9 @@ generate_user_focused_changelog() {
     
     if [ -n "$translation" ] && [ "$translation" != "null" ]; then
         echo "   └─ ✅ OpenAI translation successful!"
-        echo "$translation"
-        return 0
-    else
+            echo "$translation"
+            return 0
+        else
         echo "   └─ ❌ OpenAI translation failed, using fallback..."
         return 1
     fi
