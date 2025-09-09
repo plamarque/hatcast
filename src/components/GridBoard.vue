@@ -586,26 +586,6 @@
     </div>
   </div>
 
-  <!-- Modale de confirmation de relance de composition -->
-          <div v-if="confirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1330] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-2xl">🎭</span>
-        </div>
-        <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
-        <p class="text-gray-300">
-          <span v-if="eventIdToReselect && getSelectionPlayers(eventIdToReselect).every(playerName => isAvailable(playerName, eventIdToReselect))">Attention, toute la composition sera refaite en fonction des disponibilités actuelles.</span>
-          <span v-else>La composition sera mise à jour : les personnes disponibles seront conservées, les slots vides seront complétés.</span>
-        </p>
-      </div>
-
-      <div class="flex justify-end space-x-3">
-        <button @click="cancelTirage" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
-        <button @click="confirmTirage" class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300">Confirmer</button>
-      </div>
-    </div>
-  </div>
 
 
 
@@ -1223,6 +1203,7 @@
     @update-selection="handleUpdateSelectionFromModal"
     @confirm-selection="handleConfirmSelectionFromModal"
     @unconfirm-selection="handleUnconfirmCastFromModal"
+    @confirm-reselect="handleConfirmReselectFromModal"
         />
 
   <!-- Modal d'annonce d'événement -->
@@ -1750,8 +1731,6 @@ const guidedEventId = ref(null)
 const addPlayerCoachmark = ref({ position: null, side: null })
 const availabilityCoachmark = ref({ position: null })
 const playerNameCoachmark = ref({ position: null })
-const confirmReselect = ref(false)
-const eventIdToReselect = ref(null)
 
 // Variables pour le modal joueur
 const showPlayerModal = ref(false)
@@ -4748,26 +4727,6 @@ async function handleTirage(eventId, count = null) {
     })
   }
 }
-async function confirmTirage() {
-  if (eventIdToReselect.value) {
-    try {
-      // Lancer directement la composition (le PIN a déjà été validé)
-      await drawProtected(eventIdToReselect.value)
-    } catch (error) {
-      console.error('Erreur lors de la confirmation du tirage:', error)
-    } finally {
-      // Toujours fermer le dialogue de confirmation, même en cas d'erreur
-      confirmReselect.value = false
-      eventIdToReselect.value = null
-    }
-    // Ne pas fermer la popin de composition, elle restera ouverte avec la nouvelle composition
-  }
-}
-function cancelTirage() {
-  confirmReselect.value = false
-  eventIdToReselect.value = null
-  // La popin de composition reste ouverte
-}
 
 // Fonctions pour la protection par PIN
 function getPinModalMessage() {
@@ -5178,18 +5137,10 @@ async function executePendingOperation(operation) {
         const requiredCount = event?.playerCount || 6
         const isSelectionComplete = currentSelection.length >= requiredCount
         
-        if (isSelectionComplete) {
-          // Afficher la modal de confirmation de relance complète
-          eventIdToReselect.value = data.eventId
-          confirmReselect.value = true
-          // Fermer seulement la popin de détails, garder la popin de composition
-          showEventDetailsModal.value = false
-        } else {
-          // Lancer directement la composition pour compléter les slots vides
-          await drawProtected(data.eventId)
-          // Fermer seulement la popin de détails, garder la popin de composition
-          showEventDetailsModal.value = false
-        }
+        // Lancer directement la composition (la confirmation est maintenant gérée dans SelectionModal)
+        await drawProtected(data.eventId)
+        // Fermer seulement la popin de détails, garder la popin de composition
+        showEventDetailsModal.value = false
         break
       case 'toggleAvailability':
         // Cette action n'est plus utilisée - toutes les disponibilités passent par la modale
@@ -6268,6 +6219,20 @@ async function handlePerfectFromModal() {
   setTimeout(() => {
     showSuccessMessage.value = false
   }, 3000)
+}
+
+async function handleConfirmReselectFromModal() {
+  if (!selectionModalEvent.value) return
+  
+  const eventId = selectionModalEvent.value.id
+  
+  try {
+    // Lancer directement la composition (le PIN a déjà été validé)
+    await drawProtected(eventId)
+  } catch (error) {
+    console.error('Erreur lors de la confirmation du tirage:', error)
+  }
+  // Ne pas fermer la popin de composition, elle restera ouverte avec la nouvelle composition
 }
 
 async function handleConfirmSelectionFromModal() {

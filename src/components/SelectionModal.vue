@@ -282,6 +282,29 @@
 
   <!-- Popin Comment ça marche -->
   <HowItWorksModal :show="showHowItWorks" @close="showHowItWorks = false" />
+
+  <!-- Modale de confirmation de relance de composition -->
+  <Teleport to="body">
+    <div v-if="showConfirmReselect" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9995] p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+          <span class="text-2xl">🎭</span>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">Confirmer la composition automatique</h3>
+        <p class="text-gray-300 text-sm leading-relaxed">
+          <span v-if="hasExistingSelection">Une composition existe déjà pour cet événement.</span>
+          <span v-else>La composition sera mise à jour : les personnes disponibles seront conservées, les slots vides seront complétés.</span>
+        </p>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button @click="cancelReselect" class="px-6 py-3 text-gray-300 hover:text-white transition-colors">Annuler</button>
+        <button @click="confirmReselect" class="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300">Confirmer</button>
+      </div>
+    </div>
+  </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -349,7 +372,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -358,6 +381,10 @@ const showSuccessMessage = ref(false)
 const successMessageText = ref('')
 const isReselection = ref(false)
 const showHowItWorks = ref(false)
+
+// Variables pour la modale de confirmation de reselection
+const showConfirmReselect = ref(false)
+const hasExistingSelection = ref(false)
 
 // --- Manual slots state ---
 const requiredCount = computed(() => props.event?.playerCount || 6)
@@ -848,7 +875,7 @@ function copyToClipboard() {
 }
 
 function handleSelection() {
-  emit('selection')
+  showReselectConfirmation()
 }
 
 function handlePerfect() {
@@ -1039,9 +1066,28 @@ function hideSuccessMessage() {
   showSuccessMessage.value = false
 }
 
+// Fonctions pour la modale de confirmation de reselection
+function showReselectConfirmation() {
+  hasExistingSelection.value = props.currentSelection && props.currentSelection.length > 0
+  showConfirmReselect.value = true
+}
+
+function cancelReselect() {
+  showConfirmReselect.value = false
+  hasExistingSelection.value = false
+}
+
+function confirmReselect() {
+  showConfirmReselect.value = false
+  hasExistingSelection.value = false
+  // Émettre l'événement vers le parent pour déclencher la composition automatique
+  emit('confirm-reselect')
+}
+
 // Exposer la fonction pour le parent
 defineExpose({
-  showSuccess
+  showSuccess,
+  showReselectConfirmation
 })
 
 // Fonction pour gérer l'envoi d'emails de composition

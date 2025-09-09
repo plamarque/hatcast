@@ -29,7 +29,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 │ z-[1360] NotificationSuccessModal, EventDetailsModal       │
 │ z-[1350] NotificationPromptModal, AvailabilityPasswordModal│
 │ z-[1340] AnnounceModal, PlayerPasswordModal                │
-│ z-[1330] PasswordResetModal, ConfirmReselectModal          │
+│ z-[1330] PasswordResetModal                                │
 │ z-[1320] PlayerClaimModal, ConfirmPlayerDeleteModal        │
 │ z-[1310] AccountClaimModal, ConfirmDeleteModal             │
 │ z-[1300] AccountLoginModal, NewPlayerFormModal             │
@@ -130,6 +130,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[9995]` | PasswordVerificationModal | Vérification mot de passe (critique) | `src/components/PasswordVerificationModal.vue` |
+| `z-[9995]` | ConfirmReselectModal | Confirmation Composition Auto (critique) | `src/components/GridBoard.vue` |
 | `z-[9996]` | ForgotPasswordModal | Mot de passe oublié (critique) | `src/components/PasswordVerificationModal.vue` |
 | `z-[9996]` | PlayerEditModal | Édition joueur (inline) | `src/components/PlayerModal.vue` |
 | `z-[9997]` | PlayerActionDropdowns | Actions joueur (supprimés) | `src/components/PlayerModal.vue` |
@@ -146,7 +147,7 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 | `z-[1300]` | NewPlayerFormModal | Formulaire nouveau joueur |
 | `z-[1310]` | ConfirmDeleteModal | Confirmation suppression |
 | `z-[1320]` | ConfirmPlayerDeleteModal | Confirmation suppression joueur |
-| `z-[1330]` | ConfirmReselectModal | Confirmation re-composition |
+| `z-[9995]` | ConfirmReselectModal | Confirmation re-composition |
 | `z-[1340]` | PlayerPasswordModal | Mot de passe joueur |
 | `z-[1350]` | AvailabilityPasswordModal | Mot de passe disponibilité |
 | `z-[1360]` | EventDetailsModal | Détails événement |
