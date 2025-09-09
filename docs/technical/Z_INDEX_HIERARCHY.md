@@ -25,7 +25,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 │                    NIVEAU 1300+ (Sécurité)                  │
 ├─────────────────────────────────────────────────────────────┤
 │ z-[1380] HowItWorksModal                                   │
-│ z-[1370] PlayersModal, AnnouncePromptModal                 │
+│ z-[1370] PlayersModal, AnnouncePromptModal, AvailabilityModal │
 │ z-[1360] NotificationSuccessModal, EventDetailsModal       │
 │ z-[1350] NotificationPromptModal, AvailabilityPasswordModal│
 │ z-[1340] AnnounceModal, PlayerPasswordModal                │
@@ -84,7 +84,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | `z-[1030]` | EventAnnounceModal | Annonce d'événement | `src/components/EventAnnounceModal.vue` |
 | `z-[1040]` | AccountMenu | Menu compte utilisateur | `src/components/AccountMenu.vue` |
 | `z-[1050]` | PlayerModal | Détails du joueur | `src/components/PlayerModal.vue` |
-| `z-[1060]` | AvailabilityModal | Gestion des disponibilités | `src/components/AvailabilityModal.vue` |
+| `z-[1370]` | AvailabilityModal | Gestion des disponibilités | `src/components/AvailabilityModal.vue` |
 | `z-[1070]` | PreferencesModal | Préférences utilisateur | `src/components/PreferencesModal.vue` |
 
 ### 🔧 Niveau 1200+ : Modales secondaires et dropdowns
