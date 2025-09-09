@@ -727,12 +727,22 @@
         <div class="mb-4 md:mb-6">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
-              <span>🎭</span>
-              <span>Équipe à Constituer</span>
+              <span class="hidden md:inline">🎭</span>
+              <span v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0">Disponibilités</span>
+              <span v-else class="flex items-center gap-2">
+                <span>Équipe:</span>
+                <SelectionStatusBadge
+                  :status="eventStatus?.type"
+                  :show="true"
+                  :clickable="false"
+                  class="text-sm"
+                />
+              </span>
             </h3>
             <div class="flex items-center gap-2">
-              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages -->
+              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages (masqué si sélection) -->
               <button 
+                v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0"
                 @click="showRoleChances = !showRoleChances"
                 class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer"
                 :class="showRoleChances 
@@ -802,13 +812,6 @@
               <span class="truncate">{{ eventWarningText }}</span>
             </div>
 
-            <!-- Badge statut de la composition -->
-            <SelectionStatusBadge
-              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
-              :status="eventStatus?.type"
-              :show="true"
-              :clickable="false"
-            />
           </div>
 
           <!-- Liste des joueurs (2 par ligne sur mobile, 3 sur desktop) - Toutes les personnes qui ont répondu -->
