@@ -73,6 +73,22 @@
             </p>
           </div>
 
+          <!-- Composition automatique multi-rôles -->
+          <div class="bg-white/5 border border-white/10 rounded-lg p-6 space-y-3">
+            <h2 class="text-xl font-semibold text-white">Composition automatique multi-rôles</h2>
+            <p class="text-gray-200">
+              Le système tire au sort par <span class="text-white">ordre de priorité</span> : 
+              Arbitre → DJ → MC → Improvisateurs → Assistants → Coach → Régisseur → Éclairagiste → Bénévoles.
+            </p>
+            <p class="text-gray-200">
+              <span class="text-white">Une personne, un rôle</span> : une fois sélectionnée, elle n'est plus disponible pour les autres rôles.
+              Les rôles critiques sont pourvus en priorité pour garantir que le spectacle puisse avoir lieu.
+            </p>
+            <button @click="openDetailedHelp" class="text-blue-300 underline hover:text-blue-200 text-sm">
+              Voir les détails complets du tirage →
+            </button>
+          </div>
+
           <!-- Pensée mobile • Libre d'utilisation -->
           <div class="bg-white/5 border border-white/10 rounded-lg p-6 space-y-3">
             <h2 class="text-xl font-semibold text-white">Pensée mobile • Libre d'utilisation</h2>
@@ -136,6 +152,12 @@
       @close="showChangelog = false" 
     />
 
+    <!-- Modal d'aide détaillée -->
+    <HowItWorksModal 
+      :show="showDetailedHelp" 
+      @close="showDetailedHelp = false" 
+    />
+
     <!-- Footer principal -->
     <AppFooter @open-help="() => {}" />
   </div>
@@ -149,6 +171,7 @@ import AppHeader from '../components/AppHeader.vue'
 import AppFooter from '../components/AppFooter.vue'
 import ModalManager from '../components/ModalManager.vue'
 import ChangelogModal from '../components/ChangelogModal.vue'
+import HowItWorksModal from '../components/HowItWorksModal.vue'
 import logger from '../services/logger.js'
 
 const router = useRouter()
@@ -173,6 +196,9 @@ const buildInfo = ref('')
 
 // Changelog state
 const showChangelog = ref(false)
+
+// Modal d'aide détaillée
+const showDetailedHelp = ref(false)
 
 // Charger la version depuis le fichier version.txt
 onMounted(async () => {
@@ -249,5 +275,10 @@ const handlePostLoginNavigation = () => {
   // Navigation après connexion
   showAccountLogin.value = false
   showAccountCreation.value = false
+}
+
+// Ouvrir la modale d'aide détaillée
+const openDetailedHelp = () => {
+  showDetailedHelp.value = true
 }
 </script>
