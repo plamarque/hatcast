@@ -31,6 +31,10 @@ const props = defineProps({
   compact: {
     type: Boolean,
     default: false
+  },
+  reason: {
+    type: String,
+    default: ''
   }
 })
 
@@ -142,17 +146,23 @@ const text = computed(() => {
 })
 
 const tooltip = computed(() => {
+  // Si une raison personnalisée est fournie, l'utiliser
+  if (props.reason) {
+    return props.reason
+  }
+  
+  // Sinon, utiliser les tooltips par défaut
   switch (props.status) {
     case 'complete':
       return 'Sélection complète (non confirmée)'
     case 'pending_confirmation':
       return 'Sélection à confirmer - En attente de confirmation des personnes'
     case 'confirmed':
-              return 'Sélection confirmée - Toutes les personnes ont confirmé'
+      return 'Sélection confirmée - Toutes les personnes ont confirmé'
     case 'incomplete':
       return 'Sélection incomplète - Problèmes détectés'
     case 'insufficient':
-              return 'Pas assez de personnes disponibles'
+      return 'Pas assez de personnes disponibles'
     case 'ready':
       return 'Prêt pour la sélection'
     default:

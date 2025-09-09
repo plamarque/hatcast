@@ -57,6 +57,21 @@ L'équipe est affichée groupée par rôle dans l'ordre logique :
 - Les pénalités ne s'appliquent que si tu es **déjà compositionné pour le même rôle**
 - **Exemple** : Si tu as déjà été compositionné comme "DJ" récemment, tes chances d'être re-compositionné comme "DJ" sont réduites, mais pas tes chances pour les autres rôles
 
+### **Ordre de priorité des rôles**
+Les rôles sont tirés dans un ordre de priorité pour garantir que les rôles critiques sont pourvus en premier :
+
+1. **Arbitre** (priorité 1) - Critique pour les matchs
+2. **DJ** (priorité 2) - Critique pour le spectacle
+3. **MC** (priorité 3) - Critique pour le spectacle
+4. **Improvisateurs** (priorité 4) - Rôle principal
+5. **Assistants arbitres** (priorité 5) - Pour les matchs
+6. **Coach** (priorité 6)
+7. **Régisseur** (priorité 7) - Coordination
+8. **Éclairagiste** (priorité 8) - Rôle technique
+9. **Bénévoles** (priorité 9) - Rôle de soutien
+
+**Avantage** : Même si certains rôles secondaires ne peuvent pas être pourvus, le spectacle peut toujours avoir lieu grâce aux rôles prioritaires.
+
 ### **Composition unique par personne**
 - Une personne ne peut être compositionnée que pour **UN SEUL RÔLE** par spectacle
 - Pas de cumul de rôles pour la même personne

@@ -13,50 +13,33 @@
           
           <!-- Informations principales -->
           <div class="flex-1 min-w-0">
-            <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">Composition de l'équipe pour {{ event?.title }}</h2>
+             <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">
+               Composition d'équipe {{ event?.title }}
+             </h2>
             
-            <!-- Date + Badge nombre de joueurs + Statut de composition -->
+            <!-- Date + Badge nombre de joueurs -->
             <div class="flex items-center gap-3">
               <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(event?.date) }}</p>
-              
-
-              
-              <!-- Indicateur de statut de composition -->
-              <div 
-                v-if="getSelectionStatus().type === 'ready'"
-                class="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-sm flex items-center gap-1"
-                title="Prêt pour la composition"
-              >
-                <span class="text-blue-300 text-xs hidden md:inline">🆕</span>
-                <span class="text-blue-200 text-xs">Nouveau</span>
-              </div>
-              
-              <SelectionStatusBadge
-                v-else-if="getSelectionStatus().type"
-                :status="getSelectionStatus().type"
-                :show="true"
-                :clickable="false"
-                class="text-sm"
-              />
-              
-              <div 
-                v-else-if="getSelectionStatus().type === 'insufficient'"
-                class="px-2 py-1 bg-red-500/20 border border-red-400/30 rounded text-sm flex items-center gap-1"
-                title="Pas assez de personnes disponibles"
-              >
-                <span class="text-red-300 text-xs hidden md:inline">❌</span>
-                <span class="text-red-200 text-xs">Manque</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
       
+      <!-- Content scrollable -->
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
         <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-2">
             <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
+            
+            <!-- Badge statut de composition -->
+            <SelectionStatusBadge
+              :status="getSelectionStatus().type"
+              :show="true"
+              :clickable="false"
+              :reason="selectionIncompleteReason"
+              class="text-sm"
+            />
             
             <!-- Badge nombre de personnes -->
             <div class="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs">
@@ -403,11 +386,21 @@ const teamSlots = computed(() => {
 
 function generateSlotsForLegacyEvent() {
   // Ancienne logique : slots simples basés sur playerCount
-  const filled = []
-  if (Array.isArray(props.currentSelection)) {
+  let filled = []
+  if (!props.currentSelection) {
+    filled = []
+  } else if (Array.isArray(props.currentSelection)) {
     filled = [...props.currentSelection]
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    filled = [...(props.currentSelection.players || [])]
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    filled = [...props.currentSelection.players]
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    filled = [...new Set(allPlayers)]
   }
   
   const len = requiredCount.value
@@ -596,27 +589,53 @@ const slotsWarning = computed(() => {
 
 // Computed properties
 const hasSelection = computed(() => {
-  // Si currentSelection est un tableau (ancienne structure)
+  if (!props.currentSelection) return false
+  
   if (Array.isArray(props.currentSelection)) {
-    return props.currentSelection && props.currentSelection.length > 0
-  }
-  // Si currentSelection est un objet (nouvelle structure)
-  if (props.currentSelection && typeof props.currentSelection === 'object') {
-    return props.currentSelection.players && props.currentSelection.players.length > 0
+    // Ancienne structure (array direct)
+    return props.currentSelection.length > 0
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    // Nouvelle structure avec players
+    return props.currentSelection.players.length > 0
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    // Nouvelle structure multi-rôles : vérifier s'il y a des joueurs dans tous les rôles
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers) && rolePlayers.length > 0) {
+        return true
+      }
+    }
   }
   return false
 })
 
 // Fonction pour déterminer le statut de composition (même logique que getEventStatus dans GridBoard)
 function getSelectionStatus() {
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers dans GridBoard)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    // Ancienne structure (array direct)
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    // Nouvelle structure avec players
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    // Retourner un tableau unique (sans doublons)
+    selectedPlayers = [...new Set(allPlayers)]
   }
-  const requiredCount = props.event?.playerCount || 6
+  // Calculer le nombre total requis (même logique que getTotalRequiredCount dans GridBoard)
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   const availableCount = props.availableCount || 0
   
   // Cas 1: Composition incomplète (composition existante avec problèmes)
@@ -624,12 +643,21 @@ function getSelectionStatus() {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isPlayerAvailable(playerName))
     const hasInsufficientPlayers = availableCount < requiredCount
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers) {
+    // Vérifier si des joueurs sélectionnés ont décliné
+    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
+      return props.currentSelection?.playerStatuses?.[playerName] === 'declined'
+    })
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
+        hasDeclinedPlayers,
         unavailablePlayers: selectedPlayers.filter(playerName => !isPlayerAvailable(playerName)),
+        declinedPlayers: selectedPlayers.filter(playerName => 
+          props.currentSelection?.playerStatuses?.[playerName] === 'declined'
+        ),
         availableCount,
         requiredCount
       }
@@ -683,22 +711,40 @@ function getSelectionStatus() {
 const hasIncompleteSelection = computed(() => {
   if (!hasSelection.value) return false
   
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    selectedPlayers = [...new Set(allPlayers)]
   }
   
   // Vérifier si des joueurs composés ne sont plus disponibles
   const hasUnavailablePlayers = selectedPlayers.some(player => !isPlayerAvailable(player))
   
+  // Vérifier si des joueurs sélectionnés ont décliné
+  const hasDeclinedPlayers = selectedPlayers.some(player => {
+    return props.currentSelection?.playerStatuses?.[player] === 'declined'
+  })
+  
   // Vérifier s'il y a assez de joueurs disponibles pour compléter la composition
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   const hasInsufficientPlayers = props.availableCount < requiredCount
   
-  return hasUnavailablePlayers || hasInsufficientPlayers
+  return hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers
 })
 
 // Vérifier si des joueurs ont décliné leur participation
@@ -715,7 +761,9 @@ const hasDeclinedPlayers = computed(() => {
 // Vérifier si la composition est complète (assez de joueurs pour l'événement)
 const isSelectionComplete = computed(() => {
   const selectedPlayers = getSelectedPlayersArray()
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   return selectedPlayers.length >= requiredCount
 })
 
@@ -724,32 +772,56 @@ const canAnnounce = computed(() => {
   return isSelectionComplete.value && !hasDeclinedPlayers.value
 })
 
-const incompleteSelectionMessage = computed(() => {
+// Raison de l'incomplétude pour le tooltip du badge
+const selectionIncompleteReason = computed(() => {
   if (!hasIncompleteSelection.value) return ''
   
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    selectedPlayers = [...new Set(allPlayers)]
   }
   
   const unavailablePlayers = selectedPlayers.filter(player => !isPlayerAvailable(player))
-  const requiredCount = props.event?.playerCount || 6
+  const declinedPlayers = selectedPlayers.filter(player => 
+    props.currentSelection?.playerStatuses?.[player] === 'declined'
+  )
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   
-  if (unavailablePlayers.length > 0) {
-    if (unavailablePlayers.length === 1) {
-      return `${unavailablePlayers[0]} n'est plus disponible. Veuillez relancer la composition.`
+  if (declinedPlayers.length > 0) {
+    if (declinedPlayers.length === 1) {
+      return `Sélection incomplète : ${declinedPlayers[0]} a décliné`
     } else {
-      return `${unavailablePlayers.length} personnes ne sont plus disponibles. Veuillez relancer la composition.`
+      return `Sélection incomplète : ${declinedPlayers.length} joueurs ont décliné`
+    }
+  } else if (unavailablePlayers.length > 0) {
+    if (unavailablePlayers.length === 1) {
+      return `Sélection incomplète : ${unavailablePlayers[0]} n'est plus disponible`
+    } else {
+      return `Sélection incomplète : ${unavailablePlayers.length} joueurs ne sont plus disponibles`
     }
   } else if (props.availableCount < requiredCount) {
-    return `Seulement ${props.availableCount} personnes disponibles pour ${requiredCount} requis. Veuillez attendre plus de disponibilités ou ajuster le nombre de personnes à composer.`
+    return `Sélection incomplète : Seulement ${props.availableCount} joueurs disponibles sur ${requiredCount} requis`
   }
   
-  return 'Composition incomplète'
+  return 'Sélection incomplète : Problèmes détectés'
 })
+
 
 // Fonction helper pour récupérer le statut de confirmation d'un joueur
 function getPlayerSelectionStatus(playerName) {
@@ -790,12 +862,22 @@ function getPlayerSlotTooltip(playerName) {
 const selectionMessage = computed(() => {
   if (!props.event || !hasSelection.value) return ''
   
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    selectedPlayers = [...new Set(allPlayers)]
   }
   
   const eventDate = formatDateFull(props.event.date)
@@ -814,10 +896,20 @@ watch(() => props.show, (newValue) => {
     showAnnounce.value = false
     // Initialize slots from current selection and requiredCount
     let filled = []
-    if (Array.isArray(props.currentSelection)) {
+    if (!props.currentSelection) {
+      filled = []
+    } else if (Array.isArray(props.currentSelection)) {
       filled = [...props.currentSelection]
-    } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-      filled = [...(props.currentSelection.players || [])]
+    } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+      filled = [...props.currentSelection.players]
+    } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+      const allPlayers = []
+      for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+        if (Array.isArray(rolePlayers)) {
+          allPlayers.push(...rolePlayers)
+        }
+      }
+      filled = [...new Set(allPlayers)]
     }
     const len = requiredCount.value
     slots.value = Array.from({ length: len }, (_, i) => filled[i] || null)
@@ -830,10 +922,20 @@ watch([requiredCount, () => props.currentSelection, () => props.event?.id], () =
   if (!props.show) return
   
   let filled = []
-  if (Array.isArray(props.currentSelection)) {
+  if (!props.currentSelection) {
+    filled = []
+  } else if (Array.isArray(props.currentSelection)) {
     filled = [...props.currentSelection]
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    filled = [...(props.currentSelection.players || [])]
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    filled = [...props.currentSelection.players]
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    filled = [...new Set(allPlayers)]
   }
   const len = requiredCount.value
   
@@ -1002,8 +1104,26 @@ function isPlayerUnavailable(playerName) {
 }
 
 function getSelectedPlayersArray() {
-  if (Array.isArray(props.currentSelection)) return props.currentSelection
-  if (props.currentSelection && typeof props.currentSelection === 'object') return props.currentSelection.players || []
+  if (!props.currentSelection) return []
+  
+  if (Array.isArray(props.currentSelection)) {
+    // Ancienne structure (array direct)
+    return props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    // Nouvelle structure avec players
+    return props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    // Retourner un tableau unique (sans doublons)
+    return [...new Set(allPlayers)]
+  }
+  
   return []
 }
 
@@ -1018,13 +1138,9 @@ function isInSavedSelectionAndAvailable(playerName) {
 
 // Fonction pour calculer la taille totale de l'équipe
 function getTotalTeamSize() {
-  if (props.event?.roles) {
-    // Nouveau format avec rôles
-    return Object.values(props.event.roles).reduce((total, count) => total + (count || 0), 0)
-  } else {
-    // Ancien format (fallback)
-    return props.event?.playerCount || 6
-  }
+  return props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((total, count) => total + (count || 0), 0)
+    : (props.event?.playerCount || 6)
 }
 
 // Fonction helper pour récupérer l'ID du joueur à partir de son nom
@@ -1036,7 +1152,9 @@ function getPlayerIdFromName(playerName) {
 
 // Fonctions pour l'invitation à la composition
 function getInvitationIcon() {
-  const requiredCount = props.event?.playerCount || 6
+  const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
+    ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    : (props.event?.playerCount || 6)
   
   if (props.availableCount === 0) {
     return '⚠️'

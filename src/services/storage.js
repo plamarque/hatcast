@@ -53,7 +53,7 @@ export const ROLE_LABELS_SINGULAR = {
   [ROLES.STAGE_MANAGER]: 'Régisseur.euse'
 }
 
-// Ordre d'affichage des rôles
+// Ordre d'affichage des rôles (pour l'interface utilisateur)
 export const ROLE_DISPLAY_ORDER = [
   ROLES.PLAYER,
   ROLES.DJ,
@@ -64,6 +64,19 @@ export const ROLE_DISPLAY_ORDER = [
   ROLES.LIGHTING,
   ROLES.COACH,
   ROLES.STAGE_MANAGER
+]
+
+// Ordre de priorité pour les tirages (rôles critiques en premier)
+export const ROLE_PRIORITY_ORDER = [
+  ROLES.REFEREE,         // Priorité 1 : Arbitre - critique pour les matchs
+  ROLES.DJ,              // Priorité 2 : DJ - critique pour le spectacle
+  ROLES.MC,              // Priorité 3 : MC - critique pour le spectacle
+  ROLES.PLAYER,          // Priorité 4 : Improvisateurs - essentiels
+  ROLES.ASSISTANT_REFEREE, // Priorité 5 : Assistants arbitres
+  ROLES.COACH,           // Priorité 6 : Coach
+  ROLES.STAGE_MANAGER,   // Priorité 7 : Régisseur pour coordination
+  ROLES.LIGHTING,        // Priorité 8 : Éclairagiste
+  ROLES.VOLUNTEER        // Priorité 9 : Bénévoles (rôle le moins critique)
 ]
 
 // Labels par genre (nouveau système inclusif)

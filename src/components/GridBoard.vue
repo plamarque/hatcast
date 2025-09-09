@@ -722,17 +722,28 @@
       </div>
 
         <!-- Content scrollable -->
-  <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+  <div class="px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto flex-1 min-h-0">
         <!-- Section Équipe à Constituer -->
         <div class="mb-4 md:mb-6">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
-              <span>🎭</span>
-              <span>Équipe à Constituer</span>
+              <span class="hidden md:inline">🎭</span>
+              <span v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0">Disponibilités</span>
+              <span v-else class="flex items-center gap-2">
+                <span>Équipe:</span>
+                <SelectionStatusBadge
+                  :status="eventStatus?.type"
+                  :show="true"
+                  :clickable="false"
+                  :reason="eventWarningText"
+                  class="text-sm"
+                />
+              </span>
             </h3>
             <div class="flex items-center gap-2">
-              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages -->
+              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages (masqué si sélection) -->
               <button 
+                v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0"
                 @click="showRoleChances = !showRoleChances"
                 class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer"
                 :class="showRoleChances 
@@ -792,23 +803,7 @@
         <div v-if="selectedEvent" class="mb-4 md:mb-6">
           <!-- Alerte + Badge statut -->
           <div class="mb-3 flex items-center gap-3">
-            <div
-              v-if="hasEventWarningForSelectedEvent"
-              class="flex items-center gap-2 px-2 py-1 rounded-md border text-[11px] md:text-xs max-w-[50%] truncate"
-              :class="eventStatus?.type === 'incomplete' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-200' : 'bg-orange-500/10 border-orange-500/30 text-orange-200'"
-              :title="eventWarningText"
-            >
-              <span>⚠️</span>
-              <span class="truncate">{{ eventWarningText }}</span>
-            </div>
-
-            <!-- Badge statut de la composition -->
-            <SelectionStatusBadge
-              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
-              :status="eventStatus?.type"
-              :show="true"
-              :clickable="false"
-            />
+            <!-- Message redondant supprimé - la raison est maintenant dans le tooltip du badge -->
           </div>
 
           <!-- Liste des joueurs (2 par ligne sur mobile, 3 sur desktop) - Toutes les personnes qui ont répondu -->
@@ -818,11 +813,11 @@
               :key="player.id"
               :class="showRoleChances 
                 ? 'flex flex-col px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'
-                : 'flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
+                : 'flex items-center justify-center gap-3 px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
             >
-              <!-- Mode disponibilités : layout horizontal -->
+              <!-- Mode disponibilités : layout vertical pour avatar/nom, horizontal avec cellule -->
               <template v-if="!showRoleChances">
-                <div class="flex items-center min-w-0 gap-2">
+                <div class="flex flex-col items-center gap-1 flex-1 min-w-0">
                   <!-- Avatar du joueur -->
                   <div class="relative flex-shrink-0">
                     <PlayerAvatar 
@@ -850,36 +845,38 @@
                   </div>
                   <!-- Nom du joueur -->
                   <span
-                    class="text-white text-sm md:text-base block flex-1 min-w-0"
+                    class="text-white text-sm md:text-base text-center block flex-1 min-w-0"
                     :title="player.name"
                   >
                     {{ player.name }}
                   </span>
                 </div>
 
-                <div class="flex-0 p-0">
-                  <AvailabilityCell
-                    :player-name="player.name"
-                    :event-id="selectedEvent.id"
-                    :is-available="isAvailable(player.name, selectedEvent.id)"
-                    :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                    :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                    :season-id="seasonId"
-                    :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                    :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                    :disabled="selectedEvent?.archived === true"
-                    :compact="true"
-                    :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                    :event-title="selectedEvent.title"
-                    :event-date="selectedEvent.date"
-                    :is-protected="isPlayerProtectedInGrid(player.id)"
-                    :player-gender="player.gender || 'non-specified'"
-                    @toggle="handleAvailabilityToggle"
-                    @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                    @show-availability-modal="openAvailabilityModal"
-                  />
+                <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center">
+                  <div class="w-full h-full flex items-center justify-center">
+                    <AvailabilityCell
+                      :player-name="player.name"
+                      :event-id="selectedEvent.id"
+                      :is-available="isAvailable(player.name, selectedEvent.id)"
+                      :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                      :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                      :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                      :season-id="seasonId"
+                      :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
+                      :show-selected-chance="isSelectionComplete(selectedEvent.id)"
+                      :disabled="selectedEvent?.archived === true"
+                      :compact="true"
+                      :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                      :event-title="selectedEvent.title"
+                      :event-date="selectedEvent.date"
+                      :is-protected="isPlayerProtectedInGrid(player.id)"
+                      :player-gender="player.gender || 'non-specified'"
+                      @toggle="handleAvailabilityToggle"
+                      @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                      @show-availability-modal="openAvailabilityModal"
+                    />
+                  </div>
                 </div>
               </template>
 
@@ -958,8 +955,12 @@
           </div>
         </div>
 
-        <!-- Actions desktop -->
-        <div class="hidden md:flex justify-center flex-wrap gap-3 mt-4">
+        <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
+      </div>
+
+      <!-- Footer sticky (desktop) -->
+      <div class="hidden md:block sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm">
+        <div class="flex justify-center flex-wrap gap-3">
           <!-- Boutons principaux -->
           <button 
             @click="openEventAnnounceModal(selectedEvent)" 
@@ -976,8 +977,6 @@
           <!-- Bouton Fermer -->
           <button @click="closeEventDetailsAndUpdateUrl" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">Fermer</button>
         </div>
-
-        <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
       </div>
 
       <!-- Footer sticky (mobile) -->
@@ -1595,7 +1594,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -4382,8 +4381,8 @@ async function drawMultiRoles(eventId) {
   // Nouvelle structure de composition par rôle
   const newSelections = {}
   
-  // Pour chaque rôle dans l'ordre d'affichage
-  for (const role of ROLE_DISPLAY_ORDER) {
+  // Pour chaque rôle dans l'ordre de priorité (rôles critiques en premier)
+  for (const role of ROLE_PRIORITY_ORDER) {
     const requiredCount = roles[role] || 0
     
     if (requiredCount > 0) {
@@ -5863,11 +5862,24 @@ function getPlayerStats(player) {
   return { availability, selection, ratio };
 }
 
+// Fonction helper pour calculer le nombre total requis d'un événement
+function getTotalRequiredCount(event) {
+  if (!event) return 6
+  
+  // Si l'événement a des rôles définis, calculer le total
+  if (event.roles && typeof event.roles === 'object') {
+    return Object.values(event.roles).reduce((sum, count) => sum + (count || 0), 0)
+  }
+  
+  // Fallback pour les anciens événements
+  return event.playerCount || 6
+}
+
 // Fonctions pour détecter l'état des événements
 function getEventStatus(eventId) {
   const selectedPlayers = getSelectionPlayers(eventId)
   const event = events.value.find(e => e.id === eventId)
-  const requiredCount = event?.playerCount || 6
+  const requiredCount = getTotalRequiredCount(event)
   const availableCount = countAvailablePlayers(eventId)
   const isConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
   const isConfirmedByAllPlayers = isSelectionConfirmed(eventId)
@@ -5888,12 +5900,22 @@ function getEventStatus(eventId) {
     const hasUnavailablePlayers = selectedPlayers.some(playerName => !isAvailable(playerName, eventId))
     const hasInsufficientPlayers = availableCount < requiredCount
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers) {
+    // Vérifier si des joueurs sélectionnés ont décliné
+    const selection = selections.value[eventId]
+    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
+      return selection?.playerStatuses?.[playerName] === 'declined'
+    })
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
+        hasDeclinedPlayers,
         unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
+        declinedPlayers: selectedPlayers.filter(playerName => 
+          selection?.playerStatuses?.[playerName] === 'declined'
+        ),
         availableCount,
         requiredCount,
         isConfirmedByOrganizer,
@@ -5955,7 +5977,13 @@ function getEventTooltip(eventId) {
   
   switch (status.type) {
     case 'incomplete':
-      if (status.hasUnavailablePlayers) {
+      if (status.hasDeclinedPlayers) {
+        if (status.declinedPlayers.length === 1) {
+          return `Composition incomplète : ${status.declinedPlayers[0]} a décliné`
+        } else {
+          return `Composition incomplète : ${status.declinedPlayers.length} joueurs ont décliné`
+        }
+      } else if (status.hasUnavailablePlayers) {
         if (status.unavailablePlayers.length === 1) {
           return `Composition incomplète : ${status.unavailablePlayers[0]} n'est plus disponible`
         } else {
@@ -6136,10 +6164,33 @@ function getPlayerAvailabilityForEvent(eventId) {
   if (!eventId) return {}
   
   const availabilityMap = {}
+  const event = events.value.find(e => e.id === eventId)
+  const selectedPlayers = getSelectionPlayers(eventId)
+  
   players.value.forEach(player => {
-    // Utiliser isAvailableForPlayerRole pour la composition manuelle
-    // Seuls les joueurs disponibles pour le rôle "Joueur" peuvent être compositionnés
-    availabilityMap[player.name] = isAvailableForPlayerRole(player.name, eventId)
+    // Si le joueur est sélectionné, il est considéré comme disponible par défaut
+    if (selectedPlayers.includes(player.name)) {
+      availabilityMap[player.name] = true
+      return
+    }
+    
+    // Sinon, vérifier la disponibilité normale
+    let isAvailable = false
+    
+    if (event?.roles && typeof event.roles === 'object') {
+      // Pour les événements multi-rôles, vérifier si le joueur est disponible pour au moins un rôle requis
+      for (const role of Object.keys(event.roles)) {
+        if (event.roles[role] > 0 && isAvailableForRole(player.name, role, eventId)) {
+          isAvailable = true
+          break
+        }
+      }
+    } else {
+      // Pour les anciens événements, utiliser la logique existante
+      isAvailable = isAvailableForPlayerRole(player.name, eventId)
+    }
+    
+    availabilityMap[player.name] = isAvailable
   })
   
   return availabilityMap
