@@ -20,11 +20,10 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 ├─────────────────────────────────────────────────────────────┤
 │ z-[1420] ForgotPasswordModal (enfant)                      │
 │ z-[1410] AvailabilityForgotPasswordModal                   │
-│ z-[1400] ChangelogModal, PWAInstallModal, etc.            │
+│ z-[1400] HowItWorksModal, ChangelogModal, PWAInstallModal, etc. │
 ├─────────────────────────────────────────────────────────────┤
 │                    NIVEAU 1300+ (Sécurité)                  │
 ├─────────────────────────────────────────────────────────────┤
-│ z-[1380] HowItWorksModal                                   │
 │ z-[1370] PlayersModal, AnnouncePromptModal, AvailabilityModal │
 │ z-[1360] NotificationSuccessModal, EventDetailsModal       │
 │ z-[1350] NotificationPromptModal, AvailabilityPasswordModal│
