@@ -723,23 +723,40 @@
 
         <!-- Content scrollable -->
   <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-    <!-- Section Équipe à Constituer -->
+        <!-- Section Équipe à Constituer -->
         <div class="mb-4 md:mb-6">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
               <span>🎭</span>
               <span>Équipe à Constituer</span>
             </h3>
-            <button 
-              @click="showRoleDetails = !showRoleDetails"
-              class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
-              title="Cliquer pour voir le détail des rôles"
-            >
-              <span class="text-blue-300">👥</span>
-              <span class="text-blue-200">
-                {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
-              </span>
-            </button>
+            <div class="flex items-center gap-2">
+              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages -->
+              <button 
+                @click="showRoleChances = !showRoleChances"
+                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer"
+                :class="showRoleChances 
+                  ? 'bg-emerald-500/20 border border-emerald-400/30 hover:bg-emerald-500/30' 
+                  : 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'"
+                :title="showRoleChances ? 'Voir les disponibilités' : 'Voir les pourcentages de chances'"
+              >
+                <span :class="showRoleChances ? 'text-emerald-300' : 'text-gray-300'">📊</span>
+                <span :class="showRoleChances ? 'text-emerald-200' : 'text-gray-200'">
+                  {{ showRoleChances ? 'Dispos' : 'Chances' }}
+                </span>
+              </button>
+              
+              <button 
+                @click="showRoleDetails = !showRoleDetails"
+                class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
+                title="Cliquer pour voir le détail des rôles"
+              >
+                <span class="text-blue-300">👥</span>
+                <span class="text-blue-200">
+                  {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+                </span>
+              </button>
+            </div>
           </div>
           
           <!-- Détails des rôles -->
@@ -794,72 +811,149 @@
             />
           </div>
 
-          <!-- Liste des joueurs (2 par ligne) - Toutes les personnes qui ont répondu -->
-          <div class="grid grid-cols-2 gap-2">
+          <!-- Liste des joueurs (2 par ligne sur mobile, 3 sur desktop) - Toutes les personnes qui ont répondu -->
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
             <div
               v-for="player in sortedPlayers"
               :key="player.id"
-              class="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-gray-800/40 transition-colors"
+              :class="showRoleChances 
+                ? 'flex flex-col px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'
+                : 'flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
             >
-              <div class="flex items-center min-w-0 gap-2">
-                <!-- Avatar du joueur -->
-                <div class="relative flex-shrink-0">
-                  <PlayerAvatar 
-                    :player-id="player.id"
-                    :season-id="seasonId"
-                    :player-name="player.name"
-                    :player-gender="player.gender || 'non-specified'"
-                    size="sm"
-                  />
-                  <!-- Statuts superposés -->
+              <!-- Mode disponibilités : layout horizontal -->
+              <template v-if="!showRoleChances">
+                <div class="flex items-center min-w-0 gap-2">
+                  <!-- Avatar du joueur -->
+                  <div class="relative flex-shrink-0">
+                    <PlayerAvatar 
+                      :player-id="player.id"
+                      :season-id="seasonId"
+                      :player-name="player.name"
+                      :player-gender="player.gender || 'non-specified'"
+                      size="sm"
+                    />
+                    <!-- Statuts superposés -->
+                    <span
+                      v-if="preferredPlayerIdsSet.has(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Ma personne"
+                    >
+                      ⭐
+                    </span>
+                    <span
+                      v-else-if="isPlayerProtectedInGrid(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Personne protégée par mot de passe"
+                    >
+                      🔒
+                    </span>
+                  </div>
+                  <!-- Nom du joueur -->
                   <span
-                    v-if="preferredPlayerIdsSet.has(player.id)"
-                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                    title="Ma personne"
+                    class="text-white text-sm md:text-base block flex-1 min-w-0"
+                    :title="player.name"
                   >
-                    ⭐
-                  </span>
-                  <span
-                    v-else-if="isPlayerProtectedInGrid(player.id)"
-                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                    title="Personne protégée par mot de passe"
-                  >
-                    🔒
+                    {{ player.name }}
                   </span>
                 </div>
-                <!-- Nom du joueur -->
-                <span
-                  class="text-white text-sm md:text-base block truncate max-w-full flex-1 min-w-0"
-                  :title="player.name"
-                >
-                  {{ player.name }}
-                </span>
-              </div>
 
-              <div class="flex-0 p-0">
-                <AvailabilityCell
-                  :player-name="player.name"
-                  :event-id="selectedEvent.id"
-                  :is-available="isAvailable(player.name, selectedEvent.id)"
-                  :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                  :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                  :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                  :season-id="seasonId"
-                  :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                  :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                  :disabled="selectedEvent?.archived === true"
-                  :compact="true"
-                  :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                  :event-title="selectedEvent.title"
-                  :event-date="selectedEvent.date"
-                  :is-protected="isPlayerProtectedInGrid(player.id)"
-                  :player-gender="player.gender || 'non-specified'"
-                  @toggle="handleAvailabilityToggle"
-                  @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                  @show-availability-modal="openAvailabilityModal"
-                />
-              </div>
+                <div class="flex-0 p-0">
+                  <AvailabilityCell
+                    :player-name="player.name"
+                    :event-id="selectedEvent.id"
+                    :is-available="isAvailable(player.name, selectedEvent.id)"
+                    :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                    :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                    :season-id="seasonId"
+                    :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
+                    :show-selected-chance="isSelectionComplete(selectedEvent.id)"
+                    :disabled="selectedEvent?.archived === true"
+                    :compact="true"
+                    :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                    :event-title="selectedEvent.title"
+                    :event-date="selectedEvent.date"
+                    :is-protected="isPlayerProtectedInGrid(player.id)"
+                    :player-gender="player.gender || 'non-specified'"
+                    @toggle="handleAvailabilityToggle"
+                    @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                    @show-availability-modal="openAvailabilityModal"
+                  />
+                </div>
+              </template>
+
+              <!-- Mode pourcentages : layout vertical -->
+              <template v-else>
+                <!-- Ligne du nom et avatar -->
+                <div class="flex items-center gap-2 mb-1">
+                  <!-- Avatar du joueur -->
+                  <div class="relative flex-shrink-0">
+                    <PlayerAvatar 
+                      :player-id="player.id"
+                      :season-id="seasonId"
+                      :player-name="player.name"
+                      :player-gender="player.gender || 'non-specified'"
+                      size="sm"
+                    />
+                    <!-- Statuts superposés -->
+                    <span
+                      v-if="preferredPlayerIdsSet.has(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Ma personne"
+                    >
+                      ⭐
+                    </span>
+                    <span
+                      v-else-if="isPlayerProtectedInGrid(player.id)"
+                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                      title="Personne protégée par mot de passe"
+                    >
+                      🔒
+                    </span>
+                  </div>
+                  <!-- Nom du joueur -->
+                  <span
+                    class="text-white text-sm md:text-base block flex-1 min-w-0"
+                    :title="player.name"
+                  >
+                    {{ player.name }}
+                  </span>
+                </div>
+
+                <!-- Ligne des pourcentages -->
+                <div class="flex justify-end">
+                  <div class="flex flex-col items-end gap-1">
+                    <!-- Pourcentages par rôle (seulement pour les rôles choisis par le joueur) -->
+                    <div v-if="getPlayerSelectedRoleChances(player.name, selectedEvent.id).length > 0" class="flex flex-wrap gap-1 justify-end">
+                      <span
+                        v-for="roleChance in getPlayerSelectedRoleChances(player.name, selectedEvent.id)"
+                        :key="roleChance.role"
+                        class="text-[10px] px-1.5 py-0.5 rounded-full border text-center"
+                        :class="{
+                          'bg-emerald-500/20 border-emerald-400/30 text-emerald-200': roleChance.role === 'player',
+                          'bg-purple-500/20 border-purple-400/30 text-purple-200': roleChance.role === 'dj',
+                          'bg-pink-500/20 border-pink-400/30 text-pink-200': roleChance.role === 'mc',
+                          'bg-orange-500/20 border-orange-400/30 text-orange-200': roleChance.role === 'volunteer',
+                          'bg-yellow-500/20 border-yellow-400/30 text-yellow-200': roleChance.role === 'referee',
+                          'bg-green-500/20 border-green-400/30 text-green-200': roleChance.role === 'assistant_referee',
+                          'bg-blue-500/20 border-blue-400/30 text-blue-200': roleChance.role === 'lighting',
+                          'bg-indigo-500/20 border-indigo-400/30 text-indigo-200': roleChance.role === 'coach',
+                          'bg-gray-500/20 border-gray-400/30 text-white': roleChance.role === 'stage_manager'
+                        }"
+                        :title="`~${roleChance.chance}% de chances d'être sélectionné comme ${ROLE_LABELS[roleChance.role] || roleChance.role}`"
+                      >
+                        {{ ROLE_EMOJIS[roleChance.role] || '🎭' }} {{ roleChance.chance }}%
+                      </span>
+                    </div>
+                    
+                    <!-- Message si aucun rôle choisi -->
+                    <div v-else class="text-xs text-gray-500 italic">
+                      Aucun rôle choisi
+                    </div>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -3260,6 +3354,7 @@ const editingEventData = computed(() => {
 
 // État pour afficher/masquer les détails des rôles
 const showRoleDetails = ref(false)
+const showRoleChances = ref(false)
 
 // Fonction pour appliquer un type de rôles
 function applyRoleTemplate(templateId) {
@@ -6048,6 +6143,66 @@ function getPlayerAvailabilityForEvent(eventId) {
   })
   
   return availabilityMap
+}
+
+// Fonction pour calculer les chances par rôle pour chaque joueur
+function getPlayerRoleChances(eventId) {
+  if (!eventId) return {}
+  
+  const event = events.value.find(e => e.id === eventId)
+  if (!event || !event.roles) return {}
+  
+  const roleChances = {}
+  
+  // Pour chaque rôle requis dans l'événement
+  Object.entries(event.roles).forEach(([role, requiredCount]) => {
+    if (requiredCount <= 0) return
+    
+    // Récupérer les joueurs disponibles pour ce rôle
+    const availablePlayers = players.value.filter(p => isAvailableForRole(p.name, role, eventId))
+    
+    if (availablePlayers.length === 0) return
+    
+    // Calculer les poids basés sur le nombre de compositions déjà faites
+    const weights = availablePlayers.map(player => {
+      const pastSelections = countSelections(player.name)
+      return {
+        name: player.name,
+        weight: 1 / (1 + pastSelections)
+      }
+    })
+    
+    const totalWeight = weights.reduce((sum, p) => sum + p.weight, 0)
+    
+    // Calculer les chances pour chaque joueur pour ce rôle
+    weights.forEach(player => {
+      if (!roleChances[player.name]) roleChances[player.name] = {}
+      
+      const chance = Math.min(1, (player.weight / totalWeight) * requiredCount)
+      roleChances[player.name][role] = Math.round(chance * 100)
+    })
+  })
+  
+  return roleChances
+}
+
+// Fonction pour récupérer les chances par rôle seulement pour les rôles choisis par le joueur
+function getPlayerSelectedRoleChances(playerName, eventId) {
+  const allRoleChances = getPlayerRoleChances(eventId)
+  const playerChances = allRoleChances[playerName] || {}
+  
+  // Récupérer les rôles choisis par le joueur dans sa disponibilité
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  const selectedRoles = availabilityData?.roles || []
+  
+  // Retourner seulement les chances pour les rôles choisis par le joueur
+  return selectedRoles
+    .filter(role => playerChances[role] !== undefined)
+    .map(role => ({
+      role,
+      chance: playerChances[role]
+    }))
+    .sort((a, b) => b.chance - a.chance) // Trier par pourcentage décroissant
 }
 
 // Fonction helper pour extraire les joueurs d'une composition
