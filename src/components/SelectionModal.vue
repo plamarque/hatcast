@@ -403,7 +403,7 @@ const teamSlots = computed(() => {
 
 function generateSlotsForLegacyEvent() {
   // Ancienne logique : slots simples basés sur playerCount
-  const filled = []
+  let filled = []
   if (Array.isArray(props.currentSelection)) {
     filled = [...props.currentSelection]
   } else if (props.currentSelection && typeof props.currentSelection === 'object') {
