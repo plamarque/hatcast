@@ -6144,10 +6144,33 @@ function getPlayerAvailabilityForEvent(eventId) {
   if (!eventId) return {}
   
   const availabilityMap = {}
+  const event = events.value.find(e => e.id === eventId)
+  const selectedPlayers = getSelectionPlayers(eventId)
+  
   players.value.forEach(player => {
-    // Utiliser isAvailableForPlayerRole pour la composition manuelle
-    // Seuls les joueurs disponibles pour le rôle "Joueur" peuvent être compositionnés
-    availabilityMap[player.name] = isAvailableForPlayerRole(player.name, eventId)
+    // Si le joueur est sélectionné, il est considéré comme disponible par défaut
+    if (selectedPlayers.includes(player.name)) {
+      availabilityMap[player.name] = true
+      return
+    }
+    
+    // Sinon, vérifier la disponibilité normale
+    let isAvailable = false
+    
+    if (event?.roles && typeof event.roles === 'object') {
+      // Pour les événements multi-rôles, vérifier si le joueur est disponible pour au moins un rôle requis
+      for (const role of Object.keys(event.roles)) {
+        if (event.roles[role] > 0 && isAvailableForRole(player.name, role, eventId)) {
+          isAvailable = true
+          break
+        }
+      }
+    } else {
+      // Pour les anciens événements, utiliser la logique existante
+      isAvailable = isAvailableForPlayerRole(player.name, eventId)
+    }
+    
+    availabilityMap[player.name] = isAvailable
   })
   
   return availabilityMap
