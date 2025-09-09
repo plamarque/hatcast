@@ -361,8 +361,24 @@ async function loadChangelog() {
       }
     })
     
-    console.debug('🔍 DEBUG: Transformed changelog data:', transformedVersions)
-    userFriendlyChangelog.value = transformedVersions
+    // Sort versions by version number (descending) as final safety barrier
+    const sortedVersions = transformedVersions.sort((a, b) => {
+      const versionA = a.version.split('.').map(Number)
+      const versionB = b.version.split('.').map(Number)
+      
+      // Compare major, minor, patch in order
+      for (let i = 0; i < Math.max(versionA.length, versionB.length); i++) {
+        const numA = versionA[i] || 0
+        const numB = versionB[i] || 0
+        if (numA !== numB) {
+          return numB - numA // Descending order (newest first)
+        }
+      }
+      return 0
+    })
+    
+    console.debug('🔍 DEBUG: Sorted changelog data:', sortedVersions)
+    userFriendlyChangelog.value = sortedVersions
     
   } catch (error) {
     console.debug('Could not load changelog:', error)

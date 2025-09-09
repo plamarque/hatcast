@@ -536,8 +536,9 @@ generate_changelog_json() {
             # This is complex, so let's regenerate from scratch for simplicity
             echo "   └─ Regenerating entire JSON to replace version..."
             
-            # Generate JSON for all versions in CHANGELOG_FR.md
-            local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}'))
+            # Generate JSON for all versions in CHANGELOG_FR.md, sorted by version number (descending)
+            # sort -V: version sort, -r: reverse (newest first)
+            local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}' | sort -V -r))
             
             echo "[" > ""public/changelog.json""
             local first=true
@@ -574,8 +575,9 @@ generate_changelog_json() {
     else
         echo "   └─ No existing changelog.json, generating from scratch..."
         
-        # Generate JSON for all versions in CHANGELOG_FR.md
-        local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}'))
+        # Generate JSON for all versions in CHANGELOG_FR.md, sorted by version number (descending)
+        # sort -V: version sort, -r: reverse (newest first)
+        local versions=($(grep "^## \\[" "CHANGELOG_FR.md" | awk -F'[][]' '{print $2}' | sort -V -r))
         
         echo "[" > ""public/changelog.json""
         local first=true
