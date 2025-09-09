@@ -596,25 +596,48 @@ const slotsWarning = computed(() => {
 
 // Computed properties
 const hasSelection = computed(() => {
-  // Si currentSelection est un tableau (ancienne structure)
+  if (!props.currentSelection) return false
+  
   if (Array.isArray(props.currentSelection)) {
-    return props.currentSelection && props.currentSelection.length > 0
-  }
-  // Si currentSelection est un objet (nouvelle structure)
-  if (props.currentSelection && typeof props.currentSelection === 'object') {
-    return props.currentSelection.players && props.currentSelection.players.length > 0
+    // Ancienne structure (array direct)
+    return props.currentSelection.length > 0
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    // Nouvelle structure avec players
+    return props.currentSelection.players.length > 0
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    // Nouvelle structure multi-rôles : vérifier s'il y a des joueurs dans tous les rôles
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers) && rolePlayers.length > 0) {
+        return true
+      }
+    }
   }
   return false
 })
 
 // Fonction pour déterminer le statut de composition (même logique que getEventStatus dans GridBoard)
 function getSelectionStatus() {
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers dans GridBoard)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    // Ancienne structure (array direct)
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    // Nouvelle structure avec players
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    // Retourner un tableau unique (sans doublons)
+    selectedPlayers = [...new Set(allPlayers)]
   }
   const requiredCount = props.event?.playerCount || 6
   const availableCount = props.availableCount || 0
@@ -683,12 +706,23 @@ function getSelectionStatus() {
 const hasIncompleteSelection = computed(() => {
   if (!hasSelection.value) return false
   
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    selectedPlayers = [...new Set(allPlayers)]
   }
   
   // Vérifier si des joueurs composés ne sont plus disponibles
@@ -727,12 +761,23 @@ const canAnnounce = computed(() => {
 const incompleteSelectionMessage = computed(() => {
   if (!hasIncompleteSelection.value) return ''
   
-  // Extraire le tableau de joueurs selon la structure
+  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers)
   let selectedPlayers = []
-  if (Array.isArray(props.currentSelection)) {
-    selectedPlayers = props.currentSelection || []
-  } else if (props.currentSelection && typeof props.currentSelection === 'object') {
-    selectedPlayers = props.currentSelection.players || []
+  
+  if (!props.currentSelection) {
+    selectedPlayers = []
+  } else if (Array.isArray(props.currentSelection)) {
+    selectedPlayers = props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    selectedPlayers = props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    selectedPlayers = [...new Set(allPlayers)]
   }
   
   const unavailablePlayers = selectedPlayers.filter(player => !isPlayerAvailable(player))
@@ -1002,8 +1047,26 @@ function isPlayerUnavailable(playerName) {
 }
 
 function getSelectedPlayersArray() {
-  if (Array.isArray(props.currentSelection)) return props.currentSelection
-  if (props.currentSelection && typeof props.currentSelection === 'object') return props.currentSelection.players || []
+  if (!props.currentSelection) return []
+  
+  if (Array.isArray(props.currentSelection)) {
+    // Ancienne structure (array direct)
+    return props.currentSelection
+  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
+    // Nouvelle structure avec players
+    return props.currentSelection.players
+  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
+    // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
+    const allPlayers = []
+    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
+      }
+    }
+    // Retourner un tableau unique (sans doublons)
+    return [...new Set(allPlayers)]
+  }
+  
   return []
 }
 
