@@ -4500,11 +4500,13 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
   // Filtrer les candidats disponibles pour ce rôle
   const candidates = players.value.filter(p => {
     // Vérifier la disponibilité pour ce rôle spécifique
-    const isAvailable = isAvailableForRole(p.name, role, eventId)
+    const isAvailableForThisRole = isAvailableForRole(p.name, role, eventId)
     const notDeclined = !declinedPlayers.includes(p.name)
     const notAlreadySelected = !alreadySelected.includes(p.name)
+    // Exclure aussi les joueurs marqués comme indisponibles pour cet événement
+    const isNotUnavailable = isAvailable(p.name, eventId) !== false
     
-    return isAvailable && notDeclined && notAlreadySelected
+    return isAvailableForThisRole && notDeclined && notAlreadySelected && isNotUnavailable
   })
   
   if (candidates.length === 0) {
