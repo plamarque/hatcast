@@ -427,9 +427,16 @@ function generateSlotsForMultiRoleEvent() {
       // Récupérer les joueurs déjà composés pour ce rôle
       const selectedPlayers = props.currentSelection?.roles?.[role] || []
       
+      // Filtrer les joueurs qui ont décliné
+      const availablePlayers = selectedPlayers.filter(playerName => {
+        if (!playerName) return false
+        const status = props.currentSelection?.playerStatuses?.[playerName]
+        return status !== 'declined'
+      })
+      
       // Créer les slots pour ce rôle
       for (let i = 0; i < count; i++) {
-        const player = selectedPlayers[i] || null
+        const player = availablePlayers[i] || null
         slots.push({
           index: slotIndex++,
           player: player,
