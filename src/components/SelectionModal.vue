@@ -543,76 +543,51 @@ async function onChooseForSlot(event, index) {
 }
 
 async function clearSlot(index) {
-  console.log('🚀 [CLEAR_SLOT] Début - index:', index)
-  const startTime = performance.now()
-  
   // Trouver le slot et le joueur
   const currentSlot = teamSlots.value.find(s => s.index === index)
   const playerName = currentSlot?.player
   
-  console.log('🔍 [CLEAR_SLOT] Slot trouvé:', { 
-    currentSlot, 
-    playerName,
-    isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
-    isPlayerDeclined: isPlayerDeclined(playerName)
-  })
-  
   // Ne pas permettre la suppression si l'organisateur a validé la composition
   // SAUF si le joueur a décliné (cas de remplacement)
   if (props.isSelectionConfirmedByOrganizer && !isPlayerDeclined(playerName)) {
-    console.warn('❌ [CLEAR_SLOT] Impossible de vider ce slot: sélection verrouillée et joueur non décliné')
     return
   }
   
   const removedPlayer = currentSlot?.player || slots.value[index]
-  console.log('🔍 [CLEAR_SLOT] Joueur à retirer:', removedPlayer)
   
   // Vider le slot dans teamSlots
   if (currentSlot) {
-    console.log('🔍 [CLEAR_SLOT] Vidage teamSlots...')
     currentSlot.player = null
     currentSlot.isEmpty = true
-    console.log('✅ [CLEAR_SLOT] teamSlots vidé:', currentSlot)
   }
   
   // Vider aussi dans l'ancien système pour la compatibilité
   if (slots.value[index] !== undefined) {
-    console.log('🔍 [CLEAR_SLOT] Vidage slots legacy...')
     slots.value[index] = null
-    console.log('✅ [CLEAR_SLOT] slots legacy vidé')
   }
   
-  // Logger l'audit de décomposition
+  // Logger l'audit de suppression manuelle
   if (removedPlayer) {
     try {
-      console.log('📝 [CLEAR_SLOT] Début audit...')
-      const auditStartTime = performance.now()
-      const { default: AuditClient } = await import('../services/auditClient.js')
-      await AuditClient.logUserAction({
-        type: 'player_deselected',
-        category: 'selection',
-        severity: 'info',
-        data: {
-          eventTitle: props.event?.title || 'Unknown',
-          seasonSlug: props.event?.seasonSlug || 'unknown',
-          playerName: removedPlayer,
-          slotIndex: index,
-          action: 'manual_deselection'
-        },
-        success: true,
-        tags: ['selection', 'manual', 'deselection']
+      const { logManualDeselection } = await import('../services/selectionAuditService.js')
+      const currentSlot = teamSlots.value.find(s => s.index === index)
+      
+      await logManualDeselection({
+        eventId: props.event.id,
+        eventTitle: props.event.title || 'Unknown',
+        seasonSlug: props.event.seasonSlug || 'unknown',
+        removedPlayer,
+        role: currentSlot?.role || 'player',
+        source: 'selection_modal'
       })
-      const auditEndTime = performance.now()
-      console.log(`✅ [CLEAR_SLOT] Audit terminé en ${(auditEndTime - auditStartTime).toFixed(2)}ms`)
     } catch (auditError) {
-      console.warn('⚠️ [CLEAR_SLOT] Erreur audit:', auditError)
+      console.warn('Erreur audit suppression manuelle:', auditError)
     }
   }
   
   // Si le joueur a décliné, le marquer automatiquement comme indisponible pour cet événement
   if (removedPlayer && isPlayerDeclined(removedPlayer)) {
     try {
-      console.log('🚫 [CLEAR_SLOT] Marquage automatique comme indisponible:', removedPlayer)
       const { setSingleAvailability } = await import('../services/storage.js')
       await setSingleAvailability({ 
         seasonId: props.seasonId, 
@@ -620,39 +595,23 @@ async function clearSlot(index) {
         eventId: props.event.id, 
         value: false 
       })
-      console.log('✅ [CLEAR_SLOT] Joueur marqué comme indisponible')
     } catch (error) {
-      console.warn('⚠️ [CLEAR_SLOT] Erreur lors du marquage indisponible:', error)
+      console.warn('Erreur lors du marquage indisponible:', error)
     }
   }
   
   // Sauvegarde immédiate même si la sélection est verrouillée (pour les joueurs déclinés)
-  console.log('💾 [CLEAR_SLOT] Début sauvegarde...')
-  const saveStartTime = performance.now()
   await saveSlotChanges()
-  const saveEndTime = performance.now()
-  console.log(`✅ [CLEAR_SLOT] Sauvegarde terminée en ${(saveEndTime - saveStartTime).toFixed(2)}ms`)
-  
-  const totalTime = performance.now() - startTime
-  console.log(`🏁 [CLEAR_SLOT] Total: ${totalTime.toFixed(2)}ms`)
 }
 
 // Fonction pour sauvegarder les changements de slots même quand la sélection est verrouillée
 async function saveSlotChanges() {
-  console.log('🚀 [SAVE_SLOT_CHANGES] Début')
-  const startTime = performance.now()
-  
   if (!props.event?.id || !props.seasonId) {
-    console.warn('❌ [SAVE_SLOT_CHANGES] Missing event.id or seasonId:', { 
-      eventId: props.event?.id, 
-      seasonId: props.seasonId 
-    })
     return
   }
   
   try {
     // Construire la structure par rôle à partir de teamSlots
-    console.log('🔍 [SAVE_SLOT_CHANGES] Construction des rôles depuis teamSlots:', teamSlots.value)
     const roles = {}
     
     teamSlots.value.forEach(slot => {
@@ -664,31 +623,15 @@ async function saveSlotChanges() {
       }
     })
     
-    console.log('✅ [SAVE_SLOT_CHANGES] Rôles construits:', roles)
-    
     // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
-    console.log('💾 [SAVE_SLOT_CHANGES] Début sauvegarde en base...')
-    const saveStartTime = performance.now()
     const { saveCast } = await import('../services/storage.js')
     await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
-    const saveEndTime = performance.now()
-    console.log(`✅ [SAVE_SLOT_CHANGES] Sauvegarde en base terminée en ${(saveEndTime - saveStartTime).toFixed(2)}ms`)
     
     // Émettre un événement pour que le parent recharge les données
-    console.log('📡 [SAVE_SLOT_CHANGES] Émission événement update-selection...')
-    const emitStartTime = performance.now()
     emit('update-selection')
-    const emitEndTime = performance.now()
-    console.log(`✅ [SAVE_SLOT_CHANGES] Événement émis en ${(emitEndTime - emitStartTime).toFixed(2)}ms`)
-    
-    // Feedback visuel subtil
-    console.log('✅ [SAVE_SLOT_CHANGES] Changements de slots sauvegardés avec statut recalculé')
   } catch (error) {
-    console.error('❌ [SAVE_SLOT_CHANGES] Erreur lors de la sauvegarde des changements de slots:', error)
+    console.error('Erreur lors de la sauvegarde des changements de slots:', error)
   }
-  
-  const totalTime = performance.now() - startTime
-  console.log(`🏁 [SAVE_SLOT_CHANGES] Total: ${totalTime.toFixed(2)}ms`)
 }
 
 const slotsWarning = computed(() => {
@@ -723,64 +666,39 @@ const hasSelection = computed(() => {
 
 // Fonction pour déterminer le statut de composition (utilise le statut calculé stocké en base)
 function getSelectionStatus() {
-  console.log('🔍 [GET_SELECTION_STATUS] Début - currentSelection:', props.currentSelection)
-  console.log('🔍 [GET_SELECTION_STATUS] currentSelection.status:', props.currentSelection?.status)
-  console.log('🔍 [GET_SELECTION_STATUS] currentSelection.statusDetails:', props.currentSelection?.statusDetails)
-  
   // Si la sélection a un statut calculé stocké, l'utiliser
   if (props.currentSelection?.status && props.currentSelection?.statusDetails) {
-    console.log('✅ [GET_SELECTION_STATUS] Utilisation du statut de la base:', {
-      status: props.currentSelection.status,
-      details: props.currentSelection.statusDetails
-    })
     return {
       type: props.currentSelection.status,
       ...props.currentSelection.statusDetails
     }
   }
   
-  console.log('⚠️ [GET_SELECTION_STATUS] Pas de statut en base, calcul local...')
-  
   // Fallback : calculer le statut localement (logique de compatibilité)
-  // Pour l'instant, utiliser l'ancienne logique comme fallback
   const selectedPlayers = extractSelectedPlayers(props.currentSelection)
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
     ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
     : (props.event?.playerCount || 6)
   const availableCount = props.availableCount || 0
   
-  console.log('🔍 [GET_SELECTION_STATUS] Calcul local:', {
-    selectedPlayers: selectedPlayers.length,
-    availableCount,
-    requiredCount,
-    hasEmptySlots: teamSlots.value.some(slot => !slot.player),
-    isSelectionConfirmed: props.isSelectionConfirmed,
-    isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer
-  })
-  
   // Logique de fallback simplifiée
   if (selectedPlayers.length === 0) {
-    console.log('✅ [GET_SELECTION_STATUS] Résultat: ready')
     return { type: 'ready', availableCount, requiredCount }
   }
   
   const hasEmptySlots = teamSlots.value.some(slot => !slot.player)
   if (hasEmptySlots) {
-    console.log('✅ [GET_SELECTION_STATUS] Résultat: incomplete (slots vides)')
     return { type: 'incomplete', hasEmptySlots: true, availableCount, requiredCount }
   }
   
   if (props.isSelectionConfirmed) {
-    console.log('✅ [GET_SELECTION_STATUS] Résultat: confirmed')
     return { type: 'confirmed', availableCount, requiredCount }
   }
   
   if (props.isSelectionConfirmedByOrganizer) {
-    console.log('✅ [GET_SELECTION_STATUS] Résultat: pending_confirmation')
     return { type: 'pending_confirmation', availableCount, requiredCount }
   }
   
-  console.log('✅ [GET_SELECTION_STATUS] Résultat: complete (fallback)')
   return { type: 'complete', availableCount, requiredCount }
 }
 

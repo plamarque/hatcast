@@ -4147,21 +4147,19 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
     
     // Logger l'audit de confirmation de participation
     try {
-      const { default: AuditClient } = await import('../services/auditClient.js')
+      const { logPlayerStatusChange } = await import('../services/selectionAuditService.js')
       const event = events.value.find(e => e.id === eventId)
+      const oldStatus = getPlayerSelectionStatus(playerName, eventId)
       
-      if (newStatus === 'confirmed') {
-        await AuditClient.logPlayerConfirmed(playerName, event?.title || 'Unknown', seasonSlug, {
-          eventId,
-          status: newStatus,
-          confirmedByAllPlayers: result.confirmedByAllPlayers
-        })
-      } else if (newStatus === 'declined') {
-        await AuditClient.logPlayerWithdrawn(playerName, event?.title || 'Unknown', seasonSlug, {
-          eventId,
-          status: newStatus
-        })
-      }
+      await logPlayerStatusChange({
+        playerName,
+        eventId,
+        eventTitle: event?.title || 'Unknown',
+        seasonSlug,
+        oldStatus,
+        newStatus,
+        source: 'event_modal'
+      })
     } catch (auditError) {
       console.warn('Erreur audit playerSelectionStatus:', auditError)
     }
@@ -4476,14 +4474,39 @@ async function completeSelectionSlots(eventId) {
     preserveConfirmed: true
   })
   
+  // Logger l'audit de complétion de composition
+  try {
+    const { logCastCompletion } = await import('../services/selectionAuditService.js')
+    const event = events.value.find(e => e.id === eventId)
+    
+    // Trouver le joueur ajouté (comparer avec l'ancienne composition)
+    const oldPlayers = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
+    const newPlayers = allPlayers
+    const addedPlayer = newPlayers.find(player => !oldPlayers.includes(player))
+    
+    if (addedPlayer) {
+      // Trouver le rôle du joueur ajouté
+      const addedPlayerRole = Object.entries(newSelections).find(([role, players]) => 
+        players.includes(addedPlayer)
+      )?.[0] || 'player'
+      
+      await logCastCompletion({
+        eventId,
+        eventTitle: event?.title || 'Unknown',
+        seasonSlug,
+        addedPlayer,
+        role: addedPlayerRole,
+        source: 'selection_modal'
+      })
+    }
+  } catch (auditError) {
+    console.warn('Erreur audit complétion composition:', auditError)
+  }
+  
   // Recharger depuis la base pour avoir les données à jour
   const { loadCasts } = await import('../services/storage.js')
   const updatedSelections = await loadCasts(seasonId.value)
   selections.value = updatedSelections
-  
-  logger.debug('💾 Composition complétée sauvegardée et rechargée')
-  logger.debug('👥 Nombre total de joueurs:', allPlayers.length)
-  logger.debug('🎭 Rôles et joueurs:', newSelections)
   
   updateAllStats()
   updateAllChances()
@@ -6542,14 +6565,15 @@ async function handleConfirmSelectionFromModal() {
     
     // Logger l'audit de validation de composition
     try {
-      const { default: AuditClient } = await import('../services/auditClient.js')
+      const { logCastValidation } = await import('../services/selectionAuditService.js')
       const event = events.value.find(e => e.id === eventId)
-      const selectedPlayers = getSelectionPlayers(eventId)
-      await AuditClient.logSelectionValidated(seasonSlug, {
+      
+      await logCastValidation({
         eventId,
         eventTitle: event?.title || 'Unknown',
-        selectedPlayers,
-        playerCount: selectedPlayers.length
+        seasonSlug,
+        action: 'validate',
+        source: 'selection_modal'
       })
     } catch (auditError) {
       console.warn('Erreur audit confirmCast:', auditError)
@@ -6625,31 +6649,14 @@ async function handleCompleteSelectionFromModal() {
 
 // Sauvegarde d'une composition manuelle via PIN
 async function handleUpdateSelectionFromModal() {
-  console.log('🚀 [HANDLE_UPDATE_SELECTION] Début - Rechargement des compositions')
-  const startTime = performance.now()
-  
   // Recharger les compositions depuis la base pour avoir les données à jour
   try {
-    console.log('💾 [HANDLE_UPDATE_SELECTION] Début loadCasts...')
-    const loadStartTime = performance.now()
     const { loadCasts } = await import('../services/storage.js')
     const updatedSelections = await loadCasts(seasonId.value)
-    const loadEndTime = performance.now()
-    console.log(`✅ [HANDLE_UPDATE_SELECTION] loadCasts terminé en ${(loadEndTime - loadStartTime).toFixed(2)}ms`)
-    
-    console.log('🔄 [HANDLE_UPDATE_SELECTION] Mise à jour selections.value...')
-    const updateStartTime = performance.now()
     selections.value = updatedSelections
-    const updateEndTime = performance.now()
-    console.log(`✅ [HANDLE_UPDATE_SELECTION] selections.value mis à jour en ${(updateEndTime - updateStartTime).toFixed(2)}ms`)
-    
-    console.log('🔍 [HANDLE_UPDATE_SELECTION] Nouvelles compositions:', updatedSelections)
   } catch (error) {
-    console.error('❌ [HANDLE_UPDATE_SELECTION] Erreur lors du rechargement des compositions:', error)
+    console.error('Erreur lors du rechargement des compositions:', error)
   }
-  
-  const totalTime = performance.now() - startTime
-  console.log(`🏁 [HANDLE_UPDATE_SELECTION] Total: ${totalTime.toFixed(2)}ms`)
 }
 
 
