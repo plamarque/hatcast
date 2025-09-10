@@ -4463,8 +4463,8 @@ async function completeSelectionSlots(eventId) {
       // Récupérer les joueurs déjà compositionnés pour ce rôle
       const currentRoleSelection = currentSelection.roles?.[role] || []
       
-      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles
-      const allAlreadySelected = Object.values(newSelections).flat().filter(Boolean)
+      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (depuis la composition actuelle)
+      const allAlreadySelected = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
       
       // Compléter seulement les slots vraiment vides (null/undefined)
       const filledSlots = currentRoleSelection.filter(player => player != null)
@@ -4481,20 +4481,22 @@ async function completeSelectionSlots(eventId) {
     }
   }
   
-  // Sauvegarder la composition complétée
+  // Calculer le nombre total de joueurs pour les logs
   const allPlayers = Object.values(newSelections).flat().filter(Boolean)
-  selections.value[eventId] = {
-    ...currentSelection,
-    roles: newSelections,
-    updatedAt: new Date()
-  }
   
-  logger.debug('💾 Composition complétée sauvegardée:', selections.value[eventId])
+  // Sauvegarder en base avec recalcul du statut
+  await saveCast(eventId, newSelections, seasonId.value, { 
+    preserveConfirmed: true
+  })
+  
+  // Recharger depuis la base pour avoir les données à jour
+  const { loadCasts } = await import('../services/storage.js')
+  const updatedSelections = await loadCasts(seasonId.value)
+  selections.value = updatedSelections
+  
+  logger.debug('💾 Composition complétée sauvegardée et rechargée')
   logger.debug('👥 Nombre total de joueurs:', allPlayers.length)
   logger.debug('🎭 Rôles et joueurs:', newSelections)
-  
-  // Sauvegarder en base
-  await saveCast(eventId, newSelections, seasonId.value)
   
   updateAllStats()
   updateAllChances()
