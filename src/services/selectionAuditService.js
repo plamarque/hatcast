@@ -65,14 +65,14 @@ export async function logCastValidation({ eventId, eventTitle, seasonSlug, actio
 /**
  * Logger une composition automatique
  */
-export async function logAutoSelection({ eventId, eventTitle, seasonSlug, oldComposition, newComposition, source = 'unknown' }) {
+export async function logAutoCast({ eventId, eventTitle, seasonSlug, oldComposition, newComposition, source = 'unknown' }) {
   try {
     const addedPlayers = getAddedPlayers(oldComposition, newComposition)
     const removedPlayers = getRemovedPlayers(oldComposition, newComposition)
     
     await AuditClient.logUserAction({
-      type: 'auto_selection',
-      category: 'selection',
+      type: 'auto_cast',
+      category: 'cast',
       severity: 'info',
       data: {
         eventId,
@@ -86,7 +86,7 @@ export async function logAutoSelection({ eventId, eventTitle, seasonSlug, oldCom
         timestamp: new Date().toISOString()
       },
       success: true,
-      tags: ['selection', 'auto', source]
+      tags: ['cast', 'auto', source]
     })
   } catch (error) {
     console.warn('Erreur audit composition auto:', error)
@@ -100,7 +100,7 @@ export async function logCastCompletion({ eventId, eventTitle, seasonSlug, added
   try {
     await AuditClient.logUserAction({
       type: 'cast_completion',
-      category: 'selection',
+      category: 'cast',
       severity: 'info',
       data: {
         eventId,
@@ -112,7 +112,7 @@ export async function logCastCompletion({ eventId, eventTitle, seasonSlug, added
         timestamp: new Date().toISOString()
       },
       success: true,
-      tags: ['selection', 'completion', source]
+      tags: ['cast', 'completion', source]
     })
   } catch (error) {
     console.warn('Erreur audit complétion composition:', error)
@@ -122,11 +122,11 @@ export async function logCastCompletion({ eventId, eventTitle, seasonSlug, added
 /**
  * Logger une suppression manuelle de composition
  */
-export async function logManualDeselection({ eventId, eventTitle, seasonSlug, removedPlayer, role, source = 'unknown' }) {
+export async function logManualCastRemoval({ eventId, eventTitle, seasonSlug, removedPlayer, role, source = 'unknown' }) {
   try {
     await AuditClient.logUserAction({
-      type: 'manual_deselection',
-      category: 'selection',
+      type: 'manual_cast_removal',
+      category: 'cast',
       severity: 'info',
       data: {
         eventId,
@@ -138,7 +138,7 @@ export async function logManualDeselection({ eventId, eventTitle, seasonSlug, re
         timestamp: new Date().toISOString()
       },
       success: true,
-      tags: ['selection', 'manual', 'deselection', source]
+      tags: ['cast', 'manual', 'removal', source]
     })
   } catch (error) {
     console.warn('Erreur audit suppression manuelle:', error)
@@ -148,11 +148,11 @@ export async function logManualDeselection({ eventId, eventTitle, seasonSlug, re
 /**
  * Logger une sélection manuelle
  */
-export async function logManualSelection({ eventId, eventTitle, seasonSlug, selectedPlayer, role, source = 'unknown' }) {
+export async function logManualCast({ eventId, eventTitle, seasonSlug, selectedPlayer, role, source = 'unknown' }) {
   try {
     await AuditClient.logUserAction({
-      type: 'manual_selection',
-      category: 'selection',
+      type: 'manual_cast',
+      category: 'cast',
       severity: 'info',
       data: {
         eventId,
@@ -164,7 +164,7 @@ export async function logManualSelection({ eventId, eventTitle, seasonSlug, sele
         timestamp: new Date().toISOString()
       },
       success: true,
-      tags: ['selection', 'manual', 'selection', source]
+      tags: ['cast', 'manual', 'selection', source]
     })
   } catch (error) {
     console.warn('Erreur audit sélection manuelle:', error)

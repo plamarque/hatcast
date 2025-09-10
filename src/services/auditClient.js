@@ -631,13 +631,13 @@ class AuditClient {
   // ===== SÉLECTION & PARTICIPATION =====
 
   /**
-   * Logger le déclenchement de la sélection automatique
+   * Logger le déclenchement de la composition automatique
    */
-  static async logAutoSelectionTriggered(seasonSlug, data = {}) {
+  static async logAutoCastTriggered(seasonSlug, data = {}) {
     try {
       await this.logUserAction({
-        type: 'auto_selection_triggered',
-        category: 'selection',
+        type: 'auto_cast_triggered',
+        category: 'cast',
         severity: 'info',
         data: {
           seasonSlug,
@@ -645,21 +645,21 @@ class AuditClient {
           timestamp: new Date().toISOString()
         },
         success: true,
-        tags: ['selection', 'auto', seasonSlug]
+        tags: ['cast', 'auto', seasonSlug]
       })
     } catch (error) {
-      console.error('❌ AUDIT ERROR - Erreur dans logAutoSelectionTriggered:', error)
+      console.error('❌ AUDIT ERROR - Erreur dans logAutoCastTriggered:', error)
     }
   }
 
   /**
-   * Logger la validation de la sélection d'événements
+   * Logger la validation de la composition d'événements
    */
-  static async logSelectionValidated(seasonSlug, data = {}) {
+  static async logCastValidated(seasonSlug, data = {}) {
     try {
       await this.logUserAction({
-        type: 'selection_validated',
-        category: 'selection',
+        type: 'cast_validated',
+        category: 'cast',
         severity: 'info',
         data: {
           seasonSlug,
@@ -667,10 +667,10 @@ class AuditClient {
           timestamp: new Date().toISOString()
         },
         success: true,
-        tags: ['selection', 'validate', seasonSlug]
+        tags: ['cast', 'validate', seasonSlug]
       })
     } catch (error) {
-      console.error('❌ AUDIT ERROR - Erreur dans logSelectionValidated:', error)
+      console.error('❌ AUDIT ERROR - Erreur dans logCastValidated:', error)
     }
   }
 
@@ -681,7 +681,7 @@ class AuditClient {
     try {
       await this.logUserAction({
         type: 'pin_entered',
-        category: 'selection',
+        category: 'cast',
         severity: 'info',
         data: {
           seasonSlug,
@@ -689,7 +689,7 @@ class AuditClient {
           timestamp: new Date().toISOString()
         },
         success: true,
-        tags: ['selection', 'pin', seasonSlug]
+        tags: ['cast', 'pin', seasonSlug]
       })
     } catch (error) {
       console.error('❌ AUDIT ERROR - Erreur dans logPinEntered:', error)
@@ -697,12 +697,12 @@ class AuditClient {
   }
 
   /**
-   * Logger le déverrouillage de la sélection
+   * Logger le déverrouillage de la composition
    */
-  static async logSelectionUnlocked(seasonSlug, data = {}) {
+  static async logCastUnlocked(seasonSlug, data = {}) {
     await this.safeLogUserAction({
-      type: 'selection_unlocked',
-      category: 'selection',
+      type: 'cast_unlocked',
+      category: 'cast',
       severity: 'info',
       data: {
         seasonSlug,
@@ -710,7 +710,7 @@ class AuditClient {
         timestamp: new Date().toISOString()
       },
       success: true,
-      tags: ['selection', 'unlock', seasonSlug]
+      tags: ['cast', 'unlock', seasonSlug]
     })
   }
 
@@ -763,12 +763,12 @@ class AuditClient {
   }
 
   /**
-   * Logger l'annonce de la sélection
+   * Logger l'annonce de la composition
    */
-  static async logSelectionAnnounced(seasonSlug, data = {}) {
+  static async logCastAnnounced(seasonSlug, data = {}) {
     await this.safeLogUserAction({
-      type: 'selection_announced',
-      category: 'selection',
+      type: 'cast_announced',
+      category: 'cast',
       severity: 'info',
       data: {
         seasonSlug,
@@ -776,7 +776,7 @@ class AuditClient {
         timestamp: new Date().toISOString()
       },
       success: true,
-      tags: ['selection', 'announce', seasonSlug]
+      tags: ['cast', 'announce', seasonSlug]
     })
   }
 

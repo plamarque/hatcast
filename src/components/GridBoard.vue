@@ -1282,7 +1282,7 @@
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
     @send-notifications="handleSendNotifications"
-    @update-selection="handleUpdateSelectionFromModal"
+    @updateCast="handleUpdateCastFromModal"
     @confirm-selection="handleConfirmSelectionFromModal"
     @unconfirm-selection="handleUnconfirmCastFromModal"
     @reset-selection="handleResetSelectionFromModal"
@@ -2867,7 +2867,7 @@ async function handleResetEventSelection(eventId) {
   
   // Demander le PIN code avant de réinitialiser la composition
   await requirePin({
-    type: 'resetSelection',
+    type: 'resetCast',
     data: { eventId }
   })
 }
@@ -4161,7 +4161,7 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
         source: 'event_modal'
       })
     } catch (auditError) {
-      console.warn('Erreur audit playerSelectionStatus:', auditError)
+      console.warn('Erreur audit playerCastStatus:', auditError)
     }
     
     // Recharger les compositions depuis la base pour avoir les données à jour avec le statut recalculé
@@ -4422,8 +4422,8 @@ async function drawMultiRoles(eventId) {
 }
 
 // Fonction pour compléter uniquement les slots vides d'une composition
-async function completeSelectionSlots(eventId) {
-  logger.debug('🔧 completeSelectionSlots appelé:', { eventId })
+async function completeCastSlots(eventId) {
+  logger.debug('🔧 completeCastSlots appelé:', { eventId })
   
   const event = events.value.find(e => e.id === eventId)
   if (!event) {
@@ -4889,13 +4889,13 @@ async function handleTirage(eventId, count = null) {
   if (getSelectionPlayers(eventId).length > 0) {
     // Demander le PIN code avant d'afficher la confirmation de relance
     await requirePin({
-      type: 'launchSelection',
+      type: 'launchCast',
       data: { eventId, count }
     })
   } else {
     // Demander le PIN code avant de lancer la composition
     await requirePin({
-      type: 'launchSelection',
+      type: 'launchCast',
       data: { eventId, count }
     })
   }
@@ -4910,12 +4910,12 @@ function getPinModalMessage() {
     addEvent: 'Ajout d\'événement - Code PIN requis',
     editEvent: 'Modification d\'événement - Code PIN requis',
     deletePlayer: 'Suppression de joueur - Code PIN requis',
-    launchSelection: 'Lancement de composition - Code PIN requis',
+    launchCast: 'Lancement de composition - Code PIN requis',
     toggleArchive: 'Archivage d\'événement - Code PIN requis',
-    updateSelection: 'Mise à jour de composition - Code PIN requis',
-    resetSelection: 'Réinitialisation de composition - Code PIN requis',
+    updateCast: 'Mise à jour de composition - Code PIN requis',
+    resetCast: 'Réinitialisation de composition - Code PIN requis',
     unconfirmCast: 'Déverrouillage de composition - Code PIN requis',
-    completeSelection: 'Complétion de composition - Code PIN requis'
+    completeCast: 'Complétion de composition - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -5288,21 +5288,21 @@ async function executePendingOperation(operation) {
         playerToDelete.value = data.playerId
         confirmPlayerDelete.value = true
         break
-      case 'launchSelection':
-        logger.debug('🚀 launchSelection appelé:', { eventId: data.eventId, count: data.count })
+      case 'launchCast':
+        logger.debug('🚀 launchCast appelé:', { eventId: data.eventId, count: data.count })
         
         // Logger l'audit de composition automatique
         try {
           const { default: AuditClient } = await import('../services/auditClient.js')
           const event = events.value.find(e => e.id === data.eventId)
-          await AuditClient.logAutoSelectionTriggered(seasonSlug, {
+          await AuditClient.logAutoCastTriggered(seasonSlug, {
             eventId: data.eventId,
             eventTitle: event?.title || 'Unknown',
             count: data.count,
             hasExistingSelection: getSelectionPlayers(data.eventId).length > 0
           })
         } catch (auditError) {
-          logger.warn('Erreur audit launchSelection:', auditError)
+          logger.warn('Erreur audit launchCast:', auditError)
         }
         
         // Vérifier si une composition complète existe déjà pour afficher la confirmation
@@ -5369,7 +5369,7 @@ async function executePendingOperation(operation) {
           }, 3000)
         }
         break
-      case 'updateSelection':
+      case 'updateCast':
         // Persister la composition manuelle après validation du PIN
         {
           const { eventId, players } = data
@@ -5451,7 +5451,7 @@ async function executePendingOperation(operation) {
           }
         }
         break
-      case 'resetSelection':
+      case 'resetCast':
         // Réinitialiser complètement une composition (admin uniquement)
         {
           const { eventId } = data
@@ -5471,7 +5471,7 @@ async function executePendingOperation(operation) {
                 })
               }
             } catch (auditError) {
-              console.warn('Erreur audit resetSelection:', auditError)
+              console.warn('Erreur audit resetCast:', auditError)
             }
             
             // Recharger les compositions depuis Firestore pour avoir les données à jour
@@ -5493,12 +5493,12 @@ async function executePendingOperation(operation) {
           }
         }
         break
-      case 'completeSelection':
+      case 'completeCast':
         // Compléter les slots vides d'une composition verrouillée
         {
           const { eventId } = data
           try {
-            await completeSelectionSlots(eventId)
+            await completeCastSlots(eventId)
             
             showSuccessMessage.value = true
             successMessage.value = 'Composition complétée !'
@@ -6525,7 +6525,7 @@ async function handleSelectionFromModal() {
   
   // Demander le PIN code avant de lancer la composition
   await requirePin({
-    type: 'launchSelection',
+    type: 'launchCast',
     data: { eventId, count }
   })
 }
@@ -6638,7 +6638,7 @@ async function handleCompleteSelectionFromModal() {
   try {
     // Demander le PIN code avant de compléter la composition
     await requirePin({
-      type: 'completeSelection',
+      type: 'completeCast',
       data: { eventId }
     })
   } catch (error) {
@@ -6648,7 +6648,7 @@ async function handleCompleteSelectionFromModal() {
 
 
 // Sauvegarde d'une composition manuelle via PIN
-async function handleUpdateSelectionFromModal() {
+async function handleUpdateCastFromModal() {
   // Recharger les compositions depuis la base pour avoir les données à jour
   try {
     const { loadCasts } = await import('../services/storage.js')
