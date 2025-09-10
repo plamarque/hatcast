@@ -6621,14 +6621,31 @@ async function handleCompleteSelectionFromModal() {
 
 // Sauvegarde d'une composition manuelle via PIN
 async function handleUpdateSelectionFromModal() {
+  console.log('🚀 [HANDLE_UPDATE_SELECTION] Début - Rechargement des compositions')
+  const startTime = performance.now()
+  
   // Recharger les compositions depuis la base pour avoir les données à jour
   try {
+    console.log('💾 [HANDLE_UPDATE_SELECTION] Début loadCasts...')
+    const loadStartTime = performance.now()
     const { loadCasts } = await import('../services/storage.js')
     const updatedSelections = await loadCasts(seasonId.value)
+    const loadEndTime = performance.now()
+    console.log(`✅ [HANDLE_UPDATE_SELECTION] loadCasts terminé en ${(loadEndTime - loadStartTime).toFixed(2)}ms`)
+    
+    console.log('🔄 [HANDLE_UPDATE_SELECTION] Mise à jour selections.value...')
+    const updateStartTime = performance.now()
     selections.value = updatedSelections
+    const updateEndTime = performance.now()
+    console.log(`✅ [HANDLE_UPDATE_SELECTION] selections.value mis à jour en ${(updateEndTime - updateStartTime).toFixed(2)}ms`)
+    
+    console.log('🔍 [HANDLE_UPDATE_SELECTION] Nouvelles compositions:', updatedSelections)
   } catch (error) {
-    console.error('Erreur lors du rechargement des compositions:', error)
+    console.error('❌ [HANDLE_UPDATE_SELECTION] Erreur lors du rechargement des compositions:', error)
   }
+  
+  const totalTime = performance.now() - startTime
+  console.log(`🏁 [HANDLE_UPDATE_SELECTION] Total: ${totalTime.toFixed(2)}ms`)
 }
 
 

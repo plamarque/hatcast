@@ -1,6 +1,6 @@
 // storage.js
 import logger from './logger.js'
-import { createRemindersForCast, removeRemindersForPlayer } from './reminderService.js'
+import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 import firestoreService from './firestoreService.js'
 
 // Constantes pour les rôles et leurs emojis
@@ -478,7 +478,10 @@ export async function loadCasts(seasonId) {
       confirmedAt: data.confirmedAt || null,
       updatedAt: data.updatedAt || null,
       playerStatuses: data.playerStatuses || {},
-      confirmedByAllPlayers: data.confirmedByAllPlayers || false
+      confirmedByAllPlayers: data.confirmedByAllPlayers || false,
+      // Nouveaux champs calculés par castStatusService
+      status: data.status || null,
+      statusDetails: data.statusDetails || null
     }
   })
   
@@ -627,7 +630,7 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
               const playerEmail = await getPlayerEmail(playerName, seasonId)
               
               if (playerEmail) {
-                await createRemindersForCast({
+                await createRemindersForSelection({
                   seasonId,
                   eventId,
                   playerEmail: playerEmail,
