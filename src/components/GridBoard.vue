@@ -4460,26 +4460,23 @@ async function completeSelectionSlots(eventId) {
     const requiredCount = roles[role] || 0
     
     if (requiredCount > 0) {
-      // Récupérer les joueurs déjà compositionnés pour ce rôle (en filtrant les déclinés)
+      // Récupérer les joueurs déjà compositionnés pour ce rôle
       const currentRoleSelection = currentSelection.roles?.[role] || []
-      const availablePlayers = currentRoleSelection.filter(playerName => {
-        if (!playerName) return false
-        const status = currentSelection.playerStatuses?.[playerName]
-        return status !== 'declined'
-      })
       
-      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (non déclinés)
+      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles
       const allAlreadySelected = Object.values(newSelections).flat().filter(Boolean)
       
-      // Compléter seulement les slots manquants
-      const remainingSlots = requiredCount - availablePlayers.length
+      // Compléter seulement les slots vraiment vides (null/undefined)
+      const filledSlots = currentRoleSelection.filter(player => player != null)
+      const remainingSlots = requiredCount - filledSlots.length
+      
       if (remainingSlots > 0) {
         // Tirage pour les slots manquants uniquement
-        const newPlayers = await drawForRole(role, remainingSlots, eventId, [...availablePlayers, ...allAlreadySelected])
-        newSelections[role] = [...availablePlayers, ...newPlayers]
+        const newPlayers = await drawForRole(role, remainingSlots, eventId, [...filledSlots, ...allAlreadySelected])
+        newSelections[role] = [...filledSlots, ...newPlayers]
       } else {
         // Rôle déjà complet
-        newSelections[role] = [...availablePlayers]
+        newSelections[role] = [...currentRoleSelection]
       }
     }
   }
@@ -6554,22 +6551,10 @@ async function handleConfirmSelectionFromModal() {
       console.warn('Erreur audit confirmCast:', auditError)
     }
     
-    // Mettre à jour la structure locale
-    if (selections.value[eventId]) {
-      if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
-        selections.value[eventId].confirmed = true
-        selections.value[eventId].confirmedAt = new Date()
-      } else {
-        // Migration de l'ancienne structure
-        const players = Array.isArray(selections.value[eventId]) ? selections.value[eventId] : []
-        selections.value[eventId] = {
-          players,
-          confirmed: true,
-          confirmedAt: new Date(),
-          updatedAt: new Date()
-        }
-      }
-    }
+    // Recharger les compositions depuis la base pour avoir les données à jour
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedSelections = await loadCasts(seasonId.value)
+    selections.value = updatedSelections
     
     // Ne pas fermer la modale, la laisser ouverte pour afficher les nouveaux boutons
     // closeSelectionModal()

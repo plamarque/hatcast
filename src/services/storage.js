@@ -1,6 +1,6 @@
 // storage.js
 import logger from './logger.js'
-import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
+import { createRemindersForCast, removeRemindersForPlayer } from './reminderService.js'
 import firestoreService from './firestoreService.js'
 
 // Constantes pour les rôles et leurs emojis
@@ -389,7 +389,7 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
   // Mettre à jour les champs et préserver les autres champs. Crée le doc s'il n'existe pas.
   await firestoreService.setDocument('seasons', seasonId, updateData, true, 'players', playerId)
 
-  // Si le nom change, renommer les dépendances (availability + selections)
+  // Si le nom change, renommer les dépendances (availability + compositions)
   if (oldName && oldName !== trimmedNewName) {
 
     // Renommer le document de disponibilités (clé = nom du joueur)
@@ -421,10 +421,10 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
 
     // Mettre à jour les compositions (nouveau format par rôles)
     try {
-      const selections = await firestoreService.getDocuments('seasons', seasonId, 'selections')
-      let updatedSelections = 0
-      for (const selection of selections) {
-        const { id, ...data } = selection
+      const compositions = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+      let updatedCompositions = 0
+      for (const composition of compositions) {
+        const { id, ...data } = composition
         if (data.roles && typeof data.roles === 'object') {
           let hasUpdates = false
           const updatedRoles = { ...data.roles }
@@ -440,12 +440,12 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
           if (hasUpdates) {
             // Mise à jour directe sans batch pour l'instant
             await firestoreService.updateDocument('seasons', seasonId, { roles: updatedRoles }, 'selections', id)
-            updatedSelections++
+            updatedCompositions++
           }
         }
       }
-      if (updatedSelections > 0) {
-        logger.info(`✅ ${updatedSelections} composition(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
+      if (updatedCompositions > 0) {
+        logger.info(`✅ ${updatedCompositions} composition(s) mise(s) à jour avec le nouveau nom "${trimmedNewName}"`)
       }
     } catch (error) {
               logger.warn(`⚠️ Échec de la mise à jour des compositions pour "${oldName}":`, error.message)
@@ -466,10 +466,10 @@ export async function loadAvailability(players, events, seasonId) {
 }
 
 export async function loadCasts(seasonId) {
-  const selectionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+  const compositionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'selections')
   const res = {}
   
-  selectionsDocs.forEach(doc => {
+  compositionsDocs.forEach(doc => {
     const { id, ...data } = doc
     
     res[id] = {
@@ -527,34 +527,64 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
   await firestoreService.setDocument('seasons', seasonId, next, true, 'availability', playerName)
 }
 
-export async function saveCast(eventId, roles, seasonId) {
+export async function saveCast(eventId, roles, seasonId, options = {}) {
   try {
     // Récupérer l'ancienne composition pour comparer
-    const oldSelectionDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    const oldCastDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
     
     // Extraire tous les joueurs de tous les rôles
     const allPlayers = Object.values(roles).flat().filter(Boolean)
     
-    const oldSelection = oldSelectionDoc 
-      ? Object.values(oldSelectionDoc.roles || {}).flat().filter(Boolean)
+    const oldCast = oldCastDoc 
+      ? Object.values(oldCastDoc.roles || {}).flat().filter(Boolean)
       : []
     
     // Initialiser les statuts individuels des joueurs
     const playerStatuses = {}
     allPlayers.forEach(playerName => {
-      playerStatuses[playerName] = 'pending' // Tous commencent en attente de confirmation
+      // Préserver le statut existant ou initialiser à 'pending'
+      playerStatuses[playerName] = oldCastDoc?.playerStatuses?.[playerName] || 'pending'
     })
     
-    const selectionData = { 
+    // Calculer le statut de la composition
+    const { calculateCastStatus } = await import('./castStatusService.js')
+    const eventData = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    
+    const status = calculateCastStatus(
+      { roles, playerStatuses, ...oldCastDoc },
+      eventData,
+      null, // teamSlots pas disponible ici
+      {}, // playerAvailability pas disponible ici
+      allPlayers.length // approximation
+    )
+    
+    const castData = { 
       // Nouveau format (par rôle)
       roles: roles,
       
-      confirmed: false, // Nouvelle composition = non confirmée
-      confirmedByAllPlayers: false, // Tous les joueurs n'ont pas encore confirmé
+      // Préserver les statuts de confirmation existants ou utiliser les options
+      confirmed: options.preserveConfirmed ? (oldCastDoc?.confirmed || false) : false,
+      confirmedByAllPlayers: options.preserveConfirmed ? (oldCastDoc?.confirmedByAllPlayers || false) : false,
+      confirmedAt: options.preserveConfirmed ? oldCastDoc?.confirmedAt : null,
+      
       playerStatuses, // Statuts individuels des joueurs
+      
+      // Nouveau : statut calculé automatiquement
+      status: status.type,
+      statusDetails: {
+        hasUnavailablePlayers: status.hasUnavailablePlayers || false,
+        hasInsufficientPlayers: status.hasInsufficientPlayers || false,
+        hasDeclinedPlayers: status.hasDeclinedPlayers || false,
+        hasEmptySlots: status.hasEmptySlots || false,
+        unavailablePlayers: status.unavailablePlayers || [],
+        declinedPlayers: status.declinedPlayers || [],
+        availableCount: status.availableCount,
+        requiredCount: status.requiredCount
+      },
+      
       updatedAt: new Date()
     }
-    await firestoreService.setDocument('seasons', seasonId, selectionData, false, 'selections', eventId)
+    await firestoreService.setDocument('seasons', seasonId, castData, false, 'selections', eventId)
     
     // Gérer les rappels automatiques
     try {
@@ -567,7 +597,7 @@ export async function saveCast(eventId, roles, seasonId) {
       if (eventData && seasonData) {
           
           // Supprimer les rappels pour les joueurs décomposés
-          const removedPlayers = oldSelection.filter(name => !allPlayers.includes(name))
+          const removedPlayers = oldCast.filter(name => !allPlayers.includes(name))
           
           for (const playerName of removedPlayers) {
             try {
@@ -587,7 +617,7 @@ export async function saveCast(eventId, roles, seasonId) {
           }
           
           // Créer les rappels pour les nouveaux joueurs composés
-          const newPlayers = allPlayers.filter(name => !oldSelection.includes(name))
+          const newPlayers = allPlayers.filter(name => !oldCast.includes(name))
           
           // Créer les rappels pour les nouveaux joueurs composés
           for (const playerName of newPlayers) {
@@ -597,7 +627,7 @@ export async function saveCast(eventId, roles, seasonId) {
               const playerEmail = await getPlayerEmail(playerName, seasonId)
               
               if (playerEmail) {
-                await createRemindersForSelection({
+                await createRemindersForCast({
                   seasonId,
                   eventId,
                   playerEmail: playerEmail,
