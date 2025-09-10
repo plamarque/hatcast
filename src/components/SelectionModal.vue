@@ -140,7 +140,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Composition temporaire verrouillée :</strong> Les personnes composées doivent confirmer leur participation. La composition sera définitivement confirmée une fois que toutes auront validé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
+            <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitivement confirmée lorsque tout le monde aura confirmé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
           </div>
         </div>
 
@@ -148,7 +148,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-orange-200 text-sm">
             <span>⚠️</span>
-            <span><strong>Composition incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la composition et remplacer les personnes manquantes.</span>
+            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
           </div>
         </div>
 
@@ -197,6 +197,16 @@
           :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
         >
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
+        </button>
+
+        <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides) -->
+        <button 
+          v-if="isSelectionConfirmedByOrganizer && hasEmptySlots" 
+          @click="handleCompleteSelection" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
+          title="Compléter les slots vides avec des joueurs disponibles"
+        >
+          🔧 <span class="hidden sm:inline">Compléter</span><span class="sm:hidden">Compléter</span>
         </button>
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé) -->
@@ -355,7 +365,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'complete-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -757,6 +767,11 @@ const hasIncompleteSelection = computed(() => {
   return hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers
 })
 
+// Computed property pour détecter s'il y a des slots vides
+const hasEmptySlots = computed(() => {
+  return teamSlots.value.some(slot => !slot.player)
+})
+
 // Vérifier si des joueurs ont décliné leur participation
 const hasDeclinedPlayers = computed(() => {
   if (!props.currentSelection || typeof props.currentSelection !== 'object' || !props.currentSelection.playerStatuses) {
@@ -1061,6 +1076,22 @@ async function handleUnconfirmSelection() {
     console.error('Erreur lors de la déverrouillage de la composition:', error)
     showSuccessMessage.value = true
     successMessageText.value = 'Erreur lors de la déverrouillage de la composition'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
+}
+
+async function handleCompleteSelection() {
+  try {
+    // Émettre l'événement de complétion vers le parent
+    emit('complete-selection')
+    
+    // Le toast de succès est affiché par le parent (GridBoard.vue)
+  } catch (error) {
+    console.error('Erreur lors de la complétion de la composition:', error)
+    showSuccessMessage.value = true
+    successMessageText.value = 'Erreur lors de la complétion de la composition'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
