@@ -365,7 +365,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'complete-selection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'complete-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -518,19 +518,18 @@ async function onChooseForSlot(event, index) {
     try {
       const { default: AuditClient } = await import('../services/auditClient.js')
       await AuditClient.logUserAction({
-        type: 'player_reselected',
-        category: 'selection',
+        type: 'player_recast',
+        category: 'cast',
         severity: 'info',
         data: {
           eventTitle: props.event?.title || 'Unknown',
           seasonSlug: props.event?.seasonSlug || 'unknown',
           playerName: value,
           slotIndex: index,
-          previousPlayer: previousValue || null,
-          action: 'manual_selection'
+          previousPlayer: previousValue || null
         },
         success: true,
-        tags: ['selection', 'manual', 'reselection']
+        tags: ['cast', 'manual', 'recast']
       })
     } catch (auditError) {
       console.warn('Erreur audit onChooseForSlot:', auditError)
@@ -569,10 +568,10 @@ async function clearSlot(index) {
   // Logger l'audit de suppression manuelle
   if (removedPlayer) {
     try {
-      const { logManualDeselection } = await import('../services/selectionAuditService.js')
+      const { logManualCastRemoval } = await import('../services/selectionAuditService.js')
       const currentSlot = teamSlots.value.find(s => s.index === index)
       
-      await logManualDeselection({
+      await logManualCastRemoval({
         eventId: props.event.id,
         eventTitle: props.event.title || 'Unknown',
         seasonSlug: props.event.seasonSlug || 'unknown',
@@ -628,7 +627,7 @@ async function saveSlotChanges() {
     await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
     
     // Émettre un événement pour que le parent recharge les données
-    emit('update-selection')
+    emit('updateCast')
   } catch (error) {
     console.error('Erreur lors de la sauvegarde des changements de slots:', error)
   }
