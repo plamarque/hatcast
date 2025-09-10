@@ -6620,14 +6620,15 @@ async function handleCompleteSelectionFromModal() {
 
 
 // Sauvegarde d'une composition manuelle via PIN
-async function handleUpdateSelectionFromModal(payload) {
-  if (!payload || !payload.eventId) return
-  const { eventId, players } = payload
-  // Demander le PIN avant enregistrement
-  await requirePin({
-    type: 'updateSelection',
-    data: { eventId, players }
-  })
+async function handleUpdateSelectionFromModal() {
+  // Recharger les compositions depuis la base pour avoir les données à jour
+  try {
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedSelections = await loadCasts(seasonId.value)
+    selections.value = updatedSelections
+  } catch (error) {
+    console.error('Erreur lors du rechargement des compositions:', error)
+  }
 }
 
 

@@ -610,20 +610,13 @@ async function saveSlotChanges() {
     
     // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
     const { saveCast } = await import('../services/storage.js')
-    await saveCast(props.event.id, roles, props.seasonId)
+    await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
     
-    // Mettre à jour la structure locale pour préserver le statut de confirmation
-    if (selections.value[props.event.id]) {
-      selections.value[props.event.id] = {
-        ...selections.value[props.event.id],
-        roles: roles,
-        updatedAt: new Date()
-        // Ne pas toucher à confirmed, confirmedAt, etc.
-      }
-    }
+    // Émettre un événement pour que le parent recharge les données
+    emit('update-selection')
     
     // Feedback visuel subtil
-    console.debug('Changements de slots sauvegardés')
+    console.debug('Changements de slots sauvegardés avec statut recalculé')
   } catch (error) {
     console.error('Erreur lors de la sauvegarde des changements de slots:', error)
   }
@@ -659,108 +652,64 @@ const hasSelection = computed(() => {
   return false
 })
 
-// Fonction pour déterminer le statut de composition (même logique que getEventStatus dans GridBoard)
+// Fonction pour déterminer le statut de composition (utilise le statut calculé stocké en base)
 function getSelectionStatus() {
-  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers dans GridBoard)
-  let selectedPlayers = []
-  
-  if (!props.currentSelection) {
-    selectedPlayers = []
-  } else if (Array.isArray(props.currentSelection)) {
-    // Ancienne structure (array direct)
-    selectedPlayers = props.currentSelection
-  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
-    // Nouvelle structure avec players
-    selectedPlayers = props.currentSelection.players
-  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
-    // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
-    const allPlayers = []
-    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
-      if (Array.isArray(rolePlayers)) {
-        allPlayers.push(...rolePlayers)
-      }
+  // Si la sélection a un statut calculé stocké, l'utiliser
+  if (props.currentSelection?.status && props.currentSelection?.statusDetails) {
+    return {
+      type: props.currentSelection.status,
+      ...props.currentSelection.statusDetails
     }
-    // Retourner un tableau unique (sans doublons)
-    selectedPlayers = [...new Set(allPlayers)]
   }
-  // Calculer le nombre total requis (même logique que getTotalRequiredCount dans GridBoard)
+  
+  // Fallback : calculer le statut localement (logique de compatibilité)
+  // Pour l'instant, utiliser l'ancienne logique comme fallback
+  const selectedPlayers = extractSelectedPlayers(props.currentSelection)
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
     ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
     : (props.event?.playerCount || 6)
   const availableCount = props.availableCount || 0
   
-  // Cas 1: Composition incomplète (composition existante avec problèmes)
-  if (selectedPlayers.length > 0) {
-    const hasUnavailablePlayers = selectedPlayers.some(playerName => !isPlayerAvailable(playerName))
-    const hasInsufficientPlayers = availableCount < requiredCount
-    
-    // Vérifier si des joueurs sélectionnés ont décliné
-    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
-      return props.currentSelection?.playerStatuses?.[playerName] === 'declined'
-    })
-    
-    // Vérifier s'il y a des slots vides (basé sur teamSlots, pas sur currentSelection)
-    const hasEmptySlots = teamSlots.value.some(slot => !slot.player)
-    
-    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers || hasEmptySlots) {
-      return {
-        type: 'incomplete',
-        hasUnavailablePlayers,
-        hasInsufficientPlayers,
-        hasDeclinedPlayers,
-        hasEmptySlots,
-        unavailablePlayers: selectedPlayers.filter(playerName => !isPlayerAvailable(playerName)),
-        declinedPlayers: selectedPlayers.filter(playerName => 
-          props.currentSelection?.playerStatuses?.[playerName] === 'declined'
-        ),
-        availableCount,
-        requiredCount
+  // Logique de fallback simplifiée
+  if (selectedPlayers.length === 0) {
+    return { type: 'ready', availableCount, requiredCount }
+  }
+  
+  const hasEmptySlots = teamSlots.value.some(slot => !slot.player)
+  if (hasEmptySlots) {
+    return { type: 'incomplete', hasEmptySlots: true, availableCount, requiredCount }
+  }
+  
+  if (props.isSelectionConfirmed) {
+    return { type: 'confirmed', availableCount, requiredCount }
+  }
+  
+  if (props.isSelectionConfirmedByOrganizer) {
+    return { type: 'pending_confirmation', availableCount, requiredCount }
+  }
+  
+  return { type: 'complete', availableCount, requiredCount }
+}
+
+// Fonction helper pour extraire les joueurs sélectionnés
+function extractSelectedPlayers(selection) {
+  if (!selection) return []
+  
+  if (Array.isArray(selection)) {
+    return selection
+  } else if (selection.players && Array.isArray(selection.players)) {
+    return selection.players
+  } else if (selection.roles && typeof selection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(selection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
       }
     }
+    return [...new Set(allPlayers)]
   }
   
-  // Cas 2: Pas assez de joueurs pour faire une composition
-  if (availableCount < requiredCount) {
-    return {
-      type: 'insufficient',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 3: Assez de joueurs mais pas de composition
-  if (selectedPlayers.length === 0) {
-    return {
-      type: 'ready',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 4: Tous les joueurs ont confirmé → Confirmée (définitive)
-  if (props.isSelectionConfirmed) {
-    return {
-      type: 'confirmed',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 5: Confirmée par l'organisateur uniquement → À confirmer (en attente des joueurs)
-  if (props.isSelectionConfirmedByOrganizer) {
-    return {
-      type: 'pending_confirmation',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 6: Composition complète mais non confirmée par l'organisateur
-  return {
-    type: 'complete',
-    availableCount,
-    requiredCount
-  }
+  return []
 }
 
 const hasIncompleteSelection = computed(() => {
