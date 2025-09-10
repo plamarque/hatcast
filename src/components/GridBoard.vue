@@ -3383,23 +3383,19 @@ function applyRoleTemplateForEdit(templateId) {
 // Fonction pour obtenir l'icône du type d'événement
 function getEventTypeIcon(event) {
   if (!event?.roles) {
-    logger.debug('🔍 getEventTypeIcon: No event roles, returning default icon')
     return '🎭' // Icône par défaut
   }
   const templateId = event.templateType || 'custom'
-  logger.debug('🔍 getEventTypeIcon: Template ID:', templateId, 'Icon:', EVENT_TYPE_ICONS[templateId])
   return EVENT_TYPE_ICONS[templateId] || '❓'
 }
 
 // Fonction pour obtenir le nom du type d'événement
 function getEventTypeName(event) {
   if (!event?.roles) {
-    logger.debug('🔍 getEventTypeName: No event roles, returning default name')
     return 'Autre' // Nom par défaut
   }
   const templateId = event.templateType || 'custom'
   const template = ROLE_TEMPLATES[templateId]
-  logger.debug('🔍 getEventTypeName: Template ID:', templateId, 'Name:', template?.name)
   return template?.name || 'Autre'
 }
 
