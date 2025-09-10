@@ -674,11 +674,26 @@ export async function confirmCast(eventId, seasonId) {
       // Ne pas écraser un statut "declined" existant
     })
     
+    // Recalculer le statut avec le service centralisé
+    const { calculateCastStatus } = await import('./castStatusService.js')
+    const eventData = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    
+    const status = calculateCastStatus(
+      { ...currentCast, playerStatuses },
+      eventData,
+      null, // teamSlots pas disponible ici
+      {}, // playerAvailability pas disponible ici
+      allPlayers.length // approximation
+    )
+    
     await firestoreService.updateDocument('seasons', seasonId, { 
       confirmed: true,
       confirmedAt: new Date(),
       confirmedByAllPlayers: false, // Initialiser à false car les joueurs n'ont pas encore confirmé
-      playerStatuses
+      playerStatuses,
+      // Nouveau : statut calculé automatiquement
+      status: status.type,
+      statusDetails: status
     }, 'selections', eventId)
   } catch (error) {
     logger.error('❌ Erreur dans confirmCast:', error)
