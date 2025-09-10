@@ -847,10 +847,38 @@ export async function updatePlayerCastStatus(eventId, playerName, status, season
       updatedPlayerStatuses[playerName] === 'confirmed'
     )
     
+    // Recalculer le statut global de la sélection
+    const { calculateCastStatus } = await import('./castStatusService.js')
+    const eventData = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    
+    const castStatus = calculateCastStatus(
+      { 
+        ...castDoc, 
+        playerStatuses: updatedPlayerStatuses,
+        confirmedByAllPlayers: allPlayersConfirmed
+      },
+      eventData,
+      null, // teamSlots pas disponible ici
+      {}, // playerAvailability pas disponible ici
+      allPlayers.length // approximation
+    )
+    
     // Mettre à jour le statut du joueur ET l'état global de la composition
     await firestoreService.updateDocument('seasons', seasonId, {
       [`playerStatuses.${playerName}`]: status,
-      confirmedByAllPlayers: allPlayersConfirmed
+      confirmedByAllPlayers: allPlayersConfirmed,
+      // Nouveau : statut global recalculé
+      status: castStatus.type,
+      statusDetails: {
+        hasUnavailablePlayers: castStatus.hasUnavailablePlayers || false,
+        hasInsufficientPlayers: castStatus.hasInsufficientPlayers || false,
+        hasDeclinedPlayers: castStatus.hasDeclinedPlayers || false,
+        hasEmptySlots: castStatus.hasEmptySlots || false,
+        unavailablePlayers: castStatus.unavailablePlayers || [],
+        declinedPlayers: castStatus.declinedPlayers || [],
+        availableCount: castStatus.availableCount,
+        requiredCount: castStatus.requiredCount
+      }
     }, 'selections', eventId)
     
     return { confirmedByAllPlayers: allPlayersConfirmed }

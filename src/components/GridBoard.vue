@@ -4166,23 +4166,10 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
       console.warn('Erreur audit playerSelectionStatus:', auditError)
     }
     
-    // Mettre à jour la structure locale
-    if (selections.value[eventId]) {
-      if (selections.value[eventId].playerStatuses) {
-        selections.value[eventId].playerStatuses[playerName] = newStatus
-      } else {
-        selections.value[eventId].playerStatuses = { [playerName]: newStatus }
-      }
-      
-      // Mettre à jour l'état global de la composition
-      if (typeof result.confirmedByAllPlayers === 'boolean') {
-        selections.value[eventId].confirmedByAllPlayers = result.confirmedByAllPlayers
-      }
-      
-      // Forcer la réactivité en restructurant l'objet
-      const updatedSelection = { ...selections.value[eventId] }
-      selections.value[eventId] = updatedSelection
-    }
+    // Recharger les compositions depuis la base pour avoir les données à jour avec le statut recalculé
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedSelections = await loadCasts(seasonId)
+    selections.value = updatedSelections
     
     // Afficher un message de succès avec l'état global
     let successMessageText = `Statut de ${playerName} mis à jour : ${getStatusDisplayText(newStatus)}`
@@ -5978,6 +5965,19 @@ function getEventStatus(eventId) {
       requiredCount,
       isConfirmedByOrganizer: false,
       isConfirmedByAllPlayers: false
+    }
+  }
+  
+  // Priorité : utiliser le statut calculé stocké en base (comme SelectionModal.vue)
+  const selection = selections.value[eventId]
+  if (selection?.status && selection?.statusDetails) {
+    return {
+      type: selection.status,
+      availableCount: selection.statusDetails.availableCount || availableCount,
+      requiredCount: selection.statusDetails.requiredCount || requiredCount,
+      isConfirmedByOrganizer,
+      isConfirmedByAllPlayers,
+      ...selection.statusDetails
     }
   }
 
