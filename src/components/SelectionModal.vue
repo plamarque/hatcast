@@ -98,7 +98,7 @@
                   </div>
                 </div>
                 <button
-                  v-if="!isSelectionConfirmedByOrganizer"
+                  v-if="!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player)"
                   @click="clearSlot(slot.index)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer cette personne"
@@ -533,11 +533,14 @@ async function onChooseForSlot(event, index) {
 }
 
 async function clearSlot(index) {
-  // Ne pas permettre la suppression si l'organisateur a validé la composition
-  if (props.isSelectionConfirmedByOrganizer) return
-  
-  // Trouver le slot dans teamSlots
+  // Trouver le slot et le joueur
   const currentSlot = teamSlots.value.find(s => s.index === index)
+  const playerName = currentSlot?.player
+  
+  // Ne pas permettre la suppression si l'organisateur a validé la composition
+  // SAUF si le joueur a décliné (cas de remplacement)
+  if (props.isSelectionConfirmedByOrganizer && !isPlayerDeclined(playerName)) return
+  
   const removedPlayer = currentSlot?.player || slots.value[index]
   
   // Vider le slot dans teamSlots
@@ -757,6 +760,15 @@ const hasDeclinedPlayers = computed(() => {
   const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerName, status]) => status === 'declined')
   return hasDeclined
 })
+
+// Fonction pour vérifier si un joueur spécifique a décliné
+function isPlayerDeclined(playerName) {
+  if (!playerName || !props.currentSelection || typeof props.currentSelection !== 'object' || !props.currentSelection.playerStatuses) {
+    return false
+  }
+  
+  return props.currentSelection.playerStatuses[playerName] === 'declined'
+}
 
 // Vérifier si la composition est complète (assez de joueurs pour l'événement)
 const isSelectionComplete = computed(() => {
