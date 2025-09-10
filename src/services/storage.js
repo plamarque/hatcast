@@ -3,6 +3,23 @@ import logger from './logger.js'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 import firestoreService from './firestoreService.js'
 
+// Fonctions utilitaires pour encoder/décoder les noms de joueurs pour Firestore
+function encodePlayerNameForFirestore(playerName) {
+  // Remplacer les caractères problématiques pour Firestore
+  return playerName
+    .replace(/\./g, '_DOT_')  // Points
+    .replace(/\s+/g, '_SPACE_')  // Espaces
+    .replace(/[^a-zA-Z0-9_-]/g, '_')  // Autres caractères spéciaux
+}
+
+function decodePlayerNameFromFirestore(encodedName) {
+  // Restaurer les caractères originaux
+  return encodedName
+    .replace(/_DOT_/g, '.')
+    .replace(/_SPACE_/g, ' ')
+    .replace(/_/g, '')  // Nettoyer les autres underscores ajoutés
+}
+
 // Constantes pour les rôles et leurs emojis
 export const ROLES = {
   PLAYER: 'player',
@@ -472,12 +489,21 @@ export async function loadCasts(seasonId) {
   compositionsDocs.forEach(doc => {
     const { id, ...data } = doc
     
+    // Décoder les noms de joueurs dans playerStatuses
+    const decodedPlayerStatuses = {}
+    if (data.playerStatuses) {
+      Object.entries(data.playerStatuses).forEach(([encodedPlayerName, status]) => {
+        const playerName = decodePlayerNameFromFirestore(encodedPlayerName)
+        decodedPlayerStatuses[playerName] = status
+      })
+    }
+    
     res[id] = {
       roles: data.roles || {},
       confirmed: data.confirmed || false,
       confirmedAt: data.confirmedAt || null,
       updatedAt: data.updatedAt || null,
-      playerStatuses: data.playerStatuses || {},
+      playerStatuses: decodedPlayerStatuses,
       confirmedByAllPlayers: data.confirmedByAllPlayers || false,
       // Nouveaux champs calculés par castStatusService
       status: data.status || null,
@@ -546,7 +572,8 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
     const playerStatuses = {}
     allPlayers.forEach(playerName => {
       // Préserver le statut existant ou initialiser à 'pending'
-      playerStatuses[playerName] = oldCastDoc?.playerStatuses?.[playerName] || 'pending'
+      const encodedPlayerName = encodePlayerNameForFirestore(playerName)
+      playerStatuses[encodedPlayerName] = oldCastDoc?.playerStatuses?.[encodedPlayerName] || 'pending'
     })
     
     // Calculer le statut de la composition
@@ -668,8 +695,9 @@ export async function confirmCast(eventId, seasonId) {
     const playerStatuses = currentCast.playerStatuses || {}
     const allPlayers = Object.values(currentCast.roles || {}).flat().filter(Boolean)
     allPlayers.forEach((playerName) => {
-      if (!playerStatuses[playerName]) {
-        playerStatuses[playerName] = 'pending' // En attente de confirmation
+      const encodedPlayerName = encodePlayerNameForFirestore(playerName)
+      if (!playerStatuses[encodedPlayerName]) {
+        playerStatuses[encodedPlayerName] = 'pending' // En attente de confirmation
       }
       // Ne pas écraser un statut "declined" existant
     })
@@ -712,8 +740,9 @@ export async function unconfirmCast(eventId, seasonId) {
     
     if (currentData && currentData.playerStatuses) {
       // Préserver tous les statuts existants pour garder l'historique visuel
-      Object.entries(currentData.playerStatuses).forEach(([playerName, status]) => {
-        // Garder le statut actuel (confirmed, declined, pending)
+      Object.entries(currentData.playerStatuses).forEach(([encodedPlayerName, status]) => {
+        // Décoder le nom du joueur et garder le statut actuel (confirmed, declined, pending)
+        const playerName = decodePlayerNameFromFirestore(encodedPlayerName)
         preservedPlayerStatuses[playerName] = status
       })
     }
@@ -864,8 +893,9 @@ export async function updatePlayerCastStatus(eventId, playerName, status, season
     )
     
     // Mettre à jour le statut du joueur ET l'état global de la composition
+    const encodedPlayerName = encodePlayerNameForFirestore(playerName)
     await firestoreService.updateDocument('seasons', seasonId, {
-      [`playerStatuses.${playerName}`]: status,
+      [`playerStatuses.${encodedPlayerName}`]: status,
       confirmedByAllPlayers: allPlayersConfirmed,
       // Nouveau : statut global recalculé
       status: castStatus.type,
