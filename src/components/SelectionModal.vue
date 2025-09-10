@@ -437,16 +437,9 @@ function generateSlotsForMultiRoleEvent() {
       // Récupérer les joueurs déjà composés pour ce rôle
       const selectedPlayers = props.currentSelection?.roles?.[role] || []
       
-      // Filtrer les joueurs qui ont décliné
-      const availablePlayers = selectedPlayers.filter(playerName => {
-        if (!playerName) return false
-        const status = props.currentSelection?.playerStatuses?.[playerName]
-        return status !== 'declined'
-      })
-      
-      // Créer les slots pour ce rôle
+      // Créer les slots pour ce rôle (afficher tous les joueurs, même ceux qui ont décliné)
       for (let i = 0; i < count; i++) {
-        const player = availablePlayers[i] || null
+        const player = selectedPlayers[i] || null
         slots.push({
           index: slotIndex++,
           player: player,
@@ -571,7 +564,7 @@ async function clearSlot(index) {
     slots.value[index] = null
   }
   
-    // Logger l'audit de décomposition
+  // Logger l'audit de décomposition
   if (removedPlayer) {
     try {
       const { default: AuditClient } = await import('../services/auditClient.js')
@@ -594,8 +587,46 @@ async function clearSlot(index) {
     }
   }
   
-  // Sauvegarde automatique immédiate
-  await autoSaveSelection()
+  // Sauvegarde immédiate même si la sélection est verrouillée (pour les joueurs déclinés)
+  await saveSlotChanges()
+}
+
+// Fonction pour sauvegarder les changements de slots même quand la sélection est verrouillée
+async function saveSlotChanges() {
+  if (!props.event?.id || !props.seasonId) return
+  
+  try {
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
+    
+    teamSlots.value.forEach(slot => {
+      if (slot.player) {
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.player)
+      }
+    })
+    
+    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId)
+    
+    // Mettre à jour la structure locale pour préserver le statut de confirmation
+    if (selections.value[props.event.id]) {
+      selections.value[props.event.id] = {
+        ...selections.value[props.event.id],
+        roles: roles,
+        updatedAt: new Date()
+        // Ne pas toucher à confirmed, confirmedAt, etc.
+      }
+    }
+    
+    // Feedback visuel subtil
+    console.debug('Changements de slots sauvegardés')
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde des changements de slots:', error)
+  }
 }
 
 const slotsWarning = computed(() => {
@@ -668,12 +699,16 @@ function getSelectionStatus() {
       return props.currentSelection?.playerStatuses?.[playerName] === 'declined'
     })
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
+    // Vérifier s'il y a des slots vides (basé sur teamSlots, pas sur currentSelection)
+    const hasEmptySlots = teamSlots.value.some(slot => !slot.player)
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers || hasEmptySlots) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
         hasDeclinedPlayers,
+        hasEmptySlots,
         unavailablePlayers: selectedPlayers.filter(playerName => !isPlayerAvailable(playerName)),
         declinedPlayers: selectedPlayers.filter(playerName => 
           props.currentSelection?.playerStatuses?.[playerName] === 'declined'
@@ -767,9 +802,16 @@ const hasIncompleteSelection = computed(() => {
   return hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers
 })
 
-// Computed property pour détecter s'il y a des slots vides
+// Computed property pour détecter s'il y a des slots vides (vraiment vides, pas des joueurs déclinés)
 const hasEmptySlots = computed(() => {
-  return teamSlots.value.some(slot => !slot.player)
+  // Un slot est vide seulement s'il n'y a pas de joueur assigné (null/undefined)
+  // Les joueurs déclinés sont toujours affichés dans leur slot
+  const hasEmpty = teamSlots.value.some(slot => !slot.player)
+  console.debug('🔍 hasEmptySlots check:', { 
+    teamSlots: teamSlots.value.map(s => ({ player: s.player, isEmpty: s.isEmpty })),
+    hasEmpty 
+  })
+  return hasEmpty
 })
 
 // Vérifier si des joueurs ont décliné leur participation
