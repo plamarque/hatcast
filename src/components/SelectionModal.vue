@@ -121,16 +121,15 @@
                   </select>
                 </template>
                 <button
-                  v-else-if="!isSelectionConfirmedByOrganizer"
+                  v-else
                   @click="startEditSlot(slot.index)"
                   class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
-                  title="Ajouter un {{ slot.roleLabel.toLowerCase() }}"
+                  :title="isSelectionConfirmedByOrganizer ? 'Ajouter un {{ slot.roleLabel.toLowerCase() }} (sélection verrouillée)' : 'Ajouter un {{ slot.roleLabel.toLowerCase() }}'"
                 >
                   <span class="text-lg">＋</span>
                   <span class="text-sm">{{ slot.roleLabel }}</span>
                   <span class="text-sm">{{ slot.roleEmoji }}</span>
                 </button>
-                <div v-else class="text-white/40 text-sm">Verrouillé</div>
               </div>
             </div>
           </div>
@@ -494,8 +493,8 @@ function availableOptionsForSlot(index) {
 }
 
 function startEditSlot(index) {
-  // Ne pas permettre l'édition si l'organisateur a validé la composition
-  if (props.isSelectionConfirmedByOrganizer) return
+  // Permettre l'édition des slots vides même si la sélection est verrouillée
+  // (pour complétion manuelle des slots vides)
   editingSlotIndex.value = index
 }
 
@@ -504,8 +503,8 @@ function cancelEditSlot() {
 }
 
 async function onChooseForSlot(event, index) {
-  // Ne pas permettre la modification si l'organisateur a validé la composition
-  if (props.isSelectionConfirmedByOrganizer) return
+  // Permettre la sélection dans les slots vides même si la sélection est verrouillée
+  // (pour complétion manuelle des slots vides)
   
   const playerName = event?.target?.value || ''
   if (playerName) {
@@ -556,7 +555,12 @@ async function onChooseForSlot(event, index) {
     }
     
     // Sauvegarde automatique immédiate (inclut le recalcul du statut et l'émission d'événement)
-    await autoSaveSelection()
+    if (props.isSelectionConfirmedByOrganizer) {
+      // Sauvegarde spéciale pour les slots vides dans une sélection verrouillée
+      await saveEmptySlotSelection()
+    } else {
+      await autoSaveSelection()
+    }
   }
   editingSlotIndex.value = null
 }
@@ -1140,6 +1144,44 @@ async function handleCompleteSelection() {
 
 
 
+
+// Fonction de sauvegarde spéciale pour les slots vides dans une sélection verrouillée
+async function saveEmptySlotSelection() {
+  if (!props.event?.id || !props.seasonId) return
+  
+  try {
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
+    
+    teamSlots.value.forEach(slot => {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.playerId)
+      }
+    })
+    
+    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
+    
+    // Recalculer le statut après la sauvegarde
+    try {
+      const { updateCastStatus } = await import('../services/storage.js')
+      await updateCastStatus(props.event.id, props.seasonId)
+    } catch (error) {
+      console.warn('Erreur lors du recalcul du statut:', error)
+    }
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+    
+    console.debug('Slot vide sauvegardé dans une sélection verrouillée')
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du slot vide:', error)
+  }
+}
 
 async function autoSaveSelection() {
   if (!props.event?.id || !props.seasonId) return
