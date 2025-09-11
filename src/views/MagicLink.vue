@@ -359,7 +359,7 @@ onMounted(async () => {
     // Si le joueur se déclare indisponible, le retirer de la sélection le cas échéant
     if (action === 'no') {
       try {
-        const selRef = doc(db, 'seasons', seasonId, 'selections', eventId)
+        const selRef = doc(db, 'seasons', seasonId, 'casts', eventId)
         const selSnap = await getDoc(selRef)
         if (selSnap.exists()) {
           const playersArr = Array.isArray(selSnap.data()?.players) ? selSnap.data().players : []

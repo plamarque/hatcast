@@ -452,7 +452,7 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
 
     // Mettre à jour les compositions (nouveau format par rôles)
     try {
-      const compositions = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+      const compositions = await firestoreService.getDocuments('seasons', seasonId, 'casts')
       let updatedCompositions = 0
       for (const composition of compositions) {
         const { id, ...data } = composition
@@ -470,7 +470,7 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
           
           if (hasUpdates) {
             // Mise à jour directe sans batch pour l'instant
-            await firestoreService.updateDocument('seasons', seasonId, { roles: updatedRoles }, 'selections', id)
+            await firestoreService.updateDocument('seasons', seasonId, { roles: updatedRoles }, 'casts', id)
             updatedCompositions++
           }
         }
@@ -508,7 +508,7 @@ export async function loadAvailability(players, events, seasonId) {
 }
 
 export async function loadCasts(seasonId) {
-  const compositionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'selections')
+  const compositionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'casts')
   const res = {}
   
   compositionsDocs.forEach(doc => {
@@ -607,7 +607,7 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
 export async function saveCast(eventId, roles, seasonId, options = {}) {
   try {
     // Récupérer l'ancienne composition pour comparer
-    const oldCastDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    const oldCastDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
     
     // Extraire tous les joueurs de tous les rôles
     const allPlayers = Object.values(roles).flat().filter(Boolean)
@@ -672,7 +672,7 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
       
       updatedAt: new Date()
     }
-    await firestoreService.setDocument('seasons', seasonId, castData, false, 'selections', eventId)
+    await firestoreService.setDocument('seasons', seasonId, castData, false, 'casts', eventId)
     
     // Gérer les rappels automatiques
     try {
@@ -760,7 +760,7 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
 export async function confirmCast(eventId, seasonId) {
   try {
     // Récupérer la composition actuelle pour initialiser les statuts des joueurs
-    const currentCast = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId) || { roles: {} }
+    const currentCast = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId) || { roles: {} }
     
     // Initialiser les statuts individuels des joueurs si pas encore fait
     // Préserver les statuts "declined" existants
@@ -793,7 +793,7 @@ export async function confirmCast(eventId, seasonId) {
       // Nouveau : statut calculé automatiquement
       status: status.type,
       statusDetails: status
-    }, 'selections', eventId)
+    }, 'casts', eventId)
   } catch (error) {
     logger.error('❌ Erreur dans confirmCast:', error)
     throw error
@@ -822,7 +822,7 @@ export async function unconfirmCast(eventId, seasonId) {
       confirmedAt: null,
       playerStatuses: preservedPlayerStatuses, // Préserver tous les statuts
       confirmedByAllPlayers: false
-    }, 'selections', eventId)
+    }, 'casts', eventId)
   } catch (error) {
     logger.error('❌ Erreur dans unconfirmCast:', error)
     throw error
@@ -839,7 +839,7 @@ export async function deleteCast(eventId, seasonId) {
   
   try {
     // Supprimer complètement le document de composition
-    await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
+    await firestoreService.deleteDocument('seasons', seasonId, 'casts', eventId)
     
     logger.info('✅ Composition supprimée avec succès')
   } catch (error) {
@@ -858,7 +858,7 @@ export async function deleteEvent(eventId, seasonId) {
     
     // Supprimer la composition associée
     logger.debug('Suppression de la composition associée')
-    await firestoreService.deleteDocument('seasons', seasonId, 'selections', eventId)
+    await firestoreService.deleteDocument('seasons', seasonId, 'casts', eventId)
     
     // Supprimer les disponibilités pour cet événement
     logger.debug('Suppression des disponibilités')
@@ -928,7 +928,7 @@ export async function updatePlayerCastStatus(eventId, playerId, status, seasonId
   
   try {
     // Récupérer la composition actuelle pour vérifier l'état global
-    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
     if (!castDoc) {
       throw new Error('Composition non trouvée')
     }
@@ -978,7 +978,7 @@ export async function updatePlayerCastStatus(eventId, playerId, status, seasonId
         availableCount: castStatus.availableCount,
         requiredCount: castStatus.requiredCount
       }
-    }, 'selections', eventId)
+    }, 'casts', eventId)
     
     return { confirmedByAllPlayers: allPlayersConfirmed }
   } catch (error) {
@@ -995,7 +995,7 @@ export async function updatePlayerCastStatus(eventId, playerId, status, seasonId
  */
 export async function isAllPlayersConfirmed(eventId, seasonId) {
   try {
-    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
     if (!castDoc) {
       return false
     }

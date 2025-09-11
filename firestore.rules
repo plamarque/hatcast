@@ -50,8 +50,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
     
-    // Collection des sélections - Lecture et écriture publiques
+    // Collection des sélections - Lecture et écriture publiques (ancienne structure)
     match /seasons/{seasonId}/selections/{eventId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des casts - Lecture et écriture publiques (nouvelle structure)
+    match /seasons/{seasonId}/casts/{eventId} {
       allow read, write: if true;
     }
     

@@ -1269,7 +1269,7 @@
     :key="selectionModalKey"
     :show="showSelectionModal"
     :event="selectionModalEvent"
-    :current-selection="selections[selectionModalEvent?.id] || []"
+    :current-selection="casts[selectionModalEvent?.id] || []"
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
     :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
@@ -2859,7 +2859,7 @@ async function confirmDeleteEvent(eventId) {
 
 async function handleResetEventSelection(eventId) {
   // Vérifier s'il y a une composition existante
-  if (!selections.value[eventId]) {
+  if (!casts.value[eventId]) {
     showSuccessMessage.value = true
     successMessage.value = 'Aucune composition à réinitialiser pour cet événement'
     setTimeout(() => {
@@ -2896,7 +2896,7 @@ async function deleteEventConfirmed(eventId = null) {
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
-      selections.value = newSelections
+      casts.value = newSelections
     })
     
     // Fermer la modal de confirmation
@@ -3071,7 +3071,7 @@ async function handleEditEvent(eventData) {
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
       availability.value = newAvailability
-      selections.value = newSelections
+      casts.value = newSelections
       
       // Mettre à jour selectedEvent avec les nouvelles données si la modale de détails est ouverte
       if (selectedEvent.value) {
@@ -3133,7 +3133,7 @@ async function confirmDeletePlayer(playerId) {
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
       availability.value = newAvailability
-      selections.value = newSelections
+      casts.value = newSelections
       
       // Recharger l'état de protection des joueurs
       loadProtectedPlayers()
@@ -3214,7 +3214,7 @@ async function addNewPlayer() {
     // Mettre à jour les données
     players.value = newPlayers
     availability.value = newAvailabilityData
-    selections.value = newSelections
+    casts.value = newSelections
       
     // Recharger l'état de protection des joueurs
     loadProtectedPlayers()
@@ -3551,7 +3551,7 @@ async function openNewEventForm() {
 const events = ref([])
 const players = ref([])
 const availability = ref({})
-const selections = ref({})
+const casts = ref({})
 const stats = ref({})
 const chances = ref({})
 
@@ -3644,10 +3644,10 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des compositions'
       loadingProgress.value = 80
       try {
-        selections.value = await loadCasts(seasonId.value)
+        casts.value = await loadCasts(seasonId.value)
       } catch (error) {
-        logger.debug('🔍 Collection selections non trouvée ou vide (normal pour une nouvelle saison)')
-        selections.value = {}
+        logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
+        casts.value = {}
       }
 
       // Étape 5: protections
@@ -3771,7 +3771,7 @@ onMounted(async () => {
     // Forcer le rechargement des compositions pour cet événement
     await loadCasts(seasonId.value)
     // Mettre à jour les compositions locales
-    selections.value = await loadCasts(seasonId.value)
+    casts.value = await loadCasts(seasonId.value)
     console.debug('✅ Compositions rechargées après magic link')
     // Nettoyer l'URL
     router.replace({ query: { ...route.query, a: undefined, eid: undefined } })
@@ -4188,7 +4188,7 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
     // Recharger les compositions depuis la base pour avoir les données à jour avec le statut recalculé
     const { loadCasts } = await import('../services/storage.js')
     const updatedSelections = await loadCasts(seasonId)
-    selections.value = updatedSelections
+    casts.value = updatedSelections
     
     // Afficher un message de succès avec l'état global
     let successMessageText = `Statut de ${playerName} mis à jour : ${getStatusDisplayText(newStatus)}`
@@ -4231,7 +4231,7 @@ function getStatusDisplayText(status) {
 
 // Fonction helper pour récupérer les joueurs qui ont décliné
 function getDeclinedPlayers(eventId) {
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   if (!selection || !selection.playerStatuses) return []
   
   return Object.entries(selection.playerStatuses)
@@ -4310,7 +4310,7 @@ function getAvailabilityData(player, eventId) {
   
   // Vérifier s'il y a une sélection ET si elle est validée par l'organisateur
   const selectionRole = getPlayerSelectionRole(player, eventId)
-  const cast = selections.value[eventId]
+  const cast = casts.value[eventId]
   const isSelectionValidated = cast ? isSelectionConfirmedByOrganizer(eventId) : false
   
   if (selectionRole && isSelectionValidated) {
@@ -4342,7 +4342,7 @@ function getAvailabilityData(player, eventId) {
 }
 
 function isSelected(player, eventId) {
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   if (!selection || !selection.roles) {
     return false
   }
@@ -4377,7 +4377,7 @@ async function drawMultiRoles(eventId) {
   logger.debug('📅 Événement trouvé:', { eventTitle: event.title, roles })
   
   // Récupérer la composition actuelle
-  const currentSelection = selections.value[eventId]
+  const currentSelection = casts.value[eventId]
   logger.debug('👥 Composition actuelle:', currentSelection)
   
   // Nouvelle structure de composition par rôle
@@ -4432,7 +4432,7 @@ async function drawMultiRoles(eventId) {
   
   // Sauvegarder la nouvelle composition
   const allPlayers = Object.values(newSelections).flat().filter(Boolean)
-  selections.value[eventId] = {
+  casts.value[eventId] = {
     // Ancien format (rétrocompatible)
     players: allPlayers,
     
@@ -4444,7 +4444,7 @@ async function drawMultiRoles(eventId) {
     updatedAt: new Date()
   }
   
-  logger.debug('💾 Nouvelle composition sauvegardée:', selections.value[eventId])
+  logger.debug('💾 Nouvelle composition sauvegardée:', casts.value[eventId])
   logger.debug('👥 Nombre total de joueurs:', allPlayers.length)
   logger.debug('🎭 Rôles et joueurs:', newSelections)
   
@@ -4464,7 +4464,7 @@ async function completeCastSlots(eventId) {
     throw new Error('Événement non trouvé')
   }
   
-  const currentSelection = selections.value[eventId]
+  const currentSelection = casts.value[eventId]
   if (!currentSelection) {
     throw new Error('Aucune composition trouvée')
   }
@@ -4555,7 +4555,7 @@ async function completeCastSlots(eventId) {
   // Recharger depuis la base pour avoir les données à jour
   const { loadCasts } = await import('../services/storage.js')
   const updatedSelections = await loadCasts(seasonId.value)
-  selections.value = updatedSelections
+  casts.value = updatedSelections
   
   updateAllStats()
   updateAllChances()
@@ -4774,7 +4774,7 @@ function formatDateFull(dateValue) {
 }
 
 function countSelections(player) {
-  return Object.keys(selections.value).filter(eventId => {
+  return Object.keys(casts.value).filter(eventId => {
     const players = getSelectionPlayers(eventId)
     return players.includes(player)
   }).length
@@ -5437,19 +5437,19 @@ async function executePendingOperation(operation) {
           await saveCast(eventId, roles, seasonId.value)
           
           // Mettre à jour la structure locale (avec protection)
-          if (selections.value && selections.value[eventId]) {
-            if (typeof selections.value[eventId] === 'object' && selections.value[eventId].players) {
+          if (casts.value && casts.value[eventId]) {
+            if (typeof casts.value[eventId] === 'object' && casts.value[eventId].players) {
               // Utiliser nextTick pour éviter les problèmes de démontage
               await nextTick()
-              if (selections.value && selections.value[eventId]) {
-                selections.value[eventId].players = nextSelection
-                selections.value[eventId].updatedAt = new Date()
+              if (casts.value && casts.value[eventId]) {
+                casts.value[eventId].players = nextSelection
+                casts.value[eventId].updatedAt = new Date()
               }
             } else {
               // Migration de l'ancienne structure
               await nextTick()
-              if (selections.value) {
-                selections.value[eventId] = {
+              if (casts.value) {
+                casts.value[eventId] = {
                   players: nextSelection,
                   confirmed: false,
                   confirmedAt: null,
@@ -5459,8 +5459,8 @@ async function executePendingOperation(operation) {
             }
           } else {
             await nextTick()
-            if (selections.value) {
-              selections.value[eventId] = {
+            if (casts.value) {
+              casts.value[eventId] = {
                 players: nextSelection,
                 confirmed: false,
                 confirmedAt: null,
@@ -5500,7 +5500,7 @@ async function executePendingOperation(operation) {
             
             // Recharger les compositions depuis Firestore pour avoir les données à jour
             const newSelections = await loadCasts(seasonId.value)
-            selections.value = newSelections
+            casts.value = newSelections
             
             showSuccessMessage.value = true
             successMessage.value = 'Composition déverrouillée !'
@@ -5542,7 +5542,7 @@ async function executePendingOperation(operation) {
             
             // Recharger les compositions depuis Firestore pour avoir les données à jour
             const newSelections = await loadCasts(seasonId.value)
-            selections.value = newSelections
+            casts.value = newSelections
             
             showSuccessMessage.value = true
             successMessage.value = 'Composition réinitialisée ! Le statut est maintenant "Nouveau"'
@@ -5637,7 +5637,7 @@ async function showEventDetails(event) {
       loadCasts(seasonId.value)
     ])
     availability.value = newAvailability
-    selections.value = newSelections
+    casts.value = newSelections
   } catch (e) {
     console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
   }
@@ -5773,7 +5773,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
 
 // Fonction pour vérifier si un joueur est compositionné pour un événement spécifique
 function isPlayerSelected(playerName, eventId) {
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   if (!selection || !selection.roles) {
     return false
   }
@@ -5933,7 +5933,7 @@ async function handlePlayerUpdate({ playerId, newName, newGender }) {
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers;
       availability.value = newAvailability;
-      selections.value = newSelections;
+      casts.value = newSelections;
       
       // Recharger l'état de protection des joueurs
       loadProtectedPlayers()
@@ -5979,7 +5979,7 @@ async function handlePlayerRefresh() {
     
     players.value = newPlayers;
     availability.value = newAvailability;
-    selections.value = newSelections;
+    casts.value = newSelections;
     
     // Recharger l'état de protection des joueurs
     loadProtectedPlayers()
@@ -6077,7 +6077,7 @@ function getEventStatus(eventId) {
   }
   
   // Priorité : utiliser le statut calculé stocké en base (comme SelectionModal.vue)
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   if (selection?.status && selection?.statusDetails) {
     return {
       type: selection.status,
@@ -6095,7 +6095,7 @@ function getEventStatus(eventId) {
     const hasInsufficientPlayers = availableCount < requiredCount
     
     // Vérifier si des joueurs sélectionnés ont décliné
-    const selection = selections.value[eventId]
+    const selection = casts.value[eventId]
     const hasDeclinedPlayers = selectedPlayers.some(playerName => {
       return selection?.playerStatuses?.[playerName] === 'declined'
     })
@@ -6452,7 +6452,7 @@ function getPlayerSelectedRoleChances(playerName, eventId) {
 
 // Fonction helper pour extraire les joueurs d'une composition
 function getSelectionPlayers(eventId) {
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   
   if (!selection) {
     return []
@@ -6486,7 +6486,7 @@ function getSelectionPlayers(eventId) {
 
 // Fonction helper pour vérifier si une composition est confirmée
 function isSelectionConfirmed(eventId) {
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   if (!selection) return false
   
   // Si c'est la nouvelle structure avec confirmedByAllPlayers
@@ -6510,7 +6510,7 @@ function isSelectionConfirmed(eventId) {
 
 // Fonction helper pour vérifier si l'organisateur a confirmé la composition (sans vérifier les confirmations individuelles)
 function isSelectionConfirmedByOrganizer(eventId) {
-  const selection = selections.value[eventId]
+  const selection = casts.value[eventId]
   if (!selection) return false
   
   // Si c'est la nouvelle structure avec confirmed
@@ -6524,13 +6524,13 @@ function isSelectionConfirmedByOrganizer(eventId) {
 
 // Fonction helper pour obtenir le statut individuel d'un joueur dans une composition
 function getPlayerSelectionStatus(playerName, eventId) {
-  const cast = selections.value[eventId]
+  const cast = casts.value[eventId]
   return getPlayerCastStatus(cast, playerName, players.value)
 }
 
 // Fonction helper pour obtenir le rôle de composition d'un joueur
 function getPlayerSelectionRole(playerName, eventId) {
-  const cast = selections.value[eventId]
+  const cast = casts.value[eventId]
   return getPlayerCastRole(cast, playerName, players.value)
 }
 
@@ -6642,7 +6642,7 @@ async function handleConfirmSelectionFromModal() {
     // Recharger les compositions depuis la base pour avoir les données à jour
     const { loadCasts } = await import('../services/storage.js')
     const updatedSelections = await loadCasts(seasonId.value)
-    selections.value = updatedSelections
+    casts.value = updatedSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
     await loadAvailability(players.value, events.value, seasonId.value)
@@ -6691,7 +6691,7 @@ async function handleResetSelectionFromModal() {
   try {
     const { loadCasts } = await import('../services/storage.js')
     const newSelections = await loadCasts(seasonId.value)
-    selections.value = newSelections
+    casts.value = newSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
     await loadAvailability(players.value, events.value, seasonId.value)
@@ -6723,7 +6723,7 @@ async function handleUpdateCastFromModal() {
   try {
     const { loadCasts } = await import('../services/storage.js')
     const updatedSelections = await loadCasts(seasonId.value)
-    selections.value = updatedSelections
+    casts.value = updatedSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
     await loadAvailability(players.value, events.value, seasonId.value)
