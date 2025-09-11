@@ -20,27 +20,42 @@ async function generateUserFocusedChangelog(technicalJson, version) {
 
     const date = technicalData.date || new Date().toISOString().split('T')[0];
 
-    const prompt = `Je vais te donner un JSON technique de changelog en anglais et je veux que tu le transformes en JSON français orienté utilisateur en suivant ces guidelines :
+    const prompt = `Je vais te donner un JSON technique de changelog en anglais et je veux que tu le transformes en JSON français avec un style très orienté utilisateur et bénéfice concret.
 
-GUIDELINES POUR LA TRANSFORMATION :
-1. **Orientation utilisateur** : Focus sur la valeur utilisateur, pas les détails techniques
-2. **Langage accessible** : Éviter le jargon technique (PWA → appli mobile, z-index → superposition, etc.)
-3. **Termes spécialisés** : Conserver les termes de l'impro (Long Form, MC, DJ, etc.)
-4. **Langage inclusif** : Utiliser féminin/masculin et inclusif
-5. **Filtrage automatique** : IGNORER complètement les commits de debug, cleanup, test, et autres changements techniques internes
-6. **Synthèse** : Tu peux supprimer des lignes non pertinentes et regrouper des changements similaires
-7. **Reformulation** : Reformuler en français pour que ce soit accessible aux utilisateurs finaux
-8. **Emojis** : Conserver ✨ 🐛 🔧 📝 🎨
-9. **Structure** : Respecter exactement la structure JSON fournie
+STYLE ET TON À ADOPTER :
+- **Ton personnel et direct** : Utiliser "tu", "nous", "on" - parler directement à l'utilisateur
+- **Focus bénéfice** : Décrire ce que l'utilisateur peut faire maintenant, pas ce qui a été développé
+- **Langage simple** : Éviter le jargon technique, utiliser des mots du quotidien
+- **Ton décontracté** : Un peu d'humour et de personnalité (😅, 🤖, etc.)
+- **Concret et pratique** : Expliquer l'impact réel sur l'expérience utilisateur
+
+EXEMPLES DE TRANSFORMATION :
+❌ "Ajout d'une fonctionnalité pour permettre le remplissage manuel des emplacements"
+✅ "Tu peux désormais remplir manuellement les emplacements même quand la compo est verrouillée"
+
+❌ "Amélioration de la gestion des types de modèles et protection de la personnalisation"
+✅ "Tes modèles d'événements sont maintenant mieux protégés contre les modifications accidentelles"
+
+❌ "Mise en place d'un système d'audit complet"
+✅ "On garde désormais un journal de tous les changements de compositions"
+
+RÈGLES SPÉCIFIQUES :
+1. **Orientation bénéfice** : Toujours expliquer ce que l'utilisateur gagne
+2. **Termes impro** : Garder Long Form, MC, DJ, compo, etc.
+3. **Langage inclusif** : Utiliser féminin/masculin et inclusif
+4. **Filtrage** : IGNORER les commits de debug, cleanup, test, techniques internes
+5. **Regroupement** : Fusionner les changements similaires
+6. **Emojis** : Conserver ✨ 🐛 🔧 📝 🎨
+7. **Structure** : Respecter exactement la structure JSON
 
 STRUCTURE JSON À RESPECTER :
 {
   "version": "${version}",
   "date": "${date}",
   "changes": [
-    "✨ Description de la nouvelle fonctionnalité",
-    "🐛 Description de la correction de bug",
-    "🔧 Description de l'amélioration"
+    "✨ Bénéfice utilisateur concret",
+    "🐛 Problème résolu pour l'utilisateur",
+    "🔧 Amélioration de l'expérience"
   ]
 }
 
