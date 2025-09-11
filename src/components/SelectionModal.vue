@@ -301,13 +301,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
+import { getPlayerCastStatus } from '../services/castService.js'
 
 const props = defineProps({
   show: {
@@ -414,15 +415,20 @@ function generateSlotsForLegacyEvent() {
   }
   
   const len = requiredCount.value
-  return Array.from({ length: len }, (_, i) => ({
-    index: i,
-    player: filled[i] || null,
-    role: 'player',
-    roleEmoji: '🎭',
-    roleLabel: 'Comédien',
-    isEmpty: !filled[i],
-    isLegacy: true
-  }))
+  return Array.from({ length: len }, (_, i) => {
+    const playerId = filled[i] || null
+    const playerName = playerId ? getPlayerNameFromId(playerId) : null
+    return {
+      index: i,
+      player: playerName, // Afficher le nom du joueur, pas l'ID
+      playerId: playerId, // Garder l'ID pour les opérations internes
+      role: 'player',
+      roleEmoji: '🎭',
+      roleLabel: 'Comédien',
+      isEmpty: !playerName,
+      isLegacy: true
+    }
+  })
 }
 
 function generateSlotsForMultiRoleEvent() {
@@ -439,14 +445,16 @@ function generateSlotsForMultiRoleEvent() {
       
       // Créer les slots pour ce rôle (afficher tous les joueurs, même ceux qui ont décliné)
       for (let i = 0; i < count; i++) {
-        const player = selectedPlayers[i] || null
+        const playerId = selectedPlayers[i] || null
+        const playerName = playerId ? getPlayerNameFromId(playerId) : null
         slots.push({
           index: slotIndex++,
-          player: player,
+          player: playerName, // Afficher le nom du joueur, pas l'ID
+          playerId: playerId, // Garder l'ID pour les opérations internes
           role: role,
           roleEmoji: ROLE_EMOJIS[role],
           roleLabel: ROLE_LABELS_SINGULAR[role],
-          isEmpty: !player,
+          isEmpty: !playerName,
           isLegacy: false
         })
       }
@@ -499,19 +507,31 @@ async function onChooseForSlot(event, index) {
   // Ne pas permettre la modification si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
   
-  const value = event?.target?.value || ''
-  if (value) {
+  const playerName = event?.target?.value || ''
+  if (playerName) {
     const currentSlot = teamSlots.value.find(s => s.index === index)
     const previousValue = currentSlot?.player || null
     
-    // Mettre à jour le slot dans teamSlots
-    if (currentSlot) {
-      currentSlot.player = value
+    // Convertir le nom en ID pour la sauvegarde
+    const playerId = getPlayerIdFromName(playerName)
+    if (!playerId) {
+      console.error('ID de joueur non trouvé pour:', playerName)
+      return
     }
     
-    // Mettre à jour aussi l'ancien système de slots pour la compatibilité
-    if (slots.value[index] !== undefined) {
-      slots.value[index] = value
+    // Mettre à jour le slot dans teamSlots (afficher le nom, sauvegarder l'ID)
+    if (currentSlot) {
+      currentSlot.player = playerName // Affichage
+      currentSlot.playerId = playerId // Sauvegarde
+    }
+    
+    // Mettre à jour aussi l'ancien système de slots pour la compatibilité (avec protection)
+    if (slots.value && slots.value[index] !== undefined) {
+      // Utiliser nextTick pour éviter les problèmes de démontage
+      await nextTick()
+      if (slots.value && slots.value[index] !== undefined) {
+        slots.value[index] = playerId // Sauvegarder l'ID
+      }
     }
     
     // Logger l'audit de recomposition
@@ -535,7 +555,7 @@ async function onChooseForSlot(event, index) {
       console.warn('Erreur audit onChooseForSlot:', auditError)
     }
     
-    // Sauvegarde automatique immédiate
+    // Sauvegarde automatique immédiate (inclut le recalcul du statut et l'émission d'événement)
     await autoSaveSelection()
   }
   editingSlotIndex.value = null
@@ -557,12 +577,17 @@ async function clearSlot(index) {
   // Vider le slot dans teamSlots
   if (currentSlot) {
     currentSlot.player = null
+    currentSlot.playerId = null  // Vider aussi l'ID
     currentSlot.isEmpty = true
   }
   
-  // Vider aussi dans l'ancien système pour la compatibilité
-  if (slots.value[index] !== undefined) {
-    slots.value[index] = null
+  // Vider aussi dans l'ancien système pour la compatibilité (avec protection)
+  if (slots.value && slots.value[index] !== undefined) {
+    // Utiliser nextTick pour éviter les problèmes de démontage
+    await nextTick()
+    if (slots.value && slots.value[index] !== undefined) {
+      slots.value[index] = null
+    }
   }
   
   // Logger l'audit de suppression manuelle
@@ -601,6 +626,17 @@ async function clearSlot(index) {
   
   // Sauvegarde immédiate même si la sélection est verrouillée (pour les joueurs déclinés)
   await saveSlotChanges()
+  
+  // Recalculer le statut après la sauvegarde
+  try {
+    const { updateCastStatus } = await import('../services/storage.js')
+    await updateCastStatus(props.event.id, props.seasonId)
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+  } catch (error) {
+    console.warn('Erreur lors du recalcul du statut:', error)
+  }
 }
 
 // Fonction pour sauvegarder les changements de slots même quand la sélection est verrouillée
@@ -614,11 +650,11 @@ async function saveSlotChanges() {
     const roles = {}
     
     teamSlots.value.forEach(slot => {
-      if (slot.player) {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
         if (!roles[slot.role]) {
           roles[slot.role] = []
         }
-        roles[slot.role].push(slot.player)
+        roles[slot.role].push(slot.playerId)
       }
     })
     
@@ -860,12 +896,7 @@ const selectionIncompleteReason = computed(() => {
 
 // Fonction helper pour récupérer le statut de confirmation d'un joueur
 function getPlayerSelectionStatus(playerName) {
-  // Si currentSelection est un objet avec playerStatuses (nouvelle structure)
-  if (props.currentSelection && typeof props.currentSelection === 'object' && !Array.isArray(props.currentSelection) && props.currentSelection.playerStatuses) {
-    return props.currentSelection.playerStatuses[playerName] || 'pending'
-  }
-  // Si currentSelection est un tableau simple (ancienne structure) ou pas de playerStatuses
-  return 'pending'
+  return getPlayerCastStatus(props.currentSelection, playerName, props.players)
 }
 
 // Fonction helper pour générer le tooltip d'un slot de joueur
@@ -1114,16 +1145,27 @@ async function autoSaveSelection() {
     const roles = {}
     
     teamSlots.value.forEach(slot => {
-      if (slot.player) {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
         if (!roles[slot.role]) {
           roles[slot.role] = []
         }
-        roles[slot.role].push(slot.player)
+        roles[slot.role].push(slot.playerId)
       }
     })
     
     // Sauvegarde avec la nouvelle structure par rôle
     await saveCast(props.event.id, roles, props.seasonId)
+    
+    // Recalculer le statut après la sauvegarde
+    try {
+      const { updateCastStatus } = await import('../services/storage.js')
+      await updateCastStatus(props.event.id, props.seasonId)
+    } catch (error) {
+      console.warn('Erreur lors du recalcul du statut:', error)
+    }
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
     
     // Feedback visuel subtil (optionnel)
     console.debug('Composition sauvegardée automatiquement avec structure par rôle')
@@ -1158,21 +1200,33 @@ function getSelectedPlayersArray() {
   if (!props.currentSelection) return []
   
   if (Array.isArray(props.currentSelection)) {
-    // Ancienne structure (array direct)
-    return props.currentSelection
+    // Ancienne structure (array direct) - peut contenir des IDs ou des noms
+    return props.currentSelection.map(item => {
+      // Si c'est un ID, le convertir en nom
+      const player = props.players?.find(p => p.id === item)
+      return player ? player.name : item
+    })
   } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
-    // Nouvelle structure avec players
-    return props.currentSelection.players
+    // Nouvelle structure avec players - peut contenir des IDs ou des noms
+    return props.currentSelection.players.map(item => {
+      // Si c'est un ID, le convertir en nom
+      const player = props.players?.find(p => p.id === item)
+      return player ? player.name : item
+    })
   } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
     // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
-    const allPlayers = []
+    const allPlayerIds = []
     for (const rolePlayers of Object.values(props.currentSelection.roles)) {
       if (Array.isArray(rolePlayers)) {
-        allPlayers.push(...rolePlayers)
+        allPlayerIds.push(...rolePlayers)
       }
     }
-    // Retourner un tableau unique (sans doublons)
-    return [...new Set(allPlayers)]
+    // Convertir les IDs en noms pour l'affichage
+    const allPlayerNames = [...new Set(allPlayerIds)].map(playerId => {
+      return getPlayerNameFromId(playerId)
+    }).filter(Boolean) // Filtrer les noms non trouvés
+    
+    return allPlayerNames
   }
   
   return []
@@ -1199,6 +1253,12 @@ function getPlayerIdFromName(playerName) {
   if (!playerName || !props.players) return null
   const player = props.players.find(p => p.name === playerName)
   return player?.id || null
+}
+
+function getPlayerNameFromId(playerId) {
+  if (!playerId || !props.players) return null
+  const player = props.players.find(p => p.id === playerId)
+  return player?.name || playerId // Fallback sur l'ID si nom non trouvé
 }
 
 // Fonctions pour l'invitation à la composition

@@ -18,13 +18,13 @@
   >
     <div class="flex flex-col items-center justify-center">
       <!-- Texte du statut -->
-      <span v-if="isSelected && isAvailable === true && playerSelectionStatus === 'confirmed'" class="text-center">
+      <span v-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'confirmed'" class="text-center">
         {{ getConfirmedRoleLabel() }}
       </span>
-      <span v-else-if="isSelected && isAvailable === true && playerSelectionStatus === 'pending'" class="text-center">
+      <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'pending'" class="text-center">
         À confirmer
       </span>
-      <span v-else-if="isSelected && isAvailable === true && playerSelectionStatus === 'declined'" class="text-center">
+      <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'declined'" class="text-center">
         Décliné
       </span>
       <span v-else-if="isAvailable === true" class="text-center">
@@ -131,6 +131,7 @@
           Debug: {{ JSON.stringify(props.availabilityData) }}
         </div>
       </template>
+      
     </div>
   </div>
 </template>
@@ -215,6 +216,8 @@ const props = defineProps({
     default: 'non-specified'
   }
 })
+
+// Debug logs removed for cleaner console output
 
 const emit = defineEmits(['toggle', 'toggleSelectionStatus', 'show-availability-modal'])
 
