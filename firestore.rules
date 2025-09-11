@@ -31,11 +31,16 @@ service cloud.firestore {
     }
     
     // Collection des joueurs - Lecture et écriture publiques
-    match /seasons/{seasonId}/players/{playerName} {
+    match /seasons/{seasonId}/players/{playerId} {
       allow read, write: if true;
     }
     
-    // Collection des disponibilités - Lecture et écriture publiques
+    // Collection des disponibilités - Lecture et écriture publiques (nouvelle structure)
+    match /seasons/{seasonId}/players/{playerId}/availability/{eventId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des disponibilités - Lecture et écriture publiques (ancienne structure)
     match /seasons/{seasonId}/availability/{playerName} {
       allow read, write: if true;
     }
@@ -45,8 +50,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
     
-    // Collection des sélections - Lecture et écriture publiques
+    // Collection des sélections - Lecture et écriture publiques (ancienne structure)
     match /seasons/{seasonId}/selections/{eventId} {
+      allow read, write: if true;
+    }
+    
+    // Collection des casts - Lecture et écriture publiques (nouvelle structure)
+    match /seasons/{seasonId}/casts/{eventId} {
       allow read, write: if true;
     }
     
@@ -74,7 +84,7 @@ service cloud.firestore {
     
     // Collection des liens magiques pour comptes - Lecture et écriture publiques
     match /accountMagicLinks/{docId} {
-      allow relorad, write: if true;
+      allow read, write: if true;
     }
     
     // Collection des emails - Lecture et écriture publiques
@@ -92,18 +102,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
     
-    // Collection des préférences utilisateur (déjà définie plus haut, mais ajoutons ici pour clarté)
-    match /userPreferences/{docId} {
-      allow read, write: if true;
-    }
-    
     // Collection des associations joueur-email
     match /playerAssociations/{docId} {
       allow read, write: if true;
     }
     
-    // Collection des protections de joueurs (déjà définie plus haut, mais ajoutons ici pour clarté)
-    match /playerProtection/{docId} {
+    // Collection des rappels - Lecture et écriture publiques
+    match /reminderQueue/{docId} {
       allow read, write: if true;
     }
     
@@ -114,12 +119,6 @@ service cloud.firestore {
     
     // Par défaut, refuser l'accès
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Collection des rappels automatiques
-    match /reminderQueue/{reminderId} {
-      // Seules les Cloud Functions peuvent lire/écrire
       allow read, write: if false;
     }
     

@@ -62,17 +62,17 @@
                     'bg-gradient-to-r',
                     // Statuts de confirmation individuelle (priorité sur la disponibilité)
                     getPlayerSelectionStatus(slot.player) === 'declined'
-                      ? 'from-red-500/20 to-orange-500/20 border-red-500/30'
+                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
                       : getPlayerSelectionStatus(slot.player) === 'confirmed'
-                        ? 'from-purple-500/20 to-pink-500/20 border-purple-500/30'
+                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
                         : getPlayerSelectionStatus(slot.player) === 'pending'
-                          ? 'from-orange-500/20 to-yellow-500/20 border-orange-500/30'
+                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
                           // Statuts de disponibilité classique (seulement si pas de statut individuel)
                           : isPlayerUnavailable(slot.player)
-                            ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+                            ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
                             : (!isPlayerAvailable(slot.player)
-                                ? 'from-red-500/20 to-red-600/20 border-red-500/30'
-                                : 'from-green-500/20 to-emerald-500/20 border-green-500/30')
+                                ? 'from-red-500/60 to-red-600/60 border-red-500/30'
+                                : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
                   ]
                 : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
             >
@@ -98,7 +98,7 @@
                   </div>
                 </div>
                 <button
-                  v-if="!isSelectionConfirmedByOrganizer"
+                  v-if="!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player)"
                   @click="clearSlot(slot.index)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer cette personne"
@@ -121,16 +121,15 @@
                   </select>
                 </template>
                 <button
-                  v-else-if="!isSelectionConfirmedByOrganizer"
+                  v-else
                   @click="startEditSlot(slot.index)"
                   class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
-                  title="Ajouter un {{ slot.roleLabel.toLowerCase() }}"
+                  :title="isSelectionConfirmedByOrganizer ? 'Ajouter un {{ slot.roleLabel.toLowerCase() }} (sélection verrouillée)' : 'Ajouter un {{ slot.roleLabel.toLowerCase() }}'"
                 >
                   <span class="text-lg">＋</span>
                   <span class="text-sm">{{ slot.roleLabel }}</span>
                   <span class="text-sm">{{ slot.roleEmoji }}</span>
                 </button>
-                <div v-else class="text-white/40 text-sm">Verrouillé</div>
               </div>
             </div>
           </div>
@@ -140,7 +139,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Composition temporaire verrouillée :</strong> Les personnes composées doivent confirmer leur participation. La composition sera définitivement confirmée une fois que toutes auront validé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
+            <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitivement confirmée lorsque tout le monde aura confirmé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
           </div>
         </div>
 
@@ -148,7 +147,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-orange-200 text-sm">
             <span>⚠️</span>
-            <span><strong>Composition incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur Déverrouiller pour relancer la composition et remplacer les personnes manquantes.</span>
+            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
           </div>
         </div>
 
@@ -197,6 +196,16 @@
           :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
         >
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
+        </button>
+
+        <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides) -->
+        <button 
+          v-if="isSelectionConfirmedByOrganizer && hasEmptySlots" 
+          @click="handleCompleteSelection" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
+          title="Compléter les slots vides avec des joueurs disponibles"
+        >
+          🔧 <span class="hidden sm:inline">Compléter</span><span class="sm:hidden">Compléter</span>
         </button>
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé) -->
@@ -291,13 +300,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
+import { getPlayerCastStatus } from '../services/castService.js'
 
 const props = defineProps({
   show: {
@@ -355,7 +365,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateSelection', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'complete-selection'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -404,15 +414,20 @@ function generateSlotsForLegacyEvent() {
   }
   
   const len = requiredCount.value
-  return Array.from({ length: len }, (_, i) => ({
-    index: i,
-    player: filled[i] || null,
-    role: 'player',
-    roleEmoji: '🎭',
-    roleLabel: 'Comédien',
-    isEmpty: !filled[i],
-    isLegacy: true
-  }))
+  return Array.from({ length: len }, (_, i) => {
+    const playerId = filled[i] || null
+    const playerName = playerId ? getPlayerNameFromId(playerId) : null
+    return {
+      index: i,
+      player: playerName, // Afficher le nom du joueur, pas l'ID
+      playerId: playerId, // Garder l'ID pour les opérations internes
+      role: 'player',
+      roleEmoji: '🎭',
+      roleLabel: 'Comédien',
+      isEmpty: !playerName,
+      isLegacy: true
+    }
+  })
 }
 
 function generateSlotsForMultiRoleEvent() {
@@ -427,16 +442,18 @@ function generateSlotsForMultiRoleEvent() {
       // Récupérer les joueurs déjà composés pour ce rôle
       const selectedPlayers = props.currentSelection?.roles?.[role] || []
       
-      // Créer les slots pour ce rôle
+      // Créer les slots pour ce rôle (afficher tous les joueurs, même ceux qui ont décliné)
       for (let i = 0; i < count; i++) {
-        const player = selectedPlayers[i] || null
+        const playerId = selectedPlayers[i] || null
+        const playerName = playerId ? getPlayerNameFromId(playerId) : null
         slots.push({
           index: slotIndex++,
-          player: player,
+          player: playerName, // Afficher le nom du joueur, pas l'ID
+          playerId: playerId, // Garder l'ID pour les opérations internes
           role: role,
           roleEmoji: ROLE_EMOJIS[role],
           roleLabel: ROLE_LABELS_SINGULAR[role],
-          isEmpty: !player,
+          isEmpty: !playerName,
           isLegacy: false
         })
       }
@@ -476,8 +493,8 @@ function availableOptionsForSlot(index) {
 }
 
 function startEditSlot(index) {
-  // Ne pas permettre l'édition si l'organisateur a validé la composition
-  if (props.isSelectionConfirmedByOrganizer) return
+  // Permettre l'édition des slots vides même si la sélection est verrouillée
+  // (pour complétion manuelle des slots vides)
   editingSlotIndex.value = index
 }
 
@@ -486,96 +503,174 @@ function cancelEditSlot() {
 }
 
 async function onChooseForSlot(event, index) {
-  // Ne pas permettre la modification si l'organisateur a validé la composition
-  if (props.isSelectionConfirmedByOrganizer) return
+  // Permettre la sélection dans les slots vides même si la sélection est verrouillée
+  // (pour complétion manuelle des slots vides)
   
-  const value = event?.target?.value || ''
-  if (value) {
+  const playerName = event?.target?.value || ''
+  if (playerName) {
     const currentSlot = teamSlots.value.find(s => s.index === index)
     const previousValue = currentSlot?.player || null
     
-    // Mettre à jour le slot dans teamSlots
-    if (currentSlot) {
-      currentSlot.player = value
+    // Convertir le nom en ID pour la sauvegarde
+    const playerId = getPlayerIdFromName(playerName)
+    if (!playerId) {
+      console.error('ID de joueur non trouvé pour:', playerName)
+      return
     }
     
-    // Mettre à jour aussi l'ancien système de slots pour la compatibilité
-    if (slots.value[index] !== undefined) {
-      slots.value[index] = value
+    // Mettre à jour le slot dans teamSlots (afficher le nom, sauvegarder l'ID)
+    if (currentSlot) {
+      currentSlot.player = playerName // Affichage
+      currentSlot.playerId = playerId // Sauvegarde
+    }
+    
+    // Mettre à jour aussi l'ancien système de slots pour la compatibilité (avec protection)
+    if (slots.value && slots.value[index] !== undefined) {
+      // Utiliser nextTick pour éviter les problèmes de démontage
+      await nextTick()
+      if (slots.value && slots.value[index] !== undefined) {
+        slots.value[index] = playerId // Sauvegarder l'ID
+      }
     }
     
     // Logger l'audit de recomposition
     try {
       const { default: AuditClient } = await import('../services/auditClient.js')
       await AuditClient.logUserAction({
-        type: 'player_reselected',
-        category: 'selection',
+        type: 'player_recast',
+        category: 'cast',
         severity: 'info',
         data: {
           eventTitle: props.event?.title || 'Unknown',
           seasonSlug: props.event?.seasonSlug || 'unknown',
           playerName: value,
           slotIndex: index,
-          previousPlayer: previousValue || null,
-          action: 'manual_selection'
+          previousPlayer: previousValue || null
         },
         success: true,
-        tags: ['selection', 'manual', 'reselection']
+        tags: ['cast', 'manual', 'recast']
       })
     } catch (auditError) {
       console.warn('Erreur audit onChooseForSlot:', auditError)
     }
     
-    // Sauvegarde automatique immédiate
-    await autoSaveSelection()
+    // Sauvegarde automatique immédiate (inclut le recalcul du statut et l'émission d'événement)
+    if (props.isSelectionConfirmedByOrganizer) {
+      // Sauvegarde spéciale pour les slots vides dans une sélection verrouillée
+      await saveEmptySlotSelection()
+    } else {
+      await autoSaveSelection()
+    }
   }
   editingSlotIndex.value = null
 }
 
 async function clearSlot(index) {
-  // Ne pas permettre la suppression si l'organisateur a validé la composition
-  if (props.isSelectionConfirmedByOrganizer) return
-  
-  // Trouver le slot dans teamSlots
+  // Trouver le slot et le joueur
   const currentSlot = teamSlots.value.find(s => s.index === index)
+  const playerName = currentSlot?.player
+  
+  // Ne pas permettre la suppression si l'organisateur a validé la composition
+  // SAUF si le joueur a décliné (cas de remplacement)
+  if (props.isSelectionConfirmedByOrganizer && !isPlayerDeclined(playerName)) {
+    return
+  }
+  
   const removedPlayer = currentSlot?.player || slots.value[index]
   
   // Vider le slot dans teamSlots
   if (currentSlot) {
     currentSlot.player = null
+    currentSlot.playerId = null  // Vider aussi l'ID
     currentSlot.isEmpty = true
   }
   
-  // Vider aussi dans l'ancien système pour la compatibilité
-  if (slots.value[index] !== undefined) {
-    slots.value[index] = null
-  }
-  
-    // Logger l'audit de décomposition
-  if (removedPlayer) {
-    try {
-      const { default: AuditClient } = await import('../services/auditClient.js')
-      await AuditClient.logUserAction({
-        type: 'player_deselected',
-        category: 'selection',
-        severity: 'info',
-        data: {
-          eventTitle: props.event?.title || 'Unknown',
-          seasonSlug: props.event?.seasonSlug || 'unknown',
-          playerName: removedPlayer,
-          slotIndex: index,
-          action: 'manual_deselection'
-        },
-        success: true,
-        tags: ['selection', 'manual', 'deselection']
-      })
-    } catch (auditError) {
-      console.warn('Erreur audit clearSlot:', auditError)
+  // Vider aussi dans l'ancien système pour la compatibilité (avec protection)
+  if (slots.value && slots.value[index] !== undefined) {
+    // Utiliser nextTick pour éviter les problèmes de démontage
+    await nextTick()
+    if (slots.value && slots.value[index] !== undefined) {
+      slots.value[index] = null
     }
   }
   
-  // Sauvegarde automatique immédiate
-  await autoSaveSelection()
+  // Logger l'audit de suppression manuelle
+  if (removedPlayer) {
+    try {
+      const { logManualCastRemoval } = await import('../services/selectionAuditService.js')
+      const currentSlot = teamSlots.value.find(s => s.index === index)
+      
+      await logManualCastRemoval({
+        eventId: props.event.id,
+        eventTitle: props.event.title || 'Unknown',
+        seasonSlug: props.event.seasonSlug || 'unknown',
+        removedPlayer,
+        role: currentSlot?.role || 'player',
+        source: 'selection_modal'
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit suppression manuelle:', auditError)
+    }
+  }
+  
+  // Si le joueur a décliné, le marquer automatiquement comme indisponible pour cet événement
+  if (removedPlayer && isPlayerDeclined(removedPlayer)) {
+    try {
+      const { setSingleAvailability } = await import('../services/storage.js')
+      await setSingleAvailability({ 
+        seasonId: props.seasonId, 
+        playerName: removedPlayer, 
+        eventId: props.event.id, 
+        value: false 
+      })
+    } catch (error) {
+      console.warn('Erreur lors du marquage indisponible:', error)
+    }
+  }
+  
+  // Sauvegarde immédiate même si la sélection est verrouillée (pour les joueurs déclinés)
+  await saveSlotChanges()
+  
+  // Recalculer le statut après la sauvegarde
+  try {
+    const { updateCastStatus } = await import('../services/storage.js')
+    await updateCastStatus(props.event.id, props.seasonId)
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+  } catch (error) {
+    console.warn('Erreur lors du recalcul du statut:', error)
+  }
+}
+
+// Fonction pour sauvegarder les changements de slots même quand la sélection est verrouillée
+async function saveSlotChanges() {
+  if (!props.event?.id || !props.seasonId) {
+    return
+  }
+  
+  try {
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
+    
+    teamSlots.value.forEach(slot => {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.playerId)
+      }
+    })
+    
+    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde des changements de slots:', error)
+  }
 }
 
 const slotsWarning = computed(() => {
@@ -608,104 +703,63 @@ const hasSelection = computed(() => {
   return false
 })
 
-// Fonction pour déterminer le statut de composition (même logique que getEventStatus dans GridBoard)
+// Fonction pour déterminer le statut de composition (utilise le statut calculé stocké en base)
 function getSelectionStatus() {
-  // Extraire le tableau de joueurs selon la structure (même logique que getSelectionPlayers dans GridBoard)
-  let selectedPlayers = []
-  
-  if (!props.currentSelection) {
-    selectedPlayers = []
-  } else if (Array.isArray(props.currentSelection)) {
-    // Ancienne structure (array direct)
-    selectedPlayers = props.currentSelection
-  } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
-    // Nouvelle structure avec players
-    selectedPlayers = props.currentSelection.players
-  } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
-    // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
-    const allPlayers = []
-    for (const rolePlayers of Object.values(props.currentSelection.roles)) {
-      if (Array.isArray(rolePlayers)) {
-        allPlayers.push(...rolePlayers)
-      }
+  // Si la sélection a un statut calculé stocké, l'utiliser
+  if (props.currentSelection?.status && props.currentSelection?.statusDetails) {
+    return {
+      type: props.currentSelection.status,
+      ...props.currentSelection.statusDetails
     }
-    // Retourner un tableau unique (sans doublons)
-    selectedPlayers = [...new Set(allPlayers)]
   }
-  // Calculer le nombre total requis (même logique que getTotalRequiredCount dans GridBoard)
+  
+  // Fallback : calculer le statut localement (logique de compatibilité)
+  const selectedPlayers = extractSelectedPlayers(props.currentSelection)
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
     ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
     : (props.event?.playerCount || 6)
   const availableCount = props.availableCount || 0
   
-  // Cas 1: Composition incomplète (composition existante avec problèmes)
-  if (selectedPlayers.length > 0) {
-    const hasUnavailablePlayers = selectedPlayers.some(playerName => !isPlayerAvailable(playerName))
-    const hasInsufficientPlayers = availableCount < requiredCount
-    
-    // Vérifier si des joueurs sélectionnés ont décliné
-    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
-      return props.currentSelection?.playerStatuses?.[playerName] === 'declined'
-    })
-    
-    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
-      return {
-        type: 'incomplete',
-        hasUnavailablePlayers,
-        hasInsufficientPlayers,
-        hasDeclinedPlayers,
-        unavailablePlayers: selectedPlayers.filter(playerName => !isPlayerAvailable(playerName)),
-        declinedPlayers: selectedPlayers.filter(playerName => 
-          props.currentSelection?.playerStatuses?.[playerName] === 'declined'
-        ),
-        availableCount,
-        requiredCount
+  // Logique de fallback simplifiée
+  if (selectedPlayers.length === 0) {
+    return { type: 'ready', availableCount, requiredCount }
+  }
+  
+  const hasEmptySlots = teamSlots.value.some(slot => !slot.player)
+  if (hasEmptySlots) {
+    return { type: 'incomplete', hasEmptySlots: true, availableCount, requiredCount }
+  }
+  
+  if (props.isSelectionConfirmed) {
+    return { type: 'confirmed', availableCount, requiredCount }
+  }
+  
+  if (props.isSelectionConfirmedByOrganizer) {
+    return { type: 'pending_confirmation', availableCount, requiredCount }
+  }
+  
+  return { type: 'complete', availableCount, requiredCount }
+}
+
+// Fonction helper pour extraire les joueurs sélectionnés
+function extractSelectedPlayers(selection) {
+  if (!selection) return []
+  
+  if (Array.isArray(selection)) {
+    return selection
+  } else if (selection.players && Array.isArray(selection.players)) {
+    return selection.players
+  } else if (selection.roles && typeof selection.roles === 'object') {
+    const allPlayers = []
+    for (const rolePlayers of Object.values(selection.roles)) {
+      if (Array.isArray(rolePlayers)) {
+        allPlayers.push(...rolePlayers)
       }
     }
+    return [...new Set(allPlayers)]
   }
   
-  // Cas 2: Pas assez de joueurs pour faire une composition
-  if (availableCount < requiredCount) {
-    return {
-      type: 'insufficient',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 3: Assez de joueurs mais pas de composition
-  if (selectedPlayers.length === 0) {
-    return {
-      type: 'ready',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 4: Tous les joueurs ont confirmé → Confirmée (définitive)
-  if (props.isSelectionConfirmed) {
-    return {
-      type: 'confirmed',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 5: Confirmée par l'organisateur uniquement → À confirmer (en attente des joueurs)
-  if (props.isSelectionConfirmedByOrganizer) {
-    return {
-      type: 'pending_confirmation',
-      availableCount,
-      requiredCount
-    }
-  }
-  
-  // Cas 6: Composition complète mais non confirmée par l'organisateur
-  return {
-    type: 'complete',
-    availableCount,
-    requiredCount
-  }
+  return []
 }
 
 const hasIncompleteSelection = computed(() => {
@@ -747,6 +801,18 @@ const hasIncompleteSelection = computed(() => {
   return hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers
 })
 
+// Computed property pour détecter s'il y a des slots vides (vraiment vides, pas des joueurs déclinés)
+const hasEmptySlots = computed(() => {
+  // Un slot est vide seulement s'il n'y a pas de joueur assigné (null/undefined)
+  // Les joueurs déclinés sont toujours affichés dans leur slot
+  const hasEmpty = teamSlots.value.some(slot => !slot.player)
+  console.debug('🔍 hasEmptySlots check:', { 
+    teamSlots: teamSlots.value.map(s => ({ player: s.player, isEmpty: s.isEmpty })),
+    hasEmpty 
+  })
+  return hasEmpty
+})
+
 // Vérifier si des joueurs ont décliné leur participation
 const hasDeclinedPlayers = computed(() => {
   if (!props.currentSelection || typeof props.currentSelection !== 'object' || !props.currentSelection.playerStatuses) {
@@ -754,9 +820,25 @@ const hasDeclinedPlayers = computed(() => {
   }
   
   // Utiliser Object.entries pour éviter les problèmes avec les Proxy Vue
-  const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerName, status]) => status === 'declined')
+  // Maintenant playerStatuses utilise des IDs, pas des noms
+  const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerId, status]) => status === 'declined')
   return hasDeclined
 })
+
+// Fonction pour vérifier si un joueur spécifique a décliné
+function isPlayerDeclined(playerName) {
+  if (!playerName || !props.currentSelection || typeof props.currentSelection !== 'object' || !props.currentSelection.playerStatuses) {
+    return false
+  }
+  
+  // Convertir le nom en ID pour chercher dans playerStatuses
+  const playerId = getPlayerIdFromName(playerName)
+  if (!playerId) {
+    return false
+  }
+  
+  return props.currentSelection.playerStatuses[playerId] === 'declined'
+}
 
 // Vérifier si la composition est complète (assez de joueurs pour l'événement)
 const isSelectionComplete = computed(() => {
@@ -825,12 +907,7 @@ const selectionIncompleteReason = computed(() => {
 
 // Fonction helper pour récupérer le statut de confirmation d'un joueur
 function getPlayerSelectionStatus(playerName) {
-  // Si currentSelection est un objet avec playerStatuses (nouvelle structure)
-  if (props.currentSelection && typeof props.currentSelection === 'object' && !Array.isArray(props.currentSelection) && props.currentSelection.playerStatuses) {
-    return props.currentSelection.playerStatuses[playerName] || 'pending'
-  }
-  // Si currentSelection est un tableau simple (ancienne structure) ou pas de playerStatuses
-  return 'pending'
+  return getPlayerCastStatus(props.currentSelection, playerName, props.players)
 }
 
 // Fonction helper pour générer le tooltip d'un slot de joueur
@@ -1048,9 +1125,63 @@ async function handleUnconfirmSelection() {
   }
 }
 
+async function handleCompleteSelection() {
+  try {
+    // Émettre l'événement de complétion vers le parent
+    emit('complete-selection')
+    
+    // Le toast de succès est affiché par le parent (GridBoard.vue)
+  } catch (error) {
+    console.error('Erreur lors de la complétion de la composition:', error)
+    showSuccessMessage.value = true
+    successMessageText.value = 'Erreur lors de la complétion de la composition'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
+}
 
 
 
+
+
+// Fonction de sauvegarde spéciale pour les slots vides dans une sélection verrouillée
+async function saveEmptySlotSelection() {
+  if (!props.event?.id || !props.seasonId) return
+  
+  try {
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
+    
+    teamSlots.value.forEach(slot => {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.playerId)
+      }
+    })
+    
+    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
+    
+    // Recalculer le statut après la sauvegarde
+    try {
+      const { updateCastStatus } = await import('../services/storage.js')
+      await updateCastStatus(props.event.id, props.seasonId)
+    } catch (error) {
+      console.warn('Erreur lors du recalcul du statut:', error)
+    }
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+    
+    console.debug('Slot vide sauvegardé dans une sélection verrouillée')
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du slot vide:', error)
+  }
+}
 
 async function autoSaveSelection() {
   if (!props.event?.id || !props.seasonId) return
@@ -1063,16 +1194,27 @@ async function autoSaveSelection() {
     const roles = {}
     
     teamSlots.value.forEach(slot => {
-      if (slot.player) {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
         if (!roles[slot.role]) {
           roles[slot.role] = []
         }
-        roles[slot.role].push(slot.player)
+        roles[slot.role].push(slot.playerId)
       }
     })
     
     // Sauvegarde avec la nouvelle structure par rôle
     await saveCast(props.event.id, roles, props.seasonId)
+    
+    // Recalculer le statut après la sauvegarde
+    try {
+      const { updateCastStatus } = await import('../services/storage.js')
+      await updateCastStatus(props.event.id, props.seasonId)
+    } catch (error) {
+      console.warn('Erreur lors du recalcul du statut:', error)
+    }
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
     
     // Feedback visuel subtil (optionnel)
     console.debug('Composition sauvegardée automatiquement avec structure par rôle')
@@ -1107,21 +1249,33 @@ function getSelectedPlayersArray() {
   if (!props.currentSelection) return []
   
   if (Array.isArray(props.currentSelection)) {
-    // Ancienne structure (array direct)
-    return props.currentSelection
+    // Ancienne structure (array direct) - peut contenir des IDs ou des noms
+    return props.currentSelection.map(item => {
+      // Si c'est un ID, le convertir en nom
+      const player = props.players?.find(p => p.id === item)
+      return player ? player.name : item
+    })
   } else if (props.currentSelection.players && Array.isArray(props.currentSelection.players)) {
-    // Nouvelle structure avec players
-    return props.currentSelection.players
+    // Nouvelle structure avec players - peut contenir des IDs ou des noms
+    return props.currentSelection.players.map(item => {
+      // Si c'est un ID, le convertir en nom
+      const player = props.players?.find(p => p.id === item)
+      return player ? player.name : item
+    })
   } else if (props.currentSelection.roles && typeof props.currentSelection.roles === 'object') {
     // Nouvelle structure multi-rôles : extraire tous les joueurs de tous les rôles
-    const allPlayers = []
+    const allPlayerIds = []
     for (const rolePlayers of Object.values(props.currentSelection.roles)) {
       if (Array.isArray(rolePlayers)) {
-        allPlayers.push(...rolePlayers)
+        allPlayerIds.push(...rolePlayers)
       }
     }
-    // Retourner un tableau unique (sans doublons)
-    return [...new Set(allPlayers)]
+    // Convertir les IDs en noms pour l'affichage
+    const allPlayerNames = [...new Set(allPlayerIds)].map(playerId => {
+      return getPlayerNameFromId(playerId)
+    }).filter(Boolean) // Filtrer les noms non trouvés
+    
+    return allPlayerNames
   }
   
   return []
@@ -1148,6 +1302,12 @@ function getPlayerIdFromName(playerName) {
   if (!playerName || !props.players) return null
   const player = props.players.find(p => p.name === playerName)
   return player?.id || null
+}
+
+function getPlayerNameFromId(playerId) {
+  if (!playerId || !props.players) return null
+  const player = props.players.find(p => p.id === playerId)
+  return player?.name || playerId // Fallback sur l'ID si nom non trouvé
 }
 
 // Fonctions pour l'invitation à la composition

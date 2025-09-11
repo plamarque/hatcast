@@ -53,8 +53,7 @@
               <select
                 v-model="selectedRoleTemplate"
                 @change="applyRoleTemplate(selectedRoleTemplate)"
-                :disabled="mode === 'edit' && !showRoleInputs"
-                class="w-52 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-52 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
               >
                 <option
                   v-for="templateId in TEMPLATE_DISPLAY_ORDER"
@@ -73,8 +72,64 @@
             </div>
           </div>
           
+          <!-- Confirmation de changement de template -->
+          <div v-if="showTemplateChangeConfirmation" class="mb-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+            <div class="flex items-start gap-3">
+              <div class="text-yellow-400 text-xl">⚠️</div>
+              <div class="flex-1">
+                <h4 class="text-yellow-300 font-medium mb-2">Changement de type d'événement</h4>
+                <p class="text-gray-300 text-sm mb-3">
+                  Les rôles actuels ont été personnalisés et diffèrent du template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}".
+                </p>
+                
+                <!-- Comparaison des rôles -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                  <!-- Rôles actuels -->
+                  <div>
+                    <h5 class="text-gray-400 text-xs font-medium mb-2">Configuration actuelle :</h5>
+                    <div class="space-y-1">
+                      <div v-for="role in getRoleComparison(currentRolesSnapshot)" :key="role.name" class="flex justify-between text-sm">
+                        <span class="text-gray-300">{{ role.label }}:</span>
+                        <span class="font-medium text-blue-400">{{ role.count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Nouveaux rôles -->
+                  <div>
+                    <h5 class="text-gray-400 text-xs font-medium mb-2">Avec le template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}" :</h5>
+                    <div class="space-y-1">
+                      <div v-for="role in getRoleComparison(newRolesSnapshot)" :key="role.name" class="flex justify-between text-sm">
+                        <span class="text-gray-300">{{ role.label }}:</span>
+                        <span class="font-medium text-green-400">{{ role.count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Boutons d'action -->
+                <div class="flex gap-2">
+                  <button
+                    @click="confirmTemplateChange"
+                    type="button"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Appliquer
+                  </button>
+                  <button
+                    @click="cancelTemplateChange"
+                    type="button"
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Ignorer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- Affichage permanent des rôles attendus (filtrés) -->
-          <div class="mb-4" v-if="isRoleDataReady">
+          <div class="mb-4" v-if="isRoleDataReady && !showTemplateChangeConfirmation">
             <div class="text-sm text-gray-200 leading-relaxed flex flex-wrap gap-2 mb-3">
               <span v-for="role in displayRoles" :key="role.name" class="inline-flex items-center gap-1">
                 <span class="text-gray-400">{{ role.label }}:</span>
@@ -83,7 +138,7 @@
             </div>
             <div class="text-center" v-if="!showRoleInputs">
               <button
-                @click="showRoleInputs = true"
+                @click="enableCustomization"
                 type="button"
                 class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors flex items-center gap-1 mx-auto"
               >
@@ -241,6 +296,13 @@ const titleInput = ref(null)
 const selectedRoleTemplate = ref('cabaret')
 const showRoleInputs = ref(false)
 const showAllRoles = ref(false)
+const hasBeenCustomized = ref(false) // Track si les rôles ont été personnalisés
+
+// État pour la confirmation de changement de template
+const showTemplateChangeConfirmation = ref(false)
+const pendingTemplateId = ref(null)
+const currentRolesSnapshot = ref({})
+const newRolesSnapshot = ref({})
 
 // Données du formulaire
 const formData = ref({
@@ -316,14 +378,96 @@ const displayRoles = computed(() => {
 })
 
 // Fonctions
+function enableCustomization() {
+  showRoleInputs.value = true
+  hasBeenCustomized.value = true
+}
+
 function applyRoleTemplate(templateId) {
-  selectedRoleTemplate.value = templateId
   const template = ROLE_TEMPLATES[templateId]
   
-  // Appliquer les rôles du type
-  Object.keys(formData.value.roles).forEach(role => {
-    formData.value.roles[role] = template.roles[role] || 0
+  // En mode création, appliquer directement sans confirmation
+  if (props.mode === 'create') {
+    applyTemplateDirectly(templateId)
+    return
+  }
+  
+  // En mode édition, vérifier si les rôles ont été personnalisés
+  const previousTemplate = ROLE_TEMPLATES[selectedRoleTemplate.value]
+  const hasCustomizations = previousTemplate && Object.keys(previousTemplate.roles).some(role => {
+    return formData.value.roles[role] !== (previousTemplate.roles[role] || 0)
   })
+  
+  // Si les rôles ont été personnalisés (soit explicitement, soit implicitement), afficher la confirmation
+  if (hasBeenCustomized.value || hasCustomizations) {
+    // Sauvegarder l'état actuel et le nouveau template
+    pendingTemplateId.value = templateId
+    currentRolesSnapshot.value = { ...formData.value.roles }
+    
+    // Calculer les nouveaux rôles
+    const newRoles = { ...formData.value.roles }
+    Object.keys(newRoles).forEach(role => {
+      newRoles[role] = template.roles[role] || 0
+    })
+    newRolesSnapshot.value = newRoles
+    
+    // Afficher la confirmation
+    showTemplateChangeConfirmation.value = true
+    return
+  }
+  
+  // Appliquer directement si pas de personnalisation
+  applyTemplateDirectly(templateId)
+}
+
+function applyTemplateDirectly(templateId) {
+  const template = ROLE_TEMPLATES[templateId]
+  selectedRoleTemplate.value = templateId
+  
+  // Créer un nouvel objet pour forcer la réactivité
+  const newRoles = { ...formData.value.roles }
+  Object.keys(newRoles).forEach(role => {
+    newRoles[role] = template.roles[role] || 0
+  })
+  formData.value.roles = newRoles
+  
+  // Réinitialiser le flag de personnalisation si on applique un template
+  hasBeenCustomized.value = false
+  showRoleInputs.value = false
+}
+
+function confirmTemplateChange() {
+  // Appliquer le template
+  applyTemplateDirectly(pendingTemplateId.value)
+  
+  // Masquer la confirmation
+  showTemplateChangeConfirmation.value = false
+  pendingTemplateId.value = null
+  currentRolesSnapshot.value = {}
+  newRolesSnapshot.value = {}
+}
+
+function cancelTemplateChange() {
+  // Revenir au template précédent
+  selectedRoleTemplate.value = selectedRoleTemplate.value
+  
+  // Masquer la confirmation
+  showTemplateChangeConfirmation.value = false
+  pendingTemplateId.value = null
+  currentRolesSnapshot.value = {}
+  newRolesSnapshot.value = {}
+}
+
+function getRoleComparison(roles) {
+  if (!isRoleDataReady.value) return []
+  
+  return safeRoleDisplayOrder.value
+    .filter(roleName => roles[roleName] > 0)
+    .map(roleName => ({
+      name: roleName,
+      label: safeRoleLabels.value[roleName] || roleName,
+      count: roles[roleName]
+    }))
 }
 
 // Fonction pour déterminer quel type correspond aux rôles actuels
@@ -351,6 +495,12 @@ function handleSubmit() {
 }
 
 function handleCancel() {
+  // Réinitialiser la confirmation si elle est ouverte
+  showTemplateChangeConfirmation.value = false
+  pendingTemplateId.value = null
+  currentRolesSnapshot.value = {}
+  newRolesSnapshot.value = {}
+  
   emit('cancel')
 }
 
@@ -379,6 +529,7 @@ watch(() => props.isVisible, (visible) => {
       // Réinitialiser l'affichage des rôles
       showRoleInputs.value = false
       showAllRoles.value = false
+      hasBeenCustomized.value = false
     }
     
     nextTick(() => {
@@ -414,6 +565,7 @@ watch(() => props.eventData, (data) => {
     // Réinitialiser l'affichage des rôles
     showRoleInputs.value = false
     showAllRoles.value = false
+    hasBeenCustomized.value = false
   }
 }, { immediate: true })
 

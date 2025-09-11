@@ -1,7 +1,15 @@
-## [0.10.0] - 2025-09-10
+## [0.11.0] - 2025-09-11
 
 ### ✨ New Features
 
+- feat: add migration script for selections to casts
+- feat: improve template type handling and customization protection
+- feat: allow manual slot filling in locked selections
+- feat: harmonize audit system with 'cast' terminology
+- feat: implement comprehensive selection audit system
+- feat: prevent redrawing declined players in completeSelectionSlots
+- feat: add complete selection functionality and improve UI messages
+- feat: allow slot clearing for declined players even when selection is locked
 - feat: add multi-role system section to general help
 - feat: add role priority system for selections
 - feat: add clickable version in footer with changelog modal
@@ -22,6 +30,18 @@
 
 ### 🐛 Bug Fixes
 
+- fix: harmonize slot colors and fix declined player detection
+- fix: correct slot management and status updates in selection modal
+- fix: encode player names for Firestore field paths
+- fix: remove redundant action field in player_recast audit log
+- fix: ensure selection status updates correctly when players confirm
+- fix: prevent duplicate players in completeSelectionSlots
+- fix: recalculate status in confirmCast using castStatusService
+- fix: sync UI status with database by loading status fields in loadCasts
+- fix: resolve 'selections is not defined' error in SelectionModal
+- fix: reload cast data after validation to sync UI with database
+- fix: correct slot clearing and status detection logic
+- fix: filter declined players from selection slots display
 - fix: ensure footer visibility on help page
 - fix: add missing AppFooter to seasons and help pages
 - fix: prevent scroll from hiding event modal buttons
@@ -58,12 +78,16 @@
 
 ### 🔧 Improvements
 
+- refactor: migrate from selections to casts collection
 - refactor: déplacer actions événement dans entête et corriger z-index
 - refactor: rename selection functions to cast functions in code
 - refactor: replace console.log with logger calls in PasswordReset.vue
 
 ### 📝 Other Changes
 
+- chore: remove polluting debug logs from GridBoard
+- chore: add dotenv dependency for debug scripts
+- chore: bump version to 0.10.0 for production release
 - chore: bump version to 0.9.4 for production release
 - release: version 0.9.3
 - merge: update changelog.json from staging
@@ -78,6 +102,7 @@
 
 # Changelog
 
+## [0.11.0] - 2025-09-11
 ## [0.10.0] - 2025-09-10
 ## [0.9.4] - 2025-09-09
 ## [0.9.3] - 2025-09-08

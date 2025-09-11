@@ -571,7 +571,7 @@ async function exportSeasonAvailabilityCsv(season) {
       loadEvents(season.id),
       loadPlayers(season.id)
     ])
-    const [availability, selections] = await Promise.all([
+    const [availability, casts] = await Promise.all([
       loadAvailability(players, events, season.id),
       loadCasts(season.id)
     ])
@@ -584,7 +584,7 @@ async function exportSeasonAvailabilityCsv(season) {
     for (const player of players) {
       const name = player?.name || ''
       const availMap = availability?.[name] || {}
-      const line = [name, ...events.map(e => cellValue(availMap[e.id], selections?.[e.id], name))]
+      const line = [name, ...events.map(e => cellValue(availMap[e.id], casts?.[e.id], name))]
       rows.push(line)
     }
 
