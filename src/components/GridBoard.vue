@@ -5686,12 +5686,17 @@ function closeEventDetails() {
 }
 
 // Fonction pour ajouter un événement à l'agenda
-function handleAddToCalendar(type, event = null) {
+async function handleAddToCalendar(type, event = null) {
   const targetEvent = event || selectedEvent.value
   if (!targetEvent) return
   
   try {
-    addToCalendar(type, targetEvent, seasonName.value)
+    // Récupérer les données de sélection pour cet événement
+    const castData = casts.value[targetEvent.id] || null
+    console.log('🎭 Données de sélection pour l\'agenda:', castData)
+    console.log('👥 Liste des joueurs:', players.value)
+    
+    await addToCalendar(type, targetEvent, seasonName.value, castData, players.value, seasonSlug.value)
     
     // Afficher un message de succès
     showSuccessMessage.value = true
