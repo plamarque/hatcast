@@ -622,6 +622,20 @@
                <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
              </div>
              
+             <!-- Lieu sur sa propre ligne si défini -->
+             <div v-if="selectedEvent?.location" class="mb-3">
+               <a 
+                 :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="text-sm text-blue-300 hover:text-blue-200 flex items-center gap-2 transition-colors duration-200 cursor-pointer"
+                 :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+               >
+                 <span>📍</span>
+                 <span class="underline">{{ selectedEvent.location }}</span>
+               </a>
+             </div>
+             
              <!-- Boutons agenda, partage et notifications sur la même ligne -->
              <div class="flex items-center gap-3 mb-3 pl-0 md:pl-0">
                <div class="relative">
@@ -2974,6 +2988,7 @@ async function handleEditEvent(eventData) {
       title: eventData.title.trim(),
       date: eventData.date,
       description: eventData.description.trim() || '',
+      location: eventData.location?.trim() || '',
       playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
       roles: eventData.roles, // Nouveau champ pour les rôles
       templateType: eventData.templateType, // Sauvegarder le type de template
@@ -3439,6 +3454,7 @@ async function createEvent() {
     title: newEventTitle.value.trim(),
     date: newEventDate.value,
     description: newEventDescription.value.trim() || '',
+    location: newEventLocation.value?.trim() || '',
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: newEventRoles.value, // Nouveau champ pour les rôles
     templateType: selectedRoleTemplate.value, // Ajouter le type de template
@@ -3465,6 +3481,7 @@ async function handleCreateEvent(eventData) {
     title: eventData.title.trim(),
     date: eventData.date,
     description: eventData.description.trim() || '',
+    location: eventData.location?.trim() || '',
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: eventData.roles, // Nouveau champ pour les rôles
     templateType: eventData.templateType, // Ajouter le type de template

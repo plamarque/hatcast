@@ -219,6 +219,18 @@
           ></textarea>
         </div>
 
+        <!-- Lieu -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">📍 Lieu</label>
+          <input
+            v-model="formData.location"
+            type="text"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            placeholder="Lieu de l'événement (optionnel)"
+            @keydown.esc="handleCancel"
+          >
+        </div>
+
         <!-- Archivé -->
         <div class="flex items-center gap-3">
           <input 
@@ -309,6 +321,7 @@ const formData = ref({
   title: '',
   date: '',
   description: '',
+  location: '',
   archived: false,
   roles: {
     [ROLES.PLAYER]: 5,
@@ -549,6 +562,7 @@ watch(() => props.eventData, (data) => {
       title: data.title || '',
       date: data.date || '',
       description: data.description || '',
+      location: data.location || '',
       archived: data.archived || false,
       roles: { ...data.roles } || {}
     }

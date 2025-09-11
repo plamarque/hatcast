@@ -110,6 +110,7 @@ export async function generateICSFile(event, seasonName = '', castData = null, p
     `DTEND:${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `SUMMARY:${event.title}`,
     `DESCRIPTION:${description}`,
+    ...(event.location ? [`LOCATION:${event.location}`] : []),
     'CATEGORIES:ENTERTAINMENT,PERFORMANCE,SHOW,THEATRE',
     'CLASS:PUBLIC',
     'TRANSP:OPAQUE',
@@ -179,6 +180,7 @@ export async function generateGoogleCalendarLink(event, seasonName = '', castDat
     text: event.title,
     dates: `${startDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${endDate.toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     details: description,
+    ...(event.location ? { location: event.location } : {}),
     sf: 'true',
     output: 'xml'
   })
@@ -216,6 +218,7 @@ export async function generateOutlookLink(event, seasonName = '', castData = nul
     startdt: startDate.toISOString(),
     enddt: endDate.toISOString(),
     body: description,
+    ...(event.location ? { location: event.location } : {}),
     allday: 'false'
   })
 
