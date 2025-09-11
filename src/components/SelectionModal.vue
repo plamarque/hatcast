@@ -62,17 +62,17 @@
                     'bg-gradient-to-r',
                     // Statuts de confirmation individuelle (priorité sur la disponibilité)
                     getPlayerSelectionStatus(slot.player) === 'declined'
-                      ? 'from-red-500/20 to-orange-500/20 border-red-500/30'
+                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
                       : getPlayerSelectionStatus(slot.player) === 'confirmed'
-                        ? 'from-purple-500/20 to-pink-500/20 border-purple-500/30'
+                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
                         : getPlayerSelectionStatus(slot.player) === 'pending'
-                          ? 'from-orange-500/20 to-yellow-500/20 border-orange-500/30'
+                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
                           // Statuts de disponibilité classique (seulement si pas de statut individuel)
                           : isPlayerUnavailable(slot.player)
-                            ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30'
+                            ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
                             : (!isPlayerAvailable(slot.player)
-                                ? 'from-red-500/20 to-red-600/20 border-red-500/30'
-                                : 'from-green-500/20 to-emerald-500/20 border-green-500/30')
+                                ? 'from-red-500/60 to-red-600/60 border-red-500/30'
+                                : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
                   ]
                 : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
             >
@@ -816,7 +816,8 @@ const hasDeclinedPlayers = computed(() => {
   }
   
   // Utiliser Object.entries pour éviter les problèmes avec les Proxy Vue
-  const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerName, status]) => status === 'declined')
+  // Maintenant playerStatuses utilise des IDs, pas des noms
+  const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerId, status]) => status === 'declined')
   return hasDeclined
 })
 
@@ -826,7 +827,13 @@ function isPlayerDeclined(playerName) {
     return false
   }
   
-  return props.currentSelection.playerStatuses[playerName] === 'declined'
+  // Convertir le nom en ID pour chercher dans playerStatuses
+  const playerId = getPlayerIdFromName(playerName)
+  if (!playerId) {
+    return false
+  }
+  
+  return props.currentSelection.playerStatuses[playerId] === 'declined'
 }
 
 // Vérifier si la composition est complète (assez de joueurs pour l'événement)
