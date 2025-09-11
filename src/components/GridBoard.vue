@@ -451,7 +451,7 @@
   <EventModal
     :mode="'edit'"
     :is-visible="!!editingEvent"
-    :event-data="editingEventData"
+    :event-data="editingEvent ? events.find(e => e.id === editingEvent) : null"
     @save="handleEditEvent"
     @cancel="cancelEdit"
   />
@@ -3351,7 +3351,8 @@ const editingEventData = computed(() => {
     date: editingDate.value,
     description: editingDescription.value,
     archived: editingArchived.value,
-    roles: editingRoles.value
+    roles: editingRoles.value,
+    templateType: editingSelectedRoleTemplate.value
   }
 })
 
@@ -3440,6 +3441,7 @@ async function createEvent() {
     description: newEventDescription.value.trim() || '',
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: newEventRoles.value, // Nouveau champ pour les rôles
+    templateType: selectedRoleTemplate.value, // Ajouter le type de template
     archived: !!newEventArchived.value
   }
 
@@ -3465,6 +3467,7 @@ async function handleCreateEvent(eventData) {
     description: eventData.description.trim() || '',
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: eventData.roles, // Nouveau champ pour les rôles
+    templateType: eventData.templateType, // Ajouter le type de template
     archived: !!eventData.archived
   }
 
@@ -4333,11 +4336,28 @@ function getAvailabilityData(player, eventId) {
   }
   
   // Fallback pour l'ancien format (boolean direct)
-  return {
-    available: !!availabilityData,
-    roles: availabilityData ? ['player'] : [],
-    comment: null,
-    isSelectionDisplay: false
+  if (availabilityData === true) {
+    return {
+      available: true,
+      roles: ['player'],
+      comment: null,
+      isSelectionDisplay: false
+    }
+  } else if (availabilityData === false) {
+    return {
+      available: false,
+      roles: [],
+      comment: null,
+      isSelectionDisplay: false
+    }
+  } else {
+    // Pas de disponibilité définie (undefined/null)
+    return {
+      available: undefined,
+      roles: [],
+      comment: null,
+      isSelectionDisplay: false
+    }
   }
 }
 
