@@ -1,5 +1,33 @@
 [
 {
+  "version": "0.11.0",
+  "date": "2025-09-11",
+  "changes": [
+    "✨ Ajout d'une fonctionnalité pour permettre le remplissage manuel des emplacements dans les sélections verrouillées.",
+    "✨ Amélioration de la gestion des types de modèles et protection de la personnalisation.",
+    "✨ Mise en place d'un système d'audit complet pour les sélections, harmonisé avec la terminologie 'composition'.",
+    "✨ Ajout de la fonctionnalité de sélection complète et amélioration des messages d'interface utilisateur.",
+    "✨ Ajout d'un système de priorités de rôles pour les sélections.",
+    "✨ Ajout d'une section sur le système multi-rôles dans l'aide générale.",
+    "✨ Ajout d'une version cliquable dans le pied de page avec un modal de changelog.",
+    "✨ Réorganisation de la mise en page du pied de page.",
+    "✨ Amélioration de la mise en page des joueurs dans le modal d'événements.",
+    "✨ Optimisation de la mise en page mobile du modal d'événements.",
+    "✨ Ajout de pourcentages de chances basés sur les rôles avec un bascule dans le modal de détails de l'événement.",
+    "✨ Implémentation d'une génération de changelog centrée sur l'utilisateur avec OpenAI.",
+    "✨ Ajout d'un système de tri dual pour l'ordre des versions du changelog.",
+    "✨ Remplacement de 'Sélection' par 'Composition' dans l'interface utilisateur et la documentation.",
+    "✨ Utilisation du genre des joueurs pour les étiquettes de rôle dans les cellules de disponibilité.",
+    "✨ Ajout d'un type de spectacle Long Form avec 4 joueurs, 1 MC, 1 DJ.",
+    "🐛 Correction de l'harmonisation des couleurs des emplacements et détection des joueurs refusés.",
+    "🐛 Correction de la gestion des emplacements et des mises à jour de statut dans le modal de sélection.",
+    "🐛 Correction de la vérification de disponibilité des joueurs pour les événements multi-rôles.",
+    "🐛 Amélioration de l'interface utilisateur pour les sélections incomplètes en supprimant un message redondant et en améliorant l'info-bulle.",
+    "🐛 Amélioration de la lisibilité du changelog avec un langage centré sur l'utilisateur."
+  ]
+}
+,
+{
   "version": "0.10.0",
   "date": "2025-09-10",
   "changes": [
