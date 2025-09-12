@@ -293,6 +293,7 @@ class FirestoreService {
     }
   }
 
+
   /**
    * Créer un batch pour les opérations multiples
    * @returns {WriteBatch} Batch Firestore

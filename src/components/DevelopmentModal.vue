@@ -9,11 +9,30 @@
         <button @click="closeModal" class="text-white/80 hover:text-white">✖️</button>
       </div>
 
+      <!-- Onglets -->
+      <div class="mb-6">
+        <div class="flex space-x-1 bg-gray-800/50 p-1 rounded-lg">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              'flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+              activeTab === tab.id
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+            ]"
+          >
+            <span class="mr-2">{{ tab.icon }}</span>
+            {{ tab.name }}
+          </button>
+        </div>
+      </div>
 
-
-      <!-- Outils de développement -->
+      <!-- Contenu des onglets -->
       <div class="space-y-6">
-          <!-- Section PWA -->
+        <!-- Onglet PWA -->
+        <div v-if="activeTab === 'pwa'" class="space-y-6">
           <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
             <h4 class="font-semibold mb-3 text-blue-200 flex items-center gap-2">
               📱 PWA (Progressive Web App)
@@ -52,8 +71,10 @@
               </div>
             </div>
           </div>
-          
-          <!-- Section Email -->
+        </div>
+
+        <!-- Onglet Email -->
+        <div v-if="activeTab === 'email'" class="space-y-6">
           <div class="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4">
             <h4 class="font-semibold mb-3 text-purple-200 flex items-center gap-2">
               📧 Email
@@ -68,8 +89,10 @@
               </div>
             </div>
           </div>
-          
-          <!-- Section Debug -->
+        </div>
+
+        <!-- Onglet Debug -->
+        <div v-if="activeTab === 'debug'" class="space-y-6">
           <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
             <h4 class="font-semibold mb-3 text-green-200 flex items-center gap-2">
               🔍 Debug
@@ -160,8 +183,75 @@
               </div>
             </div>
           </div>
-          
-          <!-- Section Audit -->
+        </div>
+
+        <!-- Onglet Performance -->
+        <div v-if="activeTab === 'performance'" class="space-y-6">
+          <div class="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-4">
+            <h4 class="font-semibold mb-3 text-cyan-200 flex items-center gap-2">
+              📊 Performance
+            </h4>
+            <div class="space-y-3">
+              <!-- Debug des performances -->
+              <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div class="text-sm text-gray-300">
+                  Debug des performances: 
+                  <span :class="performanceDebugStatusClass" class="font-mono text-xs px-2 py-1 rounded ml-2">
+                    {{ performanceDebugStatusText }}
+                  </span>
+                </div>
+                <button @click="togglePerformanceDebug" :class="performanceDebugToggleButtonClass" class="px-3 py-1 rounded text-white text-xs transition-colors">
+                  {{ performanceDebugToggleButtonText }}
+                </button>
+              </div>
+              
+              <!-- Export des données de performance -->
+              <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                <div class="text-sm text-gray-300">Exporter les données de performance</div>
+                <button @click="exportPerformanceData" class="px-3 py-1 rounded bg-cyan-600 text-white text-xs hover:bg-cyan-500 transition-colors">
+                  📤 Exporter
+                </button>
+              </div>
+              
+              <!-- Résumé des performances -->
+              <div v-if="performanceSummary" class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                <div class="text-sm text-gray-300 font-medium">📈 Résumé des performances</div>
+                <div class="text-xs text-cyan-400 space-y-1">
+                  <div v-if="performanceSummary.gridLoading" class="flex items-center gap-2">
+                    <span class="text-green-300">Grille:</span>
+                    <span class="text-white font-mono">{{ performanceSummary.gridLoading }}ms</span>
+                  </div>
+                  <div v-if="performanceSummary.eventDetail" class="flex items-center gap-2">
+                    <span class="text-blue-300">Détail événement:</span>
+                    <span class="text-white font-mono">{{ performanceSummary.eventDetail }}ms</span>
+                  </div>
+                  <div v-if="performanceSummary.availability" class="flex items-center gap-2">
+                    <span class="text-yellow-300">Disponibilités:</span>
+                    <span class="text-white font-mono">{{ performanceSummary.availability }}ms</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-purple-300">Total mesures:</span>
+                    <span class="text-white font-mono">{{ performanceSummary.totalMeasurements }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Informations sur le debug des performances -->
+              <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                <div class="text-xs text-cyan-400">
+                  💡 <strong>Mode de fonctionnement :</strong>
+                  <br>• <strong>Activation :</strong> Active le panneau de debug flottant
+                  <br>• <strong>Mesures :</strong> Temps de chargement de la grille et des détails
+                  <br>• <strong>Export :</strong> Télécharge un fichier JSON avec toutes les données
+                  <br>• <strong>Session :</strong> Les données sont conservées pendant la session
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Onglet Audit -->
+        <div v-if="activeTab === 'audit'" class="space-y-6">
           <div class="bg-orange-900/20 border border-orange-500/30 rounded-lg p-4">
             <h4 class="font-semibold mb-3 text-orange-200 flex items-center gap-2">
               🔇 Audit
@@ -808,8 +898,9 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Bouton pour afficher les détails complets dans la console -->
+        <!-- Bouton pour afficher les détails complets dans la console -->
           <div class="bg-yellow-900/30 border border-yellow-500/30 p-4 rounded-lg">
             <h4 class="font-semibold text-yellow-200 mb-2">💡 Informations Détaillées</h4>
             <p class="text-yellow-300 text-sm mb-3">
@@ -832,6 +923,7 @@ import { ref, watch, onMounted, computed } from 'vue';
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import adminService from '../services/adminService.js';
 import EmailTestModal from './EmailTestModal.vue';
+import performanceService from '../services/performanceService.js';
 import logger from '../services/logger.js';
 
 const props = defineProps({ show: Boolean });
@@ -882,6 +974,18 @@ const auditToggleButtonClass = computed(() => auditEnabled.value
   : 'bg-green-600 hover:bg-green-500'
 );
 
+// Performance debug computed properties
+const performanceDebugStatusText = computed(() => performanceDebugEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
+const performanceDebugStatusClass = computed(() => performanceDebugEnabled.value 
+  ? 'bg-green-600/30 border border-green-500/30 text-green-300' 
+  : 'bg-red-600/30 border border-red-500/30 text-red-300'
+);
+const performanceDebugToggleButtonText = computed(() => performanceDebugEnabled.value ? '📊 Désactiver' : '📊 Activer');
+const performanceDebugToggleButtonClass = computed(() => performanceDebugEnabled.value 
+  ? 'bg-red-600 hover:bg-red-500' 
+  : 'bg-green-600 hover:bg-green-500'
+);
+
 // Log level state
 const currentLogLevel = ref('info');
 const selectedLogLevel = ref('info');
@@ -895,6 +999,20 @@ const versionInfo = ref({
   gitHash: '',
   buildDate: ''
 });
+
+// Performance debug state
+const performanceDebugEnabled = ref(false);
+const performanceSummary = ref(null);
+
+// Onglets state
+const activeTab = ref('pwa');
+const tabs = ref([
+  { id: 'pwa', name: 'PWA', icon: '📱' },
+  { id: 'email', name: 'Email', icon: '📧' },
+  { id: 'debug', name: 'Debug', icon: '🔍' },
+  { id: 'performance', name: 'Performance', icon: '📊' },
+  { id: 'audit', name: 'Audit', icon: '🔇' }
+]);
 
 const closeModal = () => {
   emit('close');
@@ -1248,7 +1366,62 @@ async function updateLogLevel() {
   }
 }
 
+// Fonctions pour gérer le debug des performances
+function togglePerformanceDebug() {
+  performanceDebugEnabled.value = !performanceDebugEnabled.value;
+  
+  // Mettre à jour le localStorage pour la session
+  localStorage.setItem('performance-debug', performanceDebugEnabled.value.toString());
+  
+  // Émettre un événement pour notifier le composant PerformanceDebug
+  const event = new CustomEvent('performance-debug-toggle', {
+    detail: { enabled: performanceDebugEnabled.value }
+  });
+  window.dispatchEvent(event);
+  
+  // Mettre à jour le résumé des performances
+  updatePerformanceSummary();
+  
+  logger.info(`📊 Debug des performances ${performanceDebugEnabled.value ? 'activé' : 'désactivé'}`);
+}
 
+function updatePerformanceSummary() {
+  const measurements = performanceService.getAllMeasurements();
+  const gridMeasurement = performanceService.getMeasurement('grid_loading');
+  const eventDetailMeasurement = performanceService.getMeasurement('event_detail_loading');
+  const availabilityMeasurement = performanceService.getMeasurement('load_availability');
+  
+  performanceSummary.value = {
+    gridLoading: gridMeasurement ? Math.round(gridMeasurement.duration) : null,
+    eventDetail: eventDetailMeasurement ? Math.round(eventDetailMeasurement.duration) : null,
+    availability: availabilityMeasurement ? Math.round(availabilityMeasurement.duration) : null,
+    totalMeasurements: measurements.length
+  };
+}
+
+function exportPerformanceData() {
+  try {
+    const data = {
+      timestamp: new Date().toISOString(),
+      measurements: performanceService.getAllMeasurements(),
+      summary: performanceService.getSummary()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `performance-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    logger.info('📤 Données de performance exportées');
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'export des données de performance:', error);
+  }
+}
 
 onMounted(async () => {
   try {
@@ -1274,6 +1447,16 @@ onMounted(async () => {
   
   // Charger les informations de version
   await loadVersionInfo();
+  
+  // Initialiser le debug des performances
+  performanceDebugEnabled.value = localStorage.getItem('performance-debug') === 'true';
+  updatePerformanceSummary();
+  
+  // Restaurer l'onglet actif
+  const savedTab = localStorage.getItem('dev-modal-active-tab');
+  if (savedTab && tabs.value.find(tab => tab.id === savedTab)) {
+    activeTab.value = savedTab;
+  }
 });
 
 // Watcher pour actualiser les informations quand la modale de debug s'ouvre
@@ -1282,5 +1465,17 @@ watch(showEnvironmentDebug, async (newValue) => {
     console.log('🚀 Ouverture de la modale de debug des variables d\'environnement');
     await refreshEnvironmentInfo();
   }
+});
+
+// Watcher pour mettre à jour le résumé des performances
+watch(() => props.show, (newValue) => {
+  if (newValue) {
+    updatePerformanceSummary();
+  }
+});
+
+// Watcher pour sauvegarder l'onglet actif
+watch(activeTab, (newTab) => {
+  localStorage.setItem('dev-modal-active-tab', newTab);
 });
 </script>

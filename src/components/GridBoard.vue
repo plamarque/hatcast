@@ -1005,6 +1005,8 @@
   <!-- Footer principal -->
   <AppFooter @open-help="goToHelpPage" />
 
+  <!-- Composant de debug des performances -->
+  <PerformanceDebug />
 
   <!-- Modal de vérification du mot de passe pour joueur protégé -->
   <PasswordVerificationModal
@@ -1668,6 +1670,7 @@ import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
+import performanceService from '../services/performanceService.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import PasswordResetModal from './PasswordResetModal.vue'
@@ -1693,6 +1696,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
+import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 
 // Déclarer les props
@@ -3599,22 +3603,32 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
 
 // Initialiser les données au montage
 onMounted(async () => {
+  // Démarrer la mesure de performance globale de la grille
+  performanceService.start('grid_loading', {
+    seasonSlug: props.slug,
+    timestamp: new Date().toISOString()
+  })
+
   try {
     // Le mode de stockage est maintenant géré par les variables d'environnement
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
 
     // Attendre que firestoreService soit initialisé
     logger.debug('⏳ Attente de l\'initialisation de firestoreService...')
-    await firestoreService.initialize()
+    await performanceService.measureStep('firestore_init', async () => {
+      await firestoreService.initialize()
+    })
     logger.debug('✅ firestoreService initialisé')
 
     // Charger la saison par slug
     logger.debug('🔍 Recherche de la saison avec le slug:', props.slug)
     let seasons = []
     try {
-      seasons = await firestoreService.queryDocuments('seasons', [
-        firestoreService.where('slug', '==', props.slug)
-      ])
+      seasons = await performanceService.measureStep('season_lookup', async () => {
+        return await firestoreService.queryDocuments('seasons', [
+          firestoreService.where('slug', '==', props.slug)
+        ])
+      }, { seasonSlug: props.slug })
       logger.debug('🔍 Saisons trouvées:', seasons.length, seasons.map(s => ({ id: s.id, name: s.name, slug: s.slug })))
     } catch (error) {
       logger.error('❌ Erreur lors de la recherche de la saison:', error)
@@ -3643,18 +3657,28 @@ onMounted(async () => {
       // Étape 1: événements
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
-      events.value = await loadEvents(seasonId.value)
+      events.value = await performanceService.measureStep('load_events', async () => {
+        return await loadEvents(seasonId.value)
+      }, { seasonId: seasonId.value, count: 'unknown' })
 
       // Étape 2: joueurs
       currentLoadingLabel.value = 'Chargement des joueurs'
       loadingProgress.value = 45
-      players.value = await loadPlayers(seasonId.value)
+      players.value = await performanceService.measureStep('load_players', async () => {
+        return await loadPlayers(seasonId.value)
+      }, { seasonId: seasonId.value, count: 'unknown' })
 
-      // Étape 3: disponibilités
+      // Étape 3: disponibilités (le plus critique)
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
       try {
-        availability.value = await loadAvailability(players.value, events.value, seasonId.value)
+        availability.value = await performanceService.measureStep('load_availability', async () => {
+          return await loadAvailability(players.value, events.value, seasonId.value)
+        }, { 
+          seasonId: seasonId.value, 
+          playersCount: players.value.length, 
+          eventsCount: events.value.length 
+        })
       } catch (error) {
         logger.debug('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
         availability.value = {}
@@ -3664,7 +3688,9 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des compositions'
       loadingProgress.value = 80
       try {
-        casts.value = await loadCasts(seasonId.value)
+        casts.value = await performanceService.measureStep('load_casts', async () => {
+          return await loadCasts(seasonId.value)
+        }, { seasonId: seasonId.value, count: 'unknown' })
       } catch (error) {
         logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
         casts.value = {}
@@ -3674,7 +3700,9 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des protections'
       loadingProgress.value = 85
       try {
-        const protections = await listProtectedPlayers(seasonId.value)
+        const protections = await performanceService.measureStep('load_protections', async () => {
+          return await listProtectedPlayers(seasonId.value)
+        }, { seasonId: seasonId.value })
         const protSet = new Set()
         if (Array.isArray(protections)) {
           protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
@@ -3688,7 +3716,9 @@ onMounted(async () => {
       // Initialiser les joueurs préférés si l'utilisateur est connecté
       if (getFirebaseAuth()?.currentUser?.email) {
         try {
-          await updatePreferredPlayersSet()
+          await performanceService.measureStep('load_favorites', async () => {
+            await updatePreferredPlayersSet()
+          }, { seasonId: seasonId.value })
         } catch (error) {
           logger.debug('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
         }
@@ -3705,7 +3735,17 @@ onMounted(async () => {
     }
     currentLoadingLabel.value = 'Préparation de l\'interface'
     loadingProgress.value = 95
-    scheduleIdle(() => { updateAllStats(); updateAllChances() })
+    
+    // Mesurer les calculs lourds
+    scheduleIdle(() => { 
+      performanceService.measureStep('heavy_calculations', () => {
+        updateAllStats()
+        updateAllChances()
+      }, { 
+        playersCount: players.value.length, 
+        eventsCount: events.value.length 
+      })
+    })
     
     // Logs allégés
     // eslint-disable-next-line no-console
@@ -3715,6 +3755,17 @@ onMounted(async () => {
     await nextTick()
   loadingProgress.value = 100
   isLoadingGrid.value = false
+
+  // Terminer la mesure de performance globale de la grille
+  const totalGridLoadingTime = performanceService.end('grid_loading', {
+    playersCount: players.value.length,
+    eventsCount: events.value.length,
+    seasonId: seasonId.value
+  })
+  
+  // Afficher le résumé des performances dans la console
+  logger.info(`🚀 Grille chargée en ${totalGridLoadingTime.toFixed(2)}ms (${players.value.length} joueurs, ${events.value.length} événements)`)
+  performanceService.logSummary()
   nextTick(() => {
     // Recalcule immédiat + raf + délai pour capter les changements de layout (mobile)
     updateScrollHints()
@@ -5646,6 +5697,13 @@ onUnmounted(() => {
 })
 
 async function showEventDetails(event) {
+  // Démarrer la mesure de performance pour l'écran détail événement
+  performanceService.start('event_detail_loading', {
+    eventId: event.id,
+    eventTitle: event.title,
+    timestamp: new Date().toISOString()
+  })
+
   selectedEvent.value = event
   editingDescription.value = event.description || ''
   editingArchived.value = !!event.archived
@@ -5669,10 +5727,16 @@ async function showEventDetails(event) {
 
   // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
   try {
-    const [newAvailability, newSelections] = await Promise.all([
-      loadAvailability(players.value, events.value, seasonId.value),
-      loadCasts(seasonId.value)
-    ])
+    const [newAvailability, newSelections] = await performanceService.measureStep('event_detail_data_refresh', async () => {
+      return await Promise.all([
+        loadAvailability(players.value, events.value, seasonId.value),
+        loadCasts(seasonId.value)
+      ])
+    }, { 
+      eventId: event.id, 
+      playersCount: players.value.length, 
+      eventsCount: events.value.length 
+    })
     availability.value = newAvailability
     casts.value = newSelections
   } catch (e) {
@@ -5682,6 +5746,16 @@ async function showEventDetails(event) {
   // S'assurer que la modale s'ouvre après que les données soient assignées
   await nextTick()
   showEventDetailsModal.value = true
+
+  // Terminer la mesure de performance pour l'écran détail événement
+  const eventDetailLoadingTime = performanceService.end('event_detail_loading', {
+    eventId: event.id,
+    eventTitle: event.title,
+    playersCount: players.value.length,
+    eventsCount: events.value.length
+  })
+  
+  logger.info(`📋 Détail événement chargé en ${eventDetailLoadingTime.toFixed(2)}ms (${event.title})`)
   
   // Mettre à jour l'état de surveillance de l'événement
   nextTick(() => {

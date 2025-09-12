@@ -488,8 +488,13 @@ export async function updatePlayer(playerId, newName, seasonId, gender = null) {
 export async function loadAvailability(players, events, seasonId) {
   const availability = {}
   
-  // Charger les disponibilités pour chaque joueur
-  for (const player of players) {
+  // Mesurer le chargement des disponibilités
+  const startTime = performance.now()
+  logger.debug(`⏱️ Début du chargement PARALLÈLE des disponibilités pour ${players.length} joueurs`)
+  
+  // Créer toutes les promesses de chargement en parallèle
+  const availabilityPromises = players.map(async (player) => {
+    const playerStartTime = performance.now()
     try {
       const playerAvailabilityDocs = await firestoreService.getDocuments('seasons', seasonId, 'players', player.id, 'availability')
       const playerAvailability = {}
@@ -497,15 +502,45 @@ export async function loadAvailability(players, events, seasonId) {
         const { id, ...data } = doc
         playerAvailability[id] = data
       })
-      availability[player.name] = playerAvailability
+      
+      const playerDuration = performance.now() - playerStartTime
+      logger.debug(`⏱️ Joueur "${player.name}": ${playerDuration.toFixed(2)}ms (${playerAvailabilityDocs.length} disponibilités)`)
+      
+      return { playerName: player.name, playerAvailability, success: true }
     } catch (error) {
       // Si le joueur n'a pas de disponibilités, continuer
-      availability[player.name] = {}
+      const playerDuration = performance.now() - playerStartTime
+      logger.debug(`⏱️ Joueur "${player.name}": ${playerDuration.toFixed(2)}ms (erreur: ${error.message})`)
+      
+      return { playerName: player.name, playerAvailability: {}, success: false, error: error.message }
     }
+  })
+  
+  // Attendre que toutes les requêtes se terminent en parallèle
+  const results = await Promise.all(availabilityPromises)
+  
+  // Construire l'objet availability final
+  results.forEach(({ playerName, playerAvailability }) => {
+    availability[playerName] = playerAvailability
+  })
+  
+  const totalDuration = performance.now() - startTime
+  const totalAvailabilityCount = Object.values(availability).reduce((sum, playerAvail) => sum + Object.keys(playerAvail).length, 0)
+  const successCount = results.filter(r => r.success).length
+  const errorCount = results.filter(r => !r.success).length
+  
+  logger.info(`⏱️ Chargement PARALLÈLE des disponibilités terminé: ${totalDuration.toFixed(2)}ms (${players.length} joueurs, ${totalAvailabilityCount} disponibilités totales, ${successCount} succès, ${errorCount} erreurs)`)
+  
+  // Log de performance pour le debug
+  if (totalDuration > 200) {
+    logger.warn(`⚠️ Chargement des disponibilités lent: ${totalDuration.toFixed(2)}ms (${players.length} joueurs)`)
+  } else {
+    logger.debug(`✅ Chargement des disponibilités rapide: ${totalDuration.toFixed(2)}ms`)
   }
   
   return availability
 }
+
 
 export async function loadCasts(seasonId) {
   const compositionsDocs = await firestoreService.getDocuments('seasons', seasonId, 'casts')
