@@ -42,8 +42,17 @@ export function getPlayerCastStatus(cast, playerName, players) {
     return 'pending'
   }
   
-  // Trouver l'ID du joueur
-  const player = players.find(p => p.name === playerName)
+  // Trouver l'ID du joueur avec une recherche plus robuste
+  let player = players.find(p => p.name === playerName)
+  
+  // Si pas trouvé, essayer une recherche insensible à la casse et aux espaces
+  if (!player) {
+    player = players.find(p => 
+      p.name && playerName && 
+      p.name.trim().toLowerCase() === playerName.trim().toLowerCase()
+    )
+  }
+  
   if (!player) {
     return 'pending'
   }
@@ -74,8 +83,17 @@ export function getPlayerCastRole(cast, playerName, players) {
     return null
   }
   
-  // Trouver l'ID du joueur
-  const player = players.find(p => p.name === playerName)
+  // Trouver l'ID du joueur avec une recherche plus robuste
+  let player = players.find(p => p.name === playerName)
+  
+  // Si pas trouvé, essayer une recherche insensible à la casse et aux espaces
+  if (!player) {
+    player = players.find(p => 
+      p.name && playerName && 
+      p.name.trim().toLowerCase() === playerName.trim().toLowerCase()
+    )
+  }
+  
   if (!player) {
     return null
   }

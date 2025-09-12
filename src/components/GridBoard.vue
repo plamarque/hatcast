@@ -4714,8 +4714,17 @@ function isSelected(player, eventId) {
     return false
   }
   
-  // Trouver l'ID du joueur
-  const playerObj = players.value.find(p => p.name === player)
+  // Trouver l'ID du joueur avec une recherche plus robuste
+  let playerObj = players.value.find(p => p.name === player)
+  
+  // Si pas trouvé, essayer une recherche insensible à la casse et aux espaces
+  if (!playerObj) {
+    playerObj = players.value.find(p => 
+      p.name && player && 
+      p.name.trim().toLowerCase() === player.trim().toLowerCase()
+    )
+  }
+  
   if (!playerObj) {
     return false
   }
