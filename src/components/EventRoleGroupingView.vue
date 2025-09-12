@@ -103,13 +103,13 @@
                   : (player.gender === 'female' ? 'Sélectionnée' : player.gender === 'male' ? 'Sélectionné' : 'Sélectionné·e') }}
               </span>
               
-              <!-- Pourcentage de chance -->
-              <span 
-                v-if="chances[player.name]?.[selectedEvent.id] !== null && chances[player.name]?.[selectedEvent.id] !== undefined"
+              <!-- Pourcentage de chance - temporairement masqué -->
+              <!-- <span 
+                v-if="getPlayerChanceForRole(player.name, role, selectedEvent.id) !== null"
                 class="px-2 py-1 rounded text-xs font-medium bg-purple-600/20 text-purple-400 border border-purple-600/30"
               >
-                {{ chances[player.name]?.[selectedEvent.id] }}%
-              </span>
+                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) }}%
+              </span> -->
             </div>
           </div>
 
@@ -136,6 +136,7 @@ import {
   ROLE_EMOJIS, 
   ROLE_LABELS_SINGULAR, 
   ROLE_DISPLAY_ORDER,
+  ROLE_PRIORITY_ORDER,
   getRoleLabel 
 } from '../services/storage.js'
 
@@ -236,6 +237,10 @@ const props = defineProps({
   isSelectionComplete: {
     type: Function,
     required: true
+  },
+  getPlayerRoleChances: {
+    type: Function,
+    required: true
   }
 })
 
@@ -245,7 +250,7 @@ const emit = defineEmits(['close'])
 const availableRoles = computed(() => {
   if (!props.selectedEvent?.roles) return []
   
-  return ROLE_DISPLAY_ORDER.filter(role => {
+  return ROLE_PRIORITY_ORDER.filter(role => {
     const count = props.selectedEvent.roles[role] || 0
     return count > 0
   })
@@ -284,6 +289,13 @@ function getPlayersForRole(role) {
   return props.players.filter(player => {
     return props.isAvailableForRole(player.name, role, props.selectedEvent.id)
   })
+}
+
+function getPlayerChanceForRole(playerName, role, eventId) {
+  // Utiliser toujours les chances par rôle pour tous les rôles
+  // Cela garantit que les pourcentages correspondent à l'algorithme de tirage
+  const roleChances = props.getPlayerRoleChances(eventId)
+  return roleChances[playerName]?.[role] ?? null
 }
 
 function getRoleStatusClass(role) {

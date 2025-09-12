@@ -972,6 +972,7 @@
           :open-availability-modal="openAvailabilityModal"
           :is-available-for-role="isAvailableForRole"
           :is-selection-complete="isSelectionComplete"
+          :get-player-role-chances="getPlayerRoleChances"
         />
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
@@ -5146,6 +5147,26 @@ function countSelections(player) {
   }).length
 }
 
+// Nouvelle fonction pour compter les sélections par rôle spécifique
+function countSelectionsForRole(player, role) {
+  return Object.keys(casts.value).filter(eventId => {
+    const cast = casts.value[eventId]
+    if (!cast) return false
+    
+    // Nouvelle structure multi-rôles
+    if (cast.roles && cast.roles[role]) {
+      return cast.roles[role].includes(player)
+    }
+    
+    // Ancienne structure (tous considérés comme "player")
+    if (role === 'player' && Array.isArray(cast)) {
+      return cast.includes(player)
+    }
+    
+    return false
+  }).length
+}
+
 function countAvailability(player) {
   const eventsMap = availability.value[player] || {}
   return Object.values(eventsMap).filter(v => v === true).length
@@ -6802,12 +6823,12 @@ function getPlayerRoleChances(eventId) {
     
     if (availablePlayers.length === 0) return
     
-    // Calculer les poids basés sur le nombre de compositions déjà faites
+    // Calculer les poids basés sur le nombre de compositions déjà faites POUR CE RÔLE SPÉCIFIQUE
     const weights = availablePlayers.map(player => {
-      const pastSelections = countSelections(player.name)
+      const pastSelectionsForThisRole = countSelectionsForRole(player.name, role)
       return {
         name: player.name,
-        weight: 1 / (1 + pastSelections)
+        weight: 1 / (1 + pastSelectionsForThisRole)
       }
     })
     
