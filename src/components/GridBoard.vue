@@ -403,48 +403,6 @@
     </div>
   </div>
 
-  <!-- Skeleton loader pour mobile - affiché immédiatement -->
-  <div v-if="isLoadingGrid && isMobile" class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-    <div class="text-center p-4 text-white">
-      <p>📱 SKELETON MOBILE ACTIF</p>
-      <p>isLoadingGrid: {{ isLoadingGrid }}</p>
-      <p>isMobile: {{ isMobile }}</p>
-    </div>
-    <!-- Header skeleton -->
-    <div class="h-16 bg-gray-800/50 animate-pulse"></div>
-    
-    <!-- Grid skeleton -->
-    <div class="p-4 space-y-4">
-      <!-- Events header skeleton -->
-      <div class="h-12 bg-gray-800/30 rounded-lg animate-pulse"></div>
-      
-      <!-- Players skeleton -->
-      <div class="space-y-2">
-        <div v-for="i in 8" :key="i" class="h-8 bg-gray-800/20 rounded animate-pulse"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Skeleton de fallback - toujours visible pendant le chargement -->
-  <div v-if="isLoadingGrid" class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 md:hidden">
-    <div class="text-center p-4 text-white">
-      <p>📱 SKELETON FALLBACK</p>
-      <p>isLoadingGrid: {{ isLoadingGrid }}</p>
-    </div>
-    <!-- Header skeleton -->
-    <div class="h-16 bg-gray-800/50 animate-pulse"></div>
-    
-    <!-- Grid skeleton -->
-    <div class="p-4 space-y-4">
-      <!-- Events header skeleton -->
-      <div class="h-12 bg-gray-800/30 rounded-lg animate-pulse"></div>
-      
-      <!-- Players skeleton -->
-      <div class="space-y-2">
-        <div v-for="i in 8" :key="i" class="h-8 bg-gray-800/20 rounded animate-pulse"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- Indicateur de chargement progressif (en bas à droite) -->
   <div v-if="isProgressiveLoading" class="fixed bottom-4 right-4 z-[100] bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg p-4 shadow-xl">
@@ -1074,6 +1032,7 @@
 
   <!-- Composant de debug des performances -->
   <PerformanceDebug v-if="performanceService.isEnabled" />
+
 
   <!-- Modal de vérification du mot de passe pour joueur protégé -->
   <PasswordVerificationModal
@@ -3681,18 +3640,8 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
 
 // Initialiser les données au montage
 onMounted(async () => {
-  // Détecter si on est sur mobile (plus robuste)
-  const checkMobile = () => {
-    const width = window.innerWidth
-    const isMobileDevice = width < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    isMobile.value = isMobileDevice
-    console.log('📱 Détection mobile:', isMobile.value, 'Largeur:', width, 'UserAgent:', navigator.userAgent)
-  }
-  
-  checkMobile()
-  
-  // Écouter les changements de taille d'écran
-  window.addEventListener('resize', checkMobile)
+  // Détecter si on est sur mobile (simplifié)
+  isMobile.value = window.innerWidth < 768
   
   // Démarrer la mesure de performance globale de la grille
   performanceService.start('grid_loading', {
@@ -3776,6 +3725,7 @@ onMounted(async () => {
       
       // Interrompre le loading principal et afficher la grille IMMÉDIATEMENT
       isLoadingGrid.value = false
+      
       
       // Forcer le rendu immédiat pour mobile
       if (isMobile.value) {

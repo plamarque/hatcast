@@ -44,7 +44,7 @@ onMounted(async () => {
     const user = await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Timeout Firebase Auth'))
-      }, 3000) // 3 secondes max
+      }, 1000) // 1 seconde max pour mobile
       
       const unsubscribe = auth.onAuthStateChanged((user) => {
         clearTimeout(timeout)
