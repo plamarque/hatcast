@@ -1,7 +1,17 @@
-## [0.11.0] - 2025-09-11
+## [0.12.0] - 2025-09-12
 
 ### ✨ New Features
 
+- feat: implement role-specific selection penalties and improve role-based view
+- feat: add role-based event detail view and fix gender display
+- feat: make view toggle visible for all users
+- feat: optimize mobile performance and remove skeleton code
+- feat: widen player name column on mobile
+- feat: implement progressive loading with performance optimization
+- feat: optimize grid loading performance with parallel availability loading
+- feat: add optional location field to events with Google Maps integration
+- feat: enhance calendar integration with confirmed team and event details
+- feat: improve changelog prompt for more user-focused style
 - feat: add migration script for selections to casts
 - feat: improve template type handling and customization protection
 - feat: allow manual slot filling in locked selections
@@ -30,6 +40,9 @@
 
 ### 🐛 Bug Fixes
 
+- fix: improve player lookup robustness in inverted mode
+- fix: correct inverted grid display and click handlers
+- fix: increase NotificationPromptModal z-index to display above EventDetailsModal
 - fix: harmonize slot colors and fix declined player detection
 - fix: correct slot management and status updates in selection modal
 - fix: encode player names for Firestore field paths
@@ -85,6 +98,7 @@
 
 ### 📝 Other Changes
 
+- chore: bump version to 0.11.0 for production release
 - chore: remove polluting debug logs from GridBoard
 - chore: add dotenv dependency for debug scripts
 - chore: bump version to 0.10.0 for production release
@@ -102,6 +116,7 @@
 
 # Changelog
 
+## [0.12.0] - 2025-09-12
 ## [0.11.0] - 2025-09-11
 ## [0.10.0] - 2025-09-10
 ## [0.9.4] - 2025-09-09
