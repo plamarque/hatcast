@@ -6,6 +6,8 @@
       :is-scrolled="isScrolled"
       :season-slug="props.slug"
       :is-connected="!!currentUser?.email"
+      :show-view-toggle="showViewToggle"
+      :current-view-mode="currentViewMode"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -16,8 +18,10 @@
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
       @open-development="openDevelopment"
+      @toggle-view-mode="toggleViewMode"
     />
 
+    <!-- Vue grille (classique ou inversée) -->
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900/80 backdrop-blur-sm">
@@ -55,59 +59,113 @@
 
             </div>
           </div>
-          <!-- Event headers -->
+          <!-- Headers (événements en mode normal, joueurs en mode inversé) -->
           <div class="flex-1 overflow-hidden">
             <div ref="headerEventsRef" class="flex relative z-[60] bg-transparent" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
-                v-for="event in displayedEvents"
-                :key="'h-'+event.id"
-                :data-event-id="event.id"
+                v-for="(headerItem, index) in displayColumns"
+                :key="'h-'+headerItem.id"
+                :data-event-id="currentViewMode === 'normal' ? headerItem.id : undefined"
+                :data-player-id="currentViewMode === 'inverted' ? headerItem.id : undefined"
                 class="col-event flex-shrink-0 p-3 text-center flex flex-col justify-between bg-transparent"
-                :class="{ 'archived-header': event.archived }"
+                :class="{ 
+                  'archived-header': currentViewMode === 'normal' && headerItem.archived,
+                  'preferred-player-header': currentViewMode === 'inverted' && preferredPlayerIdsSet.has(headerItem.id)
+                }"
               >
-                <!-- Zone cliquable principale (titre + date) -->
-                <div 
-                  class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24"
-                  :title="event.title + ' - Cliquez pour voir les détails'"
-                  @click.stop="showEventDetails(event)"
-                >
-                  <div class="flex flex-col items-center flex-1 justify-center">
-                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
-                      {{ event.title || 'Sans titre' }}
+                <!-- Mode normal : affichage des événements -->
+                <div v-if="currentViewMode === 'normal'">
+                  <!-- Zone cliquable complète (titre + date + type) -->
+                  <div 
+                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
+                    :title="headerItem.title + ' - Cliquez pour voir les détails'"
+                    @click.stop="showEventDetails(headerItem)"
+                  >
+                    <div class="flex flex-col items-center flex-1 justify-center w-full">
+                      <!-- Ligne 1 : Titre du spectacle -->
+                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
+                        {{ headerItem.title || 'Sans titre' }}
+                      </div>
+                      
+                      <!-- Ligne 2 : Date du spectacle -->
+                      <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
+                           :title="formatDateFull(headerItem.date)">
+                        {{ formatDate(headerItem.date) }}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div class="relative">
-                    <div 
-                      class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
-                      :title="formatDateFull(event.date)"
-                    >
-                      {{ formatDate(event.date) }}
+                    
+                    <!-- Section basse : badge de type d'événement -->
+                    <div class="flex flex-col items-center mt-2">
+                      <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                      <div 
+                        v-if="headerItem.archived"
+                        class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
+                        title="Événement archivé"
+                      >
+                        <span class="text-xs text-gray-300 font-medium">📁</span>
+                        <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                      </div>
+                      
+                      <!-- Badge de type d'événement (seulement si pas archivé) -->
+                      <div 
+                        v-else-if="headerItem.roles"
+                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
+                        :title="getEventTypeName(headerItem)"
+                      >
+                        <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
+                        <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                <!-- Section basse : badge de type d'événement -->
-                <div class="flex flex-col items-center mt-2">
-                  
-                  <!-- Indicateur de statut archivé (priorité sur les autres) -->
+
+                <!-- Mode inversé : affichage des joueurs -->
+                <div v-else>
+                  <!-- Zone cliquable complète (avatar + nom + badges) -->
                   <div 
-                    v-if="event.archived"
-                    class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
-                    title="Événement archivé"
+                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
+                    :title="headerItem.name + ' - Cliquez pour voir les détails'"
+                    @click.stop="showPlayerDetails(headerItem)"
                   >
-                    <span class="text-xs text-gray-300 font-medium">📁</span>
-                    <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
-                  </div>
-                  
-                  <!-- Badge de type d'événement (seulement si pas archivé) -->
-                  <div 
-                    v-else-if="event.roles"
-                    class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
-                    :title="getEventTypeName(event)"
-                  >
-                    <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(event) }}</span>
-                    <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(event) }}</span>
+                    <div class="flex flex-col items-center flex-1 justify-center w-full">
+                      <!-- Avatar sur la première ligne -->
+                      <div class="mb-2">
+                        <PlayerAvatar 
+                          :player-id="headerItem.id"
+                          :season-id="seasonId"
+                          :player-name="headerItem.name"
+                          :player-gender="headerItem.gender || 'non-specified'"
+                          size="sm"
+                        />
+                      </div>
+                      <!-- Nom sur la deuxième ligne -->
+                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
+                        {{ headerItem.name }}
+                      </div>
+                    </div>
+                    
+                    <!-- Section basse : badges de statut du joueur -->
+                    <div class="flex flex-col items-center mt-2">
+                      <!-- Badge joueur favori -->
+                      <div 
+                        v-if="preferredPlayerIdsSet.has(headerItem.id)"
+                        class="px-2 py-1 bg-yellow-500/20 border border-yellow-400/30 rounded-md mx-auto flex items-center justify-center"
+                        title="Ma personne"
+                      >
+                        <span class="text-xs text-yellow-300 font-medium">⭐</span>
+                        <span class="text-xs text-yellow-200 font-medium ml-1">Moi</span>
+                      </div>
+                      
+                      <!-- Badge joueur protégé -->
+                      <div 
+                        v-else-if="isPlayerProtectedInGrid(headerItem.id)"
+                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
+                        title="Personne protégée par mot de passe"
+                      >
+                        <span class="text-xs text-gray-300 font-medium">🔒</span>
+                        <span class="text-xs text-gray-200 font-medium ml-1">Protégé</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -269,84 +327,138 @@
         <table class="table-auto border-separate border-spacing-0 table-fixed w-auto min-w-max">
           <colgroup>
             <col class="col-left" />
-            <col v-for="(event, index) in displayedEvents" :key="'c'+index" class="col-event" />
+            <col v-for="(item, index) in displayColumns" :key="'c'+index" class="col-event" />
             <col class="col-right" />
           </colgroup>
           <thead class="hidden"></thead>
           <tbody>
             <tr
-              v-for="player in sortedPlayers"
-              :key="player.id"
+              v-for="(rowItem, index) in displayRows"
+              :key="currentViewMode === 'inverted' ? rowItem.id : rowItem.id"
               class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
-              :data-player-id="player.id"
-              :class="{ 'highlighted-player': player.id === highlightedPlayer, 'preferred-player': preferredPlayerIdsSet.has(player.id) }"
+              :data-player-id="currentViewMode === 'normal' ? rowItem.id : undefined"
+              :data-event-id="currentViewMode === 'inverted' ? rowItem.id : undefined"
+              :class="{ 
+                'highlighted-player': currentViewMode === 'normal' && rowItem.id === highlightedPlayer, 
+                'preferred-player': currentViewMode === 'normal' && preferredPlayerIdsSet.has(rowItem.id) 
+              }"
             >
               <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
+                  <!-- Mode normal : affichage des joueurs -->
                   <div 
-                    @click="showPlayerDetails(player)" 
+                    v-if="currentViewMode === 'normal'"
+                    @click="showPlayerDetails(rowItem)" 
                     class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group"
-                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
-                    :title="'Cliquez pour voir les détails : ' + player.name"
+                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
+                    :title="'Cliquez pour voir les détails : ' + rowItem.name"
                   >
                     <div class="flex items-center gap-2">
                       <div class="relative">
                         <PlayerAvatar 
-                          :player-id="player.id"
+                          :player-id="rowItem.id"
                           :season-id="seasonId"
-                          :player-name="player.name"
-                          :player-gender="player.gender || 'non-specified'"
+                          :player-name="rowItem.name"
+                          :player-gender="rowItem.gender || 'non-specified'"
                           size="sm"
                         />
                         <!-- Superposed status icons -->
                         <span 
-                          v-if="preferredPlayerIdsSet.has(player.id)"
+                          v-if="preferredPlayerIdsSet.has(rowItem.id)"
                           class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
                           title="Ma personne"
                         >
                           ⭐
                         </span>
                         <span 
-                          v-else-if="isPlayerProtectedInGrid(player.id)"
+                          v-else-if="isPlayerProtectedInGrid(rowItem.id)"
                           class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          :title="preferredPlayerIdsSet.has(player.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
+                          :title="preferredPlayerIdsSet.has(rowItem.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
                         >
                           🔒
                         </span>
                       </div>
-                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ player.name }}</span>
+                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ rowItem.name }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Mode inversé : affichage des événements -->
+                  <div 
+                    v-else
+                    @click.stop="showEventDetails(rowItem)" 
+                    class="event-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block max-w-full flex-1 min-w-0 group w-full"
+                    :title="'Cliquez pour voir les détails : ' + rowItem.title"
+                  >
+                    <div class="flex flex-col items-center gap-2 w-full">
+                      <!-- Ligne 1 : Titre du spectacle -->
+                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ rowItem.title || 'Sans titre' }}
+                      </div>
+                      
+                      <!-- Ligne 2 : Date du spectacle -->
+                      <div class="text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
+                           :title="formatDateFull(rowItem.date)">
+                        {{ formatDate(rowItem.date) }}
+                      </div>
+                      
+                      <!-- Ligne 3 : Badge de type d'événement -->
+                      <div class="flex flex-col items-center">
+                        <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                        <div 
+                          v-if="rowItem.archived"
+                          class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
+                          title="Événement archivé"
+                        >
+                          <span class="text-xs text-gray-300 font-medium">📁</span>
+                          <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                        </div>
+                        
+                        <!-- Badge de type d'événement (seulement si pas archivé) -->
+                        <div 
+                          v-else-if="rowItem.roles"
+                          class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
+                          :title="getEventTypeName(rowItem)"
+                        >
+                          <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(rowItem) }}</span>
+                          <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(rowItem) }}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </td>
 
               <td
-                v-for="event in displayedEvents"
-                :key="event.id"
-                :data-event-id="event.id"
+                v-for="(columnItem, colIndex) in displayColumns"
+                :key="columnItem.id"
+                :data-event-id="currentViewMode === 'normal' ? columnItem.id : undefined"
+                :data-player-id="currentViewMode === 'inverted' ? columnItem.id : undefined"
                 :class="[
                   'p-0',
-                  event.archived ? 'archived-col' : '',
-                  { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && player.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && event.id === (guidedEventId || (displayedEvents[0]?.id)) }
+                  currentViewMode === 'normal' && columnItem.archived ? 'archived-col' : '',
+                  { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && columnItem.id === (guidedEventId || (displayedEvents[0]?.id)) }
                 ]"
               >
                 <AvailabilityCell
-                  :player-name="player.name"
-                  :event-id="event.id"
-                  :is-available="isAvailable(player.name, event.id)"
-                  :is-selected="isSelected(player.name, event.id)"
-                  :is-selection-confirmed="isSelectionConfirmed(event.id)"
-                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-                  :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
+                  :player-name="currentViewMode === 'normal' ? rowItem.name : columnItem.name"
+                  :event-id="currentViewMode === 'normal' ? columnItem.id : rowItem.id"
+                  :is-available="currentViewMode === 'normal' ? isAvailable(rowItem.name, columnItem.id) : isAvailable(columnItem.name, rowItem.id)"
+                  :is-selected="currentViewMode === 'normal' ? isSelected(rowItem.name, columnItem.id) : isSelected(columnItem.name, rowItem.id)"
+                  :is-selection-confirmed="currentViewMode === 'normal' ? isSelectionConfirmed(columnItem.id) : isSelectionConfirmed(rowItem.id)"
+                  :is-selection-confirmed-by-organizer="currentViewMode === 'normal' ? isSelectionConfirmedByOrganizer(columnItem.id) : isSelectionConfirmedByOrganizer(rowItem.id)"
+                  :player-selection-status="currentViewMode === 'normal' ? getPlayerSelectionStatus(rowItem.name, columnItem.id) : getPlayerSelectionStatus(columnItem.name, rowItem.id)"
                   :season-id="seasonId"
-                  :chance-percent="chances[player.name]?.[event.id] ?? null"
-                  :show-selected-chance="isSelectionComplete(event.id)"
-                  :disabled="event.archived === true"
-                  :availability-data="getAvailabilityData(player.name, event.id)"
-                  :event-title="event.title"
-                  :event-date="event.date"
-                  :is-protected="isPlayerProtectedInGrid(player.id)"
-                  :player-gender="player.gender || 'non-specified'"
+                  :chance-percent="currentViewMode === 'normal' ? (chances[rowItem.name]?.[columnItem.id] ?? null) : (chances[columnItem.name]?.[rowItem.id] ?? null)"
+                  :show-selected-chance="currentViewMode === 'normal' ? isSelectionComplete(columnItem.id) : isSelectionComplete(rowItem.id)"
+                  :disabled="currentViewMode === 'normal' ? (columnItem.archived === true) : (rowItem.archived === true)"
+                  :availability-data="currentViewMode === 'normal' ? getAvailabilityData(rowItem.name, columnItem.id) : getAvailabilityData(columnItem.name, rowItem.id)"
+                  :event-title="currentViewMode === 'normal' ? columnItem.title : rowItem.title"
+                  :event-date="currentViewMode === 'normal' ? columnItem.date : rowItem.date"
+                  :is-protected="currentViewMode === 'normal' ? isPlayerProtectedInGrid(rowItem.id) : isPlayerProtectedInGrid(columnItem.id)"
+                  :player-gender="currentViewMode === 'normal' ? (rowItem.gender || 'non-specified') : (columnItem.gender || 'non-specified')"
+                  :is-loading="currentViewMode === 'normal' ? isPlayerLoading(rowItem.id) : isPlayerLoading(columnItem.id)"
+                  :is-loaded="currentViewMode === 'normal' ? isPlayerAvailabilityLoaded(rowItem.id) : isPlayerAvailabilityLoaded(columnItem.id)"
+                  :is-error="currentViewMode === 'normal' ? isPlayerError(rowItem.id) : isPlayerError(columnItem.id)"
                   @toggle="toggleAvailability"
                   @toggle-selection-status="handlePlayerSelectionStatusToggle"
                   @show-availability-modal="openAvailabilityModal"
@@ -400,6 +512,25 @@
     </div>
   </div>
 
+
+  <!-- Indicateur de chargement progressif (en bas à droite) -->
+  <div v-if="isProgressiveLoading" class="fixed bottom-4 right-4 z-[100] bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg p-4 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1">
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+      </div>
+      <div class="text-white text-sm">
+        <div class="font-medium">Chargement des disponibilités</div>
+        <div class="text-xs text-gray-400">{{ loadedPlayersCount }}/{{ totalPlayersCount }} joueurs ({{ availabilityLoadingProgress }}%)</div>
+      </div>
+      <div class="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300" :style="{ width: availabilityLoadingProgress + '%' }"></div>
+      </div>
+    </div>
+  </div>
+
   <CreatorOnboardingModal
     v-if="!isLoadingGrid && seasonMeta"
     :season-id="seasonId"
@@ -439,6 +570,7 @@
       <span>{{ errorMessage }}</span>
     </div>
   </div>
+
 
   <!-- Modales -->
   <EventModal
@@ -622,6 +754,20 @@
                <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
              </div>
              
+             <!-- Lieu sur sa propre ligne si défini -->
+             <div v-if="selectedEvent?.location" class="mb-3">
+               <a 
+                 :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="text-sm text-blue-300 hover:text-blue-200 flex items-center gap-2 transition-colors duration-200 cursor-pointer"
+                 :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+               >
+                 <span>📍</span>
+                 <span class="underline">{{ selectedEvent.location }}</span>
+               </a>
+             </div>
+             
              <!-- Boutons agenda, partage et notifications sur la même ligne -->
              <div class="flex items-center gap-3 mb-3 pl-0 md:pl-0">
                <div class="relative">
@@ -799,161 +945,35 @@
           </div>
         </div>
 
-        <!-- Section des disponibilités des joueurs (style allégé, sans filtres) -->
-        <div v-if="selectedEvent" class="mb-4 md:mb-6">
-          <!-- Alerte + Badge statut -->
-          <div class="mb-3 flex items-center gap-3">
-            <!-- Message redondant supprimé - la raison est maintenant dans le tooltip du badge -->
-          </div>
-
-          <!-- Liste des joueurs (2 par ligne sur mobile, 3 sur desktop) - Toutes les personnes qui ont répondu -->
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-            <div
-              v-for="player in sortedPlayers"
-              :key="player.id"
-              :class="showRoleChances 
-                ? 'flex flex-col px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'
-                : 'flex items-center justify-center gap-3 px-3 py-2 rounded-md hover:bg-gray-800/40 transition-colors'"
-            >
-              <!-- Mode disponibilités : layout vertical pour avatar/nom, horizontal avec cellule -->
-              <template v-if="!showRoleChances">
-                <div class="flex flex-col items-center gap-1 flex-1 min-w-0">
-                  <!-- Avatar du joueur -->
-                  <div class="relative flex-shrink-0">
-                    <PlayerAvatar 
-                      :player-id="player.id"
-                      :season-id="seasonId"
-                      :player-name="player.name"
-                      :player-gender="player.gender || 'non-specified'"
-                      size="sm"
-                    />
-                    <!-- Statuts superposés -->
-                    <span
-                      v-if="preferredPlayerIdsSet.has(player.id)"
-                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                      title="Ma personne"
-                    >
-                      ⭐
-                    </span>
-                    <span
-                      v-else-if="isPlayerProtectedInGrid(player.id)"
-                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                      title="Personne protégée par mot de passe"
-                    >
-                      🔒
-                    </span>
-                  </div>
-                  <!-- Nom du joueur -->
-                  <span
-                    class="text-white text-sm md:text-base text-center block flex-1 min-w-0"
-                    :title="player.name"
-                  >
-                    {{ player.name }}
-                  </span>
-                </div>
-
-                <div class="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center">
-                  <div class="w-full h-full flex items-center justify-center">
-                    <AvailabilityCell
-                      :player-name="player.name"
-                      :event-id="selectedEvent.id"
-                      :is-available="isAvailable(player.name, selectedEvent.id)"
-                      :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                      :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                      :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                      :season-id="seasonId"
-                      :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                      :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                      :disabled="selectedEvent?.archived === true"
-                      :compact="true"
-                      :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                      :event-title="selectedEvent.title"
-                      :event-date="selectedEvent.date"
-                      :is-protected="isPlayerProtectedInGrid(player.id)"
-                      :player-gender="player.gender || 'non-specified'"
-                      @toggle="handleAvailabilityToggle"
-                      @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                      @show-availability-modal="openAvailabilityModal"
-                    />
-                  </div>
-                </div>
-              </template>
-
-              <!-- Mode pourcentages : layout vertical -->
-              <template v-else>
-                <!-- Ligne du nom et avatar -->
-                <div class="flex items-center gap-2 mb-1">
-                  <!-- Avatar du joueur -->
-                  <div class="relative flex-shrink-0">
-                    <PlayerAvatar 
-                      :player-id="player.id"
-                      :season-id="seasonId"
-                      :player-name="player.name"
-                      :player-gender="player.gender || 'non-specified'"
-                      size="sm"
-                    />
-                    <!-- Statuts superposés -->
-                    <span
-                      v-if="preferredPlayerIdsSet.has(player.id)"
-                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                      title="Ma personne"
-                    >
-                      ⭐
-                    </span>
-                    <span
-                      v-else-if="isPlayerProtectedInGrid(player.id)"
-                      class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                      title="Personne protégée par mot de passe"
-                    >
-                      🔒
-                    </span>
-                  </div>
-                  <!-- Nom du joueur -->
-                  <span
-                    class="text-white text-sm md:text-base block flex-1 min-w-0"
-                    :title="player.name"
-                  >
-                    {{ player.name }}
-                  </span>
-                </div>
-
-                <!-- Ligne des pourcentages -->
-                <div class="flex justify-end">
-                  <div class="flex flex-col items-end gap-1">
-                    <!-- Pourcentages par rôle (seulement pour les rôles choisis par le joueur) -->
-                    <div v-if="getPlayerSelectedRoleChances(player.name, selectedEvent.id).length > 0" class="flex flex-wrap gap-1 justify-end">
-                      <span
-                        v-for="roleChance in getPlayerSelectedRoleChances(player.name, selectedEvent.id)"
-                        :key="roleChance.role"
-                        class="text-[10px] px-1.5 py-0.5 rounded-full border text-center"
-                        :class="{
-                          'bg-emerald-500/20 border-emerald-400/30 text-emerald-200': roleChance.role === 'player',
-                          'bg-purple-500/20 border-purple-400/30 text-purple-200': roleChance.role === 'dj',
-                          'bg-pink-500/20 border-pink-400/30 text-pink-200': roleChance.role === 'mc',
-                          'bg-orange-500/20 border-orange-400/30 text-orange-200': roleChance.role === 'volunteer',
-                          'bg-yellow-500/20 border-yellow-400/30 text-yellow-200': roleChance.role === 'referee',
-                          'bg-green-500/20 border-green-400/30 text-green-200': roleChance.role === 'assistant_referee',
-                          'bg-blue-500/20 border-blue-400/30 text-blue-200': roleChance.role === 'lighting',
-                          'bg-indigo-500/20 border-indigo-400/30 text-indigo-200': roleChance.role === 'coach',
-                          'bg-gray-500/20 border-gray-400/30 text-white': roleChance.role === 'stage_manager'
-                        }"
-                        :title="`~${roleChance.chance}% de chances d'être sélectionné comme ${ROLE_LABELS[roleChance.role] || roleChance.role}`"
-                      >
-                        {{ ROLE_EMOJIS[roleChance.role] || '🎭' }} {{ roleChance.chance }}%
-                      </span>
-                    </div>
-                    
-                    <!-- Message si aucun rôle choisi -->
-                    <div v-else class="text-xs text-gray-500 italic">
-                      Aucun rôle choisi
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
+        <!-- Nouvelle vue par rôles -->
+        <EventRoleGroupingView
+          v-if="selectedEvent"
+          :selected-event="selectedEvent"
+          :season-id="seasonId"
+          :players="players"
+          :availability="availability"
+          :casts="casts"
+          :chances="chances"
+          :preferred-player-ids-set="preferredPlayerIdsSet"
+          :is-available="isAvailable"
+          :is-player-selected="isPlayerSelected"
+          :is-selection-confirmed="isSelectionConfirmed"
+          :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+          :get-player-selection-status="getPlayerSelectionStatus"
+          :get-availability-data="getAvailabilityData"
+          :is-player-protected-in-grid="isPlayerProtectedInGrid"
+          :is-player-loading="isPlayerLoading"
+          :is-player-availability-loaded="isPlayerAvailabilityLoaded"
+          :is-player-error="isPlayerError"
+          :get-event-status="getEventStatus"
+          :get-event-tooltip="getEventTooltip"
+          :handle-availability-toggle="handleAvailabilityToggle"
+          :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle"
+          :open-availability-modal="openAvailabilityModal"
+          :is-available-for-role="isAvailableForRole"
+          :is-selection-complete="isSelectionComplete"
+          :get-player-role-chances="getPlayerRoleChances"
+        />
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
       </div>
@@ -990,6 +1010,9 @@
 
   <!-- Footer principal -->
   <AppFooter @open-help="goToHelpPage" />
+
+  <!-- Composant de debug des performances -->
+  <PerformanceDebug v-if="performanceService.isEnabled" />
 
 
   <!-- Modal de vérification du mot de passe pour joueur protégé -->
@@ -1512,8 +1535,8 @@
     background: rgba(100,116,139,0.08); /* extra veil */
     pointer-events: none;
   }
-.col-left { width: 12rem; }
-.col-event { width: 14rem; background: transparent !important; }
+.col-left { width: 13rem; }
+.col-event { width: 12.5rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
@@ -1534,9 +1557,9 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 10.5rem; }
-  .col-event { width: 11.5rem; }
-  .left-col-td { width: 10.5rem; max-width: 10.5rem; min-width: 10.5rem; }
+  .col-left { width: 13rem; }
+  .col-event { width: 10.5rem; }
+  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
@@ -1654,6 +1677,7 @@ import pinSessionManager from '../services/pinSession.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
+import performanceService from '../services/performanceService.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import PasswordResetModal from './PasswordResetModal.vue'
@@ -1676,9 +1700,11 @@ import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import EventRoleGroupingView from './EventRoleGroupingView.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
+import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 
 // Déclarer les props
@@ -1770,6 +1796,10 @@ const seasonMeta = ref({})
 
 // État du scroll pour le header sticky
 const isScrolled = ref(false)
+
+// État de la vue (normal ou inversée)
+const currentViewMode = ref('normal')
+const showViewToggle = ref(false)
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -2109,6 +2139,27 @@ async function openPreferences() {
     console.warn('Erreur audit modal:', auditError)
   }
 }
+
+// Fonction d'initialisation du mode de vue
+function initializeViewMode() {
+  if (currentUser.value?.email) {
+    // Pour les utilisateurs connectés, commencer en mode inversé
+    currentViewMode.value = 'inverted'
+    showViewToggle.value = true
+    logger.debug('✅ Mode de vue initialisé: inversé (utilisateur connecté)')
+  } else {
+    // Utilisateur non connecté - toggle visible mais mode normal par défaut
+    currentViewMode.value = 'normal'
+    showViewToggle.value = true
+    logger.debug('✅ Toggle visible pour utilisateur non connecté, mode normal par défaut')
+  }
+}
+
+// Fonction de basculement de vue
+function toggleViewMode() {
+  currentViewMode.value = currentViewMode.value === 'normal' ? 'inverted' : 'normal'
+  logger.debug(`Mode de vue changé vers: ${currentViewMode.value}`)
+}
 function closePreferences() { 
   showPreferences.value = false 
 }
@@ -2401,7 +2452,8 @@ onMounted(async () => {
   }
   window.addEventListener('scroll', handleScroll, { passive: true })
   
-  
+  // Initialiser le mode de vue pour les utilisateurs connectés
+  initializeViewMode()
   
   // Retourner la fonction de cleanup
   return () => {
@@ -2431,6 +2483,17 @@ const isLoadingGrid = ref(true)
 // Chargement multi-étapes de la grille
 const loadingProgress = ref(0)
 const currentLoadingLabel = ref('Préparation de la grille')
+
+// Variables pour le chargement progressif
+const isProgressiveLoading = ref(false)
+const loadedPlayersCount = ref(0)
+const totalPlayersCount = ref(0)
+const playerLoadingStates = ref(new Map()) // playerId -> 'loading' | 'loaded' | 'error'
+const availabilityLoadingProgress = ref(0)
+
+// Détection mobile pour optimisations
+const isMobile = ref(false)
+const isEssentialDataLoaded = ref(false) // Événements + joueurs + favoris chargés
 
 // Variables pour le focus sur un événement spécifique
 const focusedEventId = ref(props.eventId || null)
@@ -2974,6 +3037,7 @@ async function handleEditEvent(eventData) {
       title: eventData.title.trim(),
       date: eventData.date,
       description: eventData.description.trim() || '',
+      location: eventData.location?.trim() || '',
       playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
       roles: eventData.roles, // Nouveau champ pour les rôles
       templateType: eventData.templateType, // Sauvegarder le type de template
@@ -3439,6 +3503,7 @@ async function createEvent() {
     title: newEventTitle.value.trim(),
     date: newEventDate.value,
     description: newEventDescription.value.trim() || '',
+    location: newEventLocation.value?.trim() || '',
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: newEventRoles.value, // Nouveau champ pour les rôles
     templateType: selectedRoleTemplate.value, // Ajouter le type de template
@@ -3465,6 +3530,7 @@ async function handleCreateEvent(eventData) {
     title: eventData.title.trim(),
     date: eventData.date,
     description: eventData.description.trim() || '',
+    location: eventData.location?.trim() || '',
     playerCount: playerCount, // Garder pour compatibilité avec l'ancien système
     roles: eventData.roles, // Nouveau champ pour les rôles
     templateType: eventData.templateType, // Ajouter le type de template
@@ -3582,22 +3648,35 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
 
 // Initialiser les données au montage
 onMounted(async () => {
+  // Détecter si on est sur mobile (simplifié)
+  isMobile.value = window.innerWidth < 768
+  
+  // Démarrer la mesure de performance globale de la grille
+  performanceService.start('grid_loading', {
+    seasonSlug: props.slug,
+    timestamp: new Date().toISOString()
+  })
+
   try {
     // Le mode de stockage est maintenant géré par les variables d'environnement
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
 
     // Attendre que firestoreService soit initialisé
     logger.debug('⏳ Attente de l\'initialisation de firestoreService...')
-    await firestoreService.initialize()
+    await performanceService.measureStep('firestore_init', async () => {
+      await firestoreService.initialize()
+    })
     logger.debug('✅ firestoreService initialisé')
 
     // Charger la saison par slug
     logger.debug('🔍 Recherche de la saison avec le slug:', props.slug)
     let seasons = []
     try {
-      seasons = await firestoreService.queryDocuments('seasons', [
-        firestoreService.where('slug', '==', props.slug)
-      ])
+      seasons = await performanceService.measureStep('season_lookup', async () => {
+        return await firestoreService.queryDocuments('seasons', [
+          firestoreService.where('slug', '==', props.slug)
+        ])
+      }, { seasonSlug: props.slug })
       logger.debug('🔍 Saisons trouvées:', seasons.length, seasons.map(s => ({ id: s.id, name: s.name, slug: s.slug })))
     } catch (error) {
       logger.error('❌ Erreur lors de la recherche de la saison:', error)
@@ -3626,38 +3705,75 @@ onMounted(async () => {
       // Étape 1: événements
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
-      events.value = await loadEvents(seasonId.value)
+      events.value = await performanceService.measureStep('load_events', async () => {
+        return await loadEvents(seasonId.value)
+      }, { seasonId: seasonId.value, count: 'unknown' })
 
       // Étape 2: joueurs
       currentLoadingLabel.value = 'Chargement des joueurs'
       loadingProgress.value = 45
-      players.value = await loadPlayers(seasonId.value)
+      players.value = await performanceService.measureStep('load_players', async () => {
+        return await loadPlayers(seasonId.value)
+      }, { seasonId: seasonId.value, count: 'unknown' })
 
-      // Étape 3: disponibilités
+      // Étape 3: disponibilités (le plus critique) - Chargement progressif intelligent
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
-      try {
-        availability.value = await loadAvailability(players.value, events.value, seasonId.value)
-      } catch (error) {
-        logger.debug('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
-        availability.value = {}
+      
+      // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
+      isEssentialDataLoaded.value = true
+      
+      // Jalon : Grille visible pour l'utilisateur
+      performanceService.milestone('grid_loading', 'grid_visible', {
+        playersCount: players.value.length,
+        eventsCount: events.value.length,
+        seasonId: seasonId.value,
+        description: 'Grille visible avec événements et joueurs'
+      })
+      
+      // Interrompre le loading principal et afficher la grille IMMÉDIATEMENT
+      isLoadingGrid.value = false
+      
+      
+      // Forcer le rendu immédiat pour mobile
+      if (isMobile.value) {
+        await nextTick()
+        requestAnimationFrame(() => {
+          // Force le re-render pour éviter la page blanche
+          updateScrollHints()
+        })
       }
+      
+      // Initialiser availability comme objet vide pour commencer l'affichage
+      availability.value = {}
+      
+      // Lancer le chargement progressif en arrière-plan
+      logger.debug('🚀 Lancement du chargement progressif en arrière-plan')
+      loadAvailabilityProgressively(players.value, events.value, seasonId.value)
+        .then(result => {
+          logger.debug('✅ Chargement progressif terminé avec succès')
+          // Mettre à jour availability quand tout est chargé
+          availability.value = result
+        })
+        .catch(error => {
+          logger.error('❌ Erreur lors du chargement progressif:', error)
+        })
 
-      // Étape 4: compositions
-      currentLoadingLabel.value = 'Chargement des compositions'
-      loadingProgress.value = 80
+      // Étape 4: compositions (en arrière-plan)
       try {
-        casts.value = await loadCasts(seasonId.value)
+        casts.value = await performanceService.measureStep('load_casts', async () => {
+          return await loadCasts(seasonId.value)
+        }, { seasonId: seasonId.value, count: 'unknown' })
       } catch (error) {
         logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
         casts.value = {}
       }
 
-      // Étape 5: protections
-      currentLoadingLabel.value = 'Chargement des protections'
-      loadingProgress.value = 85
+      // Étape 5: protections (en arrière-plan)
       try {
-        const protections = await listProtectedPlayers(seasonId.value)
+        const protections = await performanceService.measureStep('load_protections', async () => {
+          return await listProtectedPlayers(seasonId.value)
+        }, { seasonId: seasonId.value })
         const protSet = new Set()
         if (Array.isArray(protections)) {
           protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
@@ -3668,10 +3784,18 @@ onMounted(async () => {
         protectedPlayers.value = new Set()
       }
       
-      // Initialiser les joueurs préférés si l'utilisateur est connecté
+      // Initialiser les joueurs préférés si l'utilisateur est connecté (déjà fait dans l'étape 3)
       if (getFirebaseAuth()?.currentUser?.email) {
         try {
-          await updatePreferredPlayersSet()
+          // Charger les favoris en parallèle avec les autres données
+          const favoritesPromise = performanceService.measureStep('load_favorites', async () => {
+            await updatePreferredPlayersSet()
+          }, { seasonId: seasonId.value })
+          
+          // Ne pas attendre les favoris pour afficher la grille
+          favoritesPromise.catch(error => {
+            logger.debug('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
+          })
         } catch (error) {
           logger.debug('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
         }
@@ -3688,7 +3812,17 @@ onMounted(async () => {
     }
     currentLoadingLabel.value = 'Préparation de l\'interface'
     loadingProgress.value = 95
-    scheduleIdle(() => { updateAllStats(); updateAllChances() })
+    
+    // Mesurer les calculs lourds
+    scheduleIdle(() => { 
+      performanceService.measureStep('heavy_calculations', () => {
+        updateAllStats()
+        updateAllChances()
+      }, { 
+        playersCount: players.value.length, 
+        eventsCount: events.value.length 
+      })
+    })
     
     // Logs allégés
     // eslint-disable-next-line no-console
@@ -3696,8 +3830,17 @@ onMounted(async () => {
 
     // init scroll hints
     await nextTick()
-  loadingProgress.value = 100
-  isLoadingGrid.value = false
+
+  // Terminer la mesure de performance globale de la grille
+  const totalGridLoadingTime = performanceService.end('grid_loading', {
+    playersCount: players.value.length,
+    eventsCount: events.value.length,
+    seasonId: seasonId.value
+  })
+  
+  // Afficher le résumé des performances dans la console
+  logger.info(`🚀 Grille chargée en ${totalGridLoadingTime.toFixed(2)}ms (${players.value.length} joueurs, ${events.value.length} événements)`)
+  performanceService.logSummary()
   nextTick(() => {
     // Recalcule immédiat + raf + délai pour capter les changements de layout (mobile)
     updateScrollHints()
@@ -3857,6 +4000,12 @@ onMounted(async () => {
   // Désistement: plus de modal/route dédiée, on utilise les magic links "no"
 })
 
+// Watch for authentication state changes to update view mode
+watch(() => currentUser.value?.email, (newEmail) => {
+  logger.debug('Changement d\'état d\'authentification détecté:', newEmail ? 'connecté' : 'déconnecté')
+  initializeViewMode()
+}, { immediate: false })
+
 // Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
 watch(() => route.params.eventId, (newEventId) => {
   if (newEventId) {
@@ -3919,6 +4068,195 @@ const sortedPlayers = computed(() => {
 
 // Exposer l'ensemble des joueurs préférés pour la surbrillance légère
 const preferredPlayerIdsSet = ref(new Set())
+
+// Fonctions utilitaires pour le chargement progressif
+function isPlayerAvailabilityLoaded(playerId) {
+  return playerLoadingStates.value.get(playerId) === 'loaded'
+}
+
+function getPlayerLoadingState(playerId) {
+  return playerLoadingStates.value.get(playerId) || 'loading'
+}
+
+function isPlayerLoading(playerId) {
+  return playerLoadingStates.value.get(playerId) === 'loading'
+}
+
+function isPlayerError(playerId) {
+  return playerLoadingStates.value.get(playerId) === 'error'
+}
+
+// Fonction pour charger les disponibilités d'un joueur individuellement
+async function loadPlayerAvailability(player, seasonId) {
+  try {
+    const playerAvailabilityDocs = await firestoreService.getDocuments('seasons', seasonId, 'players', player.id, 'availability')
+    const playerAvailability = {}
+    playerAvailabilityDocs.forEach(doc => {
+      const { id, ...data } = doc
+      playerAvailability[id] = data
+    })
+    
+    // Mettre à jour l'état de chargement
+    playerLoadingStates.value.set(player.id, 'loaded')
+    loadedPlayersCount.value++
+    
+    logger.debug(`✅ Joueur "${player.name}" chargé: ${Object.keys(playerAvailability).length} disponibilités`)
+    
+    return playerAvailability
+  } catch (error) {
+    logger.debug(`⏱️ Joueur "${player.name}": erreur lors du chargement (${error.message})`)
+    playerLoadingStates.value.set(player.id, 'error')
+    loadedPlayersCount.value++
+    return {}
+  }
+}
+
+// Fonction de chargement progressif intelligent avec mise à jour en temps réel
+async function loadAvailabilityProgressively(players, events, seasonId) {
+  logger.debug('🚀 APPEL de loadAvailabilityProgressively - Début')
+  return await performanceService.measureStep('load_availability_progressive', async () => {
+    logger.debug('🚀 DANS performanceService.measureStep - Début du chargement progressif des disponibilités')
+    isProgressiveLoading.value = true
+    totalPlayersCount.value = players.length
+    loadedPlayersCount.value = 0
+    
+    // Initialiser tous les joueurs comme "loading"
+    players.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loading')
+    })
+    
+    logger.debug(`📊 Initialisation: ${players.length} joueurs, ${events.length} événements`)
+  
+  try {
+    logger.debug('🚀 PHASE 1: Recherche du joueur connecté')
+    // Phase 1: Charger le joueur connecté en priorité absolue
+    const currentPlayer = currentUser.value?.email 
+      ? players.find(p => p.email === currentUser.value.email)
+      : null
+    
+    if (currentPlayer) {
+      logger.debug(`🚀 Chargement prioritaire du joueur connecté: ${currentPlayer.name}`)
+      
+      const playerAvailability = await loadPlayerAvailability(currentPlayer, seasonId)
+      
+      // Mettre à jour availability immédiatement pour ce joueur
+      availability.value[currentPlayer.name] = playerAvailability
+      
+      // Forcer la réactivité
+      await nextTick()
+      
+      logger.debug(`✅ Joueur connecté chargé: ${Object.keys(playerAvailability).length} disponibilités`)
+      
+      // Jalon : Joueur connecté chargé
+      performanceService.milestone('load_availability_progressive', 'current_player_loaded', {
+        playerName: currentPlayer.name,
+        description: 'Joueur connecté chargé en priorité'
+      })
+    } else {
+      logger.debug('ℹ️ Aucun joueur connecté détecté')
+    }
+    
+    logger.debug('🚀 PHASE 2: Recherche des joueurs favoris')
+    // Phase 2: Charger les joueurs favoris (si connecté et différents du joueur courant)
+    const favoritePlayers = currentUser.value?.email && preferredPlayerIdsSet.value.size > 0
+      ? players.filter(p => preferredPlayerIdsSet.value.has(p.id) && p.email !== currentUser.value.email)
+      : []
+    
+    if (favoritePlayers.length > 0) {
+      logger.debug(`⭐ Chargement prioritaire des ${favoritePlayers.length} joueurs favoris`)
+      
+      for (const player of favoritePlayers) {
+        const playerAvailability = await loadPlayerAvailability(player, seasonId)
+        
+        // Mettre à jour availability immédiatement pour ce joueur
+        availability.value[player.name] = playerAvailability
+        
+        // Forcer la réactivité
+        await nextTick()
+      }
+      
+      logger.debug(`✅ Joueurs favoris chargés: ${favoritePlayers.length} joueurs`)
+      
+      // Jalon : Joueurs favoris chargés
+      performanceService.milestone('load_availability_progressive', 'favorites_loaded', {
+        favoritesCount: favoritePlayers.length,
+        description: 'Joueurs favoris chargés'
+      })
+    } else {
+      logger.debug('ℹ️ Aucun joueur favori à charger')
+    }
+    
+    logger.debug('🚀 PHASE 3: Chargement des autres joueurs')
+    // Phase 3: Charger les autres joueurs par petits batches
+    const remainingPlayers = players.filter(p => {
+      // Exclure le joueur connecté et les favoris déjà chargés
+      const isCurrentPlayer = currentUser.value?.email && p.email === currentUser.value.email
+      const isFavorite = preferredPlayerIdsSet.value.has(p.id)
+      return !isCurrentPlayer && !isFavorite
+    })
+    const batchSize = 3 // Charger 3 joueurs à la fois
+    const totalBatches = Math.ceil(remainingPlayers.length / batchSize)
+    
+    logger.debug(`📦 Chargement des autres joueurs: ${remainingPlayers.length} joueurs en ${totalBatches} batches`)
+    
+    for (let i = 0; i < totalBatches; i++) {
+      const batch = remainingPlayers.slice(i * batchSize, (i + 1) * batchSize)
+      
+      logger.debug(`📦 Chargement du batch ${i + 1}/${totalBatches} (${batch.length} joueurs)`)
+      
+      // Charger le batch en parallèle mais mettre à jour availability au fur et à mesure
+      const batchPromises = batch.map(async (player) => {
+        const playerAvailability = await loadPlayerAvailability(player, seasonId)
+        
+        // Mettre à jour availability immédiatement pour ce joueur
+        availability.value[player.name] = playerAvailability
+        
+        // Forcer la réactivité
+        await nextTick()
+      })
+      
+      await Promise.all(batchPromises)
+      
+      // Mettre à jour la progression
+      availabilityLoadingProgress.value = Math.round((loadedPlayersCount.value / totalPlayersCount.value) * 100)
+      
+      logger.debug(`✅ Batch ${i + 1} terminé: ${loadedPlayersCount.value}/${totalPlayersCount.value} joueurs chargés`)
+      
+      // Petite pause pour laisser l'UI respirer
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    
+    logger.info(`✅ Chargement progressif terminé: ${loadedPlayersCount.value}/${totalPlayersCount.value} joueurs chargés`)
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement progressif:', error)
+    
+    // Jalon : Erreur de chargement
+    performanceService.milestone('load_availability_progressive', 'availability_error', {
+      error: error.message,
+      loadedPlayersCount: loadedPlayersCount.value,
+      description: 'Erreur lors du chargement des disponibilités'
+    })
+  } finally {
+    isProgressiveLoading.value = false
+  }
+  
+  // Jalon : Chargement complet des disponibilités
+  performanceService.milestone('load_availability_progressive', 'availability_complete', {
+    loadedPlayersCount: loadedPlayersCount.value,
+    totalPlayersCount: totalPlayersCount.value,
+    description: 'Toutes les disponibilités chargées'
+  })
+  
+  // Retourner availability.value pour compatibilité
+  logger.debug('🚀 FIN de loadAvailabilityProgressively - Retour de availability.value')
+  return availability.value
+  }, { 
+    seasonId: seasonId, 
+    playersCount: players.length, 
+    eventsCount: events.length 
+  })
+}
 
 // Fonction pour mettre à jour les joueurs préférés depuis Firebase
 async function updatePreferredPlayersSet() {
@@ -4037,6 +4375,15 @@ const displayedEvents = computed(() => {
 function toggleFiltersDropdown() {
   showFiltersDropdown.value = !showFiltersDropdown.value
 }
+
+// Computed properties pour l'affichage inversé
+const displayRows = computed(() => {
+  return currentViewMode.value === 'inverted' ? displayedEvents.value : sortedPlayers.value
+})
+
+const displayColumns = computed(() => {
+  return currentViewMode.value === 'inverted' ? sortedPlayers.value : displayedEvents.value
+})
 
 // Positionnement simple du dropdown des filtres (plus de calcul dynamique)
 
@@ -4367,8 +4714,17 @@ function isSelected(player, eventId) {
     return false
   }
   
-  // Trouver l'ID du joueur
-  const playerObj = players.value.find(p => p.name === player)
+  // Trouver l'ID du joueur avec une recherche plus robuste
+  let playerObj = players.value.find(p => p.name === player)
+  
+  // Si pas trouvé, essayer une recherche insensible à la casse et aux espaces
+  if (!playerObj) {
+    playerObj = players.value.find(p => 
+      p.name && player && 
+      p.name.trim().toLowerCase() === player.trim().toLowerCase()
+    )
+  }
+  
   if (!playerObj) {
     return false
   }
@@ -4797,6 +5153,26 @@ function countSelections(player) {
   return Object.keys(casts.value).filter(eventId => {
     const players = getSelectionPlayers(eventId)
     return players.includes(player)
+  }).length
+}
+
+// Nouvelle fonction pour compter les sélections par rôle spécifique
+function countSelectionsForRole(player, role) {
+  return Object.keys(casts.value).filter(eventId => {
+    const cast = casts.value[eventId]
+    if (!cast) return false
+    
+    // Nouvelle structure multi-rôles
+    if (cast.roles && cast.roles[role]) {
+      return cast.roles[role].includes(player)
+    }
+    
+    // Ancienne structure (tous considérés comme "player")
+    if (role === 'player' && Array.isArray(cast)) {
+      return cast.includes(player)
+    }
+    
+    return false
   }).length
 }
 
@@ -5629,6 +6005,13 @@ onUnmounted(() => {
 })
 
 async function showEventDetails(event) {
+  // Démarrer la mesure de performance pour l'écran détail événement
+  performanceService.start('event_detail_loading', {
+    eventId: event.id,
+    eventTitle: event.title,
+    timestamp: new Date().toISOString()
+  })
+
   selectedEvent.value = event
   editingDescription.value = event.description || ''
   editingArchived.value = !!event.archived
@@ -5652,10 +6035,16 @@ async function showEventDetails(event) {
 
   // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
   try {
-    const [newAvailability, newSelections] = await Promise.all([
-      loadAvailability(players.value, events.value, seasonId.value),
-      loadCasts(seasonId.value)
-    ])
+    const [newAvailability, newSelections] = await performanceService.measureStep('event_detail_data_refresh', async () => {
+      return await Promise.all([
+        loadAvailability(players.value, events.value, seasonId.value),
+        loadCasts(seasonId.value)
+      ])
+    }, { 
+      eventId: event.id, 
+      playersCount: players.value.length, 
+      eventsCount: events.value.length 
+    })
     availability.value = newAvailability
     casts.value = newSelections
   } catch (e) {
@@ -5665,6 +6054,16 @@ async function showEventDetails(event) {
   // S'assurer que la modale s'ouvre après que les données soient assignées
   await nextTick()
   showEventDetailsModal.value = true
+
+  // Terminer la mesure de performance pour l'écran détail événement
+  const eventDetailLoadingTime = performanceService.end('event_detail_loading', {
+    eventId: event.id,
+    eventTitle: event.title,
+    playersCount: players.value.length,
+    eventsCount: events.value.length
+  })
+  
+  logger.info(`📋 Détail événement chargé en ${eventDetailLoadingTime.toFixed(2)}ms (${event.title})`)
   
   // Mettre à jour l'état de surveillance de l'événement
   nextTick(() => {
@@ -5686,12 +6085,17 @@ function closeEventDetails() {
 }
 
 // Fonction pour ajouter un événement à l'agenda
-function handleAddToCalendar(type, event = null) {
+async function handleAddToCalendar(type, event = null) {
   const targetEvent = event || selectedEvent.value
   if (!targetEvent) return
   
   try {
-    addToCalendar(type, targetEvent, seasonName.value)
+    // Récupérer les données de sélection pour cet événement
+    const castData = casts.value[targetEvent.id] || null
+    console.log('🎭 Données de sélection pour l\'agenda:', castData)
+    console.log('👥 Liste des joueurs:', players.value)
+    
+    await addToCalendar(type, targetEvent, seasonName.value, castData, players.value, seasonSlug.value)
     
     // Afficher un message de succès
     showSuccessMessage.value = true
@@ -6428,12 +6832,12 @@ function getPlayerRoleChances(eventId) {
     
     if (availablePlayers.length === 0) return
     
-    // Calculer les poids basés sur le nombre de compositions déjà faites
+    // Calculer les poids basés sur le nombre de compositions déjà faites POUR CE RÔLE SPÉCIFIQUE
     const weights = availablePlayers.map(player => {
-      const pastSelections = countSelections(player.name)
+      const pastSelectionsForThisRole = countSelectionsForRole(player.name, role)
       return {
         name: player.name,
-        weight: 1 / (1 + pastSelections)
+        weight: 1 / (1 + pastSelectionsForThisRole)
       }
     })
     

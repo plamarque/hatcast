@@ -10,32 +10,50 @@
       isSelected && isAvailable === true && playerSelectionStatus === 'declined' ? 'bg-gradient-to-br from-red-500/60 to-orange-500/60' : '',
       !isSelected && isAvailable === true ? 'bg-green-500/60' : '',
       isAvailable === false ? 'bg-red-500/60' : '',
-      isAvailable === null || isAvailable === undefined ? 'bg-gray-500/40' : ''
+      isAvailable === null || isAvailable === undefined ? 'bg-gray-500/40' : '',
+      // États de chargement
+      isLoading ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30' : '',
+      isError ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30' : ''
     ]"
     @click="toggleAvailability"
     @mouseenter="hover = true"
     @mouseleave="hover = false"
   >
     <div class="flex flex-col items-center justify-center">
-      <!-- Texte du statut -->
-      <span v-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'confirmed'" class="text-center">
-        {{ getConfirmedRoleLabel() }}
-      </span>
-      <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'pending'" class="text-center">
-        À confirmer
-      </span>
-      <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'declined'" class="text-center">
-        Décliné
-      </span>
-      <span v-else-if="isAvailable === true" class="text-center">
-        Dispo
-      </span>
-      <span v-else-if="isAvailable === false" class="text-center">
-        Pas dispo
-      </span>
-      <span v-else class="text-center text-gray-400">
-        Je sais pas
-      </span>
+      <!-- Indicateur de chargement -->
+      <div v-if="isLoading" class="flex items-center gap-1">
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+      </div>
+      
+      <!-- Indicateur d'erreur -->
+      <div v-else-if="isError" class="text-center text-red-300">
+        ⚠️
+      </div>
+      
+      <!-- Contenu normal -->
+      <template v-else>
+        <!-- Texte du statut -->
+        <span v-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'confirmed'" class="text-center">
+          {{ getConfirmedRoleLabel() }}
+        </span>
+        <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'pending'" class="text-center">
+          À confirmer
+        </span>
+        <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'declined'" class="text-center">
+          Décliné
+        </span>
+        <span v-else-if="isAvailable === true" class="text-center">
+          Dispo
+        </span>
+        <span v-else-if="isAvailable === false" class="text-center">
+          Pas dispo
+        </span>
+        <span v-else class="text-center text-gray-400">
+          Je sais pas
+        </span>
+      </template>
       
       <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
@@ -214,6 +232,19 @@ const props = defineProps({
   playerGender: {
     type: String,
     default: 'non-specified'
+  },
+  // Nouvelles props pour le chargement progressif
+  isLoading: {
+    type: Boolean,
+    default: false
+  },
+  isLoaded: {
+    type: Boolean,
+    default: false
+  },
+  isError: {
+    type: Boolean,
+    default: false
   }
 })
 

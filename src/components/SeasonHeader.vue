@@ -22,6 +22,19 @@
     
     <!-- Actions à droite - optimisées pour mobile -->
     <div class="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2">
+      <!-- Toggle de vue (visible pour tous les utilisateurs) -->
+      <div v-if="showViewToggle" class="flex items-center gap-1">
+        <button
+          @click="toggleViewMode"
+          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+          :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
+          aria-label="Changer de vue"
+        >
+          <span class="text-xl">{{ currentViewMode === 'normal' ? '🔄' : '↩️' }}</span>
+        </button>
+      </div>
+      
+
       <!-- Desktop: actions visibles -->
       <div class="hidden md:flex items-center gap-2">
         <AccountDropdown 
@@ -75,10 +88,12 @@ const props = defineProps({
   seasonName: { type: String, default: '' },
   isScrolled: { type: Boolean, default: false },
   seasonSlug: { type: String, default: '' },
-  isConnected: { type: Boolean, default: false }
+  isConnected: { type: Boolean, default: false },
+  showViewToggle: { type: Boolean, default: false },
+  currentViewMode: { type: String, default: 'grid' }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'toggle-view-mode'])
 
 // État de connexion reçu depuis le composant parent (GridBoard)
 // Plus besoin de logique locale d'authentification
@@ -147,5 +162,9 @@ function openAccount() {
 
 function openDevelopment() {
   emit('open-development')
+}
+
+function toggleViewMode() {
+  emit('toggle-view-mode')
 }
 </script>

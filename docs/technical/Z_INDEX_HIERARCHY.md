@@ -24,9 +24,9 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 ├─────────────────────────────────────────────────────────────┤
 │                    NIVEAU 1300+ (Sécurité)                  │
 ├─────────────────────────────────────────────────────────────┤
-│ z-[1370] PlayersModal, AnnouncePromptModal, AvailabilityModal │
+│ z-[1370] PlayersModal, AnnouncePromptModal, AvailabilityModal, NotificationPromptModal │
 │ z-[1360] NotificationSuccessModal, EventDetailsModal       │
-│ z-[1350] NotificationPromptModal, AvailabilityPasswordModal│
+│ z-[1350] AvailabilityPasswordModal                         │
 │ z-[1340] AnnounceModal, PlayerPasswordModal                │
 │ z-[1330] PasswordResetModal                                │
 │ z-[1320] PlayerClaimModal, ConfirmPlayerDeleteModal        │
@@ -107,9 +107,8 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | `z-[1320]` | PlayerClaimModal | Réclamation de joueur | `src/components/PlayerClaimModal.vue` |
 | `z-[1330]` | PasswordResetModal | Reset mot de passe | `src/components/PasswordResetModal.vue` |
 | `z-[1340]` | AnnounceModal | Annonces | `src/components/AnnounceModal.vue` |
-| `z-[1350]` | NotificationPromptModal | Prompt notifications | `src/components/NotificationPromptModal.vue` |
 | `z-[1360]` | NotificationSuccessModal | Succès notifications | `src/components/NotificationSuccessModal.vue` |
-| `z-[1370]` | PlayersModal | Liste des joueurs | `src/components/PlayersModal.vue` |
+| `z-[1370]` | PlayersModal, NotificationPromptModal | Liste des joueurs, Prompt notifications | `src/components/PlayersModal.vue`, `src/components/NotificationPromptModal.vue` |
 | `z-[1380]` | HowItWorksModal | Comment ça marche | `src/components/HowItWorksModal.vue` |
 
 ### 🎨 Niveau 1400+ : Modales spécialisées
