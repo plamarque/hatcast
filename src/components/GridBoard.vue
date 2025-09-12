@@ -403,6 +403,49 @@
     </div>
   </div>
 
+  <!-- Skeleton loader pour mobile - affiché immédiatement -->
+  <div v-if="isLoadingGrid && isMobile" class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div class="text-center p-4 text-white">
+      <p>📱 SKELETON MOBILE ACTIF</p>
+      <p>isLoadingGrid: {{ isLoadingGrid }}</p>
+      <p>isMobile: {{ isMobile }}</p>
+    </div>
+    <!-- Header skeleton -->
+    <div class="h-16 bg-gray-800/50 animate-pulse"></div>
+    
+    <!-- Grid skeleton -->
+    <div class="p-4 space-y-4">
+      <!-- Events header skeleton -->
+      <div class="h-12 bg-gray-800/30 rounded-lg animate-pulse"></div>
+      
+      <!-- Players skeleton -->
+      <div class="space-y-2">
+        <div v-for="i in 8" :key="i" class="h-8 bg-gray-800/20 rounded animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skeleton de fallback - toujours visible pendant le chargement -->
+  <div v-if="isLoadingGrid" class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 md:hidden">
+    <div class="text-center p-4 text-white">
+      <p>📱 SKELETON FALLBACK</p>
+      <p>isLoadingGrid: {{ isLoadingGrid }}</p>
+    </div>
+    <!-- Header skeleton -->
+    <div class="h-16 bg-gray-800/50 animate-pulse"></div>
+    
+    <!-- Grid skeleton -->
+    <div class="p-4 space-y-4">
+      <!-- Events header skeleton -->
+      <div class="h-12 bg-gray-800/30 rounded-lg animate-pulse"></div>
+      
+      <!-- Players skeleton -->
+      <div class="space-y-2">
+        <div v-for="i in 8" :key="i" class="h-8 bg-gray-800/20 rounded animate-pulse"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Indicateur de chargement progressif (en bas à droite) -->
   <div v-if="isProgressiveLoading" class="fixed bottom-4 right-4 z-[100] bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg p-4 shadow-xl">
     <div class="flex items-center gap-3">
@@ -1552,8 +1595,8 @@
     background: rgba(100,116,139,0.08); /* extra veil */
     pointer-events: none;
   }
-.col-left { width: 12rem; }
-.col-event { width: 14rem; background: transparent !important; }
+.col-left { width: 13rem; }
+.col-event { width: 12.5rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
@@ -1574,9 +1617,9 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 10.5rem; }
-  .col-event { width: 11.5rem; }
-  .left-col-td { width: 10.5rem; max-width: 10.5rem; min-width: 10.5rem; }
+  .col-left { width: 13rem; }
+  .col-event { width: 10.5rem; }
+  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
@@ -2480,6 +2523,9 @@ const loadedPlayersCount = ref(0)
 const totalPlayersCount = ref(0)
 const playerLoadingStates = ref(new Map()) // playerId -> 'loading' | 'loaded' | 'error'
 const availabilityLoadingProgress = ref(0)
+
+// Détection mobile pour optimisations
+const isMobile = ref(false)
 const isEssentialDataLoaded = ref(false) // Événements + joueurs + favoris chargés
 
 // Variables pour le focus sur un événement spécifique
@@ -3635,6 +3681,19 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
 
 // Initialiser les données au montage
 onMounted(async () => {
+  // Détecter si on est sur mobile (plus robuste)
+  const checkMobile = () => {
+    const width = window.innerWidth
+    const isMobileDevice = width < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    isMobile.value = isMobileDevice
+    console.log('📱 Détection mobile:', isMobile.value, 'Largeur:', width, 'UserAgent:', navigator.userAgent)
+  }
+  
+  checkMobile()
+  
+  // Écouter les changements de taille d'écran
+  window.addEventListener('resize', checkMobile)
+  
   // Démarrer la mesure de performance globale de la grille
   performanceService.start('grid_loading', {
     seasonSlug: props.slug,
@@ -3715,8 +3774,17 @@ onMounted(async () => {
         description: 'Grille visible avec événements et joueurs'
       })
       
-      // Interrompre le loading principal et afficher la grille
+      // Interrompre le loading principal et afficher la grille IMMÉDIATEMENT
       isLoadingGrid.value = false
+      
+      // Forcer le rendu immédiat pour mobile
+      if (isMobile.value) {
+        await nextTick()
+        requestAnimationFrame(() => {
+          // Force le re-render pour éviter la page blanche
+          updateScrollHints()
+        })
+      }
       
       // Initialiser availability comme objet vide pour commencer l'affichage
       availability.value = {}
@@ -3761,9 +3829,15 @@ onMounted(async () => {
       // Initialiser les joueurs préférés si l'utilisateur est connecté (déjà fait dans l'étape 3)
       if (getFirebaseAuth()?.currentUser?.email) {
         try {
-          await performanceService.measureStep('load_favorites', async () => {
+          // Charger les favoris en parallèle avec les autres données
+          const favoritesPromise = performanceService.measureStep('load_favorites', async () => {
             await updatePreferredPlayersSet()
           }, { seasonId: seasonId.value })
+          
+          // Ne pas attendre les favoris pour afficher la grille
+          favoritesPromise.catch(error => {
+            logger.debug('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
+          })
         } catch (error) {
           logger.debug('🔍 Erreur lors du chargement des favoris (normal pour une nouvelle saison):', error.message)
         }
