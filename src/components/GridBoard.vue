@@ -945,6 +945,34 @@
           </div>
         </div>
 
+        <!-- Nouvelle vue par rôles -->
+        <EventRoleGroupingView
+          v-if="selectedEvent"
+          :selected-event="selectedEvent"
+          :season-id="seasonId"
+          :players="players"
+          :availability="availability"
+          :casts="casts"
+          :chances="chances"
+          :preferred-player-ids-set="preferredPlayerIdsSet"
+          :is-available="isAvailable"
+          :is-player-selected="isPlayerSelected"
+          :is-selection-confirmed="isSelectionConfirmed"
+          :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+          :get-player-selection-status="getPlayerSelectionStatus"
+          :get-availability-data="getAvailabilityData"
+          :is-player-protected-in-grid="isPlayerProtectedInGrid"
+          :is-player-loading="isPlayerLoading"
+          :is-player-availability-loaded="isPlayerAvailabilityLoaded"
+          :is-player-error="isPlayerError"
+          :get-event-status="getEventStatus"
+          :get-event-tooltip="getEventTooltip"
+          :handle-availability-toggle="handleAvailabilityToggle"
+          :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle"
+          :open-availability-modal="openAvailabilityModal"
+          :is-available-for-role="isAvailableForRole"
+          :is-selection-complete="isSelectionComplete"
+        />
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
       </div>
@@ -1671,6 +1699,7 @@ import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import EventRoleGroupingView from './EventRoleGroupingView.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'

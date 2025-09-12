@@ -88,7 +88,7 @@
               {{ player.name }}
             </span>
 
-            <!-- Indicateurs de disponibilité -->
+            <!-- Indicateurs de statut -->
             <div class="flex items-center gap-2 flex-shrink-0">
               <!-- Statut de sélection -->
               <span 
@@ -98,7 +98,9 @@
                   ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
                   : 'bg-blue-600/20 text-blue-400 border border-blue-600/30'"
               >
-                {{ isSelectionConfirmed(selectedEvent.id) ? 'Confirmé' : 'Sélectionné' }}
+                {{ isSelectionConfirmed(selectedEvent.id) 
+                  ? (player.gender === 'female' ? 'Confirmée' : player.gender === 'male' ? 'Confirmé' : 'Confirmé·e')
+                  : (player.gender === 'female' ? 'Sélectionnée' : player.gender === 'male' ? 'Sélectionné' : 'Sélectionné·e') }}
               </span>
               
               <!-- Pourcentage de chance -->
@@ -108,35 +110,6 @@
               >
                 {{ chances[player.name]?.[selectedEvent.id] }}%
               </span>
-            </div>
-
-            <!-- Cellule de disponibilité -->
-            <div class="w-8 h-8 flex-shrink-0">
-              <AvailabilityCell
-                :player-name="player.name"
-                :event-id="selectedEvent.id"
-                :is-available="isAvailable(player.name, selectedEvent.id)"
-                :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                :season-id="seasonId"
-                :chance-percent="chances[player.name]?.[selectedEvent.id] ?? null"
-                :show-selected-chance="isSelectionComplete(selectedEvent.id)"
-                :disabled="selectedEvent?.archived === true"
-                :compact="true"
-                :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                :event-title="selectedEvent.title"
-                :event-date="selectedEvent.date"
-                :is-protected="isPlayerProtectedInGrid(player.id)"
-                :player-gender="player.gender || 'non-specified'"
-                :is-loading="isPlayerLoading(player.id)"
-                :is-loaded="isPlayerAvailabilityLoaded(player.id)"
-                :is-error="isPlayerError(player.id)"
-                @toggle="handleAvailabilityToggle"
-                @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                @show-availability-modal="openAvailabilityModal"
-              />
             </div>
           </div>
 
@@ -150,22 +123,6 @@
         </div>
       </div>
 
-      <!-- Rôles sans joueurs requis -->
-      <div 
-        v-if="rolesWithoutPlayers.length > 0"
-        class="bg-gray-800/30 rounded-lg p-4 border border-gray-700/30"
-      >
-        <h4 class="text-sm font-medium text-gray-400 mb-2">Rôles non requis</h4>
-        <div class="flex flex-wrap gap-2">
-          <span 
-            v-for="role in rolesWithoutPlayers" 
-            :key="role"
-            class="px-3 py-1 rounded-full text-sm text-gray-500 bg-gray-700/50"
-          >
-            {{ ROLE_EMOJIS[role] }} {{ getRoleLabel(role) }}
-          </span>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -275,6 +232,10 @@ const props = defineProps({
   isAvailableForRole: {
     type: Function,
     required: true
+  },
+  isSelectionComplete: {
+    type: Function,
+    required: true
   }
 })
 
@@ -290,14 +251,6 @@ const availableRoles = computed(() => {
   })
 })
 
-const rolesWithoutPlayers = computed(() => {
-  if (!props.selectedEvent?.roles) return []
-  
-  return ROLE_DISPLAY_ORDER.filter(role => {
-    const count = props.selectedEvent.roles[role] || 0
-    return count === 0
-  })
-})
 
 const eventStatus = computed(() => {
   if (!props.selectedEvent) return null
