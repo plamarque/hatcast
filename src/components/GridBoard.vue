@@ -75,13 +75,13 @@
               >
                 <!-- Mode normal : affichage des événements -->
                 <div v-if="currentViewMode === 'normal'">
-                  <!-- Zone cliquable principale (titre + date + type) -->
+                  <!-- Zone cliquable complète (titre + date + type) -->
                   <div 
-                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24"
+                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
-                    <div class="flex flex-col items-center flex-1 justify-center">
+                    <div class="flex flex-col items-center flex-1 justify-center w-full">
                       <!-- Ligne 1 : Titre du spectacle -->
                       <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
                         {{ headerItem.title || 'Sans titre' }}
@@ -93,41 +93,41 @@
                         {{ formatDate(headerItem.date) }}
                       </div>
                     </div>
-                  </div>
-                  
-                  <!-- Section basse : badge de type d'événement -->
-                  <div class="flex flex-col items-center mt-2">
-                    <!-- Indicateur de statut archivé (priorité sur les autres) -->
-                    <div 
-                      v-if="headerItem.archived"
-                      class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
-                      title="Événement archivé"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">📁</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
-                    </div>
                     
-                    <!-- Badge de type d'événement (seulement si pas archivé) -->
-                    <div 
-                      v-else-if="headerItem.roles"
-                      class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
-                      :title="getEventTypeName(headerItem)"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
+                    <!-- Section basse : badge de type d'événement -->
+                    <div class="flex flex-col items-center mt-2">
+                      <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                      <div 
+                        v-if="headerItem.archived"
+                        class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
+                        title="Événement archivé"
+                      >
+                        <span class="text-xs text-gray-300 font-medium">📁</span>
+                        <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                      </div>
+                      
+                      <!-- Badge de type d'événement (seulement si pas archivé) -->
+                      <div 
+                        v-else-if="headerItem.roles"
+                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
+                        :title="getEventTypeName(headerItem)"
+                      >
+                        <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
+                        <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Mode inversé : affichage des joueurs -->
                 <div v-else>
-                  <!-- Zone cliquable principale (nom du joueur) -->
+                  <!-- Zone cliquable complète (avatar + nom + badges) -->
                   <div 
-                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24"
+                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
                     :title="headerItem.name + ' - Cliquez pour voir les détails'"
                     @click.stop="showPlayerDetails(headerItem)"
                   >
-                    <div class="flex flex-col items-center flex-1 justify-center">
+                    <div class="flex flex-col items-center flex-1 justify-center w-full">
                       <!-- Avatar sur la première ligne -->
                       <div class="mb-2">
                         <PlayerAvatar 
@@ -143,28 +143,28 @@
                         {{ headerItem.name }}
                       </div>
                     </div>
-                  </div>
-                  
-                  <!-- Section basse : badges de statut du joueur -->
-                  <div class="flex flex-col items-center mt-2">
-                    <!-- Badge joueur favori -->
-                    <div 
-                      v-if="preferredPlayerIdsSet.has(headerItem.id)"
-                      class="px-2 py-1 bg-yellow-500/20 border border-yellow-400/30 rounded-md mx-auto flex items-center justify-center"
-                      title="Ma personne"
-                    >
-                      <span class="text-xs text-yellow-300 font-medium">⭐</span>
-                      <span class="text-xs text-yellow-200 font-medium ml-1">Moi</span>
-                    </div>
                     
-                    <!-- Badge joueur protégé -->
-                    <div 
-                      v-else-if="isPlayerProtectedInGrid(headerItem.id)"
-                      class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
-                      title="Personne protégée par mot de passe"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">🔒</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">Protégé</span>
+                    <!-- Section basse : badges de statut du joueur -->
+                    <div class="flex flex-col items-center mt-2">
+                      <!-- Badge joueur favori -->
+                      <div 
+                        v-if="preferredPlayerIdsSet.has(headerItem.id)"
+                        class="px-2 py-1 bg-yellow-500/20 border border-yellow-400/30 rounded-md mx-auto flex items-center justify-center"
+                        title="Ma personne"
+                      >
+                        <span class="text-xs text-yellow-300 font-medium">⭐</span>
+                        <span class="text-xs text-yellow-200 font-medium ml-1">Moi</span>
+                      </div>
+                      
+                      <!-- Badge joueur protégé -->
+                      <div 
+                        v-else-if="isPlayerProtectedInGrid(headerItem.id)"
+                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
+                        title="Personne protégée par mot de passe"
+                      >
+                        <span class="text-xs text-gray-300 font-medium">🔒</span>
+                        <span class="text-xs text-gray-200 font-medium ml-1">Protégé</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -385,25 +385,44 @@
                   <!-- Mode inversé : affichage des événements -->
                   <div 
                     v-else
-                    @click="showEventDetails(rowItem)" 
-                    class="event-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group"
+                    @click.stop="showEventDetails(rowItem)" 
+                    class="event-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block max-w-full flex-1 min-w-0 group w-full"
                     :title="'Cliquez pour voir les détails : ' + rowItem.title"
                   >
-                    <div class="flex items-center gap-2">
-                      <div class="relative">
-                        <div class="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {{ rowItem.title?.charAt(0)?.toUpperCase() || 'E' }}
-                        </div>
-                        <!-- Status icons pour les événements -->
-                        <span 
+                    <div class="flex flex-col items-center gap-2 w-full">
+                      <!-- Ligne 1 : Titre du spectacle -->
+                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ rowItem.title || 'Sans titre' }}
+                      </div>
+                      
+                      <!-- Ligne 2 : Date du spectacle -->
+                      <div class="text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
+                           :title="formatDateFull(rowItem.date)">
+                        {{ formatDate(rowItem.date) }}
+                      </div>
+                      
+                      <!-- Ligne 3 : Badge de type d'événement -->
+                      <div class="flex flex-col items-center">
+                        <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                        <div 
                           v-if="rowItem.archived"
-                          class="absolute -top-1 -right-1 text-gray-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
                           title="Événement archivé"
                         >
-                          📁
-                        </span>
+                          <span class="text-xs text-gray-300 font-medium">📁</span>
+                          <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                        </div>
+                        
+                        <!-- Badge de type d'événement (seulement si pas archivé) -->
+                        <div 
+                          v-else-if="rowItem.roles"
+                          class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
+                          :title="getEventTypeName(rowItem)"
+                        >
+                          <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(rowItem) }}</span>
+                          <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(rowItem) }}</span>
+                        </div>
                       </div>
-                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ rowItem.title }}</span>
                     </div>
                   </div>
                 </div>
@@ -926,33 +945,6 @@
           </div>
         </div>
 
-        <!-- Nouvelle vue par rôles -->
-        <EventRoleGroupingView
-          v-if="selectedEvent"
-          :selected-event="selectedEvent"
-          :season-id="seasonId"
-          :players="players"
-          :availability="availability"
-          :casts="casts"
-          :chances="chances"
-          :preferred-player-ids-set="preferredPlayerIdsSet"
-          :is-available="isAvailable"
-          :is-player-selected="isPlayerSelected"
-          :is-selection-confirmed="isSelectionConfirmed"
-          :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
-          :get-player-selection-status="getPlayerSelectionStatus"
-          :get-availability-data="getAvailabilityData"
-          :is-player-protected-in-grid="isPlayerProtectedInGrid"
-          :is-player-loading="isPlayerLoading"
-          :is-player-availability-loaded="isPlayerAvailabilityLoaded"
-          :is-player-error="isPlayerError"
-          :get-event-status="getEventStatus"
-          :get-event-tooltip="getEventTooltip"
-          :handle-availability-toggle="handleAvailabilityToggle"
-          :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle"
-          :open-availability-modal="openAvailabilityModal"
-          :is-available-for-role="isAvailableForRole"
-        />
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
       </div>
@@ -1679,7 +1671,6 @@ import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import EventRoleGroupingView from './EventRoleGroupingView.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
