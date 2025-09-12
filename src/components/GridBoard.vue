@@ -347,6 +347,9 @@
                   :event-date="event.date"
                   :is-protected="isPlayerProtectedInGrid(player.id)"
                   :player-gender="player.gender || 'non-specified'"
+                  :is-loading="isPlayerLoading(player.id)"
+                  :is-loaded="isPlayerAvailabilityLoaded(player.id)"
+                  :is-error="isPlayerError(player.id)"
                   @toggle="toggleAvailability"
                   @toggle-selection-status="handlePlayerSelectionStatusToggle"
                   @show-availability-modal="openAvailabilityModal"
@@ -397,6 +400,24 @@
         <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" :style="{ width: loadingProgress + '%' }"></div>
       </div>
       <p class="text-white/60 text-xs mt-2">{{ loadingProgress }}%</p>
+    </div>
+  </div>
+
+  <!-- Indicateur de chargement progressif (en bas à droite) -->
+  <div v-if="isProgressiveLoading" class="fixed bottom-4 right-4 z-[100] bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg p-4 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1">
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+      </div>
+      <div class="text-white text-sm">
+        <div class="font-medium">Chargement des disponibilités</div>
+        <div class="text-xs text-gray-400">{{ loadedPlayersCount }}/{{ totalPlayersCount }} joueurs ({{ availabilityLoadingProgress }}%)</div>
+      </div>
+      <div class="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300" :style="{ width: availabilityLoadingProgress + '%' }"></div>
+      </div>
     </div>
   </div>
 
@@ -886,6 +907,9 @@
                       :event-date="selectedEvent.date"
                       :is-protected="isPlayerProtectedInGrid(player.id)"
                       :player-gender="player.gender || 'non-specified'"
+                      :is-loading="isPlayerLoading(player.id)"
+                      :is-loaded="isPlayerAvailabilityLoaded(player.id)"
+                      :is-error="isPlayerError(player.id)"
                       @toggle="handleAvailabilityToggle"
                       @toggle-selection-status="handlePlayerSelectionStatusToggle"
                       @show-availability-modal="openAvailabilityModal"
@@ -1006,7 +1030,7 @@
   <AppFooter @open-help="goToHelpPage" />
 
   <!-- Composant de debug des performances -->
-  <PerformanceDebug />
+  <PerformanceDebug v-if="performanceService.isEnabled" />
 
   <!-- Modal de vérification du mot de passe pour joueur protégé -->
   <PasswordVerificationModal
@@ -2450,6 +2474,14 @@ const isLoadingGrid = ref(true)
 const loadingProgress = ref(0)
 const currentLoadingLabel = ref('Préparation de la grille')
 
+// Variables pour le chargement progressif
+const isProgressiveLoading = ref(false)
+const loadedPlayersCount = ref(0)
+const totalPlayersCount = ref(0)
+const playerLoadingStates = ref(new Map()) // playerId -> 'loading' | 'loaded' | 'error'
+const availabilityLoadingProgress = ref(0)
+const isEssentialDataLoaded = ref(false) // Événements + joueurs + favoris chargés
+
 // Variables pour le focus sur un événement spécifique
 const focusedEventId = ref(props.eventId || null)
 const showFocusedEventHighlight = ref(false)
@@ -3668,25 +3700,40 @@ onMounted(async () => {
         return await loadPlayers(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
 
-      // Étape 3: disponibilités (le plus critique)
+      // Étape 3: disponibilités (le plus critique) - Chargement progressif intelligent
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
-      try {
-        availability.value = await performanceService.measureStep('load_availability', async () => {
-          return await loadAvailability(players.value, events.value, seasonId.value)
-        }, { 
-          seasonId: seasonId.value, 
-          playersCount: players.value.length, 
-          eventsCount: events.value.length 
+      
+      // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
+      isEssentialDataLoaded.value = true
+      
+      // Jalon : Grille visible pour l'utilisateur
+      performanceService.milestone('grid_loading', 'grid_visible', {
+        playersCount: players.value.length,
+        eventsCount: events.value.length,
+        seasonId: seasonId.value,
+        description: 'Grille visible avec événements et joueurs'
+      })
+      
+      // Interrompre le loading principal et afficher la grille
+      isLoadingGrid.value = false
+      
+      // Initialiser availability comme objet vide pour commencer l'affichage
+      availability.value = {}
+      
+      // Lancer le chargement progressif en arrière-plan
+      logger.debug('🚀 Lancement du chargement progressif en arrière-plan')
+      loadAvailabilityProgressively(players.value, events.value, seasonId.value)
+        .then(result => {
+          logger.debug('✅ Chargement progressif terminé avec succès')
+          // Mettre à jour availability quand tout est chargé
+          availability.value = result
         })
-      } catch (error) {
-        logger.debug('🔍 Collection availability non trouvée ou vide (normal pour une nouvelle saison)')
-        availability.value = {}
-      }
+        .catch(error => {
+          logger.error('❌ Erreur lors du chargement progressif:', error)
+        })
 
-      // Étape 4: compositions
-      currentLoadingLabel.value = 'Chargement des compositions'
-      loadingProgress.value = 80
+      // Étape 4: compositions (en arrière-plan)
       try {
         casts.value = await performanceService.measureStep('load_casts', async () => {
           return await loadCasts(seasonId.value)
@@ -3696,9 +3743,7 @@ onMounted(async () => {
         casts.value = {}
       }
 
-      // Étape 5: protections
-      currentLoadingLabel.value = 'Chargement des protections'
-      loadingProgress.value = 85
+      // Étape 5: protections (en arrière-plan)
       try {
         const protections = await performanceService.measureStep('load_protections', async () => {
           return await listProtectedPlayers(seasonId.value)
@@ -3713,7 +3758,7 @@ onMounted(async () => {
         protectedPlayers.value = new Set()
       }
       
-      // Initialiser les joueurs préférés si l'utilisateur est connecté
+      // Initialiser les joueurs préférés si l'utilisateur est connecté (déjà fait dans l'étape 3)
       if (getFirebaseAuth()?.currentUser?.email) {
         try {
           await performanceService.measureStep('load_favorites', async () => {
@@ -3753,8 +3798,6 @@ onMounted(async () => {
 
     // init scroll hints
     await nextTick()
-  loadingProgress.value = 100
-  isLoadingGrid.value = false
 
   // Terminer la mesure de performance globale de la grille
   const totalGridLoadingTime = performanceService.end('grid_loading', {
@@ -3987,6 +4030,195 @@ const sortedPlayers = computed(() => {
 
 // Exposer l'ensemble des joueurs préférés pour la surbrillance légère
 const preferredPlayerIdsSet = ref(new Set())
+
+// Fonctions utilitaires pour le chargement progressif
+function isPlayerAvailabilityLoaded(playerId) {
+  return playerLoadingStates.value.get(playerId) === 'loaded'
+}
+
+function getPlayerLoadingState(playerId) {
+  return playerLoadingStates.value.get(playerId) || 'loading'
+}
+
+function isPlayerLoading(playerId) {
+  return playerLoadingStates.value.get(playerId) === 'loading'
+}
+
+function isPlayerError(playerId) {
+  return playerLoadingStates.value.get(playerId) === 'error'
+}
+
+// Fonction pour charger les disponibilités d'un joueur individuellement
+async function loadPlayerAvailability(player, seasonId) {
+  try {
+    const playerAvailabilityDocs = await firestoreService.getDocuments('seasons', seasonId, 'players', player.id, 'availability')
+    const playerAvailability = {}
+    playerAvailabilityDocs.forEach(doc => {
+      const { id, ...data } = doc
+      playerAvailability[id] = data
+    })
+    
+    // Mettre à jour l'état de chargement
+    playerLoadingStates.value.set(player.id, 'loaded')
+    loadedPlayersCount.value++
+    
+    logger.debug(`✅ Joueur "${player.name}" chargé: ${Object.keys(playerAvailability).length} disponibilités`)
+    
+    return playerAvailability
+  } catch (error) {
+    logger.debug(`⏱️ Joueur "${player.name}": erreur lors du chargement (${error.message})`)
+    playerLoadingStates.value.set(player.id, 'error')
+    loadedPlayersCount.value++
+    return {}
+  }
+}
+
+// Fonction de chargement progressif intelligent avec mise à jour en temps réel
+async function loadAvailabilityProgressively(players, events, seasonId) {
+  logger.debug('🚀 APPEL de loadAvailabilityProgressively - Début')
+  return await performanceService.measureStep('load_availability_progressive', async () => {
+    logger.debug('🚀 DANS performanceService.measureStep - Début du chargement progressif des disponibilités')
+    isProgressiveLoading.value = true
+    totalPlayersCount.value = players.length
+    loadedPlayersCount.value = 0
+    
+    // Initialiser tous les joueurs comme "loading"
+    players.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loading')
+    })
+    
+    logger.debug(`📊 Initialisation: ${players.length} joueurs, ${events.length} événements`)
+  
+  try {
+    logger.debug('🚀 PHASE 1: Recherche du joueur connecté')
+    // Phase 1: Charger le joueur connecté en priorité absolue
+    const currentPlayer = currentUser.value?.email 
+      ? players.find(p => p.email === currentUser.value.email)
+      : null
+    
+    if (currentPlayer) {
+      logger.debug(`🚀 Chargement prioritaire du joueur connecté: ${currentPlayer.name}`)
+      
+      const playerAvailability = await loadPlayerAvailability(currentPlayer, seasonId)
+      
+      // Mettre à jour availability immédiatement pour ce joueur
+      availability.value[currentPlayer.name] = playerAvailability
+      
+      // Forcer la réactivité
+      await nextTick()
+      
+      logger.debug(`✅ Joueur connecté chargé: ${Object.keys(playerAvailability).length} disponibilités`)
+      
+      // Jalon : Joueur connecté chargé
+      performanceService.milestone('load_availability_progressive', 'current_player_loaded', {
+        playerName: currentPlayer.name,
+        description: 'Joueur connecté chargé en priorité'
+      })
+    } else {
+      logger.debug('ℹ️ Aucun joueur connecté détecté')
+    }
+    
+    logger.debug('🚀 PHASE 2: Recherche des joueurs favoris')
+    // Phase 2: Charger les joueurs favoris (si connecté et différents du joueur courant)
+    const favoritePlayers = currentUser.value?.email && preferredPlayerIdsSet.value.size > 0
+      ? players.filter(p => preferredPlayerIdsSet.value.has(p.id) && p.email !== currentUser.value.email)
+      : []
+    
+    if (favoritePlayers.length > 0) {
+      logger.debug(`⭐ Chargement prioritaire des ${favoritePlayers.length} joueurs favoris`)
+      
+      for (const player of favoritePlayers) {
+        const playerAvailability = await loadPlayerAvailability(player, seasonId)
+        
+        // Mettre à jour availability immédiatement pour ce joueur
+        availability.value[player.name] = playerAvailability
+        
+        // Forcer la réactivité
+        await nextTick()
+      }
+      
+      logger.debug(`✅ Joueurs favoris chargés: ${favoritePlayers.length} joueurs`)
+      
+      // Jalon : Joueurs favoris chargés
+      performanceService.milestone('load_availability_progressive', 'favorites_loaded', {
+        favoritesCount: favoritePlayers.length,
+        description: 'Joueurs favoris chargés'
+      })
+    } else {
+      logger.debug('ℹ️ Aucun joueur favori à charger')
+    }
+    
+    logger.debug('🚀 PHASE 3: Chargement des autres joueurs')
+    // Phase 3: Charger les autres joueurs par petits batches
+    const remainingPlayers = players.filter(p => {
+      // Exclure le joueur connecté et les favoris déjà chargés
+      const isCurrentPlayer = currentUser.value?.email && p.email === currentUser.value.email
+      const isFavorite = preferredPlayerIdsSet.value.has(p.id)
+      return !isCurrentPlayer && !isFavorite
+    })
+    const batchSize = 3 // Charger 3 joueurs à la fois
+    const totalBatches = Math.ceil(remainingPlayers.length / batchSize)
+    
+    logger.debug(`📦 Chargement des autres joueurs: ${remainingPlayers.length} joueurs en ${totalBatches} batches`)
+    
+    for (let i = 0; i < totalBatches; i++) {
+      const batch = remainingPlayers.slice(i * batchSize, (i + 1) * batchSize)
+      
+      logger.debug(`📦 Chargement du batch ${i + 1}/${totalBatches} (${batch.length} joueurs)`)
+      
+      // Charger le batch en parallèle mais mettre à jour availability au fur et à mesure
+      const batchPromises = batch.map(async (player) => {
+        const playerAvailability = await loadPlayerAvailability(player, seasonId)
+        
+        // Mettre à jour availability immédiatement pour ce joueur
+        availability.value[player.name] = playerAvailability
+        
+        // Forcer la réactivité
+        await nextTick()
+      })
+      
+      await Promise.all(batchPromises)
+      
+      // Mettre à jour la progression
+      availabilityLoadingProgress.value = Math.round((loadedPlayersCount.value / totalPlayersCount.value) * 100)
+      
+      logger.debug(`✅ Batch ${i + 1} terminé: ${loadedPlayersCount.value}/${totalPlayersCount.value} joueurs chargés`)
+      
+      // Petite pause pour laisser l'UI respirer
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    
+    logger.info(`✅ Chargement progressif terminé: ${loadedPlayersCount.value}/${totalPlayersCount.value} joueurs chargés`)
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement progressif:', error)
+    
+    // Jalon : Erreur de chargement
+    performanceService.milestone('load_availability_progressive', 'availability_error', {
+      error: error.message,
+      loadedPlayersCount: loadedPlayersCount.value,
+      description: 'Erreur lors du chargement des disponibilités'
+    })
+  } finally {
+    isProgressiveLoading.value = false
+  }
+  
+  // Jalon : Chargement complet des disponibilités
+  performanceService.milestone('load_availability_progressive', 'availability_complete', {
+    loadedPlayersCount: loadedPlayersCount.value,
+    totalPlayersCount: totalPlayersCount.value,
+    description: 'Toutes les disponibilités chargées'
+  })
+  
+  // Retourner availability.value pour compatibilité
+  logger.debug('🚀 FIN de loadAvailabilityProgressively - Retour de availability.value')
+  return availability.value
+  }, { 
+    seasonId: seasonId, 
+    playersCount: players.length, 
+    eventsCount: events.length 
+  })
+}
 
 // Fonction pour mettre à jour les joueurs préférés depuis Firebase
 async function updatePreferredPlayersSet() {

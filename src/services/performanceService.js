@@ -9,7 +9,23 @@ class PerformanceService {
   constructor() {
     this.markers = new Map()
     this.measurements = new Map()
-    this.isEnabled = true
+    this.isEnabled = false
+  }
+
+  /**
+   * Activer ou désactiver le service de performance
+   * @param {boolean} enabled - État d'activation
+   */
+  setEnabled(enabled) {
+    this.isEnabled = enabled
+    if (enabled) {
+      logger.debug('📊 Service de performance activé')
+    } else {
+      logger.debug('📊 Service de performance désactivé')
+      // Nettoyer les données existantes
+      this.markers.clear()
+      this.measurements.clear()
+    }
   }
 
   /**
@@ -67,6 +83,51 @@ class PerformanceService {
   }
 
   /**
+   * Marquer un point intermédiaire dans une mesure (pour le chargement progressif)
+   * @param {string} name - Nom de la mesure
+   * @param {string} milestone - Nom du jalon
+   * @param {Object} metadata - Métadonnées additionnelles
+   * @returns {number} Durée depuis le début en millisecondes
+   */
+  milestone(name, milestone, metadata = {}) {
+    if (!this.isEnabled) return 0
+
+    const marker = this.markers.get(name)
+    if (!marker) {
+      logger.warn(`⚠️ Performance: Marqueur "${name}" non trouvé pour le jalon "${milestone}"`)
+      return 0
+    }
+
+    const currentTime = performance.now()
+    const duration = currentTime - marker.startTime
+    const currentTimestamp = Date.now()
+
+    // Créer un nom unique pour le jalon
+    const milestoneName = `${name}_${milestone}`
+    
+    // Stocker le jalon
+    const milestoneMeasurement = {
+      name: milestoneName,
+      duration,
+      startTime: marker.startTime,
+      endTime: currentTime,
+      startTimestamp: marker.startTimestamp,
+      endTimestamp: currentTimestamp,
+      metadata: {
+        ...marker.metadata,
+        ...metadata,
+        milestone: milestone,
+        parentMeasurement: name
+      }
+    }
+
+    this.measurements.set(milestoneName, milestoneMeasurement)
+
+    logger.debug(`🎯 Performance: Jalon "${milestone}" atteint pour "${name}" - ${duration.toFixed(2)}ms`, metadata)
+    return duration
+  }
+
+  /**
    * Mesurer une opération asynchrone
    * @param {string} name - Nom de l'opération
    * @param {Function} operation - Fonction à mesurer
@@ -110,14 +171,31 @@ class PerformanceService {
     const measurements = this.getAllMeasurements()
     const totalDuration = measurements.reduce((sum, m) => sum + m.duration, 0)
     
+    // Séparer les mesures principales des jalons
+    const mainMeasurements = measurements.filter(m => !m.metadata.milestone)
+    const milestones = measurements.filter(m => m.metadata.milestone)
+    
+    // Grouper les jalons par mesure parente
+    const milestonesByParent = {}
+    milestones.forEach(milestone => {
+      const parent = milestone.metadata.parentMeasurement
+      if (!milestonesByParent[parent]) {
+        milestonesByParent[parent] = []
+      }
+      milestonesByParent[parent].push(milestone)
+    })
+    
     return {
       totalMeasurements: measurements.length,
       totalDuration: totalDuration.toFixed(2) + 'ms',
+      mainMeasurements: mainMeasurements.length,
+      milestones: milestones.length,
       measurements: measurements.map(m => ({
         name: m.name,
         duration: m.duration.toFixed(2) + 'ms',
         metadata: m.metadata
-      }))
+      })),
+      milestonesByParent
     }
   }
 
@@ -128,6 +206,18 @@ class PerformanceService {
     const summary = this.getSummary()
     console.group('📊 Résumé des performances')
     console.log(`Total: ${summary.totalDuration}`)
+    console.log(`Mesures principales: ${summary.mainMeasurements}`)
+    console.log(`Jalons: ${summary.milestones}`)
+    
+    // Afficher les jalons groupés
+    Object.keys(summary.milestonesByParent).forEach(parent => {
+      console.group(`🎯 Jalons pour ${parent}`)
+      summary.milestonesByParent[parent].forEach(milestone => {
+        console.log(`${milestone.name}: ${milestone.duration}ms - ${milestone.metadata.description || 'N/A'}`)
+      })
+      console.groupEnd()
+    })
+    
     console.table(summary.measurements)
     console.groupEnd()
   }

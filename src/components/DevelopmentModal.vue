@@ -1370,6 +1370,9 @@ async function updateLogLevel() {
 function togglePerformanceDebug() {
   performanceDebugEnabled.value = !performanceDebugEnabled.value;
   
+  // Mettre à jour le service de performance
+  performanceService.setEnabled(performanceDebugEnabled.value);
+  
   // Mettre à jour le localStorage pour la session
   localStorage.setItem('performance-debug', performanceDebugEnabled.value.toString());
   
@@ -1450,6 +1453,10 @@ onMounted(async () => {
   
   // Initialiser le debug des performances
   performanceDebugEnabled.value = localStorage.getItem('performance-debug') === 'true';
+  
+  // Initialiser le service de performance avec l'état sauvegardé
+  performanceService.setEnabled(performanceDebugEnabled.value);
+  
   updatePerformanceSummary();
   
   // Restaurer l'onglet actif

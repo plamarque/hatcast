@@ -12,13 +12,22 @@
     
     <div class="space-y-2 text-xs">
       <div v-if="gridLoadingTime" class="text-green-400">
-        🚀 Grille: {{ gridLoadingTime }}ms
+        🚀 Grille totale: {{ gridLoadingTime }}ms
       </div>
+        <div v-if="gridVisibleTime" class="text-cyan-400">
+          👁️ Grille visible: {{ gridVisibleTime }}ms
+        </div>
+        <div v-if="currentPlayerLoadedTime" class="text-green-400">
+          🚀 Joueur connecté: {{ currentPlayerLoadedTime }}ms
+        </div>
+        <div v-if="favoritesLoadedTime" class="text-yellow-400">
+          ⭐ Favoris: {{ favoritesLoadedTime }}ms
+        </div>
+        <div v-if="availabilityCompleteTime" class="text-orange-400">
+          ✅ Disponibilités complètes: {{ availabilityCompleteTime }}ms
+        </div>
       <div v-if="eventDetailTime" class="text-blue-400">
         📋 Détail: {{ eventDetailTime }}ms
-      </div>
-      <div v-if="availabilityTime" class="text-yellow-400">
-        ⏱️ Disponibilités: {{ availabilityTime }}ms
       </div>
       <div class="text-gray-400">
         📊 {{ measurementsCount }} mesures
@@ -63,6 +72,26 @@ const measurements = ref([])
 // Computed properties pour les temps principaux
 const gridLoadingTime = computed(() => {
   const measurement = performanceService.getMeasurement('grid_loading')
+  return measurement ? measurement.duration.toFixed(0) : null
+})
+
+const gridVisibleTime = computed(() => {
+  const measurement = performanceService.getMeasurement('grid_loading_grid_visible')
+  return measurement ? measurement.duration.toFixed(0) : null
+})
+
+const currentPlayerLoadedTime = computed(() => {
+  const measurement = performanceService.getMeasurement('load_availability_progressive_current_player_loaded')
+  return measurement ? measurement.duration.toFixed(0) : null
+})
+
+const favoritesLoadedTime = computed(() => {
+  const measurement = performanceService.getMeasurement('load_availability_progressive_favorites_loaded')
+  return measurement ? measurement.duration.toFixed(0) : null
+})
+
+const availabilityCompleteTime = computed(() => {
+  const measurement = performanceService.getMeasurement('load_availability_progressive_availability_complete')
   return measurement ? measurement.duration.toFixed(0) : null
 })
 
