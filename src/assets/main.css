@@ -87,3 +87,40 @@
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Optimisations mobile pour la grille des disponibilités */
+@media (max-width: 768px) {
+  /* Réduire la densité des cellules sur mobile */
+  .col-event {
+    min-width: 120px !important;
+    max-width: 120px !important;
+  }
+  
+  /* Réduire le padding des cellules */
+  .col-event .p-4 {
+    padding: 0.75rem !important;
+  }
+  
+  /* Réduire la taille du texte sur mobile */
+  .player-name {
+    font-size: 1.1rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* Optimiser les boutons de disponibilité */
+  .availability-btn {
+    min-height: 2.5rem !important;
+    font-size: 0.875rem !important;
+  }
+  
+  /* Réduire l'espacement entre les lignes */
+  .gridboard tr {
+    height: 3.5rem !important;
+  }
+  
+  /* Optimiser le header sticky */
+  .col-left {
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+}

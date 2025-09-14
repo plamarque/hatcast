@@ -1,11 +1,11 @@
 <template>
-  <div class="sticky top-0 z-[60] text-center py-3 md:py-6 px-2 md:px-4 relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10" 
-       style="padding-top: max(2rem, env(safe-area-inset-top) + 1rem); padding-left: max(0.5rem, env(safe-area-inset-left)); padding-right: max(0.5rem, env(safe-area-inset-right));">
+  <div class="sticky top-0 z-[60] text-center relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10" 
+       style="padding-top: calc(env(safe-area-inset-top) + 1rem); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
+    <div class="py-3 md:py-6 px-4 md:px-6">
     <!-- Flèche de retour - optimisée pour mobile avec marge réduite -->
     <button 
       @click="goBack"
-      class="absolute left-1 md:left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-1.5 md:p-2 rounded-full hover:bg-white/10"
-      style="left: max(0.25rem, env(safe-area-inset-left) + 0.25rem);"
+      class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
       title="Retour aux saisons"
     >
       <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,8 +28,7 @@
     </p>
     
     <!-- Actions à droite - déplacées dans l'en-tête de la grille -->
-    <div class="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2"
-         style="right: max(0.25rem, env(safe-area-inset-right) + 0.25rem);">
+    <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2">
       <!-- Desktop: actions visibles -->
       <div class="hidden md:flex items-center gap-2">
         <AccountDropdown 
@@ -72,6 +71,7 @@
           @open-administration="openAdministration"
         />
       </div>
+    </div>
     </div>
   </div>
 </template>
