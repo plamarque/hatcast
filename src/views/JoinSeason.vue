@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 safe-area-all">
     <div class="text-center py-12 px-4">
       <h1 class="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
         {{ seasonName || 'Rejoindre la saison' }}

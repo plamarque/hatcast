@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 safe-area-all">
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
@@ -15,7 +15,7 @@
     />
 
     <!-- Contenu principal -->
-    <div class="pt-24 pb-16 px-4">
+    <div class="pb-16 px-4" style="padding-top: calc(6rem + env(safe-area-inset-top));">
       <div class="max-w-4xl mx-auto">
         
         <!-- Header de la page -->
