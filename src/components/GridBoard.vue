@@ -27,10 +27,10 @@
     <!-- Vue grille (classique ou inversée) -->
     <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900/80 backdrop-blur-sm">
+      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-transparent">
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-gray-900 h-full">
+          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-transparent h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement -->
               <button
@@ -175,7 +175,7 @@
             </div>
           </div>
           <!-- Right spacer (keeps end alignment) -->
-          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
+          <div class="flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
 
           <!-- Dropdown des filtres en position flottante -->
           <div
