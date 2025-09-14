@@ -33,6 +33,27 @@
           <span class="text-xl">{{ currentViewMode === 'normal' ? '🔄' : '↩️' }}</span>
         </button>
       </div>
+
+      <!-- Bouton de filtres (visible pour tous les utilisateurs) -->
+      <div class="flex items-center gap-1">
+        <button
+          @click="toggleFilters"
+          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 relative"
+          :class="{ 'bg-white/20': showFilters }"
+          title="Filtres d'affichage"
+          aria-label="Filtres d'affichage"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+          </svg>
+          
+          <!-- Indicateur de filtres actifs -->
+          <div
+            v-if="hasActiveFilters"
+            class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-gray-900"
+          ></div>
+        </button>
+      </div>
       
 
       <!-- Desktop: actions visibles -->
@@ -90,10 +111,12 @@ const props = defineProps({
   seasonSlug: { type: String, default: '' },
   isConnected: { type: Boolean, default: false },
   showViewToggle: { type: Boolean, default: false },
-  currentViewMode: { type: String, default: 'grid' }
+  currentViewMode: { type: String, default: 'grid' },
+  showFilters: { type: Boolean, default: false },
+  hasActiveFilters: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'toggle-view-mode'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'toggle-view-mode', 'toggle-filters'])
 
 // État de connexion reçu depuis le composant parent (GridBoard)
 // Plus besoin de logique locale d'authentification
@@ -166,5 +189,9 @@ function openDevelopment() {
 
 function toggleViewMode() {
   emit('toggle-view-mode')
+}
+
+function toggleFilters() {
+  emit('toggle-filters')
 }
 </script>

@@ -8,6 +8,8 @@
       :is-connected="!!currentUser?.email"
       :show-view-toggle="showViewToggle"
       :current-view-mode="currentViewMode"
+      :show-filters="showFiltersDropdown"
+      :has-active-filters="showArchived || showPast"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -19,6 +21,7 @@
       @open-account-creation="openAccountCreation"
       @open-development="openDevelopment"
       @toggle-view-mode="toggleViewMode"
+      @toggle-filters="toggleFiltersDropdown"
     />
 
     <!-- Vue grille (classique ou inversée) -->
@@ -174,91 +177,40 @@
           <!-- Right spacer (keeps end alignment) -->
           <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
 
-          <!-- Toggle archived events (top-right, above right chevron) -->
-          <div class="absolute right-2 top-2 z-[150] hidden md:block">
-            <!-- Bouton de filtres -->
-            <button
-              @click="toggleFiltersDropdown"
-              data-filters-button
-              class="w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 relative"
-              :class="{ 'bg-white/20 border-white/40': showFiltersDropdown }"
-              title="Filtres d'affichage"
-              aria-label="Filtres d'affichage"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
-              </svg>
-              
-              <!-- Indicateur de filtres actifs -->
-              <div
-                v-if="showArchived || showPast"
-                class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-gray-900"
-              ></div>
-            </button>
-          </div>
-
-          <!-- Dropdown des filtres (positionnement simple) -->
+          <!-- Dropdown des filtres en position flottante -->
           <div
             v-if="showFiltersDropdown"
             data-filters-dropdown
-            class="absolute top-12 right-0 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
+            class="fixed bottom-4 right-4 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
           >
-              <div class="p-3 border-b border-white/10">
-                <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
-              </div>
-              
-              <!-- Option Archivés -->
-              <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-                <input
-                  v-model="showArchived"
-                  type="checkbox"
-                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                >
-                <span class="ml-3 text-sm text-white">Archivés</span>
-                <span class="ml-auto text-xs text-gray-400">📁</span>
-              </label>
-              
-              <!-- Option Passés -->
-              <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-                <input
-                  v-model="showPast"
-                  type="checkbox"
-                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                >
-                <span class="ml-3 text-sm text-white">Passés</span>
-                <span class="ml-auto text-xs text-gray-400">📅</span>
-              </label>
+            <div class="p-3 border-b border-white/10">
+              <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
+            </div>
+            
+            <!-- Option Archivés -->
+            <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
+              <input
+                v-model="showArchived"
+                type="checkbox"
+                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+              >
+              <span class="ml-3 text-sm text-white">Archivés</span>
+              <span class="ml-auto text-xs text-gray-400">📁</span>
+            </label>
+            
+            <!-- Option Passés -->
+            <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
+              <input
+                v-model="showPast"
+                type="checkbox"
+                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+              >
+              <span class="ml-3 text-sm text-white">Passés</span>
+              <span class="ml-auto text-xs text-gray-400">📅</span>
+            </label>
           </div>
 
-          <!-- Horizontal scroll chevrons -->
-          <button
-            v-show="showLeftHint"
-            @click.prevent="onChevronClick(-1, $event)"
-            @mousedown.prevent="startHoldScroll(-1, $event)"
-            @mouseup="stopHoldScroll($event)"
-            @mouseleave="stopHoldScroll($event)"
-            @touchstart.prevent="startHoldScroll(-1, $event)"
-            @touchend="stopHoldScroll($event)"
-            @touchcancel="stopHoldScroll($event)"
-            class="absolute left-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[110] backdrop-blur-sm"
-            title="Événements précédents — cliquez pour défiler"
-          >
-            ‹
-          </button>
-          <button
-            v-show="showRightHint"
-            @click.prevent="onChevronClick(1, $event)"
-            @mousedown.prevent="startHoldScroll(1, $event)"
-            @mouseup="stopHoldScroll($event)"
-            @mouseleave="stopHoldScroll($event)"
-            @touchstart.prevent="startHoldScroll(1, $event)"
-            @touchend="stopHoldScroll($event)"
-            @touchcancel="stopHoldScroll($event)"
-            class="absolute right-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[110] backdrop-blur-sm"
-            title="Événements suivants — cliquez pour défiler"
-          >
-            ›
-          </button>
+          <!-- Chevrons supprimés de cette zone -->
         </div>
       </div>
 
@@ -1458,6 +1410,36 @@
     :show="showDevelopmentModal"
     @close="showDevelopmentModal = false"
   />
+
+  <!-- Chevrons de navigation flottants au milieu de l'écran -->
+  <button
+    v-show="showLeftHint"
+    @click.prevent="onChevronClick(-1, $event)"
+    @mousedown.prevent="startHoldScroll(-1, $event)"
+    @mouseup="stopHoldScroll($event)"
+    @mouseleave="stopHoldScroll($event)"
+    @touchstart.prevent="startHoldScroll(-1, $event)"
+    @touchend="stopHoldScroll($event)"
+    @touchcancel="stopHoldScroll($event)"
+    class="fixed left-2 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full border border-white/20 bg-gray-900/60 hover:bg-white/15 text-white flex items-center justify-center z-[110] backdrop-blur-sm shadow-xl"
+    title="Événements précédents — cliquez pour défiler"
+  >
+    <span class="text-2xl font-bold">‹</span>
+  </button>
+  <button
+    v-show="showRightHint"
+    @click.prevent="onChevronClick(1, $event)"
+    @mousedown.prevent="startHoldScroll(1, $event)"
+    @mouseup="stopHoldScroll($event)"
+    @mouseleave="stopHoldScroll($event)"
+    @touchstart.prevent="startHoldScroll(1, $event)"
+    @touchend="stopHoldScroll($event)"
+    @touchcancel="stopHoldScroll($event)"
+    class="fixed right-2 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full border border-white/20 bg-gray-900/60 hover:bg-white/15 text-white flex items-center justify-center z-[110] backdrop-blur-sm shadow-xl"
+    title="Événements suivants — cliquez pour défiler"
+  >
+    <span class="text-2xl font-bold">›</span>
+  </button>
 
   
 </template>
