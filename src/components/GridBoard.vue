@@ -25,10 +25,10 @@
     <div class="w-full px-0 md:px-0 pb-0 bg-gray-900"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 48px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 48px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-transparent">
+      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-transparent h-full">
+          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-4 md:p-5 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement (visible seulement si permissions d'édition) -->
               <button
@@ -97,60 +97,58 @@
           </div>
           <!-- Headers (événements en mode normal, joueurs en mode inversé) -->
           <div class="flex-1 overflow-hidden">
-            <div ref="headerEventsRef" class="flex relative z-[60] bg-transparent" :style="{ transform: `translateX(-${headerScrollX}px)` }">
+            <div ref="headerEventsRef" class="flex relative z-[60] bg-gray-900" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
                 v-for="(headerItem, index) in displayColumns"
                 :key="'h-'+headerItem.id"
                 :data-event-id="currentViewMode === 'normal' ? headerItem.id : undefined"
                 :data-player-id="currentViewMode === 'inverted' ? headerItem.id : undefined"
-                class="col-event flex-shrink-0 p-3 text-center flex flex-col justify-between bg-transparent"
+                class="col-event flex-shrink-0 p-4 md:p-5 text-center flex flex-col justify-start bg-gray-900"
                 :class="{ 
                   'archived-header': currentViewMode === 'normal' && headerItem.archived,
                   'preferred-player-header': currentViewMode === 'inverted' && preferredPlayerIdsSet.has(headerItem.id)
                 }"
               >
                 <!-- Mode normal : affichage des événements -->
-                <div v-if="currentViewMode === 'normal'">
-                  <!-- Zone cliquable complète (titre + date + type) -->
+                <div v-if="currentViewMode === 'normal'" class="flex flex-col h-full">
+                  <!-- Ligne 1 : Titre et date -->
                   <div 
-                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
+                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
-                    <div class="flex flex-col items-center flex-1 justify-center w-full">
-                      <!-- Ligne 1 : Titre du spectacle -->
-                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
-                        {{ headerItem.title || 'Sans titre' }}
-                      </div>
-                      
-                      <!-- Ligne 2 : Date du spectacle -->
-                      <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
-                           :title="formatDateFull(headerItem.date)">
-                        {{ formatDate(headerItem.date) }}
-                      </div>
+                    <!-- Titre du spectacle -->
+                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
+                      {{ headerItem.title || 'Sans titre' }}
                     </div>
                     
-                    <!-- Section basse : badge de type d'événement -->
-                    <div class="flex flex-col items-center mt-2">
-                      <!-- Indicateur de statut archivé (priorité sur les autres) -->
-                      <div 
-                        v-if="headerItem.archived"
-                        class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
-                        title="Événement archivé"
-                      >
-                        <span class="text-xs text-gray-300 font-medium">📁</span>
-                        <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
-                      </div>
-                      
-                      <!-- Badge de type d'événement (seulement si pas archivé) -->
-                      <div 
-                        v-else-if="headerItem.roles"
-                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
-                        :title="getEventTypeName(headerItem)"
-                      >
-                        <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
-                        <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
-                      </div>
+                    <!-- Date du spectacle -->
+                    <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
+                         :title="formatDateFull(headerItem.date)">
+                      {{ formatDate(headerItem.date) }}
+                    </div>
+                  </div>
+                  
+                  <!-- Ligne 2 : Badge de type d'événement (toujours à la même hauteur) -->
+                  <div class="flex items-center justify-center p-1 h-8">
+                    <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                    <div 
+                      v-if="headerItem.archived"
+                      class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
+                      title="Événement archivé"
+                    >
+                      <span class="text-xs text-gray-300 font-medium">📁</span>
+                      <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                    </div>
+                    
+                    <!-- Badge de type d'événement (seulement si pas archivé) -->
+                    <div 
+                      v-else-if="headerItem.roles"
+                      class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
+                      :title="getEventTypeName(headerItem)"
+                    >
+                      <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
+                      <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
                     </div>
                   </div>
                 </div>
@@ -1553,13 +1551,13 @@
     pointer-events: none;
   }
 .col-left { width: 13rem; }
-.col-event { width: 12.5rem; background: transparent !important; }
+.col-event { width: 12rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
   .col-left { width: 13rem; }
   .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
-  .col-event { width: 7.5rem; }
+  .col-event { width: 12rem; }
   .col-right { width: 3rem; }
 }
 
@@ -1575,7 +1573,7 @@
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
   .col-left { width: 13rem; }
-  .col-event { width: 10.5rem; }
+  .col-event { width: 12rem; }
   .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
 }
 
