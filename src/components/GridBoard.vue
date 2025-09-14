@@ -250,8 +250,8 @@
                 'preferred-player': currentViewMode === 'normal' && preferredPlayerIdsSet.has(rowItem.id) 
               }"
             >
-              <td class="px-0 py-4 md:py-5 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-4 md:px-5 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
+              <td class="px-0 py-2 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
+                <div class="px-2 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
                   <!-- Mode normal : affichage des joueurs -->
                   <div 
                     v-if="currentViewMode === 'normal'"
@@ -298,7 +298,7 @@
                   >
                     <div class="flex flex-col items-center gap-2 w-full">
                       <!-- Ligne 1 : Titre du spectacle avec icône -->
-                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                         <span v-if="rowItem.roles" :title="getEventTypeName(rowItem)" class="mr-1">{{ getEventTypeIcon(rowItem) }}</span>{{ rowItem.title || 'Sans titre' }}
                       </div>
                       
@@ -308,19 +308,16 @@
                         {{ formatDate(rowItem.date) }}
                       </div>
                       
-                      <!-- Ligne 3 : Badge de type d'événement -->
-                      <div class="flex flex-col items-center">
-                        <!-- Indicateur de statut inactif (priorité sur les autres) -->
+                      <!-- Ligne 3 : Badge de type d'événement (affiché seulement s'il y a un badge) -->
+                      <div v-if="rowItem.archived" class="flex flex-col items-center">
+                        <!-- Indicateur de statut inactif -->
                         <div 
-                          v-if="rowItem.archived"
                           class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
                           title="Événement inactif"
                         >
                           <span class="text-xs text-gray-300 font-medium">📁</span>
                           <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                         </div>
-                        
-                        <!-- Plus de badge de type d'événement -->
                       </div>
                     </div>
                   </div>
@@ -367,8 +364,8 @@
             </tr>
             <!-- Dernière ligne: ajouter une personne (toujours visible pour éviter blocage quand 0 personne) -->
             <tr class="border-t border-white/10">
-              <td class="px-0 py-4 md:py-5 sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-4 md:px-5 flex items-center">
+              <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
+                <div class="px-2 flex items-center">
                   <button
                     @click="openNewPlayerForm"
                     class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
