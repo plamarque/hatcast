@@ -20,49 +20,34 @@ async function generateUserFocusedChangelog(technicalJson, version) {
 
     const date = technicalData.date || new Date().toISOString().split('T')[0];
 
-    const prompt = `Je vais te donner un JSON technique de changelog en anglais et je veux que tu le transformes en JSON français avec un style très orienté utilisateur et bénéfice concret.
+    // Créer un prompt plus simple et robuste
+    const changesText = technicalData.changes.map(change => {
+      // Nettoyer le changement (supprimer l'emoji et le préfixe)
+      const cleanChange = change.replace(/^[✨🐛🔧📝] /, '').trim();
+      return `- ${cleanChange}`;
+    }).join('\n');
 
-STYLE ET TON À ADOPTER :
-- **Ton personnel et direct** : Utiliser "tu", "nous", "on" - parler directement à l'utilisateur
-- **Focus bénéfice** : Décrire ce que l'utilisateur peut faire maintenant, pas ce qui a été développé
-- **Langage simple** : Éviter le jargon technique, utiliser des mots du quotidien
-- **Ton décontracté** : Un peu d'humour et de personnalité (😅, 🤖, etc.)
-- **Concret et pratique** : Expliquer l'impact réel sur l'expérience utilisateur
+    const prompt = `Traduis ces changements techniques en français utilisateur, style décontracté et direct (utilise "tu", "on"). 
 
-EXEMPLES DE TRANSFORMATION :
-❌ "Ajout d'une fonctionnalité pour permettre le remplissage manuel des emplacements"
-✅ "Tu peux désormais remplir manuellement les emplacements même quand la compo est verrouillée"
+RÈGLES IMPORTANTES :
+- Garde les termes techniques comme "MC", "DJ", "compo", "Long Form", etc.
+- Utilise les emojis appropriés : ✨ pour les nouvelles fonctionnalités, 🐛 pour les corrections, 🔧 pour les améliorations, 📝 pour les autres
+- Réponds UNIQUEMENT avec le JSON suivant, sans texte avant ou après
+- Chaque changement doit être une chaîne de caractères valide JSON (échapper les guillemets)
+- Ne mets PAS de guillemets autour du JSON entier
 
-❌ "Amélioration de la gestion des types de modèles et protection de la personnalisation"
-✅ "Tes modèles d'événements sont maintenant mieux protégés contre les modifications accidentelles"
+Changements à traduire :
+${changesText}
 
-❌ "Mise en place d'un système d'audit complet"
-✅ "On garde désormais un journal de tous les changements de compositions"
-
-RÈGLES SPÉCIFIQUES :
-1. **Orientation bénéfice** : Toujours expliquer ce que l'utilisateur gagne
-2. **Termes impro** : Garder Long Form, MC, DJ, compo, etc.
-3. **Langage inclusif** : Utiliser féminin/masculin et inclusif
-4. **Filtrage** : IGNORER les commits de debug, cleanup, test, techniques internes
-5. **Regroupement** : Fusionner les changements similaires
-6. **Emojis** : Conserver ✨ 🐛 🔧 📝 🎨
-7. **Structure** : Respecter exactement la structure JSON
-
-STRUCTURE JSON À RESPECTER :
+Réponds UNIQUEMENT avec ce JSON :
 {
   "version": "${version}",
   "date": "${date}",
   "changes": [
-    "✨ Bénéfice utilisateur concret",
-    "🐛 Problème résolu pour l'utilisateur",
-    "🔧 Amélioration de l'expérience"
+    "✨ changement traduit 1",
+    "🐛 changement traduit 2"
   ]
-}
-
-JSON TECHNIQUE À TRANSFORMER :
-${JSON.stringify(technicalData, null, 2)}
-
-Réponds UNIQUEMENT avec le JSON transformé, sans explication ni texte supplémentaire.`;
+}`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Modèle rapide et économique
@@ -77,22 +62,30 @@ Réponds UNIQUEMENT avec le JSON transformé, sans explication ni texte supplém
         }
       ],
       temperature: 0.3, // Faible température pour plus de cohérence
-      max_tokens: 1000
+      max_tokens: 2000 // Plus de tokens pour éviter les réponses tronquées
     });
 
     const jsonResponse = response.choices[0].message.content.trim();
     
+    // Nettoyer la réponse JSON (supprimer les caractères problématiques)
+    let cleanJson = jsonResponse
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Supprimer les caractères de contrôle
+      .replace(/\n/g, '\\n') // Échapper les retours à la ligne
+      .replace(/\r/g, '\\r') // Échapper les retours chariot
+      .trim();
+    
     // Validate JSON
     try {
-      const parsed = JSON.parse(jsonResponse);
+      const parsed = JSON.parse(cleanJson);
       if (parsed.version && parsed.date && Array.isArray(parsed.changes)) {
-        return jsonResponse;
+        return cleanJson;
       } else {
         console.error('❌ JSON invalide: structure incorrecte');
         return null;
       }
     } catch (parseError) {
-      console.error('❌ JSON invalide:', parseError.message);
+      console.error('❌ JSON invalide après nettoyage:', parseError.message);
+      console.error('📝 Réponse OpenAI (premiers 200 caractères):', cleanJson.substring(0, 200) + '...');
       return null;
     }
 
