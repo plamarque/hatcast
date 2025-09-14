@@ -1,7 +1,9 @@
-## [0.13.0] - 2025-09-14
+## [0.14.0] - 2025-09-14
 
 ### ✨ New Features
 
+- feat: improve grid/list toggle icons with better layout and styling
+- feat: filter inactive and past events from grid display
 - feat: replace grid/list toggle emojis with clearer SVG icons
 - feat: extend role management to announcement and composition buttons
 - feat: implement role-based access control system
@@ -47,6 +49,11 @@
 
 ### 🐛 Bug Fixes
 
+- fix: improve changelog translation robustness in release script
+- fix: translate changelog versions 0.12.0 and 0.13.0 to user-focused French
+- fix: correct mobile layout for logo and toggle icon positioning
+- fix: improve iPhone safe areas and button positioning on season page
+- fix: add iPhone safe areas support for notch and rounded corners
 - fix: add missing navigation to administration page
 - fix: correct admin role detection logic and improve event filtering
 - fix: update Firestore rules to allow userPreferences access
@@ -110,6 +117,7 @@
 
 ### 📝 Other Changes
 
+- chore: bump version to 0.13.0 for production release
 - chore: bump version to 0.12.0 for production release
 - chore: bump version to 0.11.0 for production release
 - chore: remove polluting debug logs from GridBoard
@@ -129,6 +137,7 @@
 
 # Changelog
 
+## [0.14.0] - 2025-09-14
 ## [0.13.0] - 2025-09-14
 ## [0.12.0] - 2025-09-12
 ## [0.11.0] - 2025-09-11
