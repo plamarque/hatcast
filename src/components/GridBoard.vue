@@ -92,9 +92,9 @@
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
-                    <!-- Titre du spectacle -->
+                    <!-- Titre du spectacle avec icône -->
                     <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
-                      {{ headerItem.title || 'Sans titre' }}
+                      <span v-if="headerItem.roles" :title="getEventTypeName(headerItem)" class="mr-1">{{ getEventTypeIcon(headerItem) }}</span>{{ headerItem.title || 'Sans titre' }}
                     </div>
                     
                     <!-- Date du spectacle -->
@@ -116,15 +116,7 @@
                       <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                     </div>
                     
-                    <!-- Badge de type d'événement (seulement si actif) -->
-                    <div 
-                      v-else-if="headerItem.roles"
-                      class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
-                      :title="getEventTypeName(headerItem)"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
-                    </div>
+                    <!-- Plus de badge de type d'événement -->
                   </div>
                 </div>
 
@@ -312,9 +304,9 @@
                     :title="'Cliquez pour voir les détails : ' + rowItem.title"
                   >
                     <div class="flex flex-col items-center gap-2 w-full">
-                      <!-- Ligne 1 : Titre du spectacle -->
+                      <!-- Ligne 1 : Titre du spectacle avec icône -->
                       <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        {{ rowItem.title || 'Sans titre' }}
+                        <span v-if="rowItem.roles" :title="getEventTypeName(rowItem)" class="mr-1">{{ getEventTypeIcon(rowItem) }}</span>{{ rowItem.title || 'Sans titre' }}
                       </div>
                       
                       <!-- Ligne 2 : Date du spectacle -->
@@ -335,15 +327,7 @@
                           <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                         </div>
                         
-                        <!-- Badge de type d'événement (seulement si actif) -->
-                        <div 
-                          v-else-if="rowItem.roles"
-                          class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
-                          :title="getEventTypeName(rowItem)"
-                        >
-                          <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(rowItem) }}</span>
-                          <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(rowItem) }}</span>
-                        </div>
+                        <!-- Plus de badge de type d'événement -->
                       </div>
                     </div>
                   </div>
