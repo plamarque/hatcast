@@ -8,8 +8,6 @@
       :is-connected="!!currentUser?.email"
       :show-view-toggle="showViewToggle"
       :current-view-mode="currentViewMode"
-      :show-filters="showFiltersDropdown"
-      :has-active-filters="showArchived || showPast"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -20,8 +18,6 @@
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
       @open-development="openDevelopment"
-      @toggle-view-mode="toggleViewMode"
-      @toggle-filters="toggleFiltersDropdown"
     />
 
     <!-- Vue grille (classique ou inversée) -->
@@ -44,22 +40,56 @@
                 <span class="sm:hidden">Événement</span>
               </button>
               
-              <!-- Icône de la saison - cliquable pour rafraîchir -->
-              <div 
-                @click="refreshSeason"
-                class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
-                :title="`Cliquer pour rafraîchir ${seasonName}`"
-              >
-                <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
-                  <img 
-                    :src="seasonMeta.logoUrl" 
-                    :alt="`Logo de ${seasonName}`"
-                    class="w-full h-full object-cover"
-                  >
+              <!-- Section logo + boutons - horizontale -->
+              <div class="flex items-center gap-2">
+                <!-- Icône de la saison - cliquable pour rafraîchir -->
+                <div 
+                  @click="refreshSeason"
+                  class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
+                  :title="`Cliquer pour rafraîchir ${seasonName}`"
+                >
+                  <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
+                    <img 
+                      :src="seasonMeta.logoUrl" 
+                      :alt="`Logo de ${seasonName}`"
+                      class="w-full h-full object-cover"
+                    >
+                  </div>
+                  <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
                 </div>
-                <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
+                
+                <!-- Boutons de contrôle de la grille - empilés à droite du logo -->
+                <div class="flex flex-col items-center gap-1">
+                <!-- Toggle de vue -->
+                <button
+                  @click="toggleViewMode"
+                  class="text-white hover:text-purple-300 transition-colors duration-200 p-1.5 rounded-full hover:bg-white/10"
+                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
+                  aria-label="Changer de vue"
+                >
+                  <span class="text-sm">{{ currentViewMode === 'normal' ? '🔄' : '↩️' }}</span>
+                </button>
+                
+                <!-- Bouton de filtres -->
+                <button
+                  @click="toggleFiltersDropdown"
+                  class="text-white hover:text-purple-300 transition-colors duration-200 p-1.5 rounded-full hover:bg-white/10 relative"
+                  :class="{ 'bg-white/20': showFiltersDropdown }"
+                  title="Filtres d'affichage"
+                  aria-label="Filtres d'affichage"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+                  </svg>
+                  
+                  <!-- Indicateur de filtres actifs -->
+                  <div
+                    v-if="showArchived || showPast"
+                    class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border border-gray-900"
+                  ></div>
+                </button>
+                </div>
               </div>
-              
 
             </div>
           </div>
