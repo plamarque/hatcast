@@ -266,7 +266,8 @@
               <div
                 v-for="event in filteredEvents"
                 :key="event.id"
-                class="bg-gray-700/50 rounded-lg p-4"
+                class="bg-gray-700/50 rounded-lg p-4 cursor-pointer hover:bg-gray-600/50 transition-colors"
+                @click="openEventDetails(event)"
               >
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
@@ -284,21 +285,21 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <button
-                      @click="editEvent(event)"
+                      @click.stop="editEvent(event)"
                       class="px-3 py-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
                       title="Modifier cet événement"
                     >
                       ✏️
                     </button>
                     <button
-                      @click="toggleEventArchive(event)"
+                      @click.stop="toggleEventArchive(event)"
                       class="px-3 py-1.5 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-all duration-200"
                       :title="event.archived ? 'Activer' : 'Désactiver'"
                     >
                       {{ event.archived ? '📤' : '📦' }}
                     </button>
                     <button
-                      @click="deleteEvent(event)"
+                      @click.stop="deleteEvent(event)"
                       class="px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
                       title="Supprimer cet événement"
                     >
@@ -1092,6 +1093,12 @@ function formatDate(dateString) {
 
 function editEvent(event) {
   editingEvent.value = event
+}
+
+function openEventDetails(event) {
+  // Ouvrir la page de l'événement dans un nouvel onglet
+  const eventUrl = `/season/${seasonSlug.value}?event=${event.id}&modal=event_details`
+  window.open(eventUrl, '_blank')
 }
 
 // Handlers pour EventModal

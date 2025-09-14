@@ -69,17 +69,17 @@
         <!-- Stats condensées en 3 colonnes -->
         <div>
           <div class="grid grid-cols-3 gap-3 md:gap-4">
-            <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.availability }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
-            </div>
+           <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
+             <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal">({{ props.stats.availability }}%)</span></div>
+             <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
+           </div>
             <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Compositions</div>
+              <div class="text-xs md:text-sm text-gray-300">Participations</div>
             </div>
             <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}</div>
-              <div class="text-xs md:text-sm text-gray-300">% de composition</div>
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}%</div>
+              <div class="text-xs md:text-sm text-gray-300">Taux de sélection</div>
             </div>
           </div>
         </div>

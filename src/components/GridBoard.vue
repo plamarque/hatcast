@@ -5130,36 +5130,62 @@ function formatDateFull(dateValue) {
   })
 }
 
-function countSelections(player) {
-  return Object.keys(casts.value).filter(eventId => {
+function countSelections(playerName) {
+  // Trouver l'ID du joueur à partir de son nom
+  const player = players.value.find(p => p.name === playerName)
+  if (!player) {
+    return 0;
+  }
+  
+  const selectedEvents = Object.keys(casts.value).filter(eventId => {
+    // Vérifier que l'événement existe encore
+    const event = events.value.find(e => e.id === eventId)
+    if (!event) {
+      return false
+    }
+    
     const players = getSelectionPlayers(eventId)
-    return players.includes(player)
-  }).length
+    const isSelected = players.includes(player.id) // Chercher l'ID au lieu du nom
+    return isSelected
+  })
+  
+  return selectedEvents.length;
 }
 
 // Nouvelle fonction pour compter les sélections par rôle spécifique
-function countSelectionsForRole(player, role) {
+function countSelectionsForRole(playerName, role) {
   return Object.keys(casts.value).filter(eventId => {
     const cast = casts.value[eventId]
     if (!cast) return false
     
     // Nouvelle structure multi-rôles
     if (cast.roles && cast.roles[role]) {
-      return cast.roles[role].includes(player)
+      return cast.roles[role].includes(playerName)
     }
     
     // Ancienne structure (tous considérés comme "player")
     if (role === 'player' && Array.isArray(cast)) {
-      return cast.includes(player)
+      return cast.includes(playerName)
     }
     
     return false
   }).length
 }
 
-function countAvailability(player) {
-  const eventsMap = availability.value[player] || {}
-  return Object.values(eventsMap).filter(v => v === true).length
+function countAvailability(playerName) {
+  const eventsMap = availability.value[playerName] || {}
+  
+  // Nouvelle logique : vérifier si c'est un objet avec propriété 'available'
+  const count = Object.values(eventsMap).filter(v => {
+    if (typeof v === 'boolean') {
+      return v === true;
+    } else if (typeof v === 'object' && v !== null) {
+      return v.available === true;
+    }
+    return false;
+  }).length;
+  
+  return count;
 }
 
 function countAvailablePlayers(eventId) {
@@ -5183,17 +5209,35 @@ function isSelectionComplete(eventId) {
   return hasEnoughPlayers && isConfirmed
 }
 
-function ratioSelection(player) {
-  const avail = countAvailability(player)
-  const sel = countSelections(player)
-  return avail === 0 ? 0 : sel / avail
+function ratioSelection(playerName) {
+  const totalEvents = events.value.length
+  const timesAvailable = countAvailability(playerName)
+  const participations = countSelections(playerName)
+  
+  // Taux de disponibilité : (fois dispo / total événements) × 100
+  const availabilityRate = totalEvents === 0 ? 0 : Math.round((timesAvailable / totalEvents) * 100)
+  
+  // Taux de sélection : (fois retenu / fois dispo) × 100
+  const selectionRate = timesAvailable === 0 ? 0 : Math.round((participations / timesAvailable) * 100)
+  
+  return { availabilityRate, participations, selectionRate }
 }
 
-function updateStatsForPlayer(player) {
-  stats.value[player] = {
-    availability: countAvailability(player),
-    selection: countSelections(player),
-    ratio: ratioSelection(player)
+function updateStatsForPlayer(playerName) {
+  const totalEvents = events.value.length
+  const timesAvailable = countAvailability(playerName)
+  const participations = countSelections(playerName)
+  
+  // Taux de disponibilité : (fois dispo / total événements) × 100
+  const availabilityRate = totalEvents === 0 ? 0 : Math.round((timesAvailable / totalEvents) * 100)
+  
+  // Taux de sélection : (fois retenu / fois dispo) × 100
+  const selectionRate = timesAvailable === 0 ? 0 : Math.round((participations / timesAvailable) * 100)
+  
+  stats.value[playerName] = {
+    availability: availabilityRate,
+    selection: participations,
+    ratio: selectionRate
   }
 }
 
@@ -6264,8 +6308,21 @@ async function toggleEventArchived() {
 }
 
 // Fonctions pour le modal joueur
-function showPlayerDetails(player) {
+async function showPlayerDetails(player) {
   selectedPlayer.value = player;
+  
+  // Recharger les données pour avoir les stats à jour
+  try {
+    const [newAvailability, newSelections] = await Promise.all([
+      loadAvailability(players.value, events.value, seasonId.value),
+      loadCasts(seasonId.value)
+    ]);
+    availability.value = newAvailability;
+    casts.value = newSelections;
+  } catch (error) {
+    console.warn('Impossible de recharger les données pour les stats:', error);
+  }
+  
   showPlayerModal.value = true;
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation
@@ -6441,11 +6498,28 @@ async function handleAvatarUpdated({ playerId, seasonId: eventSeasonId }) {
 function getPlayerStats(player) {
   if (!player) return { availability: 0, selection: 0, ratio: 0 };
   
-  const availability = countAvailability(player.name);
-  const selection = countSelections(player.name);
-  const ratio = availability === 0 ? 0 : Math.round((selection / availability) * 100);
+  // Nombre total d'événements (actifs, passés et futurs sauf inactifs)
+  const totalEvents = events.value.length;
   
-  return { availability, selection, ratio };
+  // Nombre de fois marqué "Dispo"
+  const timesAvailable = countAvailability(player.name);
+  
+  // Nombre de fois retenu (participations)
+  const participations = countSelections(player.name);
+  
+  // Taux de disponibilité : (fois dispo / total événements) × 100
+  const availabilityRate = totalEvents === 0 ? 0 : Math.round((timesAvailable / totalEvents) * 100);
+  
+  // Taux de sélection : (fois retenu / fois dispo) × 100
+  const selectionRate = timesAvailable === 0 ? 0 : Math.round((participations / timesAvailable) * 100);
+  
+  
+         return { 
+           availability: availabilityRate, 
+           timesAvailable: timesAvailable,
+           selection: participations, 
+           ratio: selectionRate 
+         };
 }
 
 // Fonction helper pour calculer le nombre total requis d'un événement
