@@ -1,7 +1,14 @@
-## [0.12.0] - 2025-09-12
+## [0.13.0] - 2025-09-14
 
 ### ✨ New Features
 
+- feat: replace grid/list toggle emojis with clearer SVG icons
+- feat: extend role management to announcement and composition buttons
+- feat: implement role-based access control system
+- feat: relocate control buttons to grid header for better UX
+- feat: add safe area support for iPhone notch compatibility
+- feat: optimize mobile UI by relocating navigation elements
+- feat: add mobile device analysis to audit CLI
 - feat: implement role-specific selection penalties and improve role-based view
 - feat: add role-based event detail view and fix gender display
 - feat: make view toggle visible for all users
@@ -40,6 +47,11 @@
 
 ### 🐛 Bug Fixes
 
+- fix: add missing navigation to administration page
+- fix: correct admin role detection logic and improve event filtering
+- fix: update Firestore rules to allow userPreferences access
+- fix: improve column header layout and badge alignment
+- fix: remove header opacity by eliminating col-right class
 - fix: improve player lookup robustness in inverted mode
 - fix: correct inverted grid display and click handlers
 - fix: increase NotificationPromptModal z-index to display above EventDetailsModal
@@ -98,6 +110,7 @@
 
 ### 📝 Other Changes
 
+- chore: bump version to 0.12.0 for production release
 - chore: bump version to 0.11.0 for production release
 - chore: remove polluting debug logs from GridBoard
 - chore: add dotenv dependency for debug scripts
@@ -116,6 +129,7 @@
 
 # Changelog
 
+## [0.13.0] - 2025-09-14
 ## [0.12.0] - 2025-09-12
 ## [0.11.0] - 2025-09-11
 ## [0.10.0] - 2025-09-10

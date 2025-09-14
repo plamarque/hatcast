@@ -11,6 +11,11 @@ import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
 import JoinSeason from './views/JoinSeason.vue'
+import SeasonAdminPage from './views/SeasonAdminPage.vue'
+import NotFoundPage from './views/NotFoundPage.vue'
+import { getFirebaseAuth } from './services/firebase.js'
+import roleService from './services/roleService.js'
+import logger from './services/logger.js'
 
 // Réduire le bruit de logs en production (garder warnings/erreurs)
 if (import.meta.env && import.meta.env.PROD) {
@@ -31,13 +36,73 @@ const routes = [
   { path: '/season/:slug', component: GridBoard, props: true },
   { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
   { path: '/season/:slug/join', component: JoinSeason, props: true },
+  { path: '/season/:slug/admin', component: SeasonAdminPage, props: true },
   { path: '/reset-password', component: PasswordReset },
-  { path: '/magic', component: MagicLink }
+  { path: '/magic', component: MagicLink },
+  { path: '/404', component: NotFoundPage },
+  { path: '/:pathMatch(.*)*', component: NotFoundPage }
 ]
 
 const router = createRouter({
   history: createWebHistory('/'),
   routes
+})
+
+// Guard de navigation pour la page d'administration
+router.beforeEach(async (to, from, next) => {
+  // Vérifier si la route est une page d'administration de saison
+  if (to.path.includes('/admin') && to.path.startsWith('/season/')) {
+    try {
+      const auth = getFirebaseAuth()
+      const user = auth?.currentUser
+      
+      if (!user) {
+        logger.warn('🛡️ Tentative d\'accès à l\'administration sans authentification - redirection vers 404')
+        next('/404')
+        return
+      }
+      
+      // Fallback temporaire pour le développement local
+      if (user.email === 'patrice.lamarque@gmail.com') {
+        logger.info('🛡️ Fallback développement: Super Admin détecté - accès autorisé')
+        next()
+        return
+      }
+      
+      // Fallback temporaire pour impropick@gmail.com (Admin de saison)
+      if (user.email === 'impropick@gmail.com') {
+        logger.info('🛡️ Fallback développement: Admin de saison détecté - accès autorisé')
+        next()
+        return
+      }
+      
+      // Extraire le slug de la saison depuis l'URL
+      const seasonSlug = to.params.slug
+      if (!seasonSlug) {
+        logger.warn('🛡️ Slug de saison manquant - redirection vers 404')
+        next('/404')
+        return
+      }
+      
+      // Vérifier les permissions
+      const isSuperAdmin = await roleService.isSuperAdmin()
+      const isSeasonAdmin = await roleService.isSeasonAdmin(seasonSlug)
+      
+      if (isSuperAdmin || isSeasonAdmin) {
+        logger.info('🛡️ Accès autorisé à l\'administration de la saison', seasonSlug)
+        next()
+      } else {
+        logger.warn('🛡️ Accès refusé à l\'administration de la saison', seasonSlug, '- redirection vers 404')
+        next('/404')
+      }
+    } catch (error) {
+      logger.error('🛡️ Erreur lors de la vérification des permissions:', error)
+      next('/404')
+    }
+  } else {
+    // Pour toutes les autres routes, continuer normalement
+    next()
+  }
 })
 
 

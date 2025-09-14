@@ -75,9 +75,21 @@
           <span class="truncate">Installer l'app</span>
         </button>
         
-        <!-- Item Développement (admin ou développement local) -->
+        <!-- Item Administration (Admin de saison ou Super Admin) -->
         <button 
-          v-if="isAdmin || isDevelopment"
+          v-if="canManageRoles"
+          @click="openAdministration"
+          class="w-full text-left px-4 py-2 text-sm text-orange-300 hover:bg-orange-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
+          role="menuitem"
+        >
+          <span class="text-base md:text-lg flex-shrink-0">🛡️</span>
+          <span class="truncate">Administration</span>
+        </button>
+        
+        
+        <!-- Item Développement (Super Admin ou développement local) -->
+        <button 
+          v-if="isSuperAdmin || isDevelopment"
           @click="openDevelopment"
           class="w-full text-left px-4 py-2 text-sm text-purple-300 hover:bg-purple-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
           role="menuitem"
@@ -105,7 +117,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
-import adminService from '../services/adminService.js'
+import roleService from '../services/roleService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
 import UserAvatar from './UserAvatar.vue'
@@ -123,13 +135,14 @@ watch(() => props.isConnected, (connected) => {
   })
 }, { immediate: true })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-preferences', 'logout', 'open-login', 'open-account-creation', 'open-development'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-preferences', 'logout', 'open-login', 'open-account-creation', 'open-development', 'open-administration'])
 
 const isOpen = ref(false)
 const isLoading = ref(true)
 const dropdownButton = ref(null)
 const dropdownStyle = ref({})
-const isAdmin = ref(false)
+const isSuperAdmin = ref(false)
+const canManageRoles = ref(false)
 
 // Détecter l'environnement de développement
 const isDevelopment = computed(() => {
@@ -140,9 +153,13 @@ const isDevelopment = computed(() => {
 watch(() => props.isConnected, (newValue) => {
   // Si l'état de connexion change, on peut afficher le contenu immédiatement
   isLoading.value = false
-  // Vérifier le statut admin si connecté
+  // Vérifier le statut Super Admin si connecté
   if (newValue) {
-    checkAdminStatus()
+    checkSuperAdminStatus()
+  } else {
+    // Utilisateur déconnecté, réinitialiser
+    isSuperAdmin.value = false
+    canManageRoles.value = false
   }
 }, { immediate: true })
 
@@ -151,14 +168,34 @@ onMounted(() => {
   isLoading.value = false
 })
 
-// Fonction de vérification admin
-async function checkAdminStatus() {
+// Fonction de vérification Super Admin
+async function checkSuperAdminStatus() {
+  // En développement local, utiliser uniquement le fallback par email
+  const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
+  if (currentUserEmail === 'patrice.lamarque@gmail.com') {
+    logger.info('🔐 Mode développement: Super Admin détecté par email');
+    isSuperAdmin.value = true;
+    canManageRoles.value = true;
+    return;
+  }
+  
+  // Fallback temporaire pour impropick@gmail.com (Admin de saison)
+  if (currentUserEmail === 'impropick@gmail.com') {
+    logger.info('🔐 Mode développement: Admin de saison détecté par email');
+    isSuperAdmin.value = false;
+    canManageRoles.value = true;
+    return;
+  }
+  
+  // Pour les autres utilisateurs, essayer le service normal
   try {
-    const adminStatus = await adminService.checkAdminStatus();
-    isAdmin.value = adminStatus;
+    const superAdminStatus = await roleService.isSuperAdmin();
+    isSuperAdmin.value = superAdminStatus;
+    canManageRoles.value = superAdminStatus;
   } catch (error) {
-    logger.error('❌ Erreur lors de la vérification admin:', error);
-    isAdmin.value = false;
+    logger.warn('⚠️ Erreur lors de la vérification Super Admin:', error.message);
+    isSuperAdmin.value = false;
+    canManageRoles.value = false;
   }
 }
 
@@ -208,6 +245,14 @@ function openPreferences() {
 function openDevelopment() {
   isOpen.value = false
   emit('open-development')
+}
+
+function openAdministration() {
+  logger.info('🛡️ openAdministration() appelée dans AccountDropdown');
+  logger.info('🛡️ canManageRoles:', canManageRoles.value);
+  logger.info('🛡️ isSuperAdmin:', isSuperAdmin.value);
+  isOpen.value = false
+  emit('open-administration')
 }
 
 function installApp() {

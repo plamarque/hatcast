@@ -316,7 +316,7 @@ const shouldShowChance = computed(() => {
 
 const tooltipText = computed(() => {
   if (props.disabled) {
-    return 'Événement archivé — désarchivez pour modifier'
+    return 'Événement inactif — activez pour modifier'
   }
   if (props.isSelected && props.isAvailable === true) {
     if (props.isSelectionConfirmedByOrganizer) {

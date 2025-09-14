@@ -12,109 +12,128 @@
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
       @open-preferences="openPreferences"
+      @open-administration="openAdministration"
       @open-players="openPlayers"
       @logout="handleAccountLogoutDevice"
       @open-login="openAccount"
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
       @open-development="openDevelopment"
-      @toggle-view-mode="toggleViewMode"
     />
 
     <!-- Vue grille (classique ou inversée) -->
-    <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
+    <div class="w-full px-0 md:px-0 pb-0 bg-gray-900"
+         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 48px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 48px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900/80 backdrop-blur-sm">
+      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-gray-900 h-full">
+          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-4 md:p-5 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter événement -->
-              <button
-                @click="openNewEventForm"
-                class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
-                title="Ajouter un nouvel événement"
-              >
-                <span class="text-lg">➕</span>
-                <span class="hidden sm:inline">Ajouter un événement</span>
-                <span class="sm:hidden">Événement</span>
-              </button>
+              <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
-              <!-- Icône de la saison - cliquable pour rafraîchir -->
-              <div 
-                @click="refreshSeason"
-                class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
-                :title="`Cliquer pour rafraîchir ${seasonName}`"
-              >
-                <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
-                  <img 
-                    :src="seasonMeta.logoUrl" 
-                    :alt="`Logo de ${seasonName}`"
-                    class="w-full h-full object-cover"
-                  >
+              <!-- Section logo + boutons - horizontale -->
+              <div class="flex items-center gap-2">
+                <!-- Icône de la saison - cliquable pour rafraîchir -->
+                <div 
+                  @click="refreshSeason"
+                  class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
+                  :title="`Cliquer pour rafraîchir ${seasonName}`"
+                >
+                  <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
+                    <img 
+                      :src="seasonMeta.logoUrl" 
+                      :alt="`Logo de ${seasonName}`"
+                      class="w-full h-full object-cover"
+                    >
+                  </div>
+                  <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
                 </div>
-                <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
+                
+                <!-- Boutons de contrôle de la grille - empilés à droite du logo -->
+                <div class="flex flex-col items-center gap-1">
+                <!-- Toggle de vue -->
+                <button
+                  @click="toggleViewMode"
+                  class="text-white hover:text-purple-300 transition-colors duration-200 p-1.5 rounded-full hover:bg-white/10"
+                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
+                  aria-label="Changer de vue"
+                >
+                  <!-- Icône pour mode normal (événements en colonnes) -->
+                  <svg v-if="currentViewMode === 'normal'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Calendrier/événements -->
+                    <rect x="3" y="4" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 2v4M8 2v4M3 10h18"/>
+                    <circle cx="8" cy="14" r="1" fill="currentColor"/>
+                    <circle cx="12" cy="14" r="1" fill="currentColor"/>
+                    <circle cx="16" cy="14" r="1" fill="currentColor"/>
+                  </svg>
+                  <!-- Icône pour mode inversé (joueurs en colonnes) -->
+                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Personnes/joueurs -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </button>
+                
+                </div>
               </div>
-              
 
             </div>
           </div>
           <!-- Headers (événements en mode normal, joueurs en mode inversé) -->
           <div class="flex-1 overflow-hidden">
-            <div ref="headerEventsRef" class="flex relative z-[60] bg-transparent" :style="{ transform: `translateX(-${headerScrollX}px)` }">
+            <div ref="headerEventsRef" class="flex relative z-[60] bg-gray-900" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
                 v-for="(headerItem, index) in displayColumns"
                 :key="'h-'+headerItem.id"
                 :data-event-id="currentViewMode === 'normal' ? headerItem.id : undefined"
                 :data-player-id="currentViewMode === 'inverted' ? headerItem.id : undefined"
-                class="col-event flex-shrink-0 p-3 text-center flex flex-col justify-between bg-transparent"
+                class="col-event flex-shrink-0 p-4 md:p-5 text-center flex flex-col justify-start bg-gray-900"
                 :class="{ 
                   'archived-header': currentViewMode === 'normal' && headerItem.archived,
                   'preferred-player-header': currentViewMode === 'inverted' && preferredPlayerIdsSet.has(headerItem.id)
                 }"
               >
                 <!-- Mode normal : affichage des événements -->
-                <div v-if="currentViewMode === 'normal'">
-                  <!-- Zone cliquable complète (titre + date + type) -->
+                <div v-if="currentViewMode === 'normal'" class="flex flex-col h-full">
+                  <!-- Ligne 1 : Titre et date -->
                   <div 
-                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
+                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
-                    <div class="flex flex-col items-center flex-1 justify-center w-full">
-                      <!-- Ligne 1 : Titre du spectacle -->
-                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
-                        {{ headerItem.title || 'Sans titre' }}
-                      </div>
-                      
-                      <!-- Ligne 2 : Date du spectacle -->
-                      <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
-                           :title="formatDateFull(headerItem.date)">
-                        {{ formatDate(headerItem.date) }}
-                      </div>
+                    <!-- Titre du spectacle -->
+                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
+                      {{ headerItem.title || 'Sans titre' }}
                     </div>
                     
-                    <!-- Section basse : badge de type d'événement -->
-                    <div class="flex flex-col items-center mt-2">
-                      <!-- Indicateur de statut archivé (priorité sur les autres) -->
-                      <div 
-                        v-if="headerItem.archived"
-                        class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md mx-auto flex items-center justify-center"
-                        title="Événement archivé"
-                      >
-                        <span class="text-xs text-gray-300 font-medium">📁</span>
-                        <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
-                      </div>
-                      
-                      <!-- Badge de type d'événement (seulement si pas archivé) -->
-                      <div 
-                        v-else-if="headerItem.roles"
-                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
-                        :title="getEventTypeName(headerItem)"
-                      >
-                        <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
-                        <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
-                      </div>
+                    <!-- Date du spectacle -->
+                    <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
+                         :title="formatDateFull(headerItem.date)">
+                      {{ formatDate(headerItem.date) }}
+                    </div>
+                  </div>
+                  
+                  <!-- Ligne 2 : Badge de type d'événement (toujours à la même hauteur) -->
+                  <div class="flex items-center justify-center p-1 h-8">
+                    <!-- Indicateur de statut inactif (priorité sur les autres) -->
+                    <div 
+                      v-if="headerItem.archived"
+                      class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
+                      title="Événement inactif"
+                    >
+                      <span class="text-xs text-gray-300 font-medium">📁</span>
+                      <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
+                    </div>
+                    
+                    <!-- Badge de type d'événement (seulement si actif) -->
+                    <div 
+                      v-else-if="headerItem.roles"
+                      class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
+                      :title="getEventTypeName(headerItem)"
+                    >
+                      <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
+                      <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
                     </div>
                   </div>
                 </div>
@@ -172,93 +191,10 @@
             </div>
           </div>
           <!-- Right spacer (keeps end alignment) -->
-          <div class="col-right flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
+          <div class="flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
 
-          <!-- Toggle archived events (top-right, above right chevron) -->
-          <div class="absolute right-2 top-2 z-[150] hidden md:block">
-            <!-- Bouton de filtres -->
-            <button
-              @click="toggleFiltersDropdown"
-              data-filters-button
-              class="w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 relative"
-              :class="{ 'bg-white/20 border-white/40': showFiltersDropdown }"
-              title="Filtres d'affichage"
-              aria-label="Filtres d'affichage"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
-              </svg>
-              
-              <!-- Indicateur de filtres actifs -->
-              <div
-                v-if="showArchived || showPast"
-                class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border-2 border-gray-900"
-              ></div>
-            </button>
-          </div>
 
-          <!-- Dropdown des filtres (positionnement simple) -->
-          <div
-            v-if="showFiltersDropdown"
-            data-filters-dropdown
-            class="absolute top-12 right-0 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
-          >
-              <div class="p-3 border-b border-white/10">
-                <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
-              </div>
-              
-              <!-- Option Archivés -->
-              <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-                <input
-                  v-model="showArchived"
-                  type="checkbox"
-                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                >
-                <span class="ml-3 text-sm text-white">Archivés</span>
-                <span class="ml-auto text-xs text-gray-400">📁</span>
-              </label>
-              
-              <!-- Option Passés -->
-              <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-                <input
-                  v-model="showPast"
-                  type="checkbox"
-                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                >
-                <span class="ml-3 text-sm text-white">Passés</span>
-                <span class="ml-auto text-xs text-gray-400">📅</span>
-              </label>
-          </div>
-
-          <!-- Horizontal scroll chevrons -->
-          <button
-            v-show="showLeftHint"
-            @click.prevent="onChevronClick(-1, $event)"
-            @mousedown.prevent="startHoldScroll(-1, $event)"
-            @mouseup="stopHoldScroll($event)"
-            @mouseleave="stopHoldScroll($event)"
-            @touchstart.prevent="startHoldScroll(-1, $event)"
-            @touchend="stopHoldScroll($event)"
-            @touchcancel="stopHoldScroll($event)"
-            class="absolute left-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[110] backdrop-blur-sm"
-            title="Événements précédents — cliquez pour défiler"
-          >
-            ‹
-          </button>
-          <button
-            v-show="showRightHint"
-            @click.prevent="onChevronClick(1, $event)"
-            @mousedown.prevent="startHoldScroll(1, $event)"
-            @mouseup="stopHoldScroll($event)"
-            @mouseleave="stopHoldScroll($event)"
-            @touchstart.prevent="startHoldScroll(1, $event)"
-            @touchend="stopHoldScroll($event)"
-            @touchcancel="stopHoldScroll($event)"
-            class="absolute right-2 bottom-2 w-9 h-9 rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center z-[110] backdrop-blur-sm"
-            title="Événements suivants — cliquez pour défiler"
-          >
-            ›
-          </button>
+          <!-- Chevrons supprimés de cette zone -->
         </div>
       </div>
 
@@ -403,17 +339,17 @@
                       
                       <!-- Ligne 3 : Badge de type d'événement -->
                       <div class="flex flex-col items-center">
-                        <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                        <!-- Indicateur de statut inactif (priorité sur les autres) -->
                         <div 
                           v-if="rowItem.archived"
                           class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                          title="Événement archivé"
+                          title="Événement inactif"
                         >
                           <span class="text-xs text-gray-300 font-medium">📁</span>
-                          <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                          <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                         </div>
                         
-                        <!-- Badge de type d'événement (seulement si pas archivé) -->
+                        <!-- Badge de type d'événement (seulement si actif) -->
                         <div 
                           v-else-if="rowItem.roles"
                           class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
@@ -538,7 +474,6 @@
     :players-count="players.length"
     :events-count="events.length"
     :onboarding-done="seasonMeta?.onboardingCreatorDone === true"
-    @create-event="openNewEventForm"
     @add-player="openNewPlayerForm"
     @copy-link="copyJoinLink"
     @dismissed="afterCloseOnboarding"
@@ -729,8 +664,9 @@
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
                
-               <!-- Icône Modifier -->
+               <!-- Icône Modifier (visible seulement si permissions d'édition) -->
                <button
+                 v-if="canEditEvents"
                  @click="startEditingFromDetails"
                  class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
                  title="Modifier cet événement"
@@ -738,8 +674,9 @@
                  <span class="text-lg">✏️</span>
                </button>
                
-               <!-- Icône Supprimer -->
+               <!-- Icône Supprimer (visible seulement si permissions d'édition) -->
                <button
+                 v-if="canEditEvents"
                  @click="confirmDeleteEvent(selectedEvent?.id)"
                  class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
                  title="Supprimer cet événement"
@@ -983,14 +920,20 @@
         <div class="flex justify-center flex-wrap gap-3">
           <!-- Boutons principaux -->
           <button 
+            v-if="canEditEvents"
             @click="openEventAnnounceModal(selectedEvent)" 
             :disabled="selectedEvent?.archived"
             class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
-            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
+            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement inactif' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
           >
             <span>📢</span><span>Annoncer</span>
           </button>
-          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la composition">
+          <button 
+            v-if="canEditEvents"
+            @click="openSelectionModal(selectedEvent)" 
+            class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
+            title="Gérer la composition"
+          >
             <span>🎭</span><span>Composition Équipe</span>
           </button>
           
@@ -1001,8 +944,21 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">Annoncer</button>
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">Composition</button>
+        <button 
+          v-if="canEditEvents"
+          @click="openEventAnnounceModal(selectedEvent)" 
+          :disabled="selectedEvent?.archived" 
+          class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Annoncer
+        </button>
+        <button 
+          v-if="canEditEvents"
+          @click="openSelectionModal(selectedEvent)" 
+          class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]"
+        >
+          Composition
+        </button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
       </div>
     </div>
@@ -1302,6 +1258,7 @@
     :sending="isSendingNotifications"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
+    :can-edit-events="canEditEvents"
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
@@ -1459,6 +1416,36 @@
     @close="showDevelopmentModal = false"
   />
 
+  <!-- Chevrons de navigation flottants au milieu de l'écran -->
+  <button
+    v-show="showLeftHint"
+    @click.prevent="onChevronClick(-1, $event)"
+    @mousedown.prevent="startHoldScroll(-1, $event)"
+    @mouseup="stopHoldScroll($event)"
+    @mouseleave="stopHoldScroll($event)"
+    @touchstart.prevent="startHoldScroll(-1, $event)"
+    @touchend="stopHoldScroll($event)"
+    @touchcancel="stopHoldScroll($event)"
+    class="fixed left-2 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full border border-white/20 bg-gray-900/60 hover:bg-white/15 text-white flex items-center justify-center z-[110] backdrop-blur-sm shadow-xl"
+    title="Événements précédents — cliquez pour défiler"
+  >
+    <span class="text-2xl font-bold">‹</span>
+  </button>
+  <button
+    v-show="showRightHint"
+    @click.prevent="onChevronClick(1, $event)"
+    @mousedown.prevent="startHoldScroll(1, $event)"
+    @mouseup="stopHoldScroll($event)"
+    @mouseleave="stopHoldScroll($event)"
+    @touchstart.prevent="startHoldScroll(1, $event)"
+    @touchend="stopHoldScroll($event)"
+    @touchcancel="stopHoldScroll($event)"
+    class="fixed right-2 top-1/2 transform -translate-y-1/2 w-16 h-16 rounded-full border border-white/20 bg-gray-900/60 hover:bg-white/15 text-white flex items-center justify-center z-[110] backdrop-blur-sm shadow-xl"
+    title="Événements suivants — cliquez pour défiler"
+  >
+    <span class="text-2xl font-bold">›</span>
+  </button>
+
   
 </template>
 
@@ -1518,7 +1505,7 @@
 
   /* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
   
-  /* Colonne atténuée pour événements archivés */
+  /* Colonne atténuée pour événements inactifs */
   .archived-header {
     filter: grayscale(25%);
     opacity: 0.7;
@@ -1536,13 +1523,13 @@
     pointer-events: none;
   }
 .col-left { width: 13rem; }
-.col-event { width: 12.5rem; background: transparent !important; }
+.col-event { width: 12rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
 @media (min-width: 640px) { /* sm */
   .col-left { width: 13rem; }
   .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
-  .col-event { width: 7.5rem; }
+  .col-event { width: 12rem; }
   .col-right { width: 3rem; }
 }
 
@@ -1558,7 +1545,7 @@
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
   .col-left { width: 13rem; }
-  .col-event { width: 10.5rem; }
+  .col-event { width: 12rem; }
   .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
 }
 
@@ -1674,6 +1661,7 @@ import { addToCalendar } from '../services/calendarService.js'
 import { shouldPromptForNotifications, checkEmailExists } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
+import roleService from '../services/roleService.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
@@ -1910,6 +1898,10 @@ const playerClaimData = ref(null)
 
 // Variables pour la modale de développement
 const showDevelopmentModal = ref(false)
+
+// Variables pour la gestion des rôles
+const canEditEvents = ref(false)
+const isSuperAdmin = ref(false)
 
 
 
@@ -2221,6 +2213,67 @@ function openDevelopment() {
   logger.debug('🔧 showDevelopmentModal après:', showDevelopmentModal.value);
 }
 
+function openAdministration() {
+  logger.debug('🛡️ openAdministration() appelée dans GridBoard');
+  logger.debug('🛡️ props.slug:', props.slug);
+  logger.debug('🛡️ URL de navigation:', `/season/${props.slug}/admin`);
+  
+  // Naviguer vers la page d'administration de la saison
+  router.push(`/season/${props.slug}/admin`);
+}
+
+// Fonction pour vérifier les permissions d'édition
+async function checkEditPermissions() {
+  try {
+    if (!seasonId.value) return;
+    
+    logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value);
+    
+    // En développement local, utiliser le fallback par email
+    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
+    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
+      logger.info('🔐 Mode développement: Super Admin détecté par email');
+      isSuperAdmin.value = true;
+      canEditEvents.value = true;
+      return;
+    }
+    
+    // Fallback temporaire pour impropick@gmail.com (Admin de saison)
+    if (currentUserEmail === 'impropick@gmail.com') {
+      logger.info('🔐 Mode développement: Admin de saison détecté par email');
+      isSuperAdmin.value = false;
+      canEditEvents.value = true;
+      return;
+    }
+    
+    // Pour les autres utilisateurs, essayer le service normal
+    const superAdminStatus = await roleService.isSuperAdmin();
+    isSuperAdmin.value = superAdminStatus;
+    
+    // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
+    const canEdit = await roleService.canEditEvents(seasonId.value);
+    canEditEvents.value = canEdit;
+    
+    logger.info('🔐 Permissions vérifiées:', {
+      seasonId: seasonId.value,
+      isSuperAdmin: superAdminStatus,
+      canEditEvents: canEdit
+    });
+  } catch (error) {
+    logger.warn('⚠️ Erreur lors de la vérification des permissions, utilisation du fallback:', error.message);
+    
+    // Fallback en cas d'erreur
+    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
+    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
+      isSuperAdmin.value = true;
+      canEditEvents.value = true;
+    } else {
+      canEditEvents.value = false;
+      isSuperAdmin.value = false;
+    }
+  }
+}
+
 async function handleAccountChangePassword() {
   try {
     const email = auth?.currentUser?.email
@@ -2313,6 +2366,9 @@ onMounted(async () => {
   
   // Écouter les changements d'état d'authentification
       const unsubscribe = getFirebaseAuth()?.onAuthStateChanged(onAuthStateChanged)
+  
+  // Vérifier les permissions d'édition
+  await checkEditPermissions()
   
   // Stocker la fonction de cleanup pour onUnmounted
   window._gridBoardUnsubscribe = unsubscribe
@@ -3643,6 +3699,16 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
     logger.debug('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
     await loadProtectedPlayers()
     await updatePreferredPlayersSet()
+    // Re-vérifier les permissions d'édition
+    await checkEditPermissions()
+  }
+})
+
+// Surveiller les changements de saison pour re-vérifier les permissions
+watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
+  if (newSeasonId !== oldSeasonId && newSeasonId) {
+    logger.debug('🔄 Changement de saison, re-vérification des permissions')
+    await checkEditPermissions()
   }
 })
 
@@ -4341,40 +4407,11 @@ const sortedEvents = computed(() => {
   })
 })
 
-// Affichage conditionnel des évènements archivés
-const showArchived = ref(false)
-const showPast = ref(false)
-const showFiltersDropdown = ref(false)
 
 const displayedEvents = computed(() => {
-  const list = sortedEvents.value
-  return list.filter(e => {
-    const eventDate = toDateObject(e.date)
-    const isArchived = !!e.archived
-    const isPast = eventDate && eventDate < new Date()
-    
-    // Si les deux filtres sont cochés, afficher tout
-    if (showArchived.value && showPast.value) {
-      return true
-    }
-    // Si seulement Archivés est coché, afficher les archivés
-    else if (showArchived.value) {
-      return isArchived
-    }
-    // Si seulement Passés est coché, afficher les passés
-    else if (showPast.value) {
-      return isPast
-    }
-    // Par défaut (aucun coché) : afficher ni archivés ni passés
-    else {
-      return !isArchived && !isPast
-    }
-  })
+  return sortedEvents.value
 })
 
-function toggleFiltersDropdown() {
-  showFiltersDropdown.value = !showFiltersDropdown.value
-}
 
 // Computed properties pour l'affichage inversé
 const displayRows = computed(() => {
@@ -4385,25 +4422,7 @@ const displayColumns = computed(() => {
   return currentViewMode.value === 'inverted' ? sortedPlayers.value : displayedEvents.value
 })
 
-// Positionnement simple du dropdown des filtres (plus de calcul dynamique)
 
-// Fermer le dropdown si on clique ailleurs
-function closeFiltersDropdown() {
-  showFiltersDropdown.value = false
-}
-
-// Gérer le clic en dehors du dropdown
-onMounted(() => {
-  document.addEventListener('click', (event) => {
-    const filtersButton = document.querySelector('[data-filters-button]')
-    const filtersDropdown = document.querySelector('[data-filters-dropdown]')
-    
-    if (filtersButton && !filtersButton.contains(event.target) && 
-        filtersDropdown && !filtersDropdown.contains(event.target)) {
-      closeFiltersDropdown()
-    }
-  })
-})
 
 
 
@@ -4432,10 +4451,10 @@ async function toggleAvailability(playerName, eventId) {
     console.error('Événement non trouvé')
     return;
   }
-  // Empêcher toute modification sur un événement archivé
+  // Empêcher toute modification sur un événement inactif
   if (eventItem.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Événement archivé — désarchivez pour modifier'
+    successMessage.value = 'Événement inactif — activez pour modifier'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -5815,7 +5834,7 @@ async function executePendingOperation(operation) {
           
           // Message de succès
           showSuccessMessage.value = true
-          successMessage.value = newArchivedState ? 'Événement archivé avec succès !' : 'Événement désarchivé avec succès !'
+          successMessage.value = newArchivedState ? 'Événement désactivé avec succès !' : 'Événement activé avec succès !'
           setTimeout(() => {
             showSuccessMessage.value = false
           }, 3000)
@@ -6152,11 +6171,11 @@ async function handleAvailabilityToggle(playerName, eventId) {
     console.error('Joueur non trouvé');
     return;
   }
-  // Empêcher toute modification sur un événement archivé
+  // Empêcher toute modification sur un événement inactif
   const evt = events.value.find(e => e.id === eventId)
   if (evt?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Événement archivé — désarchivez pour modifier'
+    successMessage.value = 'Événement inactif — activez pour modifier'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -6272,7 +6291,7 @@ async function startEditingFromDetails() {
 async function toggleEventArchived() {
   if (!selectedEvent.value) return;
   
-  // Demander le PIN code avant d'archiver/désarchiver
+  // Demander le PIN code avant de désactiver/activer
   await requirePin({
     type: 'toggleArchive',
     data: { 
@@ -6642,7 +6661,7 @@ async function buildProtectedPlayersWithEmails() {
 function openEventAnnounceModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'annoncer un événement archivé'
+    successMessage.value = 'Impossible d\'annoncer un événement inactif'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -6962,7 +6981,7 @@ function getPlayerSelectionRole(playerName, eventId) {
 function openSelectionModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement archivé'
+    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -7394,7 +7413,13 @@ async function isEventMonitored(eventId) {
     // Pas de préférences trouvées
     return false
   } catch (error) {
-    console.error('Erreur lors de la vérification de surveillance:', error)
+    // Gérer spécifiquement les erreurs de permissions Firestore
+    if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
+      logger.debug('Permissions Firestore insuffisantes pour lire userPreferences, utilisation du fallback')
+      return false
+    }
+    
+    logger.warn('Erreur lors de la vérification de surveillance:', error)
     return false
   }
 }

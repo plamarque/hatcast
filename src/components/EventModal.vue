@@ -231,7 +231,7 @@
           >
         </div>
 
-        <!-- Archivé -->
+        <!-- Désactivé -->
         <div class="flex items-center gap-3">
           <input 
             :id="`${mode}-archived`" 
@@ -240,7 +240,7 @@
             class="w-4 h-4" 
           />
           <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
-            {{ mode === 'create' ? 'Créer comme archivé' : 'Archiver cet événement' }}
+            {{ mode === 'create' ? 'Créer comme inactif' : 'Désactiver cet événement' }}
           </label>
         </div>
         </form>

@@ -68,11 +68,12 @@
             :button-class="buttonClass"
             @open-account-menu="openAccountMenu"
             @open-help="openHelp"
-      @open-preferences="openPreferences"
+            @open-preferences="openPreferences"
             @open-players="openPlayers"
             @logout="logout"
             @open-login="openLogin"
             @open-development="openDevelopment"
+            @open-administration="openAdministration"
           />
           
           <!-- Actions supplémentaires via slot -->
@@ -98,7 +99,7 @@ const props = defineProps({
   showBackButton: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account-creation', 'open-development'])
+const emit = defineEmits(['open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account-creation', 'open-development', 'open-administration'])
 
 const route = useRoute()
 const router = useRouter()
@@ -165,5 +166,9 @@ function openAccountCreation() {
 
 function openDevelopment() {
   emit('open-development')
+}
+
+function openAdministration() {
+  emit('open-administration')
 }
 </script>

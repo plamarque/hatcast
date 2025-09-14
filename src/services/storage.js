@@ -614,6 +614,38 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
 }
 
 // Mise à jour ciblée d'une disponibilité pour un joueur/événement (utilisé par magic links)
+export async function countAvailabilities(seasonId) {
+  try {
+    logger.debug(`🔢 Comptage des disponibilités pour la saison ${seasonId}`)
+    
+    // Récupérer tous les joueurs de la saison
+    const players = await loadPlayers(seasonId)
+    if (players.length === 0) {
+      return 0
+    }
+    
+    // Compter les disponibilités en parallèle pour tous les joueurs
+    const countPromises = players.map(async (player) => {
+      try {
+        const availabilityDocs = await firestoreService.getDocuments('seasons', seasonId, 'players', player.id, 'availability')
+        return availabilityDocs.length
+      } catch (error) {
+        // Si le joueur n'a pas de disponibilités, retourner 0
+        return 0
+      }
+    })
+    
+    const counts = await Promise.all(countPromises)
+    const totalCount = counts.reduce((sum, count) => sum + count, 0)
+    
+    logger.debug(`🔢 Total des disponibilités: ${totalCount}`)
+    return totalCount
+  } catch (error) {
+    logger.error('Erreur lors du comptage des disponibilités:', error)
+    return 0
+  }
+}
+
 export async function setSingleAvailability({ seasonId, playerName, eventId, value }) {
   try {
     // Convertir le nom de joueur en ID

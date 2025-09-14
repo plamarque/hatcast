@@ -5,6 +5,7 @@
       :is-scrolled="isScrolled"
       :is-connected="isConnected"
       :show-back-button="true"
+      @open-administration="openAdministration"
       @open-account-menu="openAccountMenu"
       @open-help="openHelp"
       @open-notifications="openNotifications"
@@ -49,88 +50,43 @@
 
           <!-- Grille des saisons (données) -->
           <div v-else-if="seasons.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto justify-items-center place-content-center">
-            <div
+            <SeasonCard
               v-for="(season, index) in sortedSeasons"
               :key="season.id"
-              class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 w-full max-w-sm"
+              :season="season"
+              :show-availabilities="false"
+              :show-id="false"
+              :show-menu="true"
+              :clickable="true"
+              @click="goToSeason(season.slug)"
+              @menu-toggle="(isOpen) => toggleMenu(index, isOpen)"
             >
-              <div @click="goToSeason(season.slug)" class="text-center cursor-pointer">
-                <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg overflow-hidden">
-                  <img 
-                    v-if="season.logoUrl" 
-                    :src="season.logoUrl" 
-                    :alt="`Logo de ${season.name}`"
-                    class="w-full h-full object-cover"
-                  >
-                  <span v-else class="text-2xl">🎭</span>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-4 group-hover:text-purple-300 transition-colors">
-                  {{ season.name }}
-                </h2>
-                <p v-if="season.description" class="text-gray-300 text-sm mb-4 line-clamp-2 leading-relaxed">
-                  {{ season.description }}
-                </p>
-                <div class="w-full bg-gradient-to-br from-transparent via-white/20 to-transparent h-px mb-4"></div>
-                <!-- Statistiques de la saison -->
-                <div class="flex justify-center gap-6 text-sm">
-                  <div class="text-center">
-                    <div class="text-white font-semibold">{{ season.events?.length || 0 }}</div>
-                    <div class="text-gray-400 text-xs">Événements</div>
-                  </div>
-                  <div class="text-center">
-                    <div class="text-white font-semibold">{{ season.players?.length || 0 }}</div>
-                    <div class="text-gray-400 text-xs">Participants</div>
-                  </div>
-                </div>
-
-              </div>
-
-              <!-- Menu 3 points -->
-              <div class="absolute top-4 right-4">
-                <div class="relative" @click.stop>
-                  <button
-                    @click="toggleMenu(index)"
-                    class="p-1 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
-                    :aria-expanded="openMenuIndex === index"
-                    aria-haspopup="true"
-                    title="Options"
-                  >
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.75a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
-                    </svg>
-                  </button>
-                  <div
-                    v-if="openMenuIndex === index"
-                    class="absolute right-0 mt-2 w-44 bg-gray-900 border border-white/10 rounded-lg shadow-xl py-1 z-10"
-                    role="menu"
-                  >
-                    <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                      <span>📊</span>
-                      Exporter CSV
-                    </button>
-                    <div class="border-t border-white/10 my-1"></div>
-                    <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                      <span>⬆️</span>
-                      Avancer
-                    </button>
-                    <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                      <span>⬇️</span>
-                      Reculer
-                    </button>
-                    <div class="border-t border-white/10 my-1"></div>
-                    <button @click="openEditModal(season)" class="w-full text-left px-4 py-2 text-sm text-blue-300 hover:bg-white/10 flex items-center gap-2" role="menuitem">
-                      <span>✏️</span>
-                      Modifier
-                    </button>
-                    <div class="border-t border-white/10 my-1"></div>
-                    <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2" role="menuitem">
-                      <span>🗑️</span>
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <template #menu-items>
+                <button @click="exportSeasonAvailabilityCsv(season); closeMenu()" class="w-full text-left px-4 py-2 text-sm text-emerald-300 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                  <span>📊</span>
+                  Exporter CSV
+                </button>
+                <div class="border-t border-white/10 my-1"></div>
+                <button @click="moveSeasonUp(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                  <span>⬆️</span>
+                  Avancer
+                </button>
+                <button @click="moveSeasonDown(index)" class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                  <span>⬇️</span>
+                  Reculer
+                </button>
+                <div class="border-t border-white/10 my-1"></div>
+                <button @click="openEditModal(season)" class="w-full text-left px-4 py-2 text-sm text-blue-300 hover:bg-white/10 flex items-center gap-2" role="menuitem">
+                  <span>✏️</span>
+                  Modifier
+                </button>
+                <div class="border-t border-white/10 my-1"></div>
+                <button @click="confirmDeleteSeason(season)" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2" role="menuitem">
+                  <span>🗑️</span>
+                  Supprimer
+                </button>
+              </template>
+            </SeasonCard>
           </div>
 
           <!-- Message si aucune saison -->
@@ -162,146 +118,21 @@
     />
 
     <!-- Modal de confirmation de suppression -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="text-center mb-6">
-          <div class="w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <span class="text-2xl">⚠️</span>
-          </div>
-          <h2 class="text-2xl font-bold text-white mb-2">Confirmation</h2>
-          <p class="text-gray-300">Êtes-vous sûr de vouloir supprimer la saison "{{ seasonToDelete?.name }}" ?</p>
-        </div>
-        <p class="mb-6 text-sm text-red-400 bg-red-900/20 p-3 rounded-lg border border-red-500/20">
-          ⚠️ Cette action est irréversible et supprimera toutes les données de cette saison.
-        </p>
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="cancelDelete"
-            class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            @click="deleteSeasonConfirmed"
-            class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-300"
-          >
-            Supprimer
-          </button>
-        </div>
-      </div>
-    </div>
+    <SeasonDeleteConfirmationModal
+      :show="showDeleteModal"
+      :season="seasonToDelete"
+      @confirm="deleteSeasonConfirmed"
+      @cancel="cancelDelete"
+    />
 
     <!-- Modal de modification de saison -->
-    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="text-center mb-6">
-          <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <span class="text-2xl">✏️</span>
-          </div>
-          <h2 class="text-2xl font-bold text-white mb-2">Modifier la saison</h2>
-          <p class="text-gray-300">Modifiez les informations de la saison "{{ seasonToEdit?.name }}"</p>
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Nom de la saison</label>
-          <input
-            v-model="editSeasonName"
-            type="text"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="Ex: La Malice 2025-2026"
-          >
-        </div>
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Description (optionnel)</label>
-          <textarea
-            v-model="editSeasonDescription"
-            rows="3"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 resize-none"
-            placeholder="Ex: Saison 2025-2026 de la troupe d'improvisation La Malice"
-          ></textarea>
-        </div>
-        
-        <!-- Section Logo -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-300 mb-2">Logo de la saison</label>
-          <div class="flex items-center gap-4">
-            <!-- Prévisualisation du logo -->
-            <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/20">
-              <img 
-                v-if="editSeasonLogoPreview" 
-                :src="editSeasonLogoPreview" 
-                :alt="`Logo de ${editSeasonName}`"
-                class="w-full h-full object-cover"
-              >
-              <span v-else class="text-xl">🎭</span>
-            </div>
-            
-            <!-- Boutons d'action -->
-            <div class="flex flex-col gap-2">
-              <button
-                v-if="isConnected"
-                type="button"
-                @click="triggerLogoUpload"
-                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
-              >
-                {{ editSeasonLogo ? 'Changer le logo' : 'Ajouter un logo' }}
-              </button>
-              <button
-                v-else
-                type="button"
-                disabled
-                class="px-4 py-2 bg-gray-600 text-gray-400 text-sm rounded-lg cursor-not-allowed"
-                title="Connectez-vous pour ajouter un logo"
-              >
-                🔒 Connexion requise
-              </button>
-              <button
-                v-if="editSeasonLogoPreview"
-                type="button"
-                @click="removeLogo"
-                :disabled="isLogoDeleting"
-                class="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span v-if="isLogoDeleting" class="flex items-center gap-2">
-                  <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                  Suppression...
-                </span>
-                <span v-else>Supprimer</span>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Input file caché -->
-          <input
-            ref="logoFileInput"
-            type="file"
-            accept="image/*"
-            class="hidden"
-            @change="handleLogoUpload"
-          >
-          
-          <!-- Indicateur de chargement -->
-          <div v-if="isLogoUploading" class="mt-2 text-sm text-blue-400 flex items-center gap-2">
-            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
-            Upload en cours...
-          </div>
-        </div>
-        
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="cancelEdit"
-            class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
-          >
-            Annuler
-          </button>
-          <button
-            @click="saveSeasonEdit"
-            class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
-          >
-            Sauvegarder
-          </button>
-        </div>
-      </div>
-    </div>
+    <SeasonEditModal
+      :show="showEditModal"
+      :season="seasonToEdit"
+      :is-connected="isConnected"
+      @save="handleSeasonEditSave"
+      @cancel="cancelEdit"
+    />
 
     <!-- Gestionnaire de modales unifié -->
     <ModalManager
@@ -332,7 +163,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSeasons, setSeasonSortOrder, updateSeason, deleteSeason } from '../services/seasons.js'
+import { getSeasons, setSeasonSortOrder, updateSeason, deleteSeason, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { loadEvents, loadPlayers, loadAvailability, loadCasts } from '../services/storage.js'
 import { currentUser, isConnected } from '../services/authState.js'
 import { clearLastSeasonPreference } from '../services/seasonPreferences.js'
@@ -341,6 +172,9 @@ import AppHeader from '../components/AppHeader.vue'
 import AppFooter from '../components/AppFooter.vue'
 import CreateSeasonModal from '../components/CreateSeasonModal.vue'
 import ModalManager from '../components/ModalManager.vue'
+import SeasonCard from '../components/SeasonCard.vue'
+import SeasonDeleteConfirmationModal from '../components/SeasonDeleteConfirmationModal.vue'
+import SeasonEditModal from '../components/SeasonEditModal.vue'
 
 import logger from '../services/logger.js'
 
@@ -414,6 +248,14 @@ function openDevelopment() {
   logger.debug('showDevelopmentModal avant =', showDevelopmentModal.value)
   showDevelopmentModal.value = true
   logger.debug('showDevelopmentModal après =', showDevelopmentModal.value)
+}
+
+function openAdministration() {
+  // Depuis la page des saisons, rediriger vers l'administration de la première saison disponible
+  if (sortedSeasons.value && sortedSeasons.value.length > 0) {
+    const firstSeason = sortedSeasons.value[0]
+    router.push(`/season/${firstSeason.slug}/admin`)
+  }
 }
 
 function handleLogout() {
@@ -505,8 +347,12 @@ function goToSeason(slug) {
   router.push(`/season/${slug}`)
 }
 
-function toggleMenu(index) {
-  openMenuIndex.value = openMenuIndex.value === index ? null : index
+function toggleMenu(index, isOpen = null) {
+  if (isOpen !== null) {
+    openMenuIndex.value = isOpen ? index : null
+  } else {
+    openMenuIndex.value = openMenuIndex.value === index ? null : index
+  }
 }
 
 function closeMenu() {
@@ -530,7 +376,7 @@ async function loadSeasons() {
             loadPlayers(season.id)
           ])
           
-          // Filtrer les événements non archivés pour le comptage
+          // Filtrer les événements actifs pour le comptage
           const activeEvents = (events || []).filter(event => !event.archived)
           
           return {
@@ -560,112 +406,16 @@ async function loadSeasons() {
 
 // -------- Export CSV (saison) --------
 async function exportSeasonAvailabilityCsv(season) {
-  try {
-    if (!season?.id) {
-      alert('Saison introuvable')
-      return
+  await exportSeasonAvailabilitiesCsv(season, {
+    onSuccess: () => {
+      logger.info('Export CSV réussi', { seasonId: season.id })
+    },
+    onError: (error) => {
+      alert('Erreur lors de l\'export CSV. Veuillez réessayer.')
     }
-
-    // Charger données de la saison
-    const [events, players] = await Promise.all([
-      loadEvents(season.id),
-      loadPlayers(season.id)
-    ])
-    const [availability, casts] = await Promise.all([
-      loadAvailability(players, events, season.id),
-      loadCasts(season.id)
-    ])
-
-    // Construire l'en-tête
-    const header = ['Joueur', ...events.map(e => formatCsvHeaderForEvent(e))]
-
-    // Lignes
-    const rows = []
-    for (const player of players) {
-      const name = player?.name || ''
-      const availMap = availability?.[name] || {}
-      const line = [name, ...events.map(e => cellValue(availMap[e.id], casts?.[e.id], name))]
-      rows.push(line)
-    }
-
-    // Générer CSV (avec BOM pour Excel)
-    const csv = toCsvString([header, ...rows])
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
-    const base = season?.name || season?.slug || 'saison'
-    const fileName = `${sanitizeFilename(base)}-disponibilites.csv`
-
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = fileName
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-
-    logger.info('Export CSV saison', { seasonId: season.id, events: events.length, players: players.length })
-  } catch (err) {
-    logger.error('Erreur export CSV', err)
-    alert('Erreur lors de l\'export CSV. Veuillez réessayer.')
-  }
+  })
 }
 
-// Fonctions utilitaires pour l'export CSV
-function toDateObject(value) {
-  if (!value) return null
-  if (value instanceof Date) return value
-  if (typeof value?.toDate === 'function') return value.toDate()
-  if (typeof value === 'string' || typeof value === 'number') {
-    const d = new Date(value)
-    return isNaN(d.getTime()) ? null : d
-  }
-  return null
-}
-
-function formatCsvHeaderForEvent(event) {
-  const dateObj = toDateObject(event?.date)
-  const iso = dateObj ? `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}` : ''
-  const title = event?.title || 'Sans titre'
-  return `${iso} · ${title}`.trim()
-}
-
-function availabilityToString(value) {
-  if (value === true || value === 'oui') return 'disponible'
-  if (value === false || value === 'non') return 'non disponible'
-  return ''
-}
-
-function toCsvString(matrix) {
-  return matrix.map(row => row.map(csvEscape).join(',')).join('\n')
-}
-
-function csvEscape(value) {
-  const str = String(value ?? '')
-  if (/[",\n\r]/.test(str)) {
-    return '"' + str.replace(/"/g, '""') + '"'
-  }
-  return str
-}
-
-function sanitizeFilename(name) {
-  return String(name || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9\-_. ]+/g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$|^\.+|\.+$/g, '')
-    || 'fichier'
-}
-
-function cellValue(availabilityValue, selectedList, playerName) {
-  const isSelected = Array.isArray(selectedList) && selectedList.includes(playerName)
-  if (isSelected) {
-    if (availabilityValue === false || availabilityValue === 'non') return 'non disponible'
-    return 'sélectionné'
-  }
-  return availabilityToString(availabilityValue)
-}
 
 // -------- Déplacement des saisons --------
 async function moveSeasonUp(index) {
@@ -793,21 +543,16 @@ function cancelEdit() {
   isLogoUploading.value = false
 }
 
-async function saveSeasonEdit() {
+async function handleSeasonEditSave(updates) {
   if (!seasonToEdit.value) return
   
   try {
-    const updates = {
-      name: editSeasonName.value.trim(),
-      description: editSeasonDescription.value.trim()
-    }
-    
     // Si un nouveau logo a été sélectionné, l'uploader
-    if (editSeasonLogo.value) {
+    if (updates.logoFile) {
       try {
         isLogoUploading.value = true
         logger.info('Upload du nouveau logo...')
-        const logoUrl = await uploadImage(editSeasonLogo.value, `season-logos/${seasonToEdit.value.id}`, {
+        const logoUrl = await uploadImage(updates.logoFile, `season-logos/${seasonToEdit.value.id}`, {
           resize: true,
           maxWidth: 64,   // Taille exacte d'affichage
           maxHeight: 64,
@@ -832,7 +577,16 @@ async function saveSeasonEdit() {
       }
     }
     
-    await updateSeason(seasonToEdit.value.id, updates)
+    // Nettoyer les données avant la mise à jour
+    const cleanUpdates = {
+      name: updates.name,
+      description: updates.description
+    }
+    if (updates.logoUrl) {
+      cleanUpdates.logoUrl = updates.logoUrl
+    }
+    
+    await updateSeason(seasonToEdit.value.id, cleanUpdates)
     logger.info('Saison modifiée avec succès', { seasonId: seasonToEdit.value.id })
     
     // Recharger les saisons
@@ -860,31 +614,18 @@ function cancelDelete() {
 async function deleteSeasonConfirmed() {
   if (!seasonToDelete.value) return
   
-  try {
-    // Supprimer le logo du storage s'il existe
-    if (seasonToDelete.value?.logoUrl && isFirebaseStorageUrl(seasonToDelete.value.logoUrl)) {
-      try {
-        await deleteImage(seasonToDelete.value.logoUrl)
-        logger.info('Logo de la saison supprimé du storage avant suppression')
-      } catch (deleteError) {
-        logger.warn('Erreur lors de la suppression du logo du storage:', deleteError)
-        // Continuer même si la suppression du fichier échoue
-      }
+  await deleteSeasonDirect(seasonToDelete.value, {
+    onSuccess: () => {
+      logger.info('Saison supprimée avec succès', { seasonId: seasonToDelete.value.id })
+      // Recharger les saisons
+      loadSeasons()
+      // Fermer la modale
+      cancelDelete()
+    },
+    onError: (error) => {
+      alert('Erreur lors de la suppression de la saison. Veuillez réessayer.')
     }
-    
-    // Supprimer la saison de Firestore
-    await deleteSeason(seasonToDelete.value.id)
-    logger.info('Saison supprimée avec succès', { seasonId: seasonToDelete.value.id })
-    
-    // Recharger les saisons
-    await loadSeasons()
-    
-    // Fermer la modale
-    cancelDelete()
-  } catch (error) {
-    logger.error('Erreur lors de la suppression de la saison', error)
-    alert('Erreur lors de la suppression de la saison. Veuillez réessayer.')
-  }
+  })
 }
 
 // Gérer la création d'une nouvelle saison

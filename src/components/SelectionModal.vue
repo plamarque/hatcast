@@ -187,9 +187,9 @@
       </div>
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Bouton Composition Auto (visible seulement si organisateur n'a pas encore validé) -->
+        <!-- Bouton Composition Auto (visible seulement si organisateur n'a pas encore validé ET permissions d'édition) -->
         <button 
-          v-if="!isSelectionConfirmedByOrganizer"
+          v-if="!isSelectionConfirmedByOrganizer && canEditEvents"
           @click="handleSelection" 
           :disabled="availableCount === 0" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
@@ -198,9 +198,9 @@
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides) -->
+        <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
-          v-if="isSelectionConfirmedByOrganizer && hasEmptySlots" 
+          v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canEditEvents" 
           @click="handleCompleteSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
           title="Compléter les slots vides avec des joueurs disponibles"
@@ -208,9 +208,9 @@
           🔧 <span class="hidden sm:inline">Compléter</span><span class="sm:hidden">Compléter</span>
         </button>
 
-        <!-- Bouton Déverrouiller (visible seulement si organisateur a validé) -->
+        <!-- Bouton Déverrouiller (visible seulement si organisateur a validé ET permissions d'édition) -->
         <button 
-          v-if="isSelectionConfirmedByOrganizer" 
+          v-if="isSelectionConfirmedByOrganizer && canEditEvents" 
           @click="handleUnconfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
           title="Déverrouiller la composition pour permettre les modifications"
@@ -218,9 +218,9 @@
           🔓 <span class="hidden sm:inline">Déverrouiller</span><span class="sm:hidden">Déverrouiller</span>
         </button>
 
-        <!-- Bouton Valider (visible seulement si composition complète et organisateur n'a pas encore validé) -->
+        <!-- Bouton Valider (visible seulement si composition complète et organisateur n'a pas encore validé ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmedByOrganizer" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canEditEvents" 
           @click="handleConfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Valider la composition et demander confirmation aux personnes"
@@ -228,9 +228,9 @@
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
-        <!-- Bouton Demander confirmation (visible seulement si organisateur a validé ET on peut annoncer) -->
+        <!-- Bouton Demander confirmation (visible seulement si organisateur a validé ET on peut annoncer ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && isSelectionConfirmedByOrganizer && canAnnounce" 
+          v-if="hasSelection && isSelectionConfirmedByOrganizer && canAnnounce && canEditEvents" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Demander confirmation aux personnes composées"
@@ -238,9 +238,9 @@
           ⏳ <span class="hidden sm:inline">Demander confirmation</span><span class="sm:hidden">Confirmation</span>
         </button>
 
-        <!-- Bouton Réinitialiser (visible seulement si il y a une sélection ET que la composition n'est pas verrouillée) -->
+        <!-- Bouton Réinitialiser (visible seulement si il y a une sélection ET que la composition n'est pas verrouillée ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmedByOrganizer" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canEditEvents" 
           @click="handleResetSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
@@ -360,6 +360,11 @@ const props = defineProps({
   },
   // Nouvelle prop pour distinguer la validation organisateur de la confirmation joueurs
   isSelectionConfirmedByOrganizer: {
+    type: Boolean,
+    default: false
+  },
+  // Prop pour vérifier les permissions d'édition (admin de saison)
+  canEditEvents: {
     type: Boolean,
     default: false
   }

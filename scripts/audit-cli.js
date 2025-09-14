@@ -512,6 +512,245 @@ async function showPlayerHistory(seasonSlug, playerName) {
   }
 }
 
+// Fonction pour détecter si un user agent correspond à un appareil mobile
+function isMobileDevice(userAgent) {
+  if (!userAgent) return false
+  
+  const mobileKeywords = [
+    'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 'BlackBerry', 'Windows Phone',
+    'Opera Mini', 'IEMobile', 'Mobile Safari', 'webOS', 'Palm'
+  ]
+  
+  return mobileKeywords.some(keyword => userAgent.includes(keyword))
+}
+
+// Fonction pour extraire le type d'appareil mobile
+function extractMobileDeviceInfo(userAgent) {
+  if (!userAgent) return { type: 'Unknown', details: 'No user agent' }
+  
+  // iPhone
+  if (userAgent.includes('iPhone')) {
+    return { type: 'iPhone', details: userAgent }
+  }
+  
+  // iPad
+  if (userAgent.includes('iPad')) {
+    return { type: 'iPad', details: userAgent }
+  }
+  
+  // Android
+  if (userAgent.includes('Android')) {
+    // Extraire la version d'Android si possible
+    const androidMatch = userAgent.match(/Android ([\d.]+)/)
+    const androidVersion = androidMatch ? androidMatch[1] : 'Unknown version'
+    return { type: 'Android', details: `${androidVersion} - ${userAgent}` }
+  }
+  
+  // Autres appareils mobiles
+  if (userAgent.includes('Mobile')) {
+    return { type: 'Mobile', details: userAgent }
+  }
+  
+  return { type: 'Unknown Mobile', details: userAgent }
+}
+
+// Commande: Analyser les appareils mobiles
+async function showMobileDevices(days = 8) {
+  try {
+    logInfo(`Analyse des appareils mobiles utilisés au cours des ${days} derniers jours...`)
+    
+    // Calculer la date de début
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+    
+    // Récupérer tous les logs (sans limite de date car les timestamps ne sont pas encore traités)
+    const filters = {
+      limit: 2000 // Augmenter la limite pour avoir plus de données
+    }
+    
+    const logs = await getAuditLogsDirect(filters)
+    
+    if (!logs || logs.length === 0) {
+      logWarning('Aucun log trouvé pour cette période')
+      return
+    }
+    
+    logSuccess(`${logs.length} logs trouvés pour la période`)
+    
+    // Analyser les appareils mobiles
+    const mobileDevices = new Map()
+    const deviceStats = {
+      totalMobileSessions: 0,
+      uniqueMobileDevices: 0,
+      byType: {},
+      byUser: new Map()
+    }
+    
+    logs.forEach(log => {
+      const userAgent = log.userAgent || log.deviceInfo?.userAgent
+      
+      if (isMobileDevice(userAgent)) {
+        deviceStats.totalMobileSessions++
+        
+        const deviceInfo = extractMobileDeviceInfo(userAgent)
+        const deviceKey = `${deviceInfo.type}-${userAgent}`
+        
+        if (!mobileDevices.has(deviceKey)) {
+          mobileDevices.set(deviceKey, {
+            type: deviceInfo.type,
+            userAgent: userAgent,
+            firstSeen: log.timestamp,
+            lastSeen: log.timestamp,
+            sessions: 0,
+            users: new Set()
+          })
+          deviceStats.uniqueMobileDevices++
+        }
+        
+        const device = mobileDevices.get(deviceKey)
+        device.sessions++
+        
+        // Mettre à jour les dates
+        if (new Date(log.timestamp) < new Date(device.firstSeen)) {
+          device.firstSeen = log.timestamp
+        }
+        if (new Date(log.timestamp) > new Date(device.lastSeen)) {
+          device.lastSeen = log.timestamp
+        }
+        
+        // Ajouter l'utilisateur
+        const userEmail = log.data?.email || log.userEmail
+        if (userEmail) {
+          device.users.add(userEmail)
+        }
+        
+        // Statistiques par type
+        if (!deviceStats.byType[deviceInfo.type]) {
+          deviceStats.byType[deviceInfo.type] = 0
+        }
+        deviceStats.byType[deviceInfo.type]++
+        
+        // Statistiques par utilisateur
+        if (userEmail) {
+          if (!deviceStats.byUser.has(userEmail)) {
+            deviceStats.byUser.set(userEmail, new Set())
+          }
+          deviceStats.byUser.get(userEmail).add(deviceKey)
+        }
+      }
+    })
+    
+    // Afficher les résultats
+    logSuccess(`📱 Analyse des appareils mobiles (${days} derniers jours)`)
+    console.log()
+    
+    log(`📊 Statistiques globales:`)
+    log(`   Sessions mobiles totales: ${deviceStats.totalMobileSessions}`)
+    log(`   Appareils mobiles uniques: ${deviceStats.uniqueMobileDevices}`)
+    console.log()
+    
+    // Analyser les résolutions d'écran par utilisateur unique
+    const resolutions = new Map()
+    const userResolutions = new Map() // Pour éviter de compter le même utilisateur plusieurs fois par résolution
+    
+    logs.forEach(log => {
+      const userAgent = log.userAgent || log.deviceInfo?.userAgent
+      const screenResolution = log.deviceInfo?.screenResolution
+      const userEmail = log.data?.email || log.userEmail || log.userId || 'anonymous'
+      
+      if (screenResolution) {
+        if (!resolutions.has(screenResolution)) {
+          resolutions.set(screenResolution, {
+            userCount: 0,
+            sessionCount: 0,
+            devices: new Set(),
+            users: new Set()
+          })
+        }
+        
+        const resolutionData = resolutions.get(screenResolution)
+        resolutionData.sessionCount++
+        
+        // Ajouter l'utilisateur unique à cette résolution
+        if (!userResolutions.has(userEmail)) {
+          userResolutions.set(userEmail, new Set())
+        }
+        
+        if (!userResolutions.get(userEmail).has(screenResolution)) {
+          userResolutions.get(userEmail).add(screenResolution)
+          resolutionData.users.add(userEmail)
+          resolutionData.userCount++
+        }
+        
+        // Ajouter le type d'appareil
+        if (userAgent) {
+          const deviceInfo = extractMobileDeviceInfo(userAgent)
+          resolutionData.devices.add(deviceInfo.type)
+        }
+      }
+    })
+    
+    if (resolutions.size > 0) {
+      log(`📐 Résolutions d'écran par nombre d'utilisateurs uniques (${days} derniers jours):`)
+      Array.from(resolutions.entries())
+        .sort(([,a], [,b]) => b.userCount - a.userCount)
+        .forEach(([resolution, data]) => {
+          const devices = Array.from(data.devices).join(', ') || 'Unknown'
+          log(`   ${resolution}: ${data.userCount} utilisateur(s) unique(s) - ${data.sessionCount} sessions (${devices})`)
+        })
+      console.log()
+      
+      // Statistiques globales
+      const totalUsers = userResolutions.size
+      const totalResolutions = resolutions.size
+      log(`📊 Statistiques globales:`)
+      log(`   Utilisateurs uniques total: ${totalUsers}`)
+      log(`   Résolutions uniques total: ${totalResolutions}`)
+      console.log()
+    }
+    
+    if (Object.keys(deviceStats.byType).length > 0) {
+      log(`📱 Répartition par type d'appareil:`)
+      Object.entries(deviceStats.byType)
+        .sort(([,a], [,b]) => b - a)
+        .forEach(([type, count]) => {
+          log(`   ${type}: ${count} sessions`)
+        })
+      console.log()
+    }
+    
+    if (deviceStats.byUser.size > 0) {
+      log(`👥 Utilisateurs avec appareils mobiles:`)
+      Array.from(deviceStats.byUser.entries())
+        .sort(([,a], [,b]) => b.size - a.size)
+        .slice(0, 10)
+        .forEach(([user, devices]) => {
+          log(`   ${obfuscateEmail(user)}: ${devices.size} appareil(s)`)
+        })
+      console.log()
+    }
+    
+    log(`📱 Détail des appareils mobiles:`)
+    log(`${colors.bright}Type | Sessions | Utilisateurs | Première utilisation | Dernière utilisation | User Agent${colors.reset}`)
+    log(`${colors.bright}-----|----------|--------------|---------------------|---------------------|-----------${colors.reset}`)
+    
+    Array.from(mobileDevices.values())
+      .sort((a, b) => b.sessions - a.sessions)
+      .forEach(device => {
+        const firstSeen = formatTimestamp(device.firstSeen)
+        const lastSeen = formatTimestamp(device.lastSeen)
+        const userCount = device.users.size
+        const userAgentPreview = device.userAgent ? device.userAgent.substring(0, 80) + '...' : 'N/A'
+        
+        console.log(`${device.type} | ${device.sessions} | ${userCount} | ${firstSeen} | ${lastSeen} | ${userAgentPreview}`)
+      })
+    
+  } catch (error) {
+    logError(`Erreur lors de l'analyse des appareils mobiles: ${error.message}`)
+    console.error('Détails:', error)
+  }
+}
+
 // Afficher l'aide
 function showHelp() {
   log(`${colors.bright}🔍 HatCast Audit CLI${colors.reset}`, 'cyan')
@@ -528,6 +767,8 @@ function showHelp() {
   log('    Historique complet d\'un événement')
   log('\n  player <season> <playerName>')
   log('    Historique complet d\'un joueur')
+  log('\n  mobile [--days=N]')
+  log('    Analyse des appareils mobiles utilisés (défaut: 8 jours)')
   log('\n  help')
   log('    Affiche cette aide')
   log('\nFiltres disponibles:')
@@ -545,6 +786,7 @@ function showHelp() {
   log('  node audit-cli.js search "Catch chez Geoff" --season="malice-2025-2026"')
   log('  node audit-cli.js event "malice-2025-2026" "Catch chez Geoff"')
   log('  node audit-cli.js stats --season="malice-2025-2026" --days=30')
+  log('  node audit-cli.js mobile --days=8 --env=production')
 }
 
 // Parser les arguments
@@ -625,6 +867,10 @@ async function main() {
         await showPlayerHistory(playerSeason, playerName)
         break
         
+      case 'mobile':
+        await showMobileDevices(parseInt(options.days) || 8)
+        break
+        
       default:
         logError(`Commande inconnue: ${command}`)
         showHelp()
@@ -646,5 +892,6 @@ module.exports = {
   searchLogs,
   showStats,
   showEventHistory,
-  showPlayerHistory
+  showPlayerHistory,
+  showMobileDevices
 }
