@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 safe-area-all">
     <!-- Header partagé -->
     <AppHeader 
       :is-scrolled="isScrolled"
@@ -16,7 +16,7 @@
     />
 
     <!-- Section Hero -->
-    <section class="hero-section relative overflow-hidden pt-24">
+    <section class="hero-section relative overflow-hidden" style="padding-top: calc(6rem + env(safe-area-inset-top));">
       <!-- Contenu du Hero à 2 colonnes -->
       <div class="hero-content py-16 md:py-24 px-4 relative z-10">
         <div class="container mx-auto">

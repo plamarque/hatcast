@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 safe-area-all">
     <!-- Header de saison partagé -->
     <SeasonHeader 
       :season-name="seasonName"
@@ -20,7 +20,7 @@
     />
 
     <!-- Contenu principal -->
-    <div class="pt-8 pb-16 px-4">
+    <div class="pb-16 px-4" style="padding-top: calc(2rem + env(safe-area-inset-top));">
       <div class="max-w-4xl mx-auto">
         <!-- Message d'erreur -->
         <div v-if="errorMessage" class="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6">

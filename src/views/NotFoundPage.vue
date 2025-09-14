@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center px-4">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center px-4 safe-area-all">
     <div class="text-center max-w-md mx-auto">
       <!-- Icône 404 -->
       <div class="text-8xl mb-6">🔍</div>

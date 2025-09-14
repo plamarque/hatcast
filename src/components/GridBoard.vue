@@ -23,7 +23,7 @@
 
     <!-- Vue grille (classique ou inversée) -->
     <div class="w-full px-0 md:px-0 pb-0 bg-gray-900"
-         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 48px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 48px));">
+         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
         <div class="flex items-stretch relative">
@@ -32,49 +32,57 @@
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
-              <!-- Section logo + boutons - horizontale -->
-              <div class="flex items-center gap-2">
+              <!-- Section logo - prend toute la largeur disponible -->
+              <div class="w-full">
                 <!-- Icône de la saison - cliquable pour rafraîchir -->
                 <div 
                   @click="refreshSeason"
-                  class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
+                  class="flex items-center justify-center p-2 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200 w-full"
                   :title="`Cliquer pour rafraîchir ${seasonName}`"
                 >
-                  <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
+                  <div v-if="seasonMeta?.logoUrl" class="w-full max-w-20 h-20 rounded-lg overflow-hidden shadow-lg">
                     <img 
                       :src="seasonMeta.logoUrl" 
                       :alt="`Logo de ${seasonName}`"
                       class="w-full h-full object-cover"
                     >
                   </div>
-                  <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
+                  <span v-else class="w-full max-w-20 h-20 text-4xl flex items-center justify-center text-white rounded-lg bg-white/10">🎭</span>
                 </div>
                 
-                <!-- Boutons de contrôle de la grille - empilés à droite du logo -->
-                <div class="flex flex-col items-center gap-1">
-                <!-- Toggle de vue -->
-                <button
-                  @click="toggleViewMode"
-                  class="text-white hover:text-purple-300 transition-colors duration-200 p-1.5 rounded-full hover:bg-white/10"
-                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
-                  aria-label="Changer de vue"
-                >
-                  <!-- Icône pour mode normal (événements en colonnes) -->
-                  <svg v-if="currentViewMode === 'normal'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Calendrier/événements -->
-                    <rect x="3" y="4" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 2v4M8 2v4M3 10h18"/>
-                    <circle cx="8" cy="14" r="1" fill="currentColor"/>
-                    <circle cx="12" cy="14" r="1" fill="currentColor"/>
-                    <circle cx="16" cy="14" r="1" fill="currentColor"/>
-                  </svg>
-                  <!-- Icône pour mode inversé (joueurs en colonnes) -->
-                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Personnes/joueurs -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                  </svg>
-                </button>
-                
+                <!-- Toggle de vue - en dessous du logo, aligné avec les badges -->
+                <div class="flex justify-center mt-2">
+                  <button
+                    @click="toggleViewMode"
+                    class="text-white hover:text-purple-300 transition-colors duration-200 p-3 rounded-full hover:bg-white/10"
+                    :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
+                    aria-label="Changer de vue"
+                  >
+                    <!-- Icône pour mode normal (montre la vue inversée vers laquelle basculer) -->
+                    <svg v-if="currentViewMode === 'normal'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 36 36">
+                      <!-- Calendrier -->
+                      <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
+                      <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
+                      <!-- Flèche vers le bas (centrée sur le calendrier) -->
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 28l2 2 2-2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 30v-2"/>
+                    </svg>
+                    <!-- Icône pour mode inversé (montre la vue normale vers laquelle basculer) -->
+                    <svg v-else class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 36 36">
+                      <!-- Calendrier -->
+                      <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
+                      <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
+                      <!-- Flèche vers la droite (centrée sur le calendrier) -->
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M26 18l2 2-2 2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M28 20h-2"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
@@ -1643,6 +1651,7 @@ import {
   setEventArchived,
   loadPlayers,
   loadEvents,
+  loadActiveEvents,
   loadAvailability,
   loadCasts,
   addPlayer,
@@ -3009,7 +3018,7 @@ async function deleteEventConfirmed(eventId = null) {
     events.value = events.value.filter(event => event.id !== eventIdToDelete)
     // Recharger les données pour s'assurer que tout est à jour
     await Promise.all([
-      loadEvents(seasonId.value),
+      loadActiveEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
       loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
@@ -3185,7 +3194,7 @@ async function handleEditEvent(eventData) {
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
-      loadEvents(seasonId.value),
+      loadActiveEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
       loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
@@ -3772,7 +3781,7 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
       events.value = await performanceService.measureStep('load_events', async () => {
-        return await loadEvents(seasonId.value)
+        return await loadActiveEvents(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
 
       // Étape 2: joueurs
@@ -4409,6 +4418,7 @@ const sortedEvents = computed(() => {
 
 
 const displayedEvents = computed(() => {
+    // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
   return sortedEvents.value
 })
 
