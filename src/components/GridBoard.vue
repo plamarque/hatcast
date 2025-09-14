@@ -968,6 +968,7 @@
         <div class="flex justify-center flex-wrap gap-3">
           <!-- Boutons principaux -->
           <button 
+            v-if="canEditEvents"
             @click="openEventAnnounceModal(selectedEvent)" 
             :disabled="selectedEvent?.archived"
             class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
@@ -975,7 +976,12 @@
           >
             <span>📢</span><span>Annoncer</span>
           </button>
-          <button @click="openSelectionModal(selectedEvent)" class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" title="Gérer la composition">
+          <button 
+            v-if="canEditEvents"
+            @click="openSelectionModal(selectedEvent)" 
+            class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
+            title="Gérer la composition"
+          >
             <span>🎭</span><span>Composition Équipe</span>
           </button>
           
@@ -986,8 +992,21 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="openEventAnnounceModal(selectedEvent)" :disabled="selectedEvent?.archived" class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed">Annoncer</button>
-        <button @click="openSelectionModal(selectedEvent)" class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]">Composition</button>
+        <button 
+          v-if="canEditEvents"
+          @click="openEventAnnounceModal(selectedEvent)" 
+          :disabled="selectedEvent?.archived" 
+          class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Annoncer
+        </button>
+        <button 
+          v-if="canEditEvents"
+          @click="openSelectionModal(selectedEvent)" 
+          class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]"
+        >
+          Composition
+        </button>
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
       </div>
     </div>
@@ -1287,6 +1306,7 @@
     :sending="isSendingNotifications"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
+    :can-edit-events="canEditEvents"
     @close="closeSelectionModal"
     @selection="handleSelectionFromModal"
     @perfect="handlePerfectFromModal"
@@ -7488,7 +7508,13 @@ async function isEventMonitored(eventId) {
     // Pas de préférences trouvées
     return false
   } catch (error) {
-    console.error('Erreur lors de la vérification de surveillance:', error)
+    // Gérer spécifiquement les erreurs de permissions Firestore
+    if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
+      logger.debug('Permissions Firestore insuffisantes pour lire userPreferences, utilisation du fallback')
+      return false
+    }
+    
+    logger.warn('Erreur lors de la vérification de surveillance:', error)
     return false
   }
 }

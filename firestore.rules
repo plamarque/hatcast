@@ -2,137 +2,85 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Collection userNavigation - Sécuriser l'accès aux données de navigation
-    match /userNavigation/{docId} {
-      // Lecture : l'utilisateur peut lire ses propres données de navigation
-      allow read: if request.auth != null && 
-        (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email);
-      
-      // Écriture : l'utilisateur peut écrire ses propres données de navigation
-      allow write: if request.auth != null && 
-        (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email);
-      
-      // Suppression : l'utilisateur peut supprimer ses propres données
-      allow delete: if request.auth != null && 
-        (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email);
-    }
-    
-    // Collection des saisons - Lecture et écriture publiques
+    // Collection seasons : lecture publique, écriture pour utilisateurs connectés
     match /seasons/{seasonId} {
-      allow read, write: if true;
+      allow read: if true;  // Lecture publique des saisons
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
+      
+      // Sous-collections des saisons
+      match /{subcollection}/{document=**} {
+        allow read: if true;  // Lecture publique
+        allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
+      }
     }
     
-    // Collection des événements - Lecture et écriture publiques
-    match /seasons/{seasonId}/events/{eventId} {
-      allow read, write: if true;
+    // Collection userPreferences : lecture/écriture pour l'utilisateur propriétaire uniquement
+    match /userPreferences/{userEmail} {
+      allow read, write: if request.auth != null && request.auth.token.email == userEmail;
     }
     
-    // Collection des joueurs - Lecture et écriture publiques
-    match /seasons/{seasonId}/players/{playerId} {
-      allow read, write: if true;
+    // Collection auditLogs : lecture pour admins, écriture pour utilisateurs connectés
+    match /auditLogs/{logId} {
+      allow read: if request.auth != null;  // Lecture pour utilisateurs connectés
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
     }
     
-    // Collection des disponibilités - Lecture et écriture publiques (nouvelle structure)
-    match /seasons/{seasonId}/players/{playerId}/availability/{eventId} {
-      allow read, write: if true;
+    // Collection mail : écriture pour utilisateurs connectés uniquement
+    match /mail/{mailId} {
+      allow read: if false;  // Pas de lecture directe (géré par Cloud Functions)
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
     }
     
-    // Collection des disponibilités - Lecture et écriture publiques (ancienne structure)
-    match /seasons/{seasonId}/availability/{playerName} {
-      allow read, write: if true;
+    // Collection reminderQueue : écriture pour utilisateurs connectés uniquement
+    match /reminderQueue/{reminderId} {
+      allow read: if false;  // Pas de lecture directe (géré par Cloud Functions)
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
     }
     
-    // Collection des disponibilités globale - Lecture et écriture publiques
-    match /availability/{playerName} {
-      allow read, write: if true;
+    // Collection pushQueue : écriture pour utilisateurs connectés uniquement
+    match /pushQueue/{pushId} {
+      allow read: if false;  // Pas de lecture directe (géré par Cloud Functions)
+      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
     }
     
-    // Collection des sélections - Lecture et écriture publiques (ancienne structure)
-    match /seasons/{seasonId}/selections/{eventId} {
-      allow read, write: if true;
+    // Collection userPushTokens : lecture/écriture pour l'utilisateur propriétaire uniquement
+    match /userPushTokens/{userEmail} {
+      allow read, write: if request.auth != null && request.auth.token.email == userEmail;
     }
     
-    // Collection des casts - Lecture et écriture publiques (nouvelle structure)
-    match /seasons/{seasonId}/casts/{eventId} {
-      allow read, write: if true;
+    // Collection userNavigation : lecture/écriture pour l'utilisateur propriétaire uniquement
+    match /userNavigation/{userEmail} {
+      allow read, write: if request.auth != null && request.auth.token.email == userEmail;
     }
     
-    // Collection de protection des joueurs - Lecture et écriture publiques
-    match /seasons/{seasonId}/playerProtection/{playerId} {
-      allow read, write: if true;
+    // Collection magicLinks : lecture/écriture pour utilisateurs connectés
+    match /magicLinks/{linkId} {
+      allow read, write: if request.auth != null;
     }
     
-    // Collection de protection des joueurs globale - Lecture et écriture publiques
-    match /playerProtection/{playerId} {
-      allow read, write: if true;
+    // Collection accountMagicLinks : lecture/écriture pour utilisateurs connectés
+    match /accountMagicLinks/{linkId} {
+      allow read, write: if request.auth != null;
     }
     
-    // Collection des préférences utilisateur
-    match /userPreferences/{docId} {
-      allow read, write: if request.auth != null && 
-        (docId == request.auth.uid || 
-         docId == 'email_' + request.auth.token.email);
+    // Collection notificationActivations : lecture/écriture pour utilisateurs connectés
+    match /notificationActivations/{activationId} {
+      allow read, write: if request.auth != null;
     }
     
-    // Collection des liens magiques - Lecture et écriture publiques
-    match /magicLinks/{docId} {
-      allow read, write: if true;
+    // Collection playerAssociations : lecture/écriture pour utilisateurs connectés
+    match /playerAssociations/{associationId} {
+      allow read, write: if request.auth != null;
     }
     
-    // Collection des liens magiques pour comptes - Lecture et écriture publiques
-    match /accountMagicLinks/{docId} {
-      allow read, write: if true;
+    // Collection playerProtection : lecture/écriture pour utilisateurs connectés
+    match /playerProtection/{protectionId} {
+      allow read, write: if request.auth != null;
     }
     
-    // Collection des emails - Lecture et écriture publiques
-    match /mail/{docId} {
-      allow read, write: if true;
-    }
-    
-    // Collection des tokens push utilisateur
-    match /userPushTokens/{docId} {
-      allow read, write: if true;
-    }
-    
-    // Collection de la queue des notifications push
-    match /pushQueue/{docId} {
-      allow read, write: if true;
-    }
-    
-    // Collection des associations joueur-email
-    match /playerAssociations/{docId} {
-      allow read, write: if true;
-    }
-    
-    // Collection des rappels - Lecture et écriture publiques
-    match /reminderQueue/{docId} {
-      allow read, write: if true;
-    }
-    
-    // Autres collections existantes (ajouter selon vos besoins)
-    // match /users/{userId} {
-    //   allow read, write: if request.auth != null && request.auth.uid == userId;
-    // }
-    
-    // Par défaut, refuser l'accès
+    // Par défaut : tout bloqué
     match /{document=**} {
       allow read, write: if false;
-    }
-    
-    // Collection des logs d'audit
-    match /auditLogs/{logId} {
-      // Lecture : admins seulement
-      allow read: if request.auth != null && 
-        request.auth.token.email.matches('.*@hatcast\\.app');
-      
-      // Écriture : tout le monde (pour le logging client)
-      allow write: if true;
-      
-      // Suppression : jamais
-      allow delete: if false;
     }
   }
 }

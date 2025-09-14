@@ -24,8 +24,9 @@
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
               
-              <!-- Icône Modifier -->
+              <!-- Icône Modifier (visible seulement pour les admins) -->
               <button
+                v-if="canEditPlayers"
                 @click="startEditing"
                 class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
                 title="Modifier cette personne"
@@ -33,8 +34,9 @@
                 <span class="text-lg">✏️</span>
               </button>
               
-              <!-- Icône Supprimer -->
+              <!-- Icône Supprimer (visible seulement pour les admins) -->
               <button
+                v-if="canEditPlayers"
                 @click="handleDelete"
                 class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
                 title="Supprimer cette personne"
@@ -219,6 +221,7 @@ import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
 import { currentUser } from '../services/authState.js'
+import roleService from '../services/roleService.js'
 
 const props = defineProps({
   show: {
@@ -262,6 +265,10 @@ const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboa
 const editing = ref(false)
 const editingName = ref('')
 const editingGender = ref('non-specified')
+
+// Variables pour les permissions
+const canEditPlayers = ref(false)
+const isSuperAdmin = ref(false)
 const editNameInput = ref(null)
 const showProtectionModal = ref(false)
 const showPasswordVerification = ref(false)
@@ -490,6 +497,43 @@ defineExpose({
     editNameError.value = ''
   }
 })
+
+// Fonction de vérification des permissions
+async function checkPermissions() {
+  try {
+    if (!props.seasonId) return;
+    
+    // Fallback temporaire pour le développement local
+    const currentUserEmail = currentUser.value?.email;
+    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
+      isSuperAdmin.value = true;
+      canEditPlayers.value = true;
+      return;
+    }
+    
+    if (currentUserEmail === 'impropick@gmail.com') {
+      isSuperAdmin.value = false;
+      canEditPlayers.value = true;
+      return;
+    }
+    
+    // Vérifier les permissions via les Cloud Functions
+    const superAdminStatus = await roleService.isSuperAdmin();
+    isSuperAdmin.value = superAdminStatus;
+    
+    // Pour l'instant, seuls les Super Admins peuvent modifier/supprimer les joueurs
+    canEditPlayers.value = superAdminStatus;
+  } catch (error) {
+    console.warn('Erreur lors de la vérification des permissions:', error);
+    canEditPlayers.value = false;
+    isSuperAdmin.value = false;
+  }
+}
+
+// Initialisation
+onMounted(() => {
+  checkPermissions();
+});
 
 // Coachmark simple sur le bouton Protection quand onboardingStep === 4
 const protectionCoachmark = ref({ position: null })
