@@ -230,4 +230,33 @@
     padding-left: 0.25rem !important;
     padding-right: 0.25rem !important;
   }
+  
+  /* Réduire la hauteur de l'en-tête en vue joueurs en colonne */
+  .col-event .h-24 {
+    height: 4rem !important; /* 64px au lieu de 96px */
+  }
+  
+  /* Alternative plus spécifique pour la zone cliquable */
+  .col-event .group.h-24 {
+    height: 4rem !important;
+  }
+  
+  /* Réduire l'espacement dans les cellules d'en-tête */
+  .col-event .p-2 {
+    padding: 0.25rem !important;
+  }
+  
+  /* Réduire la taille des avatars dans l'en-tête */
+  .col-event .w-16 {
+    width: 3rem !important;
+  }
+  
+  .col-event .h-16 {
+    height: 3rem !important;
+  }
+  
+  /* Réduire l'espacement entre avatar et nom */
+  .col-event .gap-2 {
+    gap: 0.25rem !important;
+  }
 }
