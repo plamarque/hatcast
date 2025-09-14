@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 safe-area-all">
     <!-- Header de saison partagé -->
     <SeasonHeader 
       :season-name="seasonName"
@@ -32,57 +32,57 @@
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
-              <!-- Section logo + boutons - horizontale -->
-              <div class="flex items-center gap-2">
+              <!-- Section logo - prend toute la largeur disponible -->
+              <div class="w-full">
                 <!-- Icône de la saison - cliquable pour rafraîchir -->
                 <div 
                   @click="refreshSeason"
-                  class="flex items-center justify-center p-1 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200"
+                  class="flex items-center justify-center p-2 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200 w-full"
                   :title="`Cliquer pour rafraîchir ${seasonName}`"
                 >
-                  <div v-if="seasonMeta?.logoUrl" class="w-16 h-16 md:w-14 md:h-14 rounded-lg overflow-hidden shadow-lg">
+                  <div v-if="seasonMeta?.logoUrl" class="w-full max-w-20 h-20 rounded-lg overflow-hidden shadow-lg">
                     <img 
                       :src="seasonMeta.logoUrl" 
                       :alt="`Logo de ${seasonName}`"
                       class="w-full h-full object-cover"
                     >
                   </div>
-                  <span v-else class="w-16 h-16 md:w-14 md:h-14 text-3xl md:text-2xl flex items-center justify-center text-white">🎭</span>
+                  <span v-else class="w-full max-w-20 h-20 text-4xl flex items-center justify-center text-white rounded-lg bg-white/10">🎭</span>
                 </div>
                 
-                <!-- Boutons de contrôle de la grille - empilés à droite du logo -->
-                <div class="flex flex-col items-center gap-1">
-                <!-- Toggle de vue -->
-                <button
-                  @click="toggleViewMode"
-                  class="text-white hover:text-purple-300 transition-colors duration-200 p-1.5 rounded-full hover:bg-white/10"
-                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
-                  aria-label="Changer de vue"
-                >
-                  <!-- Icône pour mode normal (événements en colonnes) -->
-                  <svg v-if="currentViewMode === 'normal'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Calendrier avec flèche vers la droite (événements en colonnes) -->
-                    <rect x="3" y="4" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 2v4M8 2v4M3 8h12"/>
-                    <circle cx="7" cy="12" r="1" fill="currentColor"/>
-                    <circle cx="10" cy="12" r="1" fill="currentColor"/>
-                    <circle cx="13" cy="12" r="1" fill="currentColor"/>
-                    <!-- Flèche vers la droite -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10l3 2-3 2"/>
-                  </svg>
-                  <!-- Icône pour mode inversé (événements en lignes) -->
-                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Calendrier avec flèche vers le bas (événements en lignes) -->
-                    <rect x="3" y="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 0v4M8 0v4M3 6h12"/>
-                    <circle cx="7" cy="10" r="1" fill="currentColor"/>
-                    <circle cx="10" cy="10" r="1" fill="currentColor"/>
-                    <circle cx="13" cy="10" r="1" fill="currentColor"/>
-                    <!-- Flèche vers le bas -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l2 3 2-3"/>
-                  </svg>
-                </button>
-                
+                <!-- Toggle de vue - en dessous du logo, aligné avec les badges -->
+                <div class="flex justify-center mt-2">
+                  <button
+                    @click="toggleViewMode"
+                    class="text-white hover:text-purple-300 transition-colors duration-200 p-3 rounded-full hover:bg-white/10"
+                    :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
+                    aria-label="Changer de vue"
+                  >
+                    <!-- Icône pour mode normal (montre la vue inversée vers laquelle basculer) -->
+                    <svg v-if="currentViewMode === 'normal'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 36 36">
+                      <!-- Calendrier -->
+                      <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
+                      <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
+                      <!-- Flèche vers le bas (centrée sur le calendrier) -->
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 28l2 2 2-2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 30v-2"/>
+                    </svg>
+                    <!-- Icône pour mode inversé (montre la vue normale vers laquelle basculer) -->
+                    <svg v-else class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 36 36">
+                      <!-- Calendrier -->
+                      <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
+                      <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+                      <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
+                      <!-- Flèche vers la droite (centrée sur le calendrier) -->
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M26 18l2 2-2 2"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M28 20h-2"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
@@ -4418,7 +4418,7 @@ const sortedEvents = computed(() => {
 
 
 const displayedEvents = computed(() => {
-  // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
+    // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
   return sortedEvents.value
 })
 
