@@ -8,6 +8,7 @@
       :is-connected="!!currentUser?.email"
       :show-view-toggle="showViewToggle"
       :current-view-mode="currentViewMode"
+      :season-meta="seasonMeta"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -32,58 +33,39 @@
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
-              <!-- Section logo - prend toute la largeur disponible -->
-              <div class="w-full">
-                <!-- Icône de la saison - cliquable pour rafraîchir -->
-                <div 
-                  @click="refreshSeason"
-                  class="flex items-center justify-center p-2 relative z-[102] cursor-pointer hover:bg-white/10 rounded-lg transition-colors duration-200 w-full"
-                  :title="`Cliquer pour rafraîchir ${seasonName}`"
+              <!-- Toggle de vue - aligné avec les cellules de la grille -->
+              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center">
+                <button
+                  @click="toggleViewMode"
+                  class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
+                  aria-label="Changer de vue"
                 >
-                  <div v-if="seasonMeta?.logoUrl" class="w-full max-w-20 h-20 rounded-lg overflow-hidden shadow-lg">
-                    <img 
-                      :src="seasonMeta.logoUrl" 
-                      :alt="`Logo de ${seasonName}`"
-                      class="w-full h-full object-cover"
-                    >
-                  </div>
-                  <span v-else class="w-full max-w-20 h-20 text-4xl flex items-center justify-center text-white rounded-lg bg-white/10">🎭</span>
-                </div>
-                
-                <!-- Toggle de vue - en dessous du logo, aligné avec les badges -->
-                <div class="flex justify-center mt-2">
-                  <button
-                    @click="toggleViewMode"
-                    class="text-white hover:text-purple-300 transition-colors duration-200 p-3 rounded-full hover:bg-white/10"
-                    :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
-                    aria-label="Changer de vue"
-                  >
-                    <!-- Icône pour mode normal (montre la vue inversée vers laquelle basculer) -->
-                    <svg v-if="currentViewMode === 'normal'" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                      <!-- Calendrier -->
-                      <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
-                      <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
-                      <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
-                      <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
-                      <!-- Flèche vers le bas (centrée sur le calendrier) -->
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 28l2 2 2-2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 30v-2"/>
-                    </svg>
-                    <!-- Icône pour mode inversé (montre la vue normale vers laquelle basculer) -->
-                    <svg v-else class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                      <!-- Calendrier -->
-                      <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
-                      <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
-                      <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
-                      <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
-                      <!-- Flèche vers la droite (centrée sur le calendrier) -->
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M26 18l2 2-2 2"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M28 20h-2"/>
-                    </svg>
-                  </button>
-                </div>
+                  <!-- Icône pour mode normal (montre la vue inversée vers laquelle basculer) -->
+                  <svg v-if="currentViewMode === 'normal'" class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
+                    <!-- Calendrier -->
+                    <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
+                    <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
+                    <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+                    <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
+                    <!-- Flèche vers le bas (centrée sur le calendrier) -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 28l2 2 2-2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 30v-2"/>
+                  </svg>
+                  <!-- Icône pour mode inversé (montre la vue normale vers laquelle basculer) -->
+                  <svg v-else class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
+                    <!-- Calendrier -->
+                    <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
+                    <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
+                    <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
+                    <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
+                    <!-- Flèche vers la droite (centrée sur le calendrier) -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M26 18l2 2-2 2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M28 20h-2"/>
+                  </svg>
+                </button>
               </div>
 
             </div>
@@ -110,9 +92,9 @@
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
-                    <!-- Titre du spectacle -->
+                    <!-- Titre du spectacle avec icône -->
                     <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
-                      {{ headerItem.title || 'Sans titre' }}
+                      <span v-if="headerItem.roles" :title="getEventTypeName(headerItem)" class="mr-1">{{ getEventTypeIcon(headerItem) }}</span>{{ headerItem.title || 'Sans titre' }}
                     </div>
                     
                     <!-- Date du spectacle -->
@@ -134,15 +116,7 @@
                       <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                     </div>
                     
-                    <!-- Badge de type d'événement (seulement si actif) -->
-                    <div 
-                      v-else-if="headerItem.roles"
-                      class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
-                      :title="getEventTypeName(headerItem)"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(headerItem) }}</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(headerItem) }}</span>
-                    </div>
+                    <!-- Plus de badge de type d'événement -->
                   </div>
                 </div>
 
@@ -150,13 +124,13 @@
                 <div v-else>
                   <!-- Zone cliquable complète (avatar + nom + badges) -->
                   <div 
-                    class="flex flex-col items-center justify-between p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-24 w-full"
+                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-20 w-full"
                     :title="headerItem.name + ' - Cliquez pour voir les détails'"
                     @click.stop="showPlayerDetails(headerItem)"
                   >
                     <div class="flex flex-col items-center flex-1 justify-center w-full">
-                      <!-- Avatar sur la première ligne -->
-                      <div class="mb-2">
+                      <!-- Avatar avec icônes en coin supérieur droit -->
+                      <div class="mb-2 relative">
                         <PlayerAvatar 
                           :player-id="headerItem.id"
                           :season-id="seasonId"
@@ -164,33 +138,29 @@
                           :player-gender="headerItem.gender || 'non-specified'"
                           size="sm"
                         />
-                      </div>
-                      <!-- Nom sur la deuxième ligne -->
-                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
-                        {{ headerItem.name }}
-                      </div>
-                    </div>
-                    
-                    <!-- Section basse : badges de statut du joueur -->
-                    <div class="flex flex-col items-center mt-2">
-                      <!-- Badge joueur favori -->
-                      <div 
-                        v-if="preferredPlayerIdsSet.has(headerItem.id)"
-                        class="px-2 py-1 bg-yellow-500/20 border border-yellow-400/30 rounded-md mx-auto flex items-center justify-center"
-                        title="Ma personne"
-                      >
-                        <span class="text-xs text-yellow-300 font-medium">⭐</span>
-                        <span class="text-xs text-yellow-200 font-medium ml-1">Moi</span>
+                        
+                        <!-- Icône étoile (joueur favori) -->
+                        <span 
+                          v-if="preferredPlayerIdsSet.has(headerItem.id)"
+                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          title="Ma personne"
+                        >
+                          ⭐
+                        </span>
+                        
+                        <!-- Icône cadenas (joueur protégé) -->
+                        <span 
+                          v-else-if="isPlayerProtectedInGrid(headerItem.id)"
+                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                          :title="preferredPlayerIdsSet.has(headerItem.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
+                        >
+                          🔒
+                        </span>
                       </div>
                       
-                      <!-- Badge joueur protégé -->
-                      <div 
-                        v-else-if="isPlayerProtectedInGrid(headerItem.id)"
-                        class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md mx-auto flex items-center justify-center"
-                        title="Personne protégée par mot de passe"
-                      >
-                        <span class="text-xs text-gray-300 font-medium">🔒</span>
-                        <span class="text-xs text-gray-200 font-medium ml-1">Protégé</span>
+                      <!-- Nom sur la deuxième ligne -->
+                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 font-bold">
+                        {{ headerItem.name }}
                       </div>
                     </div>
                   </div>
@@ -293,7 +263,7 @@
                   <div 
                     v-if="currentViewMode === 'normal'"
                     @click="showPlayerDetails(rowItem)" 
-                    class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group"
+                    class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group font-bold"
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + rowItem.name"
                   >
@@ -334,9 +304,9 @@
                     :title="'Cliquez pour voir les détails : ' + rowItem.title"
                   >
                     <div class="flex flex-col items-center gap-2 w-full">
-                      <!-- Ligne 1 : Titre du spectacle -->
+                      <!-- Ligne 1 : Titre du spectacle avec icône -->
                       <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        {{ rowItem.title || 'Sans titre' }}
+                        <span v-if="rowItem.roles" :title="getEventTypeName(rowItem)" class="mr-1">{{ getEventTypeIcon(rowItem) }}</span>{{ rowItem.title || 'Sans titre' }}
                       </div>
                       
                       <!-- Ligne 2 : Date du spectacle -->
@@ -357,15 +327,7 @@
                           <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                         </div>
                         
-                        <!-- Badge de type d'événement (seulement si actif) -->
-                        <div 
-                          v-else-if="rowItem.roles"
-                          class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
-                          :title="getEventTypeName(rowItem)"
-                        >
-                          <span class="text-xs text-gray-300 font-medium">{{ getEventTypeIcon(rowItem) }}</span>
-                          <span class="text-xs text-gray-200 font-medium ml-1">{{ getEventTypeName(rowItem) }}</span>
-                        </div>
+                        <!-- Plus de badge de type d'événement -->
                       </div>
                     </div>
                   </div>
@@ -378,7 +340,7 @@
                 :data-event-id="currentViewMode === 'normal' ? columnItem.id : undefined"
                 :data-player-id="currentViewMode === 'inverted' ? columnItem.id : undefined"
                 :class="[
-                  'p-0',
+                  'p-0.5',
                   currentViewMode === 'normal' && columnItem.archived ? 'archived-col' : '',
                   { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && columnItem.id === (guidedEventId || (displayedEvents[0]?.id)) }
                 ]"

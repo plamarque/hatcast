@@ -1,77 +1,109 @@
 <template>
-  <div class="sticky top-0 z-[60] text-center relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10" 
+  <div class="sticky top-0 z-[60] bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10" 
        style="padding-top: calc(env(safe-area-inset-top) + 1rem); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
-    <div class="py-3 md:py-6 px-4 md:px-6">
-    <!-- Flèche de retour - optimisée pour mobile avec marge réduite -->
-    <button 
-      @click="goBack"
-      class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-      title="Retour aux saisons"
-    >
-      <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-      </svg>
-    </button>
-    
-    <!-- Titre de la saison - cliquable pour rafraîchir -->
-    <h1 
-      @click="refreshSeason"
-      class="text-2xl md:text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent px-6 md:px-16 truncate max-w-full cursor-pointer hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 transition-all duration-200"
-      :title="seasonSlug ? `Cliquer pour rafraîchir ${seasonName}` : seasonName"
-    >
-      {{ isAdminMode ? `⚙️ Administration - ${seasonName}` : (seasonName ? seasonName : 'Chargement...') }}
-    </h1>
-    
-    <!-- Sous-titre pour le mode administration -->
-    <p v-if="isAdminMode" class="text-gray-300 text-sm md:text-base mt-1 px-6 md:px-16">
-      Gérer les utilisateurs, événements et paramètres
-    </p>
-    
-    <!-- Actions à droite - déplacées dans l'en-tête de la grille -->
-    <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2">
-      <!-- Desktop: actions visibles -->
-      <div class="hidden md:flex items-center gap-2">
-        <AccountDropdown 
-          :is-connected="isConnected"
-          :button-class="buttonClass"
-          @open-account-menu="openAccountMenu"
-          @open-help="openHelp"
-          @open-preferences="openPreferences"
-          @open-players="openPlayers"
-          @logout="logout"
-          @open-login="openLogin"
-          @open-development="openDevelopment"
-          @open-administration="openAdministration"
-        />
-        
-        <!-- Icône aide seulement quand pas connecté (à côté du bouton connexion) -->
-        <button
-          v-if="!isConnected"
-          @click="openHelp"
-          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-          title="Kezako ?"
-          aria-label="Kezako ?"
+    <!-- Conteneur principal avec alignement horizontal -->
+    <div class="flex items-center justify-between py-3 md:py-6 px-4 md:px-6">
+      
+      <!-- Section gauche : bouton retour + logo -->
+      <div class="flex items-center gap-3">
+        <!-- Flèche de retour -->
+        <button 
+          @click="goBack"
+          class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 flex-shrink-0"
+          title="Retour aux saisons"
         >
-          <span class="text-2xl">❓</span>
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
         </button>
+        
+        <!-- Logo de la saison -->
+        <div 
+          v-if="seasonMeta?.logoUrl"
+          @click="refreshSeason"
+          class="cursor-pointer hover:opacity-80 transition-opacity duration-200 flex-shrink-0"
+          :title="`Cliquer pour rafraîchir ${seasonName}`"
+        >
+          <div class="w-10 h-10 rounded-lg overflow-hidden shadow-lg">
+            <img 
+              :src="seasonMeta.logoUrl" 
+              :alt="`Logo de ${seasonName}`"
+              class="w-full h-full object-cover"
+            >
+          </div>
+        </div>
+        <div 
+          v-else
+          @click="refreshSeason"
+          class="cursor-pointer hover:opacity-80 transition-opacity duration-200 text-2xl flex-shrink-0"
+          :title="`Cliquer pour rafraîchir ${seasonName}`"
+        >
+          🎭
+        </div>
       </div>
+      
+      <!-- Section centre : titre -->
+      <div class="flex-1 text-center px-4">
+        <!-- Titre de la saison - cliquable pour rafraîchir -->
+        <h1 
+          @click="refreshSeason"
+          class="text-xl md:text-3xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent cursor-pointer hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 transition-all duration-200 truncate"
+          :title="seasonSlug ? `Cliquer pour rafraîchir ${seasonName}` : seasonName"
+        >
+          {{ isAdminMode ? `⚙️ Administration - ${seasonName}` : (seasonName ? seasonName : 'Chargement...') }}
+        </h1>
+        
+        <!-- Sous-titre pour le mode administration -->
+        <p v-if="isAdminMode" class="text-gray-300 text-xs md:text-sm mt-1">
+          Gérer les utilisateurs, événements et paramètres
+        </p>
+      </div>
+      
+      <!-- Section droite : actions -->
+      <div class="flex items-center gap-2 md:gap-3 flex-shrink-0">
+        <!-- Desktop: actions visibles -->
+        <div class="hidden md:flex items-center gap-2">
+          <AccountDropdown 
+            :is-connected="isConnected"
+            :button-class="buttonClass"
+            @open-account-menu="openAccountMenu"
+            @open-help="openHelp"
+            @open-preferences="openPreferences"
+            @open-players="openPlayers"
+            @logout="logout"
+            @open-login="openLogin"
+            @open-development="openDevelopment"
+            @open-administration="openAdministration"
+          />
+          
+          <!-- Icône aide seulement quand pas connecté (à côté du bouton connexion) -->
+          <button
+            v-if="!isConnected"
+            @click="openHelp"
+            class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
+            title="Kezako ?"
+            aria-label="Kezako ?"
+          >
+            <span class="text-2xl">❓</span>
+          </button>
+        </div>
 
-      <!-- Mobile: icône portrait (même comportement que desktop) -->
-      <div class="md:hidden">
-        <AccountDropdown 
-          :is-connected="isConnected"
-          :button-class="buttonClass"
-          @open-account-menu="openAccountMenu"
-          @open-help="openHelp"
-          @open-preferences="openPreferences"
-          @open-players="openPlayers"
-          @logout="logout"
-          @open-login="openLogin"
-          @open-development="openDevelopment"
-          @open-administration="openAdministration"
-        />
+        <!-- Mobile: icône portrait (même comportement que desktop) -->
+        <div class="md:hidden">
+          <AccountDropdown 
+            :is-connected="isConnected"
+            :button-class="buttonClass"
+            @open-account-menu="openAccountMenu"
+            @open-help="openHelp"
+            @open-preferences="openPreferences"
+            @open-players="openPlayers"
+            @logout="logout"
+            @open-login="openLogin"
+            @open-development="openDevelopment"
+            @open-administration="openAdministration"
+          />
+        </div>
       </div>
-    </div>
     </div>
   </div>
 </template>
@@ -88,10 +120,11 @@ const props = defineProps({
   isConnected: { type: Boolean, default: false },
   showViewToggle: { type: Boolean, default: false },
   currentViewMode: { type: String, default: 'grid' },
-  isAdminMode: { type: Boolean, default: false }
+  isAdminMode: { type: Boolean, default: false },
+  seasonMeta: { type: Object, default: () => ({}) }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration', 'toggle-view-mode'])
 
 // État de connexion reçu depuis le composant parent (GridBoard)
 // Plus besoin de logique locale d'authentification
@@ -164,6 +197,10 @@ function openDevelopment() {
 
 function openAdministration() {
   emit('open-administration')
+}
+
+function toggleViewMode() {
+  emit('toggle-view-mode')
 }
 
 // Fonctions supprimées - boutons déplacés dans GridBoard

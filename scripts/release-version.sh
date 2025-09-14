@@ -385,12 +385,12 @@ create_technical_json_from_commits() {
     
     echo "   └─ Extracting commits for version $version..." >&2
     
-    # Get commits since last tag
-    local last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    # Get commits since last version bump commit
+    local last_bump_commit=$(git log --oneline --grep="bump version" -1 | cut -d' ' -f1)
     local commits_cmd="git log --oneline"
     
-    if [ -n "$last_tag" ]; then
-        commits_cmd="$commits_cmd $last_tag..HEAD"
+    if [ -n "$last_bump_commit" ]; then
+        commits_cmd="$commits_cmd $last_bump_commit..HEAD"
     else
         commits_cmd="$commits_cmd --max-count=50"
     fi

@@ -1,4 +1,6 @@
 [
+{  "version": "0.14.1",  "date": "2025-09-14",  "changes": [    "✨ On a refait le design de l'en-tête de saison et optimisé le toggle de la grille.",    "🐛 On a ajouté l'icône d'événement au titre de l'événement.",    "🐛 On utilise maintenant le dernier commit de version pour générer le changelog.",    "🐛 On a appliqué les règles de hauteur des cellules de la grille sur desktop et mobile.",    "🐛 On a amélioré la mise en page des cellules de la grille avec un espacement et une hauteur appropriés.",    "🐛 On a renforcé le poids de la police pour les noms des joueurs dans les en-têtes de la grille.",    "🐛 On a réduit le padding mobile pour mieux afficher les caractères."  ]}
+,
 {
   "version": "0.14.0",
   "date": "2025-09-14",
