@@ -41,29 +41,23 @@
                   :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
                   aria-label="Changer de vue"
                 >
-                  <!-- Icône pour mode normal (montre la vue inversée vers laquelle basculer) -->
+                  <!-- Flèche en L vers haut-droite (joueurs en colonnes) -->
                   <svg v-if="currentViewMode === 'normal'" class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                    <!-- Calendrier -->
-                    <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
-                    <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
-                    <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
-                    <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
-                    <!-- Flèche vers le bas (centrée sur le calendrier) -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 28l2 2 2-2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18 30v-2"/>
+                    <!-- Trait vertical qui monte -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 26v-12"/>
+                    <!-- Trait horizontal vers la droite -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 14h8"/>
+                    <!-- Flèche vers la droite -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M24 12l4 2-4 2"/>
                   </svg>
-                  <!-- Icône pour mode inversé (montre la vue normale vers laquelle basculer) -->
+                  <!-- Flèche en L vers bas-gauche (joueurs en lignes) -->
                   <svg v-else class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                    <!-- Calendrier -->
-                    <rect x="4" y="6" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 4v6M14 4v6M4 14h18"/>
-                    <circle cx="10" cy="18" r="1.5" fill="currentColor"/>
-                    <circle cx="14" cy="18" r="1.5" fill="currentColor"/>
-                    <circle cx="18" cy="18" r="1.5" fill="currentColor"/>
-                    <!-- Flèche vers la droite (centrée sur le calendrier) -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M26 18l2 2-2 2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M28 20h-2"/>
+                    <!-- Trait horizontal vers la gauche -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M26 20h-8"/>
+                    <!-- Trait vertical qui descend -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 20v10"/>
+                    <!-- Flèche vers le bas -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M16 28l2 4 2-4"/>
                   </svg>
                 </button>
               </div>
