@@ -21,6 +21,7 @@
           
           <!-- Informations principales -->
           <div class="flex-1 min-w-0">
+            <!-- Nom du joueur et boutons d'action -->
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
               
@@ -43,20 +44,20 @@
               >
                 <span class="text-lg">🗑️</span>
               </button>
+            </div>
+            
+            <!-- Indicateurs de statut - déplacés sous le nom -->
+            <div class="flex items-center gap-2">
+              <!-- Indicateur de protection -->
+              <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
+                <span class="text-yellow-400 text-sm">🔒</span>
+                <span class="text-yellow-300 text-xs font-medium">Protégé</span>
+              </div>
               
-              <!-- Indicateurs de statut compacts (optionnel, gardés pour la lisibilité) -->
-              <div class="flex items-center gap-2">
-                <!-- Indicateur de protection -->
-                <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
-                  <span class="text-yellow-400 text-sm">🔒</span>
-                  <span class="text-yellow-300 text-xs font-medium">Protégé</span>
-                </div>
-                
-                <!-- Indicateur de favori -->
-                <div v-if="isPreferred" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
-                  <span class="text-purple-400 text-sm">⭐</span>
-                  <span class="text-purple-300 text-xs font-medium">Favori</span>
-                </div>
+              <!-- Indicateur de favori -->
+              <div v-if="isPreferred" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
+                <span class="text-purple-400 text-sm">⭐</span>
+                <span class="text-purple-300 text-xs font-medium">Favori</span>
               </div>
             </div>
           </div>
