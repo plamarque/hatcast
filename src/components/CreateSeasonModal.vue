@@ -77,6 +77,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { addSeason } from '../services/seasons.js'
+import seasonRoleService from '../services/seasonRoleService.js'
+import { currentUser } from '../services/authState.js'
 import logger from '../services/logger.js'
 
 const props = defineProps({
@@ -143,7 +145,8 @@ async function handleCreate() {
   try {
     isSubmitting.value = true
     
-    await addSeason(
+    // Créer la saison
+    const seasonId = await addSeason(
       seasonName.value.trim(), 
       seasonSlug.value.trim(), 
       seasonPin.value.trim(),
@@ -152,12 +155,29 @@ async function handleCreate() {
     )
     
     logger.info('Saison créée avec succès', { 
+      seasonId,
       name: seasonName.value.trim(), 
       slug: seasonSlug.value.trim() 
     })
     
+    // Initialiser les rôles avec le créateur comme admin
+    if (currentUser.value?.email && seasonId) {
+      await seasonRoleService.initializeSeasonRoles(seasonId, currentUser.value.email)
+      logger.info('Rôles initialisés avec le créateur comme admin', {
+        seasonId,
+        creatorEmail: currentUser.value.email
+      })
+    } else {
+      logger.warn('Impossible d\'initialiser les rôles: utilisateur non connecté ou ID de saison manquant', {
+        hasUser: !!currentUser.value,
+        hasEmail: !!currentUser.value?.email,
+        seasonId
+      })
+    }
+    
     // Émettre l'événement avec la nouvelle saison
     emit('season-created', {
+      id: seasonId,
       name: seasonName.value.trim(),
       slug: seasonSlug.value.trim(),
       description: seasonDescription.value.trim(),

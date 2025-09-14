@@ -17,13 +17,16 @@ async function ensureFirestoreService() {
 export async function addSeason(name, slug, pinCode, description = '', logoUrl = '') {
   logger.info('🔧 addSeason: création depuis Firestore')
   const service = await ensureFirestoreService();
-  return await service.addDocument(SEASONS_COLLECTION, {
+  const seasonId = await service.addDocument(SEASONS_COLLECTION, {
     name,
     slug,
     pinCode,
     description,
     logoUrl
   })
+  
+  logger.info('🔧 addSeason: saison créée avec ID:', seasonId)
+  return seasonId
 }
 
 // Delete a season
