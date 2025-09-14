@@ -5,6 +5,7 @@
       :is-scrolled="isScrolled"
       :is-connected="isConnected"
       :show-back-button="true"
+      @open-administration="openAdministration"
       @open-account-menu="openAccountMenu"
       @open-help="openHelp"
       @open-notifications="openNotifications"
@@ -247,6 +248,14 @@ function openDevelopment() {
   logger.debug('showDevelopmentModal avant =', showDevelopmentModal.value)
   showDevelopmentModal.value = true
   logger.debug('showDevelopmentModal après =', showDevelopmentModal.value)
+}
+
+function openAdministration() {
+  // Depuis la page des saisons, rediriger vers l'administration de la première saison disponible
+  if (sortedSeasons.value && sortedSeasons.value.length > 0) {
+    const firstSeason = sortedSeasons.value[0]
+    router.push(`/season/${firstSeason.slug}/admin`)
+  }
 }
 
 function handleLogout() {

@@ -5,6 +5,7 @@
       :is-scrolled="isScrolled"
       :is-connected="isConnected"
       @open-account-menu="openAccountMenu"
+      @open-administration="openAdministration"
       @open-help="() => {}"
       @open-preferences="openPreferences"
       @open-players="openPlayers"
@@ -322,6 +323,11 @@ function openPlayers() {
 
 function openDevelopment() {
   showDevelopmentModal.value = true
+}
+
+function openAdministration() {
+  // Rediriger vers la page des saisons pour choisir une saison à administrer
+  router.push('/seasons')
 }
 
 function handleLogout() {
