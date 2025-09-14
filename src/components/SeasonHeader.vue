@@ -19,8 +19,13 @@
       class="text-2xl md:text-4xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent px-6 md:px-16 truncate max-w-full cursor-pointer hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 transition-all duration-200"
       :title="seasonSlug ? `Cliquer pour rafraîchir ${seasonName}` : seasonName"
     >
-      {{ seasonName ? seasonName : 'Chargement...' }}
+      {{ isAdminMode ? `⚙️ Administration - ${seasonName}` : (seasonName ? seasonName : 'Chargement...') }}
     </h1>
+    
+    <!-- Sous-titre pour le mode administration -->
+    <p v-if="isAdminMode" class="text-gray-300 text-sm md:text-base mt-1 px-6 md:px-16">
+      Gérer les utilisateurs, événements et paramètres
+    </p>
     
     <!-- Actions à droite - déplacées dans l'en-tête de la grille -->
     <div class="absolute right-1 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 md:gap-2"
@@ -82,7 +87,8 @@ const props = defineProps({
   seasonSlug: { type: String, default: '' },
   isConnected: { type: Boolean, default: false },
   showViewToggle: { type: Boolean, default: false },
-  currentViewMode: { type: String, default: 'grid' }
+  currentViewMode: { type: String, default: 'grid' },
+  isAdminMode: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration'])

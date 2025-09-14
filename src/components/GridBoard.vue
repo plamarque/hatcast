@@ -30,17 +30,7 @@
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-4 md:p-5 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter événement (visible seulement si permissions d'édition) -->
-              <button
-                v-if="canEditEvents"
-                @click="openNewEventForm"
-                class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
-                title="Ajouter un nouvel événement"
-              >
-                <span class="text-lg">➕</span>
-                <span class="hidden sm:inline">Ajouter un événement</span>
-                <span class="sm:hidden">Événement</span>
-              </button>
+              <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
               <!-- Section logo + boutons - horizontale -->
               <div class="flex items-center gap-2">
@@ -72,24 +62,6 @@
                   <span class="text-sm">{{ currentViewMode === 'normal' ? '🔄' : '↩️' }}</span>
                 </button>
                 
-                <!-- Bouton de filtres -->
-                <button
-                  @click="toggleFiltersDropdown"
-                  class="text-white hover:text-purple-300 transition-colors duration-200 p-1.5 rounded-full hover:bg-white/10 relative"
-                  :class="{ 'bg-white/20': showFiltersDropdown }"
-                  title="Filtres d'affichage"
-                  aria-label="Filtres d'affichage"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
-                  </svg>
-                  
-                  <!-- Indicateur de filtres actifs -->
-                  <div
-                    v-if="showArchived || showPast"
-                    class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border border-gray-900"
-                  ></div>
-                </button>
                 </div>
               </div>
 
@@ -131,17 +103,17 @@
                   
                   <!-- Ligne 2 : Badge de type d'événement (toujours à la même hauteur) -->
                   <div class="flex items-center justify-center p-1 h-8">
-                    <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                    <!-- Indicateur de statut inactif (priorité sur les autres) -->
                     <div 
                       v-if="headerItem.archived"
                       class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                      title="Événement archivé"
+                      title="Événement inactif"
                     >
                       <span class="text-xs text-gray-300 font-medium">📁</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                      <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                     </div>
                     
-                    <!-- Badge de type d'événement (seulement si pas archivé) -->
+                    <!-- Badge de type d'événement (seulement si actif) -->
                     <div 
                       v-else-if="headerItem.roles"
                       class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
@@ -208,38 +180,6 @@
           <!-- Right spacer (keeps end alignment) -->
           <div class="flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
 
-          <!-- Dropdown des filtres en position flottante -->
-          <div
-            v-if="showFiltersDropdown"
-            data-filters-dropdown
-            class="fixed bottom-4 right-4 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
-          >
-            <div class="p-3 border-b border-white/10">
-              <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
-            </div>
-            
-            <!-- Option Archivés -->
-            <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-              <input
-                v-model="showArchived"
-                type="checkbox"
-                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-              >
-              <span class="ml-3 text-sm text-white">Archivés</span>
-              <span class="ml-auto text-xs text-gray-400">📁</span>
-            </label>
-            
-            <!-- Option Passés -->
-            <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-              <input
-                v-model="showPast"
-                type="checkbox"
-                class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-              >
-              <span class="ml-3 text-sm text-white">Passés</span>
-              <span class="ml-auto text-xs text-gray-400">📅</span>
-            </label>
-          </div>
 
           <!-- Chevrons supprimés de cette zone -->
         </div>
@@ -386,17 +326,17 @@
                       
                       <!-- Ligne 3 : Badge de type d'événement -->
                       <div class="flex flex-col items-center">
-                        <!-- Indicateur de statut archivé (priorité sur les autres) -->
+                        <!-- Indicateur de statut inactif (priorité sur les autres) -->
                         <div 
                           v-if="rowItem.archived"
                           class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                          title="Événement archivé"
+                          title="Événement inactif"
                         >
                           <span class="text-xs text-gray-300 font-medium">📁</span>
-                          <span class="text-xs text-gray-200 font-medium ml-1">Archivé</span>
+                          <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
                         </div>
                         
-                        <!-- Badge de type d'événement (seulement si pas archivé) -->
+                        <!-- Badge de type d'événement (seulement si actif) -->
                         <div 
                           v-else-if="rowItem.roles"
                           class="px-2 py-1 bg-gray-700/50 border border-gray-600/50 rounded-md flex items-center justify-center"
@@ -521,7 +461,6 @@
     :players-count="players.length"
     :events-count="events.length"
     :onboarding-done="seasonMeta?.onboardingCreatorDone === true"
-    @create-event="openNewEventForm"
     @add-player="openNewPlayerForm"
     @copy-link="copyJoinLink"
     @dismissed="afterCloseOnboarding"
@@ -972,7 +911,7 @@
             @click="openEventAnnounceModal(selectedEvent)" 
             :disabled="selectedEvent?.archived"
             class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
-            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement archivé' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
+            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement inactif' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
           >
             <span>📢</span><span>Annoncer</span>
           </button>
@@ -1553,7 +1492,7 @@
 
   /* Largeurs adaptées mobile-first, avec fallback CSS pour Safari iOS */
   
-  /* Colonne atténuée pour événements archivés */
+  /* Colonne atténuée pour événements inactifs */
   .archived-header {
     filter: grayscale(25%);
     opacity: 0.7;
@@ -4455,40 +4394,11 @@ const sortedEvents = computed(() => {
   })
 })
 
-// Affichage conditionnel des évènements archivés
-const showArchived = ref(false)
-const showPast = ref(false)
-const showFiltersDropdown = ref(false)
 
 const displayedEvents = computed(() => {
-  const list = sortedEvents.value
-  return list.filter(e => {
-    const eventDate = toDateObject(e.date)
-    const isArchived = !!e.archived
-    const isPast = eventDate && eventDate < new Date()
-    
-    // Si les deux filtres sont cochés, afficher tout
-    if (showArchived.value && showPast.value) {
-      return true
-    }
-    // Si seulement Archivés est coché, afficher les archivés
-    else if (showArchived.value) {
-      return isArchived
-    }
-    // Si seulement Passés est coché, afficher les passés
-    else if (showPast.value) {
-      return isPast
-    }
-    // Par défaut (aucun coché) : afficher ni archivés ni passés
-    else {
-      return !isArchived && !isPast
-    }
-  })
+  return sortedEvents.value
 })
 
-function toggleFiltersDropdown() {
-  showFiltersDropdown.value = !showFiltersDropdown.value
-}
 
 // Computed properties pour l'affichage inversé
 const displayRows = computed(() => {
@@ -4499,25 +4409,7 @@ const displayColumns = computed(() => {
   return currentViewMode.value === 'inverted' ? sortedPlayers.value : displayedEvents.value
 })
 
-// Positionnement simple du dropdown des filtres (plus de calcul dynamique)
 
-// Fermer le dropdown si on clique ailleurs
-function closeFiltersDropdown() {
-  showFiltersDropdown.value = false
-}
-
-// Gérer le clic en dehors du dropdown
-onMounted(() => {
-  document.addEventListener('click', (event) => {
-    const filtersButton = document.querySelector('[data-filters-button]')
-    const filtersDropdown = document.querySelector('[data-filters-dropdown]')
-    
-    if (filtersButton && !filtersButton.contains(event.target) && 
-        filtersDropdown && !filtersDropdown.contains(event.target)) {
-      closeFiltersDropdown()
-    }
-  })
-})
 
 
 
@@ -4546,10 +4438,10 @@ async function toggleAvailability(playerName, eventId) {
     console.error('Événement non trouvé')
     return;
   }
-  // Empêcher toute modification sur un événement archivé
+  // Empêcher toute modification sur un événement inactif
   if (eventItem.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Événement archivé — désarchivez pour modifier'
+    successMessage.value = 'Événement inactif — activez pour modifier'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -5929,7 +5821,7 @@ async function executePendingOperation(operation) {
           
           // Message de succès
           showSuccessMessage.value = true
-          successMessage.value = newArchivedState ? 'Événement archivé avec succès !' : 'Événement désarchivé avec succès !'
+          successMessage.value = newArchivedState ? 'Événement désactivé avec succès !' : 'Événement activé avec succès !'
           setTimeout(() => {
             showSuccessMessage.value = false
           }, 3000)
@@ -6266,11 +6158,11 @@ async function handleAvailabilityToggle(playerName, eventId) {
     console.error('Joueur non trouvé');
     return;
   }
-  // Empêcher toute modification sur un événement archivé
+  // Empêcher toute modification sur un événement inactif
   const evt = events.value.find(e => e.id === eventId)
   if (evt?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Événement archivé — désarchivez pour modifier'
+    successMessage.value = 'Événement inactif — activez pour modifier'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -6386,7 +6278,7 @@ async function startEditingFromDetails() {
 async function toggleEventArchived() {
   if (!selectedEvent.value) return;
   
-  // Demander le PIN code avant d'archiver/désarchiver
+  // Demander le PIN code avant de désactiver/activer
   await requirePin({
     type: 'toggleArchive',
     data: { 
@@ -6756,7 +6648,7 @@ async function buildProtectedPlayersWithEmails() {
 function openEventAnnounceModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'annoncer un événement archivé'
+    successMessage.value = 'Impossible d\'annoncer un événement inactif'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
@@ -7076,7 +6968,7 @@ function getPlayerSelectionRole(playerName, eventId) {
 function openSelectionModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement archivé'
+    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
