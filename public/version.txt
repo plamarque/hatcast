@@ -1,4 +1,4 @@
-0.14.0
+0.14.1
 Production build - 2025-09-14
-Git: eee7eed
-Build: 2025-09-14T18:50:28+0200
+Git: 4ed44e1
+Build: 2025-09-14T22:36:00+0200

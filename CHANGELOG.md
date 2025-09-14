@@ -1,142 +1,22 @@
-## [0.14.0] - 2025-09-14
+## [0.14.1] - 2025-09-14
 
 ### ✨ New Features
 
-- feat: improve grid/list toggle icons with better layout and styling
-- feat: filter inactive and past events from grid display
-- feat: replace grid/list toggle emojis with clearer SVG icons
-- feat: extend role management to announcement and composition buttons
-- feat: implement role-based access control system
-- feat: relocate control buttons to grid header for better UX
-- feat: add safe area support for iPhone notch compatibility
-- feat: optimize mobile UI by relocating navigation elements
-- feat: add mobile device analysis to audit CLI
-- feat: implement role-specific selection penalties and improve role-based view
-- feat: add role-based event detail view and fix gender display
-- feat: make view toggle visible for all users
-- feat: optimize mobile performance and remove skeleton code
-- feat: widen player name column on mobile
-- feat: implement progressive loading with performance optimization
-- feat: optimize grid loading performance with parallel availability loading
-- feat: add optional location field to events with Google Maps integration
-- feat: enhance calendar integration with confirmed team and event details
-- feat: improve changelog prompt for more user-focused style
-- feat: add migration script for selections to casts
-- feat: improve template type handling and customization protection
-- feat: allow manual slot filling in locked selections
-- feat: harmonize audit system with 'cast' terminology
-- feat: implement comprehensive selection audit system
-- feat: prevent redrawing declined players in completeSelectionSlots
-- feat: add complete selection functionality and improve UI messages
-- feat: allow slot clearing for declined players even when selection is locked
-- feat: add multi-role system section to general help
-- feat: add role priority system for selections
-- feat: add clickable version in footer with changelog modal
-- feat: reorganize footer layout
-- feat: improve event modal player layout
-- feat: optimize event modal mobile layout
-- feat: add database migration scripts for production data replication
-- feat: add role-based chance percentages with toggle in event detail modal
-- feat: implement OpenAI-powered user-focused changelog generation
-- feat: implement new changelog architecture with OpenAI integration
-- feat: add dual sorting system for changelog version order
-- feat: replace composition status badges with event type badges in grid header
-- feat: replace 'Sélection' with 'Composition' in UI and documentation
-- feat: implement complete z-index hierarchy system with comprehensive documentation
-- feat: unify password reset systems on Firebase Auth
-- feat: use player gender for role labels in availability cells
-- feat: add Long Form show type with 4 players, 1 MC, 1 DJ
+- feat: redesign season header layout and optimize grid toggle
 
 ### 🐛 Bug Fixes
 
-- fix: improve changelog translation robustness in release script
-- fix: translate changelog versions 0.12.0 and 0.13.0 to user-focused French
-- fix: correct mobile layout for logo and toggle icon positioning
-- fix: improve iPhone safe areas and button positioning on season page
-- fix: add iPhone safe areas support for notch and rounded corners
-- fix: add missing navigation to administration page
-- fix: correct admin role detection logic and improve event filtering
-- fix: update Firestore rules to allow userPreferences access
-- fix: improve column header layout and badge alignment
-- fix: remove header opacity by eliminating col-right class
-- fix: improve player lookup robustness in inverted mode
-- fix: correct inverted grid display and click handlers
-- fix: increase NotificationPromptModal z-index to display above EventDetailsModal
-- fix: harmonize slot colors and fix declined player detection
-- fix: correct slot management and status updates in selection modal
-- fix: encode player names for Firestore field paths
-- fix: remove redundant action field in player_recast audit log
-- fix: ensure selection status updates correctly when players confirm
-- fix: prevent duplicate players in completeSelectionSlots
-- fix: recalculate status in confirmCast using castStatusService
-- fix: sync UI status with database by loading status fields in loadCasts
-- fix: resolve 'selections is not defined' error in SelectionModal
-- fix: reload cast data after validation to sync UI with database
-- fix: correct slot clearing and status detection logic
-- fix: filter declined players from selection slots display
-- fix: ensure footer visibility on help page
-- fix: add missing AppFooter to seasons and help pages
-- fix: prevent scroll from hiding event modal buttons
-- fix: handle player declines in selection status logic
-- fix: correct player availability check for multi-role events
-- fix: improve incomplete selection UI by removing redundant message and enhancing tooltip
-- fix: correct requiredCount calculation for multi-role events
-- fix: increase HowItWorksModal z-index to display above SelectionModal
-- fix: correct slot initialization and watchers for multi-role selections
-- fix: correct selection status extraction in SelectionModal
-- fix: correct const to let for filled variable in SelectionModal
-- fix: eliminate double password verification in player edit flow
-- fix: use player gender for role labels in availability modals
-- fix: increase AvailabilityModal z-index to appear above EventDetailsModal
-- fix: insert new changelog versions at the beginning for chronological order
-- fix: resolve JSON parsing error in release script
-- fix: improve changelog readability with user-focused language
-- fix: improve changelog readability with user-focused language
-- fix: increase PinModal z-index to appear above SelectionModal
-- fix: corriger régression bouton Réinitialiser et erreurs de cache
-- fix: move Composition Auto confirmation modal to SelectionModal with proper z-index
-- fix: complete replacement of 'Sélection' with 'Composition' in remaining files
-- fix: correct changelog.json path in release script
-- fix: update changelog.json with latest version information
-- fix: improve waitForInitialization to handle early calls
-- fix: wait for Firebase initialization before auth service
-- fix: move waitForInitialization to very beginning of onMounted
-- fix: add specific error handling for waitForInitialization failures
-- fix: move auth access after waitForInitialization to prevent crashes
-- fix: replace logger calls with console.log to avoid Firebase dependency
-- fix: use existing waitForInitialization service for auth readiness
-- fix: resolve password reset token verification issue
-- fix: persist event template type and improve template structure
-
-### 🔧 Improvements
-
-- refactor: migrate from selections to casts collection
-- refactor: déplacer actions événement dans entête et corriger z-index
-- refactor: rename selection functions to cast functions in code
-- refactor: replace console.log with logger calls in PasswordReset.vue
-
-### 📝 Other Changes
-
-- chore: bump version to 0.13.0 for production release
-- chore: bump version to 0.12.0 for production release
-- chore: bump version to 0.11.0 for production release
-- chore: remove polluting debug logs from GridBoard
-- chore: add dotenv dependency for debug scripts
-- chore: bump version to 0.10.0 for production release
-- chore: bump version to 0.9.4 for production release
-- release: version 0.9.3
-- merge: update changelog.json from staging
-- hotfix: merge changelog readability improvements
-- chore: remove obsolete public/changelog.md file
-- chore: remove obsolete changelog_fr.md file
-- chore: add OpenAI dependency and environment configuration
-- chore: bump version to 0.9.3 for production release
-- unify: replace magic link system with Firebase Auth for player protection
-- debug: add console.log statements for password reset debugging
+- fix: add event icon type to event title
+- fix: use last version bump commit as reference for changelog generation
+- fix: apply grid cell height rules globally for desktop and mobile
+- fix: improve grid cell layout with proper spacing and height
+- fix: strengthen font weight for player names in grid headers
+- fix: reduce mobile padding for better character display
 
 
 # Changelog
 
+## [0.14.1] - 2025-09-14
 ## [0.14.0] - 2025-09-14
 ## [0.13.0] - 2025-09-14
 ## [0.12.0] - 2025-09-12
