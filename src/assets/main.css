@@ -137,13 +137,22 @@
   
   /* Optimiser les boutons de disponibilité */
   .availability-btn {
-    min-height: 2.5rem !important;
+    min-height: 2rem !important;
     font-size: 0.875rem !important;
+    padding: 0.25rem 0.5rem !important;
   }
+  
+  /* Plus besoin de forcer la hauteur sur availability-cell */
   
   /* Réduire l'espacement entre les lignes */
   .gridboard tr {
-    height: 3.5rem !important;
+    height: 2.75rem !important;
+  }
+  
+  /* Forcer la hauteur des cellules de disponibilité */
+  .gridboard td {
+    height: 2.75rem !important;
+    vertical-align: middle !important;
   }
   
   /* Optimiser le header sticky */

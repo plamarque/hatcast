@@ -356,7 +356,7 @@
                 :data-event-id="currentViewMode === 'normal' ? columnItem.id : undefined"
                 :data-player-id="currentViewMode === 'inverted' ? columnItem.id : undefined"
                 :class="[
-                  'p-0',
+                  'p-0.5',
                   currentViewMode === 'normal' && columnItem.archived ? 'archived-col' : '',
                   { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && columnItem.id === (guidedEventId || (displayedEvents[0]?.id)) }
                 ]"
