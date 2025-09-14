@@ -12,6 +12,7 @@
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
       @open-preferences="openPreferences"
+      @open-administration="openAdministration"
       @open-players="openPlayers"
       @logout="handleAccountLogoutDevice"
       @open-login="openAccount"
@@ -29,8 +30,9 @@
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-3 md:p-4 sticky left-0 z-[101] bg-transparent h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter événement -->
+              <!-- Bouton ajouter événement (visible seulement si permissions d'édition) -->
               <button
+                v-if="canEditEvents"
                 @click="openNewEventForm"
                 class="flex items-center space-x-2 px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base font-medium"
                 title="Ajouter un nouvel événement"
@@ -712,8 +714,9 @@
              <div class="flex items-center gap-3 mb-2">
                <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
                
-               <!-- Icône Modifier -->
+               <!-- Icône Modifier (visible seulement si permissions d'édition) -->
                <button
+                 v-if="canEditEvents"
                  @click="startEditingFromDetails"
                  class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
                  title="Modifier cet événement"
@@ -721,8 +724,9 @@
                  <span class="text-lg">✏️</span>
                </button>
                
-               <!-- Icône Supprimer -->
+               <!-- Icône Supprimer (visible seulement si permissions d'édition) -->
                <button
+                 v-if="canEditEvents"
                  @click="confirmDeleteEvent(selectedEvent?.id)"
                  class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
                  title="Supprimer cet événement"
@@ -1687,6 +1691,7 @@ import { addToCalendar } from '../services/calendarService.js'
 import { shouldPromptForNotifications, checkEmailExists } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
+import roleService from '../services/roleService.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
@@ -1923,6 +1928,10 @@ const playerClaimData = ref(null)
 
 // Variables pour la modale de développement
 const showDevelopmentModal = ref(false)
+
+// Variables pour la gestion des rôles
+const canEditEvents = ref(false)
+const isSuperAdmin = ref(false)
 
 
 
@@ -2234,6 +2243,67 @@ function openDevelopment() {
   logger.debug('🔧 showDevelopmentModal après:', showDevelopmentModal.value);
 }
 
+function openAdministration() {
+  logger.debug('🛡️ openAdministration() appelée dans GridBoard');
+  logger.debug('🛡️ props.slug:', props.slug);
+  logger.debug('🛡️ URL de navigation:', `/season/${props.slug}/admin`);
+  
+  // Naviguer vers la page d'administration de la saison
+  router.push(`/season/${props.slug}/admin`);
+}
+
+// Fonction pour vérifier les permissions d'édition
+async function checkEditPermissions() {
+  try {
+    if (!seasonId.value) return;
+    
+    logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value);
+    
+    // En développement local, utiliser le fallback par email
+    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
+    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
+      logger.info('🔐 Mode développement: Super Admin détecté par email');
+      isSuperAdmin.value = true;
+      canEditEvents.value = true;
+      return;
+    }
+    
+    // Fallback temporaire pour impropick@gmail.com (Admin de saison)
+    if (currentUserEmail === 'impropick@gmail.com') {
+      logger.info('🔐 Mode développement: Admin de saison détecté par email');
+      isSuperAdmin.value = false;
+      canEditEvents.value = true;
+      return;
+    }
+    
+    // Pour les autres utilisateurs, essayer le service normal
+    const superAdminStatus = await roleService.isSuperAdmin();
+    isSuperAdmin.value = superAdminStatus;
+    
+    // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
+    const canEdit = await roleService.canEditEvents(seasonId.value);
+    canEditEvents.value = canEdit;
+    
+    logger.info('🔐 Permissions vérifiées:', {
+      seasonId: seasonId.value,
+      isSuperAdmin: superAdminStatus,
+      canEditEvents: canEdit
+    });
+  } catch (error) {
+    logger.warn('⚠️ Erreur lors de la vérification des permissions, utilisation du fallback:', error.message);
+    
+    // Fallback en cas d'erreur
+    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
+    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
+      isSuperAdmin.value = true;
+      canEditEvents.value = true;
+    } else {
+      canEditEvents.value = false;
+      isSuperAdmin.value = false;
+    }
+  }
+}
+
 async function handleAccountChangePassword() {
   try {
     const email = auth?.currentUser?.email
@@ -2326,6 +2396,9 @@ onMounted(async () => {
   
   // Écouter les changements d'état d'authentification
       const unsubscribe = getFirebaseAuth()?.onAuthStateChanged(onAuthStateChanged)
+  
+  // Vérifier les permissions d'édition
+  await checkEditPermissions()
   
   // Stocker la fonction de cleanup pour onUnmounted
   window._gridBoardUnsubscribe = unsubscribe
@@ -3656,6 +3729,16 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
     logger.debug('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
     await loadProtectedPlayers()
     await updatePreferredPlayersSet()
+    // Re-vérifier les permissions d'édition
+    await checkEditPermissions()
+  }
+})
+
+// Surveiller les changements de saison pour re-vérifier les permissions
+watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
+  if (newSeasonId !== oldSeasonId && newSeasonId) {
+    logger.debug('🔄 Changement de saison, re-vérification des permissions')
+    await checkEditPermissions()
   }
 })
 

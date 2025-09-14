@@ -30,7 +30,7 @@ export async function rememberLastVisitedSeason(seasonSlug) {
     // Si utilisateur connecté, sauvegarder dans Firebase (persistant)
     if (userEmail) {
       try {
-        await firestoreService.setDocument('userPreferences', userEmail, {
+        await firestoreService.setDocument('userPreferences', `email_${userEmail}`, {
           lastVisitedSeason: seasonSlug,
           lastVisitedSeasonTimestamp: Date.now()
         }, true)
@@ -57,7 +57,7 @@ export async function getLastVisitedSeason() {
     // Essayer Firebase en premier (plus fiable pour les utilisateurs connectés)
     if (userEmail) {
       try {
-        const prefs = await firestoreService.getDocument('userPreferences', userEmail)
+        const prefs = await firestoreService.getDocument('userPreferences', `email_${userEmail}`)
         if (prefs && prefs.lastVisitedSeason) {
           logger.debug('Préférence de saison récupérée depuis Firebase', { seasonSlug: prefs.lastVisitedSeason })
           return prefs.lastVisitedSeason

@@ -12,6 +12,9 @@ const auditQueries = require('./auditQueries')
 // Import des fonctions admin
 const adminFunctions = require('./adminFunctions')
 
+// Import des fonctions de rôles
+const roleFunctions = require('./roleFunctions')
+
 // Callable: crée un custom token Firebase pour un email et le renvoie
 exports.createCustomTokenForEmail = functions.https.onCall(async (data, context) => {
   try {
@@ -384,5 +387,14 @@ exports.testAdminAccess = adminFunctions.testAdminAccess;
 exports.getLogLevel = adminFunctions.getLogLevel;
 exports.setLogLevel = adminFunctions.setLogLevel;
 exports.resetPasswordWithCustomToken = adminFunctions.resetPasswordWithCustomToken;
+
+// ===== FONCTIONS RÔLES =====
+
+// Export des fonctions de rôles
+exports.checkSuperAdminStatus = roleFunctions.checkSuperAdminStatus;
+exports.checkSeasonAdminStatus = roleFunctions.checkSeasonAdminStatus;
+exports.grantSeasonAdmin = roleFunctions.grantSeasonAdmin;
+exports.revokeSeasonAdmin = roleFunctions.revokeSeasonAdmin;
+exports.listSeasonAdmins = roleFunctions.listSeasonAdmins;
 
 

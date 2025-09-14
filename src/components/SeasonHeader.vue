@@ -37,6 +37,7 @@
           @logout="logout"
           @open-login="openLogin"
           @open-development="openDevelopment"
+          @open-administration="openAdministration"
         />
         
         <!-- Icône aide seulement quand pas connecté (à côté du bouton connexion) -->
@@ -63,6 +64,7 @@
           @logout="logout"
           @open-login="openLogin"
           @open-development="openDevelopment"
+          @open-administration="openAdministration"
         />
       </div>
     </div>
@@ -83,7 +85,7 @@ const props = defineProps({
   currentViewMode: { type: String, default: 'grid' }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration'])
 
 // État de connexion reçu depuis le composant parent (GridBoard)
 // Plus besoin de logique locale d'authentification
@@ -152,6 +154,10 @@ function openAccount() {
 
 function openDevelopment() {
   emit('open-development')
+}
+
+function openAdministration() {
+  emit('open-administration')
 }
 
 // Fonctions supprimées - boutons déplacés dans GridBoard
