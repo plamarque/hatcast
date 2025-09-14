@@ -29,7 +29,7 @@
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 p-4 md:p-5 sticky left-0 z-[101] bg-gray-900 h-full">
+          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
@@ -78,7 +78,7 @@
                 :key="'h-'+headerItem.id"
                 :data-event-id="currentViewMode === 'normal' ? headerItem.id : undefined"
                 :data-player-id="currentViewMode === 'inverted' ? headerItem.id : undefined"
-                class="col-event flex-shrink-0 p-4 md:p-5 text-center flex flex-col justify-start bg-gray-900"
+                class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900"
                 :class="{ 
                   'archived-header': currentViewMode === 'normal' && headerItem.archived,
                   'preferred-player-header': currentViewMode === 'inverted' && preferredPlayerIdsSet.has(headerItem.id)
@@ -86,30 +86,29 @@
               >
                 <!-- Mode normal : affichage des événements -->
                 <div v-if="currentViewMode === 'normal'" class="flex flex-col h-full">
-                  <!-- Ligne 1 : Titre et date -->
+                  <!-- Ligne 1 : Titre avec icône -->
                   <div 
                     class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
                     <!-- Titre du spectacle avec icône -->
-                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 mb-1">
+                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
                       <span v-if="headerItem.roles" :title="getEventTypeName(headerItem)" class="mr-1">{{ getEventTypeIcon(headerItem) }}</span>{{ headerItem.title || 'Sans titre' }}
-                    </div>
-                    
-                    <!-- Date du spectacle -->
-                    <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
-                         :title="formatDateFull(headerItem.date)">
-                      {{ formatDate(headerItem.date) }}
                     </div>
                   </div>
                   
-                  <!-- Ligne 2 : Badge de type d'événement (toujours à la même hauteur) -->
-                  <div class="flex items-center justify-center p-1 h-8">
-                    <!-- Indicateur de statut inactif (priorité sur les autres) -->
+                  <!-- Ligne 2 : Date du spectacle -->
+                  <div class="flex items-center justify-center px-1 py-0.5 h-6 relative">
+                    <!-- Date centrée -->
+                    <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-0.5 rounded" 
+                         :title="formatDateFull(headerItem.date)">
+                      {{ formatDate(headerItem.date) }}
+                    </div>
+                    <!-- Indicateur de statut inactif (positionné à droite) -->
                     <div 
                       v-if="headerItem.archived"
-                      class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
+                      class="absolute right-1 px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
                       title="Événement inactif"
                     >
                       <span class="text-xs text-gray-300 font-medium">📁</span>
