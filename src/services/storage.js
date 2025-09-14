@@ -331,6 +331,52 @@ export async function loadEvents(seasonId) {
   })
 }
 
+export async function loadActiveEvents(seasonId) {
+  const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
+
+  // Filtrer les événements inactifs et passés
+  const now = new Date()
+  const filteredEvents = events.filter(event => {
+    // Exclure les événements archivés (inactifs)
+    if (event.archived === true) {
+      return false
+    }
+    
+    // Exclure les événements passés (date < aujourd'hui)
+    const eventDate = (() => {
+      if (!event.date) return null
+      if (event.date instanceof Date) return event.date
+      if (typeof event.date?.toDate === 'function') return event.date.toDate()
+      const d = new Date(event.date)
+      return isNaN(d.getTime()) ? null : d
+    })()
+    
+    if (eventDate && eventDate < now) {
+      return false
+    }
+    
+    return true
+  })
+
+  // Tri des événements par date (croissant) puis par titre (alphabétique)
+  return filteredEvents.sort((a, b) => {
+    const toDate = (v) => {
+      if (!v) return null
+      if (v instanceof Date) return v
+      if (typeof v?.toDate === 'function') return v.toDate()
+      const d = new Date(v)
+      return isNaN(d.getTime()) ? null : d
+    }
+
+    const da = toDate(a.date)
+    const db = toDate(b.date)
+    const ta = da ? da.getTime() : Number.POSITIVE_INFINITY
+    const tb = db ? db.getTime() : Number.POSITIVE_INFINITY
+    if (ta !== tb) return ta - tb
+    return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
+  })
+}
+
 export async function loadPlayers(seasonId) {
   const players = await firestoreService.getDocuments('seasons', seasonId, 'players')
 

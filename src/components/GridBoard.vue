@@ -61,17 +61,25 @@
                 >
                   <!-- Icône pour mode normal (événements en colonnes) -->
                   <svg v-if="currentViewMode === 'normal'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Calendrier/événements -->
-                    <rect x="3" y="4" width="18" height="16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 2v4M8 2v4M3 10h18"/>
-                    <circle cx="8" cy="14" r="1" fill="currentColor"/>
-                    <circle cx="12" cy="14" r="1" fill="currentColor"/>
-                    <circle cx="16" cy="14" r="1" fill="currentColor"/>
+                    <!-- Calendrier avec flèche vers la droite (événements en colonnes) -->
+                    <rect x="3" y="4" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 2v4M8 2v4M3 8h12"/>
+                    <circle cx="7" cy="12" r="1" fill="currentColor"/>
+                    <circle cx="10" cy="12" r="1" fill="currentColor"/>
+                    <circle cx="13" cy="12" r="1" fill="currentColor"/>
+                    <!-- Flèche vers la droite -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10l3 2-3 2"/>
                   </svg>
-                  <!-- Icône pour mode inversé (joueurs en colonnes) -->
+                  <!-- Icône pour mode inversé (événements en lignes) -->
                   <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Personnes/joueurs -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    <!-- Calendrier avec flèche vers le bas (événements en lignes) -->
+                    <rect x="3" y="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 0v4M8 0v4M3 6h12"/>
+                    <circle cx="7" cy="10" r="1" fill="currentColor"/>
+                    <circle cx="10" cy="10" r="1" fill="currentColor"/>
+                    <circle cx="13" cy="10" r="1" fill="currentColor"/>
+                    <!-- Flèche vers le bas -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l2 3 2-3"/>
                   </svg>
                 </button>
                 
@@ -1643,6 +1651,7 @@ import {
   setEventArchived,
   loadPlayers,
   loadEvents,
+  loadActiveEvents,
   loadAvailability,
   loadCasts,
   addPlayer,
@@ -3009,7 +3018,7 @@ async function deleteEventConfirmed(eventId = null) {
     events.value = events.value.filter(event => event.id !== eventIdToDelete)
     // Recharger les données pour s'assurer que tout est à jour
     await Promise.all([
-      loadEvents(seasonId.value),
+      loadActiveEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
       loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
@@ -3185,7 +3194,7 @@ async function handleEditEvent(eventData) {
     
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
-      loadEvents(seasonId.value),
+      loadActiveEvents(seasonId.value),
       loadAvailability(players.value, events.value, seasonId.value),
       loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
@@ -3772,7 +3781,7 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
       events.value = await performanceService.measureStep('load_events', async () => {
-        return await loadEvents(seasonId.value)
+        return await loadActiveEvents(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
 
       // Étape 2: joueurs
@@ -4409,6 +4418,7 @@ const sortedEvents = computed(() => {
 
 
 const displayedEvents = computed(() => {
+  // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
   return sortedEvents.value
 })
 
