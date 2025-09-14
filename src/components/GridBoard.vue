@@ -27,6 +27,29 @@
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
+        <!-- Champ de recherche des joueurs (mobile-first) -->
+        <div v-if="showPlayerSearch && currentUser?.email" class="w-full px-4 py-2 bg-gray-800 border-b border-gray-700">
+          <div class="flex items-center gap-2">
+            <input
+              v-model="searchPlayerQuery"
+              type="text"
+              placeholder="Rechercher un joueur..."
+              class="flex-1 px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none text-sm"
+              @keyup.escape="clearPlayerSearch"
+            />
+            <button
+              @click="clearPlayerSearch"
+              class="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors duration-200 text-sm"
+              title="Fermer la recherche"
+            >
+              ✕
+            </button>
+          </div>
+          <div v-if="searchPlayerQuery.trim()" class="mt-1 text-xs text-gray-400">
+            {{ displayedPlayers.length }} joueur(s) trouvé(s)
+          </div>
+        </div>
+        
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 sticky left-0 z-[101] bg-gray-900 h-full">
@@ -34,7 +57,7 @@
               <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
               
               <!-- Toggle de vue - aligné avec les cellules de la grille -->
-              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center">
+              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2">
                 <button
                   @click="toggleViewMode"
                   class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
@@ -60,6 +83,47 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M16 28l2 4 2-4"/>
                   </svg>
                 </button>
+                
+                <!-- Contrôles de filtrage des joueurs (mobile-first) -->
+                <div v-if="currentUser?.email" class="flex flex-col items-center gap-1">
+                  <!-- Indicateur du mode actuel -->
+                  <div class="text-xs text-gray-400 text-center">
+                    <span v-if="!showAllPlayers && !showPlayerSearch">
+                      <span v-if="userOwnedPlayers.size > 0">
+                        {{ displayedPlayers.length }} de tes joueurs
+                      </span>
+                      <span v-else>
+                        Tous les joueurs ({{ displayedPlayers.length }})
+                      </span>
+                    </span>
+                    <span v-else-if="showAllPlayers">
+                      Tous les joueurs ({{ displayedPlayers.length }})
+                    </span>
+                    <span v-else-if="showPlayerSearch">
+                      Recherche ({{ displayedPlayers.length }})
+                    </span>
+                  </div>
+                  
+                  <!-- Boutons de contrôle -->
+                  <div class="flex gap-1">
+                    <button
+                      @click="toggleShowAllPlayers"
+                      class="text-xs px-2 py-1 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10"
+                      :class="{ 'bg-purple-600': showAllPlayers }"
+                      title="Afficher tous les joueurs"
+                    >
+                      Tous
+                    </button>
+                    <button
+                      @click="togglePlayerSearch"
+                      class="text-xs px-2 py-1 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10"
+                      :class="{ 'bg-purple-600': showPlayerSearch }"
+                      title="Rechercher un joueur"
+                    >
+                      🔍
+                    </button>
+                  </div>
+                </div>
               </div>
 
             </div>
@@ -2497,6 +2561,13 @@ function afterCloseOnboarding() {
 // Variables pour la protection des joueurs
 const protectedPlayers = ref(new Set())
 const isLoadingGrid = ref(true)
+
+// Variables pour l'optimisation mobile - chargement sélectif des joueurs
+const userOwnedPlayers = ref(new Set()) // Joueurs protégés de l'utilisateur connecté
+const showAllPlayers = ref(false) // Mode "afficher tous les joueurs"
+const showPlayerSearch = ref(false) // Mode recherche de joueurs
+const searchPlayerQuery = ref('') // Requête de recherche
+const filteredPlayers = ref([]) // Joueurs filtrés selon les critères
 // Chargement multi-étapes de la grille
 const loadingProgress = ref(0)
 const currentLoadingLabel = ref('Préparation de la grille')
@@ -2888,6 +2959,33 @@ async function loadProtectedPlayers() {
       if (isProt) protectedSet.add(player.id)
     }
     protectedPlayers.value = protectedSet
+  }
+}
+
+// Fonction pour charger les joueurs protégés de l'utilisateur connecté
+async function loadUserOwnedPlayers() {
+  if (!currentUser.value?.email || !seasonId.value) {
+    userOwnedPlayers.value = new Set()
+    return
+  }
+  
+  try {
+    logger.debug('🔍 Chargement des joueurs protégés de l\'utilisateur connecté')
+    const associations = await listAssociationsForEmail(currentUser.value.email)
+    const seasonalAssociations = associations.filter(a => a.seasonId === seasonId.value)
+    
+    const ownedPlayerIds = new Set()
+    seasonalAssociations.forEach(assoc => {
+      if (assoc.isProtected) {
+        ownedPlayerIds.add(assoc.playerId)
+      }
+    })
+    
+    userOwnedPlayers.value = ownedPlayerIds
+    logger.debug(`✅ ${ownedPlayerIds.size} joueurs protégés trouvés pour l'utilisateur`, Array.from(ownedPlayerIds))
+  } catch (error) {
+    logger.error('Erreur lors du chargement des joueurs de l\'utilisateur:', error)
+    userOwnedPlayers.value = new Set()
   }
 }
 
@@ -3736,17 +3834,51 @@ onMounted(async () => {
         return await loadActiveEvents(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
 
-      // Étape 2: joueurs
+      // Étape 2: joueurs (optimisation mobile - chargement sélectif)
       currentLoadingLabel.value = 'Chargement des joueurs'
       loadingProgress.value = 45
-      players.value = await performanceService.measureStep('load_players', async () => {
-        return await loadPlayers(seasonId.value)
-      }, { seasonId: seasonId.value, count: 'unknown' })
-
-      // Étape 3: disponibilités (le plus critique) - Chargement progressif intelligent
-      currentLoadingLabel.value = 'Chargement des disponibilités'
-      loadingProgress.value = 70
       
+      // OPTIMISATION MOBILE : Charger d'abord les joueurs protégés de l'utilisateur
+      if (currentUser.value?.email) {
+        try {
+          // Charger les joueurs protégés de l'utilisateur connecté
+          await loadUserOwnedPlayers()
+          
+          if (userOwnedPlayers.value.size > 0) {
+            // Charger seulement les joueurs protégés de l'utilisateur
+            const allPlayers = await performanceService.measureStep('load_players', async () => {
+              return await loadPlayers(seasonId.value)
+            }, { seasonId: seasonId.value, count: 'unknown' })
+            
+            // Filtrer pour ne garder que les joueurs protégés de l'utilisateur
+            const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
+            players.value = filteredPlayers
+            
+            logger.debug(`📊 OPTIMISATION MOBILE: Chargé ${filteredPlayers.length} joueurs protégés sur ${allPlayers.length} total`)
+          } else {
+            // Pas de joueurs protégés, charger tous les joueurs
+            players.value = await performanceService.measureStep('load_players', async () => {
+              return await loadPlayers(seasonId.value)
+            }, { seasonId: seasonId.value, count: 'unknown' })
+            
+            logger.debug('📊 Pas de joueurs protégés trouvés, chargement de tous les joueurs')
+          }
+        } catch (error) {
+          logger.error('Erreur lors du chargement sélectif, fallback vers tous les joueurs:', error)
+          // Fallback : charger tous les joueurs
+          players.value = await performanceService.measureStep('load_players', async () => {
+            return await loadPlayers(seasonId.value)
+          }, { seasonId: seasonId.value, count: 'unknown' })
+        }
+      } else {
+        // Utilisateur non connecté, charger tous les joueurs
+        players.value = await performanceService.measureStep('load_players', async () => {
+          return await loadPlayers(seasonId.value)
+        }, { seasonId: seasonId.value, count: 'unknown' })
+        
+        logger.debug('📊 Utilisateur non connecté, chargement de tous les joueurs')
+      }
+
       // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
       isEssentialDataLoaded.value = true
       
@@ -3771,20 +3903,54 @@ onMounted(async () => {
         })
       }
       
-      // Initialiser availability comme objet vide pour commencer l'affichage
-      availability.value = {}
+      // Étape 3: disponibilités (optimisation mobile - chargement sélectif)
+      currentLoadingLabel.value = 'Chargement des disponibilités'
+      loadingProgress.value = 70
       
-      // Lancer le chargement progressif en arrière-plan
-      logger.debug('🚀 Lancement du chargement progressif en arrière-plan')
-      loadAvailabilityProgressively(players.value, events.value, seasonId.value)
-        .then(result => {
-          logger.debug('✅ Chargement progressif terminé avec succès')
-          // Mettre à jour availability quand tout est chargé
-          availability.value = result
+      // OPTIMISATION MOBILE : Charger les disponibilités de manière sélective
+      logger.debug('🚀 Chargement sélectif des disponibilités (optimisation mobile)')
+      
+      // Pour l'optimisation mobile, charger seulement les disponibilités des joueurs filtrés
+      if (currentUser.value?.email && userOwnedPlayers.value.size > 0) {
+        // Charger seulement les disponibilités des joueurs protégés
+        const playersToLoad = players.value
+        logger.debug(`📊 Chargement des disponibilités pour ${playersToLoad.length} joueurs protégés`)
+        
+        availability.value = await performanceService.measureStep('load_availability_optimized', async () => {
+          return await loadAvailability(playersToLoad, events.value, seasonId.value)
+        }, { 
+          seasonId: seasonId.value, 
+          playersCount: playersToLoad.length, 
+          eventsCount: events.value.length 
         })
-        .catch(error => {
-          logger.error('❌ Erreur lors du chargement progressif:', error)
+        
+        logger.debug('✅ Disponibilités chargées avec succès (joueurs protégés uniquement)')
+        
+        
+        // Initialiser les états de chargement pour les joueurs protégés
+        playersToLoad.forEach(player => {
+          playerLoadingStates.value.set(player.id, 'loaded')
         })
+      } else {
+        // Charger toutes les disponibilités (utilisateur non connecté ou pas de joueurs protégés)
+        const allPlayers = await loadPlayers(seasonId.value)
+        logger.debug(`📊 Chargement des disponibilités pour ${allPlayers.length} joueurs (tous)`)
+        
+        availability.value = await performanceService.measureStep('load_availability_all', async () => {
+          return await loadAvailability(allPlayers, events.value, seasonId.value)
+        }, { 
+          seasonId: seasonId.value, 
+          playersCount: allPlayers.length, 
+          eventsCount: events.value.length 
+        })
+        
+        logger.debug('✅ Disponibilités chargées avec succès (tous les joueurs)')
+        
+        // Initialiser les états de chargement pour tous les joueurs
+        allPlayers.forEach(player => {
+          playerLoadingStates.value.set(player.id, 'loaded')
+        })
+      }
 
       // Étape 4: compositions (en arrière-plan)
       try {
@@ -3810,6 +3976,8 @@ onMounted(async () => {
         logger.debug('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
         protectedPlayers.value = new Set()
       }
+      
+      // Étape 6: joueurs protégés déjà chargés dans l'étape 2 (optimisation mobile)
       
       // Initialiser les joueurs préférés si l'utilisateur est connecté (déjà fait dans l'étape 3)
       if (getFirebaseAuth()?.currentUser?.email) {
@@ -4033,6 +4201,7 @@ watch(() => currentUser.value?.email, (newEmail) => {
   initializeViewMode()
 }, { immediate: false })
 
+
 // Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
 watch(() => route.params.eventId, (newEventId) => {
   if (newEventId) {
@@ -4070,7 +4239,8 @@ function toDateObject(value) {
   return null
 }
 
-
+// Exposer l'ensemble des joueurs préférés pour la surbrillance légère
+const preferredPlayerIdsSet = ref(new Set())
 
 const sortedPlayers = computed(() => {
   const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
@@ -4093,8 +4263,87 @@ const sortedPlayers = computed(() => {
   return base
 })
 
-// Exposer l'ensemble des joueurs préférés pour la surbrillance légère
-const preferredPlayerIdsSet = ref(new Set())
+// Computed pour les joueurs affichés selon les filtres
+const displayedPlayers = computed(() => {
+  // OPTIMISATION MOBILE : players.value contient déjà les joueurs filtrés
+  const basePlayers = sortedPlayers.value
+  
+  // Si mode "afficher tous les joueurs" activé, il faut recharger tous les joueurs
+  if (showAllPlayers.value && currentUser.value?.email) {
+    // Pour l'instant, retourner les joueurs actuels
+    // TODO: Implémenter le rechargement de tous les joueurs
+    return basePlayers
+  }
+  
+  // Si mode recherche activé
+  if (showPlayerSearch.value && searchPlayerQuery.value.trim()) {
+    const query = searchPlayerQuery.value.toLowerCase().trim()
+    return basePlayers.filter(player => 
+      player.name.toLowerCase().includes(query)
+    )
+  }
+  
+  // Par défaut : afficher les joueurs déjà filtrés dans players.value
+  return basePlayers
+})
+
+// Watchers pour recharger les disponibilités quand les filtres changent
+// Logique simplifiée pour éviter les rechargements intempestifs
+watch([showAllPlayers, showPlayerSearch], async (newShowAll, newShowSearch, oldShowAll, oldShowSearch) => {
+  // Seulement si les modes d'affichage changent (pas pendant l'initialisation)
+  if ((newShowAll !== oldShowAll || newShowSearch !== oldShowSearch) && 
+      (oldShowAll !== undefined && oldShowSearch !== undefined)) {
+    
+    logger.debug('🔄 Mode d\'affichage changé, rechargement des disponibilités', {
+      showAll: newShowAll,
+      showSearch: newShowSearch
+    })
+    
+    try {
+      if (newShowAll || newShowSearch) {
+        // Mode "tous les joueurs" : recharger toutes les disponibilités
+        const allPlayers = await loadPlayers(seasonId.value)
+        const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+        availability.value = newAvailability
+        
+        // Mettre à jour les états de chargement
+        allPlayers.forEach(player => {
+          playerLoadingStates.value.set(player.id, 'loaded')
+        })
+        
+        logger.debug('✅ Disponibilités rechargées pour tous les joueurs')
+      } else {
+        // Retour au mode par défaut : recharger seulement les joueurs protégés
+        await loadUserOwnedPlayers()
+        
+        if (userOwnedPlayers.value.size > 0) {
+          const allPlayers = await loadPlayers(seasonId.value)
+          const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
+          const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
+          availability.value = newAvailability
+          
+          // Mettre à jour les états de chargement
+          filteredPlayers.forEach(player => {
+            playerLoadingStates.value.set(player.id, 'loaded')
+          })
+          
+          logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
+        }
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors du rechargement des disponibilités:', error)
+    }
+  }
+}, { deep: true })
+
+// Watcher pour recharger les joueurs protégés de l'utilisateur quand l'authentification change
+watch(() => currentUser.value?.email, async (newEmail) => {
+  if (newEmail && seasonId.value) {
+    await loadUserOwnedPlayers()
+  } else {
+    userOwnedPlayers.value = new Set()
+  }
+})
 
 // Fonctions utilitaires pour le chargement progressif
 function isPlayerAvailabilityLoaded(playerId) {
@@ -4138,7 +4387,7 @@ async function loadPlayerAvailability(player, seasonId) {
   }
 }
 
-// Fonction de chargement progressif intelligent avec mise à jour en temps réel
+// Fonction de chargement progressif optimisée pour les joueurs filtrés (optimisation mobile)
 async function loadAvailabilityProgressively(players, events, seasonId) {
   logger.debug('🚀 APPEL de loadAvailabilityProgressively - Début')
   return await performanceService.measureStep('load_availability_progressive', async () => {
@@ -4285,6 +4534,64 @@ async function loadAvailabilityProgressively(players, events, seasonId) {
   })
 }
 
+// Fonction de chargement progressif optimisée pour les joueurs filtrés (optimisation mobile)
+async function loadAvailabilityProgressivelyOptimized(players, events, seasonId) {
+  logger.debug('🚀 APPEL de loadAvailabilityProgressivelyOptimized - Début (version optimisée)')
+  return await performanceService.measureStep('load_availability_progressive_optimized', async () => {
+    logger.debug('🚀 DANS performanceService.measureStep - Début du chargement progressif optimisé')
+    isProgressiveLoading.value = true
+    totalPlayersCount.value = players.length
+    loadedPlayersCount.value = 0
+    
+    // Initialiser tous les joueurs comme "loading"
+    players.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loading')
+    })
+    
+    logger.debug(`📊 Initialisation: ${players.length} joueurs à charger, ${events.length} événements`)
+  
+    try {
+      // OPTIMISATION MOBILE : Chargement séquentiel simple des joueurs filtrés
+      logger.debug('🚀 Chargement séquentiel des joueurs filtrés')
+      
+      for (const player of players) {
+        const playerAvailability = await loadPlayerAvailability(player, seasonId)
+        
+        // Mettre à jour availability immédiatement pour ce joueur
+        availability.value[player.name] = playerAvailability
+        
+        // Forcer la réactivité après chaque joueur
+        await nextTick()
+        
+        loadedPlayersCount.value++
+        logger.debug(`✅ Joueur chargé: ${player.name} (${Object.keys(playerAvailability).length} disponibilités) - ${loadedPlayersCount.value}/${players.length}`)
+      }
+      
+      logger.debug('🚀 PHASE FINALE: Finalisation')
+      // Finaliser le chargement
+      isProgressiveLoading.value = false
+      
+      // Jalon final : Tous les joueurs chargés
+      performanceService.milestone('load_availability_progressive_optimized', 'filtered_players_loaded', {
+        totalPlayersCount: totalPlayersCount.value,
+        description: 'Toutes les disponibilités des joueurs filtrés chargées'
+      })
+      
+      // Retourner availability.value pour compatibilité
+      logger.debug('🚀 FIN de loadAvailabilityProgressivelyOptimized - Retour de availability.value')
+      return availability.value
+    } catch (error) {
+      logger.error('❌ Erreur lors du chargement progressif optimisé:', error)
+      isProgressiveLoading.value = false
+      throw error
+    }
+  }, { 
+    seasonId: seasonId, 
+    playersCount: players.length, 
+    eventsCount: events.length 
+  })
+}
+
 // Fonction pour mettre à jour les joueurs préférés depuis Firebase
 async function updatePreferredPlayersSet() {
   try {
@@ -4356,6 +4663,145 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   }
 }
 
+// Fonctions pour gérer les modes d'affichage des joueurs
+async function toggleShowAllPlayers() {
+  showAllPlayers.value = !showAllPlayers.value
+  if (showAllPlayers.value) {
+    showPlayerSearch.value = false
+    searchPlayerQuery.value = ''
+    logger.debug('Mode "afficher tous les joueurs" activé - rechargement de tous les joueurs')
+    
+    // Recharger tous les joueurs
+    try {
+      const allPlayers = await loadPlayers(seasonId.value)
+      players.value = allPlayers
+      logger.debug(`📊 Rechargé ${allPlayers.length} joueurs (mode "tous")`)
+      
+      // Recharger les disponibilités pour tous les joueurs
+      const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+      availability.value = newAvailability
+      
+      // Mettre à jour les états de chargement
+      allPlayers.forEach(player => {
+        playerLoadingStates.value.set(player.id, 'loaded')
+      })
+      
+      logger.debug('✅ Disponibilités rechargées pour tous les joueurs')
+    } catch (error) {
+      logger.error('❌ Erreur lors du rechargement de tous les joueurs:', error)
+    }
+  } else {
+    logger.debug('Retour au mode par défaut (joueurs protégés uniquement)')
+    
+    // Recharger seulement les joueurs protégés
+    try {
+      await loadUserOwnedPlayers()
+      
+      if (userOwnedPlayers.value.size > 0) {
+        const allPlayers = await loadPlayers(seasonId.value)
+        const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
+        players.value = filteredPlayers
+        logger.debug(`📊 Retour à ${filteredPlayers.length} joueurs protégés`)
+        
+        // Recharger les disponibilités pour les joueurs filtrés
+        const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
+        availability.value = newAvailability
+        
+        // Mettre à jour les états de chargement
+        filteredPlayers.forEach(player => {
+          playerLoadingStates.value.set(player.id, 'loaded')
+        })
+        
+        logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors du retour au mode par défaut:', error)
+    }
+  }
+}
+
+async function togglePlayerSearch() {
+  showPlayerSearch.value = !showPlayerSearch.value
+  if (showPlayerSearch.value) {
+    showAllPlayers.value = false
+    logger.debug('Mode recherche de joueurs activé - rechargement de tous les joueurs')
+    
+    // Recharger tous les joueurs pour permettre la recherche
+    try {
+      const allPlayers = await loadPlayers(seasonId.value)
+      players.value = allPlayers
+      logger.debug(`📊 Rechargé ${allPlayers.length} joueurs (mode recherche)`)
+      
+      // Recharger les disponibilités pour tous les joueurs
+      const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+      availability.value = newAvailability
+      
+      // Mettre à jour les états de chargement
+      allPlayers.forEach(player => {
+        playerLoadingStates.value.set(player.id, 'loaded')
+      })
+      
+      logger.debug('✅ Disponibilités rechargées pour tous les joueurs (recherche)')
+    } catch (error) {
+      logger.error('❌ Erreur lors du rechargement pour la recherche:', error)
+    }
+  } else {
+    searchPlayerQuery.value = ''
+    logger.debug('Mode recherche désactivé - retour au mode par défaut')
+    
+    // Recharger seulement les joueurs protégés
+    try {
+      await loadUserOwnedPlayers()
+      
+      if (userOwnedPlayers.value.size > 0) {
+        const allPlayers = await loadPlayers(seasonId.value)
+        const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
+        players.value = filteredPlayers
+        logger.debug(`📊 Retour à ${filteredPlayers.length} joueurs protégés`)
+        
+        // Recharger les disponibilités pour les joueurs filtrés
+        const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
+        availability.value = newAvailability
+        
+        // Mettre à jour les états de chargement
+        filteredPlayers.forEach(player => {
+          playerLoadingStates.value.set(player.id, 'loaded')
+        })
+        
+        logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors du retour au mode par défaut:', error)
+    }
+  }
+}
+
+async function clearPlayerSearch() {
+  searchPlayerQuery.value = ''
+  showPlayerSearch.value = false
+  showAllPlayers.value = false
+  logger.debug('Filtres de joueurs réinitialisés - retour au mode par défaut')
+  
+  // Recharger seulement les joueurs protégés
+  try {
+    await loadUserOwnedPlayers()
+    
+    if (userOwnedPlayers.value.size > 0) {
+      const allPlayers = await loadPlayers(seasonId.value)
+      const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
+      players.value = filteredPlayers
+      logger.debug(`📊 Retour à ${filteredPlayers.length} joueurs protégés`)
+      
+      // Recharger les disponibilités pour les joueurs filtrés
+      const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
+      availability.value = newAvailability
+      logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
+    }
+  } catch (error) {
+    logger.error('❌ Erreur lors du retour au mode par défaut:', error)
+  }
+}
+
 const sortedEvents = computed(() => {
   // Tri chronologique gauche→droite, puis titre en cas d'égalité
   return [...events.value].sort((a, b) => {
@@ -4377,11 +4823,11 @@ const displayedEvents = computed(() => {
 
 // Computed properties pour l'affichage inversé
 const displayRows = computed(() => {
-  return currentViewMode.value === 'inverted' ? displayedEvents.value : sortedPlayers.value
+  return currentViewMode.value === 'inverted' ? displayedEvents.value : displayedPlayers.value
 })
 
 const displayColumns = computed(() => {
-  return currentViewMode.value === 'inverted' ? sortedPlayers.value : displayedEvents.value
+  return currentViewMode.value === 'inverted' ? displayedPlayers.value : displayedEvents.value
 })
 
 
@@ -4638,6 +5084,7 @@ function isAvailableForRole(playerName, role, eventId) {
 
 function getAvailabilityData(player, eventId) {
   const availabilityData = availability.value[player]?.[eventId]
+  
   
   // Vérifier s'il y a une sélection ET si elle est validée par l'organisateur
   const selectionRole = getPlayerSelectionRole(player, eventId)
