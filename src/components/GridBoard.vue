@@ -25,7 +25,8 @@
     />
 
     <!-- Vue grille (classique ou inversée) -->
-    <div class="w-full px-0 md:px-0 pb-0 pt-[64px] md:pt-[80px] -mt-[64px] md:-mt-[80px] bg-gray-900">
+    <div class="w-full px-0 md:px-0 pb-0 bg-gray-900"
+         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 48px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 48px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-transparent">
         <div class="flex items-stretch relative">
