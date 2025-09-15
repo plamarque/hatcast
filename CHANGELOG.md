@@ -1,34 +1,23 @@
-## [0.15.0] - 2025-09-15
-
-### ✨ New Features
-
-- feat: améliorer l'alignement vertical des avatars en desktop
-- feat: add composition view button in event detail modal
-- feat: optimize player associations loading and add migration tools
-- feat: enable Firebase offline mode with cache and sync listeners
-- feat: add advanced player management with 'Afficher Plus/Moins' component
-- feat: auto-assign season creator as admin
-- feat: move player badges below name in modal
-- feat: improve grid layout density and season icon visibility
-- feat: replace toggle icons with L-shaped arrows forming recycle symbol
-- feat: optimize mobile header layout
+## [0.15.1] - 2025-09-15
 
 ### 🐛 Bug Fixes
 
-- fix: correct role-specific confirmation status display
-- fix: correct logger import in userProfileService
-- fix: correct getCurrentUser import in userProfileService
-- fix: correct firestoreService import in userProfileService
-- fix: remove redundant event title and date in availability section
-- fix: correct player display issues on auth state changes
-- fix: ensure grid_loading performance marker is always ended
-- fix: correct player reference in PlayerModal showAvailabilityGrid function
-- fix: resolve availability display issue in mobile optimization
-- fix: improve player modal stats display and fix orphaned cast handling
+- fix: improve availability display and real-time refresh
+- fix: remove automatic availability change when removing player from selection
+- fix: correct drawForRole to use allSeasonPlayers for candidate filtering
+
+### 🔧 Improvements
+
+- improve: enhance audit-cli timestamp handling and log retrieval
+
+### 📝 Other Changes
+
+- set exampel db to development for safety
 
 
 # Changelog
 
+## [0.15.1] - 2025-09-15
 ## [0.15.0] - 2025-09-15
 ## [0.14.1] - 2025-09-14
 ## [0.14.0] - 2025-09-14
