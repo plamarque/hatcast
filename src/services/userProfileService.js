@@ -1,5 +1,5 @@
 import firestoreService from './firestoreService.js'
-import { logger } from './logger.js'
+import logger from './logger.js'
 import { currentUser } from './authState.js'
 
 /**
