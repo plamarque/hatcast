@@ -1,6 +1,6 @@
 import firestoreService from './firestoreService.js'
 import { logger } from './logger.js'
-import { getCurrentUser } from './authState.js'
+import { currentUser } from './authState.js'
 
 /**
  * Service de gestion des profils utilisateur
@@ -13,7 +13,7 @@ import { getCurrentUser } from './authState.js'
  */
 export async function getUserProfile() {
   try {
-    const user = getCurrentUser()
+    const user = currentUser.value
     if (!user || !user.email) {
       logger.debug('Aucun utilisateur connecté pour récupérer le profil')
       return null
@@ -49,7 +49,7 @@ export async function getUserPseudo() {
  */
 export async function saveUserProfile(profileData) {
   try {
-    const user = getCurrentUser()
+    const user = currentUser.value
     if (!user || !user.email) {
       throw new Error('Utilisateur non connecté')
     }
@@ -108,7 +108,7 @@ export async function setUserPseudo(pseudo) {
  */
 export async function updateUserPseudo(newPseudo) {
   try {
-    const user = getCurrentUser()
+    const user = currentUser.value
     if (!user || !user.email) {
       throw new Error('Utilisateur non connecté')
     }
@@ -217,7 +217,7 @@ async function updatePlayersWithNewPseudo(oldPseudo, newPseudo, userEmail) {
  */
 export async function initializePseudoWithPlayerName(playerName) {
   try {
-    const user = getCurrentUser()
+    const user = currentUser.value
     if (!user || !user.email) {
       throw new Error('Utilisateur non connecté')
     }
