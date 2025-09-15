@@ -1051,7 +1051,7 @@
           v-if="selectedEvent"
           :selected-event="selectedEvent"
           :season-id="seasonId"
-          :players="players"
+          :players="enrichedAllSeasonPlayers"
           :availability="availability"
           :casts="casts"
           :chances="chances"
@@ -1420,7 +1420,7 @@
     :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
     :season-id="seasonId"
     :season-slug="seasonSlug"
-    :players="enrichedPlayers"
+    :players="enrichedAllSeasonPlayers"
     :sending="isSendingNotifications"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
@@ -1443,7 +1443,7 @@
     :event="eventToAnnounce"
     :season-id="seasonId"
     :season-slug="seasonSlug"
-    :players="enrichedPlayers"
+    :players="enrichedAllSeasonPlayers"
     :sending="isSendingNotifications"
     :availability-by-player="getPlayerAvailabilityForEvent(eventToAnnounce?.id)"
     @close="closeEventAnnounceModal"
@@ -1930,7 +1930,7 @@ async function onAuthStateChanged(user) {
       }
       
       // Recharger les disponibilités
-      const newAvailability = await loadAvailability(players.value, events.value, seasonId.value)
+      const newAvailability = await loadAvailabilityForAllPlayers()
       availability.value = newAvailability
       
       // Mettre à jour les états de chargement
@@ -2257,7 +2257,7 @@ async function returnToFullView() {
     players.value = [...originalPlayers.value]
     
     // Recharger les disponibilités pour tous les joueurs
-    const newAvailability = await loadAvailability(players.value, events.value, seasonId.value)
+    const newAvailability = await loadAvailabilityForAllPlayers()
     availability.value = newAvailability
     
     // Mettre à jour les états de chargement
@@ -3137,6 +3137,15 @@ const enrichedPlayers = computed(() => {
   }))
 })
 
+// Computed property pour enrichir tous les joueurs de la saison (pour les modals)
+const enrichedAllSeasonPlayers = computed(() => {
+  return allSeasonPlayers.value.map(player => ({
+    ...player,
+    isProtected: protectedPlayers.value.has(player.id),
+    email: null // Sera chargé à la demande
+  }))
+})
+
 // Computed property pour l'index de l'événement ciblé
 const focusedEventIndex = computed(() => {
   if (!focusedEventId.value) return -1
@@ -3510,6 +3519,12 @@ async function loadUserOwnedPlayers() {
   }
 }
 
+// Fonction utilitaire pour charger les disponibilités pour tous les joueurs de la saison
+async function loadAvailabilityForAllPlayers() {
+  const allPlayers = allSeasonPlayers.value.length > 0 ? allSeasonPlayers.value : players.value
+  return await loadAvailability(allPlayers, events.value, seasonId.value)
+}
+
 
 
 
@@ -3590,7 +3605,7 @@ async function deleteEventConfirmed(eventId = null) {
     // Recharger les données pour s'assurer que tout est à jour
     await Promise.all([
       loadActiveEvents(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
+      loadAvailabilityForAllPlayers(),
       loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
@@ -3766,7 +3781,7 @@ async function handleEditEvent(eventData) {
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
       loadActiveEvents(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
+      loadAvailabilityForAllPlayers(),
       loadCasts(seasonId.value)
     ]).then(([newEvents, newAvailability, newSelections]) => {
       events.value = newEvents
@@ -3828,7 +3843,7 @@ async function confirmDeletePlayer(playerId) {
     // Recharger les données pour s'assurer que le tri est appliqué
     await Promise.all([
       loadPlayers(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
+      loadAvailabilityForAllPlayers(),
       loadCasts(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers
@@ -3908,8 +3923,11 @@ async function addNewPlayer() {
       loadCasts(seasonId.value)
     ])
     
+    // Mettre à jour allSeasonPlayers avec les nouveaux joueurs
+    allSeasonPlayers.value = [...newPlayers]
+    
     // Charger les disponibilités avec les nouveaux joueurs
-    const newAvailabilityData = await loadAvailability(newPlayers, events.value, seasonId.value)
+    const newAvailabilityData = await loadAvailabilityForAllPlayers()
     
     // Mettre à jour les données
     players.value = newPlayers
@@ -4380,6 +4398,9 @@ onMounted(async () => {
         return await loadPlayers(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
       
+      // Charger aussi tous les joueurs pour les modals (EventRoleGroupingView, etc.)
+      allSeasonPlayers.value = [...players.value]
+      
       logger.debug(`📊 Chargé ${players.value.length} joueurs de la saison`)
       
       // OPTIMISATION MOBILE : Si l'utilisateur est connecté, charger ses joueurs protégés
@@ -4394,14 +4415,22 @@ onMounted(async () => {
             const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
             players.value = filteredPlayers
             
+            // Mettre à jour allSeasonPlayers avec tous les joueurs (pas seulement les protégés)
+            allSeasonPlayers.value = [...allPlayers]
+            
             logger.debug(`📊 OPTIMISATION MOBILE: Filtré vers ${filteredPlayers.length} joueurs protégés sur ${allPlayers.length} total`)
           } else {
             logger.debug('📊 Pas de joueurs protégés trouvés, affichage de tous les joueurs')
+            // Mettre à jour allSeasonPlayers avec tous les joueurs
+            allSeasonPlayers.value = [...players.value]
           }
         } catch (error) {
           logger.error('Erreur lors du chargement sélectif:', error)
           // Les joueurs sont déjà chargés, pas besoin de recharger
         }
+      } else {
+        // Utilisateur non connecté : allSeasonPlayers est déjà rempli
+        logger.debug('📊 Utilisateur non connecté, allSeasonPlayers déjà rempli')
       }
 
       // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
@@ -4435,47 +4464,24 @@ onMounted(async () => {
       // OPTIMISATION MOBILE : Charger les disponibilités de manière sélective
       logger.debug('🚀 Chargement sélectif des disponibilités (optimisation mobile)')
       
-      // Pour l'optimisation mobile, charger seulement les disponibilités des joueurs filtrés
-      if (currentUser.value?.email && userOwnedPlayers.value.size > 0) {
-        // Charger seulement les disponibilités des joueurs protégés
-        const playersToLoad = players.value
-        logger.debug(`📊 Chargement des disponibilités pour ${playersToLoad.length} joueurs protégés`)
-        
-        availability.value = await performanceService.measureStep('load_availability_optimized', async () => {
-          return await loadAvailability(playersToLoad, events.value, seasonId.value)
-        }, { 
-          seasonId: seasonId.value, 
-          playersCount: playersToLoad.length, 
-          eventsCount: events.value.length 
-        })
-        
-        logger.debug('✅ Disponibilités chargées avec succès (joueurs protégés uniquement)')
-        
-        
-        // Initialiser les états de chargement pour les joueurs protégés
-        playersToLoad.forEach(player => {
-          playerLoadingStates.value.set(player.id, 'loaded')
-        })
-      } else {
-        // Charger toutes les disponibilités (utilisateur non connecté ou pas de joueurs protégés)
-        const allPlayers = await loadPlayers(seasonId.value)
-        logger.debug(`📊 Chargement des disponibilités pour ${allPlayers.length} joueurs (tous)`)
-        
-        availability.value = await performanceService.measureStep('load_availability_all', async () => {
-          return await loadAvailability(allPlayers, events.value, seasonId.value)
-        }, { 
-          seasonId: seasonId.value, 
-          playersCount: allPlayers.length, 
-          eventsCount: events.value.length 
-        })
-        
-        logger.debug('✅ Disponibilités chargées avec succès (tous les joueurs)')
-        
-        // Initialiser les états de chargement pour tous les joueurs
-        allPlayers.forEach(player => {
-          playerLoadingStates.value.set(player.id, 'loaded')
-        })
-      }
+      // Charger les disponibilités pour tous les joueurs de la saison (pas seulement ceux visibles dans la grille)
+      const allPlayers = allSeasonPlayers.value
+      logger.debug(`📊 Chargement des disponibilités pour ${allPlayers.length} joueurs (tous)`)
+      
+      availability.value = await performanceService.measureStep('load_availability_all', async () => {
+        return await loadAvailability(allPlayers, events.value, seasonId.value)
+      }, { 
+        seasonId: seasonId.value, 
+        playersCount: allPlayers.length, 
+        eventsCount: events.value.length 
+      })
+      
+      logger.debug('✅ Disponibilités chargées avec succès (tous les joueurs)')
+      
+      // Initialiser les états de chargement pour tous les joueurs
+      allPlayers.forEach(player => {
+        playerLoadingStates.value.set(player.id, 'loaded')
+      })
 
       // Étape 4: compositions (en arrière-plan)
       try {
@@ -5620,6 +5626,9 @@ async function completeCastSlots(eventId) {
     throw new Error('Aucune composition trouvée')
   }
   
+  logger.debug('🔧 Événement trouvé:', { title: event.title, roles: event.roles })
+  logger.debug('🔧 Composition actuelle:', currentSelection)
+  
   // Récupérer les rôles requis
   const roles = event.roles || { player: event.playerCount || 6 }
   
@@ -5637,7 +5646,7 @@ async function completeCastSlots(eventId) {
       // Convertir les IDs en noms pour la compatibilité avec drawForRole
       const allAlreadySelectedIds = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
       const allAlreadySelected = allAlreadySelectedIds.map(playerId => {
-        const player = players.value.find(p => p.id === playerId)
+        const player = allSeasonPlayers.value.find(p => p.id === playerId)
         return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
       })
       
@@ -5645,15 +5654,37 @@ async function completeCastSlots(eventId) {
       const filledSlots = currentRoleSelection.filter(player => player != null)
       const remainingSlots = requiredCount - filledSlots.length
       
+      logger.debug(`🔧 Rôle ${role}:`, { 
+        requiredCount, 
+        currentRoleSelection, 
+        filledSlots, 
+        remainingSlots 
+      })
+      
       if (remainingSlots > 0) {
         // Convertir les slots remplis en noms pour la compatibilité avec drawForRole
         const filledSlotsNames = filledSlots.map(playerId => {
-          const player = players.value.find(p => p.id === playerId)
+          const player = allSeasonPlayers.value.find(p => p.id === playerId)
           return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
         })
         
         // Tirage pour les slots manquants uniquement
-        const newPlayerIds = await drawForRole(role, remainingSlots, eventId, [...filledSlotsNames, ...allAlreadySelected])
+        const newPlayerNames = await drawForRole(role, remainingSlots, eventId, [...filledSlotsNames, ...allAlreadySelected])
+        
+        logger.debug(`🔧 Tirage pour ${role}:`, { 
+          newPlayerNames, 
+          filledSlotsNames, 
+          allAlreadySelected 
+        })
+        
+        // Convertir les noms en IDs pour la sauvegarde
+        const newPlayerIds = newPlayerNames.map(playerName => {
+          const player = allSeasonPlayers.value.find(p => p.name === playerName)
+          return player ? player.id : playerName // Fallback sur le nom si ID non trouvé
+        })
+        
+        logger.debug(`🔧 IDs convertis pour ${role}:`, { newPlayerIds })
+        
         newSelections[role] = [...filledSlots, ...newPlayerIds]
       } else {
         // Rôle déjà complet
@@ -5665,10 +5696,14 @@ async function completeCastSlots(eventId) {
   // Calculer le nombre total de joueurs pour les logs
   const allPlayers = Object.values(newSelections).flat().filter(Boolean)
   
+  logger.debug('🔧 Nouvelle composition à sauvegarder:', newSelections)
+  
   // Sauvegarder en base avec recalcul du statut
   await saveCast(eventId, newSelections, seasonId.value, { 
     preserveConfirmed: true
   })
+  
+  logger.debug('🔧 Composition sauvegardée avec succès')
   
   // Logger l'audit de complétion de composition
   try {
@@ -5687,7 +5722,7 @@ async function completeCastSlots(eventId) {
       )?.[0] || 'player'
       
       // Convertir l'ID en nom pour le logging
-      const addedPlayer = players.value.find(p => p.id === addedPlayerId)
+      const addedPlayer = allSeasonPlayers.value.find(p => p.id === addedPlayerId)
       const addedPlayerName = addedPlayer ? addedPlayer.name : addedPlayerId
       
       await logCastCompletion({
@@ -5721,7 +5756,7 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
   const declinedPlayers = getDeclinedPlayers(eventId)
   
   // Filtrer les candidats disponibles pour ce rôle
-  const candidates = players.value.filter(p => {
+  const candidates = allSeasonPlayers.value.filter(p => {
     // Vérifier la disponibilité pour ce rôle spécifique
     const isAvailableForThisRole = isAvailableForRole(p.name, role, eventId)
     const notDeclined = !declinedPlayers.includes(p.name)
@@ -6856,7 +6891,7 @@ async function showEventDetails(event) {
   try {
     const [newAvailability, newSelections] = await performanceService.measureStep('event_detail_data_refresh', async () => {
       return await Promise.all([
-        loadAvailability(players.value, events.value, seasonId.value),
+        loadAvailabilityForAllPlayers(),
         loadCasts(seasonId.value)
       ])
     }, { 
@@ -7021,8 +7056,8 @@ function isPlayerSelected(playerName, eventId) {
     return false
   }
   
-  // Trouver l'ID du joueur
-  const player = players.value.find(p => p.name === playerName)
+  // Trouver l'ID du joueur dans tous les joueurs de la saison
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
     return false
   }
@@ -7044,8 +7079,8 @@ function isPlayerSelectedForRole(playerName, role, eventId) {
     return false
   }
   
-  // Trouver l'ID du joueur
-  const player = players.value.find(p => p.name === playerName)
+  // Trouver l'ID du joueur dans tous les joueurs de la saison
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
     return false
   }
@@ -7130,7 +7165,7 @@ async function showPlayerDetails(player) {
   // Recharger les données pour avoir les stats à jour
   try {
     const [newAvailability, newSelections] = await Promise.all([
-      loadAvailability(players.value, events.value, seasonId.value),
+      loadAvailabilityForAllPlayers(),
       loadCasts(seasonId.value)
     ]);
     availability.value = newAvailability;
@@ -7206,7 +7241,7 @@ async function handlePlayerUpdate({ playerId, newName, newGender }) {
     // Recharger les données
     await Promise.all([
       loadPlayers(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
+      loadAvailabilityForAllPlayers(),
       loadCasts(seasonId.value)
     ]).then(([newPlayers, newAvailability, newSelections]) => {
       players.value = newPlayers;
@@ -7251,7 +7286,7 @@ async function handlePlayerRefresh() {
     // Recharger les données
     const [newPlayers, newAvailability, newSelections] = await Promise.all([
       loadPlayers(seasonId.value),
-      loadAvailability(players.value, events.value, seasonId.value),
+      loadAvailabilityForAllPlayers(),
       loadCasts(seasonId.value)
     ]);
     
@@ -7656,7 +7691,7 @@ function getPlayerAvailabilityForEvent(eventId) {
   const event = events.value.find(e => e.id === eventId)
   const selectedPlayers = getSelectionPlayers(eventId)
   
-  players.value.forEach(player => {
+  allSeasonPlayers.value.forEach(player => {
     // Si le joueur est sélectionné, il est considéré comme disponible par défaut
     if (selectedPlayers.includes(player.name)) {
       availabilityMap[player.name] = true
@@ -7820,13 +7855,13 @@ function isSelectionConfirmedByOrganizer(eventId) {
 // Fonction helper pour obtenir le statut individuel d'un joueur dans une composition
 function getPlayerSelectionStatus(playerName, eventId) {
   const cast = casts.value[eventId]
-  return getPlayerCastStatus(cast, playerName, players.value)
+  return getPlayerCastStatus(cast, playerName, allSeasonPlayers.value)
 }
 
 // Fonction helper pour obtenir le rôle de composition d'un joueur
 function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
-  return getPlayerCastRole(cast, playerName, players.value)
+  return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
 
 // Fonctions pour la nouvelle popin de composition
@@ -7940,7 +7975,7 @@ async function handleConfirmSelectionFromModal() {
     casts.value = updatedSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
-    await loadAvailability(players.value, events.value, seasonId.value)
+    await loadAvailabilityForAllPlayers()
     
     // Ne pas fermer la modale, la laisser ouverte pour afficher les nouveaux boutons
     // closeSelectionModal()
@@ -7989,7 +8024,7 @@ async function handleResetSelectionFromModal() {
     casts.value = newSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
-    await loadAvailability(players.value, events.value, seasonId.value)
+    await loadAvailabilityForAllPlayers()
   } catch (error) {
     console.error('Erreur lors du rechargement des compositions:', error)
   }
@@ -8021,7 +8056,7 @@ async function handleUpdateCastFromModal() {
     casts.value = updatedSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
-    await loadAvailability(players.value, events.value, seasonId.value)
+    await loadAvailabilityForAllPlayers()
     
     // Forcer la mise à jour de la modale en changeant sa clé
     if (showSelectionModal.value) {
