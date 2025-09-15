@@ -27,34 +27,23 @@
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
-        <!-- Champ de recherche des joueurs (mobile-first) -->
-        <div v-if="showPlayerSearch && currentUser?.email" class="w-full px-4 py-2 bg-gray-800 border-b border-gray-700">
-          <div class="flex items-center gap-2">
-            <input
-              v-model="searchPlayerQuery"
-              type="text"
-              placeholder="Rechercher un joueur..."
-              class="flex-1 px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none text-sm"
-              @keyup.escape="clearPlayerSearch"
-            />
-            <button
-              @click="clearPlayerSearch"
-              class="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors duration-200 text-sm"
-              title="Fermer la recherche"
-            >
-              ✕
-            </button>
-          </div>
-          <div v-if="searchPlayerQuery.trim()" class="mt-1 text-xs text-gray-400">
-            {{ displayedPlayers.length }} joueur(s) trouvé(s)
-          </div>
-        </div>
         
         <div class="flex items-stretch relative">
           <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
           <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 sticky left-0 z-[101] bg-gray-900 h-full">
             <div class="flex flex-col items-center justify-between h-full gap-3">
               <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
+              
+              <!-- Bouton pour revenir à la vue complète (vue focalisée seulement) -->
+              <div v-if="isFocusedView" class="w-full p-2 flex justify-center">
+                <button
+                  @click="returnToFullView"
+                  class="text-xs px-3 py-2 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10 bg-purple-600"
+                  title="Revenir à la vue complète"
+                >
+                  📋 Vue complète
+                </button>
+              </div>
               
               <!-- Toggle de vue - aligné avec les cellules de la grille -->
               <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2">
@@ -84,46 +73,6 @@
                   </svg>
                 </button>
                 
-                <!-- Contrôles de filtrage des joueurs (mobile-first) -->
-                <div v-if="currentUser?.email" class="flex flex-col items-center gap-1">
-                  <!-- Indicateur du mode actuel -->
-                  <div class="text-xs text-gray-400 text-center">
-                    <span v-if="!showAllPlayers && !showPlayerSearch">
-                      <span v-if="userOwnedPlayers.size > 0">
-                        {{ displayedPlayers.length }} de tes joueurs
-                      </span>
-                      <span v-else>
-                        Tous les joueurs ({{ displayedPlayers.length }})
-                      </span>
-                    </span>
-                    <span v-else-if="showAllPlayers">
-                      Tous les joueurs ({{ displayedPlayers.length }})
-                    </span>
-                    <span v-else-if="showPlayerSearch">
-                      Recherche ({{ displayedPlayers.length }})
-                    </span>
-                  </div>
-                  
-                  <!-- Boutons de contrôle -->
-                  <div class="flex gap-1">
-                    <button
-                      @click="toggleShowAllPlayers"
-                      class="text-xs px-2 py-1 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10"
-                      :class="{ 'bg-purple-600': showAllPlayers }"
-                      title="Afficher tous les joueurs"
-                    >
-                      Tous
-                    </button>
-                    <button
-                      @click="togglePlayerSearch"
-                      class="text-xs px-2 py-1 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10"
-                      :class="{ 'bg-purple-600': showPlayerSearch }"
-                      title="Rechercher un joueur"
-                    >
-                      🔍
-                    </button>
-                  </div>
-                </div>
               </div>
 
             </div>
@@ -220,6 +169,34 @@
                         {{ headerItem.name }}
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- En-tête Afficher Plus/Moins pour la vue inversée (Personnes=Colonnes) -->
+              <div v-if="currentUser?.email && currentViewMode === 'inverted'" class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900">
+                
+                <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
+                <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200">
+                  <!-- Faux avatar avec icône + -->
+                  <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mb-2">
+                    <span class="text-white text-xl font-bold">+</span>
+                  </div>
+                  <!-- Sous-titre -->
+                  <div class="text-xs text-gray-300 text-center">
+                    Afficher Plus
+                  </div>
+                </div>
+                
+                <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
+                <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2">
+                  <!-- Faux avatar avec icône - -->
+                  <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
+                    <span class="text-white text-xl font-bold">-</span>
+                  </div>
+                  <!-- Sous-titre -->
+                  <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
+                    Afficher Moins
                   </div>
                 </div>
               </div>
@@ -426,8 +403,46 @@
               </td>
               <td class="p-3 md:p-4"></td>
             </tr>
-            <!-- Dernière ligne: ajouter une personne (toujours visible pour éviter blocage quand 0 personne) -->
-            <tr class="border-t border-white/10">
+            <!-- Dernière ligne: Afficher Plus/Moins pour la vue normale (Personnes=Lignes) -->
+            <tr v-if="currentUser?.email && currentViewMode === 'normal'" class="border-t border-white/10">
+              <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
+                <div class="px-2 flex items-center justify-center">
+                  <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
+                  <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 p-2">
+                    <!-- Faux avatar avec icône + -->
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mb-2">
+                      <span class="text-white text-xl font-bold">+</span>
+                    </div>
+                    <!-- Sous-titre -->
+                    <div class="text-xs text-gray-300 text-center">
+                      Afficher Plus
+                    </div>
+                  </div>
+                  
+                  <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
+                  <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2">
+                    <!-- Faux avatar avec icône - -->
+                    <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
+                      <span class="text-white text-xl font-bold">-</span>
+                    </div>
+                    <!-- Sous-titre -->
+                    <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
+                      Afficher Moins
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td
+                v-for="event in displayedEvents"
+                :key="'show-more-row-'+event.id"
+                :data-event-id="event.id"
+                :class="['p-3 md:p-5', event.archived ? 'archived-col' : '']"
+              ></td>
+              <td class="p-3 md:p-4"></td>
+            </tr>
+            
+            <!-- Ligne d'ajout de personne (fallback si pas d'utilisateur connecté) -->
+            <tr v-else class="border-t border-white/10">
               <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-2 flex items-center">
                   <button
@@ -530,6 +545,104 @@
     </div>
   </div>
 
+
+  <!-- Popin Afficher Plus avec autocomplete -->
+  <div v-if="showShowMoreModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="closeShowMoreModal">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+      <!-- Header -->
+      <div class="p-6 border-b border-white/10">
+        <div class="flex items-center justify-between">
+          <h2 class="text-2xl font-bold text-white">Afficher plus de joueurs</h2>
+          <button @click="closeShowMoreModal" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+            ✖️
+          </button>
+        </div>
+      </div>
+      
+      <!-- Content -->
+      <div class="p-6">
+        <!-- Input de recherche -->
+        <div class="mb-4">
+          <input
+            v-model="showMoreSearchQuery"
+            type="text"
+            placeholder="Rechercher un joueur..."
+            class="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
+            @keyup.escape="closeShowMoreModal"
+            ref="showMoreSearchInput"
+          />
+        </div>
+        
+        <!-- Liste des joueurs -->
+        <div class="max-h-80 overflow-y-auto">
+          <!-- Option "Tous" -->
+          <div
+            @click="selectAllPlayers"
+            class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200"
+          >
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
+              <span class="text-white text-lg font-bold">👥</span>
+            </div>
+            <div>
+              <div class="text-white font-medium">Tous</div>
+              <div class="text-gray-400 text-sm">Charger tous les joueurs de la saison</div>
+            </div>
+          </div>
+          
+          <!-- Séparateur -->
+          <div class="border-t border-gray-600 my-2"></div>
+          
+                 <!-- Liste des joueurs filtrés -->
+                 <div
+                   v-for="player in filteredShowMorePlayers"
+                   :key="player.id"
+                   @click="selectExistingPlayer(player)"
+                   class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200 relative"
+                 >
+                   <PlayerAvatar 
+                     :player-id="player.id"
+                     :season-id="seasonId"
+                     :player-name="player.name"
+                     :player-gender="player.gender || 'non-specified'"
+                     size="md"
+                   />
+                   <div class="flex-1">
+                     <div class="text-white font-medium">{{ player.name }}</div>
+                   </div>
+                   
+                   <!-- Icônes à droite -->
+                   <div class="flex items-center">
+                     <!-- Icône étoile (joueur favori) -->
+                     <span v-if="preferredPlayerIdsSet.has(player.id)" class="text-yellow-400 text-lg" title="Favori">
+                       ⭐
+                     </span>
+                     <!-- Icône cadenas (joueur protégé) -->
+                     <span v-else-if="isPlayerProtectedInGrid(player.id)" class="text-yellow-400 text-lg" title="Protégé">
+                       🔒
+                     </span>
+                   </div>
+                 </div>
+          
+          <!-- Séparateur -->
+          <div class="border-t border-gray-600 my-2"></div>
+          
+          <!-- Option "Ajouter" -->
+          <div
+            @click="addNewPlayerFromShowMore"
+            class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200"
+          >
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+              <span class="text-white text-lg font-bold">+</span>
+            </div>
+            <div>
+              <div class="text-white font-medium">Ajouter</div>
+              <div class="text-gray-400 text-sm">Créer un nouveau joueur</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modales -->
   <EventModal
@@ -1264,6 +1377,7 @@
     @refresh="handlePlayerRefresh"
     @avatar-updated="handleAvatarUpdated"
     @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
+    @show-availability-grid="handleShowAvailabilityGrid"
   />
 
   <!-- Modal de composition -->
@@ -1838,6 +1952,16 @@ const newPlayerGender = ref('non-specified')
 const newPlayerNameError = ref('')
 const newPlayerNameInput = ref(null)
 
+// Variables pour le popin Afficher Plus
+const showShowMoreModal = ref(false)
+const showMoreSearchQuery = ref('')
+const showMoreSearchInput = ref(null)
+const allSeasonPlayers = ref([]) // Tous les joueurs de la saison pour l'autocomplete
+const manuallyAddedPlayers = ref(new Set()) // Joueurs ajoutés manuellement via "Afficher Plus"
+const isFocusedView = ref(false) // Indique si on est en vue focalisée (favoris + joueur sélectionné)
+const originalPlayers = ref([]) // Sauvegarde des joueurs originaux pour revenir à la vue complète
+const isAllPlayersView = ref(false) // Indique si on affiche tous les joueurs (via "Tous")
+
 // Fonction pour ouvrir le formulaire avec focus
 function openNewPlayerForm() {
   console.log('🔍 openNewPlayerForm appelé')
@@ -1854,6 +1978,263 @@ function openNewPlayerForm() {
       console.log('🔍 Focus appliqué sur le champ nom')
     }
   })
+}
+
+// Fonctions pour le popin Afficher Plus
+async function toggleShowMoreModal() {
+  showShowMoreModal.value = !showShowMoreModal.value
+  if (showShowMoreModal.value) {
+    showMoreSearchQuery.value = ''
+    
+    // Charger tous les joueurs de la saison pour l'autocomplete
+    try {
+      allSeasonPlayers.value = await loadPlayers(seasonId.value)
+      logger.debug(`📊 Chargé ${allSeasonPlayers.value.length} joueurs pour l'autocomplete`)
+    } catch (error) {
+      logger.error('❌ Erreur lors du chargement des joueurs pour l\'autocomplete:', error)
+      allSeasonPlayers.value = []
+    }
+    
+    nextTick(() => {
+      if (showMoreSearchInput.value) {
+        showMoreSearchInput.value.focus()
+      }
+    })
+  }
+}
+
+function closeShowMoreModal() {
+  showShowMoreModal.value = false
+  showMoreSearchQuery.value = ''
+}
+
+async function selectAllPlayers() {
+  // Charger tous les joueurs de la saison dans la grille
+  try {
+    logger.debug('🔄 Chargement de tous les joueurs de la saison...')
+    
+    // Sauvegarder les joueurs originaux si ce n'est pas déjà fait
+    if (!isAllPlayersView.value) {
+      originalPlayers.value = [...players.value]
+    }
+    
+    // Charger tous les joueurs
+    const allPlayers = await loadPlayers(seasonId.value)
+    players.value = allPlayers
+    
+    // Marquer tous les joueurs comme ajoutés manuellement
+    allPlayers.forEach(player => {
+      manuallyAddedPlayers.value.add(player.id)
+    })
+    
+    // Activer le mode "tous les joueurs"
+    isAllPlayersView.value = true
+    isFocusedView.value = false // Désactiver la vue focalisée si elle était active
+    
+    logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
+    logger.debug('🔍 isAllPlayersView activé:', isAllPlayersView.value)
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    allPlayers.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les joueurs:', error)
+  }
+  
+  closeShowMoreModal()
+}
+
+async function selectExistingPlayer(player) {
+  // Vérifier si le joueur est déjà dans la grille
+  const isAlreadyInGrid = players.value.some(p => p.id === player.id)
+  
+  if (isAlreadyInGrid) {
+    logger.debug('Joueur déjà dans la grille:', player.name)
+    closeShowMoreModal()
+    return
+  }
+  
+  // Ajouter le joueur à la grille
+  try {
+    logger.debug('🔄 Ajout du joueur à la grille:', player.name)
+    
+    // Ajouter le joueur à la liste
+    players.value.push(player)
+    
+    // Marquer comme joueur ajouté manuellement
+    manuallyAddedPlayers.value.add(player.id)
+    
+    // Charger les disponibilités pour ce joueur
+    const playerAvailability = await loadAvailability([player], events.value, seasonId.value)
+    
+    // Fusionner avec les disponibilités existantes
+    Object.keys(playerAvailability).forEach(key => {
+      if (!availability.value[key]) {
+        availability.value[key] = playerAvailability[key]
+      } else {
+        // Fusionner les disponibilités existantes avec les nouvelles
+        Object.assign(availability.value[key], playerAvailability[key])
+      }
+    })
+    
+    // Marquer le joueur comme chargé
+    playerLoadingStates.value.set(player.id, 'loaded')
+    
+    logger.debug('✅ Joueur ajouté à la grille avec ses disponibilités')
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'ajout du joueur:', error)
+  }
+  
+  closeShowMoreModal()
+}
+
+function addNewPlayerFromShowMore() {
+  // Ouvrir la modale de création avec le nom prérempli
+  newPlayerName.value = showMoreSearchQuery.value.trim()
+  closeShowMoreModal()
+  openNewPlayerForm()
+}
+
+// Fonction pour gérer l'affichage des disponibilités d'un joueur
+async function handleShowAvailabilityGrid(playerId) {
+  try {
+    logger.debug('🔄 Affichage focalisé du joueur:', playerId)
+    
+    // Sauvegarder les joueurs originaux si ce n'est pas déjà fait
+    if (!isFocusedView.value) {
+      originalPlayers.value = [...players.value]
+    }
+    
+    // Trouver le joueur sélectionné
+    const selectedPlayer = players.value.find(p => p.id === playerId)
+    if (!selectedPlayer) {
+      logger.error('Joueur non trouvé:', playerId)
+      return
+    }
+    
+    // Créer une liste focalisée : favoris + joueur sélectionné
+    const focusedPlayers = []
+    
+    // Ajouter les favoris
+    if (currentUser.value?.email && preferredPlayerIdsSet.value.size > 0) {
+      const favorites = originalPlayers.value.filter(p => preferredPlayerIdsSet.value.has(p.id))
+      focusedPlayers.push(...favorites)
+    }
+    
+    // Ajouter le joueur sélectionné s'il n'est pas déjà dans les favoris
+    if (!preferredPlayerIdsSet.value.has(playerId)) {
+      focusedPlayers.push(selectedPlayer)
+    }
+    
+    // Mettre à jour la liste des joueurs affichés
+    players.value = focusedPlayers
+    
+    // Recharger les disponibilités pour les joueurs focalisés
+    const newAvailability = await loadAvailability(focusedPlayers, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    focusedPlayers.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    // Marquer le joueur sélectionné comme mis en avant
+    highlightedPlayer.value = playerId
+    
+    // Activer le mode vue focalisée
+    isFocusedView.value = true
+    
+    // Fermer la modale de joueur
+    closePlayerModal()
+    
+    // Faire défiler vers le joueur mis en avant
+    nextTick(() => {
+      const playerElement = document.querySelector(`[data-player-id="${playerId}"]`)
+      if (playerElement) {
+        playerElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
+    
+    logger.debug('✅ Affichage focalisé activé:', {
+      joueur: selectedPlayer.name,
+      totalJoueurs: focusedPlayers.length,
+      favoris: focusedPlayers.filter(p => preferredPlayerIdsSet.value.has(p.id)).length
+    })
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'affichage focalisé:', error)
+  }
+}
+
+// Fonction pour revenir à la vue complète
+async function returnToFullView() {
+  try {
+    logger.debug('🔄 Retour à la vue complète')
+    
+    // Restaurer les joueurs originaux
+    players.value = [...originalPlayers.value]
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(players.value, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    players.value.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    // Désactiver les modes spéciaux
+    isFocusedView.value = false
+    isAllPlayersView.value = false
+    highlightedPlayer.value = null
+    
+    logger.debug('✅ Vue complète restaurée')
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors du retour à la vue complète:', error)
+  }
+}
+
+// Fonction pour revenir aux favoris seulement
+async function showFavoritesOnly() {
+  try {
+    logger.debug('🔄 Retour aux favoris seulement')
+    
+    // Filtrer pour ne garder que les favoris
+    const favoritesOnly = originalPlayers.value.filter(p => preferredPlayerIdsSet.value.has(p.id))
+    
+    // Mettre à jour la liste des joueurs affichés
+    players.value = favoritesOnly
+    
+    // Recharger les disponibilités pour les favoris seulement
+    const newAvailability = await loadAvailability(favoritesOnly, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    favoritesOnly.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    // Désactiver les modes spéciaux
+    isAllPlayersView.value = false
+    isFocusedView.value = false
+    highlightedPlayer.value = null
+    
+    logger.debug('✅ Vue favoris seulement activée:', {
+      totalJoueurs: favoritesOnly.length,
+      favoris: favoritesOnly.map(p => p.name)
+    })
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors du retour aux favoris:', error)
+  }
 }
 const highlightedPlayer = ref(null)
 const guidedPlayerId = ref(null)
@@ -2564,10 +2945,6 @@ const isLoadingGrid = ref(true)
 
 // Variables pour l'optimisation mobile - chargement sélectif des joueurs
 const userOwnedPlayers = ref(new Set()) // Joueurs protégés de l'utilisateur connecté
-const showAllPlayers = ref(false) // Mode "afficher tous les joueurs"
-const showPlayerSearch = ref(false) // Mode recherche de joueurs
-const searchPlayerQuery = ref('') // Requête de recherche
-const filteredPlayers = ref([]) // Joueurs filtrés selon les critères
 // Chargement multi-étapes de la grille
 const loadingProgress = ref(0)
 const currentLoadingLabel = ref('Préparation de la grille')
@@ -4245,96 +4622,34 @@ const preferredPlayerIdsSet = ref(new Set())
 const sortedPlayers = computed(() => {
   const base = [...players.value].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
   
-  // Pour les utilisateurs connectés, remonter leurs joueurs favoris en haut
-  if (currentUser.value?.email && preferredPlayerIdsSet.value.size > 0) {
-    logger.debug('🔄 Tri des joueurs avec favoris en premier')
-    const favoritesFirst = base.filter(p => preferredPlayerIdsSet.value.has(p.id))
-    const rest = base.filter(p => !preferredPlayerIdsSet.value.has(p.id))
+  // Pour les utilisateurs connectés, organiser l'ordre : favoris -> ajoutés manuellement -> autres
+  if (currentUser.value?.email) {
+    logger.debug('🔄 Tri des joueurs avec favoris en premier, puis ajoutés manuellement')
     
-    // Trier les favoris par ordre alphabétique
-    const sortedFavorites = favoritesFirst.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+    const favorites = base.filter(p => preferredPlayerIdsSet.value.has(p.id))
+    const manuallyAdded = base.filter(p => manuallyAddedPlayers.value.has(p.id) && !preferredPlayerIdsSet.value.has(p.id))
+    const others = base.filter(p => !preferredPlayerIdsSet.value.has(p.id) && !manuallyAddedPlayers.value.has(p.id))
     
-    logger.debug('⭐ Favoris en premier:', sortedFavorites.map(p => p.name))
-    logger.debug('📝 Reste des joueurs:', rest.map(p => p.name))
+    // Trier chaque catégorie par ordre alphabétique
+    const sortedFavorites = favorites.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+    const sortedManuallyAdded = manuallyAdded.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
+    const sortedOthers = others.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }))
     
-    return [...sortedFavorites, ...rest]
+    logger.debug('⭐ Favoris:', sortedFavorites.map(p => p.name))
+    logger.debug('➕ Ajoutés manuellement:', sortedManuallyAdded.map(p => p.name))
+    logger.debug('📝 Autres joueurs:', sortedOthers.map(p => p.name))
+    
+    return [...sortedFavorites, ...sortedManuallyAdded, ...sortedOthers]
   }
   
   return base
 })
 
-// Computed pour les joueurs affichés selon les filtres
+// Computed pour les joueurs affichés
 const displayedPlayers = computed(() => {
-  // OPTIMISATION MOBILE : players.value contient déjà les joueurs filtrés
-  const basePlayers = sortedPlayers.value
-  
-  // Si mode "afficher tous les joueurs" activé, il faut recharger tous les joueurs
-  if (showAllPlayers.value && currentUser.value?.email) {
-    // Pour l'instant, retourner les joueurs actuels
-    // TODO: Implémenter le rechargement de tous les joueurs
-    return basePlayers
-  }
-  
-  // Si mode recherche activé
-  if (showPlayerSearch.value && searchPlayerQuery.value.trim()) {
-    const query = searchPlayerQuery.value.toLowerCase().trim()
-    return basePlayers.filter(player => 
-      player.name.toLowerCase().includes(query)
-    )
-  }
-  
-  // Par défaut : afficher les joueurs déjà filtrés dans players.value
-  return basePlayers
+  return sortedPlayers.value
 })
 
-// Watchers pour recharger les disponibilités quand les filtres changent
-// Logique simplifiée pour éviter les rechargements intempestifs
-watch([showAllPlayers, showPlayerSearch], async (newShowAll, newShowSearch, oldShowAll, oldShowSearch) => {
-  // Seulement si les modes d'affichage changent (pas pendant l'initialisation)
-  if ((newShowAll !== oldShowAll || newShowSearch !== oldShowSearch) && 
-      (oldShowAll !== undefined && oldShowSearch !== undefined)) {
-    
-    logger.debug('🔄 Mode d\'affichage changé, rechargement des disponibilités', {
-      showAll: newShowAll,
-      showSearch: newShowSearch
-    })
-    
-    try {
-      if (newShowAll || newShowSearch) {
-        // Mode "tous les joueurs" : recharger toutes les disponibilités
-        const allPlayers = await loadPlayers(seasonId.value)
-        const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
-        availability.value = newAvailability
-        
-        // Mettre à jour les états de chargement
-        allPlayers.forEach(player => {
-          playerLoadingStates.value.set(player.id, 'loaded')
-        })
-        
-        logger.debug('✅ Disponibilités rechargées pour tous les joueurs')
-      } else {
-        // Retour au mode par défaut : recharger seulement les joueurs protégés
-        await loadUserOwnedPlayers()
-        
-        if (userOwnedPlayers.value.size > 0) {
-          const allPlayers = await loadPlayers(seasonId.value)
-          const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
-          const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
-          availability.value = newAvailability
-          
-          // Mettre à jour les états de chargement
-          filteredPlayers.forEach(player => {
-            playerLoadingStates.value.set(player.id, 'loaded')
-          })
-          
-          logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
-        }
-      }
-    } catch (error) {
-      logger.error('❌ Erreur lors du rechargement des disponibilités:', error)
-    }
-  }
-}, { deep: true })
 
 // Watcher pour recharger les joueurs protégés de l'utilisateur quand l'authentification change
 watch(() => currentUser.value?.email, async (newEmail) => {
@@ -4663,145 +4978,6 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   }
 }
 
-// Fonctions pour gérer les modes d'affichage des joueurs
-async function toggleShowAllPlayers() {
-  showAllPlayers.value = !showAllPlayers.value
-  if (showAllPlayers.value) {
-    showPlayerSearch.value = false
-    searchPlayerQuery.value = ''
-    logger.debug('Mode "afficher tous les joueurs" activé - rechargement de tous les joueurs')
-    
-    // Recharger tous les joueurs
-    try {
-      const allPlayers = await loadPlayers(seasonId.value)
-      players.value = allPlayers
-      logger.debug(`📊 Rechargé ${allPlayers.length} joueurs (mode "tous")`)
-      
-      // Recharger les disponibilités pour tous les joueurs
-      const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
-      availability.value = newAvailability
-      
-      // Mettre à jour les états de chargement
-      allPlayers.forEach(player => {
-        playerLoadingStates.value.set(player.id, 'loaded')
-      })
-      
-      logger.debug('✅ Disponibilités rechargées pour tous les joueurs')
-    } catch (error) {
-      logger.error('❌ Erreur lors du rechargement de tous les joueurs:', error)
-    }
-  } else {
-    logger.debug('Retour au mode par défaut (joueurs protégés uniquement)')
-    
-    // Recharger seulement les joueurs protégés
-    try {
-      await loadUserOwnedPlayers()
-      
-      if (userOwnedPlayers.value.size > 0) {
-        const allPlayers = await loadPlayers(seasonId.value)
-        const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
-        players.value = filteredPlayers
-        logger.debug(`📊 Retour à ${filteredPlayers.length} joueurs protégés`)
-        
-        // Recharger les disponibilités pour les joueurs filtrés
-        const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
-        availability.value = newAvailability
-        
-        // Mettre à jour les états de chargement
-        filteredPlayers.forEach(player => {
-          playerLoadingStates.value.set(player.id, 'loaded')
-        })
-        
-        logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
-      }
-    } catch (error) {
-      logger.error('❌ Erreur lors du retour au mode par défaut:', error)
-    }
-  }
-}
-
-async function togglePlayerSearch() {
-  showPlayerSearch.value = !showPlayerSearch.value
-  if (showPlayerSearch.value) {
-    showAllPlayers.value = false
-    logger.debug('Mode recherche de joueurs activé - rechargement de tous les joueurs')
-    
-    // Recharger tous les joueurs pour permettre la recherche
-    try {
-      const allPlayers = await loadPlayers(seasonId.value)
-      players.value = allPlayers
-      logger.debug(`📊 Rechargé ${allPlayers.length} joueurs (mode recherche)`)
-      
-      // Recharger les disponibilités pour tous les joueurs
-      const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
-      availability.value = newAvailability
-      
-      // Mettre à jour les états de chargement
-      allPlayers.forEach(player => {
-        playerLoadingStates.value.set(player.id, 'loaded')
-      })
-      
-      logger.debug('✅ Disponibilités rechargées pour tous les joueurs (recherche)')
-    } catch (error) {
-      logger.error('❌ Erreur lors du rechargement pour la recherche:', error)
-    }
-  } else {
-    searchPlayerQuery.value = ''
-    logger.debug('Mode recherche désactivé - retour au mode par défaut')
-    
-    // Recharger seulement les joueurs protégés
-    try {
-      await loadUserOwnedPlayers()
-      
-      if (userOwnedPlayers.value.size > 0) {
-        const allPlayers = await loadPlayers(seasonId.value)
-        const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
-        players.value = filteredPlayers
-        logger.debug(`📊 Retour à ${filteredPlayers.length} joueurs protégés`)
-        
-        // Recharger les disponibilités pour les joueurs filtrés
-        const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
-        availability.value = newAvailability
-        
-        // Mettre à jour les états de chargement
-        filteredPlayers.forEach(player => {
-          playerLoadingStates.value.set(player.id, 'loaded')
-        })
-        
-        logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
-      }
-    } catch (error) {
-      logger.error('❌ Erreur lors du retour au mode par défaut:', error)
-    }
-  }
-}
-
-async function clearPlayerSearch() {
-  searchPlayerQuery.value = ''
-  showPlayerSearch.value = false
-  showAllPlayers.value = false
-  logger.debug('Filtres de joueurs réinitialisés - retour au mode par défaut')
-  
-  // Recharger seulement les joueurs protégés
-  try {
-    await loadUserOwnedPlayers()
-    
-    if (userOwnedPlayers.value.size > 0) {
-      const allPlayers = await loadPlayers(seasonId.value)
-      const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
-      players.value = filteredPlayers
-      logger.debug(`📊 Retour à ${filteredPlayers.length} joueurs protégés`)
-      
-      // Recharger les disponibilités pour les joueurs filtrés
-      const newAvailability = await loadAvailability(filteredPlayers, events.value, seasonId.value)
-      availability.value = newAvailability
-      logger.debug('✅ Disponibilités rechargées pour les joueurs protégés')
-    }
-  } catch (error) {
-    logger.error('❌ Erreur lors du retour au mode par défaut:', error)
-  }
-}
-
 const sortedEvents = computed(() => {
   // Tri chronologique gauche→droite, puis titre en cas d'égalité
   return [...events.value].sort((a, b) => {
@@ -4828,6 +5004,18 @@ const displayRows = computed(() => {
 
 const displayColumns = computed(() => {
   return currentViewMode.value === 'inverted' ? displayedPlayers.value : displayedEvents.value
+})
+
+// Computed properties pour le popin Afficher Plus
+const filteredShowMorePlayers = computed(() => {
+  if (!showMoreSearchQuery.value.trim()) {
+    return allSeasonPlayers.value
+  }
+  
+  const query = showMoreSearchQuery.value.toLowerCase().trim()
+  return allSeasonPlayers.value.filter(player => 
+    player.name.toLowerCase().includes(query)
+  )
 })
 
 

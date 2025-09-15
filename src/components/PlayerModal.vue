@@ -94,6 +94,11 @@
             </span>
           </button>
           
+          <!-- Bouton Voir disponibilités -->
+          <button @click="showAvailabilityGrid" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
+            <span>📊</span>
+            <span>Voir disponibilités</span>
+          </button>
           
           <!-- Bouton Fermer -->
           <button @click="closeModal" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">
@@ -107,10 +112,13 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="showProtectionModal = true" data-testid="protect-button" class="h-12 px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-[1.4]">
-          {{ isProtectedForPlayer ? '🔓 Désactiver la protection' : '🔒 Protéger' }}
+        <button @click="showProtectionModal = true" data-testid="protect-button" class="h-12 px-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-1">
+          {{ isProtectedForPlayer ? '🔓' : '🔒' }}
         </button>
-        <button @click="closeModal" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">
+        <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1">
+          📊
+        </button>
+        <button @click="closeModal" class="h-12 px-3 bg-gray-700 text-white rounded-lg flex-1">
           Fermer
         </button>
       </div>
@@ -259,7 +267,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated'])
+const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated', 'show-availability-grid'])
 
 
 
@@ -287,6 +295,11 @@ const isOwnerForPlayer = ref(false)
 // Fonctions de gestion
 function closeModal() {
   emit('close')
+}
+
+function showAvailabilityGrid() {
+  emit('show-availability-grid', player.value?.id)
+  closeModal()
 }
 
 async function startEditing() {
