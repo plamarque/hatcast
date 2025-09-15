@@ -1058,6 +1058,7 @@
           :preferred-player-ids-set="preferredPlayerIdsSet"
           :is-available="isAvailable"
           :is-player-selected="isPlayerSelected"
+          :is-player-selected-for-role="isPlayerSelectedForRole"
           :is-selection-confirmed="isSelectionConfirmed"
           :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
           :get-player-selection-status="getPlayerSelectionStatus"
@@ -7031,6 +7032,28 @@ function isPlayerSelected(playerName, eventId) {
     if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
       return true
     }
+  }
+  
+  return false
+}
+
+// Fonction pour vérifier si un joueur est sélectionné pour un rôle spécifique
+function isPlayerSelectedForRole(playerName, role, eventId) {
+  const selection = casts.value[eventId]
+  if (!selection || !selection.roles) {
+    return false
+  }
+  
+  // Trouver l'ID du joueur
+  const player = players.value.find(p => p.name === playerName)
+  if (!player) {
+    return false
+  }
+  
+  // Vérifier si le joueur est dans le rôle spécifique
+  const rolePlayers = selection.roles[role]
+  if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
+    return true
   }
   
   return false

@@ -84,7 +84,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
               <!-- Statut de sélection -->
               <span 
-                v-if="isPlayerSelected(player.name, selectedEvent.id)"
+                v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
                 class="px-2 py-1 rounded text-xs font-medium"
                 :class="isSelectionConfirmed(selectedEvent.id) 
                   ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
@@ -167,6 +167,10 @@ const props = defineProps({
     required: true
   },
   isPlayerSelected: {
+    type: Function,
+    required: true
+  },
+  isPlayerSelectedForRole: {
     type: Function,
     required: true
   },
