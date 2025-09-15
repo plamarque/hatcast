@@ -1,23 +1,15 @@
 <template>
   <div v-if="selectedEvent" class="space-y-4">
-    <!-- En-tête avec titre et statut -->
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-white">
-        {{ selectedEvent.title }}
-      </h3>
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-400">
-          {{ formatEventDate(selectedEvent.date) }}
+    <!-- En-tête avec statut uniquement -->
+    <div class="flex items-center justify-end mb-4">
+      <div v-if="eventStatus" class="flex items-center gap-1">
+        <span 
+          class="px-2 py-1 rounded-full text-xs font-medium"
+          :class="getStatusBadgeClass(eventStatus.type)"
+          :title="eventStatus.message"
+        >
+          {{ eventStatus.label }}
         </span>
-        <div v-if="eventStatus" class="flex items-center gap-1">
-          <span 
-            class="px-2 py-1 rounded-full text-xs font-medium"
-            :class="getStatusBadgeClass(eventStatus.type)"
-            :title="eventStatus.message"
-          >
-            {{ eventStatus.label }}
-          </span>
-        </div>
       </div>
     </div>
 
