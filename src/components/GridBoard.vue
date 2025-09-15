@@ -147,15 +147,15 @@
                     :title="headerItem.name + ' - Cliquez pour voir les détails'"
                     @click.stop="showPlayerDetails(headerItem)"
                   >
-                    <div class="flex flex-col items-center flex-1 justify-center w-full">
+                    <div class="flex flex-col items-center flex-1 justify-center w-full pt-1 md:pt-3">
                       <!-- Avatar avec icônes en coin supérieur droit -->
                       <div class="mb-2 relative">
                         <PlayerAvatar 
                           :player-id="headerItem.id"
                           :season-id="seasonId"
                           :player-name="headerItem.name"
+                          size="lg"
                           :player-gender="headerItem.gender || 'non-specified'"
-                          size="sm"
                         />
                         
                         <!-- Icône étoile (joueur favori) -->
@@ -190,10 +190,10 @@
               <div v-if="currentUser?.email && currentViewMode === 'inverted'" class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900">
                 
                 <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
-                <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200">
+                <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 pt-2 md:pt-4">
                   <!-- Faux avatar avec icône + -->
-                  <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mb-2">
-                    <span class="text-white text-xl font-bold">+</span>
+                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
+                    <span class="text-white text-lg md:text-xl font-bold">+</span>
                   </div>
                   <!-- Sous-titre -->
                   <div class="text-xs text-gray-300 text-center">
@@ -202,10 +202,10 @@
                 </div>
                 
                 <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
-                <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2">
+                <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2 pt-2 md:pt-4">
                   <!-- Faux avatar avec icône - -->
-                  <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
-                    <span class="text-white text-xl font-bold">-</span>
+                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
+                    <span class="text-white text-lg md:text-xl font-bold">-</span>
                   </div>
                   <!-- Sous-titre -->
                   <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
@@ -314,14 +314,14 @@
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
                     :title="'Cliquez pour voir les détails : ' + rowItem.name"
                   >
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 pt-1 md:pt-3">
                       <div class="relative">
                         <PlayerAvatar 
                           :player-id="rowItem.id"
                           :season-id="seasonId"
                           :player-name="rowItem.name"
+                          size="lg"
                           :player-gender="rowItem.gender || 'non-specified'"
-                          size="sm"
                         />
                         <!-- Superposed status icons -->
                         <span 
@@ -421,10 +421,10 @@
               <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-2 flex items-center justify-center">
                   <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
-                  <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 p-2">
+                  <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 p-2 pt-2 md:pt-4">
                     <!-- Faux avatar avec icône + -->
-                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mb-2">
-                      <span class="text-white text-xl font-bold">+</span>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
+                      <span class="text-white text-lg md:text-xl font-bold">+</span>
                     </div>
                     <!-- Sous-titre -->
                     <div class="text-xs text-gray-300 text-center">
@@ -433,10 +433,10 @@
                   </div>
                   
                   <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
-                  <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2">
+                  <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2 pt-2 md:pt-4">
                     <!-- Faux avatar avec icône - -->
-                    <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
-                      <span class="text-white text-xl font-bold">-</span>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
+                      <span class="text-white text-lg md:text-xl font-bold">-</span>
                     </div>
                     <!-- Sous-titre -->
                     <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
@@ -616,8 +616,8 @@
                      :player-id="player.id"
                      :season-id="seasonId"
                      :player-name="player.name"
-                     :player-gender="player.gender || 'non-specified'"
                      size="md"
+                     :player-gender="player.gender || 'non-specified'"
                    />
                    <div class="flex-1">
                      <div class="text-white font-medium">{{ player.name }}</div>
