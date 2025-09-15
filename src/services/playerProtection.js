@@ -93,7 +93,7 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     logger.info('Compte Firebase Auth créé', { uid: userCredential.user.uid })
     
-    // Sauvegarder dans Firestore
+    // Sauvegarder dans Firestore (collection playerProtection pour compatibilité)
     if (seasonId) {
       await firestoreService.setDocument('seasons', seasonId, {
         playerId,
@@ -102,6 +102,12 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
         isProtected: true,
         createdAt: new Date()
       }, false, 'playerProtection', playerId)
+      
+      // OPTIMISATION: Mettre à jour aussi le document player avec l'email
+      await firestoreService.updateDocument('seasons', seasonId, {
+        email: email,
+        isProtected: true
+      }, 'players', playerId)
     } else {
       await firestoreService.setDocument('playerProtection', playerId, {
         playerId,
@@ -252,6 +258,12 @@ export async function unprotectPlayer(playerId, seasonId = null) {
         emailVerifiedAt: null,
         updatedAt: new Date()
       }, false, 'playerProtection', playerId)
+      
+      // OPTIMISATION: Mettre à jour aussi le document player
+      await firestoreService.updateDocument('seasons', seasonId, {
+        email: '',
+        isProtected: false
+      }, 'players', playerId)
     } else {
       await firestoreService.setDocument('playerProtection', playerId, {
         playerId,
@@ -383,43 +395,64 @@ export async function listAssociationsForEmail(email) {
   try {
     const results = []
     
-    // Rechercher dans toutes les saisons connues via la collection seasons
+    // OPTIMISATION: Rechercher directement dans les players avec l'email
     const seasons = await firestoreService.getDocuments('seasons')
-    logger.debug(`listAssociationsForEmail: Recherche dans ${seasons.length} saisons pour ${email}`)
+    logger.debug(`listAssociationsForEmail: Recherche optimisée dans ${seasons.length} saisons pour ${email}`)
     
     for (const season of seasons) {
       const sid = season.id
       const seasonName = season.name || sid
-      logger.debug(`listAssociationsForEmail: Vérification de la saison ${sid} (${seasonName})`)
       
       try {
-        // Rechercher les protections de joueurs pour cet email dans cette saison
-        const protections = await firestoreService.queryDocuments(
+        // Rechercher directement dans les players avec l'email (plus efficace)
+        const players = await firestoreService.queryDocuments(
           'seasons', 
           [firestoreService.where('email', '==', email)], 
           sid, 
-          'playerProtection'
+          'players'
         )
         
-        logger.debug(`listAssociationsForEmail: ${protections.length} documents de protection trouvés dans ${sid}`)
+        logger.debug(`listAssociationsForEmail: ${players.length} joueurs trouvés avec cet email dans ${sid}`)
         
-        protections.forEach((protection) => {
-          logger.debug(`listAssociationsForEmail: Document ${protection.id} dans ${sid}:`, { 
-            email: protection.email, 
-            isProtected: protection.isProtected, 
-            firebaseUid: protection.firebaseUid 
-          })
-          
-          if (protection?.isProtected) {
+        players.forEach((player) => {
+          // Si le joueur a un email défini, c'est qu'il est protégé
+          if (player?.email && player.email === email) {
             results.push({ 
               seasonId: sid, 
               seasonName: seasonName, 
-              playerId: protection.id, 
-              ...protection 
+              playerId: player.id, 
+              email: player.email,
+              isProtected: player.isProtected !== false, // true par défaut si email présent
+              firebaseUid: player.firebaseUid // si présent
             })
-            logger.debug(`listAssociationsForEmail: Association ajoutée pour ${sid}/${protection.id}`)
+            logger.debug(`listAssociationsForEmail: Association optimisée trouvée pour ${sid}/${player.id}`)
           }
         })
+        
+        // FALLBACK: Si aucun joueur trouvé dans players, chercher dans l'ancienne collection playerProtection
+        if (players.length === 0) {
+          logger.debug(`listAssociationsForEmail: Fallback vers playerProtection pour ${sid}`)
+          const protections = await firestoreService.queryDocuments(
+            'seasons', 
+            [firestoreService.where('email', '==', email)], 
+            sid, 
+            'playerProtection'
+          )
+          
+          logger.debug(`listAssociationsForEmail: ${protections.length} protections trouvées dans ${sid} (fallback)`)
+          
+          protections.forEach((protection) => {
+            if (protection?.isProtected) {
+              results.push({ 
+                seasonId: sid, 
+                seasonName: seasonName, 
+                playerId: protection.id, 
+                ...protection 
+              })
+              logger.debug(`listAssociationsForEmail: Association fallback trouvée pour ${sid}/${protection.id}`)
+            }
+          })
+        }
       } catch (seasonError) {
         // Log silencieux pour les erreurs de saison individuelle
         if (seasonError.code !== 'not-found' && seasonError.code !== 'permission-denied') {
@@ -437,6 +470,49 @@ export async function listAssociationsForEmail(email) {
       logger.error('Erreur listAssociationsForEmail', error)
     }
     return []
+  }
+}
+
+// FONCTION DE MIGRATION: Synchroniser les données de playerProtection vers les documents players
+export async function migratePlayerProtectionToPlayers(seasonId) {
+  try {
+    logger.info('Début migration playerProtection vers players', { seasonId })
+    
+    // Récupérer toutes les protections de cette saison
+    const protections = await firestoreService.getDocuments('seasons', seasonId, 'playerProtection')
+    logger.debug(`Migration: ${protections.length} protections trouvées dans ${seasonId}`)
+    
+    let migrated = 0
+    let errors = 0
+    
+    for (const protection of protections) {
+      try {
+        const playerId = protection.id
+        const email = protection.email
+        const isProtected = protection.isProtected
+        
+        if (email && isProtected) {
+          // Mettre à jour le document player avec les données de protection
+          await firestoreService.updateDocument('seasons', seasonId, {
+            email: email,
+            isProtected: isProtected,
+            firebaseUid: protection.firebaseUid || null
+          }, 'players', playerId)
+          
+          migrated++
+          logger.debug(`Migration: ${playerId} migré avec email ${email}`)
+        }
+      } catch (error) {
+        errors++
+        logger.warn(`Migration: Erreur pour ${protection.id}:`, error)
+      }
+    }
+    
+    logger.info(`Migration terminée: ${migrated} joueurs migrés, ${errors} erreurs`)
+    return { migrated, errors, total: protections.length }
+  } catch (error) {
+    logger.error('Erreur lors de la migration:', error)
+    throw error
   }
 }
 

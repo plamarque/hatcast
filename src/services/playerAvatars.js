@@ -143,7 +143,22 @@ async function getPlayerAssociation(playerId, seasonId) {
   try {
     const db = getFirebaseDb()
     
-    // Essayer d'abord la collection spécifique à la saison
+    // OPTIMISATION: Essayer d'abord dans le document player (plus efficace)
+    if (seasonId) {
+      const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
+      const playerSnap = await getDoc(playerRef)
+      
+      if (playerSnap.exists()) {
+        const data = playerSnap.data()
+        if (data.email) {
+          const association = { email: data.email, source: 'player' }
+          associationCache.set(cacheKey, association)
+          return association
+        }
+      }
+    }
+    
+    // Fallback vers l'ancienne collection playerProtection pour compatibilité
     if (seasonId) {
       const seasonProtectionRef = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
       const seasonSnap = await getDoc(seasonProtectionRef)
