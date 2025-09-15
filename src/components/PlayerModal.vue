@@ -288,6 +288,9 @@ const isEditSessionVerified = ref(false) // Mémorise si la vérification a ét�
 const isProtectedForPlayer = ref(false)
 const isOwnerForPlayer = ref(false)
 
+// Coachmark simple sur le bouton Protection quand onboardingStep === 4
+const protectionCoachmark = ref({ position: null })
+
 
 
 
@@ -515,7 +518,7 @@ defineExpose({
 // Fonction de vérification des permissions
 async function checkPermissions() {
   try {
-    if (!props.seasonId) return;
+    if (!props.seasonId || !currentUser.value?.email) return;
     
     // Fallback temporaire pour le développement local
     const currentUserEmail = currentUser.value?.email;
@@ -535,8 +538,22 @@ async function checkPermissions() {
     const superAdminStatus = await roleService.isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
-    // Pour l'instant, seuls les Super Admins peuvent modifier/supprimer les joueurs
-    canEditPlayers.value = superAdminStatus;
+    // Vérifier aussi si l'utilisateur est admin de cette saison
+    let isSeasonAdmin = false;
+    if (currentUserEmail && props.seasonId) {
+      const { seasonRoleService } = await import('../services/seasonRoleService.js');
+      isSeasonAdmin = await seasonRoleService.isUserSeasonAdmin(props.seasonId, currentUserEmail);
+    }
+    
+    // L'utilisateur peut modifier/supprimer les joueurs s'il est Super Admin OU admin de la saison
+    canEditPlayers.value = superAdminStatus || isSeasonAdmin;
+    
+    console.log('🔐 Permissions vérifiées:', {
+      email: currentUserEmail,
+      superAdmin: superAdminStatus,
+      seasonAdmin: isSeasonAdmin,
+      canEdit: canEditPlayers.value
+    });
   } catch (error) {
     console.warn('Erreur lors de la vérification des permissions:', error);
     canEditPlayers.value = false;
@@ -549,27 +566,37 @@ onMounted(() => {
   checkPermissions();
 });
 
-// Coachmark simple sur le bouton Protection quand onboardingStep === 4
-const protectionCoachmark = ref({ position: null })
-
-watch(() => props.show, (open) => {
-  if (open && props.onboardingStep === 4) {
-    nextTick(() => {
-      const btns = document.querySelectorAll('button')
-      let target = null
-      btns.forEach((b) => {
-        if (!target && b.textContent && b.textContent.includes('Protection')) target = b
-      })
-      if (target) {
-        const rect = target.getBoundingClientRect()
-        protectionCoachmark.value.position = {
-          x: Math.round(rect.right + 8),
-          y: Math.round(rect.top + window.scrollY - 4)
+// Re-vérifier les permissions à chaque ouverture du modal
+watch(() => props.show, async (open) => {
+  try {
+    if (open && props.seasonId) {
+      await checkPermissions();
+    }
+    
+    if (open && props.onboardingStep === 4) {
+      nextTick(() => {
+        try {
+          const btns = document.querySelectorAll('button')
+          let target = null
+          btns.forEach((b) => {
+            if (!target && b.textContent && b.textContent.includes('Protection')) target = b
+          })
+          if (target) {
+            const rect = target.getBoundingClientRect()
+            protectionCoachmark.value.position = {
+              x: Math.round(rect.right + 8),
+              y: Math.round(rect.top + window.scrollY - 4)
+            }
+          }
+        } catch (error) {
+          console.warn('Erreur lors de la configuration du coachmark:', error);
         }
-      }
-    })
-  } else if (!open) {
-    protectionCoachmark.value.position = null
+      })
+    } else if (!open) {
+      protectionCoachmark.value.position = null
+    }
+  } catch (error) {
+    console.warn('Erreur dans le watcher du modal:', error);
   }
 })
 </script>
