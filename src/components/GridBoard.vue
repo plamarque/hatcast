@@ -73,6 +73,19 @@
                   </svg>
                 </button>
                 
+                <!-- Indicateur de mode composition -->
+                <div v-if="isCompositionView" class="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
+                  <span class="text-purple-300 text-xs">🎭</span>
+                  <span class="text-purple-200 text-xs font-medium">Composition</span>
+                  <button
+                    @click="returnToFullView"
+                    class="text-purple-300 hover:text-purple-100 transition-colors ml-1"
+                    title="Revenir à la vue complète"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
               </div>
 
             </div>
@@ -974,6 +987,20 @@
                 <span :class="showRoleChances ? 'text-emerald-300' : 'text-gray-300'">📊</span>
                 <span :class="showRoleChances ? 'text-emerald-200' : 'text-gray-200'">
                   {{ showRoleChances ? 'Dispos' : 'Chances' }}
+                </span>
+              </button>
+              
+              <!-- Bouton pour afficher la composition (visible si composition faite) -->
+              <button 
+                v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
+                @click="showCompositionInGrid"
+                class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
+                title="Afficher la grille avec uniquement les joueurs de la composition"
+              >
+                <span class="text-purple-300">🎭</span>
+                <span class="text-purple-200">
+                  <span class="hidden md:inline">Afficher la composition</span>
+                  <span class="md:hidden">Voir compo</span>
                 </span>
               </button>
               
@@ -2000,12 +2027,22 @@ const originalPlayers = ref([]) // Sauvegarde des joueurs originaux pour revenir
 const isAllPlayersView = ref(false) // Indique si on affiche tous les joueurs (via "Tous")
 
 // Fonction pour ouvrir le formulaire avec focus
-function openNewPlayerForm() {
+async function openNewPlayerForm() {
   console.log('🔍 openNewPlayerForm appelé')
   newPlayerForm.value = true
-  newPlayerName.value = ''
   newPlayerGender.value = 'non-specified'
   newPlayerNameError.value = ''
+  
+  // Pré-remplir avec le pseudo de l'utilisateur s'il existe
+  try {
+    const { getUserPseudo } = await import('../services/userProfileService.js')
+    const pseudo = await getUserPseudo()
+    newPlayerName.value = pseudo || ''
+    console.log('🔍 Pseudo récupéré pour pré-remplissage:', pseudo)
+  } catch (error) {
+    console.warn('Erreur lors de la récupération du pseudo:', error)
+    newPlayerName.value = ''
+  }
   
   // Focus automatique sur le champ nom après que le DOM soit mis à jour
   nextTick(() => {
@@ -2230,6 +2267,7 @@ async function returnToFullView() {
     // Désactiver les modes spéciaux
     isFocusedView.value = false
     isAllPlayersView.value = false
+    isCompositionView.value = false
     highlightedPlayer.value = null
     
     logger.debug('✅ Vue complète restaurée')
@@ -2271,6 +2309,70 @@ async function showFavoritesOnly() {
     
   } catch (error) {
     logger.error('❌ Erreur lors du retour aux favoris:', error)
+  }
+}
+
+// Fonction pour afficher la grille avec uniquement les joueurs de la composition
+async function showCompositionInGrid() {
+  try {
+    if (!selectedEvent.value) return
+    
+    logger.debug('🔄 Affichage de la composition dans la grille')
+    
+    // Sauvegarder l'état actuel si ce n'est pas déjà fait
+    if (!isCompositionView.value) {
+      originalPlayers.value = [...players.value]
+      originalAvailability.value = { ...availability.value }
+    }
+    
+    // Récupérer les joueurs de la composition
+    const selectedPlayers = getSelectionPlayers(selectedEvent.value.id)
+    if (selectedPlayers.length === 0) {
+      logger.warn('Aucun joueur dans la composition')
+      return
+    }
+    
+    // Trouver les objets joueurs correspondants
+    const compositionPlayers = originalPlayers.value.filter(player => 
+      selectedPlayers.includes(player.name)
+    )
+    
+    if (compositionPlayers.length === 0) {
+      logger.warn('Aucun joueur de la composition trouvé dans la liste des joueurs')
+      return
+    }
+    
+    // Mettre à jour la liste des joueurs affichés
+    players.value = compositionPlayers
+    
+    // Recharger les disponibilités pour les joueurs de la composition
+    const newAvailability = await loadAvailability(compositionPlayers, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    compositionPlayers.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    // Activer le mode composition
+    isCompositionView.value = true
+    
+    // Désactiver les autres modes spéciaux
+    isFocusedView.value = false
+    isAllPlayersView.value = false
+    highlightedPlayer.value = null
+    
+    // Fermer la modale de détail d'événement
+    closeEventDetailsAndUpdateUrl()
+    
+    logger.debug('✅ Vue composition activée:', {
+      event: selectedEvent.value.title,
+      joueursComposition: compositionPlayers.map(p => p.name),
+      totalJoueurs: compositionPlayers.length
+    })
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'affichage de la composition:', error)
   }
 }
 const highlightedPlayer = ref(null)
@@ -2345,6 +2447,10 @@ const showDevelopmentModal = ref(false)
 // Variables pour la gestion des rôles
 const canEditEvents = ref(false)
 const isSuperAdmin = ref(false)
+
+// Variables pour l'affichage de la composition
+const isCompositionView = ref(false)
+const originalAvailability = ref({})
 
 
 
