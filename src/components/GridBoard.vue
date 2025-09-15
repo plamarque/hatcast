@@ -5292,6 +5292,14 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
       throw new Error(`Joueur non trouvé: ${playerName}`)
     }
     
+    // Si le joueur décline, le déplacer automatiquement vers la section déclinés
+    if (newStatus === 'declined') {
+      await movePlayerToDeclinedInCast(playerName, eventId, seasonId)
+    } else if (newStatus === 'pending' || newStatus === 'confirmed') {
+      // Si le joueur reconfirme, le remettre en composition s'il était décliné
+      await movePlayerFromDeclinedToCast(playerName, eventId, seasonId)
+    }
+    
     // Mettre à jour le statut dans le stockage avec l'ID
     const { updatePlayerCastStatus } = await import('../services/storage.js')
     const result = await updatePlayerCastStatus(eventId, player.id, newStatus, seasonId)
@@ -5362,11 +5370,35 @@ function getStatusDisplayText(status) {
 // Fonction helper pour récupérer les joueurs qui ont décliné
 function getDeclinedPlayers(eventId) {
   const selection = casts.value[eventId]
-  if (!selection || !selection.playerStatuses) return []
+  if (!selection) return []
   
-  return Object.entries(selection.playerStatuses)
-    .filter(([playerName, status]) => status === 'declined')
-    .map(([playerName]) => playerName)
+  // Nouvelle structure : vérifier dans declined
+  if (selection.declined) {
+    const declinedPlayers = []
+    Object.values(selection.declined).forEach(playerIds => {
+      if (Array.isArray(playerIds)) {
+        playerIds.forEach(playerId => {
+          const player = allSeasonPlayers.value.find(p => p.id === playerId)
+          if (player) {
+            declinedPlayers.push(player.name)
+          }
+        })
+      }
+    })
+    return declinedPlayers
+  }
+  
+  // Fallback sur l'ancienne structure playerStatuses
+  if (selection.playerStatuses) {
+    return Object.entries(selection.playerStatuses)
+      .filter(([playerId, status]) => status === 'declined')
+      .map(([playerId]) => {
+        const player = allSeasonPlayers.value.find(p => p.id === playerId)
+        return player ? player.name : playerId
+      })
+  }
+  
+  return []
 }
 
 // Fonction helper pour obtenir le prochain statut de confirmation
@@ -5380,6 +5412,110 @@ function getNextSelectionStatus(currentStatus) {
       return 'pending'
     default:
       return 'pending'
+  }
+}
+
+// Fonction pour déplacer un joueur vers la section déclinés quand il décline
+async function movePlayerToDeclinedInCast(playerName, eventId, seasonId) {
+  try {
+    const player = allSeasonPlayers.value.find(p => p.name === playerName)
+    if (!player) return
+    
+    // Trouver le rôle du joueur dans la composition actuelle
+    const currentSelection = casts.value[eventId]
+    if (!currentSelection || !currentSelection.roles) return
+    
+    let playerRole = null
+    for (const [role, playerIds] of Object.entries(currentSelection.roles)) {
+      if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+        playerRole = role
+        break
+      }
+    }
+    
+    if (!playerRole) return
+    
+    // Créer une copie de la structure declined existante
+    const currentDeclined = currentSelection.declined || {}
+    const newDeclined = { ...currentDeclined }
+    
+    // Ajouter le joueur à la liste des déclinés pour ce rôle
+    if (!newDeclined[playerRole]) {
+      newDeclined[playerRole] = []
+    }
+    if (!newDeclined[playerRole].includes(player.id)) {
+      newDeclined[playerRole].push(player.id)
+    }
+    
+    // Retirer le joueur de la composition normale
+    const newRoles = { ...currentSelection.roles }
+    if (newRoles[playerRole]) {
+      newRoles[playerRole] = newRoles[playerRole].filter(id => id !== player.id)
+    }
+    
+    // Sauvegarder avec la nouvelle structure
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(eventId, newRoles, seasonId, { 
+      declined: newDeclined,
+      preserveConfirmed: true 
+    })
+    
+    console.log('Joueur déplacé vers les déclinés:', playerName)
+  } catch (error) {
+    console.error('Erreur lors du déplacement vers les déclinés:', error)
+  }
+}
+
+// Fonction pour remettre un joueur en composition quand il reconfirme
+async function movePlayerFromDeclinedToCast(playerName, eventId, seasonId) {
+  try {
+    const player = allSeasonPlayers.value.find(p => p.name === playerName)
+    if (!player) return
+    
+    const currentSelection = casts.value[eventId]
+    if (!currentSelection) return
+    
+    // Trouver le rôle du joueur dans les déclinés
+    let playerRole = null
+    if (currentSelection.declined) {
+      for (const [role, playerIds] of Object.entries(currentSelection.declined)) {
+        if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+          playerRole = role
+          break
+        }
+      }
+    }
+    
+    if (!playerRole) return
+    
+    // Retirer le joueur des déclinés
+    const newDeclined = { ...currentSelection.declined }
+    if (newDeclined[playerRole]) {
+      newDeclined[playerRole] = newDeclined[playerRole].filter(id => id !== player.id)
+      if (newDeclined[playerRole].length === 0) {
+        delete newDeclined[playerRole]
+      }
+    }
+    
+    // Remettre le joueur dans la composition normale
+    const newRoles = { ...currentSelection.roles }
+    if (!newRoles[playerRole]) {
+      newRoles[playerRole] = []
+    }
+    if (!newRoles[playerRole].includes(player.id)) {
+      newRoles[playerRole].push(player.id)
+    }
+    
+    // Sauvegarder avec la nouvelle structure
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(eventId, newRoles, seasonId, { 
+      declined: newDeclined,
+      preserveConfirmed: true 
+    })
+    
+    console.log('Joueur remis en composition:', playerName)
+  } catch (error) {
+    console.error('Erreur lors du retour en composition:', error)
   }
 }
 
@@ -5438,17 +5574,19 @@ function isAvailableForRole(playerName, role, eventId) {
 function getAvailabilityData(player, eventId) {
   const availabilityData = availability.value[player]?.[eventId]
   
-  
   // Vérifier s'il y a une sélection ET si elle est validée par l'organisateur
   const selectionRole = getPlayerSelectionRole(player, eventId)
   const cast = casts.value[eventId]
   const isSelectionValidated = cast ? isSelectionConfirmedByOrganizer(eventId) : false
   
-  if (selectionRole && isSelectionValidated) {
+  // Vérifier aussi si le joueur est dans la section déclinés
+  const declinedRole = getPlayerDeclinedRole(player, eventId)
+  
+  if ((selectionRole && isSelectionValidated) || declinedRole) {
     const selectionStatus = getPlayerSelectionStatus(player, eventId)
     return {
       available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
-      roles: [selectionRole],
+      roles: [selectionRole || declinedRole],
       comment: availabilityData?.comment || null,
       isSelectionDisplay: true,
       selectionStatus: selectionStatus
@@ -5491,7 +5629,7 @@ function getAvailabilityData(player, eventId) {
 
 function isSelected(player, eventId) {
   const selection = casts.value[eventId]
-  if (!selection || !selection.roles) {
+  if (!selection) {
     return false
   }
   
@@ -5510,10 +5648,21 @@ function isSelected(player, eventId) {
     return false
   }
   
-  // Vérifier si le joueur est dans un des rôles
-  for (const rolePlayers of Object.values(selection.roles)) {
-    if (Array.isArray(rolePlayers) && rolePlayers.includes(playerObj.id)) {
-      return true
+  // Vérifier si le joueur est dans un des rôles de la composition normale
+  if (selection.roles) {
+    for (const rolePlayers of Object.values(selection.roles)) {
+      if (Array.isArray(rolePlayers) && rolePlayers.includes(playerObj.id)) {
+        return true
+      }
+    }
+  }
+  
+  // Vérifier aussi si le joueur est dans la section déclinés
+  if (selection.declined) {
+    for (const rolePlayers of Object.values(selection.declined)) {
+      if (Array.isArray(rolePlayers) && rolePlayers.includes(playerObj.id)) {
+        return true
+      }
     }
   }
   
@@ -5641,6 +5790,7 @@ async function completeCastSlots(eventId) {
     if (requiredCount > 0) {
       // Récupérer les joueurs déjà compositionnés pour ce rôle
       const currentRoleSelection = currentSelection.roles?.[role] || []
+      const declinedForRole = currentSelection.declined?.[role] || []
       
       // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (depuis la composition actuelle)
       // Convertir les IDs en noms pour la compatibilité avec drawForRole
@@ -5650,8 +5800,10 @@ async function completeCastSlots(eventId) {
         return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
       })
       
-      // Compléter seulement les slots vraiment vides (null/undefined)
-      const filledSlots = currentRoleSelection.filter(player => player != null)
+      // Compléter seulement les slots vraiment vides (null/undefined) et exclure les déclinés
+      const filledSlots = currentRoleSelection.filter(player => 
+        player != null && !declinedForRole.includes(player)
+      )
       const remainingSlots = requiredCount - filledSlots.length
       
       logger.debug(`🔧 Rôle ${role}:`, { 
@@ -5698,9 +5850,10 @@ async function completeCastSlots(eventId) {
   
   logger.debug('🔧 Nouvelle composition à sauvegarder:', newSelections)
   
-  // Sauvegarder en base avec recalcul du statut
+  // Sauvegarder en base avec recalcul du statut et préserver les joueurs déclinés
   await saveCast(eventId, newSelections, seasonId.value, { 
-    preserveConfirmed: true
+    preserveConfirmed: true,
+    declined: currentSelection.declined || {} // Préserver la section déclinés
   })
   
   logger.debug('🔧 Composition sauvegardée avec succès')
@@ -7855,6 +8008,15 @@ function isSelectionConfirmedByOrganizer(eventId) {
 // Fonction helper pour obtenir le statut individuel d'un joueur dans une composition
 function getPlayerSelectionStatus(playerName, eventId) {
   const cast = casts.value[eventId]
+  if (!cast) return 'pending'
+  
+  // Vérifier d'abord si le joueur est dans la section déclinés
+  const declinedRole = getPlayerDeclinedRole(playerName, eventId)
+  if (declinedRole) {
+    return 'declined'
+  }
+  
+  // Sinon, utiliser la logique normale
   return getPlayerCastStatus(cast, playerName, allSeasonPlayers.value)
 }
 
@@ -7862,6 +8024,24 @@ function getPlayerSelectionStatus(playerName, eventId) {
 function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
+}
+
+// Fonction helper pour obtenir le rôle d'un joueur dans la section déclinés
+function getPlayerDeclinedRole(playerName, eventId) {
+  const cast = casts.value[eventId]
+  if (!cast || !cast.declined) return null
+  
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  if (!player) return null
+  
+  // Chercher le joueur dans les déclinés
+  for (const [role, playerIds] of Object.entries(cast.declined)) {
+    if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+      return role
+    }
+  }
+  
+  return null
 }
 
 // Fonctions pour la nouvelle popin de composition

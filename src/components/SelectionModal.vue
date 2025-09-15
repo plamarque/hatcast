@@ -135,6 +135,53 @@
           </div>
         </div>
         
+        <!-- Section des joueurs déclinés -->
+        <div v-if="hasDeclinedPlayers" class="mb-4">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <span>❌</span>
+            <span>Personnes ayant décliné</span>
+            <span class="text-sm text-gray-400">(ne comptent pas dans la composition)</span>
+          </h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div
+              v-for="declinedPlayer in getDeclinedPlayers()"
+              :key="'declined-'+declinedPlayer.name"
+              class="p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex-1 flex items-center gap-2 min-w-0">
+                  <!-- Avatar du joueur -->
+                  <div class="flex-shrink-0">
+                    <PlayerAvatar 
+                      :player-id="getPlayerIdFromName(declinedPlayer.name)"
+                      :season-id="seasonId"
+                      :player-name="declinedPlayer.name"
+                      size="sm"
+                    />
+                  </div>
+                  
+                  <!-- Nom du joueur + emoji du rôle -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1">
+                      <span class="text-white font-medium truncate">{{ declinedPlayer.name }}</span>
+                      <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  v-if="!isSelectionConfirmedByOrganizer"
+                  @click="moveDeclinedToComposition(declinedPlayer)"
+                  class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
+                  title="Remettre en composition"
+                >
+                  ↶
+                </button>
+                <div v-else class="w-6 h-6"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- Message d'information pour composition à confirmer -->
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
@@ -582,20 +629,41 @@ async function clearSlot(index) {
   }
   
   const removedPlayer = currentSlot?.player || slots.value[index]
+  const role = currentSlot?.role || 'player'
   
-  // Vider le slot dans teamSlots
-  if (currentSlot) {
-    currentSlot.player = null
-    currentSlot.playerId = null  // Vider aussi l'ID
-    currentSlot.isEmpty = true
-  }
-  
-  // Vider aussi dans l'ancien système pour la compatibilité (avec protection)
-  if (slots.value && slots.value[index] !== undefined) {
-    // Utiliser nextTick pour éviter les problèmes de démontage
-    await nextTick()
+  // Si c'est un joueur décliné, le supprimer complètement
+  if (isPlayerDeclined(playerName)) {
+    // Vider le slot dans teamSlots
+    if (currentSlot) {
+      currentSlot.player = null
+      currentSlot.playerId = null
+      currentSlot.isEmpty = true
+    }
+    
+    // Vider aussi dans l'ancien système pour la compatibilité
     if (slots.value && slots.value[index] !== undefined) {
-      slots.value[index] = null
+      await nextTick()
+      if (slots.value && slots.value[index] !== undefined) {
+        slots.value[index] = null
+      }
+    }
+  } else {
+    // Si c'est un joueur normal, le déplacer vers les déclinés
+    await movePlayerToDeclined(playerName, role)
+    
+    // Vider le slot dans teamSlots
+    if (currentSlot) {
+      currentSlot.player = null
+      currentSlot.playerId = null
+      currentSlot.isEmpty = true
+    }
+    
+    // Vider aussi dans l'ancien système pour la compatibilité
+    if (slots.value && slots.value[index] !== undefined) {
+      await nextTick()
+      if (slots.value && slots.value[index] !== undefined) {
+        slots.value[index] = null
+      }
     }
   }
   
@@ -655,9 +723,12 @@ async function saveSlotChanges() {
       }
     })
     
-    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
+    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation et les joueurs déclinés
     const { saveCast } = await import('../services/storage.js')
-    await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
+    await saveCast(props.event.id, roles, props.seasonId, { 
+      preserveConfirmed: true,
+      declined: props.currentSelection?.declined || {} // Préserver la section déclinés
+    })
     
     // Émettre un événement pour que le parent recharge les données
     emit('updateCast')
@@ -808,14 +879,22 @@ const hasEmptySlots = computed(() => {
 
 // Vérifier si des joueurs ont décliné leur participation
 const hasDeclinedPlayers = computed(() => {
-  if (!props.currentSelection || typeof props.currentSelection !== 'object' || !props.currentSelection.playerStatuses) {
+  if (!props.currentSelection || typeof props.currentSelection !== 'object') {
     return false
   }
   
-  // Utiliser Object.entries pour éviter les problèmes avec les Proxy Vue
-  // Maintenant playerStatuses utilise des IDs, pas des noms
-  const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerId, status]) => status === 'declined')
-  return hasDeclined
+  // Vérifier dans la nouvelle structure declined
+  if (props.currentSelection.declined && Object.keys(props.currentSelection.declined).length > 0) {
+    return true
+  }
+  
+  // Fallback sur l'ancienne structure playerStatuses
+  if (props.currentSelection.playerStatuses) {
+    const hasDeclined = Object.entries(props.currentSelection.playerStatuses).some(([playerId, status]) => status === 'declined')
+    return hasDeclined
+  }
+  
+  return false
 })
 
 // Fonction pour vérifier si un joueur spécifique a décliné
@@ -833,13 +912,14 @@ function isPlayerDeclined(playerName) {
   return props.currentSelection.playerStatuses[playerId] === 'declined'
 }
 
-// Vérifier si la composition est complète (assez de joueurs pour l'événement)
+// Vérifier si la composition est complète (assez de joueurs pour l'événement, excluant les déclinés)
 const isSelectionComplete = computed(() => {
-  const selectedPlayers = getSelectedPlayersArray()
+  // Compter seulement les joueurs dans les slots normaux (pas les déclinés)
+  const activePlayers = teamSlots.value.filter(slot => slot.player).length
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
     ? Object.values(props.event.roles).reduce((sum, count) => sum + (count || 0), 0)
     : (props.event?.playerCount || 6)
-  return selectedPlayers.length >= requiredCount
+  return activePlayers >= requiredCount
 })
 
 // Vérifier si on peut demander confirmation (composition complète ET pas de joueurs déclinés)
@@ -1155,9 +1235,12 @@ async function saveEmptySlotSelection() {
       }
     })
     
-    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation
+    // Sauvegarder avec la nouvelle structure par rôle en préservant le statut de confirmation et les joueurs déclinés
     const { saveCast } = await import('../services/storage.js')
-    await saveCast(props.event.id, roles, props.seasonId, { preserveConfirmed: true })
+    await saveCast(props.event.id, roles, props.seasonId, { 
+      preserveConfirmed: true,
+      declined: props.currentSelection?.declined || {} // Préserver la section déclinés
+    })
     
     // Recalculer le statut après la sauvegarde
     try {
@@ -1195,8 +1278,10 @@ async function autoSaveSelection() {
       }
     })
     
-    // Sauvegarde avec la nouvelle structure par rôle
-    await saveCast(props.event.id, roles, props.seasonId)
+    // Sauvegarde avec la nouvelle structure par rôle en préservant les joueurs déclinés
+    await saveCast(props.event.id, roles, props.seasonId, { 
+      declined: props.currentSelection?.declined || {} // Préserver la section déclinés
+    })
     
     // Recalculer le statut après la sauvegarde
     try {
@@ -1367,6 +1452,122 @@ function showSuccess(reselection = false, isPartialUpdate = false) {
 
 function hideSuccessMessage() {
   showSuccessMessage.value = false
+}
+
+// Fonctions pour gérer les joueurs déclinés
+function getDeclinedPlayers() {
+  if (!props.currentSelection || !props.currentSelection.declined) {
+    return []
+  }
+  
+  const declinedPlayers = []
+  
+  // Parcourir tous les rôles déclinés
+  Object.entries(props.currentSelection.declined).forEach(([role, playerIds]) => {
+    if (Array.isArray(playerIds)) {
+      playerIds.forEach(playerId => {
+        const playerName = getPlayerNameFromId(playerId)
+        if (playerName) {
+          declinedPlayers.push({
+            name: playerName,
+            role: role,
+            roleEmoji: getRoleEmoji(role)
+          })
+        }
+      })
+    }
+  })
+  
+  return declinedPlayers
+}
+
+function getRoleEmoji(role) {
+  const roleEmojis = {
+    player: '🎭',
+    dj: '🎧',
+    mc: '🎤'
+  }
+  return roleEmojis[role] || '🎭'
+}
+
+async function moveDeclinedToComposition(declinedPlayer) {
+  try {
+    // Trouver un slot vide pour ce rôle
+    const emptySlot = teamSlots.value.find(slot => 
+      !slot.player && slot.role === declinedPlayer.role
+    )
+    
+    if (!emptySlot) {
+      console.warn('Aucun slot vide trouvé pour le rôle:', declinedPlayer.role)
+      return
+    }
+    
+    // Remplir le slot
+    emptySlot.player = declinedPlayer.name
+    emptySlot.playerId = getPlayerIdFromName(declinedPlayer.name)
+    
+    // Retirer le joueur de la liste des déclinés
+    await removeFromDeclined(declinedPlayer.name, declinedPlayer.role)
+    
+    // Sauvegarder
+    await autoSaveSelection()
+    
+    console.log('Joueur remis en composition:', declinedPlayer.name)
+  } catch (error) {
+    console.error('Erreur lors du déplacement du joueur décliné:', error)
+  }
+}
+
+async function movePlayerToDeclined(playerName, role) {
+  const playerId = getPlayerIdFromName(playerName)
+  if (!playerId) return
+  
+  // Créer une copie de la structure declined existante
+  const currentDeclined = props.currentSelection?.declined || {}
+  const newDeclined = { ...currentDeclined }
+  
+  // Ajouter le joueur à la liste des déclinés pour ce rôle
+  if (!newDeclined[role]) {
+    newDeclined[role] = []
+  }
+  if (!newDeclined[role].includes(playerId)) {
+    newDeclined[role].push(playerId)
+  }
+  
+  // Sauvegarder avec la nouvelle structure
+  const { saveCast } = await import('../services/storage.js')
+  await saveCast(props.event.id, props.currentSelection.roles, props.seasonId, { 
+    declined: newDeclined,
+    preserveConfirmed: true 
+  })
+}
+
+async function removeFromDeclined(playerName, role) {
+  if (!props.currentSelection || !props.currentSelection.declined) {
+    return
+  }
+  
+  const playerId = getPlayerIdFromName(playerName)
+  if (!playerId) return
+  
+  // Créer une copie de la structure declined
+  const newDeclined = { ...props.currentSelection.declined }
+  
+  if (newDeclined[role] && Array.isArray(newDeclined[role])) {
+    newDeclined[role] = newDeclined[role].filter(id => id !== playerId)
+    
+    // Si le rôle est vide, le supprimer
+    if (newDeclined[role].length === 0) {
+      delete newDeclined[role]
+    }
+  }
+  
+  // Sauvegarder avec la nouvelle structure
+  const { saveCast } = await import('../services/storage.js')
+  await saveCast(props.event.id, props.currentSelection.roles, props.seasonId, { 
+    declined: newDeclined,
+    preserveConfirmed: true 
+  })
 }
 
 // Fonctions pour la modale de confirmation de reselection
