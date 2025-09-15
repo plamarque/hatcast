@@ -298,7 +298,7 @@ function closeModal() {
 }
 
 function showAvailabilityGrid() {
-  emit('show-availability-grid', player.value?.id)
+  emit('show-availability-grid', props.player?.id)
   closeModal()
 }
 
