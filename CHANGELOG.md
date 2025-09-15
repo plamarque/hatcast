@@ -1,22 +1,15 @@
-## [0.15.1] - 2025-09-15
+## [0.15.2] - 2025-09-15
 
 ### 🐛 Bug Fixes
 
-- fix: improve availability display and real-time refresh
-- fix: remove automatic availability change when removing player from selection
-- fix: correct drawForRole to use allSeasonPlayers for candidate filtering
-
-### 🔧 Improvements
-
-- improve: enhance audit-cli timestamp handling and log retrieval
-
-### 📝 Other Changes
-
-- set exampel db to development for safety
+- fix: restore admin buttons in PlayerModal after role system introduction
+- fix: preserve declined players when completing selection
+- fix: keep displaying declined status on grid
 
 
 # Changelog
 
+## [0.15.2] - 2025-09-15
 ## [0.15.1] - 2025-09-15
 ## [0.15.0] - 2025-09-15
 ## [0.14.1] - 2025-09-14
