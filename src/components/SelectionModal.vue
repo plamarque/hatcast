@@ -618,20 +618,8 @@ async function clearSlot(index) {
     }
   }
   
-  // Si le joueur a décliné, le marquer automatiquement comme indisponible pour cet événement
-  if (removedPlayer && isPlayerDeclined(removedPlayer)) {
-    try {
-      const { setSingleAvailability } = await import('../services/storage.js')
-      await setSingleAvailability({ 
-        seasonId: props.seasonId, 
-        playerName: removedPlayer, 
-        eventId: props.event.id, 
-        value: false 
-      })
-    } catch (error) {
-      console.warn('Erreur lors du marquage indisponible:', error)
-    }
-  }
+  // Ne plus modifier automatiquement la disponibilité du joueur quand on l'enlève de la sélection
+  // Le joueur garde sa disponibilité originale qu'il a définie lui-même
   
   // Sauvegarde immédiate même si la sélection est verrouillée (pour les joueurs déclinés)
   await saveSlotChanges()

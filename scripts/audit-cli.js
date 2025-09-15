@@ -230,11 +230,17 @@ function obfuscateEmail(email) {
 function formatTimestamp(timestamp) {
   if (!timestamp) return 'N/A'
   
+  
   let date
   try {
     // Gérer les timestamps Firestore serverTimestamp non encore traités
     if (timestamp && timestamp._methodName === 'serverTimestamp') {
       return '⏳ En cours...'
+    }
+    
+    // Gérer les timestamps Firestore en format {_seconds, _nanoseconds}
+    if (timestamp && timestamp._seconds) {
+      date = new Date(timestamp._seconds * 1000)
     }
     
     // Gérer les timestamps Firestore
@@ -391,8 +397,9 @@ async function searchLogs(searchTerm, filters = {}) {
   try {
     logInfo(`Recherche de "${searchTerm}" dans les logs...`)
     
-    // Récupérer tous les logs et filtrer côté client pour la recherche
-    const allLogs = await getAuditLogsDirect({ limit: 1000 })
+    // Récupérer plus de logs pour l'historique (augmenter la limite)
+    const limit = filters.limit || 5000
+    const allLogs = await getAuditLogsDirect({ limit })
     
     // Filtrer les logs qui contiennent le terme de recherche
     const filteredLogs = allLogs.filter(log => {
