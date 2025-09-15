@@ -1,23 +1,15 @@
 <template>
   <div v-if="selectedEvent" class="space-y-4">
-    <!-- En-tête avec titre et statut -->
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-white">
-        {{ selectedEvent.title }}
-      </h3>
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-400">
-          {{ formatEventDate(selectedEvent.date) }}
+    <!-- En-tête avec statut uniquement -->
+    <div class="flex items-center justify-end mb-4">
+      <div v-if="eventStatus" class="flex items-center gap-1">
+        <span 
+          class="px-2 py-1 rounded-full text-xs font-medium"
+          :class="getStatusBadgeClass(eventStatus.type)"
+          :title="eventStatus.message"
+        >
+          {{ eventStatus.label }}
         </span>
-        <div v-if="eventStatus" class="flex items-center gap-1">
-          <span 
-            class="px-2 py-1 rounded-full text-xs font-medium"
-            :class="getStatusBadgeClass(eventStatus.type)"
-            :title="eventStatus.message"
-          >
-            {{ eventStatus.label }}
-          </span>
-        </div>
       </div>
     </div>
 
@@ -92,7 +84,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
               <!-- Statut de sélection -->
               <span 
-                v-if="isPlayerSelected(player.name, selectedEvent.id)"
+                v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
                 class="px-2 py-1 rounded text-xs font-medium"
                 :class="isSelectionConfirmed(selectedEvent.id) 
                   ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
@@ -175,6 +167,10 @@ const props = defineProps({
     required: true
   },
   isPlayerSelected: {
+    type: Function,
+    required: true
+  },
+  isPlayerSelectedForRole: {
     type: Function,
     required: true
   },

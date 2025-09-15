@@ -24,7 +24,7 @@
           class="cursor-pointer hover:opacity-80 transition-opacity duration-200 flex-shrink-0"
           :title="`Cliquer pour rafraîchir ${seasonName}`"
         >
-          <div class="w-10 h-10 rounded-lg overflow-hidden shadow-lg">
+          <div class="w-10 h-10 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-lg overflow-hidden shadow-lg">
             <img 
               :src="seasonMeta.logoUrl" 
               :alt="`Logo de ${seasonName}`"
@@ -35,7 +35,7 @@
         <div 
           v-else
           @click="refreshSeason"
-          class="cursor-pointer hover:opacity-80 transition-opacity duration-200 text-2xl flex-shrink-0"
+          class="cursor-pointer hover:opacity-80 transition-opacity duration-200 text-2xl md:text-3xl lg:text-4xl flex-shrink-0"
           :title="`Cliquer pour rafraîchir ${seasonName}`"
         >
           🎭

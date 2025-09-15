@@ -21,6 +21,7 @@
           
           <!-- Informations principales -->
           <div class="flex-1 min-w-0">
+            <!-- Nom du joueur et boutons d'action -->
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
               
@@ -43,20 +44,20 @@
               >
                 <span class="text-lg">🗑️</span>
               </button>
+            </div>
+            
+            <!-- Indicateurs de statut - déplacés sous le nom -->
+            <div class="flex items-center gap-2">
+              <!-- Indicateur de protection -->
+              <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
+                <span class="text-yellow-400 text-sm">🔒</span>
+                <span class="text-yellow-300 text-xs font-medium">Protégé</span>
+              </div>
               
-              <!-- Indicateurs de statut compacts (optionnel, gardés pour la lisibilité) -->
-              <div class="flex items-center gap-2">
-                <!-- Indicateur de protection -->
-                <div v-if="isProtected" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-full">
-                  <span class="text-yellow-400 text-sm">🔒</span>
-                  <span class="text-yellow-300 text-xs font-medium">Protégé</span>
-                </div>
-                
-                <!-- Indicateur de favori -->
-                <div v-if="isPreferred" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
-                  <span class="text-purple-400 text-sm">⭐</span>
-                  <span class="text-purple-300 text-xs font-medium">Favori</span>
-                </div>
+              <!-- Indicateur de favori -->
+              <div v-if="isPreferred" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
+                <span class="text-purple-400 text-sm">⭐</span>
+                <span class="text-purple-300 text-xs font-medium">Favori</span>
               </div>
             </div>
           </div>
@@ -68,17 +69,17 @@
         <!-- Stats condensées en 3 colonnes -->
         <div>
           <div class="grid grid-cols-3 gap-3 md:gap-4">
-            <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.availability }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
-            </div>
+           <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
+             <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal">({{ props.stats.availability }}%)</span></div>
+             <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
+           </div>
             <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Compositions</div>
+              <div class="text-xs md:text-sm text-gray-300">Participations</div>
             </div>
             <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}</div>
-              <div class="text-xs md:text-sm text-gray-300">% de composition</div>
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}%</div>
+              <div class="text-xs md:text-sm text-gray-300">Taux de sélection</div>
             </div>
           </div>
         </div>
@@ -93,6 +94,11 @@
             </span>
           </button>
           
+          <!-- Bouton Voir disponibilités -->
+          <button @click="showAvailabilityGrid" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
+            <span>📊</span>
+            <span>Voir disponibilités</span>
+          </button>
           
           <!-- Bouton Fermer -->
           <button @click="closeModal" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">
@@ -106,10 +112,13 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="showProtectionModal = true" data-testid="protect-button" class="h-12 px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-[1.4]">
-          {{ isProtectedForPlayer ? '🔓 Désactiver la protection' : '🔒 Protéger' }}
+        <button @click="showProtectionModal = true" data-testid="protect-button" class="h-12 px-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-1">
+          {{ isProtectedForPlayer ? '🔓' : '🔒' }}
         </button>
-        <button @click="closeModal" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">
+        <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1">
+          📊
+        </button>
+        <button @click="closeModal" class="h-12 px-3 bg-gray-700 text-white rounded-lg flex-1">
           Fermer
         </button>
       </div>
@@ -258,7 +267,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated'])
+const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated', 'show-availability-grid'])
 
 
 
@@ -286,6 +295,11 @@ const isOwnerForPlayer = ref(false)
 // Fonctions de gestion
 function closeModal() {
   emit('close')
+}
+
+function showAvailabilityGrid() {
+  emit('show-availability-grid', props.player?.id)
+  closeModal()
 }
 
 async function startEditing() {
