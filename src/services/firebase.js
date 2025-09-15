@@ -8,6 +8,32 @@ import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithE
 import configService from './configService.js'
 import logger from './logger.js'
 
+// Fonction pour configurer les listeners de connexion offline
+function setupOfflineListeners(db) {
+  try {
+    // Écouter les changements de connexion
+    const unsubscribe = db.onSnapshotsInSync(() => {
+      logger.info('🔄 Firestore synchronisé avec le serveur');
+    });
+    
+    // Stocker la fonction de nettoyage
+    window.firestoreUnsubscribe = unsubscribe;
+    
+    // Écouter les événements de connexion du navigateur
+    window.addEventListener('online', () => {
+      logger.info('🟢 Connexion rétablie - Synchronisation Firestore en cours');
+    });
+    
+    window.addEventListener('offline', () => {
+      logger.info('🔴 Mode offline - Firestore utilise le cache local');
+    });
+    
+    logger.info('✅ Listeners offline configurés');
+  } catch (error) {
+    logger.warn('⚠️ Erreur lors de la configuration des listeners offline:', error);
+  }
+}
+
 // Configuration Firebase sera créée après initialisation
 let app;
 let firebaseConfig;
@@ -64,13 +90,20 @@ async function initializeFirestoreInstance() {
       }
     }
     
-    // Initialiser Firestore avec la base spécifique
+    // Initialiser Firestore avec la base spécifique et configuration offline
     if (finalDatabase === 'default') {
-      // Base par défaut
-      firestoreDb = getFirestore(app);
+      // Base par défaut avec configuration offline
+      firestoreDb = initializeFirestore(app, {
+        cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache offline
+        experimentalForceOwningTab: false
+      });
     } else {
-      // Base spécifique avec databaseId
-      firestoreDb = getFirestore(app, finalDatabase);
+      // Base spécifique avec databaseId et configuration offline
+      firestoreDb = initializeFirestore(app, {
+        databaseId: finalDatabase,
+        cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache offline
+        experimentalForceOwningTab: false
+      });
     }
     
     logger.info('🔧 Tentative de connexion à la base:', finalDatabase, 'avec getFirestore() et databaseId:', finalDatabase);
@@ -79,6 +112,9 @@ async function initializeFirestoreInstance() {
     window.firebaseDbInstance = firestoreDb;
     
     logger.info('✅ Firestore initialisé avec la base:', finalDatabase);
+    
+    // Configurer les listeners de connexion pour le debug offline
+    setupOfflineListeners(firestoreDb);
     
     // Initialiser les autres services Firebase maintenant que l'app est créée
     const storage = getStorage(app);
