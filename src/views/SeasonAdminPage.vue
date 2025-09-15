@@ -180,9 +180,10 @@
             <div class="flex items-center justify-between mb-6">
               <div>
                 <h2 class="text-2xl font-bold text-white mb-2">📅 Gestion des événements</h2>
-                <p class="text-gray-300">
-                  Créer, modifier et gérer tous les événements de la saison
-                </p>
+                <!-- Nombre total d'événements -->
+                <div class="text-sm text-purple-300 mb-2">
+                  {{ totalEventsCount }} événement{{ totalEventsCount > 1 ? 's' : '' }} au total
+                </div>
                 <!-- Indicateur des résultats -->
                 <div v-if="searchTerm.trim() || showInactiveEvents || showPastEvents" class="text-sm text-purple-300 mt-1">
                   {{ filteredEvents.length }} événement{{ filteredEvents.length > 1 ? 's' : '' }} affiché{{ filteredEvents.length > 1 ? 's' : '' }}
