@@ -1853,8 +1853,9 @@ const route = useRoute()
 const auth = getFirebaseAuth()
 
 // Gestion de l'état d'authentification
-function onAuthStateChanged(user) {
-  // currentUser est maintenant importé depuis authState.js
+async function onAuthStateChanged(user) {
+  // Mettre à jour currentUser
+  currentUser.value = user
   
   // Mettre à jour l'état de surveillance quand l'authentification change
   nextTick(() => {
@@ -1877,6 +1878,42 @@ function onAuthStateChanged(user) {
   nextTick(async () => {
     await syncFavoritesWithAuthState(user)
   })
+  
+  // Recharger les joueurs selon l'état de connexion
+  if (seasonId.value) {
+    try {
+      if (user?.email) {
+        // Utilisateur connecté : charger les joueurs protégés
+        await loadUserOwnedPlayers()
+        if (userOwnedPlayers.value.size > 0) {
+          const allPlayers = await loadPlayers(seasonId.value)
+          const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
+          players.value = filteredPlayers
+          logger.debug(`📊 Utilisateur connecté: chargé ${filteredPlayers.length} joueurs protégés`)
+        } else {
+          // Pas de joueurs protégés, charger tous les joueurs
+          players.value = await loadPlayers(seasonId.value)
+          logger.debug('📊 Utilisateur connecté sans joueurs protégés: chargé tous les joueurs')
+        }
+      } else {
+        // Utilisateur déconnecté : charger tous les joueurs
+        players.value = await loadPlayers(seasonId.value)
+        logger.debug('📊 Utilisateur déconnecté: chargé tous les joueurs')
+      }
+      
+      // Recharger les disponibilités
+      const newAvailability = await loadAvailability(players.value, events.value, seasonId.value)
+      availability.value = newAvailability
+      
+      // Mettre à jour les états de chargement
+      players.value.forEach(player => {
+        playerLoadingStates.value.set(player.id, 'loaded')
+      })
+      
+    } catch (error) {
+      logger.error('❌ Erreur lors du rechargement des joueurs après changement d\'auth:', error)
+    }
+  }
 }
 
 // Fonction pour synchroniser les favoris avec l'état de connexion Firebase
@@ -4133,6 +4170,13 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
 watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
     logger.debug('🔄 Changement d\'état d\'authentification, rechargement des joueurs protégés')
+    
+    // Réinitialiser les états d'affichage lors du changement d'authentification
+    isAllPlayersView.value = false
+    isFocusedView.value = false
+    highlightedPlayer.value = null
+    manuallyAddedPlayers.value = new Set()
+    
     await loadProtectedPlayers()
     await updatePreferredPlayersSet()
     // Re-vérifier les permissions d'édition
@@ -4224,45 +4268,33 @@ onMounted(async () => {
       currentLoadingLabel.value = 'Chargement des joueurs'
       loadingProgress.value = 45
       
-      // OPTIMISATION MOBILE : Charger d'abord les joueurs protégés de l'utilisateur
+      // Charger tous les joueurs de la saison
+      players.value = await performanceService.measureStep('load_players', async () => {
+        return await loadPlayers(seasonId.value)
+      }, { seasonId: seasonId.value, count: 'unknown' })
+      
+      logger.debug(`📊 Chargé ${players.value.length} joueurs de la saison`)
+      
+      // OPTIMISATION MOBILE : Si l'utilisateur est connecté, charger ses joueurs protégés
       if (currentUser.value?.email) {
         try {
           // Charger les joueurs protégés de l'utilisateur connecté
           await loadUserOwnedPlayers()
           
           if (userOwnedPlayers.value.size > 0) {
-            // Charger seulement les joueurs protégés de l'utilisateur
-            const allPlayers = await performanceService.measureStep('load_players', async () => {
-              return await loadPlayers(seasonId.value)
-            }, { seasonId: seasonId.value, count: 'unknown' })
-            
             // Filtrer pour ne garder que les joueurs protégés de l'utilisateur
+            const allPlayers = players.value
             const filteredPlayers = allPlayers.filter(player => userOwnedPlayers.value.has(player.id))
             players.value = filteredPlayers
             
-            logger.debug(`📊 OPTIMISATION MOBILE: Chargé ${filteredPlayers.length} joueurs protégés sur ${allPlayers.length} total`)
+            logger.debug(`📊 OPTIMISATION MOBILE: Filtré vers ${filteredPlayers.length} joueurs protégés sur ${allPlayers.length} total`)
           } else {
-            // Pas de joueurs protégés, charger tous les joueurs
-            players.value = await performanceService.measureStep('load_players', async () => {
-              return await loadPlayers(seasonId.value)
-            }, { seasonId: seasonId.value, count: 'unknown' })
-            
-            logger.debug('📊 Pas de joueurs protégés trouvés, chargement de tous les joueurs')
+            logger.debug('📊 Pas de joueurs protégés trouvés, affichage de tous les joueurs')
           }
         } catch (error) {
-          logger.error('Erreur lors du chargement sélectif, fallback vers tous les joueurs:', error)
-          // Fallback : charger tous les joueurs
-          players.value = await performanceService.measureStep('load_players', async () => {
-            return await loadPlayers(seasonId.value)
-          }, { seasonId: seasonId.value, count: 'unknown' })
+          logger.error('Erreur lors du chargement sélectif:', error)
+          // Les joueurs sont déjà chargés, pas besoin de recharger
         }
-      } else {
-        // Utilisateur non connecté, charger tous les joueurs
-        players.value = await performanceService.measureStep('load_players', async () => {
-          return await loadPlayers(seasonId.value)
-        }, { seasonId: seasonId.value, count: 'unknown' })
-        
-        logger.debug('📊 Utilisateur non connecté, chargement de tous les joueurs')
       }
 
       // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
