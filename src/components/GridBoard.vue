@@ -4199,6 +4199,15 @@ onMounted(async () => {
       // Saison introuvable: rediriger vers la page des saisons
       logger.error('❌ Saison introuvable avec le slug:', props.slug)
       router.push('/seasons')
+      // Terminer le marqueur de performance avant de sortir
+      if (performanceService.markers.has('grid_loading')) {
+        performanceService.end('grid_loading', {
+          playersCount: 0,
+          eventsCount: 0,
+          seasonId: null,
+          error: 'season_not_found'
+        })
+      }
       return
     }
 
@@ -4567,6 +4576,17 @@ onMounted(async () => {
     
     // Forcer la fermeture du loading même en cas d'erreur
     isLoadingGrid.value = false
+  } finally {
+    // S'assurer que le marqueur de performance est toujours terminé
+    if (performanceService.markers.has('grid_loading')) {
+      const totalGridLoadingTime = performanceService.end('grid_loading', {
+        playersCount: players.value?.length || 0,
+        eventsCount: events.value?.length || 0,
+        seasonId: seasonId.value,
+        error: true
+      })
+      logger.info(`🚀 Grille chargée (avec erreur) en ${totalGridLoadingTime.toFixed(2)}ms`)
+    }
   }
 
   // Désistement: plus de modal/route dédiée, on utilise les magic links "no"
