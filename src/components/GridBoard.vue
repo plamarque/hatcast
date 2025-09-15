@@ -5850,9 +5850,10 @@ async function completeCastSlots(eventId) {
   
   logger.debug('🔧 Nouvelle composition à sauvegarder:', newSelections)
   
-  // Sauvegarder en base avec recalcul du statut
+  // Sauvegarder en base avec recalcul du statut et préserver les joueurs déclinés
   await saveCast(eventId, newSelections, seasonId.value, { 
-    preserveConfirmed: true
+    preserveConfirmed: true,
+    declined: currentSelection.declined || {} // Préserver la section déclinés
   })
   
   logger.debug('🔧 Composition sauvegardée avec succès')

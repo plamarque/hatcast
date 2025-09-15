@@ -615,6 +615,7 @@ export async function loadCasts(seasonId) {
     
     res[id] = {
       roles: decodedRoles,
+      declined: data.declined || {}, // Nouveau : joueurs déclinés
       confirmed: data.confirmed || false,
       confirmedAt: data.confirmedAt || null,
       updatedAt: data.updatedAt || null,
@@ -722,8 +723,10 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
     // Récupérer l'ancienne composition pour comparer
     const oldCastDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
     
-    // Extraire tous les joueurs de tous les rôles
+    // Extraire tous les joueurs de tous les rôles (y compris les déclinés)
     const allPlayers = Object.values(roles).flat().filter(Boolean)
+    const allDeclinedPlayers = Object.values(options.declined || {}).flat().filter(Boolean)
+    const allPlayersIncludingDeclined = [...allPlayers, ...allDeclinedPlayers]
     
     const oldCast = oldCastDoc 
       ? Object.values(oldCastDoc.roles || {}).flat().filter(Boolean)
@@ -742,9 +745,13 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
     
     // Initialiser les statuts individuels des joueurs
     const playerStatuses = {}
-    allPlayers.forEach(playerId => {
-      // Préserver le statut existant ou initialiser à 'pending'
-      playerStatuses[playerId] = oldCastDoc?.playerStatuses?.[playerId] || 'pending'
+    allPlayersIncludingDeclined.forEach(playerId => {
+      // Préserver le statut existant ou initialiser selon le contexte
+      if (allDeclinedPlayers.includes(playerId)) {
+        playerStatuses[playerId] = 'declined'
+      } else {
+        playerStatuses[playerId] = oldCastDoc?.playerStatuses?.[playerId] || 'pending'
+      }
     })
     
     // Calculer le statut de la composition
@@ -762,6 +769,9 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
     const castData = { 
       // Nouveau format (par rôle)
       roles: roles,
+      
+      // Nouveau : joueurs déclinés séparés (ne comptent pas dans les slots)
+      declined: options.declined || {},
       
       // Préserver les statuts de confirmation existants ou utiliser les options
       confirmed: options.preserveConfirmed ? (oldCastDoc?.confirmed || false) : false,
