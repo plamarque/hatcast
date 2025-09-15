@@ -106,15 +106,20 @@
               >
                 <!-- Mode normal : affichage des événements -->
                 <div v-if="currentViewMode === 'normal'" class="flex flex-col h-full">
-                  <!-- Ligne 1 : Titre avec icône -->
+                  <!-- Ligne 1 : Icône dédiée -->
                   <div 
                     class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
                     :title="headerItem.title + ' - Cliquez pour voir les détails'"
                     @click.stop="showEventDetails(headerItem)"
                   >
-                    <!-- Titre du spectacle avec icône -->
+                    <!-- Icône du type d'événement (ligne dédiée) -->
+                    <div v-if="headerItem.roles" class="flex items-center justify-center mb-2" :title="getEventTypeName(headerItem)">
+                      <span class="text-2xl md:text-3xl group-hover:text-purple-300 transition-colors duration-200">{{ getEventTypeIcon(headerItem) }}</span>
+                    </div>
+                    
+                    <!-- Titre du spectacle (sans icône) -->
                     <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
-                      <span v-if="headerItem.roles" :title="getEventTypeName(headerItem)" class="mr-1">{{ getEventTypeIcon(headerItem) }}</span>{{ headerItem.title || 'Sans titre' }}
+                      {{ headerItem.title || 'Sans titre' }}
                     </div>
                   </div>
                   
@@ -351,18 +356,23 @@
                     :title="'Cliquez pour voir les détails : ' + rowItem.title"
                   >
                     <div class="flex flex-col items-center gap-2 w-full">
-                      <!-- Ligne 1 : Titre du spectacle avec icône -->
-                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        <span v-if="rowItem.roles" :title="getEventTypeName(rowItem)" class="mr-1">{{ getEventTypeIcon(rowItem) }}</span>{{ rowItem.title || 'Sans titre' }}
+                      <!-- Ligne 1 : Icône du type d'événement (ligne dédiée) -->
+                      <div v-if="rowItem.roles" class="flex items-center justify-center" :title="getEventTypeName(rowItem)">
+                        <span class="text-xl md:text-2xl group-hover:text-purple-300 transition-colors duration-200">{{ getEventTypeIcon(rowItem) }}</span>
                       </div>
                       
-                      <!-- Ligne 2 : Date du spectacle -->
+                      <!-- Ligne 2 : Titre du spectacle (sans icône) -->
+                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        {{ rowItem.title || 'Sans titre' }}
+                      </div>
+                      
+                      <!-- Ligne 3 : Date du spectacle -->
                       <div class="text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
                            :title="formatDateFull(rowItem.date)">
                         {{ formatDate(rowItem.date) }}
                       </div>
                       
-                      <!-- Ligne 3 : Badge de type d'événement (affiché seulement s'il y a un badge) -->
+                      <!-- Ligne 4 : Badge de type d'événement (affiché seulement s'il y a un badge) -->
                       <div v-if="rowItem.archived" class="flex flex-col items-center">
                         <!-- Indicateur de statut inactif -->
                         <div 
