@@ -5447,7 +5447,7 @@ function getAvailabilityData(player, eventId) {
   if (selectionRole && isSelectionValidated) {
     const selectionStatus = getPlayerSelectionStatus(player, eventId)
     return {
-      available: true, // Toujours disponible s'il est dans une sélection validée
+      available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
       roles: [selectionRole],
       comment: availabilityData?.comment || null,
       isSelectionDisplay: true,
@@ -5756,7 +5756,7 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
   const declinedPlayers = getDeclinedPlayers(eventId)
   
   // Filtrer les candidats disponibles pour ce rôle
-  const candidates = allSeasonPlayers.value.filter(p => {
+ const candidates = allSeasonPlayers.value.filter(p => {
     // Vérifier la disponibilité pour ce rôle spécifique
     const isAvailableForThisRole = isAvailableForRole(p.name, role, eventId)
     const notDeclined = !declinedPlayers.includes(p.name)
@@ -8056,7 +8056,8 @@ async function handleUpdateCastFromModal() {
     casts.value = updatedSelections
     
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
-    await loadAvailabilityForAllPlayers()
+    const newAvailability = await loadAvailabilityForAllPlayers()
+    availability.value = newAvailability
     
     // Forcer la mise à jour de la modale en changeant sa clé
     if (showSelectionModal.value) {
