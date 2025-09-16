@@ -131,7 +131,7 @@ const props = defineProps({
   // Style props
   headerStyle: {
     type: String,
-    default: 'padding-top: max(48px, env(safe-area-inset-top) + 32px); padding-bottom: max(12px, env(safe-area-inset-bottom) + 48px);'
+    default: 'padding-top: max(32px, env(safe-area-inset-top) + 16px); padding-bottom: max(8px, env(safe-area-inset-bottom) + 16px);'
   },
   containerStyle: {
     type: String,
