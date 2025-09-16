@@ -2,13 +2,13 @@
   <div class="view-header sticky top-0 z-[110] bg-gray-900 border-b border-gray-700/30" 
        :style="headerStyle">
     <div class="w-full" :style="containerStyle">
-      <div class="max-w-4xl mx-auto px-4">
-        <div class="flex items-center justify-between gap-2">
+      <div class="max-w-4xl mx-auto px-2">
+        <div class="flex items-center justify-between gap-1">
           <!-- Dropdown de vue -->
           <div class="relative">
             <button
               @click="toggleViewDropdown"
-              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors"
+              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors"
               :class="{ 'bg-gray-700/50': showViewDropdown }"
             >
               <!-- Icône de la vue actuelle -->
@@ -68,7 +68,7 @@
           <div v-if="showPlayerSelector" class="relative">
             <button
               @click="togglePlayerModal"
-              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
             >
               <!-- Avatar du joueur sélectionné (un seul joueur) -->
               <div v-if="selectedPlayer && !participantsDisplayText" class="flex-shrink-0">
@@ -131,11 +131,11 @@ const props = defineProps({
   // Style props
   headerStyle: {
     type: String,
-    default: 'padding-top: max(32px, env(safe-area-inset-top) + 16px); padding-bottom: max(8px, env(safe-area-inset-bottom) + 16px);'
+    default: 'padding-top: max(8px, env(safe-area-inset-top) + 4px); padding-bottom: max(4px, env(safe-area-inset-bottom) + 4px);'
   },
   containerStyle: {
     type: String,
-    default: 'padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));'
+    default: 'padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right));'
   }
 })
 
