@@ -10,9 +10,9 @@
           <!-- Avatar du joueur avec statuts superposés -->
           <div class="relative flex-shrink-0">
             <PlayerAvatar 
-              :player-id="player?.id"
+              :player-id="player?.id || ''"
               :season-id="seasonId"
-              :player-name="player?.name"
+              :player-name="player?.name || ''"
               :player-gender="player?.gender || 'non-specified'"
               size="xl"
               :show-status-icons="false"

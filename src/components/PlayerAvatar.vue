@@ -74,7 +74,7 @@ import logger from '../services/logger.js'
 const props = defineProps({
   playerId: {
     type: String,
-    required: true
+    default: ''
   },
   seasonId: {
     type: String,

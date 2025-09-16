@@ -1558,7 +1558,7 @@
   <!-- Modal de détails du joueur -->
   <PlayerModal
     ref="playerModalRef"
-    :show="showPlayerModal"
+    :show="showPlayerModal && selectedPlayer"
     :player="selectedPlayer"
     :stats="getPlayerStats(selectedPlayer)"
     :season-id="seasonId"
@@ -2421,7 +2421,7 @@ async function handleShowAvailabilityGrid(playerId) {
     })
     
     logger.debug('✅ Affichage focalisé activé:', {
-      joueur: selectedPlayer.name,
+      joueur: selectedPlayer?.name || 'Tous',
       totalJoueurs: focusedPlayers.length,
       favoris: focusedPlayers.filter(p => preferredPlayerIdsSet.value.has(p.id)).length
     })
