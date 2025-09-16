@@ -131,8 +131,8 @@ export default {
       default: () => ({})
     },
     casts: {
-      type: Array,
-      default: () => []
+      type: Object,
+      default: () => ({})
     },
     seasonId: {
       type: String,
@@ -353,70 +353,13 @@ export default {
       }
     }
     
-    const isPlayerSelected = (eventId) => {
-      if (!props.selectedPlayerId || !props.casts || !eventId) return false
-      try {
-        return props.casts.some(cast => cast.eventId === eventId && cast.playerId === props.selectedPlayerId)
-      } catch (error) {
-        console.warn('Erreur lors de la vérification de la sélection:', error)
-        return false
-      }
-    }
-    
-    const isSelectionConfirmed = (eventId) => {
-      if (!props.selectedPlayerId || !props.casts || !eventId) return false
-      try {
-        const cast = props.casts.find(cast => cast.eventId === eventId && cast.playerId === props.selectedPlayerId)
-        return cast ? cast.confirmed === true : false
-      } catch (error) {
-        console.warn('Erreur lors de la vérification de la confirmation:', error)
-        return false
-      }
-    }
-    
-    const isSelectionConfirmedByOrganizer = (eventId) => {
-      if (!props.selectedPlayerId || !props.casts || !eventId) return false
-      try {
-        const cast = props.casts.find(cast => cast.eventId === eventId && cast.playerId === props.selectedPlayerId)
-        return cast ? cast.confirmedByOrganizer === true : false
-      } catch (error) {
-        console.warn('Erreur lors de la vérification de la confirmation par l\'organisateur:', error)
-        return false
-      }
-    }
-    
-    const getPlayerSelectionStatus = (eventId) => {
-      if (!props.selectedPlayerId || !props.casts || !eventId) return 'pending'
-      try {
-        const cast = props.casts.find(cast => cast.eventId === eventId && cast.playerId === props.selectedPlayerId)
-        return cast ? cast.status : 'pending'
-      } catch (error) {
-        console.warn('Erreur lors de la récupération du statut de sélection:', error)
-        return 'pending'
-      }
-    }
-    
-    const getAvailabilityData = (eventId) => {
-      if (!props.selectedPlayerId || !props.availability || !eventId) return {}
-      try {
-        const eventAvailability = props.availability[eventId]
-        if (!eventAvailability) return {}
-        return { [props.selectedPlayerId]: eventAvailability[props.selectedPlayerId] || 'unavailable' }
-      } catch (error) {
-        console.warn('Erreur lors de la récupération des données de disponibilité:', error)
-        return {}
-      }
-    }
-    
-    const isPlayerProtected = (eventId) => {
-      if (!props.selectedPlayerId || !eventId) return false
-      try {
-        return props.isPlayerProtectedInGrid(props.selectedPlayerId, eventId)
-      } catch (error) {
-        console.warn('Erreur lors de la vérification de la protection:', error)
-        return false
-      }
-    }
+    // Utiliser les fonctions passées en props
+    const isPlayerSelected = props.isPlayerSelected
+    const isSelectionConfirmed = props.isSelectionConfirmed
+    const isSelectionConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer
+    const getPlayerSelectionStatus = props.getPlayerSelectionStatus
+    const getAvailabilityData = props.getAvailabilityData
+    const isPlayerProtected = props.isPlayerProtectedInGrid
     
     // Handlers pour les événements de disponibilité
     const handleAvailabilityToggle = (playerName, eventId) => {

@@ -628,6 +628,7 @@
         :availability="availability"
         :casts="casts"
         :season-id="seasonId"
+        :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-available="isAvailable"
         :is-player-selected="isPlayerSelected"
@@ -2028,6 +2029,7 @@ import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 import TimelineView from './TimelineView.vue'
+import PlayerSelectorModal from './PlayerSelectorModal.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -2163,6 +2165,16 @@ const showViewToggle = ref(false)
 // État de la vue (lignes, colonnes, chronologique)
 const currentView = ref('lignes') // 'lignes', 'colonnes', 'chronologique'
 const showViewDropdown = ref(false)
+
+// Variables pour la vue chronologique
+const selectedPlayerId = ref(null)
+const showPlayerModal = ref(false)
+
+// Computed pour le joueur sélectionné
+const selectedPlayer = computed(() => {
+  if (!selectedPlayerId.value || !players.value) return null
+  return players.value.find(p => p.id === selectedPlayerId.value) || null
+})
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -2555,8 +2567,6 @@ const availabilityCoachmark = ref({ position: null })
 const playerNameCoachmark = ref({ position: null })
 
 // Variables pour le modal joueur
-const showPlayerModal = ref(false)
-const selectedPlayer = ref(null)
 const playerModalRef = ref(null)
 
 // Variables pour la protection par PIN
@@ -2897,6 +2907,21 @@ function getViewLabel(view) {
     case 'chronologique': return 'Chronologique'
     default: return 'Lignes'
   }
+}
+
+// Fonctions pour la vue chronologique
+function togglePlayerModal() {
+  showPlayerModal.value = !showPlayerModal.value
+}
+
+function handlePlayerSelected(player) {
+  selectedPlayerId.value = player.id
+  showPlayerModal.value = false
+}
+
+function handleAllPlayersSelected() {
+  selectedPlayerId.value = null
+  showPlayerModal.value = false
 }
 function closePreferences() { 
   showPreferences.value = false 
