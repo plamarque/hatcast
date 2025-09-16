@@ -33,6 +33,7 @@
         :show-player-selector="true"
         :selected-player="selectedPlayer"
         :participants-display-text="dropdownDisplayText"
+        :is-sticky="false"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
