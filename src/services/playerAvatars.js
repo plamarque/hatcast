@@ -114,11 +114,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
     const result = { photoURL: null, email: null, isAssociated: false, source: 'none' }
     avatarCache.set(cacheKey, result)
     
-    logger.debug('PlayerAvatar service: No avatar found', {
-      playerId,
-      seasonId,
-      hasAssociation: !!association
-    })
+    // Pas de log pour les avatars non trouvés (cas normal)
     
     return result
     
@@ -240,7 +236,7 @@ async function getUserPhotoURL(email) {
       }
     }
     
-    logger.debug('PlayerAvatar service: No user avatar found', { email })
+    // Pas de log pour les avatars utilisateur non trouvés (cas normal)
     return null
     
   } catch (error) {
