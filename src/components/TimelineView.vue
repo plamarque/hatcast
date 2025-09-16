@@ -184,6 +184,25 @@ export default {
     'selection-status-toggle',
     'show-availability-modal'
   ],
+  props: {
+    events: Array,
+    players: Array,
+    availability: Object,
+    casts: Object,
+    seasonId: String,
+    selectedPlayerId: String,
+    preferredPlayerIdsSet: Set,
+    isAvailable: Function,
+    isPlayerSelected: Function,
+    isSelectionConfirmed: Function,
+    isSelectionConfirmedByOrganizer: Function,
+    getPlayerSelectionStatus: Function,
+    getAvailabilityData: Function,
+    isPlayerProtectedInGrid: Function,
+    getSelectionPlayers: Function,
+    getTotalRequiredCount: Function,
+    countAvailablePlayers: Function
+  },
   setup(props, { emit }) {
     // Variables réactives
     const showPlayerModal = ref(false)
