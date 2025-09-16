@@ -42,7 +42,9 @@
           <div class="flex items-center space-x-2">
             <PlayerAvatar
               :player-id="player.id"
+              :season-id="seasonId"
               :player-name="player.name"
+              :player-gender="player.gender || 'non-specified'"
               :size="'sm'"
               class="w-6 h-6"
             />
