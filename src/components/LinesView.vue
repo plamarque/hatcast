@@ -20,22 +20,25 @@
     @toggle-player-modal="togglePlayerModal"
   >
     <!-- En-têtes des événements -->
-    <template #headers="{ items, itemWidth }">
+    <template #headers="{ item, itemWidth }">
       <div
-        v-for="event in items"
-        :key="event.id"
         class="col-event bg-gray-800 flex items-center justify-center px-2 py-3"
         :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
       >
-        <div class="flex flex-col items-center space-y-1">
-          <div class="flex items-center gap-1 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
-            <span class="text-lg">{{ getEventIcon(event) }}</span>
-            <span class="text-white font-medium text-sm text-center leading-tight">{{ event.title }}</span>
+        <div class="flex flex-col items-center space-y-1 w-full">
+          <!-- Emoji et titre empilés -->
+          <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
+            <span class="text-lg">{{ getEventIcon(item) }}</span>
+            <span class="text-white font-medium text-sm text-center leading-tight line-clamp-3 overflow-hidden" 
+                  :title="item.title">
+              {{ item.title }}
+            </span>
           </div>
+          <!-- Date et statut empilés -->
           <div class="flex flex-col items-center space-y-1">
-            <span class="text-gray-400 text-xs text-center">{{ formatEventDate(event.date) }}</span>
-            <span :class="getStatusColor(getEventStatus(event))" class="text-xs px-2 py-1 rounded-full">
-              {{ getStatusLabel(getEventStatus(event)) }}
+            <span class="text-gray-400 text-xs text-center">{{ formatEventDate(item.date) }}</span>
+            <span :class="getStatusColor(getEventStatus(item))" class="text-xs px-2 py-1 rounded-full">
+              {{ getStatusLabel(getEventStatus(item)) }}
             </span>
           </div>
         </div>
@@ -220,13 +223,13 @@ const emit = defineEmits([
 const eventColumnWidth = computed(() => {
   // Largeur adaptative pour les colonnes d'événements selon la taille d'écran
   if (window.innerWidth <= 375) {
-    return 80 // 5rem pour iPhone 16 et plus petit
+    return 140 // 8.75rem pour iPhone 16 et plus petit
   } else if (window.innerWidth <= 430) {
-    return 96 // 6rem pour iPhone 16 Plus
+    return 160 // 10rem pour iPhone 16 Plus
   } else if (window.innerWidth <= 768) {
-    return 104 // 6.5rem pour écrans moyens
+    return 180 // 11.25rem pour écrans moyens
   }
-  return 120 // Desktop
+  return 200 // Desktop
 })
 
 // Fonctions utilitaires
