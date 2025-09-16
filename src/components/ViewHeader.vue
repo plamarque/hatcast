@@ -1,5 +1,6 @@
 <template>
-  <div class="view-header sticky top-0 z-[110] bg-gray-900 border-b border-gray-700/30" 
+  <div class="view-header bg-gray-900 border-b border-gray-700/30" 
+       :class="{ 'sticky top-0 z-[110]': isSticky }"
        :style="headerStyle">
     <div class="w-full" :style="containerStyle">
       <div class="max-w-4xl mx-auto px-2">
@@ -136,6 +137,10 @@ const props = defineProps({
   containerStyle: {
     type: String,
     default: 'padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right));'
+  },
+  isSticky: {
+    type: Boolean,
+    default: true
   }
 })
 
