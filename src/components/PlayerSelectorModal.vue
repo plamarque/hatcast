@@ -5,7 +5,7 @@
       <!-- Header -->
       <div class="p-6 border-b border-white/10">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-bold text-white">Afficher plus de joueurs</h2>
+          <h2 class="text-2xl font-bold text-white">Afficher plus de participants</h2>
           <button @click="closeModal" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
             ✖️
           </button>
@@ -19,14 +19,14 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Rechercher un joueur..."
+            placeholder="Rechercher un participant..."
             class="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
             @keyup.escape="closeModal"
             ref="searchInput"
           />
         </div>
         
-        <!-- Liste des joueurs -->
+        <!-- Liste des participants -->
         <div class="max-h-80 overflow-y-auto">
           <!-- Option "Tous" -->
           <div
@@ -39,14 +39,14 @@
             </div>
             <div>
               <div class="text-white font-medium">Tous</div>
-              <div class="text-gray-400 text-sm">Charger tous les joueurs de la saison</div>
+              <div class="text-gray-400 text-sm">Charger tous les participants de la saison</div>
             </div>
           </div>
           
           <!-- Séparateur -->
           <div class="border-t border-gray-600 my-2"></div>
           
-          <!-- Liste des joueurs filtrés -->
+          <!-- Liste des participants filtrés -->
           <div
             v-for="player in filteredPlayers"
             :key="player.id"
@@ -63,10 +63,29 @@
             />
             <div class="flex-1">
               <div class="text-white font-medium">{{ player.name }}</div>
+              <!-- Indicateur si le joueur est déjà affiché -->
+              <div v-if="isPlayerAlreadyDisplayed(player.id)" class="text-gray-400 text-xs">
+                Déjà affiché
+              </div>
             </div>
-            <!-- Icône de cadenas pour les joueurs protégés -->
+            <!-- Icône de cadenas pour les participants protégés -->
             <div v-if="isPlayerProtected(player.id)" class="text-yellow-400 text-sm">
               🔒
+            </div>
+          </div>
+          
+          <!-- Option "Ajouter un participant" -->
+          <div class="border-t border-gray-600 my-2"></div>
+          <div
+            @click="addNewPlayer"
+            class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200"
+          >
+            <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+              <span class="text-white text-lg font-bold">+</span>
+            </div>
+            <div>
+              <div class="text-white font-medium">Ajouter un participant</div>
+              <div class="text-gray-400 text-sm">Créer un nouveau participant</div>
             </div>
           </div>
         </div>
@@ -109,14 +128,18 @@ export default {
     isPlayerProtected: {
       type: Function,
       default: () => false
+    },
+    isPlayerAlreadyDisplayed: {
+      type: Function,
+      default: () => false
     }
   },
-  emits: ['close', 'player-selected', 'all-players-selected'],
+  emits: ['close', 'player-selected', 'all-players-selected', 'add-new-player'],
   setup(props, { emit }) {
     const searchQuery = ref('')
     const searchInput = ref(null)
     
-    // Joueurs filtrés pour l'autocomplete
+    // Participants filtrés pour l'autocomplete
     const filteredPlayers = computed(() => {
       if (!searchQuery.value.trim()) {
         return props.players.slice(0, 20) // Limiter à 20 résultats par défaut
@@ -143,6 +166,16 @@ export default {
       closeModal()
     }
     
+    const addNewPlayer = () => {
+      emit('add-new-player')
+      closeModal()
+    }
+    
+    // Vérifier si un joueur est déjà affiché dans la grille
+    const isPlayerAlreadyDisplayed = (playerId) => {
+      return props.isPlayerAlreadyDisplayed(playerId)
+    }
+    
     // Focus sur l'input quand le modal s'ouvre
     watch(() => props.show, (newShow) => {
       if (newShow) {
@@ -161,7 +194,9 @@ export default {
       filteredPlayers,
       closeModal,
       selectPlayer,
-      selectAllPlayers
+      selectAllPlayers,
+      addNewPlayer,
+      isPlayerAlreadyDisplayed
     }
   }
 }

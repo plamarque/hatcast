@@ -44,9 +44,11 @@
         :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-player-protected="isPlayerProtectedInGrid"
+        :is-player-already-displayed="isPlayerAlreadyDisplayed"
         @close="closePlayerModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
+        @add-new-player="openNewPlayerForm"
       />
       
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
@@ -514,9 +516,11 @@
         :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-player-protected="isPlayerProtectedInGrid"
+        :is-player-already-displayed="isPlayerAlreadyDisplayed"
         @close="closePlayerModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
+        @add-new-player="openNewPlayerForm"
       />
       
       <TimelineView
@@ -2839,11 +2843,17 @@ function togglePlayerModal() {
 function handlePlayerSelected(player) {
   selectedPlayerId.value = player.id
   showPlayerModal.value = false
+  logger.debug('🎯 Joueur sélectionné:', player.name, player.id)
 }
 
 function handleAllPlayersSelected() {
   selectedPlayerId.value = null
   showPlayerModal.value = false
+}
+
+// Fonction pour vérifier si un joueur est déjà affiché dans la grille
+function isPlayerAlreadyDisplayed(playerId) {
+  return players.value.some(p => p.id === playerId)
 }
 function closePreferences() { 
   showPreferences.value = false 
@@ -4434,6 +4444,9 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
   evaluatePlayerTourStart()
 })
 
+// Initialiser selectedPlayerId avec le premier joueur favori quand les données sont chargées
+// (Initialisation déplacée dans onMounted pour éviter les erreurs de watcher)
+
 // Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
 watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
@@ -4975,6 +4988,12 @@ const sortedPlayers = computed(() => {
 
 // Computed pour les joueurs affichés
 const displayedPlayers = computed(() => {
+  // Si un joueur spécifique est sélectionné, ne montrer que ce joueur
+  if (selectedPlayerId.value) {
+    const selectedPlayer = sortedPlayers.value.find(p => p.id === selectedPlayerId.value)
+    return selectedPlayer ? [selectedPlayer] : []
+  }
+  // Sinon, montrer tous les joueurs (option "Tous")
   return sortedPlayers.value
 })
 
