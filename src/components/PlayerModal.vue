@@ -153,17 +153,8 @@
 
       <!-- Comment on t'appelle ? -->
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-3">Qu'est-ce qui désigne le mieux cette personne ?</label>
+        <label class="block text-sm font-medium text-gray-300 mb-3">Quel genre utiliser pour la désigner ?</label>
         <div class="space-y-3">
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input
-              v-model="editingGender"
-              type="radio"
-              value="non-specified"
-              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
-            >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un.e improvisateur.trice</span>
-          </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
               v-model="editingGender"
@@ -171,7 +162,7 @@
               value="female"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est une improvisatrice</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Féminin (ex: une improvisatrice)</span>
           </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
@@ -180,7 +171,16 @@
               value="male"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un improvisateur</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Masculin (ex: un improvisateur)</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="editingGender"
+              type="radio"
+              value="non-specified"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">Non spécifié (ex: un.e improvisateur.trice)</span>
           </label>
         </div>
       </div>

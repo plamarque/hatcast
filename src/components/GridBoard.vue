@@ -744,7 +744,7 @@
   <!-- Modale de création de joueur -->
   <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">👤 Nouveau Participant</h2>
       
       <!-- Nom -->
       <div class="mb-6">
@@ -767,17 +767,8 @@
 
       <!-- Comment on t'appelle ? -->
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-3">Qu'est-ce qui désigne le mieux cette personne ?</label>
+        <label class="block text-sm font-medium text-gray-300 mb-3">Quel genre utiliser pour la désigner ?</label>
         <div class="space-y-3">
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input
-              v-model="newPlayerGender"
-              type="radio"
-              value="non-specified"
-              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
-            >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un.e improvisateur.trice</span>
-          </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
               v-model="newPlayerGender"
@@ -785,7 +776,7 @@
               value="female"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est une improvisatrice</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Féminin (ex: une improvisatrice)</span>
           </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
@@ -794,7 +785,16 @@
               value="male"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un improvisateur</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Masculin (ex: un improvisateur)</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="newPlayerGender"
+              type="radio"
+              value="non-specified"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">Non spécifié (ex: un.e improvisateur.trice)</span>
           </label>
         </div>
       </div>
