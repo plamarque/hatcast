@@ -5,7 +5,7 @@
       <thead class="sticky top-0 z-[105] shadow-lg">
         <tr>
           <!-- Colonne de gauche -->
-          <th class="col-left bg-gray-800 px-4 py-3 text-left">
+          <th class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[106]">
             <span class="text-white font-medium text-sm">{{ leftColumnTitle }}</span>
           </th>
           
@@ -192,6 +192,9 @@ onUnmounted(() => {
   width: 12rem;
   min-width: 12rem;
   max-width: 12rem;
+  position: sticky;
+  left: 0;
+  z-index: 105;
 }
 
 .col-player {
