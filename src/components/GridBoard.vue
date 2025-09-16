@@ -2842,14 +2842,115 @@ function togglePlayerModal() {
   showPlayerModal.value = !showPlayerModal.value
 }
 
-function handlePlayerSelected(player) {
-  selectedPlayerId.value = player.id
-  showPlayerModal.value = false
-  logger.debug('🎯 Joueur sélectionné:', player.name, player.id)
+async function handlePlayerSelected(player) {
+  // Pour la vue chronologique : changer le joueur sélectionné
+  if (validCurrentView.value === 'timeline') {
+    selectedPlayerId.value = player.id
+    showPlayerModal.value = false
+    logger.debug('🎯 Joueur sélectionné pour la vue chronologique:', player.name, player.id)
+  } else {
+    // Pour les vues lignes/colonnes : ajouter le joueur à la grille
+    await addPlayerToGrid(player)
+  }
 }
 
-function handleAllPlayersSelected() {
-  selectedPlayerId.value = null
+async function handleAllPlayersSelected() {
+  // Pour la vue chronologique : afficher tous les joueurs
+  if (validCurrentView.value === 'timeline') {
+    selectedPlayerId.value = null
+    showPlayerModal.value = false
+    logger.debug('🎯 Affichage de tous les joueurs pour la vue chronologique')
+  } else {
+    // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille
+    await addAllPlayersToGrid()
+  }
+}
+
+// Fonction pour ajouter un joueur à la grille (vues lignes/colonnes)
+async function addPlayerToGrid(player) {
+  // Vérifier si le joueur est déjà dans la grille
+  const isAlreadyInGrid = players.value.some(p => p.id === player.id)
+  
+  if (isAlreadyInGrid) {
+    logger.debug('Joueur déjà dans la grille:', player.name)
+    showPlayerModal.value = false
+    return
+  }
+  
+  // Ajouter le joueur à la grille
+  try {
+    logger.debug('🔄 Ajout du joueur à la grille:', player.name)
+    
+    // Ajouter le joueur à la liste
+    players.value.push(player)
+    
+    // Marquer comme joueur ajouté manuellement
+    manuallyAddedPlayers.value.add(player.id)
+    
+    // Charger les disponibilités pour ce joueur
+    const playerAvailability = await loadAvailability([player], events.value, seasonId.value)
+    
+    // Fusionner avec les disponibilités existantes
+    Object.keys(playerAvailability).forEach(key => {
+      if (!availability.value[key]) {
+        availability.value[key] = playerAvailability[key]
+      } else {
+        // Fusionner les disponibilités existantes avec les nouvelles
+        Object.assign(availability.value[key], playerAvailability[key])
+      }
+    })
+    
+    // Marquer le joueur comme chargé
+    playerLoadingStates.value.set(player.id, 'loaded')
+    
+    logger.debug('✅ Joueur ajouté à la grille avec ses disponibilités')
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'ajout du joueur:', error)
+  }
+  
+  showPlayerModal.value = false
+}
+
+// Fonction pour ajouter tous les joueurs à la grille (vues lignes/colonnes)
+async function addAllPlayersToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les joueurs de la saison...')
+    
+    // Sauvegarder les joueurs originaux si ce n'est pas déjà fait
+    if (!isAllPlayersView.value) {
+      originalPlayers.value = [...players.value]
+    }
+    
+    // Charger tous les joueurs
+    const allPlayers = await loadPlayers(seasonId.value)
+    players.value = allPlayers
+    
+    // Marquer tous les joueurs comme ajoutés manuellement
+    allPlayers.forEach(player => {
+      manuallyAddedPlayers.value.add(player.id)
+    })
+    
+    // Activer le mode "tous les joueurs"
+    isAllPlayersView.value = true
+    isFocusedView.value = false // Désactiver la vue focalisée si elle était active
+    
+    logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
+    logger.debug('🔍 isAllPlayersView activé:', isAllPlayersView.value)
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    allPlayers.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les joueurs:', error)
+  }
+  
   showPlayerModal.value = false
 }
 
