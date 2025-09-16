@@ -29,6 +29,7 @@
 | `PlayerSelectorModal` | `z-[1500]` | Sélection joueur |
 | `PlayerModal` | `z-[1050]` | Détails joueur |
 | `EventModal` | `z-[1010]` | Création événement |
+| `ViewHeader` | `z-[1210]` | Sélection de vue |
 | `AccountDropdown` | `z-[1250]` | Menu utilisateur |
 | `PasswordVerificationModal` | `z-[9995]` | Vérification critique |
 | `ToastNotifications` | `z-[9999]` | Notifications |
