@@ -204,6 +204,14 @@ const props = defineProps({
   isPlayerProtectedInGrid: {
     type: Function,
     required: true
+  },
+  headerOffsetX: {
+    type: Number,
+    default: 0
+  },
+  headerScrollX: {
+    type: Number,
+    default: 0
   }
 })
 
