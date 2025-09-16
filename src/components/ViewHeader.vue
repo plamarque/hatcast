@@ -28,7 +28,7 @@
             </button>
 
             <!-- Menu déroulant des vues -->
-            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
+            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
               <button
                 @click="selectView('lines')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"

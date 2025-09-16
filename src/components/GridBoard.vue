@@ -36,6 +36,19 @@
         @player-modal-toggle="togglePlayerModal"
       />
       
+      <!-- Modal de sélection de joueur pour les vues lignes/colonnes -->
+      <PlayerSelectorModal
+        :show="showPlayerModal"
+        :players="players"
+        :season-id="seasonId"
+        :selected-player-id="selectedPlayerId"
+        :preferred-player-ids-set="preferredPlayerIdsSet"
+        :is-player-protected="isPlayerProtectedInGrid"
+        @close="closePlayerModal"
+        @player-selected="handlePlayerSelected"
+        @all-players-selected="handleAllPlayersSelected"
+      />
+      
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
         
