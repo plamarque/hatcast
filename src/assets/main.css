@@ -104,15 +104,15 @@
 @media (max-width: 768px) {
   /* Forcer la largeur de la première colonne sur mobile - priorité élevée */
   .gridboard .col-left {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
+    width: 17.5rem !important;
+    min-width: 17.5rem !important;
+    max-width: 17.5rem !important;
   }
   
   .gridboard .left-col-td {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
+    width: 17.5rem !important;
+    min-width: 17.5rem !important;
+    max-width: 17.5rem !important;
   }
   /* Réduire la densité des cellules sur mobile */
   .col-event {
