@@ -202,9 +202,12 @@
                   <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
                     <span class="text-white text-lg md:text-xl font-bold">+</span>
                   </div>
-                  <!-- Sous-titre -->
+                  <!-- Sous-titre avec compteur -->
                   <div class="text-xs text-gray-300 text-center">
                     Afficher Plus
+                    <div v-if="hiddenPlayersCount > 0" class="text-xs text-gray-400 mt-1">
+                      (+{{ hiddenPlayersCount }})
+                    </div>
                   </div>
                 </div>
                 
@@ -438,9 +441,12 @@
                     <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
                       <span class="text-white text-lg md:text-xl font-bold">+</span>
                     </div>
-                    <!-- Sous-titre -->
+                    <!-- Sous-titre avec compteur -->
                     <div class="text-xs text-gray-300 text-center">
                       Afficher Plus
+                      <div v-if="hiddenPlayersCount > 0" class="text-xs text-gray-400 mt-1">
+                        (+{{ hiddenPlayersCount }})
+                      </div>
                     </div>
                   </div>
                   
@@ -5098,6 +5104,25 @@ const displayedPlayers = computed(() => {
   }
   // Sinon, montrer tous les joueurs (option "Tous")
   return sortedPlayers.value
+})
+
+// Computed pour le nombre de participants masqués (pour les vues lignes/colonnes)
+const hiddenPlayersCount = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return 0
+  }
+  
+  // Si on est en mode "tous les joueurs", aucun n'est masqué
+  if (isAllPlayersView.value) {
+    return 0
+  }
+  
+  // Calculer la différence entre tous les joueurs de la saison et ceux affichés
+  const totalSeasonPlayers = allSeasonPlayers.value.length
+  const displayedCount = players.value.length
+  
+  return Math.max(0, totalSeasonPlayers - displayedCount)
 })
 
 
