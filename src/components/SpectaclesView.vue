@@ -45,7 +45,7 @@
       </div>
     </template>
 
-    <!-- Lignes de joueurs -->
+    <!-- Lignes de joueurs (vue spectacles) -->
     <template #rows="{ items: players, columns: events, itemWidth }">
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->

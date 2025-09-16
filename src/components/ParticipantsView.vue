@@ -54,7 +54,7 @@
       </div>
     </template>
 
-    <!-- Lignes d'événements -->
+    <!-- Lignes d'événements (vue participants) -->
     <template #rows="{ items: events, columns: players, itemWidth }">
       <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
@@ -228,11 +228,11 @@ const eventsTitle = computed(() => {
 const playerColumnWidth = computed(() => {
   // Largeur adaptative pour les colonnes de joueurs selon la taille d'écran
   if (window.innerWidth <= 375) {
-    return 80 // 5rem pour iPhone 16 et plus petit
+    return 64 // 4rem pour iPhone 16 et plus petit
   } else if (window.innerWidth <= 430) {
-    return 88 // 5.5rem pour iPhone 16 Plus
+    return 72 // 4.5rem pour iPhone 16 Plus
   } else if (window.innerWidth <= 768) {
-    return 80 // 5rem pour écrans moyens
+    return 72 // 4.5rem pour écrans moyens
   }
   return 80 // Desktop
 })

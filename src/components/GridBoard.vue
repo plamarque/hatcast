@@ -24,7 +24,7 @@
 
 
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'lines' || validCurrentView === 'columns'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
+    <div v-if="validCurrentView === 'spectacles' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       
       <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
@@ -54,9 +54,9 @@
       />
       
       <!-- Composants de vue séparés -->
-      <ColumnView
-        v-if="validCurrentView === 'columns'"
-        key="column-view"
+      <ParticipantsView
+        v-if="validCurrentView === 'participants'"
+        key="participants-view"
         :events="events"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
@@ -90,9 +90,9 @@
         @event-click="openEventModal"
       />
       
-      <LinesView
-        v-if="validCurrentView === 'lines'"
-        key="lines-view"
+      <SpectaclesView
+        v-if="validCurrentView === 'spectacles'"
+        key="spectacles-view"
         :events="events"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
@@ -1626,8 +1626,8 @@ import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 import TimelineView from './TimelineView.vue'
-import ColumnView from './ColumnView.vue'
-import LinesView from './LinesView.vue'
+import ParticipantsView from './ParticipantsView.vue'
+import SpectaclesView from './SpectaclesView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
 import ViewHeader from './ViewHeader.vue'
 
@@ -1759,8 +1759,8 @@ const seasonMeta = ref({})
 const isScrolled = ref(false)
 
 // Vues valides disponibles
-const VALID_VIEWS = ['lines', 'columns', 'timeline']
-const DEFAULT_VIEW = 'lines'
+const VALID_VIEWS = ['spectacles', 'participants', 'timeline']
+const DEFAULT_VIEW = 'spectacles'
 
 // Fonction utilitaire pour valider et obtenir une vue valide
 const getValidView = (view) => {
@@ -2497,11 +2497,11 @@ function initializeViewMode() {
   } else {
     // Fallback seulement si aucune préférence sauvegardée
     if (currentUser.value?.email) {
-      currentView.value = 'columns'
-      logger.debug('✅ Mode de vue par défaut: colonnes (utilisateur connecté)')
+      currentView.value = 'participants'
+      logger.debug('✅ Mode de vue par défaut: participants (utilisateur connecté)')
     } else {
-      currentView.value = 'lines'
-      logger.debug('✅ Mode de vue par défaut: lignes (utilisateur non connecté)')
+      currentView.value = 'spectacles'
+      logger.debug('✅ Mode de vue par défaut: spectacles (utilisateur non connecté)')
     }
   }
   
@@ -2528,8 +2528,8 @@ function selectView(view) {
 // Fonction pour obtenir le label de la vue
 function getViewLabel(view) {
   switch (view) {
-    case 'lines': return 'Lignes'
-    case 'columns': return 'Colonnes'
+    case 'spectacles': return 'Spectacles'
+    case 'participants': return 'Participants'
     case 'timeline': return 'Chronologique'
     default: return 'Lignes'
   }
@@ -5249,11 +5249,11 @@ const displayedEvents = computed(() => {
 
 // Computed properties pour l'affichage inversé
 const displayRows = computed(() => {
-  return validCurrentView.value === 'columns' ? displayedEvents.value : displayedPlayers.value
+  return validCurrentView.value === 'participants' ? displayedEvents.value : displayedPlayers.value
 })
 
 const displayColumns = computed(() => {
-  return validCurrentView.value === 'columns' ? displayedPlayers.value : displayedEvents.value
+  return validCurrentView.value === 'participants' ? displayedPlayers.value : displayedEvents.value
 })
 
 // Computed properties pour le popin Afficher Plus

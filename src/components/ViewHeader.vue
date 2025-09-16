@@ -15,9 +15,9 @@
               <!-- Icône de la vue actuelle -->
               <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <!-- Lignes -->
-                <path v-if="currentView === 'lines'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                <!-- Colonnes -->
-                <path v-else-if="currentView === 'columns'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                <path v-if="currentView === 'spectacles'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                <!-- Participants -->
+                <path v-else-if="currentView === 'participants'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
                 <!-- Chronologique -->
                 <path v-else-if="currentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
               </svg>
@@ -31,25 +31,25 @@
             <!-- Menu déroulant des vues -->
             <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
               <button
-                @click="selectView('lines')"
+                @click="selectView('spectacles')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                :class="{ 'bg-gray-700/50': currentView === 'lines' }"
+                :class="{ 'bg-gray-700/50': currentView === 'spectacles' }"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
                 </svg>
-                <span>Lignes</span>
+                <span>Spectacles</span>
               </button>
               
               <button
-                @click="selectView('columns')"
+                @click="selectView('participants')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                :class="{ 'bg-gray-700/50': currentView === 'columns' }"
+                :class="{ 'bg-gray-700/50': currentView === 'participants' }"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
                 </svg>
-                <span>Colonnes</span>
+                <span>Participants</span>
               </button>
               
               <button
@@ -115,7 +115,7 @@ const props = defineProps({
   currentView: {
     type: String,
     required: true,
-    validator: (value) => ['lines', 'columns', 'timeline'].includes(value)
+    validator: (value) => ['spectacles', 'participants', 'timeline'].includes(value)
   },
   showPlayerSelector: {
     type: Boolean,
@@ -166,8 +166,8 @@ function togglePlayerModal() {
 
 function getViewLabel(view) {
   switch (view) {
-    case 'lines': return 'Lignes'
-    case 'columns': return 'Colonnes'
+    case 'spectacles': return 'Spectacles'
+    case 'participants': return 'Participants'
     case 'timeline': return 'Chronologique'
     default: return 'Lignes'
   }
