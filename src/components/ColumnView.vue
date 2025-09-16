@@ -2,7 +2,7 @@
   <BaseGridView
     :events="events"
     :displayed-players="displayedPlayers"
-    :left-column-title="'Événements'"
+    :left-column-title="eventsTitle"
     :header-items="displayedPlayers"
     :row-items="events"
     :column-items="displayedPlayers"
@@ -219,6 +219,11 @@ const emit = defineEmits([
 ])
 
 // Computed
+const eventsTitle = computed(() => {
+  const count = events.value.length
+  return `Événements (${count})`
+})
+
 const playerColumnWidth = computed(() => {
   // Largeur adaptative pour les colonnes de joueurs selon la taille d'écran
   if (window.innerWidth <= 375) {
