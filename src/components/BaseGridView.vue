@@ -209,81 +209,81 @@ onUnmounted(() => {
 /* Responsive mobile - iPhone 16 Plus et plus */
 @media (max-width: 430px) {
   .col-left {
-    width: 8rem !important;
-    min-width: 8rem !important;
-    max-width: 8rem !important;
-  }
-  
-  .left-col-td {
-    width: 8rem !important;
-    min-width: 8rem !important;
-    max-width: 8rem !important;
-  }
-  
-  .col-player {
-    width: 4.5rem !important;
-    min-width: 4.5rem !important;
-    max-width: 4.5rem !important;
-  }
-  
-  .col-event {
     width: 6rem !important;
     min-width: 6rem !important;
     max-width: 6rem !important;
+  }
+  
+  .left-col-td {
+    width: 6rem !important;
+    min-width: 6rem !important;
+    max-width: 6rem !important;
+  }
+  
+  .col-player {
+    width: 5.5rem !important;
+    min-width: 5.5rem !important;
+    max-width: 5.5rem !important;
+  }
+  
+  .col-event {
+    width: 4.5rem !important;
+    min-width: 4.5rem !important;
+    max-width: 4.5rem !important;
   }
 }
 
 /* Responsive mobile - iPhone 16 et plus petit */
 @media (max-width: 375px) {
   .col-left {
-    width: 7rem !important;
-    min-width: 7rem !important;
-    max-width: 7rem !important;
+    width: 5.5rem !important;
+    min-width: 5.5rem !important;
+    max-width: 5.5rem !important;
   }
   
   .left-col-td {
-    width: 7rem !important;
-    min-width: 7rem !important;
-    max-width: 7rem !important;
+    width: 5.5rem !important;
+    min-width: 5.5rem !important;
+    max-width: 5.5rem !important;
   }
   
   .col-player {
-    width: 4rem !important;
-    min-width: 4rem !important;
-    max-width: 4rem !important;
-  }
-  
-  .col-event {
     width: 5rem !important;
     min-width: 5rem !important;
     max-width: 5rem !important;
+  }
+  
+  .col-event {
+    width: 4rem !important;
+    min-width: 4rem !important;
+    max-width: 4rem !important;
   }
 }
 
 /* Responsive mobile - écrans moyens */
 @media (max-width: 768px) and (min-width: 431px) {
   .col-left {
-    width: 10rem !important;
-    min-width: 10rem !important;
-    max-width: 10rem !important;
+    width: 8rem !important;
+    min-width: 8rem !important;
+    max-width: 8rem !important;
   }
   
   .left-col-td {
-    width: 10rem !important;
-    min-width: 10rem !important;
-    max-width: 10rem !important;
+    width: 8rem !important;
+    min-width: 8rem !important;
+    max-width: 8rem !important;
   }
   
   .col-player {
-    width: 4.5rem !important;
-    min-width: 4.5rem !important;
-    max-width: 4.5rem !important;
+    width: 5rem !important;
+    min-width: 5rem !important;
+    max-width: 5rem !important;
   }
   
   .col-event {
-    width: 6.5rem !important;
-    min-width: 6.5rem !important;
-    max-width: 6.5rem !important;
+    width: 5rem !important;
+    min-width: 5rem !important;
+    max-width: 5rem !important;
   }
 }
 </style>

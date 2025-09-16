@@ -203,14 +203,6 @@ const props = defineProps({
   casts: {
     type: Object,
     required: true
-  },
-  headerOffsetX: {
-    type: Number,
-    default: 0
-  },
-  headerScrollX: {
-    type: Number,
-    default: 0
   }
 })
 
@@ -236,11 +228,11 @@ const eventsTitle = computed(() => {
 const playerColumnWidth = computed(() => {
   // Largeur adaptative pour les colonnes de joueurs selon la taille d'écran
   if (window.innerWidth <= 375) {
-    return 64 // 4rem pour iPhone 16 et plus petit
+    return 80 // 5rem pour iPhone 16 et plus petit
   } else if (window.innerWidth <= 430) {
-    return 72 // 4.5rem pour iPhone 16 Plus
+    return 88 // 5.5rem pour iPhone 16 Plus
   } else if (window.innerWidth <= 768) {
-    return 72 // 4.5rem pour écrans moyens
+    return 80 // 5rem pour écrans moyens
   }
   return 80 // Desktop
 })

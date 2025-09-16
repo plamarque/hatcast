@@ -237,11 +237,11 @@ const participantsTitle = computed(() => {
 const eventColumnWidth = computed(() => {
   // Largeur adaptative pour les colonnes d'événements selon la taille d'écran
   if (window.innerWidth <= 375) {
-    return 140 // 8.75rem pour iPhone 16 et plus petit
+    return 64 // 4rem pour iPhone 16 et plus petit
   } else if (window.innerWidth <= 430) {
-    return 160 // 10rem pour iPhone 16 Plus
+    return 72 // 4.5rem pour iPhone 16 Plus
   } else if (window.innerWidth <= 768) {
-    return 180 // 11.25rem pour écrans moyens
+    return 80 // 5rem pour écrans moyens
   }
   return 200 // Desktop
 })
