@@ -79,6 +79,7 @@
         @toggle-availability="toggleAvailability"
         @toggle-selection-status="toggleSelectionStatus"
         @show-availability-modal="openAvailabilityModal"
+        @event-click="openEventModal"
       />
       
       <LinesView
@@ -107,6 +108,7 @@
         @toggle-availability="toggleAvailability"
         @toggle-selection-status="toggleSelectionStatus"
         @show-availability-modal="openAvailabilityModal"
+        @event-click="openEventModal"
       />
     </div>
     
@@ -8772,6 +8774,12 @@ function openAvailabilityModal(data) {
   }
   
   showAvailabilityModal.value = true
+}
+
+function openEventModal(event) {
+  // Ouvrir la modale d'événement
+  selectedEvent.value = event
+  showEventDetailsModal.value = true
 }
 
 async function handleAvailabilitySave(availabilityData) {
