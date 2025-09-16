@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 rounded font-medium text-white relative w-full h-full m-0.5"
+    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full min-h-16"
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'min-h-0 p-1 md:p-2 text-xs' : 'text-sm',
@@ -51,7 +51,7 @@
           Pas dispo
         </span>
         <span v-else class="text-center text-gray-400">
-          Je sais pas
+          Non renseigné
         </span>
       </template>
       
@@ -122,7 +122,7 @@
         </div>
       </template>
       
-      <!-- Icône commentaire pour les "Je sais pas" avec commentaire -->
+      <!-- Icône commentaire pour les "Non renseigné" avec commentaire -->
       <template v-if="(isAvailable === null || isAvailable === undefined) && hasComment">
         <div class="flex items-center justify-center mt-1">
           <span 
