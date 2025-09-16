@@ -2,7 +2,7 @@
   <div class="w-full overflow-x-auto" ref="gridboardRef" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0">
       <!-- En-tête de la table -->
-      <thead class="sticky top-0 z-[100]">
+      <thead class="sticky top-0 z-[105] shadow-lg">
         <tr>
           <!-- Colonne de gauche -->
           <th class="col-left bg-gray-800 px-4 py-3 text-left">
