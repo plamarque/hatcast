@@ -20,6 +20,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 ├─────────────────────────────────────────────────────────────┤
 │ z-[1420] ForgotPasswordModal (enfant)                      │
 │ z-[1410] AvailabilityForgotPasswordModal                   │
+│ z-[1500] PlayerSelectorModal                                   │
 │ z-[1400] HowItWorksModal, ChangelogModal, PWAInstallModal, etc. │
 ├─────────────────────────────────────────────────────────────┤
 │                    NIVEAU 1300+ (Sécurité)                  │
@@ -66,6 +67,12 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 - **Gaps de sécurité** : Des écarts de 10-50 points entre les niveaux pour permettre l'ajout futur d'éléments intermédiaires
 
 ## Hiérarchie complète
+
+### 🎯 Niveau 1500+ : Sélecteurs de joueurs
+
+| Z-Index | Composant | Description | Fichier |
+|---------|-----------|-------------|---------|
+| `z-[1500]` | PlayerSelectorModal | Sélection de joueur dans vue chronologique | `src/components/PlayerSelectorModal.vue` |
 
 ### 🎯 Niveau 1000+ : Éléments au-dessus de la grille
 
@@ -178,6 +185,10 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 - **Dropdown** : `z-[9997]` (PlayerActionDropdowns - supprimés)
 - **Justification** : Le dropdown doit apparaître au-dessus de sa modale parent
 
+### Sélecteurs de joueurs
+- **Z-index** : `z-[1500]`
+- **Justification** : Doivent apparaître au-dessus de l'en-tête de saison et des autres modales
+
 ### Toasts de notification
 - **Z-index** : `z-[9999]`
 - **Justification** : Doivent toujours être visibles, même au-dessus des modales
@@ -200,6 +211,7 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 
 ## Historique des changements
 
+- **2024-01-XX** : Ajout de PlayerSelectorModal (z-[1500]) pour la vue chronologique
 - **2024-01-XX** : Création de la hiérarchie statique après abandon du ModalManager dynamique
 - **2024-01-XX** : Correction des imports Firebase Auth dans playerProtection.js
 - **2024-01-XX** : Suppression des dropdowns 3-dots problématiques du PlayerModal
