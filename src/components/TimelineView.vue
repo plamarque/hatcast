@@ -182,7 +182,9 @@ export default {
     'view-change',
     'availability-toggle',
     'selection-status-toggle',
-    'show-availability-modal'
+    'show-availability-modal',
+    'player-selected',
+    'all-players-selected'
   ],
   props: {
     events: Array,
@@ -530,6 +532,15 @@ export default {
       emit('show-availability-modal', data)
     }
     
+    // Handlers pour la sélection de participants
+    const handlePlayerSelected = (player) => {
+      emit('player-selected', player)
+    }
+    
+    const handleAllPlayersSelected = () => {
+      emit('all-players-selected')
+    }
+    
     return {
       // Variables réactives
       showPlayerModal,
@@ -556,7 +567,9 @@ export default {
       // Handlers
       handleAvailabilityToggle,
       handleSelectionStatusToggle,
-      handleShowAvailabilityModal
+      handleShowAvailabilityModal,
+      handlePlayerSelected,
+      handleAllPlayersSelected
     }
   }
 }
