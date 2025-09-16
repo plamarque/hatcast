@@ -1459,15 +1459,15 @@
   <!-- Modal de détails du joueur -->
   <PlayerModal
     ref="playerModalRef"
-    :show="showPlayerModal && selectedPlayer"
-    :player="selectedPlayer"
-    :stats="getPlayerStats(selectedPlayer)"
+    :show="showPlayerDetailsModal && selectedPlayerForDetails"
+    :player="selectedPlayerForDetails"
+    :stats="getPlayerStats(selectedPlayerForDetails)"
     :season-id="seasonId"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
-    :is-protected="selectedPlayer ? protectedPlayers.has(selectedPlayer.id) : false"
-    :is-preferred="selectedPlayer ? preferredPlayerIdsSet.has(selectedPlayer.id) : false"
-    @close="closePlayerModal"
+    :is-protected="selectedPlayerForDetails ? protectedPlayers.has(selectedPlayerForDetails.id) : false"
+    :is-preferred="selectedPlayerForDetails ? preferredPlayerIdsSet.has(selectedPlayerForDetails.id) : false"
+    @close="closePlayerDetailsModal"
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
     @refresh="handlePlayerRefresh"
@@ -2093,8 +2093,10 @@ const validCurrentView = computed(() => {
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
 const showPlayerModal = ref(false)
+const showPlayerDetailsModal = ref(false)
+const selectedPlayerForDetails = ref(null)
 
-// Computed pour le joueur sélectionné
+// Computed pour le joueur sélectionné (pour la vue chronologique)
 const selectedPlayer = computed(() => {
   if (!selectedPlayerId.value || !players.value) return null
   return players.value.find(p => p.id === selectedPlayerId.value) || null
@@ -2334,7 +2336,7 @@ async function handleShowAvailabilityGrid(playerId) {
     isFocusedView.value = true
     
     // Fermer la modale de joueur
-    closePlayerModal()
+    closePlayerDetailsModal()
     
     // Faire défiler vers le joueur mis en avant
     nextTick(() => {
@@ -6500,7 +6502,7 @@ function cancelPlayerDelete() {
 
 async function handlePlayerDelete(playerId) {
   // Fermer la popup du joueur d'abord
-  closePlayerModal();
+  closePlayerDetailsModal();
   
   // Vérifier si le joueur est protégé
   const isProtected = await isPlayerProtected(playerId, seasonId.value)
@@ -7495,7 +7497,7 @@ async function toggleEventArchived() {
 
 // Fonctions pour le modal joueur
 async function showPlayerDetails(player) {
-  selectedPlayer.value = player;
+  selectedPlayerForDetails.value = player;
   
   // Recharger les données pour avoir les stats à jour
   try {
@@ -7509,7 +7511,7 @@ async function showPlayerDetails(player) {
     console.warn('Impossible de recharger les données pour les stats:', error);
   }
   
-  showPlayerModal.value = true;
+  showPlayerDetailsModal.value = true;
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation
   const newUrl = `/season/${props.slug}?player=${player.id}&modal=player_details`
@@ -7547,25 +7549,17 @@ async function showPlayerDetails(player) {
 
 function closePlayerModal() {
   showPlayerModal.value = false;
-  selectedPlayer.value = null;
+  selectedPlayerId.value = null;
+}
+
+function closePlayerDetailsModal() {
+  showPlayerDetailsModal.value = false;
+  selectedPlayerForDetails.value = null;
   
   // Retourner à l'URL de base de la saison
   const baseUrl = `/season/${props.slug}`
   if (route.path !== baseUrl) {
     router.push(baseUrl)
-    
-    // Tracker le retour à la vue d'ensemble
-    try {
-      const userId = getCurrentUserId()
-      if (userId) {
-        // Navigation tracking supprimé - remplacé par seasonPreferences
-      }
-    } catch (error) {
-      // Log silencieux pour les erreurs de tracking non critiques
-      if (error.code !== 'permission-denied') {
-        logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
-      }
-    }
   }
 }
 
