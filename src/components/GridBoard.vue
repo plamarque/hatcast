@@ -52,459 +52,64 @@
         @add-new-player="openNewPlayerForm"
       />
       
-      <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
-        
-        <div class="flex items-stretch relative">
-          <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 sticky left-0 z-[101] bg-gray-900 h-full">
-            <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
-              
-              <!-- Bouton pour revenir à la vue complète (vue focalisée seulement) -->
-              <div v-if="isFocusedView" class="w-full p-2 flex justify-center">
-                <button
-                  @click="returnToFullView"
-                  class="text-xs px-3 py-2 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10 bg-purple-600"
-                  title="Revenir à la vue complète"
-                >
-                  📋 Vue complète
-                </button>
-              </div>
-              
-              <!-- Menu de sélection de vue - aligné avec les cellules de la grille -->
-              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2 view-dropdown-container">
-                <!-- Le dropdown de vue est maintenant dans le ViewHeader au-dessus -->
-                
-                <!-- Indicateur de mode composition -->
-                <div v-if="isCompositionView" class="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
-                  <span class="text-purple-300 text-xs">🎭</span>
-                  <span class="text-purple-200 text-xs font-medium">Composition</span>
-                  <button
-                    @click="returnToFullView"
-                    class="text-purple-300 hover:text-purple-100 transition-colors ml-1"
-                    title="Revenir à la vue complète"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-              </div>
-
-            </div>
-          </div>
-          <!-- Headers (événements en mode lignes, joueurs en mode colonnes) -->
-          <div class="flex-1 overflow-hidden">
-            <div ref="headerEventsRef" class="flex relative z-[60] bg-gray-900" :style="{ transform: `translateX(-${headerScrollX}px)` }">
-              <div
-                v-for="(headerItem, index) in displayColumns"
-                :key="'h-'+headerItem.id"
-                :data-event-id="validCurrentView === 'lines' ? headerItem.id : undefined"
-                :data-player-id="validCurrentView === 'columns' ? headerItem.id : undefined"
-                class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900"
-                :class="{ 
-                  'archived-header': validCurrentView === 'lines' && headerItem.archived,
-                  'preferred-player-header': validCurrentView === 'columns' && preferredPlayerIdsSet.has(headerItem.id)
-                }"
-              >
-                <!-- Mode lignes : affichage des événements -->
-                <div v-if="validCurrentView === 'lines'" class="flex flex-col h-full">
-                  <!-- Ligne 1 : Icône dédiée -->
-                  <div 
-                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
-                    :title="headerItem.title + ' - Cliquez pour voir les détails'"
-                    @click.stop="showEventDetails(headerItem)"
-                  >
-                    <!-- Icône du type d'événement (ligne dédiée) -->
-                    <div v-if="headerItem.roles" class="flex items-center justify-center mb-2" :title="getEventTypeName(headerItem)">
-                      <span class="text-2xl md:text-3xl group-hover:text-purple-300 transition-colors duration-200">{{ getEventTypeIcon(headerItem) }}</span>
-                    </div>
-                    
-                    <!-- Titre du spectacle (sans icône) -->
-                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
-                      {{ headerItem.title || 'Sans titre' }}
-                    </div>
-                  </div>
-                  
-                  <!-- Ligne 2 : Date du spectacle -->
-                  <div class="flex items-center justify-center px-1 py-0.5 h-6 relative">
-                    <!-- Date centrée -->
-                    <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-0.5 rounded" 
-                         :title="formatDateFull(headerItem.date)">
-                      {{ formatDate(headerItem.date) }}
-                    </div>
-                    <!-- Indicateur de statut inactif (positionné à droite) -->
-                    <div 
-                      v-if="headerItem.archived"
-                      class="absolute right-1 px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                      title="Événement inactif"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">📁</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
-                    </div>
-                    
-                    <!-- Plus de badge de type d'événement -->
-                  </div>
-                </div>
-
-                <!-- Mode inversé : affichage des joueurs -->
-                <div v-else>
-                  <!-- Zone cliquable complète (avatar + nom + badges) -->
-                  <div 
-                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-20 w-full"
-                    :title="headerItem.name + ' - Cliquez pour voir les détails'"
-                    @click.stop="showPlayerDetails(headerItem)"
-                  >
-                    <div class="flex flex-col items-center flex-1 justify-center w-full pt-1 md:pt-3">
-                      <!-- Avatar avec icônes en coin supérieur droit -->
-                      <div class="mb-2 relative">
-                        <PlayerAvatar 
-                          :player-id="headerItem.id"
-                          :season-id="seasonId"
-                          :player-name="headerItem.name"
-                          size="lg"
-                          :player-gender="headerItem.gender || 'non-specified'"
-                        />
-                        
-                        <!-- Icône étoile (joueur favori) -->
-                        <span 
-                          v-if="preferredPlayerIdsSet.has(headerItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          title="Ma personne"
-                        >
-                          ⭐
-                        </span>
-                        
-                        <!-- Icône cadenas (joueur protégé) -->
-                        <span 
-                          v-else-if="isPlayerProtectedInGrid(headerItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          :title="preferredPlayerIdsSet.has(headerItem.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
-                        >
-                          🔒
-                        </span>
-                      </div>
-                      
-                      <!-- Nom sur la deuxième ligne -->
-                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 font-bold">
-                        {{ headerItem.name }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- En-tête Afficher Plus/Moins pour la vue colonnes (Personnes=Colonnes) -->
-              <div v-if="currentUser?.email && validCurrentView === 'columns'" class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900">
-                
-                <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
-                <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 pt-2 md:pt-4">
-                  <!-- Faux avatar avec icône + -->
-                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
-                    <span class="text-white text-lg md:text-xl font-bold">+</span>
-                  </div>
-                  <!-- Sous-titre avec compteur -->
-                  <div class="text-xs text-gray-300 text-center">
-                    Afficher Plus
-                    <div v-if="hiddenPlayersDisplayText" class="text-xs text-gray-400 mt-1">
-                      {{ hiddenPlayersDisplayText }}
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
-                <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2 pt-2 md:pt-4">
-                  <!-- Faux avatar avec icône - -->
-                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
-                    <span class="text-white text-lg md:text-xl font-bold">-</span>
-                  </div>
-                  <!-- Sous-titre -->
-                  <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
-                    Afficher Moins
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Right spacer (keeps end alignment) -->
-          <div class="flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
-
-
-          <!-- Chevrons supprimés de cette zone -->
-        </div>
-      </div>
-
-      <div
-        v-show="!isLoadingGrid"
-        ref="gridboardRef"
-        class="gridboard overflow-x-auto bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50"
-      >
-        <!-- Coachmarks d'onboarding (mini-fenêtres contextuelles) -->
-        <div v-if="playerTourStep === 1" class="pointer-events-none">
-                      <!-- Étape 1: coachmark bouton Ajouter une personne -->
-          <div
-            v-if="addPlayerCoachmark.position"
-            class="fixed z-[600]"
-            :style="{ left: addPlayerCoachmark.position.x + 'px', top: addPlayerCoachmark.position.y + 'px' }"
-          >
-            <div id="coachmark-add" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative" :class="{ 'coachmark-right': addPlayerCoachmark.side === 'right', 'coachmark-left': addPlayerCoachmark.side === 'left' }">
-              <div class="text-lg md:text-base font-semibold mb-1">Ajoutez votre nom</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur "Ajouter une personne" pour vous inscrire</div>
-              <div class="flex items-center justify-between">
-                <span class="text-purple-300 text-base md:text-sm">Étape 1/4</span>
-                <button @click="dismissCoachmarkStep(0)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant ></button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="playerTourStep === 2 && guidedPlayerId && guidedEventId" class="pointer-events-none">
-          <!-- Étape 2: coachmark cellule disponibilité -->
-          <div
-            v-if="availabilityCoachmark.position"
-            class="fixed z-[600]"
-            :style="{ position: 'absolute', left: availabilityCoachmark.position.x + 'px', top: availabilityCoachmark.position.y + 'px' }"
-          >
-            <div id="coachmark-avail" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-pink-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-lg md:text-base font-semibold mb-1">Indiquez vos disponibilités</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez cette case pour alterner Oui / Non / Vide</div>
-              <div class="flex items-center justify-between">
-                <span class="text-pink-300 text-base md:text-sm">Étape 2/4</span>
-                <button @click="dismissCoachmarkStep(1)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="playerTourStep === 3 && guidedPlayerId" class="pointer-events-none">
-          <!-- Étape 3: coachmark nom joueur -->
-          <div
-            v-if="playerNameCoachmark.position"
-            class="fixed z-[600]"
-            :style="{ position: 'absolute', left: playerNameCoachmark.position.x + 'px', top: playerNameCoachmark.position.y + 'px' }"
-          >
-            <div id="coachmark-name" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-yellow-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-lg md:text-base font-semibold mb-1">Ouvrez votre fiche</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur votre nom pour voir les détails et la protection</div>
-              <div class="flex items-center justify-between">
-                <span class="text-yellow-300 text-base md:text-sm">Étape 3/4</span>
-                <button @click="dismissCoachmarkStep(2)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-
-        <table class="table-auto border-separate border-spacing-0 table-fixed w-auto min-w-max">
-          <colgroup>
-            <col class="col-left" />
-            <col v-for="(item, index) in displayColumns" :key="'c'+index" class="col-event" />
-            <col class="col-right" />
-          </colgroup>
-          <thead class="hidden"></thead>
-          <tbody>
-            <tr
-              v-for="(rowItem, index) in displayRows"
-              :key="validCurrentView === 'columns' ? rowItem.id : rowItem.id"
-              class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
-              :data-player-id="validCurrentView === 'lines' ? rowItem.id : undefined"
-              :data-event-id="validCurrentView === 'columns' ? rowItem.id : undefined"
-              :class="{ 
-                'highlighted-player': validCurrentView === 'lines' && rowItem.id === highlightedPlayer, 
-                'preferred-player': validCurrentView === 'lines' && preferredPlayerIdsSet.has(rowItem.id) 
-              }"
-            >
-              <td class="px-0 py-2 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-2 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
-                  <!-- Mode lignes : affichage des joueurs -->
-                  <div 
-                    v-if="validCurrentView === 'lines'"
-                    @click="showPlayerDetails(rowItem)" 
-                    class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group font-bold"
-                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
-                    :title="'Cliquez pour voir les détails : ' + rowItem.name"
-                  >
-                    <div class="flex items-center gap-2 pt-1 md:pt-3">
-                      <div class="relative">
-                        <PlayerAvatar 
-                          :player-id="rowItem.id"
-                          :season-id="seasonId"
-                          :player-name="rowItem.name"
-                          size="lg"
-                          :player-gender="rowItem.gender || 'non-specified'"
-                        />
-                        <!-- Superposed status icons -->
-                        <span 
-                          v-if="preferredPlayerIdsSet.has(rowItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          title="Ma personne"
-                        >
-                          ⭐
-                        </span>
-                        <span 
-                          v-else-if="isPlayerProtectedInGrid(rowItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          :title="preferredPlayerIdsSet.has(rowItem.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
-                        >
-                          🔒
-                        </span>
-                      </div>
-                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ rowItem.name }}</span>
-                    </div>
-                  </div>
-                  
-                  <!-- Mode inversé : affichage des événements -->
-                  <div 
-                    v-else
-                    @click.stop="showEventDetails(rowItem)" 
-                    class="event-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block max-w-full flex-1 min-w-0 group w-full"
-                    :title="'Cliquez pour voir les détails : ' + rowItem.title"
-                  >
-                    <div class="flex flex-col items-center gap-2 w-full">
-                      <!-- Ligne 1 : Icône du type d'événement (ligne dédiée) -->
-                      <div v-if="rowItem.roles" class="flex items-center justify-center" :title="getEventTypeName(rowItem)">
-                        <span class="text-xl md:text-2xl group-hover:text-purple-300 transition-colors duration-200">{{ getEventTypeIcon(rowItem) }}</span>
-                      </div>
-                      
-                      <!-- Ligne 2 : Titre du spectacle (sans icône) -->
-                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        {{ rowItem.title || 'Sans titre' }}
-                      </div>
-                      
-                      <!-- Ligne 3 : Date du spectacle -->
-                      <div class="text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
-                           :title="formatDateFull(rowItem.date)">
-                        {{ formatDate(rowItem.date) }}
-                      </div>
-                      
-                      <!-- Ligne 4 : Badge de type d'événement (affiché seulement s'il y a un badge) -->
-                      <div v-if="rowItem.archived" class="flex flex-col items-center">
-                        <!-- Indicateur de statut inactif -->
-                        <div 
-                          class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                          title="Événement inactif"
-                        >
-                          <span class="text-xs text-gray-300 font-medium">📁</span>
-                          <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-
-              <td
-                v-for="(columnItem, colIndex) in displayColumns"
-                :key="columnItem.id"
-                :data-event-id="validCurrentView === 'lines' ? columnItem.id : undefined"
-                :data-player-id="validCurrentView === 'columns' ? columnItem.id : undefined"
-                :class="[
-                  'p-0.5',
-                  validCurrentView === 'lines' && columnItem.archived ? 'archived-col' : '',
-                  { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && columnItem.id === (guidedEventId || (displayedEvents[0]?.id)) }
-                ]"
-              >
-                <AvailabilityCell
-                  :player-name="validCurrentView === 'lines' ? rowItem.name : columnItem.name"
-                  :event-id="validCurrentView === 'lines' ? columnItem.id : rowItem.id"
-                  :is-available="validCurrentView === 'lines' ? isAvailable(rowItem.name, columnItem.id) : isAvailable(columnItem.name, rowItem.id)"
-                  :is-selected="validCurrentView === 'lines' ? isSelected(rowItem.name, columnItem.id) : isSelected(columnItem.name, rowItem.id)"
-                  :is-selection-confirmed="validCurrentView === 'lines' ? isSelectionConfirmed(columnItem.id) : isSelectionConfirmed(rowItem.id)"
-                  :is-selection-confirmed-by-organizer="validCurrentView === 'lines' ? isSelectionConfirmedByOrganizer(columnItem.id) : isSelectionConfirmedByOrganizer(rowItem.id)"
-                  :player-selection-status="validCurrentView === 'lines' ? getPlayerSelectionStatus(rowItem.name, columnItem.id) : getPlayerSelectionStatus(columnItem.name, rowItem.id)"
-                  :season-id="seasonId"
-                  :chance-percent="validCurrentView === 'lines' ? (chances[rowItem.name]?.[columnItem.id] ?? null) : (chances[columnItem.name]?.[rowItem.id] ?? null)"
-                  :show-selected-chance="validCurrentView === 'lines' ? isSelectionComplete(columnItem.id) : isSelectionComplete(rowItem.id)"
-                  :disabled="validCurrentView === 'lines' ? (columnItem.archived === true) : (rowItem.archived === true)"
-                  :availability-data="validCurrentView === 'lines' ? getAvailabilityData(rowItem.name, columnItem.id) : getAvailabilityData(columnItem.name, rowItem.id)"
-                  :event-title="validCurrentView === 'lines' ? columnItem.title : rowItem.title"
-                  :event-date="validCurrentView === 'lines' ? columnItem.date : rowItem.date"
-                  :is-protected="validCurrentView === 'lines' ? isPlayerProtectedInGrid(rowItem.id) : isPlayerProtectedInGrid(columnItem.id)"
-                  :player-gender="validCurrentView === 'lines' ? (rowItem.gender || 'non-specified') : (columnItem.gender || 'non-specified')"
-                  :is-loading="validCurrentView === 'lines' ? isPlayerLoading(rowItem.id) : isPlayerLoading(columnItem.id)"
-                  :is-loaded="validCurrentView === 'lines' ? isPlayerAvailabilityLoaded(rowItem.id) : isPlayerAvailabilityLoaded(columnItem.id)"
-                  :is-error="validCurrentView === 'lines' ? isPlayerError(rowItem.id) : isPlayerError(columnItem.id)"
-                  @toggle="toggleAvailability"
-                  @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                  @show-availability-modal="openAvailabilityModal"
-                />
-              </td>
-              <td class="p-3 md:p-4"></td>
-            </tr>
-            <!-- Dernière ligne: Afficher Plus/Moins pour la vue lignes (Personnes=Lignes) -->
-            <tr v-if="currentUser?.email && validCurrentView === 'lines'" class="border-t border-white/10">
-              <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-2 flex items-center justify-center">
-                  <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
-                  <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 p-2 pt-2 md:pt-4">
-                    <!-- Faux avatar avec icône + -->
-                    <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
-                      <span class="text-white text-lg md:text-xl font-bold">+</span>
-                    </div>
-                    <!-- Sous-titre avec compteur -->
-                    <div class="text-xs text-gray-300 text-center">
-                      Afficher Plus
-                      <div v-if="hiddenPlayersDisplayText" class="text-xs text-gray-400 mt-1">
-                        {{ hiddenPlayersDisplayText }}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
-                  <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2 pt-2 md:pt-4">
-                    <!-- Faux avatar avec icône - -->
-                    <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
-                      <span class="text-white text-lg md:text-xl font-bold">-</span>
-                    </div>
-                    <!-- Sous-titre -->
-                    <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
-                      Afficher Moins
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td
-                v-for="event in displayedEvents"
-                :key="'show-more-row-'+event.id"
-                :data-event-id="event.id"
-                :class="['p-3 md:p-5', event.archived ? 'archived-col' : '']"
-              ></td>
-              <td class="p-3 md:p-4"></td>
-            </tr>
-            
-            <!-- Ligne d'ajout de personne (fallback si pas d'utilisateur connecté) -->
-            <tr v-else class="border-t border-white/10">
-              <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-2 flex items-center">
-                  <button
-                    @click="openNewPlayerForm"
-                    class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
-                    title="Ajouter une nouvelle personne"
-                    data-onboarding="add-player"
-                  >
-                    <span class="text-lg">➕</span>
-                    <span class="hidden sm:inline">Ajouter une personne</span>
-                    <span class="sm:hidden">Personne</span>
-                  </button>
-                </div>
-              </td>
-              <td
-                v-for="event in displayedEvents"
-                :key="'add-row-'+event.id"
-                :data-event-id="event.id"
-                :class="['p-3 md:p-5', event.archived ? 'archived-col' : '']"
-              ></td>
-              <td class="p-3 md:p-4"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Indicateurs legacy supprimés (remplacés par chevrons flottants) -->
+      <!-- Composants de vue séparés -->
+      <ColumnView
+        v-if="validCurrentView === 'columns'"
+        :events="events"
+        :displayed-players="displayedPlayers"
+        :is-all-players-view="isAllPlayersView"
+        :hidden-players-count="hiddenPlayersCount"
+        :hidden-players-display-text="hiddenPlayersDisplayText"
+        :can-edit-availability="canEditAvailability"
+        :get-player-availability="getPlayerAvailability"
+        :season-id="seasonId"
+        :chances="chances"
+        :is-available="isAvailable"
+        :is-selected="isSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :is-selection-complete="isSelectionComplete"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        @player-selected="showPlayerDetails"
+        @availability-changed="handleAvailabilityChanged"
+        @scroll="handleGridScroll"
+        @toggle-player-modal="togglePlayerModal"
+        @toggle-availability="toggleAvailability"
+        @toggle-selection-status="toggleSelectionStatus"
+        @show-availability-modal="openAvailabilityModal"
+      />
+      
+      <LinesView
+        v-if="validCurrentView === 'lines'"
+        :events="events"
+        :displayed-players="displayedPlayers"
+        :is-all-players-view="isAllPlayersView"
+        :hidden-players-count="hiddenPlayersCount"
+        :hidden-players-display-text="hiddenPlayersDisplayText"
+        :can-edit-availability="canEditAvailability"
+        :get-player-availability="getPlayerAvailability"
+        :season-id="seasonId"
+        :chances="chances"
+        :is-available="isAvailable"
+        :is-selected="isSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :is-selection-complete="isSelectionComplete"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        @player-selected="showPlayerDetails"
+        @availability-changed="handleAvailabilityChanged"
+        @scroll="handleGridScroll"
+        @toggle-player-modal="togglePlayerModal"
+        @toggle-availability="toggleAvailability"
+        @toggle-selection-status="toggleSelectionStatus"
+        @show-availability-modal="openAvailabilityModal"
+      />
     </div>
-
-    <!-- Vue Chronologique -->
+    
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
       <!-- Header sticky pour la vue chronologique -->
       <ViewHeader
@@ -560,7 +165,6 @@
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <div class="text-white text-lg">Chargement des événements...</div>
     </div>
-  </div>
 
   <!-- Overlay de chargement pleine page -->
   <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
@@ -1687,8 +1291,7 @@
   >
     <span class="text-2xl font-bold">›</span>
   </button>
-
-  
+  </div>
 </template>
 
 <style>
@@ -1768,6 +1371,36 @@
 .col-event { width: 12rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
+@media (max-width: 768px) {
+  .col-left { 
+    width: 25rem !important; 
+  }
+  .col-event { 
+    width: 8rem !important; 
+  }
+  
+  /* Cibler directement les éléments du tableau */
+  table colgroup col.col-left {
+    width: 5rem !important;
+  }
+  table colgroup col.col-event {
+    width: 5rem !important;
+  }
+  
+  /* Cibler les cellules du tableau */
+  td.left-col-td {
+    width: 20rem !important;
+    max-width: 20rem !important;
+    min-width: 20rem !important;
+  }
+  
+  /* S'assurer que l'header des événements a la même largeur que les cellules */
+  .col-event.flex-shrink-0 {
+    width: 5rem !important;
+  }
+}
+
+
 @media (min-width: 640px) { /* sm */
   .col-left { width: 13rem; }
   .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
@@ -1786,9 +1419,47 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 13rem; }
-  .col-event { width: 12rem; }
-  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
+  .col-left { 
+    width: 17.5rem !important;  /* Zone équilibrée pour pousser les colonnes joueurs */
+  }
+  .col-event { 
+    width: 5rem !important; /* Colonnes joueurs compactes */
+  }
+  .left-col-td { 
+    width: 17.5rem !important; 
+    max-width: 17.5rem !important; 
+    min-width: 17.5rem !important;
+  }
+  
+  /* Cibler spécifiquement les cellules td de la colonne gauche avec plus de spécificité */
+  .gridboard table tr td.left-col-td {
+    width: 17.5rem !important;
+    max-width: 17.5rem !important;
+    min-width: 17.5rem !important;
+  }
+  
+  /* Règle encore plus spécifique pour écraser le 150px */
+  .gridboard .left-col-td {
+    width: 17.5rem !important;
+    max-width: 17.5rem !important;
+    min-width: 17.5rem !important;
+  }
+  
+  /* Aligner le filler avec les colonnes événements */
+  .view-dropdown-container {
+    width: calc(17.5rem + 2rem) !important; /* 17.5rem + padding (1rem de chaque côté) */
+    max-width: calc(17.5rem + 2rem) !important;
+    min-width: calc(17.5rem + 2rem) !important;
+    z-index: 10 !important; /* S'assurer qu'il passe au-dessus des cellules joueurs */
+    position: relative !important;
+  }
+  
+  /* Aligner le conteneur des colonnes joueurs avec les cellules événements */
+  .flex-1.overflow-hidden {
+    width: 17.5rem !important;
+    max-width: 17.5rem !important;
+    min-width: 17.5rem !important;
+  }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
@@ -1938,6 +1609,8 @@ import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 import TimelineView from './TimelineView.vue'
+import ColumnView from './ColumnView.vue'
+import LinesView from './LinesView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
 import ViewHeader from './ViewHeader.vue'
 
@@ -3448,9 +3121,6 @@ const isFocusedEventVisible = computed(() => {
 const gridboardRef = ref(null)
 const showLeftHint = ref(false)
 const showRightHint = ref(false)
-  const headerScrollX = ref(0)
-  const headerBarRef = ref(null)
-  const headerEventsRef = ref(null)
   const gridResizeObserver = ref(null)
 
 function updateScrollHints() {
@@ -3466,8 +3136,12 @@ function forceGridLayoutSync() {
   try {
     // Déclencher un reflow et resync des hints/header
     updateScrollHints()
-    headerScrollX.value = gridboardRef.value?.scrollLeft || 0
   } catch {}
+}
+
+// Gérer le scroll de la grille
+function handleGridScroll(event) {
+  updateScrollHints()
 }
 
 // (déplacé plus bas après déclaration de players/events)
@@ -4570,6 +4244,7 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
 // Initialiser selectedPlayerId avec le premier joueur favori quand les données sont chargées
 // (Initialisation déplacée dans onMounted pour éviter les erreurs de watcher)
 
+
 // Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
 watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
@@ -4607,18 +4282,18 @@ onMounted(async () => {
   }
   window.addEventListener('resize', handleResize)
   
-  // Ajouter un listener pour fermer le menu déroulant
-  const handleClickOutside = (event) => {
-    if (showViewDropdown.value && !event.target.closest('.view-dropdown-container')) {
-      showViewDropdown.value = false
-    }
-  }
-  document.addEventListener('click', handleClickOutside)
+  // Listener pour fermer les menus déroulants (géré par ViewHeader maintenant)
+  // const handleClickOutside = (event) => {
+  //   if (showViewDropdown.value && !event.target.closest('.view-dropdown-container')) {
+  //     showViewDropdown.value = false
+  //   }
+  // }
+  // document.addEventListener('click', handleClickOutside)
   
   // Nettoyer les listeners au démontage
   onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
-    document.removeEventListener('click', handleClickOutside)
+    // document.removeEventListener('click', handleClickOutside) // Géré par ViewHeader maintenant
   })
   
   // Démarrer la mesure de performance globale de la grille
@@ -4875,7 +4550,6 @@ onMounted(async () => {
     if (el) {
       el.addEventListener('scroll', (e) => {
         updateScrollHints()
-        headerScrollX.value = el.scrollLeft || 0
       }, { passive: true })
       window.addEventListener('resize', updateScrollHints)
       // Observer les changements de taille/contenu pour mettre à jour les chevrons
@@ -5194,15 +4868,19 @@ const dropdownDisplayText = computed(() => {
 
 // Watcher pour initialiser selectedPlayerId avec le premier favori
 watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], ([favoritesSize, seasonPlayersLength]) => {
-  // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
-  if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
-    const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
-    const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
-    
-    if (firstFavorite) {
-      selectedPlayerId.value = firstFavoriteId
-      logger.debug('🎯 Joueur par défaut initialisé avec le premier favori:', firstFavorite.name)
+  try {
+    // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
+    if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
+      const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
+      const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
+      
+      if (firstFavorite) {
+        selectedPlayerId.value = firstFavoriteId
+        logger.debug('🎯 Joueur par défaut initialisé avec le premier favori:', firstFavorite.name)
+      }
     }
+  } catch (error) {
+    logger.error('❌ Erreur dans le watcher selectedPlayerId:', error)
   }
 }, { immediate: true })
 
@@ -8217,6 +7895,37 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
       }, 1000) // Délai pour laisser le temps de voir le message de succès
     }
   }
+}
+
+// Fonction pour obtenir les données de disponibilité d'un joueur pour un événement
+function getPlayerAvailability(playerId, eventId) {
+  const player = players.value.find(p => p.id === playerId)
+  if (!player) return null
+  
+  return getAvailabilityData(player.name, eventId)
+}
+
+// Fonction pour vérifier si l'utilisateur peut modifier les disponibilités
+const canEditAvailability = computed(() => {
+  return canEditEvents.value
+})
+
+// Fonction pour gérer les changements de disponibilité
+function handleAvailabilityChanged(data) {
+  const { playerId, eventId, availability: newAvailability } = data
+  const player = players.value.find(p => p.id === playerId)
+  if (!player) return
+  
+  // Mettre à jour les données de disponibilité
+  if (!availability.value[player.name]) {
+    availability.value[player.name] = {}
+  }
+  availability.value[player.name][eventId] = newAvailability
+}
+
+// Fonction pour basculer le statut de sélection d'un joueur
+function toggleSelectionStatus(playerName, eventId, status, seasonId) {
+  handlePlayerSelectionStatusToggle(playerName, eventId, status, seasonId)
 }
 
 function getPlayerAvailabilityForEvent(eventId) {
