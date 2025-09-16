@@ -7,7 +7,7 @@
       :season-slug="props.slug"
       :is-connected="!!currentUser?.email"
       :show-view-toggle="showViewToggle"
-      :current-view-mode="currentViewMode"
+      :current-view-mode="validCurrentView"
       :season-meta="seasonMeta"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
@@ -24,7 +24,7 @@
 
 
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="currentView === 'lignes' || currentView === 'colonnes'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
+    <div v-if="validCurrentView === 'lines' || validCurrentView === 'columns'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
@@ -53,18 +53,18 @@
                     @click="toggleViewDropdown"
                     class="flex items-center gap-2 px-3 py-2 bg-gray-800/30 backdrop-blur-sm border border-gray-600/20 rounded-lg text-white hover:bg-gray-700/40 transition-colors"
                     :class="{ 'bg-gray-700/40': showViewDropdown }"
-                    :title="`Vue actuelle: ${getViewLabel(currentView)}`"
+                    :title="`Vue actuelle: ${getViewLabel(validCurrentView)}`"
                   >
                     <!-- Icône de la vue actuelle -->
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <!-- Lignes (événements en lignes) -->
-                      <path v-if="currentView === 'lignes'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                      <path v-if="validCurrentView === 'lines'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
                       <!-- Colonnes (événements en colonnes) -->
-                      <path v-else-if="currentView === 'colonnes'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                      <path v-else-if="validCurrentView === 'columns'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
                       <!-- Chronologique -->
-                      <path v-else-if="currentView === 'chronologique'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
+                      <path v-else-if="validCurrentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
                     </svg>
-                    <span class="text-sm font-medium">{{ getViewLabel(currentView) }}</span>
+                    <span class="text-sm font-medium">{{ getViewLabel(validCurrentView) }}</span>
                     <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
@@ -73,9 +73,9 @@
                   <!-- Menu déroulant -->
                   <div v-if="showViewDropdown" class="fixed top-20 left-4 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
                     <button
-                      @click="selectView('lignes')"
+                      @click="selectView('lines')"
                       class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                      :class="{ 'bg-gray-700/50': currentView === 'lignes' }"
+                      :class="{ 'bg-gray-700/50': validCurrentView === 'lines' }"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
@@ -84,9 +84,9 @@
                     </button>
                     
                     <button
-                      @click="selectView('colonnes')"
+                      @click="selectView('columns')"
                       class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                      :class="{ 'bg-gray-700/50': currentView === 'colonnes' }"
+                      :class="{ 'bg-gray-700/50': validCurrentView === 'columns' }"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
@@ -95,9 +95,9 @@
                     </button>
                     
                     <button
-                      @click="selectView('chronologique')"
+                      @click="selectView('timeline')"
                       class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                      :class="{ 'bg-gray-700/50': currentView === 'chronologique' }"
+                      :class="{ 'bg-gray-700/50': validCurrentView === 'timeline' }"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
@@ -124,22 +124,22 @@
 
             </div>
           </div>
-          <!-- Headers (événements en mode normal, joueurs en mode inversé) -->
+          <!-- Headers (événements en mode lignes, joueurs en mode colonnes) -->
           <div class="flex-1 overflow-hidden">
             <div ref="headerEventsRef" class="flex relative z-[60] bg-gray-900" :style="{ transform: `translateX(-${headerScrollX}px)` }">
               <div
                 v-for="(headerItem, index) in displayColumns"
                 :key="'h-'+headerItem.id"
-                :data-event-id="currentViewMode === 'normal' ? headerItem.id : undefined"
-                :data-player-id="currentViewMode === 'inverted' ? headerItem.id : undefined"
+                :data-event-id="validCurrentView === 'lines' ? headerItem.id : undefined"
+                :data-player-id="validCurrentView === 'columns' ? headerItem.id : undefined"
                 class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900"
                 :class="{ 
-                  'archived-header': currentViewMode === 'normal' && headerItem.archived,
-                  'preferred-player-header': currentViewMode === 'inverted' && preferredPlayerIdsSet.has(headerItem.id)
+                  'archived-header': validCurrentView === 'lines' && headerItem.archived,
+                  'preferred-player-header': validCurrentView === 'columns' && preferredPlayerIdsSet.has(headerItem.id)
                 }"
               >
-                <!-- Mode normal : affichage des événements -->
-                <div v-if="currentViewMode === 'normal'" class="flex flex-col h-full">
+                <!-- Mode lignes : affichage des événements -->
+                <div v-if="validCurrentView === 'lines'" class="flex flex-col h-full">
                   <!-- Ligne 1 : Icône dédiée -->
                   <div 
                     class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
@@ -225,8 +225,8 @@
                 </div>
               </div>
               
-              <!-- En-tête Afficher Plus/Moins pour la vue inversée (Personnes=Colonnes) -->
-              <div v-if="currentUser?.email && currentViewMode === 'inverted'" class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900">
+              <!-- En-tête Afficher Plus/Moins pour la vue colonnes (Personnes=Colonnes) -->
+              <div v-if="currentUser?.email && validCurrentView === 'columns'" class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900">
                 
                 <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
                 <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 pt-2 md:pt-4">
@@ -334,20 +334,20 @@
           <tbody>
             <tr
               v-for="(rowItem, index) in displayRows"
-              :key="currentViewMode === 'inverted' ? rowItem.id : rowItem.id"
+              :key="validCurrentView === 'columns' ? rowItem.id : rowItem.id"
               class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
-              :data-player-id="currentViewMode === 'normal' ? rowItem.id : undefined"
-              :data-event-id="currentViewMode === 'inverted' ? rowItem.id : undefined"
+              :data-player-id="validCurrentView === 'lines' ? rowItem.id : undefined"
+              :data-event-id="validCurrentView === 'columns' ? rowItem.id : undefined"
               :class="{ 
-                'highlighted-player': currentViewMode === 'normal' && rowItem.id === highlightedPlayer, 
-                'preferred-player': currentViewMode === 'normal' && preferredPlayerIdsSet.has(rowItem.id) 
+                'highlighted-player': validCurrentView === 'lines' && rowItem.id === highlightedPlayer, 
+                'preferred-player': validCurrentView === 'lines' && preferredPlayerIdsSet.has(rowItem.id) 
               }"
             >
               <td class="px-0 py-2 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-2 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
-                  <!-- Mode normal : affichage des joueurs -->
+                  <!-- Mode lignes : affichage des joueurs -->
                   <div 
-                    v-if="currentViewMode === 'normal'"
+                    v-if="validCurrentView === 'lines'"
                     @click="showPlayerDetails(rowItem)" 
                     class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group font-bold"
                     :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
@@ -425,34 +425,34 @@
               <td
                 v-for="(columnItem, colIndex) in displayColumns"
                 :key="columnItem.id"
-                :data-event-id="currentViewMode === 'normal' ? columnItem.id : undefined"
-                :data-player-id="currentViewMode === 'inverted' ? columnItem.id : undefined"
+                :data-event-id="validCurrentView === 'lines' ? columnItem.id : undefined"
+                :data-player-id="validCurrentView === 'columns' ? columnItem.id : undefined"
                 :class="[
                   'p-0.5',
-                  currentViewMode === 'normal' && columnItem.archived ? 'archived-col' : '',
+                  validCurrentView === 'lines' && columnItem.archived ? 'archived-col' : '',
                   { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && columnItem.id === (guidedEventId || (displayedEvents[0]?.id)) }
                 ]"
               >
                 <AvailabilityCell
-                  :player-name="currentViewMode === 'normal' ? rowItem.name : columnItem.name"
-                  :event-id="currentViewMode === 'normal' ? columnItem.id : rowItem.id"
-                  :is-available="currentViewMode === 'normal' ? isAvailable(rowItem.name, columnItem.id) : isAvailable(columnItem.name, rowItem.id)"
-                  :is-selected="currentViewMode === 'normal' ? isSelected(rowItem.name, columnItem.id) : isSelected(columnItem.name, rowItem.id)"
-                  :is-selection-confirmed="currentViewMode === 'normal' ? isSelectionConfirmed(columnItem.id) : isSelectionConfirmed(rowItem.id)"
-                  :is-selection-confirmed-by-organizer="currentViewMode === 'normal' ? isSelectionConfirmedByOrganizer(columnItem.id) : isSelectionConfirmedByOrganizer(rowItem.id)"
-                  :player-selection-status="currentViewMode === 'normal' ? getPlayerSelectionStatus(rowItem.name, columnItem.id) : getPlayerSelectionStatus(columnItem.name, rowItem.id)"
+                  :player-name="validCurrentView === 'lines' ? rowItem.name : columnItem.name"
+                  :event-id="validCurrentView === 'lines' ? columnItem.id : rowItem.id"
+                  :is-available="validCurrentView === 'lines' ? isAvailable(rowItem.name, columnItem.id) : isAvailable(columnItem.name, rowItem.id)"
+                  :is-selected="validCurrentView === 'lines' ? isSelected(rowItem.name, columnItem.id) : isSelected(columnItem.name, rowItem.id)"
+                  :is-selection-confirmed="validCurrentView === 'lines' ? isSelectionConfirmed(columnItem.id) : isSelectionConfirmed(rowItem.id)"
+                  :is-selection-confirmed-by-organizer="validCurrentView === 'lines' ? isSelectionConfirmedByOrganizer(columnItem.id) : isSelectionConfirmedByOrganizer(rowItem.id)"
+                  :player-selection-status="validCurrentView === 'lines' ? getPlayerSelectionStatus(rowItem.name, columnItem.id) : getPlayerSelectionStatus(columnItem.name, rowItem.id)"
                   :season-id="seasonId"
-                  :chance-percent="currentViewMode === 'normal' ? (chances[rowItem.name]?.[columnItem.id] ?? null) : (chances[columnItem.name]?.[rowItem.id] ?? null)"
-                  :show-selected-chance="currentViewMode === 'normal' ? isSelectionComplete(columnItem.id) : isSelectionComplete(rowItem.id)"
-                  :disabled="currentViewMode === 'normal' ? (columnItem.archived === true) : (rowItem.archived === true)"
-                  :availability-data="currentViewMode === 'normal' ? getAvailabilityData(rowItem.name, columnItem.id) : getAvailabilityData(columnItem.name, rowItem.id)"
-                  :event-title="currentViewMode === 'normal' ? columnItem.title : rowItem.title"
-                  :event-date="currentViewMode === 'normal' ? columnItem.date : rowItem.date"
-                  :is-protected="currentViewMode === 'normal' ? isPlayerProtectedInGrid(rowItem.id) : isPlayerProtectedInGrid(columnItem.id)"
-                  :player-gender="currentViewMode === 'normal' ? (rowItem.gender || 'non-specified') : (columnItem.gender || 'non-specified')"
-                  :is-loading="currentViewMode === 'normal' ? isPlayerLoading(rowItem.id) : isPlayerLoading(columnItem.id)"
-                  :is-loaded="currentViewMode === 'normal' ? isPlayerAvailabilityLoaded(rowItem.id) : isPlayerAvailabilityLoaded(columnItem.id)"
-                  :is-error="currentViewMode === 'normal' ? isPlayerError(rowItem.id) : isPlayerError(columnItem.id)"
+                  :chance-percent="validCurrentView === 'lines' ? (chances[rowItem.name]?.[columnItem.id] ?? null) : (chances[columnItem.name]?.[rowItem.id] ?? null)"
+                  :show-selected-chance="validCurrentView === 'lines' ? isSelectionComplete(columnItem.id) : isSelectionComplete(rowItem.id)"
+                  :disabled="validCurrentView === 'lines' ? (columnItem.archived === true) : (rowItem.archived === true)"
+                  :availability-data="validCurrentView === 'lines' ? getAvailabilityData(rowItem.name, columnItem.id) : getAvailabilityData(columnItem.name, rowItem.id)"
+                  :event-title="validCurrentView === 'lines' ? columnItem.title : rowItem.title"
+                  :event-date="validCurrentView === 'lines' ? columnItem.date : rowItem.date"
+                  :is-protected="validCurrentView === 'lines' ? isPlayerProtectedInGrid(rowItem.id) : isPlayerProtectedInGrid(columnItem.id)"
+                  :player-gender="validCurrentView === 'lines' ? (rowItem.gender || 'non-specified') : (columnItem.gender || 'non-specified')"
+                  :is-loading="validCurrentView === 'lines' ? isPlayerLoading(rowItem.id) : isPlayerLoading(columnItem.id)"
+                  :is-loaded="validCurrentView === 'lines' ? isPlayerAvailabilityLoaded(rowItem.id) : isPlayerAvailabilityLoaded(columnItem.id)"
+                  :is-error="validCurrentView === 'lines' ? isPlayerError(rowItem.id) : isPlayerError(columnItem.id)"
                   @toggle="toggleAvailability"
                   @toggle-selection-status="handlePlayerSelectionStatusToggle"
                   @show-availability-modal="openAvailabilityModal"
@@ -460,8 +460,8 @@
               </td>
               <td class="p-3 md:p-4"></td>
             </tr>
-            <!-- Dernière ligne: Afficher Plus/Moins pour la vue normale (Personnes=Lignes) -->
-            <tr v-if="currentUser?.email && currentViewMode === 'normal'" class="border-t border-white/10">
+            <!-- Dernière ligne: Afficher Plus/Moins pour la vue lignes (Personnes=Lignes) -->
+            <tr v-if="currentUser?.email && validCurrentView === 'lines'" class="border-t border-white/10">
               <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
                 <div class="px-2 flex items-center justify-center">
                   <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
@@ -530,7 +530,7 @@
     </div>
 
     <!-- Vue Chronologique -->
-    <div v-if="currentView === 'chronologique' && events.length > 0" class="w-full bg-gray-900">
+    <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
       <!-- Header sticky pour la vue chronologique -->
       <div class="timeline-header sticky top-0 z-[100] bg-gray-900 border-b border-gray-700/30" 
            style="padding-top: max(48px, env(safe-area-inset-top) + 32px); padding-bottom: max(12px, env(safe-area-inset-bottom) + 48px);">
@@ -540,27 +540,32 @@
               <!-- Dropdown de vue -->
               <div class="relative">
                 <button
-                  @click="toggleViewDropdown"
+                  @click="toggleTimelineViewDropdown"
                   class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors"
-                  :class="{ 'bg-gray-700/50': showViewDropdown }"
+                  :class="{ 'bg-gray-700/50': showTimelineViewDropdown }"
                 >
                   <!-- Icône de la vue actuelle -->
                   <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Lignes -->
+                    <path v-if="validCurrentView === 'lines'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    <!-- Colonnes -->
+                    <path v-else-if="validCurrentView === 'columns'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
                     <!-- Chronologique -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
+                    <path v-else-if="validCurrentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
                   </svg>
-                  <span class="text-xs md:text-sm font-medium hidden sm:inline">Chronologique</span>
-                  <span class="text-xs md:text-sm font-medium sm:hidden">Chrono</span>
-                  <svg class="w-3 h-3 md:w-4 md:h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span class="text-xs md:text-sm font-medium hidden sm:inline">{{ getViewLabel(validCurrentView) }}</span>
+                  <span class="text-xs md:text-sm font-medium sm:hidden">{{ getViewLabel(validCurrentView).substring(0, 5) }}</span>
+                  <svg class="w-3 h-3 md:w-4 md:h-4 transition-transform" :class="{ 'rotate-180': showTimelineViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                   </svg>
                 </button>
 
                 <!-- Menu déroulant des vues -->
-                <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
+                <div v-if="showTimelineViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
                   <button
-                    @click="selectView('lignes')"
+                    @click="selectView('lines')"
                     class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                    :class="{ 'bg-gray-700/50': validCurrentView === 'lines' }"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
@@ -569,8 +574,9 @@
                   </button>
                   
                   <button
-                    @click="selectView('colonnes')"
+                    @click="selectView('columns')"
                     class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                    :class="{ 'bg-gray-700/50': validCurrentView === 'columns' }"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
@@ -579,8 +585,9 @@
                   </button>
                   
                   <button
-                    @click="selectView('chronologique')"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm bg-gray-700/50"
+                    @click="selectView('timeline')"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                    :class="{ 'bg-gray-700/50': validCurrentView === 'timeline' }"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
@@ -647,7 +654,7 @@
     </div>
     
     <!-- Message de chargement pour la vue chronologique -->
-    <div v-if="currentView === 'chronologique' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
+    <div v-if="validCurrentView === 'timeline' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <div class="text-white text-lg">Chargement des événements...</div>
     </div>
@@ -2158,13 +2165,36 @@ const seasonMeta = ref({})
 // État du scroll pour le header sticky
 const isScrolled = ref(false)
 
-// État de la vue (normal ou inversée)
-const currentViewMode = ref('normal')
+// Vues valides disponibles
+const VALID_VIEWS = ['lines', 'columns', 'timeline']
+const DEFAULT_VIEW = 'lines'
+
+// Fonction utilitaire pour valider et obtenir une vue valide
+const getValidView = (view) => {
+  if (VALID_VIEWS.includes(view)) {
+    return view
+  }
+  return DEFAULT_VIEW
+}
+
+// Supprimé - on utilise directement validCurrentView maintenant
 const showViewToggle = ref(false)
 
 // État de la vue (lignes, colonnes, chronologique)
-const currentView = ref('lignes') // 'lignes', 'colonnes', 'chronologique'
+const currentView = ref((() => {
+  // Charger la préférence depuis le localStorage
+  const savedView = localStorage.getItem('hatcast-view-preference')
+  
+  // Valider et retourner une vue valide
+  return getValidView(savedView)
+})())
+
+// Computed pour s'assurer qu'on a toujours une vue valide
+const validCurrentView = computed(() => {
+  return getValidView(currentView.value)
+})
 const showViewDropdown = ref(false)
+const showTimelineViewDropdown = ref(false)
 
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
@@ -2865,17 +2895,23 @@ async function openPreferences() {
 
 // Fonction d'initialisation du mode de vue
 function initializeViewMode() {
-  if (currentUser.value?.email) {
-    // Pour les utilisateurs connectés, commencer en mode inversé
-    currentViewMode.value = 'inverted'
-    showViewToggle.value = true
-    logger.debug('✅ Mode de vue initialisé: inversé (utilisateur connecté)')
+  // Toujours charger la préférence sauvegardée, ne pas l'écraser
+  const savedView = localStorage.getItem('hatcast-view-preference')
+  if (savedView && VALID_VIEWS.includes(savedView)) {
+    currentView.value = savedView
+    logger.debug('✅ Mode de vue restauré depuis localStorage:', savedView)
   } else {
-    // Utilisateur non connecté - toggle visible mais mode normal par défaut
-    currentViewMode.value = 'normal'
-    showViewToggle.value = true
-    logger.debug('✅ Toggle visible pour utilisateur non connecté, mode normal par défaut')
+    // Fallback seulement si aucune préférence sauvegardée
+    if (currentUser.value?.email) {
+      currentView.value = 'columns'
+      logger.debug('✅ Mode de vue par défaut: colonnes (utilisateur connecté)')
+    } else {
+      currentView.value = 'lines'
+      logger.debug('✅ Mode de vue par défaut: lignes (utilisateur non connecté)')
+    }
   }
+  
+  showViewToggle.value = true
 }
 
 
@@ -2884,27 +2920,32 @@ function toggleViewDropdown() {
   showViewDropdown.value = !showViewDropdown.value
 }
 
+// Fonction de basculement du menu déroulant pour la vue timeline
+function toggleTimelineViewDropdown() {
+  showTimelineViewDropdown.value = !showTimelineViewDropdown.value
+}
+
 // Fonction de sélection de vue
 function selectView(view) {
-  currentView.value = view
+  // Valider la vue avant de l'appliquer
+  const validView = getValidView(view)
+  
+  currentView.value = validView
   showViewDropdown.value = false
+  showTimelineViewDropdown.value = false
   
-  // Mapper les nouvelles vues aux anciens modes
-  if (view === 'lignes') {
-    currentViewMode.value = 'normal'  // Lignes = joueurs en lignes, événements en colonnes
-  } else if (view === 'colonnes') {
-    currentViewMode.value = 'inverted'  // Colonnes = joueurs en colonnes, événements en lignes
-  }
+  // Sauvegarder la préférence dans le localStorage
+  localStorage.setItem('hatcast-view-preference', validView)
   
-  logger.debug(`Vue sélectionnée: ${view}`)
+  logger.debug(`Vue sélectionnée: ${validView}`)
 }
 
 // Fonction pour obtenir le label de la vue
 function getViewLabel(view) {
   switch (view) {
-    case 'lignes': return 'Lignes'
-    case 'colonnes': return 'Colonnes'
-    case 'chronologique': return 'Chronologique'
+    case 'lines': return 'Lignes'
+    case 'columns': return 'Colonnes'
+    case 'timeline': return 'Chronologique'
     default: return 'Lignes'
   }
 }
@@ -5405,11 +5446,11 @@ const displayedEvents = computed(() => {
 
 // Computed properties pour l'affichage inversé
 const displayRows = computed(() => {
-  return currentViewMode.value === 'inverted' ? displayedEvents.value : displayedPlayers.value
+  return validCurrentView.value === 'columns' ? displayedEvents.value : displayedPlayers.value
 })
 
 const displayColumns = computed(() => {
-  return currentViewMode.value === 'inverted' ? displayedPlayers.value : displayedEvents.value
+  return validCurrentView.value === 'columns' ? displayedPlayers.value : displayedEvents.value
 })
 
 // Computed properties pour le popin Afficher Plus
