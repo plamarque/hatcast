@@ -1087,7 +1087,7 @@
   <!-- Modal de détails du joueur -->
   <PlayerModal
     ref="playerModalRef"
-    :show="showPlayerDetailsModal && selectedPlayerForDetails"
+    :show="showPlayerDetailsModal"
     :player="selectedPlayerForDetails"
     :stats="getPlayerStats(selectedPlayerForDetails)"
     :season-id="seasonId"
