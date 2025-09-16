@@ -231,6 +231,12 @@ const emit = defineEmits([
 const participantsTitle = computed(() => {
   if (!props.displayedPlayers) return 'Participants (0)'
   const count = props.displayedPlayers.length || 0
+  
+  // Texte plus court sur mobile
+  if (window.innerWidth <= 430) {
+    return `Part. (${count})`
+  }
+  
   return `Participants (${count})`
 })
 

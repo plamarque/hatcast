@@ -222,6 +222,12 @@ const emit = defineEmits([
 const eventsTitle = computed(() => {
   if (!props.events) return 'Événements (0)'
   const count = props.events.length || 0
+  
+  // Texte plus court sur mobile
+  if (window.innerWidth <= 430) {
+    return `Évén. (${count})`
+  }
+  
   return `Événements (${count})`
 })
 

@@ -212,15 +212,15 @@ onUnmounted(() => {
 /* Responsive mobile - iPhone 16 Plus et plus */
 @media (max-width: 430px) {
   .col-left {
-    width: 6rem !important;
-    min-width: 6rem !important;
-    max-width: 6rem !important;
+    width: 4.5rem !important;
+    min-width: 4.5rem !important;
+    max-width: 4.5rem !important;
   }
   
   .left-col-td {
-    width: 6rem !important;
-    min-width: 6rem !important;
-    max-width: 6rem !important;
+    width: 4.5rem !important;
+    min-width: 4.5rem !important;
+    max-width: 4.5rem !important;
   }
   
   .col-player {
@@ -239,15 +239,15 @@ onUnmounted(() => {
 /* Responsive mobile - iPhone 16 et plus petit */
 @media (max-width: 375px) {
   .col-left {
-    width: 5.5rem !important;
-    min-width: 5.5rem !important;
-    max-width: 5.5rem !important;
+    width: 4rem !important;
+    min-width: 4rem !important;
+    max-width: 4rem !important;
   }
   
   .left-col-td {
-    width: 5.5rem !important;
-    min-width: 5.5rem !important;
-    max-width: 5.5rem !important;
+    width: 4rem !important;
+    min-width: 4rem !important;
+    max-width: 4rem !important;
   }
   
   .col-player {
