@@ -8,6 +8,7 @@
           <!-- Dropdown de vue -->
           <div class="relative">
             <button
+              ref="dropdownButtonRef"
               @click="toggleViewDropdown"
               class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 sm:min-w-32"
               :class="{ 'bg-gray-700/50': showViewDropdown }"
@@ -28,7 +29,7 @@
             </button>
 
             <!-- Menu déroulant des vues -->
-            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-56 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1250]">
+            <div v-if="showViewDropdown" class="fixed w-56 bg-gray-900 border border-gray-600 rounded-lg shadow-2xl overflow-hidden z-[9999]" :style="dropdownStyle">
               <button
                 @click="selectView('events')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
@@ -148,6 +149,19 @@ const emit = defineEmits(['view-change', 'player-modal-toggle'])
 
 // État local
 const showViewDropdown = ref(false)
+const dropdownButtonRef = ref(null)
+
+// Computed
+const dropdownStyle = computed(() => {
+  if (showViewDropdown.value && dropdownButtonRef.value) {
+    const rect = dropdownButtonRef.value.getBoundingClientRect()
+    return {
+      top: `${rect.bottom + 8}px`,
+      left: `${rect.left}px`
+    }
+  }
+  return {}
+})
 
 // Fonctions
 function toggleViewDropdown() {
