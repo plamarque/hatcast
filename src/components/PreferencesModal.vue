@@ -230,6 +230,7 @@ import { getUserRolePreferences, saveUserRolePreferences, canDisableRole } from 
 import { queuePushMessage } from '../services/pushService.js'
 import { canUsePush, requestAndGetToken, ensurePushNotificationsActive, startPushHealthCheck } from '../services/notifications'
 import { currentUser, isConnected } from '../services/authState.js'
+import { auth } from '../services/firebase.js'
 import firestoreService from '../services/firestoreService.js'
 
 const props = defineProps({

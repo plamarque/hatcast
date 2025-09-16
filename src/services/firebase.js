@@ -11,14 +11,6 @@ import logger from './logger.js'
 // Fonction pour configurer les listeners de connexion offline
 function setupOfflineListeners(db) {
   try {
-    // Écouter les changements de connexion
-    const unsubscribe = db.onSnapshotsInSync(() => {
-      logger.info('🔄 Firestore synchronisé avec le serveur');
-    });
-    
-    // Stocker la fonction de nettoyage
-    window.firestoreUnsubscribe = unsubscribe;
-    
     // Écouter les événements de connexion du navigateur
     window.addEventListener('online', () => {
       logger.info('🟢 Connexion rétablie - Synchronisation Firestore en cours');

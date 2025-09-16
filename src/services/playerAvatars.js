@@ -109,7 +109,10 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
     return result
     
   } catch (error) {
-    logger.warn('PlayerAvatar service: Error getting player avatar', error)
+    // Ne pas logger les erreurs 'unavailable' qui sont normales
+    if (error.code !== 'unavailable') {
+      logger.warn('PlayerAvatar service: Error getting player avatar', error)
+    }
     const result = { photoURL: null, email: null, isAssociated: false, source: 'error' }
     avatarCache.set(cacheKey, result)
     return result
@@ -177,7 +180,10 @@ async function getPlayerAssociation(playerId, seasonId) {
     return null
     
   } catch (error) {
-    logger.warn('PlayerAvatar service: Error getting association', error)
+    // Ne pas logger les erreurs 'unavailable' qui sont normales
+    if (error.code !== 'unavailable') {
+      logger.warn('PlayerAvatar service: Error getting association', error)
+    }
     associationCache.set(cacheKey, null)
     return null
   }
@@ -230,7 +236,10 @@ async function getUserPhotoURL(email) {
     return null
     
   } catch (error) {
-    logger.warn('PlayerAvatar service: Error getting user photoURL', error)
+    // Ne pas logger les erreurs 'unavailable' qui sont normales
+    if (error.code !== 'unavailable') {
+      logger.warn('PlayerAvatar service: Error getting user photoURL', error)
+    }
     return null
   }
 }
