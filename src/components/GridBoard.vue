@@ -177,6 +177,8 @@
         @availability-toggle="handleAvailabilityToggle"
         @selection-status-toggle="handlePlayerSelectionStatusToggle"
         @show-availability-modal="openAvailabilityModal"
+        @player-selected="handlePlayerSelected"
+        @all-players-selected="handleAllPlayersSelected"
       />
     </div>
     
