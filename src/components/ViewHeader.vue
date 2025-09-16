@@ -1,5 +1,5 @@
 <template>
-  <div class="view-header sticky top-0 z-[100] bg-gray-900 border-b border-gray-700/30" 
+  <div class="view-header sticky top-0 z-[110] bg-gray-900 border-b border-gray-700/30" 
        :style="headerStyle">
     <div class="w-full" :style="containerStyle">
       <div class="max-w-4xl mx-auto px-4">
@@ -28,7 +28,7 @@
             </button>
 
             <!-- Menu déroulant des vues -->
-            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
+            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
               <button
                 @click="selectView('lines')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
