@@ -22,8 +22,9 @@
       @open-development="openDevelopment"
     />
 
-    <!-- Vue grille (classique ou inversée) -->
-    <div class="w-full px-0 md:px-0 pb-0 bg-gray-900"
+
+    <!-- Vue grille (lignes ou colonnes) -->
+    <div v-if="currentView === 'lignes' || currentView === 'colonnes'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
@@ -45,33 +46,66 @@
                 </button>
               </div>
               
-              <!-- Toggle de vue - aligné avec les cellules de la grille -->
-              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2">
-                <button
-                  @click="toggleViewMode"
-                  class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
-                  aria-label="Changer de vue"
-                >
-                  <!-- Flèche en L vers haut-droite (joueurs en colonnes) -->
-                  <svg v-if="currentViewMode === 'normal'" class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                    <!-- Trait vertical qui monte -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 26v-12"/>
-                    <!-- Trait horizontal vers la droite -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 14h8"/>
-                    <!-- Flèche vers la droite -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M24 12l4 2-4 2"/>
-                  </svg>
-                  <!-- Flèche en L vers bas-gauche (joueurs en lignes) -->
-                  <svg v-else class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                    <!-- Trait horizontal vers la gauche -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M26 20h-8"/>
-                    <!-- Trait vertical qui descend -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 20v10"/>
-                    <!-- Flèche vers le bas -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M16 28l2 4 2-4"/>
-                  </svg>
-                </button>
+              <!-- Menu de sélection de vue - aligné avec les cellules de la grille -->
+              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2 view-dropdown-container">
+                <div class="relative">
+                  <button
+                    @click="toggleViewDropdown"
+                    class="flex items-center gap-2 px-3 py-2 bg-gray-800/30 backdrop-blur-sm border border-gray-600/20 rounded-lg text-white hover:bg-gray-700/40 transition-colors"
+                    :class="{ 'bg-gray-700/40': showViewDropdown }"
+                    :title="`Vue actuelle: ${getViewLabel(currentView)}`"
+                  >
+                    <!-- Icône de la vue actuelle -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <!-- Lignes (événements en lignes) -->
+                      <path v-if="currentView === 'lignes'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                      <!-- Colonnes (événements en colonnes) -->
+                      <path v-else-if="currentView === 'colonnes'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                      <!-- Chronologique -->
+                      <path v-else-if="currentView === 'chronologique'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
+                    </svg>
+                    <span class="text-sm font-medium">{{ getViewLabel(currentView) }}</span>
+                    <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+
+                  <!-- Menu déroulant -->
+                  <div v-if="showViewDropdown" class="fixed top-20 left-4 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
+                    <button
+                      @click="selectView('lignes')"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                      :class="{ 'bg-gray-700/50': currentView === 'lignes' }"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                      </svg>
+                      <span>Lignes</span>
+                    </button>
+                    
+                    <button
+                      @click="selectView('colonnes')"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                      :class="{ 'bg-gray-700/50': currentView === 'colonnes' }"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                      </svg>
+                      <span>Colonnes</span>
+                    </button>
+                    
+                    <button
+                      @click="selectView('chronologique')"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                      :class="{ 'bg-gray-700/50': currentView === 'chronologique' }"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
+                      </svg>
+                      <span>Chronologique</span>
+                    </button>
+                  </div>
+                </div>
                 
                 <!-- Indicateur de mode composition -->
                 <div v-if="isCompositionView" class="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
@@ -493,6 +527,128 @@
       </div>
 
       <!-- Indicateurs legacy supprimés (remplacés par chevrons flottants) -->
+    </div>
+
+    <!-- Vue Chronologique -->
+    <div v-if="currentView === 'chronologique' && events.length > 0" class="w-full bg-gray-900">
+      <!-- Header sticky pour la vue chronologique -->
+      <div class="timeline-header sticky top-0 z-[100] bg-gray-900 border-b border-gray-700/30" 
+           style="padding-top: max(48px, env(safe-area-inset-top) + 32px); padding-bottom: max(12px, env(safe-area-inset-bottom) + 48px);">
+        <div class="w-full" style="padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));">
+          <div class="max-w-4xl mx-auto px-4">
+            <div class="flex items-center justify-between gap-2">
+              <!-- Dropdown de vue -->
+              <div class="relative">
+                <button
+                  @click="toggleViewDropdown"
+                  class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors"
+                  :class="{ 'bg-gray-700/50': showViewDropdown }"
+                >
+                  <!-- Icône de la vue actuelle -->
+                  <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Chronologique -->
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
+                  </svg>
+                  <span class="text-xs md:text-sm font-medium hidden sm:inline">Chronologique</span>
+                  <span class="text-xs md:text-sm font-medium sm:hidden">Chrono</span>
+                  <svg class="w-3 h-3 md:w-4 md:h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+
+                <!-- Menu déroulant des vues -->
+                <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
+                  <button
+                    @click="selectView('lignes')"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    </svg>
+                    <span>Lignes</span>
+                  </button>
+                  
+                  <button
+                    @click="selectView('colonnes')"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                    </svg>
+                    <span>Colonnes</span>
+                  </button>
+                  
+                  <button
+                    @click="selectView('chronologique')"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm bg-gray-700/50"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
+                    </svg>
+                    <span>Chronologique</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Sélecteur de joueur -->
+              <div class="relative">
+                <button
+                  @click="togglePlayerModal"
+                  class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+                >
+                  <span class="flex-1 text-left text-xs md:text-sm truncate">
+                    {{ selectedPlayer ? selectedPlayer.name : 'Joueur' }}
+                  </span>
+                  <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Modal de sélection de joueur -->
+      <PlayerSelectorModal
+        :show="showPlayerModal"
+        :players="players"
+        :season-id="seasonId"
+        :selected-player-id="selectedPlayerId"
+        :preferred-player-ids-set="preferredPlayerIdsSet"
+        :is-player-protected="isPlayerProtectedInGrid"
+        @close="closePlayerModal"
+        @player-selected="handlePlayerSelected"
+        @all-players-selected="handleAllPlayersSelected"
+      />
+      
+      <TimelineView
+        :events="events"
+        :players="players"
+        :availability="availability"
+        :casts="casts"
+        :season-id="seasonId"
+        :preferred-player-ids-set="preferredPlayerIdsSet"
+        :is-available="isAvailable"
+        :is-player-selected="isPlayerSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        @event-click="showEventDetails"
+        @player-click="showPlayerDetails"
+        @view-change="selectView"
+        @availability-toggle="handleAvailabilityToggle"
+        @selection-status-toggle="handlePlayerSelectionStatusToggle"
+        @show-availability-modal="openAvailabilityModal"
+      />
+    </div>
+    
+    <!-- Message de chargement pour la vue chronologique -->
+    <div v-if="currentView === 'chronologique' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
+         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
+      <div class="text-white text-lg">Chargement des événements...</div>
     </div>
   </div>
 
@@ -1871,6 +2027,7 @@ import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
+import TimelineView from './TimelineView.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -2002,6 +2159,10 @@ const isScrolled = ref(false)
 // État de la vue (normal ou inversée)
 const currentViewMode = ref('normal')
 const showViewToggle = ref(false)
+
+// État de la vue (lignes, colonnes, chronologique)
+const currentView = ref('lignes') // 'lignes', 'colonnes', 'chronologique'
+const showViewDropdown = ref(false)
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -2707,10 +2868,35 @@ function initializeViewMode() {
   }
 }
 
-// Fonction de basculement de vue
-function toggleViewMode() {
-  currentViewMode.value = currentViewMode.value === 'normal' ? 'inverted' : 'normal'
-  logger.debug(`Mode de vue changé vers: ${currentViewMode.value}`)
+
+// Fonction de basculement du menu déroulant
+function toggleViewDropdown() {
+  showViewDropdown.value = !showViewDropdown.value
+}
+
+// Fonction de sélection de vue
+function selectView(view) {
+  currentView.value = view
+  showViewDropdown.value = false
+  
+  // Mapper les nouvelles vues aux anciens modes
+  if (view === 'lignes') {
+    currentViewMode.value = 'normal'  // Lignes = joueurs en lignes, événements en colonnes
+  } else if (view === 'colonnes') {
+    currentViewMode.value = 'inverted'  // Colonnes = joueurs en colonnes, événements en lignes
+  }
+  
+  logger.debug(`Vue sélectionnée: ${view}`)
+}
+
+// Fonction pour obtenir le label de la vue
+function getViewLabel(view) {
+  switch (view) {
+    case 'lignes': return 'Lignes'
+    case 'colonnes': return 'Colonnes'
+    case 'chronologique': return 'Chronologique'
+    default: return 'Lignes'
+  }
 }
 function closePreferences() { 
   showPreferences.value = false 
@@ -4331,6 +4517,26 @@ watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
 onMounted(async () => {
   // Détecter si on est sur mobile (simplifié)
   isMobile.value = window.innerWidth < 768
+  
+  // Ajouter un listener pour la redimensionnement
+  const handleResize = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  window.addEventListener('resize', handleResize)
+  
+  // Ajouter un listener pour fermer le menu déroulant
+  const handleClickOutside = (event) => {
+    if (showViewDropdown.value && !event.target.closest('.view-dropdown-container')) {
+      showViewDropdown.value = false
+    }
+  }
+  document.addEventListener('click', handleClickOutside)
+  
+  // Nettoyer les listeners au démontage
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+    document.removeEventListener('click', handleClickOutside)
+  })
   
   // Démarrer la mesure de performance globale de la grille
   performanceService.start('grid_loading', {

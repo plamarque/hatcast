@@ -5,6 +5,7 @@
 ### Ajouter un nouveau composant modal
 
 1. **Identifier la catégorie** :
+   - **Sélecteurs** : `z-[1500-1510]`
    - **Onboarding** : `z-[1100-1110]`
    - **Principal** : `z-[1010-1070]`
    - **Secondaire** : `z-[1200-1280]`
@@ -25,6 +26,7 @@
 
 | Composant | Z-Index | Usage |
 |-----------|---------|-------|
+| `PlayerSelectorModal` | `z-[1500]` | Sélection joueur |
 | `PlayerModal` | `z-[1050]` | Détails joueur |
 | `EventModal` | `z-[1010]` | Création événement |
 | `AccountDropdown` | `z-[1250]` | Menu utilisateur |
