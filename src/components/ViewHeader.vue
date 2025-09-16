@@ -75,7 +75,7 @@
                 <PlayerAvatar
                   :player-id="selectedPlayer.id"
                   :player-name="selectedPlayer.name"
-                  size="20"
+                  size="sm"
                   class="w-5 h-5"
                 />
               </div>
@@ -84,7 +84,7 @@
                 <span class="text-xs font-bold">T</span>
               </div>
               <span class="flex-1 text-left text-xs md:text-sm truncate">
-                {{ selectedPlayer ? selectedPlayer.name : 'Tous' }}
+                {{ participantsDisplayText || (selectedPlayer ? selectedPlayer.name : 'Tous') }}
               </span>
               <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -114,6 +114,10 @@ const props = defineProps({
   },
   selectedPlayer: {
     type: Object,
+    default: null
+  },
+  participantsDisplayText: {
+    type: String,
     default: null
   },
   // Style props

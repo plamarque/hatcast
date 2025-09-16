@@ -32,6 +32,7 @@
         :current-view="validCurrentView"
         :show-player-selector="true"
         :selected-player="selectedPlayer"
+        :participants-display-text="dropdownDisplayText"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
@@ -205,8 +206,8 @@
                   <!-- Sous-titre avec compteur -->
                   <div class="text-xs text-gray-300 text-center">
                     Afficher Plus
-                    <div v-if="hiddenPlayersCount > 0" class="text-xs text-gray-400 mt-1">
-                      (+{{ hiddenPlayersCount }})
+                    <div v-if="hiddenPlayersDisplayText" class="text-xs text-gray-400 mt-1">
+                      {{ hiddenPlayersDisplayText }}
                     </div>
                   </div>
                 </div>
@@ -444,8 +445,8 @@
                     <!-- Sous-titre avec compteur -->
                     <div class="text-xs text-gray-300 text-center">
                       Afficher Plus
-                      <div v-if="hiddenPlayersCount > 0" class="text-xs text-gray-400 mt-1">
-                        (+{{ hiddenPlayersCount }})
+                      <div v-if="hiddenPlayersDisplayText" class="text-xs text-gray-400 mt-1">
+                        {{ hiddenPlayersDisplayText }}
                       </div>
                     </div>
                   </div>
@@ -510,6 +511,7 @@
         :current-view="validCurrentView"
         :show-player-selector="true"
         :selected-player="selectedPlayer"
+        :participants-display-text="dropdownDisplayText"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
@@ -2844,7 +2846,19 @@ function getViewLabel(view) {
 }
 
 // Fonctions pour la vue chronologique
-function togglePlayerModal() {
+async function togglePlayerModal() {
+  if (!showPlayerModal.value) {
+    // S'assurer que allSeasonPlayers est chargé avant d'ouvrir le modal
+    if (allSeasonPlayers.value.length === 0 && seasonId.value) {
+      try {
+        allSeasonPlayers.value = await loadPlayers(seasonId.value)
+        logger.debug(`📊 Chargé ${allSeasonPlayers.value.length} joueurs pour le modal`)
+      } catch (error) {
+        logger.error('❌ Erreur lors du chargement des joueurs pour le modal:', error)
+        allSeasonPlayers.value = []
+      }
+    }
+  }
   showPlayerModal.value = !showPlayerModal.value
 }
 
@@ -5125,6 +5139,72 @@ const hiddenPlayersCount = computed(() => {
   return Math.max(0, totalSeasonPlayers - displayedCount)
 })
 
+// Computed pour l'affichage sous "Afficher Plus" (nombre de joueurs masqués)
+const hiddenPlayersDisplayText = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return null
+  }
+  
+  const displayedCount = players.value.length
+  const totalCount = allSeasonPlayers.value.length
+  const hiddenCount = totalCount - displayedCount
+  
+  if (displayedCount === 0) return null
+  
+  // Si tous les participants sont affichés, afficher "Tous"
+  if (hiddenCount === 0) {
+    return 'Tous'
+  }
+  
+  // Si des participants sont masqués, afficher le nombre
+  if (hiddenCount > 0) {
+    return `${hiddenCount} masqué${hiddenCount > 1 ? 's' : ''}`
+  }
+  
+  return null
+})
+
+// Computed pour l'affichage dans le dropdown (règles spécifiques)
+const dropdownDisplayText = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return null
+  }
+  
+  const displayedCount = players.value.length
+  const totalCount = allSeasonPlayers.value.length
+  
+  if (displayedCount === 0) return null
+  
+  // Si tous les participants sont affichés, afficher "Tous"
+  if (displayedCount === totalCount) {
+    return 'Tous'
+  }
+  
+  // Si plus d'un participant affiché, afficher "X/Y Participants"
+  if (displayedCount > 1) {
+    return `${displayedCount}/${totalCount} Participants`
+  }
+  
+  // Si un seul participant, ne pas afficher de texte (le nom sera affiché)
+  return null
+})
+
+
+// Watcher pour initialiser selectedPlayerId avec le premier favori
+watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], ([favoritesSize, seasonPlayersLength]) => {
+  // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
+  if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
+    const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
+    const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
+    
+    if (firstFavorite) {
+      selectedPlayerId.value = firstFavoriteId
+      logger.debug('🎯 Joueur par défaut initialisé avec le premier favori:', firstFavorite.name)
+    }
+  }
+}, { immediate: true })
 
 // Watcher pour recharger les joueurs protégés de l'utilisateur quand l'authentification change
 watch(() => currentUser.value?.email, async (newEmail) => {
