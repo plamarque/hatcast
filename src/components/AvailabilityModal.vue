@@ -68,7 +68,7 @@
           >
             <span class="flex items-center justify-center gap-2">
               <span v-if="currentlyUnknown" class="text-gray-200">✓</span>
-              Je sais pas
+              Non renseigné
             </span>
           </button>
         </div>
@@ -409,7 +409,7 @@ watch(() => props.show, async (newShow) => {
     
     // Initialiser selectedAvailability basé sur l'état actuel
     if (props.currentAvailability.available === null || props.currentAvailability.available === undefined) {
-      // Aucune disponibilité définie : pré-cocher "Je sais pas" par défaut
+      // Aucune disponibilité définie : pré-cocher "Non renseigné" par défaut
       selectedAvailability.value = null
     } else {
       selectedAvailability.value = props.currentAvailability.available
@@ -451,7 +451,7 @@ watch(() => props.currentAvailability, (newAvailability) => {
   if (props.show) {
     // Initialiser selectedAvailability basé sur l'état actuel
     if (newAvailability.available === null || newAvailability.available === undefined) {
-      // Aucune disponibilité définie : pré-cocher "Je sais pas" par défaut
+      // Aucune disponibilité définie : pré-cocher "Non renseigné" par défaut
       selectedAvailability.value = null
     } else {
       selectedAvailability.value = newAvailability.available
@@ -507,7 +507,7 @@ function handleSaveAndClose() {
       comment: comment.value.trim() || null
     })
   } else {
-    // selectedAvailability.value === null, "Je sais pas" avec commentaire possible
+    // selectedAvailability.value === null, "Non renseigné" avec commentaire possible
     emit('clear', {
       available: null,
       roles: [],
@@ -578,7 +578,7 @@ function handleClear() {
   // Mettre à jour l'état sélectionné
   selectedAvailability.value = null
   selectedRoles.value = []
-  // Ne pas vider le commentaire, il peut être utile pour "Je sais pas"
+  // Ne pas vider le commentaire, il peut être utile pour "Non renseigné"
   
   // Fermer directement la modale car pas de rôles à choisir
   emit('clear', {

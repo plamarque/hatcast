@@ -22,7 +22,7 @@
           <h3 class="text-white font-semibold">Détails du tirage multi-rôles</h3>
           <ol class="list-decimal list-inside space-y-2 text-gray-300">
             <li><span class="text-white">Qui participe ?</span> Toutes les personnes marquées « ✅ Disponible » pour l'événement et le rôle concerné.</li>
-            <li><span class="text-white">Ordre de priorité</span> : Les rôles sont tirés dans l'ordre : Arbitre → DJ → MC → Improvisateurs → Assistants → Coach → Régisseur → Éclairagiste → Bénévoles.</li>
+            <li><span class="text-white">Ordre de priorité</span> : Les rôles sont tirés dans l'ordre : Arbitre → DJ → MC → Joueurs → Assistants → Coach → Régisseur → Éclairagiste → Bénévoles.</li>
             <li><span class="text-white">Un coup de pouce aux moins joués</span> : si vous avez moins joué récemment pour ce rôle, le tirage vous favorise un peu plus.</li>
             <li><span class="text-white">Comment se fait le tirage ?</span> Pour chaque rôle, on tire au hasard en tenant compte de cet avantage, on met de côté, puis on passe au rôle suivant.</li>
             <li><span class="text-white">Une personne, un rôle</span> : Une fois sélectionnée pour un rôle, la personne n'est plus disponible pour les autres rôles.</li>
@@ -37,7 +37,7 @@
           <ul class="list-disc list-inside space-y-1 text-gray-300">
             <li><span class="text-white">Arbitre</span> : Essentiel pour les matchs</li>
             <li><span class="text-white">DJ et MC</span> : Critiques pour l'ambiance du spectacle</li>
-            <li><span class="text-white">Improvisateurs</span> : Le cœur du spectacle</li>
+            <li><span class="text-white">Joueurs</span> : Le cœur du spectacle</li>
             <li><span class="text-white">Autres rôles</span> : Importants mais moins critiques</li>
           </ul>
           <p class="text-sm text-gray-400">Même si certains rôles secondaires ne peuvent pas être pourvus, le spectacle peut toujours avoir lieu grâce aux rôles prioritaires.</p>
@@ -53,7 +53,7 @@
           <ul class="list-disc list-inside space-y-1 text-gray-300">
             <li>Ceux qui ont moins joué pour un rôle ont automatiquement plus de chances pour ce rôle.</li>
             <li>Après une composition, vos chances diminuent un peu pour ce rôle spécifique, mais pas pour les autres rôles.</li>
-            <li>Chaque rôle a sa propre logique de tirage : être sélectionné comme DJ n'affecte pas tes chances d'être sélectionné comme Improvisateur.</li>
+            <li>Chaque rôle a sa propre logique de tirage : être sélectionné comme DJ n'affecte pas tes chances d'être sélectionné comme Joueur.</li>
             <li>Sur la durée, les compositions s'<span class="text-green-300">équilibrent naturellement</span> pour chaque rôle.</li>
           </ul>
         </div>
@@ -62,7 +62,7 @@
           <h3 class="text-white font-semibold">Exemples rapides</h3>
           <p>
             • <span class="text-white">Pour le rôle DJ</span> : Alice n'a jamais été DJ, Bob l'a été une fois, Charlie plusieurs fois. Pour 1 place DJ : Alice 57 %, Bob 29 %, Charlie 14 %.<br/>
-            • <span class="text-white">Ordre de tirage</span> : D'abord l'Arbitre (si nécessaire), puis le DJ, puis le MC, puis les Improvisateurs, etc.<br/>
+            • <span class="text-white">Ordre de tirage</span> : D'abord l'Arbitre (si nécessaire), puis le DJ, puis le MC, puis les Joueurs, etc.<br/>
             • <span class="text-white">Une personne, un rôle</span> : Si Alice est tirée comme DJ, elle ne peut plus être tirée pour les autres rôles de ce spectacle.
           </p>
         </div>
