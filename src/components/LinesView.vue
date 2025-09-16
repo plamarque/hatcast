@@ -298,6 +298,10 @@ const toggleSelectionStatus = (playerName, eventId, status, seasonId) => {
 const openAvailabilityModal = (data) => {
   emit('show-availability-modal', data)
 }
+
+const openEventModal = (event) => {
+  emit('event-click', event)
+}
 </script>
 
 <!-- Styles gérés par BaseGridView.vue -->
