@@ -1,11 +1,11 @@
 <template>
   <BaseGridView
-    :events="events"
-    :displayed-players="displayedPlayers"
+    :events="props.events"
+    :displayed-players="props.displayedPlayers"
     :left-column-title="participantsTitle"
-    :header-items="events"
-    :row-items="displayedPlayers"
-    :column-items="events"
+    :header-items="props.events"
+    :row-items="props.displayedPlayers"
+    :column-items="props.events"
     :item-column-width="eventColumnWidth"
     :is-all-players-view="isAllPlayersView"
     :hidden-players-count="hiddenPlayersCount"
@@ -221,7 +221,8 @@ const emit = defineEmits([
 
 // Computed
 const participantsTitle = computed(() => {
-  const count = displayedPlayers.value.length
+  if (!props.displayedPlayers) return 'Participants (0)'
+  const count = props.displayedPlayers.length || 0
   return `Participants (${count})`
 })
 
