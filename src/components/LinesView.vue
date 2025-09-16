@@ -110,21 +110,6 @@
         </td>
         
         <!-- Cellules vides pour "Afficher Plus" -->
-        <td
-          v-for="event in events"
-          :key="`plus-${event.id}`"
-          class="col-event border-r border-gray-700 p-0"
-          :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
-        >
-          <div class="h-full bg-gray-800 flex items-center justify-center min-h-16">
-            <button
-              class="text-blue-400 hover:text-blue-300 text-xs"
-              @click="togglePlayerModal"
-            >
-              {{ hiddenPlayersDisplayText }}
-            </button>
-          </div>
-        </td>
       </tr>
     </template>
   </BaseGridView>
@@ -309,10 +294,6 @@ const toggleSelectionStatus = (playerName, eventId, status, seasonId) => {
 
 const openAvailabilityModal = (data) => {
   emit('show-availability-modal', data)
-}
-
-const openEventModal = (event) => {
-  emit('event-click', event)
 }
 </script>
 

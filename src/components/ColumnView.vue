@@ -104,20 +104,6 @@
         </td>
         
         <!-- Cellule "Afficher Plus" -->
-        <td
-          v-if="!isAllPlayersView && hiddenPlayersCount > 0"
-          class="col-player border-r border-gray-700 p-0"
-          :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
-        >
-          <div class="h-full bg-gray-800 flex items-center justify-center min-h-16">
-            <button
-              class="text-blue-400 hover:text-blue-300 text-xs"
-              @click="togglePlayerModal"
-            >
-              {{ hiddenPlayersDisplayText }}
-            </button>
-          </div>
-        </td>
       </tr>
     </template>
   </BaseGridView>
