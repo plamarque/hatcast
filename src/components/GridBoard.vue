@@ -39,7 +39,7 @@
       <!-- Modal de sélection de joueur pour les vues lignes/colonnes -->
       <PlayerSelectorModal
         :show="showPlayerModal"
-        :players="players"
+        :players="allSeasonPlayers"
         :season-id="seasonId"
         :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
@@ -511,7 +511,7 @@
       <!-- Modal de sélection de joueur -->
       <PlayerSelectorModal
         :show="showPlayerModal"
-        :players="players"
+        :players="allSeasonPlayers"
         :season-id="seasonId"
         :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
