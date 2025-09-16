@@ -86,6 +86,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[110]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
+| `z-[105]` | GridTableHeader | En-tête sticky des tableaux (lignes/colonnes) | `src/components/BaseGridView.vue` |
 | `z-[101]` | GridLeftColumn | Colonne de gauche de la grille (joueurs) | `src/components/GridBoard.vue` |
 | `z-[100]` | GridHeader | Header principal de la grille | `src/components/GridBoard.vue` |
 | `z-[60]` | GridEventsHeader | Header des événements dans la grille | `src/components/GridBoard.vue` |
@@ -199,6 +200,10 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 ### Sélecteurs de joueurs
 - **Z-index** : `z-[1500]`
 - **Justification** : Doivent apparaître au-dessus de l'en-tête de saison et des autres modales
+
+### En-têtes de tableaux sticky
+- **Z-index** : `z-[105]`
+- **Justification** : Doivent être sticky sous le ViewHeader (z-[110]) mais au-dessus du header de saison (z-[100])
 
 ### Toasts de notification
 - **Z-index** : `z-[9999]`
