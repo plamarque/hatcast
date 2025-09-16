@@ -50,6 +50,7 @@
             
             <!-- Cellule de disponibilité -->
             <div class="availability-cell flex-shrink-0">
+              <!-- Debug: selectedPlayerId = {{ selectedPlayerId }} -->
               <AvailabilityCell
                 v-if="selectedPlayerId"
                 :player-name="selectedPlayer.name"
