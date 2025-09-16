@@ -72,6 +72,10 @@
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
         :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        :casts="casts"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
@@ -101,6 +105,10 @@
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
         :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        :casts="casts"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
@@ -7397,11 +7405,12 @@ async function showPlayerDetails(player) {
     console.warn('Impossible de recharger les données pour les stats:', error);
   }
   
-  showPlayerDetailsModal.value = true;
-
   // 1. Mettre à jour l'URL pour refléter l'état de navigation
   const newUrl = `/season/${props.slug}?player=${player.id}&modal=player_details`
-  router.push(newUrl)
+  await router.push(newUrl)
+  
+  // 2. Ouvrir la modale après la navigation
+  showPlayerDetailsModal.value = true;
 
   // 2. Tracker l'état de navigation (pas l'interaction modale)
   try {

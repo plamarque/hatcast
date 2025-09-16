@@ -187,6 +187,22 @@ const props = defineProps({
   isPlayerProtectedInGrid: {
     type: Function,
     required: true
+  },
+  getSelectionPlayers: {
+    type: Function,
+    required: true
+  },
+  getTotalRequiredCount: {
+    type: Function,
+    required: true
+  },
+  countAvailablePlayers: {
+    type: Function,
+    required: true
+  },
+  casts: {
+    type: Object,
+    required: true
   }
 })
 
@@ -221,12 +237,56 @@ const getEventIcon = (event) => {
 }
 
 const getEventStatus = (event) => {
-  // Récupérer le statut depuis la composition si disponible
-  if (event.cast && event.cast.status) {
-    return event.cast.status
+  const eventId = event.id
+  const selectedPlayers = props.getSelectionPlayers(eventId)
+  const requiredCount = props.getTotalRequiredCount(event)
+  const availableCount = props.countAvailablePlayers(eventId)
+  const isConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer(eventId)
+  const isConfirmedByAllPlayers = props.isSelectionConfirmed(eventId)
+  
+  // Cas 0: Aucune composition → afficher "Prêt" (prioritaire)
+  if (selectedPlayers.length === 0) {
+    return 'ready'
   }
-  // Fallback : pas de composition = prêt
-  return 'ready'
+  
+  // Priorité : utiliser le statut calculé stocké en base
+  const selection = props.casts[eventId]
+  if (selection?.status && selection?.statusDetails) {
+    return selection.status
+  }
+
+  // Cas 1: Composition incomplète (composition existante avec problèmes)
+  if (selectedPlayers.length > 0) {
+    const hasUnavailablePlayers = selectedPlayers.some(playerName => !props.isAvailable(playerName, eventId))
+    const hasInsufficientPlayers = availableCount < requiredCount
+    
+    // Vérifier si des joueurs sélectionnés ont décliné
+    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
+      return selection?.playerStatuses?.[playerName] === 'declined'
+    })
+    
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
+      return 'incomplete'
+    }
+  }
+  
+  // Cas 2: Pas assez de joueurs pour faire une composition
+  if (availableCount < requiredCount) {
+    return 'insufficient'
+  }
+  
+  // Cas 3: Composition confirmée par l'organisateur ET par tous les joueurs
+  if (isConfirmedByAllPlayers) {
+    return 'confirmed'
+  }
+  
+  // Cas 4: Composition confirmée par l'organisateur mais pas encore par tous les joueurs
+  if (isConfirmedByOrganizer) {
+    return 'pending_confirmation'
+  }
+  
+  // Cas 5: Composition complète mais non confirmée par l'organisateur
+  return 'complete'
 }
 
 const getStatusLabel = (status) => {
