@@ -208,8 +208,15 @@ const emit = defineEmits([
 
 // Computed
 const playerColumnWidth = computed(() => {
-  // Largeur fixe pour les colonnes de joueurs
-  return 80
+  // Largeur adaptative pour les colonnes de joueurs selon la taille d'écran
+  if (window.innerWidth <= 375) {
+    return 64 // 4rem pour iPhone 16 et plus petit
+  } else if (window.innerWidth <= 430) {
+    return 72 // 4.5rem pour iPhone 16 Plus
+  } else if (window.innerWidth <= 768) {
+    return 72 // 4.5rem pour écrans moyens
+  }
+  return 80 // Desktop
 })
 
 // Methods

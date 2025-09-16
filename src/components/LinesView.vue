@@ -223,8 +223,15 @@ const emit = defineEmits([
 
 // Computed
 const eventColumnWidth = computed(() => {
-  // Largeur fixe pour les colonnes d'événements
-  return 120
+  // Largeur adaptative pour les colonnes d'événements selon la taille d'écran
+  if (window.innerWidth <= 375) {
+    return 80 // 5rem pour iPhone 16 et plus petit
+  } else if (window.innerWidth <= 430) {
+    return 96 // 6rem pour iPhone 16 Plus
+  } else if (window.innerWidth <= 768) {
+    return 104 // 6.5rem pour écrans moyens
+  }
+  return 120 // Desktop
 })
 
 // Methods
