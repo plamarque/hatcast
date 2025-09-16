@@ -86,7 +86,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[110]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
-| `z-[105]` | GridTableHeader | En-tête sticky des tableaux (lignes/colonnes) | `src/components/BaseGridView.vue` |
+| `z-[105]` | GridTableHeader | En-tête sticky des tableaux (spectacles/participants) | `src/components/BaseGridView.vue` |
 | `z-[101]` | GridLeftColumn | Colonne de gauche de la grille (joueurs) | `src/components/GridBoard.vue` |
 | `z-[100]` | GridHeader | Header principal de la grille | `src/components/GridBoard.vue` |
 | `z-[60]` | GridEventsHeader | Header des événements dans la grille | `src/components/GridBoard.vue` |
