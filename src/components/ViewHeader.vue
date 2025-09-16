@@ -1,6 +1,6 @@
 <template>
-  <div class="view-header bg-gray-900 border-b border-gray-700/30" 
-       :class="{ 'sticky top-0 z-[110]': isSticky }"
+  <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30" 
+       :class="{ 'sticky top-0 z-[110] shadow-lg': isSticky }"
        :style="headerStyle">
     <div class="w-full" :style="containerStyle">
       <div class="max-w-4xl mx-auto px-2">
@@ -9,7 +9,7 @@
           <div class="relative">
             <button
               @click="toggleViewDropdown"
-              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors"
+              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 sm:min-w-32"
               :class="{ 'bg-gray-700/50': showViewDropdown }"
             >
               <!-- Icône de la vue actuelle -->
@@ -21,15 +21,14 @@
                 <!-- Chronologique -->
                 <path v-else-if="currentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
               </svg>
-              <span class="text-xs md:text-sm font-medium hidden sm:inline">{{ getViewLabel(currentView) }}</span>
-              <span class="text-xs md:text-sm font-medium sm:hidden">{{ getViewLabel(currentView).substring(0, 5) }}</span>
+              <span class="text-xs md:text-sm font-medium">{{ getViewLabel(currentView) }}</span>
               <svg class="w-3 h-3 md:w-4 md:h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
               </svg>
             </button>
 
             <!-- Menu déroulant des vues -->
-            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
+            <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-56 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
               <button
                 @click="selectView('events')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
@@ -132,11 +131,11 @@ const props = defineProps({
   // Style props
   headerStyle: {
     type: String,
-    default: 'padding-top: max(8px, env(safe-area-inset-top) + 4px); padding-bottom: max(4px, env(safe-area-inset-bottom) + 4px);'
+    default: 'padding-top: max(4px, env(safe-area-inset-top) + 2px); padding-bottom: max(2px, env(safe-area-inset-bottom) + 2px);'
   },
   containerStyle: {
     type: String,
-    default: 'padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right));'
+    default: 'padding-left: max(4px, env(safe-area-inset-left)); padding-right: max(4px, env(safe-area-inset-right));'
   },
   isSticky: {
     type: Boolean,
