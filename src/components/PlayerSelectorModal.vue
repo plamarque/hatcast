@@ -63,10 +63,6 @@
             />
             <div class="flex-1">
               <div class="text-white font-medium">{{ player.name }}</div>
-              <!-- Indicateur si le joueur est déjà affiché -->
-              <div v-if="isPlayerAlreadyDisplayed(player.id)" class="text-gray-400 text-xs">
-                Déjà affiché
-              </div>
             </div>
             <!-- Icône de cadenas pour les participants protégés -->
             <div v-if="isPlayerProtected(player.id)" class="text-yellow-400 text-sm">
