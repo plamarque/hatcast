@@ -42,12 +42,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       // Mettre en cache le résultat
       avatarCache.set(cacheKey, result)
       
-      logger.debug('PlayerAvatar service: Retrieved avatar from playerProtection', {
-        playerId,
-        seasonId,
-        hasAvatar: !!protectionData.photoURL,
-        hasEmail: !!protectionData.email
-      })
+      // Log supprimé pour éviter la pollution de la console
       
       return result
     }
@@ -69,12 +64,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       // Mettre en cache le résultat
       avatarCache.set(cacheKey, result)
       
-      logger.debug('PlayerAvatar service: Retrieved avatar from association', {
-        playerId,
-        seasonId,
-        email: association.email,
-        hasAvatar: !!photoURL
-      })
+
       
       return result
     }
