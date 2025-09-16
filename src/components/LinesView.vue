@@ -28,8 +28,16 @@
         :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
       >
         <div class="flex flex-col items-center space-y-1">
-          <span class="text-white font-medium text-sm text-center leading-tight">{{ event.title }}</span>
-          <span class="text-gray-400 text-xs text-center">{{ formatEventDate(event.date) }}</span>
+          <div class="flex items-center gap-1 mb-1">
+            <span class="text-lg">{{ getEventIcon(event) }}</span>
+            <span class="text-white font-medium text-sm text-center leading-tight">{{ event.title }}</span>
+          </div>
+          <div class="flex flex-col items-center space-y-1">
+            <span class="text-gray-400 text-xs text-center">{{ formatEventDate(event.date) }}</span>
+            <span v-if="getRequiredPlayersCount(event) > 0" class="text-blue-400 text-xs bg-blue-900/30 px-2 py-1 rounded-full">
+              {{ getRequiredPlayersCount(event) }} joueurs
+            </span>
+          </div>
         </div>
       </div>
     </template>
@@ -128,6 +136,7 @@ import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
+import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
 
 // Props
 const props = defineProps({
@@ -233,6 +242,22 @@ const eventColumnWidth = computed(() => {
   }
   return 120 // Desktop
 })
+
+// Fonctions utilitaires
+const getEventIcon = (event) => {
+  return EVENT_TYPE_ICONS[event.templateType] || '❓'
+}
+
+const getRequiredPlayersCount = (event) => {
+  if (event.roles && event.roles.player) {
+    return event.roles.player
+  }
+  // Fallback sur le template si pas de rôles définis
+  if (event.templateType && ROLE_TEMPLATES[event.templateType]) {
+    return ROLE_TEMPLATES[event.templateType].roles.player || 0
+  }
+  return 0
+}
 
 // Methods
 const showPlayerDetails = (player) => {
