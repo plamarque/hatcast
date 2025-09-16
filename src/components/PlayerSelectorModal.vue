@@ -5,7 +5,7 @@
       <!-- Header -->
       <div class="p-6 border-b border-white/10">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-bold text-white">Afficher plus de participants</h2>
+          <h2 class="text-2xl font-bold text-white">Choisir des Participants</h2>
           <button @click="closeModal" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
             ✖️
           </button>
@@ -39,7 +39,7 @@
             </div>
             <div>
               <div class="text-white font-medium">Tous</div>
-              <div class="text-gray-400 text-sm">Charger tous les participants de la saison</div>
+              <div class="text-gray-400 text-sm">Charger tous les participants</div>
             </div>
           </div>
           
@@ -85,7 +85,7 @@
             </div>
             <div>
               <div class="text-white font-medium">Ajouter un participant</div>
-              <div class="text-gray-400 text-sm">Créer un nouveau participant</div>
+              <div class="text-gray-400 text-sm">Créer un nouveau participant pour vos événements</div>
             </div>
           </div>
         </div>
