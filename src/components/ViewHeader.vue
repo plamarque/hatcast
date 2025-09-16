@@ -4,69 +4,9 @@
        :style="headerStyle">
     <div class="w-full" :style="containerStyle">
       <div class="max-w-4xl mx-auto px-2">
-        <div class="flex items-center justify-between gap-1">
-          <!-- Dropdown de vue -->
-          <div class="relative">
-            <button
-              ref="dropdownButtonRef"
-              @click="toggleViewDropdown"
-              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 sm:min-w-32"
-              :class="{ 'bg-gray-700/50': showViewDropdown }"
-            >
-              <!-- Icône de la vue actuelle -->
-              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <!-- Spectacles -->
-                <path v-if="currentView === 'events'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1h3zM9 4h6M9 8h6M9 12h6M9 16h6"/>
-                <!-- Participants -->
-                <path v-else-if="currentView === 'participants'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                <!-- Chronologique -->
-                <path v-else-if="currentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-              </svg>
-              <span class="text-xs md:text-sm font-medium">{{ getViewLabel(currentView) }}</span>
-              <svg class="w-3 h-3 md:w-4 md:h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </button>
-
-            <!-- Menu déroulant des vues -->
-            <div v-if="showViewDropdown" class="fixed w-56 bg-gray-900 border border-gray-600 rounded-lg shadow-2xl overflow-hidden z-[9999]" :style="dropdownStyle">
-              <button
-                @click="selectView('events')"
-                class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                :class="{ 'bg-gray-700/50': currentView === 'events' }"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1h3zM9 4h6M9 8h6M9 12h6M9 16h6"/>
-                </svg>
-                <span>Spectacles</span>
-              </button>
-              
-              <button
-                @click="selectView('participants')"
-                class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                :class="{ 'bg-gray-700/50': currentView === 'participants' }"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                <span>Participants</span>
-              </button>
-              
-              <button
-                @click="selectView('timeline')"
-                class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                :class="{ 'bg-gray-700/50': currentView === 'timeline' }"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                <span>Chronologique</span>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Sélecteur de joueur (conditionnel) -->
-          <div v-if="showPlayerSelector" class="relative">
+        <div class="flex items-center justify-between gap-4">
+          <!-- Sélecteur de joueur (à gauche) -->
+          <div v-if="showPlayerSelector" class="relative flex-shrink-0">
             <button
               @click="togglePlayerModal"
               class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
@@ -100,6 +40,45 @@
               </svg>
             </button>
           </div>
+
+          <!-- Tab switcher centré -->
+          <div class="flex bg-gray-800/50 rounded-lg p-1">
+            <button
+              @click="selectView('events')"
+              class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
+              :class="currentView === 'events' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1h3zM9 4h6M9 8h6M9 12h6M9 16h6"/>
+              </svg>
+              <span class="hidden sm:inline">Spectacles</span>
+            </button>
+            
+            <button
+              @click="selectView('participants')"
+              class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
+              :class="currentView === 'participants' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              <span class="hidden sm:inline">Participants</span>
+            </button>
+            
+            <button
+              @click="selectView('timeline')"
+              class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
+              :class="currentView === 'timeline' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <span class="hidden sm:inline">Chronologique</span>
+            </button>
+          </div>
+
+          <!-- Espace vide à droite pour équilibrer -->
+          <div class="flex-shrink-0 w-24 md:w-32"></div>
         </div>
       </div>
     </div>
@@ -147,29 +126,9 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['view-change', 'player-modal-toggle'])
 
-// État local
-const showViewDropdown = ref(false)
-const dropdownButtonRef = ref(null)
-
-// Computed
-const dropdownStyle = computed(() => {
-  if (showViewDropdown.value && dropdownButtonRef.value) {
-    const rect = dropdownButtonRef.value.getBoundingClientRect()
-    return {
-      top: `${rect.bottom + 8}px`,
-      left: `${rect.left}px`
-    }
-  }
-  return {}
-})
-
 // Fonctions
-function toggleViewDropdown() {
-  showViewDropdown.value = !showViewDropdown.value
-}
 
 function selectView(view) {
-  showViewDropdown.value = false
   emit('view-change', view)
 }
 
