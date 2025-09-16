@@ -40,11 +40,11 @@
     <!-- En-tête "Afficher Plus" -->
     <template #show-more-header="{ itemWidth }">
       <div
-        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-blue-700 transition-colors p-2"
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
         @click="togglePlayerModal"
       >
-        <div class="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-          <span class="text-blue-600 font-bold text-sm">+</span>
+        <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+          <span class="text-white font-bold text-sm">+</span>
         </div>
         <span class="text-white text-xs text-center leading-tight">
           Afficher Plus
