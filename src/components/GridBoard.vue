@@ -26,6 +26,16 @@
     <!-- Vue grille (lignes ou colonnes) -->
     <div v-if="validCurrentView === 'lines' || validCurrentView === 'columns'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
+      
+      <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
+      <ViewHeader
+        :current-view="validCurrentView"
+        :show-player-selector="true"
+        :selected-player="selectedPlayer"
+        @view-change="selectView"
+        @player-modal-toggle="togglePlayerModal"
+      />
+      
       <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
       <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
         
@@ -48,64 +58,7 @@
               
               <!-- Menu de sélection de vue - aligné avec les cellules de la grille -->
               <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2 view-dropdown-container">
-                <div class="relative">
-                  <button
-                    @click="toggleViewDropdown"
-                    class="flex items-center gap-2 px-3 py-2 bg-gray-800/30 backdrop-blur-sm border border-gray-600/20 rounded-lg text-white hover:bg-gray-700/40 transition-colors"
-                    :class="{ 'bg-gray-700/40': showViewDropdown }"
-                    :title="`Vue actuelle: ${getViewLabel(validCurrentView)}`"
-                  >
-                    <!-- Icône de la vue actuelle -->
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <!-- Lignes (événements en lignes) -->
-                      <path v-if="validCurrentView === 'lines'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                      <!-- Colonnes (événements en colonnes) -->
-                      <path v-else-if="validCurrentView === 'columns'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
-                      <!-- Chronologique -->
-                      <path v-else-if="validCurrentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
-                    </svg>
-                    <span class="text-sm font-medium">{{ getViewLabel(validCurrentView) }}</span>
-                    <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': showViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
-                  </button>
-
-                  <!-- Menu déroulant -->
-                  <div v-if="showViewDropdown" class="fixed top-20 left-4 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
-                    <button
-                      @click="selectView('lines')"
-                      class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                      :class="{ 'bg-gray-700/50': validCurrentView === 'lines' }"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                      </svg>
-                      <span>Lignes</span>
-                    </button>
-                    
-                    <button
-                      @click="selectView('columns')"
-                      class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                      :class="{ 'bg-gray-700/50': validCurrentView === 'columns' }"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
-                      </svg>
-                      <span>Colonnes</span>
-                    </button>
-                    
-                    <button
-                      @click="selectView('timeline')"
-                      class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                      :class="{ 'bg-gray-700/50': validCurrentView === 'timeline' }"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
-                      </svg>
-                      <span>Chronologique</span>
-                    </button>
-                  </div>
-                </div>
+                <!-- Le dropdown de vue est maintenant dans le ViewHeader au-dessus -->
                 
                 <!-- Indicateur de mode composition -->
                 <div v-if="isCompositionView" class="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
@@ -532,89 +485,13 @@
     <!-- Vue Chronologique -->
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
       <!-- Header sticky pour la vue chronologique -->
-      <div class="timeline-header sticky top-0 z-[100] bg-gray-900 border-b border-gray-700/30" 
-           style="padding-top: max(48px, env(safe-area-inset-top) + 32px); padding-bottom: max(12px, env(safe-area-inset-bottom) + 48px);">
-        <div class="w-full" style="padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));">
-          <div class="max-w-4xl mx-auto px-4">
-            <div class="flex items-center justify-between gap-2">
-              <!-- Dropdown de vue -->
-              <div class="relative">
-                <button
-                  @click="toggleTimelineViewDropdown"
-                  class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors"
-                  :class="{ 'bg-gray-700/50': showTimelineViewDropdown }"
-                >
-                  <!-- Icône de la vue actuelle -->
-                  <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <!-- Lignes -->
-                    <path v-if="validCurrentView === 'lines'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                    <!-- Colonnes -->
-                    <path v-else-if="validCurrentView === 'columns'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
-                    <!-- Chronologique -->
-                    <path v-else-if="validCurrentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
-                  </svg>
-                  <span class="text-xs md:text-sm font-medium hidden sm:inline">{{ getViewLabel(validCurrentView) }}</span>
-                  <span class="text-xs md:text-sm font-medium sm:hidden">{{ getViewLabel(validCurrentView).substring(0, 5) }}</span>
-                  <svg class="w-3 h-3 md:w-4 md:h-4 transition-transform" :class="{ 'rotate-180': showTimelineViewDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </button>
-
-                <!-- Menu déroulant des vues -->
-                <div v-if="showTimelineViewDropdown" class="absolute top-full left-0 mt-2 w-32 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[99999]">
-                  <button
-                    @click="selectView('lines')"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                    :class="{ 'bg-gray-700/50': validCurrentView === 'lines' }"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                    </svg>
-                    <span>Lignes</span>
-                  </button>
-                  
-                  <button
-                    @click="selectView('columns')"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                    :class="{ 'bg-gray-700/50': validCurrentView === 'columns' }"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
-                    </svg>
-                    <span>Colonnes</span>
-                  </button>
-                  
-                  <button
-                    @click="selectView('timeline')"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                    :class="{ 'bg-gray-700/50': validCurrentView === 'timeline' }"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
-                    </svg>
-                    <span>Chronologique</span>
-                  </button>
-                </div>
-              </div>
-              
-              <!-- Sélecteur de joueur -->
-              <div class="relative">
-                <button
-                  @click="togglePlayerModal"
-                  class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
-                >
-                  <span class="flex-1 text-left text-xs md:text-sm truncate">
-                    {{ selectedPlayer ? selectedPlayer.name : 'Joueur' }}
-                  </span>
-                  <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ViewHeader
+        :current-view="validCurrentView"
+        :show-player-selector="true"
+        :selected-player="selectedPlayer"
+        @view-change="selectView"
+        @player-modal-toggle="togglePlayerModal"
+      />
       
       <!-- Modal de sélection de joueur -->
       <PlayerSelectorModal
@@ -2037,6 +1914,7 @@ import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 import TimelineView from './TimelineView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
+import ViewHeader from './ViewHeader.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -2193,8 +2071,7 @@ const currentView = ref((() => {
 const validCurrentView = computed(() => {
   return getValidView(currentView.value)
 })
-const showViewDropdown = ref(false)
-const showTimelineViewDropdown = ref(false)
+// showViewDropdown supprimé - maintenant géré par ViewHeader
 
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
@@ -2915,15 +2792,8 @@ function initializeViewMode() {
 }
 
 
-// Fonction de basculement du menu déroulant
-function toggleViewDropdown() {
-  showViewDropdown.value = !showViewDropdown.value
-}
+// toggleViewDropdown supprimé - maintenant géré par ViewHeader
 
-// Fonction de basculement du menu déroulant pour la vue timeline
-function toggleTimelineViewDropdown() {
-  showTimelineViewDropdown.value = !showTimelineViewDropdown.value
-}
 
 // Fonction de sélection de vue
 function selectView(view) {
@@ -2931,8 +2801,6 @@ function selectView(view) {
   const validView = getValidView(view)
   
   currentView.value = validView
-  showViewDropdown.value = false
-  showTimelineViewDropdown.value = false
   
   // Sauvegarder la préférence dans le localStorage
   localStorage.setItem('hatcast-view-preference', validView)
