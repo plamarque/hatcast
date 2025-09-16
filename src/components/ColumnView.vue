@@ -27,7 +27,9 @@
       >
         <PlayerAvatar
           :player-id="item.id"
+          :season-id="seasonId"
           :player-name="item.name"
+          :player-gender="item.gender || 'non-specified'"
           :size="'sm'"
           class="w-6 h-6"
         />
