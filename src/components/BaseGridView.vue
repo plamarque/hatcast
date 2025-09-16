@@ -24,7 +24,7 @@
           <!-- En-tête "Afficher Plus" si nécessaire -->
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
-            class="col-header bg-blue-600 px-2 py-3 text-center"
+            class="col-header bg-gray-800 px-2 py-3 text-center"
             :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
