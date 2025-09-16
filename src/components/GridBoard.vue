@@ -24,7 +24,7 @@
 
 
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'spectacles' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       
       <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
@@ -90,9 +90,9 @@
         @event-click="openEventModal"
       />
       
-      <SpectaclesView
-        v-if="validCurrentView === 'spectacles'"
-        key="spectacles-view"
+      <EventsView
+        v-if="validCurrentView === 'events'"
+        key="events-view"
         :events="events"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
@@ -1627,7 +1627,7 @@ import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
 import TimelineView from './TimelineView.vue'
 import ParticipantsView from './ParticipantsView.vue'
-import SpectaclesView from './SpectaclesView.vue'
+import EventsView from './EventsView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
 import ViewHeader from './ViewHeader.vue'
 
@@ -1759,8 +1759,8 @@ const seasonMeta = ref({})
 const isScrolled = ref(false)
 
 // Vues valides disponibles
-const VALID_VIEWS = ['spectacles', 'participants', 'timeline']
-const DEFAULT_VIEW = 'spectacles'
+const VALID_VIEWS = ['events', 'participants', 'timeline']
+const DEFAULT_VIEW = 'events'
 
 // Fonction utilitaire pour valider et obtenir une vue valide
 const getValidView = (view) => {
@@ -2500,8 +2500,8 @@ function initializeViewMode() {
       currentView.value = 'participants'
       logger.debug('✅ Mode de vue par défaut: participants (utilisateur connecté)')
     } else {
-      currentView.value = 'spectacles'
-      logger.debug('✅ Mode de vue par défaut: spectacles (utilisateur non connecté)')
+      currentView.value = 'events'
+      logger.debug('✅ Mode de vue par défaut: events (utilisateur non connecté)')
     }
   }
   
@@ -2528,7 +2528,7 @@ function selectView(view) {
 // Fonction pour obtenir le label de la vue
 function getViewLabel(view) {
   switch (view) {
-    case 'spectacles': return 'Spectacles'
+    case 'events': return 'Spectacles'
     case 'participants': return 'Participants'
     case 'timeline': return 'Chronologique'
     default: return 'Lignes'

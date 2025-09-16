@@ -14,10 +14,10 @@
             >
               <!-- Icône de la vue actuelle -->
               <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <!-- Lignes -->
-                <path v-if="currentView === 'spectacles'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                <!-- Spectacles -->
+                <path v-if="currentView === 'events'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1h3zM9 4h6M9 8h6M9 12h6M9 16h6"/>
                 <!-- Participants -->
-                <path v-else-if="currentView === 'participants'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                <path v-else-if="currentView === 'participants'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                 <!-- Chronologique -->
                 <path v-else-if="currentView === 'timeline'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M12 3l4 4M12 3L8 7M12 21l4-4M12 21l-4-4"/>
               </svg>
@@ -31,12 +31,12 @@
             <!-- Menu déroulant des vues -->
             <div v-if="showViewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-gray-800/95 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl overflow-hidden z-[1210]">
               <button
-                @click="selectView('spectacles')"
+                @click="selectView('events')"
                 class="w-full flex items-center gap-2 px-3 py-2 text-left text-white hover:bg-gray-700/50 transition-colors text-sm"
-                :class="{ 'bg-gray-700/50': currentView === 'spectacles' }"
+                :class="{ 'bg-gray-700/50': currentView === 'events' }"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1h3zM9 4h6M9 8h6M9 12h6M9 16h6"/>
                 </svg>
                 <span>Spectacles</span>
               </button>
@@ -47,7 +47,7 @@
                 :class="{ 'bg-gray-700/50': currentView === 'participants' }"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16M3 8h18M3 16h18"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
                 <span>Participants</span>
               </button>
@@ -115,7 +115,7 @@ const props = defineProps({
   currentView: {
     type: String,
     required: true,
-    validator: (value) => ['spectacles', 'participants', 'timeline'].includes(value)
+    validator: (value) => ['events', 'participants', 'timeline'].includes(value)
   },
   showPlayerSelector: {
     type: Boolean,
@@ -166,7 +166,7 @@ function togglePlayerModal() {
 
 function getViewLabel(view) {
   switch (view) {
-    case 'spectacles': return 'Spectacles'
+    case 'events': return 'Spectacles'
     case 'participants': return 'Participants'
     case 'timeline': return 'Chronologique'
     default: return 'Lignes'
