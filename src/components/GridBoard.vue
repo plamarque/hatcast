@@ -55,6 +55,7 @@
       <!-- Composants de vue séparés -->
       <ColumnView
         v-if="validCurrentView === 'columns'"
+        key="column-view"
         :events="events"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
@@ -76,6 +77,8 @@
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
         :casts="casts"
+        :header-offset-x="0"
+        :header-scroll-x="0"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
@@ -88,6 +91,7 @@
       
       <LinesView
         v-if="validCurrentView === 'lines'"
+        key="lines-view"
         :events="events"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
@@ -109,6 +113,8 @@
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
         :casts="casts"
+        :header-offset-x="0"
+        :header-scroll-x="0"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
