@@ -78,7 +78,7 @@
             <h2 class="text-xl font-semibold text-white">Composition automatique multi-rôles</h2>
             <p class="text-gray-200">
               Le système tire au sort par <span class="text-white">ordre de priorité</span> : 
-              Arbitre → DJ → MC → Improvisateurs → Assistants → Coach → Régisseur → Éclairagiste → Bénévoles.
+              Arbitre → DJ → MC → Joueurs → Assistants → Coach → Régisseur → Éclairagiste → Bénévoles.
             </p>
             <p class="text-gray-200">
               <span class="text-white">Une personne, un rôle</span> : une fois sélectionnée, elle n'est plus disponible pour les autres rôles.
