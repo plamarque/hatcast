@@ -70,8 +70,8 @@
               @click="togglePlayerModal"
               class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
             >
-              <!-- Avatar du joueur sélectionné -->
-              <div v-if="selectedPlayer" class="flex-shrink-0">
+              <!-- Avatar du joueur sélectionné (un seul joueur) -->
+              <div v-if="selectedPlayer && !participantsDisplayText" class="flex-shrink-0">
                 <PlayerAvatar
                   :player-id="selectedPlayer.id"
                   :player-name="selectedPlayer.name"
@@ -79,7 +79,15 @@
                   class="w-5 h-5"
                 />
               </div>
-              <!-- Icône "Tous" quand aucun joueur spécifique -->
+              <!-- Icône "Tous" quand tous les participants -->
+              <div v-else-if="participantsDisplayText === 'Tous'" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
+                <span class="text-xs font-bold">T</span>
+              </div>
+              <!-- Icône "X/Y Participants" quand plusieurs participants -->
+              <div v-else-if="participantsDisplayText && participantsDisplayText.includes('/')" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-blue-600 rounded-full">
+                <span class="text-xs font-bold">👥</span>
+              </div>
+              <!-- Icône par défaut -->
               <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
                 <span class="text-xs font-bold">T</span>
               </div>
