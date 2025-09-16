@@ -60,14 +60,14 @@
         <!-- Cellule événement -->
         <td class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700">
           <div class="flex flex-col">
-            <div class="flex items-center gap-2 mb-1">
+            <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
               <span class="text-lg">{{ getEventIcon(event) }}</span>
               <span class="text-white font-medium text-sm">{{ event.title }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-gray-400 text-xs">{{ formatEventDate(event.date) }}</span>
-              <span v-if="getRequiredPlayersCount(event) > 0" class="text-blue-400 text-xs bg-blue-900/30 px-2 py-1 rounded-full">
-                {{ getRequiredPlayersCount(event) }} joueurs
+              <span :class="getStatusColor(getEventStatus(event))" class="text-xs px-2 py-1 rounded-full">
+                {{ getStatusLabel(getEventStatus(event)) }}
               </span>
             </div>
           </div>
@@ -212,7 +212,8 @@ const emit = defineEmits([
   'toggle-player-modal',
   'toggle-availability',
   'toggle-selection-status',
-  'show-availability-modal'
+  'show-availability-modal',
+  'event-click'
 ])
 
 // Computed
@@ -233,15 +234,37 @@ const getEventIcon = (event) => {
   return EVENT_TYPE_ICONS[event.templateType] || '❓'
 }
 
-const getRequiredPlayersCount = (event) => {
-  if (event.roles && event.roles.player) {
-    return event.roles.player
+const getEventStatus = (event) => {
+  // Récupérer le statut depuis la composition si disponible
+  if (event.cast && event.cast.status) {
+    return event.cast.status
   }
-  // Fallback sur le template si pas de rôles définis
-  if (event.templateType && ROLE_TEMPLATES[event.templateType]) {
-    return ROLE_TEMPLATES[event.templateType].roles.player || 0
+  // Fallback : pas de composition = prêt
+  return 'ready'
+}
+
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'confirmed': return 'Confirmé'
+    case 'pending_confirmation': return 'À confirmer'
+    case 'complete': return 'Complet'
+    case 'incomplete': return 'Incomplet'
+    case 'insufficient': return 'Pas assez de joueurs'
+    case 'ready': return 'Prêt'
+    default: return 'Prêt'
   }
-  return 0
+}
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'confirmed': return 'text-green-400 bg-green-900/30'
+    case 'pending_confirmation': return 'text-yellow-400 bg-yellow-900/30'
+    case 'complete': return 'text-blue-400 bg-blue-900/30'
+    case 'incomplete': return 'text-orange-400 bg-orange-900/30'
+    case 'insufficient': return 'text-red-400 bg-red-900/30'
+    case 'ready': return 'text-gray-400 bg-gray-900/30'
+    default: return 'text-gray-400 bg-gray-900/30'
+  }
 }
 
 // Methods
@@ -271,6 +294,10 @@ const toggleSelectionStatus = (playerName, eventId, status, seasonId) => {
 
 const openAvailabilityModal = (data) => {
   emit('show-availability-modal', data)
+}
+
+const openEventModal = (event) => {
+  emit('event-click', event)
 }
 </script>
 
