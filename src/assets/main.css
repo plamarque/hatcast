@@ -164,19 +164,7 @@
   
   /* Plus besoin de forcer la hauteur sur availability-cell */
   
-  /* Optimiser le header sticky */
-  .col-left {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-  }
-  
-  /* Ajuster la largeur de la première colonne dans le tableau */
-  .left-col-td {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* Optimiser le contenu de la première colonne sur mobile */
   .col-left .max-w-20 {

@@ -1398,27 +1398,9 @@
 .col-right { width: 4.5rem; }
 
 @media (max-width: 768px) {
-  .col-left { 
-    width: 25rem !important; 
-  }
-  .col-event { 
-    width: 8rem !important; 
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
-  /* Cibler directement les éléments du tableau */
-  table colgroup col.col-left {
-    width: 5rem !important;
-  }
-  table colgroup col.col-event {
-    width: 5rem !important;
-  }
-  
-  /* Cibler les cellules du tableau */
-  td.left-col-td {
-    width: 12rem !important;
-    max-width: 12rem !important;
-    min-width: 12rem !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* S'assurer que l'header des événements a la même largeur que les cellules */
   .col-event.flex-shrink-0 {
@@ -1428,25 +1410,11 @@
 
 /* Responsive mobile - iPhone 16 Plus et plus */
 @media (max-width: 430px) {
-  td.left-col-td {
-    width: 3rem !important;
-    max-width: 3rem !important;
-    min-width: 3rem !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
-  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
-  .events-view td.left-col-td {
-    width: 7.5rem !important;
-    max-width: 7.5rem !important;
-    min-width: 7.5rem !important;
-  }
+  /* Vue Spectacles : largeur gérée dynamiquement via :style dans les composants */
   
-  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
-  .participants-view td.left-col-td {
-    width: 4rem !important;
-    max-width: 4rem !important;
-    min-width: 4rem !important;
-  }
+  /* Vue Participants : largeur gérée dynamiquement via :style dans les composants */
   
   .col-player {
     width: 20rem !important;
@@ -1463,25 +1431,9 @@
 
 /* Responsive mobile - iPhone 16 et plus petit */
 @media (max-width: 375px) {
-  td.left-col-td {
-    width: 2.5rem !important;
-    max-width: 2.5rem !important;
-    min-width: 2.5rem !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
-  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
-  .events-view td.left-col-td {
-    width: 9rem !important;
-    max-width: 9rem !important;
-    min-width: 9rem !important;
-  }
-  
-  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
-  .participants-view td.left-col-td {
-    width: 5rem !important;
-    max-width: 5rem !important;
-    min-width: 5rem !important;
-  }
+  /* Vue Spectacles : largeur gérée dynamiquement via :style dans les composants */
   
   .col-player {
     width: 18rem !important;
@@ -1516,46 +1468,11 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { 
-    width: 17.5rem !important;  /* Zone équilibrée pour pousser les colonnes joueurs */
-  }
+  
+  /* Largeurs gérées dynamiquement via :style dans les composants */
+  
   .col-event { 
     width: 5rem !important; /* Colonnes joueurs compactes */
-  }
-  .left-col-td { 
-    width: 17.5rem !important; 
-    max-width: 17.5rem !important; 
-    min-width: 17.5rem !important;
-  }
-  
-  /* Cibler spécifiquement les cellules td de la colonne gauche avec plus de spécificité */
-  .gridboard table tr td.left-col-td {
-    width: 17.5rem !important;
-    max-width: 17.5rem !important;
-    min-width: 17.5rem !important;
-  }
-  
-  /* Règle encore plus spécifique pour écraser le 150px */
-  .gridboard .left-col-td {
-    width: 17.5rem !important;
-    max-width: 17.5rem !important;
-    min-width: 17.5rem !important;
-  }
-  
-  /* Aligner le filler avec les colonnes événements */
-  .view-dropdown-container {
-    width: calc(17.5rem + 2rem) !important; /* 17.5rem + padding (1rem de chaque côté) */
-    max-width: calc(17.5rem + 2rem) !important;
-    min-width: calc(17.5rem + 2rem) !important;
-    z-index: 10 !important; /* S'assurer qu'il passe au-dessus des cellules joueurs */
-    position: relative !important;
-  }
-  
-  /* Aligner le conteneur des colonnes joueurs avec les cellules événements */
-  .flex-1.overflow-hidden {
-    width: 17.5rem !important;
-    max-width: 17.5rem !important;
-    min-width: 17.5rem !important;
   }
 }
 

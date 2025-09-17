@@ -259,17 +259,29 @@ const dynamicLeftColumnWidth = computed(() => {
   const hiddenCount = props.hiddenPlayersCount || 0
   const totalPlayers = playerCount + hiddenCount
   
-  // Si peu de joueurs (1-3), colonne plus étroite
-  if (totalPlayers <= 3) {
-    return '5rem' // 80px
+  // Sur mobile (iPhone SE), utiliser des largeurs plus importantes pour la lisibilité
+  if (window.innerWidth <= 375) {
+    // iPhone SE : largeur fixe plus importante pour la lisibilité
+    return '10rem' // 160px - suffisant pour lire noms de joueurs
   }
-  // Si nombre moyen de joueurs (4-10), colonne moyenne
-  else if (totalPlayers <= 10) {
-    return '7rem' // 112px
+  // iPhone 16 Plus et écrans moyens
+  else if (window.innerWidth <= 430) {
+    return '8rem' // 128px
   }
-  // Si beaucoup de joueurs (11+), colonne plus large
+  // Desktop et autres écrans
   else {
-    return '10rem' // 160px
+    // Si peu de joueurs (1-3), colonne plus étroite
+    if (totalPlayers <= 3) {
+      return '5rem' // 80px
+    }
+    // Si nombre moyen de joueurs (4-10), colonne moyenne
+    else if (totalPlayers <= 10) {
+      return '7rem' // 112px
+    }
+    // Si beaucoup de joueurs (11+), colonne plus large
+    else {
+      return '10rem' // 160px
+    }
   }
 })
 
