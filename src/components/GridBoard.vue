@@ -35,7 +35,7 @@
         :participants-display-text="dropdownDisplayText"
         :season-id="seasonId"
         :player-gender="selectedPlayer?.gender || 'non-specified'"
-        :is-sticky="false"
+        :is-sticky="true"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
