@@ -60,6 +60,8 @@
               :player-name="player.name"
               size="md"
               :player-gender="player.gender || 'non-specified'"
+              @avatar-loaded="(data) => console.log('Avatar chargé pour', player.name, data)"
+              @avatar-error="(error) => console.log('Erreur avatar pour', player.name, error)"
             />
             <div class="flex-1">
               <div class="text-white font-medium">{{ player.name }}</div>

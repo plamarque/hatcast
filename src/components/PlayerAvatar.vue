@@ -71,6 +71,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 import logger from '../services/logger.js'
 
+const emit = defineEmits(['avatar-loaded', 'avatar-error'])
+
 const props = defineProps({
   playerId: {
     type: String,
@@ -221,11 +223,14 @@ async function fetchPlayerAssociation() {
       }
       
       // Association trouvée (pas de log pour éviter la pollution)
+      emit('avatar-loaded', { playerId: props.playerId, result })
     } else {
       // Pas de log pour les associations non trouvées (cas normal)
+      emit('avatar-loaded', { playerId: props.playerId, result })
     }
   } catch (error) {
     logger.warn('PlayerAvatar: Error fetching association', error)
+    emit('avatar-error', { playerId: props.playerId, error })
   }
 }
 
