@@ -132,7 +132,7 @@ export function getStatusColor(status) {
     case 'complete': return 'text-blue-400 bg-blue-900/30'
     case 'incomplete': return 'text-orange-400 bg-orange-900/30'
     case 'insufficient': return 'text-red-400 bg-red-900/30'
-    case 'ready': return 'text-gray-400 bg-gray-900/30'
+    case 'ready': return 'text-cyan-400 bg-cyan-900/30'
     case 'Non renseigné': return 'text-gray-400 bg-gray-900/30'
     case 'Aucune disponibilité': return 'text-red-400 bg-red-900/30'
     case 'Tous disponibles': return 'text-green-400 bg-green-900/30'
