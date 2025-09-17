@@ -44,7 +44,7 @@
         class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
         @click="togglePlayerModal"
       >
-        <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+        <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
           <span class="text-white font-bold text-sm">+</span>
         </div>
         <span class="text-white text-xs text-center leading-tight">
