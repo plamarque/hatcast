@@ -16,6 +16,8 @@
                 <PlayerAvatar
                   :player-id="selectedPlayer.id"
                   :player-name="selectedPlayer.name"
+                  :season-id="seasonId"
+                  :player-gender="selectedPlayer.gender || playerGender"
                   size="sm"
                   class="w-5 h-5"
                 />
@@ -107,6 +109,14 @@ const props = defineProps({
   participantsDisplayText: {
     type: String,
     default: null
+  },
+  seasonId: {
+    type: String,
+    required: true
+  },
+  playerGender: {
+    type: String,
+    default: 'non-specified'
   },
   // Style props
   headerStyle: {

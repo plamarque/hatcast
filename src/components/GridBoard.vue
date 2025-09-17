@@ -33,6 +33,8 @@
         :show-player-selector="true"
         :selected-player="selectedPlayer"
         :participants-display-text="dropdownDisplayText"
+        :season-id="seasonId"
+        :player-gender="selectedPlayer?.gender || 'non-specified'"
         :is-sticky="false"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
@@ -134,6 +136,8 @@
         :show-player-selector="true"
         :selected-player="selectedPlayer"
         :participants-display-text="dropdownDisplayText"
+        :season-id="seasonId"
+        :player-gender="selectedPlayer?.gender || 'non-specified'"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
