@@ -30,14 +30,14 @@
           <!-- Emoji et titre empilés -->
           <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
             <span class="text-lg">{{ getEventIcon(item) }}</span>
-            <span class="text-white font-medium text-sm text-center leading-tight line-clamp-3 overflow-hidden" 
+            <span class="text-white font-semibold text-sm text-center leading-tight line-clamp-3 overflow-hidden" 
                   :title="item.title">
               {{ item.title }}
             </span>
           </div>
           <!-- Date et statut empilés -->
           <div class="flex flex-col items-center space-y-1">
-            <span class="text-gray-400 text-xs text-center">{{ formatEventDate(item.date) }}</span>
+            <span class="text-gray-400 text-xs text-center font-normal">{{ formatEventDate(item.date) }}</span>
             <span :class="getStatusColor(getEventStatus(item))" class="text-xs px-2 py-1 rounded-full">
               {{ getStatusLabel(getEventStatus(item)) }}
             </span>
@@ -126,6 +126,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
+import { getEventStatusWithSelection, getStatusLabel, getStatusColor } from '../services/eventStatusService.js'
 
 // Props
 const props = defineProps({
@@ -271,36 +272,14 @@ const getEventIcon = (event) => {
 }
 
 const getEventStatus = (event) => {
-  // Récupérer le statut depuis la composition si disponible
-  if (event.cast && event.cast.status) {
-    return event.cast.status
-  }
-  // Fallback : pas de composition = prêt
-  return 'ready'
-}
-
-const getStatusLabel = (status) => {
-  switch (status) {
-    case 'confirmed': return 'Confirmé'
-    case 'pending_confirmation': return 'À confirmer'
-    case 'complete': return 'Complet'
-    case 'incomplete': return 'Incomplet'
-    case 'insufficient': return 'Pas assez de joueurs'
-    case 'ready': return 'Prêt'
-    default: return 'Prêt'
-  }
-}
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'confirmed': return 'text-green-400 bg-green-900/30'
-    case 'pending_confirmation': return 'text-yellow-400 bg-yellow-900/30'
-    case 'complete': return 'text-blue-400 bg-blue-900/30'
-    case 'incomplete': return 'text-orange-400 bg-orange-900/30'
-    case 'insufficient': return 'text-red-400 bg-red-900/30'
-    case 'ready': return 'text-gray-400 bg-gray-900/30'
-    default: return 'text-gray-400 bg-gray-900/30'
-  }
+  return getEventStatusWithSelection(event, {
+    getSelectionPlayers: props.getSelectionPlayers,
+    getTotalRequiredCount: props.getTotalRequiredCount,
+    countAvailablePlayers: props.countAvailablePlayers,
+    isSelectionConfirmed: props.isSelectionConfirmed,
+    isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
+    casts: props.casts
+  })
 }
 
 // Methods
