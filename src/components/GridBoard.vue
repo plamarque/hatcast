@@ -1394,7 +1394,7 @@
     pointer-events: none;
   }
 .col-left { width: 5rem; }
-.col-event { width: 5rem; background: transparent !important; }
+/* .col-event width gérée dynamiquement via :style dans les composants */
 .col-right { width: 4.5rem; }
 
 @media (max-width: 768px) {
@@ -1452,7 +1452,7 @@
 @media (min-width: 640px) { /* sm */
   .col-left { width: 5rem; }
   .left-col-td { width: 5rem; max-width: 5rem; min-width: 5rem; }
-  .col-event { width: 5rem; }
+  /* .col-event width gérée dynamiquement via :style dans les composants */
   .col-player { width: 6rem; min-width: 6rem; max-width: 6rem; }
   .col-right { width: 3rem; }
 }

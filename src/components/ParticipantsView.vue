@@ -115,7 +115,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
@@ -232,6 +232,23 @@ const emit = defineEmits([
   'event-click'
 ])
 
+// State pour la réactivité de la largeur d'écran
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+
+// Écouter les changements de taille d'écran
+onMounted(() => {
+  const updateWindowWidth = () => {
+    windowWidth.value = window.innerWidth
+  }
+  
+  updateWindowWidth()
+  window.addEventListener('resize', updateWindowWidth)
+  
+  onUnmounted(() => {
+    window.removeEventListener('resize', updateWindowWidth)
+  })
+})
+
 // Calculer la largeur dynamique de la colonne des événements
 const dynamicLeftColumnWidth = computed(() => {
   const playerCount = props.displayedPlayers?.length || 0
@@ -239,13 +256,13 @@ const dynamicLeftColumnWidth = computed(() => {
   const totalPlayers = playerCount + hiddenCount
   
   // Sur mobile (iPhone SE), utiliser des largeurs plus importantes pour la lisibilité
-  if (window.innerWidth <= 375) {
-    // iPhone SE : largeur optimisée pour la lisibilité sans gaspillage d'espace
-    return '9rem' // 144px - suffisant pour lire titres, dates et statuts
+  if (windowWidth.value <= 375) {
+    // iPhone SE : largeur suffisante pour lire confortablement les titres
+    return '11rem' // 176px - utilise l'espace restant
   }
   // iPhone 16 Plus et écrans moyens
-  else if (window.innerWidth <= 430) {
-    return '8rem' // 128px
+  else if (windowWidth.value <= 430) {
+    return '12rem' // 192px
   }
   // Desktop et autres écrans
   else {
@@ -265,6 +282,7 @@ const dynamicLeftColumnWidth = computed(() => {
   }
 })
 
+
 // Computed
 const eventsTitle = computed(() => {
   if (!props.events) return 'Événements (0)'
@@ -281,15 +299,48 @@ const eventsTitle = computed(() => {
 const playerColumnWidth = ref(120) // Valeur par défaut
 
 const updatePlayerColumnWidth = () => {
-  if (window.innerWidth <= 375) {
-    playerColumnWidth.value = 576 // 36rem pour iPhone 16 et plus petit
-  } else if (window.innerWidth <= 430) {
-    playerColumnWidth.value = 640 // 40rem pour iPhone 16 Plus
-  } else if (window.innerWidth <= 768) {
-    playerColumnWidth.value = 640 // 40rem pour écrans moyens
+  // Vérifier que window est disponible (éviter les erreurs SSR)
+  if (typeof window === 'undefined') return
+  
+  console.log('🔍 updatePlayerColumnWidth appelé, windowWidth.value:', windowWidth.value)
+  
+  if (windowWidth.value <= 375) {
+    // iPhone SE : colonne joueur optimisée pour éviter le débordement
+    // Avec colonne événements à 10rem (160px), il reste ~215px pour la colonne joueur
+    playerColumnWidth.value = 200 // 12.5rem - ajusté pour la nouvelle largeur événements
+    console.log('🔍 iPhone SE: playerColumnWidth.value =', playerColumnWidth.value)
+  } else if (windowWidth.value <= 430) {
+    // iPhone 16 Plus : plus d'espace disponible
+    playerColumnWidth.value = 220 // 13.75rem
+    console.log('🔍 iPhone 16 Plus: playerColumnWidth.value =', playerColumnWidth.value)
+  } else if (windowWidth.value <= 768) {
+    playerColumnWidth.value = 640 // 40rem pour écrans moyens - garder l'ancienne valeur
+    console.log('🔍 Écrans moyens: playerColumnWidth.value =', playerColumnWidth.value)
   } else {
-    playerColumnWidth.value = 120 // Desktop - plus d'espace pour les noms de joueurs
+    playerColumnWidth.value = 120 // Desktop - garder l'ancienne valeur
+    console.log('🔍 Desktop: playerColumnWidth.value =', playerColumnWidth.value)
   }
+  
+  // Appliquer directement les styles avec !important via JavaScript
+  nextTick(() => {
+    // Cibler les cellules du corps (.col-player) et les en-têtes (.col-event)
+    const colPlayers = document.querySelectorAll('.participants-view .col-player')
+    const colEvents = document.querySelectorAll('.participants-view .col-event')
+    
+    // Appliquer aux cellules du corps (td)
+    colPlayers.forEach(element => {
+      element.style.setProperty('width', `${playerColumnWidth.value}px`, 'important')
+      element.style.setProperty('min-width', `${playerColumnWidth.value}px`, 'important')
+      element.style.setProperty('max-width', `${playerColumnWidth.value}px`, 'important')
+    })
+    
+    // Appliquer aux en-têtes (th)
+    colEvents.forEach(element => {
+      element.style.setProperty('width', `${playerColumnWidth.value}px`, 'important')
+      element.style.setProperty('min-width', `${playerColumnWidth.value}px`, 'important')
+      element.style.setProperty('max-width', `${playerColumnWidth.value}px`, 'important')
+    })
+  })
 }
 
 // Écouter les changements de taille d'écran

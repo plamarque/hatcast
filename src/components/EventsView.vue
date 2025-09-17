@@ -253,6 +253,23 @@ const emit = defineEmits([
   'event-click'
 ])
 
+// State pour la réactivité de la largeur d'écran
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+
+// Écouter les changements de taille d'écran
+onMounted(() => {
+  const updateWindowWidth = () => {
+    windowWidth.value = window.innerWidth
+  }
+  
+  updateWindowWidth()
+  window.addEventListener('resize', updateWindowWidth)
+  
+  onUnmounted(() => {
+    window.removeEventListener('resize', updateWindowWidth)
+  })
+})
+
 // Calculer la largeur dynamique de la colonne des événements
 const dynamicLeftColumnWidth = computed(() => {
   const playerCount = props.displayedPlayers?.length || 0
@@ -260,12 +277,12 @@ const dynamicLeftColumnWidth = computed(() => {
   const totalPlayers = playerCount + hiddenCount
   
   // Sur mobile (iPhone SE), utiliser des largeurs plus importantes pour la lisibilité
-  if (window.innerWidth <= 375) {
+  if (windowWidth.value <= 375) {
     // iPhone SE : largeur fixe plus importante pour la lisibilité
     return '10rem' // 160px - suffisant pour lire noms de joueurs
   }
   // iPhone 16 Plus et écrans moyens
-  else if (window.innerWidth <= 430) {
+  else if (windowWidth.value <= 430) {
     return '8rem' // 128px
   }
   // Desktop et autres écrans
@@ -301,11 +318,11 @@ const participantsTitle = computed(() => {
 const eventColumnWidth = ref(300) // Valeur par défaut
 
 const updateEventColumnWidth = () => {
-  if (window.innerWidth <= 375) {
+  if (windowWidth.value <= 375) {
     eventColumnWidth.value = 144 // 9rem pour iPhone 16 et plus petit
-  } else if (window.innerWidth <= 430) {
+  } else if (windowWidth.value <= 430) {
     eventColumnWidth.value = 160 // 10rem pour iPhone 16 Plus
-  } else if (window.innerWidth <= 768) {
+  } else if (windowWidth.value <= 768) {
     eventColumnWidth.value = 160 // 10rem pour écrans moyens
   } else {
     eventColumnWidth.value = 300 // Desktop - plus d'espace pour les titres d'événements
