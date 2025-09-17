@@ -61,7 +61,11 @@
         <!-- Cellule événement -->
         <td 
           class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
-          :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+          :style="{ 
+            width: dynamicLeftColumnWidth, 
+            minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
+            maxWidth: dynamicLeftColumnWidth 
+          }"
         >
           <div class="flex flex-col">
             <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
@@ -108,7 +112,14 @@
           />
         </td>
         
-        <!-- Cellule "Afficher Plus" -->
+        <!-- Cellule "Afficher Plus" - vide pour un aspect plus propre -->
+        <td
+          v-if="!isAllPlayersView && hiddenPlayersCount > 0"
+          class="col-header bg-gray-800 px-2 py-3 text-center"
+          :style="{ width: `${playerColumnWidth * 1.5}px`, minWidth: `${playerColumnWidth * 1.5}px` }"
+        >
+          <!-- Cellule vide pour un aspect plus propre -->
+        </td>
       </tr>
     </template>
   </BaseGridView>
@@ -264,21 +275,18 @@ const dynamicLeftColumnWidth = computed(() => {
   else if (windowWidth.value <= 430) {
     return '12rem' // 192px
   }
-  // Desktop et autres écrans
+  // Desktop et autres écrans : largeur très compacte pour maximiser l'espace des colonnes joueurs
+  // Si peu de joueurs (1-3), colonne très étroite
+  if (totalPlayers <= 3) {
+    return '3rem' // 48px - très compact
+  }
+  // Si nombre moyen de joueurs (4-10), colonne compacte
+  else if (totalPlayers <= 10) {
+    return '3.5rem' // 56px - très compact
+  }
+  // Si beaucoup de joueurs (11+), colonne plus large mais toujours très compacte
   else {
-    // Dans la vue Participants, la colonne des événements contient plus d'infos (titre, date, statut)
-    // Si peu de joueurs (1-3), colonne plus étroite mais suffisante
-    if (totalPlayers <= 3) {
-      return '9rem' // 144px (augmenté de 7rem)
-    }
-    // Si nombre moyen de joueurs (4-10), colonne moyenne
-    else if (totalPlayers <= 10) {
-      return '11rem' // 176px (augmenté de 9rem)
-    }
-    // Si beaucoup de joueurs (11+), colonne plus large
-    else {
-      return '14rem' // 224px (augmenté de 12rem)
-    }
+    return '4rem' // 64px - très compact
   }
 })
 
@@ -317,7 +325,7 @@ const updatePlayerColumnWidth = () => {
     playerColumnWidth.value = 640 // 40rem pour écrans moyens - garder l'ancienne valeur
     console.log('🔍 Écrans moyens: playerColumnWidth.value =', playerColumnWidth.value)
   } else {
-    playerColumnWidth.value = 120 // Desktop - garder l'ancienne valeur
+    playerColumnWidth.value = 200 // Desktop - encore plus large pour utiliser tout l'espace libéré
     console.log('🔍 Desktop: playerColumnWidth.value =', playerColumnWidth.value)
   }
   
