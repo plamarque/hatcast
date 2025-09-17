@@ -60,7 +60,7 @@
               :size="'sm'"
               class="w-6 h-6"
             />
-            <span class="text-white font-medium text-sm">{{ player.name }}</span>
+            <span class="text-white font-medium text-sm cursor-pointer hover:text-blue-400 transition-colors" @click="showPlayerDetails(player)">{{ player.name }}</span>
           </div>
         </td>
         
@@ -330,6 +330,10 @@ const openAvailabilityModal = (data) => {
 
 const openEventModal = (event) => {
   emit('event-click', event)
+}
+
+const showPlayerDetails = (player) => {
+  emit('player-selected', player)
 }
 </script>
 
