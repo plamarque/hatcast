@@ -4013,6 +4013,17 @@ async function addNewPlayer() {
     const newPlayer = players.value.find(p => p.id === newId)
     if (newPlayer) {
       highlightPlayer(newId)
+      
+      // S'assurer qu'on est en vue grille pour afficher le nouveau joueur
+      if (validCurrentView.value === 'timeline') {
+        currentView.value = 'spectacles'
+      }
+      
+      // Sélectionner automatiquement le nouveau joueur pour l'afficher dans la vue
+      await handlePlayerSelected(newPlayer)
+      
+      // Fermer le formulaire de création
+      newPlayerForm.value = false
 
       // Avancer à l'étape 2 (disponibilités) et définir les cibles du guidage
       guidedPlayerId.value = newId
