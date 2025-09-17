@@ -122,11 +122,7 @@
     min-width: 17.5rem !important;
     max-width: 17.5rem !important;
   }
-  /* Réduire la densité des cellules sur mobile */
-  .col-event {
-    min-width: 130px !important;
-    max-width: 130px !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* Colonne favoris peut être plus large pour accommoder le contenu */
   .preferred-player-header {
@@ -134,10 +130,7 @@
     max-width: 140px !important;
   }
   
-  /* Ajuster la largeur de base des colonnes sur mobile */
-  .col-event {
-    width: 130px !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* Colonne favoris dans le tableau */
   .preferred-player {

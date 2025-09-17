@@ -17,7 +17,7 @@
             v-for="item in headerItems"
             :key="item.id"
             class="col-header col-event bg-gray-800 px-2 py-3 text-center"
-            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px`, backgroundColor: '#ffff00' }"
+            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
           >
             <slot name="headers" :item="item" :item-width="itemColumnWidth">
               <!-- Slot pour les en-têtes spécifiques à chaque vue -->
@@ -143,6 +143,21 @@ const gridboardRef = ref(null)
 // State
 const showLeftHint = ref(false)
 const showRightHint = ref(false)
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+
+// Écouter les changements de taille d'écran
+onMounted(() => {
+  const updateWindowWidth = () => {
+    windowWidth.value = window.innerWidth
+  }
+  
+  updateWindowWidth()
+  window.addEventListener('resize', updateWindowWidth)
+  
+  onUnmounted(() => {
+    window.removeEventListener('resize', updateWindowWidth)
+  })
+})
 
 // Calculer la largeur dynamique de la colonne des événements
 const dynamicLeftColumnWidth = computed(() => {
@@ -150,6 +165,17 @@ const dynamicLeftColumnWidth = computed(() => {
   const hiddenCount = props.hiddenPlayersCount || 0
   const totalPlayers = playerCount + hiddenCount
   
+  // Sur mobile, utiliser des largeurs optimisées pour la vue Participants
+  if (windowWidth.value <= 375) {
+    // iPhone SE : largeur suffisante pour lire confortablement les titres
+    return '11rem' // 176px - utilise l'espace restant
+  }
+  else if (windowWidth.value <= 430) {
+    // iPhone 16 Plus : largeur équilibrée
+    return '12rem' // 192px
+  }
+  
+  // Desktop et autres écrans : logique basée sur le nombre de joueurs
   // Si peu de joueurs (1-3), colonne plus étroite
   if (totalPlayers <= 3) {
     return '5rem' // 80px
@@ -227,11 +253,7 @@ onUnmounted(() => {
   max-width: 6rem;
 }
 
-.col-event {
-  width: 5rem;
-  min-width: 5rem;
-  max-width: 5rem;
-}
+/* .col-event width gérée dynamiquement via :style dans les composants */
 
 /* Responsive mobile - iPhone 16 Plus et plus */
 /* DEBUG: ROUGE=colonne gauche, VERT=colonnes joueurs, BLEU=colonnes événements */
@@ -253,12 +275,7 @@ onUnmounted(() => {
     background-color: #00ff00 !important;
   }
   
-  .col-event {
-    width: 10rem !important;
-    min-width: 10rem !important;
-    max-width: 10rem !important;
-    background-color: #0000ff !important;
-  }
+  /* .col-event width gérée dynamiquement via :style dans les composants */
 }
 
 /* Responsive mobile - iPhone 16 et plus petit */
@@ -278,12 +295,7 @@ onUnmounted(() => {
     background-color: #00ff00 !important;
   }
   
-  .col-event {
-    width: 9rem !important;
-    min-width: 9rem !important;
-    max-width: 9rem !important;
-    background-color: #0000ff !important;
-  }
+  /* .col-event width gérée dynamiquement via :style dans les composants */
 }
 
 /* Responsive mobile - écrans moyens */
@@ -296,10 +308,8 @@ onUnmounted(() => {
     max-width: 5rem !important;
   }
   
-  .col-event {
-    width: 5rem !important;
-    min-width: 5rem !important;
-    max-width: 5rem !important;
-  }
+  /* .col-event width gérée dynamiquement via :style dans les composants */
 }
+
+/* Largeurs gérées dynamiquement via JavaScript */
 </style>
