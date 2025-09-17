@@ -331,10 +331,6 @@ const openAvailabilityModal = (data) => {
 const openEventModal = (event) => {
   emit('event-click', event)
 }
-
-const showPlayerDetails = (player) => {
-  emit('player-selected', player)
-}
 </script>
 
 <!-- Styles gérés par BaseGridView.vue -->
