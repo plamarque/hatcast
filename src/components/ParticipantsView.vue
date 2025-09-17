@@ -237,17 +237,18 @@ const dynamicLeftColumnWidth = computed(() => {
   const hiddenCount = props.hiddenPlayersCount || 0
   const totalPlayers = playerCount + hiddenCount
   
-  // Si peu de joueurs (1-3), colonne plus étroite
+  // Dans la vue Participants, la colonne des événements contient plus d'infos (titre, date, statut)
+  // Si peu de joueurs (1-3), colonne plus étroite mais suffisante
   if (totalPlayers <= 3) {
-    return '5rem' // 80px
+    return '9rem' // 144px (augmenté de 7rem)
   }
   // Si nombre moyen de joueurs (4-10), colonne moyenne
   else if (totalPlayers <= 10) {
-    return '7rem' // 112px
+    return '11rem' // 176px (augmenté de 9rem)
   }
   // Si beaucoup de joueurs (11+), colonne plus large
   else {
-    return '10rem' // 160px
+    return '14rem' // 224px (augmenté de 12rem)
   }
 })
 
