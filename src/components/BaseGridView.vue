@@ -7,7 +7,11 @@
           <!-- Colonne de gauche -->
           <th 
             class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[106]"
-            :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+            :style="{ 
+              width: dynamicLeftColumnWidth, 
+              minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
+              maxWidth: dynamicLeftColumnWidth 
+            }"
           >
             <span class="text-white font-medium text-sm ml-1">{{ leftColumnTitle }}</span>
           </th>
@@ -28,7 +32,7 @@
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
             class="col-header bg-gray-800 px-2 py-3 text-center"
-            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
+            :style="{ width: `${itemColumnWidth * 1.5}px`, minWidth: `${itemColumnWidth * 1.5}px` }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
               <!-- Slot pour le bouton "Afficher Plus" -->
@@ -175,18 +179,18 @@ const dynamicLeftColumnWidth = computed(() => {
     return '12rem' // 192px
   }
   
-  // Desktop et autres écrans : logique basée sur le nombre de joueurs
-  // Si peu de joueurs (1-3), colonne plus étroite
+  // Desktop et autres écrans : largeur très compacte pour maximiser l'espace des colonnes joueurs
+  // Si peu de joueurs (1-3), colonne très étroite
   if (totalPlayers <= 3) {
-    return '5rem' // 80px
+    return '3rem' // 48px - très compact
   }
-  // Si nombre moyen de joueurs (4-10), colonne moyenne
+  // Si nombre moyen de joueurs (4-10), colonne compacte
   else if (totalPlayers <= 10) {
-    return '7rem' // 112px
+    return '3.5rem' // 56px - très compact
   }
-  // Si beaucoup de joueurs (11+), colonne plus large
+  // Si beaucoup de joueurs (11+), colonne plus large mais toujours très compacte
   else {
-    return '10rem' // 160px
+    return '4rem' // 64px - très compact
   }
 })
 

@@ -52,7 +52,11 @@
         <!-- Cellule joueur -->
         <td 
           class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
-          :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+          :style="{ 
+            width: dynamicLeftColumnWidth, 
+            minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
+            maxWidth: dynamicLeftColumnWidth 
+          }"
         >
           <div class="flex items-center space-x-2">
             <PlayerAvatar
@@ -103,7 +107,11 @@
       <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
         <td 
           class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
-          :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+          :style="{ 
+            width: dynamicLeftColumnWidth, 
+            minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
+            maxWidth: dynamicLeftColumnWidth 
+          }"
         >
           <button
             class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
