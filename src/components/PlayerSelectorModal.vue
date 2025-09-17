@@ -163,7 +163,7 @@ export default {
     }
     
     const addNewPlayer = () => {
-      emit('add-new-player')
+      emit('add-new-player', searchQuery.value.trim())
       closeModal()
     }
     

@@ -50,7 +50,7 @@
         @close="closePlayerModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
-        @add-new-player="openNewPlayerForm"
+        @add-new-player="(name) => openNewPlayerForm(name)"
       />
       
       <!-- Composants de vue séparés -->
@@ -64,7 +64,7 @@
         :hidden-players-display-text="hiddenPlayersDisplayText"
         :can-edit-availability="canEditAvailability"
         :get-player-availability="getPlayerAvailability"
-        :season-id="seasonId"
+                          :season-id="seasonId"
         :chances="chances"
         :is-available="isAvailable"
         :is-selected="isSelected"
@@ -125,8 +125,8 @@
         @show-availability-modal="openAvailabilityModal"
         @event-click="openEventModal"
       />
-    </div>
-    
+                      </div>
+                      
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
       <!-- Header sticky pour la vue chronologique -->
       <ViewHeader
@@ -142,7 +142,7 @@
       <PlayerSelectorModal
         :show="showPlayerModal"
         :players="allSeasonPlayers"
-        :season-id="seasonId"
+                          :season-id="seasonId"
         :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-player-protected="isPlayerProtectedInGrid"
@@ -150,7 +150,7 @@
         @close="closePlayerModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
-        @add-new-player="openNewPlayerForm"
+        @add-new-player="(name) => openNewPlayerForm(name)"
       />
       
       <TimelineView
@@ -158,7 +158,7 @@
         :players="players"
         :availability="availability"
         :casts="casts"
-        :season-id="seasonId"
+                  :season-id="seasonId"
         :selected-player-id="selectedPlayerId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-available="isAvailable"
@@ -176,17 +176,17 @@
         @view-change="selectView"
         @availability-toggle="handleAvailabilityToggle"
         @selection-status-toggle="handlePlayerSelectionStatusToggle"
-        @show-availability-modal="openAvailabilityModal"
+                  @show-availability-modal="openAvailabilityModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
       />
-    </div>
-    
+                  </div>
+                  
     <!-- Message de chargement pour la vue chronologique -->
     <div v-if="validCurrentView === 'timeline' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <div class="text-white text-lg">Chargement des événements...</div>
-    </div>
+  </div>
 
   <!-- Overlay de chargement pleine page -->
   <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
@@ -410,7 +410,7 @@
               value="female"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">Féminin (ex: une improvisatrice)</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Féminin (ex: une joueuse, une improvisatrice)</span>
           </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
@@ -419,7 +419,7 @@
               value="male"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">Masculin (ex: un improvisateur)</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Masculin (ex: un joueur, un improvisateur)</span>
           </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
@@ -428,7 +428,7 @@
               value="non-specified"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">Non spécifié (ex: un.e improvisateur.trice)</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Non spécifié (ex: un.e joueur.se, un.e improvisateur.trice)</span>
           </label>
         </div>
       </div>
@@ -1910,13 +1910,17 @@ const originalPlayers = ref([]) // Sauvegarde des joueurs originaux pour revenir
 const isAllPlayersView = ref(false) // Indique si on affiche tous les joueurs (via "Tous")
 
 // Fonction pour ouvrir le formulaire avec focus
-async function openNewPlayerForm() {
+async function openNewPlayerForm(prefilledName = '') {
   console.log('🔍 openNewPlayerForm appelé')
   newPlayerForm.value = true
   newPlayerGender.value = 'non-specified'
   newPlayerNameError.value = ''
   
-  // Pré-remplir avec le pseudo de l'utilisateur s'il existe
+  // Pré-remplir avec le nom fourni ou le pseudo de l'utilisateur s'il existe
+  if (prefilledName) {
+    newPlayerName.value = prefilledName
+    console.log('🔍 Nom pré-rempli depuis la recherche:', prefilledName)
+  } else {
   try {
     const { getUserPseudo } = await import('../services/userProfileService.js')
     const pseudo = await getUserPseudo()
@@ -1925,6 +1929,7 @@ async function openNewPlayerForm() {
   } catch (error) {
     console.warn('Erreur lors de la récupération du pseudo:', error)
     newPlayerName.value = ''
+    }
   }
   
   // Focus automatique sur le champ nom après que le DOM soit mis à jour
@@ -2054,9 +2059,9 @@ async function selectExistingPlayer(player) {
 
 function addNewPlayerFromShowMore() {
   // Ouvrir la modale de création avec le nom prérempli
-  newPlayerName.value = showMoreSearchQuery.value.trim()
+  const name = showMoreSearchQuery.value.trim()
   closeShowMoreModal()
-  openNewPlayerForm()
+  openNewPlayerForm(name)
 }
 
 // Fonction pour gérer l'affichage des disponibilités d'un joueur
@@ -2571,16 +2576,16 @@ function initializeViewMode() {
     logger.debug('✅ Mode de vue restauré depuis localStorage:', savedView)
   } else {
     // Fallback seulement si aucune préférence sauvegardée
-    if (currentUser.value?.email) {
+  if (currentUser.value?.email) {
       currentView.value = 'participants'
       logger.debug('✅ Mode de vue par défaut: participants (utilisateur connecté)')
-    } else {
+  } else {
       currentView.value = 'events'
       logger.debug('✅ Mode de vue par défaut: events (utilisateur non connecté)')
     }
   }
   
-  showViewToggle.value = true
+    showViewToggle.value = true
 }
 
 
@@ -7511,7 +7516,7 @@ async function showPlayerDetails(player) {
   } catch (error) {
     console.warn('Impossible de recharger les données pour les stats:', error);
   }
-  
+
   // 1. Mettre à jour l'URL pour refléter l'état de navigation
   const newUrl = `/season/${props.slug}?player=${player.id}&modal=player_details`
   await router.push(newUrl)
