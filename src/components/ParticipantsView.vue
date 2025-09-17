@@ -238,18 +238,30 @@ const dynamicLeftColumnWidth = computed(() => {
   const hiddenCount = props.hiddenPlayersCount || 0
   const totalPlayers = playerCount + hiddenCount
   
-  // Dans la vue Participants, la colonne des événements contient plus d'infos (titre, date, statut)
-  // Si peu de joueurs (1-3), colonne plus étroite mais suffisante
-  if (totalPlayers <= 3) {
-    return '9rem' // 144px (augmenté de 7rem)
+  // Sur mobile (iPhone SE), utiliser des largeurs plus importantes pour la lisibilité
+  if (window.innerWidth <= 375) {
+    // iPhone SE : largeur optimisée pour la lisibilité sans gaspillage d'espace
+    return '9rem' // 144px - suffisant pour lire titres, dates et statuts
   }
-  // Si nombre moyen de joueurs (4-10), colonne moyenne
-  else if (totalPlayers <= 10) {
-    return '11rem' // 176px (augmenté de 9rem)
+  // iPhone 16 Plus et écrans moyens
+  else if (window.innerWidth <= 430) {
+    return '8rem' // 128px
   }
-  // Si beaucoup de joueurs (11+), colonne plus large
+  // Desktop et autres écrans
   else {
-    return '14rem' // 224px (augmenté de 12rem)
+    // Dans la vue Participants, la colonne des événements contient plus d'infos (titre, date, statut)
+    // Si peu de joueurs (1-3), colonne plus étroite mais suffisante
+    if (totalPlayers <= 3) {
+      return '9rem' // 144px (augmenté de 7rem)
+    }
+    // Si nombre moyen de joueurs (4-10), colonne moyenne
+    else if (totalPlayers <= 10) {
+      return '11rem' // 176px (augmenté de 9rem)
+    }
+    // Si beaucoup de joueurs (11+), colonne plus large
+    else {
+      return '14rem' // 224px (augmenté de 12rem)
+    }
   }
 })
 

@@ -236,45 +236,18 @@ onUnmounted(() => {
 /* Responsive mobile - iPhone 16 Plus et plus */
 /* DEBUG: ROUGE=colonne gauche, VERT=colonnes joueurs, BLEU=colonnes événements */
 @media (max-width: 430px) {
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   .col-left {
-    width: 3rem !important;
-    min-width: 3rem !important;
-    max-width: 3rem !important;
     background-color: #ff0000 !important;
   }
   
   .left-col-td {
-    width: 3rem !important;
-    min-width: 3rem !important;
-    max-width: 3rem !important;
     background-color: #1f2937 !important; /* bg-gray-800 pour correspondre à l'en-tête */
   }
   
-  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
-  .events-view .col-left {
-    width: 7.5rem !important;
-    min-width: 7.5rem !important;
-    max-width: 7.5rem !important;
-  }
+  /* Vue Spectacles : largeur gérée dynamiquement via :style dans les composants */
   
-  .events-view .left-col-td {
-    width: 7.5rem !important;
-    min-width: 7.5rem !important;
-    max-width: 7.5rem !important;
-  }
-  
-  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
-  .participants-view .col-left {
-    width: 4rem !important;
-    min-width: 4rem !important;
-    max-width: 4rem !important;
-  }
-  
-  .participants-view .left-col-td {
-    width: 4rem !important;
-    min-width: 4rem !important;
-    max-width: 4rem !important;
-  }
+  /* Vue Participants : largeur gérée dynamiquement via :style dans les composants */
   
   .col-player {
     width: 20rem !important;
@@ -293,45 +266,16 @@ onUnmounted(() => {
 
 /* Responsive mobile - iPhone 16 et plus petit */
 @media (max-width: 375px) {
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   .col-left {
-    width: 2.5rem !important;
-    min-width: 2.5rem !important;
-    max-width: 2.5rem !important;
     background-color: #ff0000 !important;
   }
   
   .left-col-td {
-    width: 2.5rem !important;
-    min-width: 2.5rem !important;
-    max-width: 2.5rem !important;
     background-color: #1f2937 !important; /* bg-gray-800 pour correspondre à l'en-tête */
   }
   
-  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
-  .events-view .col-left {
-    width: 9rem !important;
-    min-width: 9rem !important;
-    max-width: 9rem !important;
-  }
-  
-  .events-view .left-col-td {
-    width: 9rem !important;
-    min-width: 9rem !important;
-    max-width: 9rem !important;
-  }
-  
-  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
-  .participants-view .col-left {
-    width: 5rem !important;
-    min-width: 5rem !important;
-    max-width: 5rem !important;
-  }
-  
-  .participants-view .left-col-td {
-    width: 5rem !important;
-    min-width: 5rem !important;
-    max-width: 5rem !important;
-  }
+  /* Vue Spectacles : largeur gérée dynamiquement via :style dans les composants */
   
   .col-player {
     width: 18rem !important;
@@ -350,17 +294,7 @@ onUnmounted(() => {
 
 /* Responsive mobile - écrans moyens */
 @media (max-width: 768px) and (min-width: 431px) {
-  .col-left {
-    width: 8rem !important;
-    min-width: 8rem !important;
-    max-width: 8rem !important;
-  }
-  
-  .left-col-td {
-    width: 8rem !important;
-    min-width: 8rem !important;
-    max-width: 8rem !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   .col-player {
     width: 5rem !important;
