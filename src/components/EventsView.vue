@@ -7,7 +7,7 @@
     :header-items="props.events"
     :row-items="props.displayedPlayers"
     :column-items="props.events"
-    :item-column-width="eventColumnWidth.value"
+    :item-column-width="eventColumnWidth"
     :is-all-players-view="isAllPlayersView"
     :hidden-players-count="hiddenPlayersCount"
     :hidden-players-display-text="hiddenPlayersDisplayText"
