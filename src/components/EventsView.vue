@@ -241,7 +241,7 @@ const participantsTitle = computed(() => {
   return `Participants (${count})`
 })
 
-const eventColumnWidth = ref(200) // Valeur par défaut
+const eventColumnWidth = ref(300) // Valeur par défaut
 
 const updateEventColumnWidth = () => {
   if (window.innerWidth <= 375) {
@@ -251,7 +251,7 @@ const updateEventColumnWidth = () => {
   } else if (window.innerWidth <= 768) {
     eventColumnWidth.value = 160 // 10rem pour écrans moyens
   } else {
-    eventColumnWidth.value = 200 // Desktop
+    eventColumnWidth.value = 300 // Desktop - plus d'espace pour les titres d'événements
   }
 }
 
