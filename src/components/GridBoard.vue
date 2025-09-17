@@ -1411,9 +1411,9 @@
   
   /* Cibler les cellules du tableau */
   td.left-col-td {
-    width: 20rem !important;
-    max-width: 20rem !important;
-    min-width: 20rem !important;
+    width: 12rem !important;
+    max-width: 12rem !important;
+    min-width: 12rem !important;
   }
   
   /* S'assurer que l'header des événements a la même largeur que les cellules */
@@ -1422,10 +1422,80 @@
   }
 }
 
+/* Responsive mobile - iPhone 16 Plus et plus */
+@media (max-width: 430px) {
+  td.left-col-td {
+    width: 3rem !important;
+    max-width: 3rem !important;
+    min-width: 3rem !important;
+  }
+  
+  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
+  .events-view td.left-col-td {
+    width: 7.5rem !important;
+    max-width: 7.5rem !important;
+    min-width: 7.5rem !important;
+  }
+  
+  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
+  .participants-view td.left-col-td {
+    width: 4rem !important;
+    max-width: 4rem !important;
+    min-width: 4rem !important;
+  }
+  
+  .col-player {
+    width: 20rem !important;
+    min-width: 20rem !important;
+    max-width: 20rem !important;
+  }
+  
+  .col-event {
+    width: 10rem !important;
+    min-width: 10rem !important;
+    max-width: 10rem !important;
+  }
+}
+
+/* Responsive mobile - iPhone 16 et plus petit */
+@media (max-width: 375px) {
+  td.left-col-td {
+    width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    min-width: 2.5rem !important;
+  }
+  
+  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
+  .events-view td.left-col-td {
+    width: 9rem !important;
+    max-width: 9rem !important;
+    min-width: 9rem !important;
+  }
+  
+  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
+  .participants-view td.left-col-td {
+    width: 5rem !important;
+    max-width: 5rem !important;
+    min-width: 5rem !important;
+  }
+  
+  .col-player {
+    width: 18rem !important;
+    min-width: 18rem !important;
+    max-width: 18rem !important;
+  }
+  
+  .col-event {
+    width: 9rem !important;
+    min-width: 9rem !important;
+    max-width: 9rem !important;
+  }
+}
+
 
 @media (min-width: 640px) { /* sm */
-  .col-left { width: 13rem; }
-  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
+  .col-left { width: 8rem; }
+  .left-col-td { width: 8rem; max-width: 8rem; min-width: 8rem; }
   .col-event { width: 12rem; }
   .col-right { width: 3rem; }
 }
@@ -2564,8 +2634,31 @@ async function handlePlayerSelected(player) {
     showPlayerModal.value = false
     logger.debug('🎯 Joueur sélectionné pour la vue chronologique:', player.name, player.id)
   } else {
-    // Pour les vues lignes/colonnes : ajouter le joueur à la grille
-    await addPlayerToGrid(player)
+    // Pour les vues lignes/colonnes : remplacer la liste des joueurs par le joueur sélectionné
+    selectedPlayerId.value = player.id
+    
+    // Désactiver le mode "tous les joueurs" et la vue focalisée
+    isAllPlayersView.value = false
+    isFocusedView.value = false
+    
+    // Remplacer complètement la liste des joueurs
+    players.value = [player]
+    
+    // Réinitialiser les joueurs ajoutés manuellement
+    manuallyAddedPlayers.value.clear()
+    manuallyAddedPlayers.value.add(player.id)
+    
+    // Charger les disponibilités pour ce joueur uniquement
+    try {
+      logger.debug('🔄 Chargement des disponibilités pour le joueur sélectionné:', player.name)
+      const playerAvailability = await loadAvailability([player], events.value, seasonId.value)
+      availability.value = playerAvailability
+      
+      showPlayerModal.value = false
+      logger.debug('🎯 Joueur sélectionné pour la vue grille:', player.name, player.id)
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités:', error)
+    }
   }
 }
 
@@ -2576,8 +2669,10 @@ async function handleAllPlayersSelected() {
     showPlayerModal.value = false
     logger.debug('🎯 Affichage de tous les joueurs pour la vue chronologique')
   } else {
-    // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille
+    // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille et réinitialiser selectedPlayerId
+    selectedPlayerId.value = null
     await addAllPlayersToGrid()
+    logger.debug('🎯 Affichage de tous les joueurs pour la vue grille')
   }
 }
 
