@@ -45,7 +45,7 @@
         @click="togglePlayerModal"
       >
         <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-          <span class="text-white font-bold text-sm">+</span>
+          <span class="text-white text-sm font-normal">+</span>
         </div>
         <span class="text-white text-xs text-center leading-tight">
           Afficher Plus
