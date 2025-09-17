@@ -1,13 +1,12 @@
 <template>
   <BaseGridView
-    class="participants-view"
-    :events="props.events"
-    :displayed-players="props.displayedPlayers"
+    :events="events"
+    :displayed-players="displayedPlayers"
     :left-column-title="eventsTitle"
-    :header-items="props.displayedPlayers"
-    :row-items="props.events"
-    :column-items="props.displayedPlayers"
-    :item-column-width="playerColumnWidth.value"
+    :header-items="displayedPlayers"
+    :row-items="events"
+    :column-items="displayedPlayers"
+    :item-column-width="playerColumnWidth"
     :is-all-players-view="isAllPlayersView"
     :hidden-players-count="hiddenPlayersCount"
     :hidden-players-display-text="hiddenPlayersDisplayText"
@@ -44,7 +43,7 @@
         class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
         @click="togglePlayerModal"
       >
-        <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+        <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
           <span class="text-white font-bold text-sm">+</span>
         </div>
         <span class="text-white text-xs text-center leading-tight">
@@ -55,7 +54,7 @@
       </div>
     </template>
 
-    <!-- Lignes d'événements (vue participants) -->
+    <!-- Lignes d'événements -->
     <template #rows="{ items: events, columns: players, itemWidth }">
       <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
@@ -111,7 +110,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
@@ -204,14 +203,6 @@ const props = defineProps({
   casts: {
     type: Object,
     required: true
-  },
-  headerOffsetX: {
-    type: Number,
-    default: 0
-  },
-  headerScrollX: {
-    type: Number,
-    default: 0
   }
 })
 
@@ -229,39 +220,21 @@ const emit = defineEmits([
 
 // Computed
 const eventsTitle = computed(() => {
-  if (!props.events) return 'Événements (0)'
-  const count = props.events.length || 0
-  
-  // Texte plus court sur mobile
-  if (window.innerWidth <= 430) {
-    return `Évén. (${count})`
-  }
-  
+  if (!events.value) return 'Événements (0)'
+  const count = events.value.length || 0
   return `Événements (${count})`
 })
 
-const playerColumnWidth = ref(120) // Valeur par défaut
-
-const updatePlayerColumnWidth = () => {
+const playerColumnWidth = computed(() => {
+  // Largeur adaptative pour les colonnes de joueurs selon la taille d'écran
   if (window.innerWidth <= 375) {
-    playerColumnWidth.value = 576 // 36rem pour iPhone 16 et plus petit
+    return 64 // 4rem pour iPhone 16 et plus petit
   } else if (window.innerWidth <= 430) {
-    playerColumnWidth.value = 640 // 40rem pour iPhone 16 Plus
+    return 72 // 4.5rem pour iPhone 16 Plus
   } else if (window.innerWidth <= 768) {
-    playerColumnWidth.value = 640 // 40rem pour écrans moyens
-  } else {
-    playerColumnWidth.value = 120 // Desktop - plus d'espace pour les noms de joueurs
+    return 72 // 4.5rem pour écrans moyens
   }
-}
-
-// Écouter les changements de taille d'écran
-onMounted(() => {
-  updatePlayerColumnWidth()
-  window.addEventListener('resize', updatePlayerColumnWidth)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updatePlayerColumnWidth)
+  return 80 // Desktop
 })
 
 // Fonctions utilitaires
