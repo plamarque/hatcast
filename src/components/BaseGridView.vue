@@ -28,7 +28,7 @@
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
             class="col-header bg-gray-800 px-2 py-3 text-center"
-            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px`, backgroundColor: '#ff00ff' }"
+            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
               <!-- Slot pour le bouton "Afficher Plus" -->
