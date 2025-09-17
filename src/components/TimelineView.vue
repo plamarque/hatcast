@@ -73,7 +73,7 @@
               />
               <!-- Statut global si aucun joueur sélectionné -->
               <div v-else class="status-text flex-shrink-0 min-w-0">
-                <div class="text-sm font-semibold" :class="getStatusTextColor(event.id)">
+                <div class="text-sm" :class="getStatusTextColor(event.id)">
                   {{ getEventStatus(event.id) }}
                 </div>
               </div>

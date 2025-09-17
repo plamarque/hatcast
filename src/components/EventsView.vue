@@ -1,12 +1,13 @@
 <template>
   <BaseGridView
+    class="events-view"
     :events="props.events"
     :displayed-players="props.displayedPlayers"
     :left-column-title="participantsTitle"
     :header-items="props.events"
     :row-items="props.displayedPlayers"
     :column-items="props.events"
-    :item-column-width="eventColumnWidth"
+    :item-column-width="eventColumnWidth.value"
     :is-all-players-view="isAllPlayersView"
     :hidden-players-count="hiddenPlayersCount"
     :hidden-players-display-text="hiddenPlayersDisplayText"
@@ -119,7 +120,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
@@ -240,16 +241,28 @@ const participantsTitle = computed(() => {
   return `Participants (${count})`
 })
 
-const eventColumnWidth = computed(() => {
-  // Largeur adaptative pour les colonnes d'événements selon la taille d'écran
+const eventColumnWidth = ref(200) // Valeur par défaut
+
+const updateEventColumnWidth = () => {
   if (window.innerWidth <= 375) {
-    return 64 // 4rem pour iPhone 16 et plus petit
+    eventColumnWidth.value = 144 // 9rem pour iPhone 16 et plus petit
   } else if (window.innerWidth <= 430) {
-    return 72 // 4.5rem pour iPhone 16 Plus
+    eventColumnWidth.value = 160 // 10rem pour iPhone 16 Plus
   } else if (window.innerWidth <= 768) {
-    return 80 // 5rem pour écrans moyens
+    eventColumnWidth.value = 160 // 10rem pour écrans moyens
+  } else {
+    eventColumnWidth.value = 200 // Desktop
   }
-  return 200 // Desktop
+}
+
+// Écouter les changements de taille d'écran
+onMounted(() => {
+  updateEventColumnWidth()
+  window.addEventListener('resize', updateEventColumnWidth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateEventColumnWidth)
 })
 
 // Fonctions utilitaires

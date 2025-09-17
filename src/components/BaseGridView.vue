@@ -13,8 +13,8 @@
           <th
             v-for="item in headerItems"
             :key="item.id"
-            class="col-header bg-gray-800 px-2 py-3 text-center"
-            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
+            class="col-header col-event bg-gray-800 px-2 py-3 text-center"
+            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px`, backgroundColor: '#ffff00' }"
           >
             <slot name="headers" :item="item" :item-width="itemColumnWidth">
               <!-- Slot pour les en-têtes spécifiques à chaque vue -->
@@ -25,7 +25,7 @@
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
             class="col-header bg-gray-800 px-2 py-3 text-center"
-            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
+            :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px`, backgroundColor: '#ff00ff' }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
               <!-- Slot pour le bouton "Afficher Plus" -->
@@ -183,18 +183,19 @@ onUnmounted(() => {
 <style scoped>
 /* Styles communs pour les vues de grille */
 .col-left {
-  width: 12rem;
-  min-width: 12rem;
-  max-width: 12rem;
+  width: 8rem;
+  min-width: 8rem;
+  max-width: 8rem;
 }
 
 .left-col-td {
-  width: 12rem;
-  min-width: 12rem;
-  max-width: 12rem;
+  width: 8rem;
+  min-width: 8rem;
+  max-width: 8rem;
   position: sticky;
   left: 0;
   z-index: 105;
+  background-color: #1f2937; /* bg-gray-800 pour correspondre à l'en-tête */
 }
 
 .col-player {
@@ -210,56 +211,117 @@ onUnmounted(() => {
 }
 
 /* Responsive mobile - iPhone 16 Plus et plus */
+/* DEBUG: ROUGE=colonne gauche, VERT=colonnes joueurs, BLEU=colonnes événements */
 @media (max-width: 430px) {
   .col-left {
-    width: 4.5rem !important;
-    min-width: 4.5rem !important;
-    max-width: 4.5rem !important;
+    width: 3rem !important;
+    min-width: 3rem !important;
+    max-width: 3rem !important;
+    background-color: #ff0000 !important;
   }
   
   .left-col-td {
-    width: 4.5rem !important;
-    min-width: 4.5rem !important;
-    max-width: 4.5rem !important;
+    width: 3rem !important;
+    min-width: 3rem !important;
+    max-width: 3rem !important;
+    background-color: #1f2937 !important; /* bg-gray-800 pour correspondre à l'en-tête */
+  }
+  
+  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
+  .events-view .col-left {
+    width: 7.5rem !important;
+    min-width: 7.5rem !important;
+    max-width: 7.5rem !important;
+  }
+  
+  .events-view .left-col-td {
+    width: 7.5rem !important;
+    min-width: 7.5rem !important;
+    max-width: 7.5rem !important;
+  }
+  
+  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
+  .participants-view .col-left {
+    width: 4rem !important;
+    min-width: 4rem !important;
+    max-width: 4rem !important;
+  }
+  
+  .participants-view .left-col-td {
+    width: 4rem !important;
+    min-width: 4rem !important;
+    max-width: 4rem !important;
   }
   
   .col-player {
-    width: 5.5rem !important;
-    min-width: 5.5rem !important;
-    max-width: 5.5rem !important;
+    width: 20rem !important;
+    min-width: 20rem !important;
+    max-width: 20rem !important;
+    background-color: #00ff00 !important;
   }
   
   .col-event {
-    width: 4.5rem !important;
-    min-width: 4.5rem !important;
-    max-width: 4.5rem !important;
+    width: 10rem !important;
+    min-width: 10rem !important;
+    max-width: 10rem !important;
+    background-color: #0000ff !important;
   }
 }
 
 /* Responsive mobile - iPhone 16 et plus petit */
 @media (max-width: 375px) {
   .col-left {
-    width: 4rem !important;
-    min-width: 4rem !important;
-    max-width: 4rem !important;
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    background-color: #ff0000 !important;
   }
   
   .left-col-td {
-    width: 4rem !important;
-    min-width: 4rem !important;
-    max-width: 4rem !important;
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    background-color: #1f2937 !important; /* bg-gray-800 pour correspondre à l'en-tête */
   }
   
-  .col-player {
+  /* Vue Spectacles : colonne gauche plus étroite pour les événements */
+  .events-view .col-left {
+    width: 9rem !important;
+    min-width: 9rem !important;
+    max-width: 9rem !important;
+  }
+  
+  .events-view .left-col-td {
+    width: 9rem !important;
+    min-width: 9rem !important;
+    max-width: 9rem !important;
+  }
+  
+  /* Vue Participants : colonne gauche plus large pour les noms de joueurs */
+  .participants-view .col-left {
     width: 5rem !important;
     min-width: 5rem !important;
     max-width: 5rem !important;
   }
   
+  .participants-view .left-col-td {
+    width: 5rem !important;
+    min-width: 5rem !important;
+    max-width: 5rem !important;
+  }
+  
+  .col-player {
+    width: 18rem !important;
+    min-width: 18rem !important;
+    max-width: 18rem !important;
+    background-color: #00ff00 !important;
+  }
+  
   .col-event {
-    width: 4rem !important;
-    min-width: 4rem !important;
-    max-width: 4rem !important;
+    width: 9rem !important;
+    min-width: 9rem !important;
+    max-width: 9rem !important;
+    background-color: #0000ff !important;
   }
 }
 
