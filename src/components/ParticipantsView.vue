@@ -203,6 +203,14 @@ const props = defineProps({
   casts: {
     type: Object,
     required: true
+  },
+  headerOffsetX: {
+    type: Number,
+    default: 0
+  },
+  headerScrollX: {
+    type: Number,
+    default: 0
   }
 })
 
