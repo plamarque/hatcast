@@ -183,15 +183,15 @@ onUnmounted(() => {
 <style scoped>
 /* Styles communs pour les vues de grille */
 .col-left {
-  width: 8rem;
-  min-width: 8rem;
-  max-width: 8rem;
+  width: 10rem;
+  min-width: 10rem;
+  max-width: 10rem;
 }
 
 .left-col-td {
-  width: 8rem;
-  min-width: 8rem;
-  max-width: 8rem;
+  width: 10rem;
+  min-width: 10rem;
+  max-width: 10rem;
   position: sticky;
   left: 0;
   z-index: 105;
