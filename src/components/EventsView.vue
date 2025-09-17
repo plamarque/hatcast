@@ -83,6 +83,7 @@
             :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
             :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
             :season-id="seasonId"
+            :player-gender="player.gender || 'non-specified'"
             :chance-percent="chances[player.name]?.[event.id] ?? null"
             :show-selected-chance="isSelectionComplete(event.id)"
             :disabled="event.archived === true"
