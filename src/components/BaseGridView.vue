@@ -9,7 +9,7 @@
             class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[106]"
             :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
           >
-            <span class="text-white font-medium text-sm">{{ leftColumnTitle }}</span>
+            <span class="text-white font-medium text-sm ml-1">{{ leftColumnTitle }}</span>
           </th>
           
           <!-- En-têtes des colonnes -->
@@ -237,9 +237,6 @@ onUnmounted(() => {
 /* DEBUG: ROUGE=colonne gauche, VERT=colonnes joueurs, BLEU=colonnes événements */
 @media (max-width: 430px) {
   /* Largeurs gérées dynamiquement via :style dans les composants */
-  .col-left {
-    background-color: #ff0000 !important;
-  }
   
   .left-col-td {
     background-color: #1f2937 !important; /* bg-gray-800 pour correspondre à l'en-tête */
@@ -267,9 +264,6 @@ onUnmounted(() => {
 /* Responsive mobile - iPhone 16 et plus petit */
 @media (max-width: 375px) {
   /* Largeurs gérées dynamiquement via :style dans les composants */
-  .col-left {
-    background-color: #ff0000 !important;
-  }
   
   .left-col-td {
     background-color: #1f2937 !important; /* bg-gray-800 pour correspondre à l'en-tête */
