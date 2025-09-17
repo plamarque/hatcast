@@ -5,7 +5,10 @@
       <thead class="sticky top-0 z-[105] shadow-lg">
         <tr>
           <!-- Colonne de gauche -->
-          <th class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[106]">
+          <th 
+            class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[106]"
+            :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+          >
             <span class="text-white font-medium text-sm">{{ leftColumnTitle }}</span>
           </th>
           
@@ -141,6 +144,26 @@ const gridboardRef = ref(null)
 const showLeftHint = ref(false)
 const showRightHint = ref(false)
 
+// Calculer la largeur dynamique de la colonne des événements
+const dynamicLeftColumnWidth = computed(() => {
+  const playerCount = props.headerItems.length
+  const hiddenCount = props.hiddenPlayersCount || 0
+  const totalPlayers = playerCount + hiddenCount
+  
+  // Si peu de joueurs (1-3), colonne plus étroite
+  if (totalPlayers <= 3) {
+    return '5rem' // 80px
+  }
+  // Si nombre moyen de joueurs (4-10), colonne moyenne
+  else if (totalPlayers <= 10) {
+    return '7rem' // 112px
+  }
+  // Si beaucoup de joueurs (11+), colonne plus large
+  else {
+    return '10rem' // 160px
+  }
+})
+
 // Methods
 const handleScroll = (event) => {
   const el = event.target
@@ -183,15 +206,15 @@ onUnmounted(() => {
 <style scoped>
 /* Styles communs pour les vues de grille */
 .col-left {
-  width: 10rem;
-  min-width: 10rem;
-  max-width: 10rem;
+  width: 5rem;
+  min-width: 5rem;
+  max-width: 5rem;
 }
 
 .left-col-td {
-  width: 10rem;
-  min-width: 10rem;
-  max-width: 10rem;
+  width: 5rem;
+  min-width: 5rem;
+  max-width: 5rem;
   position: sticky;
   left: 0;
   z-index: 105;
@@ -205,9 +228,9 @@ onUnmounted(() => {
 }
 
 .col-event {
-  width: 7.5rem;
-  min-width: 7.5rem;
-  max-width: 7.5rem;
+  width: 5rem;
+  min-width: 5rem;
+  max-width: 5rem;
 }
 
 /* Responsive mobile - iPhone 16 Plus et plus */

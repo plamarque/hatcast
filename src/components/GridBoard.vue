@@ -1389,8 +1389,8 @@
     background: rgba(100,116,139,0.08); /* extra veil */
     pointer-events: none;
   }
-.col-left { width: 13rem; }
-.col-event { width: 12rem; background: transparent !important; }
+.col-left { width: 5rem; }
+.col-event { width: 5rem; background: transparent !important; }
 .col-right { width: 4.5rem; }
 
 @media (max-width: 768px) {
@@ -1494,9 +1494,9 @@
 
 
 @media (min-width: 640px) { /* sm */
-  .col-left { width: 10rem; }
-  .left-col-td { width: 10rem; max-width: 10rem; min-width: 10rem; }
-  .col-event { width: 12rem; }
+  .col-left { width: 5rem; }
+  .left-col-td { width: 5rem; max-width: 5rem; min-width: 5rem; }
+  .col-event { width: 5rem; }
   .col-right { width: 3rem; }
 }
 

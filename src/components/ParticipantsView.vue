@@ -59,7 +59,10 @@
     <template #rows="{ items: events, columns: players, itemWidth }">
       <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
-        <td class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700">
+        <td 
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
+          :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+        >
           <div class="flex flex-col">
             <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
               <span class="text-lg">{{ getEventIcon(event) }}</span>
@@ -227,6 +230,26 @@ const emit = defineEmits([
   'show-availability-modal',
   'event-click'
 ])
+
+// Calculer la largeur dynamique de la colonne des événements
+const dynamicLeftColumnWidth = computed(() => {
+  const playerCount = props.displayedPlayers?.length || 0
+  const hiddenCount = props.hiddenPlayersCount || 0
+  const totalPlayers = playerCount + hiddenCount
+  
+  // Si peu de joueurs (1-3), colonne plus étroite
+  if (totalPlayers <= 3) {
+    return '5rem' // 80px
+  }
+  // Si nombre moyen de joueurs (4-10), colonne moyenne
+  else if (totalPlayers <= 10) {
+    return '7rem' // 112px
+  }
+  // Si beaucoup de joueurs (11+), colonne plus large
+  else {
+    return '10rem' // 160px
+  }
+})
 
 // Computed
 const eventsTitle = computed(() => {

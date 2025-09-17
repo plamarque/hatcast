@@ -50,7 +50,10 @@
     <template #rows="{ items: players, columns: events, itemWidth }">
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->
-        <td class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700">
+        <td 
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
+          :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+        >
           <div class="flex items-center space-x-2">
             <PlayerAvatar
               :player-id="player.id"
@@ -97,7 +100,10 @@
       
       <!-- Ligne "Afficher Plus" -->
       <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
-        <td class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700">
+        <td 
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
+          :style="{ width: dynamicLeftColumnWidth, minWidth: dynamicLeftColumnWidth, maxWidth: dynamicLeftColumnWidth }"
+        >
           <button
             class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
             @click="togglePlayerModal"
@@ -245,6 +251,26 @@ const emit = defineEmits([
   'show-availability-modal',
   'event-click'
 ])
+
+// Calculer la largeur dynamique de la colonne des événements
+const dynamicLeftColumnWidth = computed(() => {
+  const playerCount = props.displayedPlayers?.length || 0
+  const hiddenCount = props.hiddenPlayersCount || 0
+  const totalPlayers = playerCount + hiddenCount
+  
+  // Si peu de joueurs (1-3), colonne plus étroite
+  if (totalPlayers <= 3) {
+    return '5rem' // 80px
+  }
+  // Si nombre moyen de joueurs (4-10), colonne moyenne
+  else if (totalPlayers <= 10) {
+    return '7rem' // 112px
+  }
+  // Si beaucoup de joueurs (11+), colonne plus large
+  else {
+    return '10rem' // 160px
+  }
+})
 
 // Computed
 const participantsTitle = computed(() => {
