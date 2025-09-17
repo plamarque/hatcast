@@ -1494,8 +1494,8 @@
 
 
 @media (min-width: 640px) { /* sm */
-  .col-left { width: 8rem; }
-  .left-col-td { width: 8rem; max-width: 8rem; min-width: 8rem; }
+  .col-left { width: 10rem; }
+  .left-col-td { width: 10rem; max-width: 10rem; min-width: 10rem; }
   .col-event { width: 12rem; }
   .col-right { width: 3rem; }
 }
