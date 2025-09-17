@@ -38,7 +38,7 @@
           <!-- Date et statut empilés -->
           <div class="flex flex-col items-center space-y-1">
             <span class="text-gray-400 text-xs text-center font-normal">{{ formatEventDate(item.date) }}</span>
-            <span :class="getStatusColor(getEventStatus(item))" class="text-xs px-2 py-1 rounded-full">
+            <span :class="getStatusColor(getEventStatus(item))" class="text-xs px-2 py-1 rounded-full font-normal">
               {{ getStatusLabel(getEventStatus(item)) }}
             </span>
           </div>
@@ -206,6 +206,23 @@ const props = defineProps({
   isPlayerProtectedInGrid: {
     type: Function,
     required: true
+  },
+  // Props pour le calcul du statut des événements
+  getSelectionPlayers: {
+    type: Function,
+    required: true
+  },
+  getTotalRequiredCount: {
+    type: Function,
+    required: true
+  },
+  countAvailablePlayers: {
+    type: Function,
+    required: true
+  },
+  casts: {
+    type: Object,
+    default: () => ({})
   },
   headerOffsetX: {
     type: Number,

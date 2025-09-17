@@ -67,7 +67,7 @@
             </div>
             <div class="flex items-center justify-between">
               <span class="text-gray-400 text-xs">{{ formatEventDate(event.date) }}</span>
-              <span :class="getStatusColor(getEventStatus(event))" class="text-xs px-2 py-1 rounded-full">
+              <span :class="getStatusColor(getEventStatus(event))" class="text-xs px-2 py-1 rounded-full font-normal">
                 {{ getStatusLabel(getEventStatus(event)) }}
               </span>
             </div>
