@@ -222,9 +222,9 @@ onUnmounted(() => {
 }
 
 .col-player {
-  width: 5rem;
-  min-width: 5rem;
-  max-width: 5rem;
+  width: 6rem;
+  min-width: 6rem;
+  max-width: 6rem;
 }
 
 .col-event {

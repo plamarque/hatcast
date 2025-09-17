@@ -1497,6 +1497,7 @@
   .col-left { width: 5rem; }
   .left-col-td { width: 5rem; max-width: 5rem; min-width: 5rem; }
   .col-event { width: 5rem; }
+  .col-player { width: 6rem; min-width: 6rem; max-width: 6rem; }
   .col-right { width: 3rem; }
 }
 
