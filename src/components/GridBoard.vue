@@ -1354,6 +1354,9 @@
   width: 11rem;
   max-width: 11rem;
   min-width: 11rem;
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 105 !important;
 }
 
 /* Responsivité: adaptation des cellules sur écran réduit */
@@ -1451,7 +1454,14 @@
 
 @media (min-width: 640px) { /* sm */
   .col-left { width: 5rem; }
-  .left-col-td { width: 5rem; max-width: 5rem; min-width: 5rem; }
+  .left-col-td { 
+    width: 5rem; 
+    max-width: 5rem; 
+    min-width: 5rem; 
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 105 !important;
+  }
   /* .col-event width gérée dynamiquement via :style dans les composants */
   .col-player { width: 6rem; min-width: 6rem; max-width: 6rem; }
   .col-right { width: 3rem; }
