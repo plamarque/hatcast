@@ -1,5 +1,5 @@
 <template>
-  <div class="timeline-view bg-gray-900 relative z-[50] pt-6">
+  <div class="timeline-view bg-gray-900 relative z-[50] pt-6 pb-28">
     <!-- Contenu principal -->
     <div class="timeline-content">
       <!-- Debug info -->
