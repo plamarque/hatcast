@@ -41,7 +41,31 @@
           <div class="separator w-px h-12 bg-gray-600 flex-shrink-0"></div>
           
           <!-- Contenu de l'événement -->
-          <div class="event-content flex-1 flex items-center gap-2 md:gap-4">
+          <div class="event-content flex-1 flex items-center justify-between gap-2 md:gap-4">
+            <!-- Titre de l'événement -->
+            <div class="event-title flex-1 min-w-0 md:max-w-2xl">
+              <div class="flex items-center gap-3">
+                <!-- Icône du type d'événement -->
+                <div class="event-icon flex-shrink-0 text-xl">
+                  {{ getEventTypeIcon(event) }}
+                </div>
+                <div class="text-white font-medium text-base line-clamp-2 leading-tight flex-1 min-w-0">
+                  {{ event.title || 'Sans titre' }}
+                </div>
+              </div>
+              <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
+                📍 {{ event.location }}
+              </div>
+              
+              <!-- Badge de statut en dessous du texte -->
+              <div class="event-status mt-2 flex justify-start">
+                <StatusBadge 
+                  :event-id="event.id" 
+                  :event-status="getEventStatus(event.id)" 
+                />
+              </div>
+            </div>
+            
             <!-- Cellule de disponibilité -->
             <div class="availability-cell flex-shrink-0">
               <AvailabilityCell
@@ -66,30 +90,6 @@
                 @toggle-selection-status="handleSelectionStatusToggle"
                 @show-availability-modal="handleShowAvailabilityModal"
               />
-            </div>
-            
-            <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0 md:max-w-2xl">
-              <div class="flex items-center gap-3">
-                <!-- Icône du type d'événement -->
-                <div class="event-icon flex-shrink-0 text-xl">
-                  {{ getEventTypeIcon(event) }}
-                </div>
-                <div class="text-white font-medium text-base line-clamp-2 leading-tight flex-1 min-w-0">
-                  {{ event.title || 'Sans titre' }}
-                </div>
-              </div>
-              <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
-                📍 {{ event.location }}
-              </div>
-              
-              <!-- Badge de statut en dessous sur mobile, à droite sur desktop -->
-              <div class="event-status mt-2 flex justify-start md:mt-0 md:absolute md:right-2 md:top-1/2 md:transform md:-translate-y-1/2">
-                <StatusBadge 
-                  :event-id="event.id" 
-                  :event-status="getEventStatus(event.id)" 
-                />
-              </div>
             </div>
           </div>
         </div>
