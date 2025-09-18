@@ -76,7 +76,7 @@
         <td
           v-for="event in events"
           :key="`${player.id}-${event.id}`"
-          class="col-event border-r border-gray-700 p-0"
+          class="col-event border-r border-gray-700 p-1"
           :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
         >
           <AvailabilityCell
