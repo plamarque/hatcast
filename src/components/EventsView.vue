@@ -23,7 +23,7 @@
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="col-event bg-gray-800/30 rounded-xl flex items-center justify-center px-2 py-3"
+        class="col-event bg-gray-800 rounded-xl flex items-center justify-center px-2 py-3"
         :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
       >
         <div class="flex flex-col items-center space-y-1 w-full">
