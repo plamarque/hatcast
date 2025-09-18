@@ -1,5 +1,5 @@
 <template>
-  <footer class="bg-gray-900/95 border-t border-white/10 backdrop-blur-sm relative z-10">
+  <footer class="bg-gray-900/95 border-t border-white/10 backdrop-blur-sm fixed bottom-0 left-0 right-0 z-10">
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-sm text-gray-300">
         <!-- HatCast -->

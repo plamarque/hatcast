@@ -1,6 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-    <!-- Header de saison partagé -->
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 pb-20">
+    <!-- Contenu principal -->
+    <div class="w-full">
+      <!-- Header de saison partagé -->
     <SeasonHeader 
       :season-name="seasonName"
       :is-scrolled="isScrolled"
@@ -833,7 +835,7 @@
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
       </div>
     </div>
-  </div>
+    </div>
 
   <!-- Footer principal -->
   <AppFooter @open-help="goToHelpPage" />
@@ -1317,6 +1319,7 @@
   >
     <span class="text-2xl font-bold">›</span>
   </button>
+  </div>
   </div>
 </template>
 
