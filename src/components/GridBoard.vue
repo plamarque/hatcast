@@ -160,7 +160,7 @@
       
       <TimelineView
         :events="events"
-        :players="players"
+        :players="allSeasonPlayers"
         :availability="availability"
         :casts="casts"
         :season-id="seasonId"
