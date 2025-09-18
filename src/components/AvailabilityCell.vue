@@ -15,7 +15,7 @@
       isLoading ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30' : '',
       isError ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30' : ''
     ]"
-    @click="toggleAvailability"
+    @click.stop="toggleAvailability"
     @mouseenter="hover = true"
     @mouseleave="hover = false"
   >
