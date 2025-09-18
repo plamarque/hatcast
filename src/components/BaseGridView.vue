@@ -179,18 +179,22 @@ const dynamicLeftColumnWidth = computed(() => {
     return '12rem' // 192px
   }
   
-  // Desktop et autres écrans : largeur très compacte pour maximiser l'espace des colonnes joueurs
-  // Si peu de joueurs (1-3), colonne très étroite
+  // Desktop et autres écrans : largeur adaptée au nombre de joueurs
+  // Si peu de joueurs (1-3), colonne compacte
   if (totalPlayers <= 3) {
-    return '3rem' // 48px - très compact
+    return '8rem' // 128px - compact mais suffisant
   }
-  // Si nombre moyen de joueurs (4-10), colonne compacte
+  // Si nombre moyen de joueurs (4-10), colonne équilibrée
   else if (totalPlayers <= 10) {
-    return '3.5rem' // 56px - très compact
+    return '10rem' // 160px - équilibré
   }
-  // Si beaucoup de joueurs (11+), colonne plus large mais toujours très compacte
+  // Si beaucoup de joueurs (11-20), colonne plus large
+  else if (totalPlayers <= 20) {
+    return '12rem' // 192px - plus d'espace
+  }
+  // Si très nombreux joueurs (21+), colonne très large
   else {
-    return '4rem' // 64px - très compact
+    return '14rem' // 224px - maximum d'espace pour le contenu
   }
 })
 
