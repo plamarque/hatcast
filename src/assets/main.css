@@ -53,6 +53,14 @@
   text-overflow: ellipsis;
 }
 
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Safe areas pour iPhone (notch et bords arrondis) */
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
@@ -104,21 +112,20 @@
 @media (max-width: 768px) {
   /* Forcer la largeur de la première colonne sur mobile - priorité élevée */
   .gridboard .col-left {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
+    width: 17.5rem !important;
+    min-width: 17.5rem !important;
+    max-width: 17.5rem !important;
   }
   
   .gridboard .left-col-td {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
+    width: 17.5rem !important;
+    min-width: 17.5rem !important;
+    max-width: 17.5rem !important;
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 105 !important;
   }
-  /* Réduire la densité des cellules sur mobile */
-  .col-event {
-    min-width: 130px !important;
-    max-width: 130px !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* Colonne favoris peut être plus large pour accommoder le contenu */
   .preferred-player-header {
@@ -126,10 +133,7 @@
     max-width: 140px !important;
   }
   
-  /* Ajuster la largeur de base des colonnes sur mobile */
-  .col-event {
-    width: 130px !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* Colonne favoris dans le tableau */
   .preferred-player {
@@ -156,19 +160,7 @@
   
   /* Plus besoin de forcer la hauteur sur availability-cell */
   
-  /* Optimiser le header sticky */
-  .col-left {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-  }
-  
-  /* Ajuster la largeur de la première colonne dans le tableau */
-  .left-col-td {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
-  }
+  /* Largeurs gérées dynamiquement via :style dans les composants */
   
   /* Optimiser le contenu de la première colonne sur mobile */
   .col-left .max-w-20 {

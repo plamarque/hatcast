@@ -62,7 +62,8 @@ const props = defineProps({
   showAccountMenu: { type: Boolean, default: false },
   showPreferences: { type: Boolean, default: false },
   showPlayers: { type: Boolean, default: false },
-  showDevelopmentModal: { type: Boolean, default: false }
+  showDevelopmentModal: { type: Boolean, default: false },
+  showNotifications: { type: Boolean, default: false }
 })
 
 // Événements émis vers le composant parent
@@ -76,7 +77,8 @@ const emit = defineEmits([
   'close-account-menu',
   'close-preferences',
   'close-players',
-  'close-development-modal'
+  'close-development-modal',
+  'close-notifications'
 ])
 
 // Fonctions pour ouvrir les modales
@@ -127,6 +129,10 @@ function closePlayers() {
 
 function closeDevelopmentModal() {
   emit('close-development-modal')
+}
+
+function closeNotifications() {
+  emit('close-notifications')
 }
 
 // Exposer les fonctions pour que le composant parent puisse les utiliser

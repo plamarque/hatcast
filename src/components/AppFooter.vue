@@ -1,5 +1,5 @@
 <template>
-  <footer class="bg-gray-900/95 border-t border-white/10 backdrop-blur-sm relative z-10">
+  <footer class="bg-gray-900 border-t border-white/10 backdrop-blur-sm fixed bottom-0 left-0 right-0 z-[50]">
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 text-sm text-gray-300">
         <!-- HatCast -->
@@ -45,6 +45,15 @@
         >
           v{{ appVersion }}
         </button>
+        
+        <!-- Badge environnement -->
+        <span 
+          v-if="environment !== 'production'"
+          class="px-2 py-1 text-xs font-medium rounded"
+          :class="environmentBadgeClass"
+        >
+          {{ environment.toUpperCase() }}
+        </span>
       </div>
     </div>
   </footer>
@@ -57,8 +66,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ChangelogModal from './ChangelogModal.vue'
+import configService from '../services/configService.js'
 
 // Émettre les événements
 const emit = defineEmits(['open-help'])
@@ -69,9 +79,27 @@ const appVersion = ref('1.0.0')
 // État de la modal changelog
 const showChangelog = ref(false)
 
+// Environnement
+const environment = ref('production')
+
+// Classes CSS pour le badge environnement
+const environmentBadgeClass = computed(() => {
+  switch (environment.value) {
+    case 'development':
+      return 'bg-red-600 text-white'
+    case 'staging':
+      return 'bg-yellow-600 text-white'
+    default:
+      return 'bg-gray-600 text-white'
+  }
+})
+
 // Charger la version depuis le fichier version.txt
 onMounted(async () => {
   try {
+    // Détecter l'environnement
+    environment.value = configService.getEnvironment()
+    
     const response = await fetch('/version.txt')
     if (response.ok) {
       const content = await response.text()

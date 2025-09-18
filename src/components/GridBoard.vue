@@ -1,13 +1,15 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-    <!-- Header de saison partagé -->
+  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 pb-20">
+    <!-- Contenu principal -->
+    <div class="w-full">
+      <!-- Header de saison partagé -->
     <SeasonHeader 
       :season-name="seasonName"
       :is-scrolled="isScrolled"
       :season-slug="props.slug"
       :is-connected="!!currentUser?.email"
       :show-view-toggle="showViewToggle"
-      :current-view-mode="currentViewMode"
+      :current-view-mode="validCurrentView"
       :season-meta="seasonMeta"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
@@ -22,468 +24,174 @@
       @open-development="openDevelopment"
     />
 
-    <!-- Vue grille (classique ou inversée) -->
-    <div class="w-full px-0 md:px-0 pb-0 bg-gray-900"
-         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
-      <!-- Sticky header bar outside horizontal scroller (sync with scrollLeft) -->
-      <div ref="headerBarRef" class="sticky top-0 z-[100] overflow-hidden bg-gray-900">
-        
-        <div class="flex items-stretch relative">
-          <!-- Left sticky cell (masqué pendant l'étape 1 pour éviter le doublon avec l'onboarding) -->
-          <div v-if="(events.length === 0 && players.length === 0) ? false : true" class="col-left flex-shrink-0 sticky left-0 z-[101] bg-gray-900 h-full">
-            <div class="flex flex-col items-center justify-between h-full gap-3">
-              <!-- Bouton ajouter événement déplacé vers l'interface d'administration -->
-              
-              <!-- Bouton pour revenir à la vue complète (vue focalisée seulement) -->
-              <div v-if="isFocusedView" class="w-full p-2 flex justify-center">
-                <button
-                  @click="returnToFullView"
-                  class="text-xs px-3 py-2 rounded text-white hover:text-purple-300 transition-colors duration-200 hover:bg-white/10 bg-purple-600"
-                  title="Revenir à la vue complète"
-                >
-                  📋 Vue complète
-                </button>
-              </div>
-              
-              <!-- Toggle de vue - aligné avec les cellules de la grille -->
-              <div class="w-full p-4 md:p-5 flex flex-col justify-center items-center gap-2">
-                <button
-                  @click="toggleViewMode"
-                  class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10"
-                  :title="currentViewMode === 'normal' ? 'Passer en vue inversée' : 'Passer en vue normale'"
-                  aria-label="Changer de vue"
-                >
-                  <!-- Flèche en L vers haut-droite (joueurs en colonnes) -->
-                  <svg v-if="currentViewMode === 'normal'" class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                    <!-- Trait vertical qui monte -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 26v-12"/>
-                    <!-- Trait horizontal vers la droite -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 14h8"/>
-                    <!-- Flèche vers la droite -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M24 12l4 2-4 2"/>
-                  </svg>
-                  <!-- Flèche en L vers bas-gauche (joueurs en lignes) -->
-                  <svg v-else class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 36 36">
-                    <!-- Trait horizontal vers la gauche -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M26 20h-8"/>
-                    <!-- Trait vertical qui descend -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M18 20v10"/>
-                    <!-- Flèche vers le bas -->
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M16 28l2 4 2-4"/>
-                  </svg>
-                </button>
-                
-                <!-- Indicateur de mode composition -->
-                <div v-if="isCompositionView" class="flex items-center gap-1 px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-full">
-                  <span class="text-purple-300 text-xs">🎭</span>
-                  <span class="text-purple-200 text-xs font-medium">Composition</span>
-                  <button
-                    @click="returnToFullView"
-                    class="text-purple-300 hover:text-purple-100 transition-colors ml-1"
-                    title="Revenir à la vue complète"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-              </div>
+    <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
+    <ViewHeader
+      v-if="validCurrentView === 'events' || validCurrentView === 'participants'"
+      :current-view="validCurrentView"
+      :show-player-selector="true"
+      :selected-player="selectedPlayer"
+      :participants-display-text="dropdownDisplayText"
+      :season-id="seasonId"
+      :player-gender="selectedPlayer?.gender || 'non-specified'"
+      :is-sticky="true"
+      @view-change="selectView"
+      @player-modal-toggle="togglePlayerModal"
+    />
 
-            </div>
-          </div>
-          <!-- Headers (événements en mode normal, joueurs en mode inversé) -->
-          <div class="flex-1 overflow-hidden">
-            <div ref="headerEventsRef" class="flex relative z-[60] bg-gray-900" :style="{ transform: `translateX(-${headerScrollX}px)` }">
-              <div
-                v-for="(headerItem, index) in displayColumns"
-                :key="'h-'+headerItem.id"
-                :data-event-id="currentViewMode === 'normal' ? headerItem.id : undefined"
-                :data-player-id="currentViewMode === 'inverted' ? headerItem.id : undefined"
-                class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900"
-                :class="{ 
-                  'archived-header': currentViewMode === 'normal' && headerItem.archived,
-                  'preferred-player-header': currentViewMode === 'inverted' && preferredPlayerIdsSet.has(headerItem.id)
-                }"
-              >
-                <!-- Mode normal : affichage des événements -->
-                <div v-if="currentViewMode === 'normal'" class="flex flex-col h-full">
-                  <!-- Ligne 1 : Titre avec icône -->
-                  <div 
-                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group flex-1"
-                    :title="headerItem.title + ' - Cliquez pour voir les détails'"
-                    @click.stop="showEventDetails(headerItem)"
-                  >
-                    <!-- Titre du spectacle avec icône -->
-                    <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200">
-                      <span v-if="headerItem.roles" :title="getEventTypeName(headerItem)" class="mr-1">{{ getEventTypeIcon(headerItem) }}</span>{{ headerItem.title || 'Sans titre' }}
-                    </div>
-                  </div>
-                  
-                  <!-- Ligne 2 : Date du spectacle -->
-                  <div class="flex items-center justify-center px-1 py-0.5 h-6 relative">
-                    <!-- Date centrée -->
-                    <div class="header-date text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-0.5 rounded" 
-                         :title="formatDateFull(headerItem.date)">
-                      {{ formatDate(headerItem.date) }}
-                    </div>
-                    <!-- Indicateur de statut inactif (positionné à droite) -->
-                    <div 
-                      v-if="headerItem.archived"
-                      class="absolute right-1 px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                      title="Événement inactif"
-                    >
-                      <span class="text-xs text-gray-300 font-medium">📁</span>
-                      <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
-                    </div>
-                    
-                    <!-- Plus de badge de type d'événement -->
-                  </div>
-                </div>
-
-                <!-- Mode inversé : affichage des joueurs -->
-                <div v-else>
-                  <!-- Zone cliquable complète (avatar + nom + badges) -->
-                  <div 
-                    class="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 cursor-pointer group h-20 w-full"
-                    :title="headerItem.name + ' - Cliquez pour voir les détails'"
-                    @click.stop="showPlayerDetails(headerItem)"
-                  >
-                    <div class="flex flex-col items-center flex-1 justify-center w-full pt-1 md:pt-3">
-                      <!-- Avatar avec icônes en coin supérieur droit -->
-                      <div class="mb-2 relative">
-                        <PlayerAvatar 
-                          :player-id="headerItem.id"
+    <!-- Vue grille (lignes ou colonnes) -->
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
+      
+      <!-- Modal de sélection de joueur pour les vues lignes/colonnes -->
+      <PlayerSelectorModal
+        :show="showPlayerModal"
+        :players="allSeasonPlayers"
+        :season-id="seasonId"
+        :selected-player-id="selectedPlayerId"
+        :preferred-player-ids-set="preferredPlayerIdsSet"
+        :is-player-protected="isPlayerProtectedInGrid"
+        :is-player-already-displayed="isPlayerAlreadyDisplayed"
+        @close="closePlayerModal"
+        @player-selected="handlePlayerSelected"
+        @all-players-selected="handleAllPlayersSelected"
+        @add-new-player="(name) => openNewPlayerForm(name)"
+      />
+      
+      <!-- Composants de vue séparés -->
+      <ParticipantsView
+        v-if="validCurrentView === 'participants'"
+        key="participants-view"
+        :events="events"
+        :displayed-players="displayedPlayers"
+        :is-all-players-view="isAllPlayersView"
+        :hidden-players-count="hiddenPlayersCount"
+        :hidden-players-display-text="hiddenPlayersDisplayText"
+        :can-edit-availability="canEditAvailability"
+        :get-player-availability="getPlayerAvailability"
                           :season-id="seasonId"
-                          :player-name="headerItem.name"
-                          size="lg"
-                          :player-gender="headerItem.gender || 'non-specified'"
-                        />
-                        
-                        <!-- Icône étoile (joueur favori) -->
-                        <span 
-                          v-if="preferredPlayerIdsSet.has(headerItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          title="Ma personne"
-                        >
-                          ⭐
-                        </span>
-                        
-                        <!-- Icône cadenas (joueur protégé) -->
-                        <span 
-                          v-else-if="isPlayerProtectedInGrid(headerItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          :title="preferredPlayerIdsSet.has(headerItem.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
-                        >
-                          🔒
-                        </span>
-                      </div>
-                      
-                      <!-- Nom sur la deuxième ligne -->
-                      <div class="header-title text-[22px] md:text-2xl leading-snug text-white text-center clamp-2 group-hover:text-purple-300 transition-colors duration-200 font-bold">
-                        {{ headerItem.name }}
-                      </div>
-                    </div>
-                  </div>
+        :chances="chances"
+        :is-available="isAvailable"
+        :is-selected="isSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :is-selection-complete="isSelectionComplete"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        :casts="casts"
+        :header-offset-x="0"
+        :header-scroll-x="0"
+        @player-selected="showPlayerDetails"
+        @availability-changed="handleAvailabilityChanged"
+        @scroll="handleGridScroll"
+        @toggle-player-modal="togglePlayerModal"
+        @toggle-availability="toggleAvailability"
+        @toggle-selection-status="toggleSelectionStatus"
+        @show-availability-modal="openAvailabilityModal"
+        @event-click="openEventModal"
+      />
+      
+      <EventsView
+        v-if="validCurrentView === 'events'"
+        key="events-view"
+        :events="events"
+        :displayed-players="displayedPlayers"
+        :is-all-players-view="isAllPlayersView"
+        :hidden-players-count="hiddenPlayersCount"
+        :hidden-players-display-text="hiddenPlayersDisplayText"
+        :can-edit-availability="canEditAvailability"
+        :get-player-availability="getPlayerAvailability"
+        :season-id="seasonId"
+        :chances="chances"
+        :is-available="isAvailable"
+        :is-selected="isSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :is-selection-complete="isSelectionComplete"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        :casts="casts"
+        :header-offset-x="0"
+        :header-scroll-x="0"
+        @player-selected="showPlayerDetails"
+        @availability-changed="handleAvailabilityChanged"
+        @scroll="handleGridScroll"
+        @toggle-player-modal="togglePlayerModal"
+        @toggle-availability="toggleAvailability"
+        @toggle-selection-status="toggleSelectionStatus"
+        @show-availability-modal="openAvailabilityModal"
+        @event-click="openEventModal"
+      />
                 </div>
-              </div>
-              
-              <!-- En-tête Afficher Plus/Moins pour la vue inversée (Personnes=Colonnes) -->
-              <div v-if="currentUser?.email && currentViewMode === 'inverted'" class="col-event flex-shrink-0 text-center flex flex-col justify-start bg-gray-900">
                 
-                <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
-                <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 pt-2 md:pt-4">
-                  <!-- Faux avatar avec icône + -->
-                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
-                    <span class="text-white text-lg md:text-xl font-bold">+</span>
-                  </div>
-                  <!-- Sous-titre -->
-                  <div class="text-xs text-gray-300 text-center">
-                    Afficher Plus
-                  </div>
-                </div>
-                
-                <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
-                <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2 pt-2 md:pt-4">
-                  <!-- Faux avatar avec icône - -->
-                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
-                    <span class="text-white text-lg md:text-xl font-bold">-</span>
-                  </div>
-                  <!-- Sous-titre -->
-                  <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
-                    Afficher Moins
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- Right spacer (keeps end alignment) -->
-          <div class="flex-shrink-0 p-3 sticky right-0 z-[101] h-full"></div>
-
-
-          <!-- Chevrons supprimés de cette zone -->
-        </div>
-      </div>
-
-      <div
-        v-show="!isLoadingGrid"
-        ref="gridboardRef"
-        class="gridboard overflow-x-auto bg-gradient-to-br from-blue-900/50 via-purple-900/50 to-indigo-900/50"
-      >
-        <!-- Coachmarks d'onboarding (mini-fenêtres contextuelles) -->
-        <div v-if="playerTourStep === 1" class="pointer-events-none">
-                      <!-- Étape 1: coachmark bouton Ajouter une personne -->
-          <div
-            v-if="addPlayerCoachmark.position"
-            class="fixed z-[600]"
-            :style="{ left: addPlayerCoachmark.position.x + 'px', top: addPlayerCoachmark.position.y + 'px' }"
-          >
-            <div id="coachmark-add" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-purple-500/40 rounded-xl shadow-2xl p-3 text-white relative" :class="{ 'coachmark-right': addPlayerCoachmark.side === 'right', 'coachmark-left': addPlayerCoachmark.side === 'left' }">
-              <div class="text-lg md:text-base font-semibold mb-1">Ajoutez votre nom</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur "Ajouter une personne" pour vous inscrire</div>
-              <div class="flex items-center justify-between">
-                <span class="text-purple-300 text-base md:text-sm">Étape 1/4</span>
-                <button @click="dismissCoachmarkStep(0)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant ></button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="playerTourStep === 2 && guidedPlayerId && guidedEventId" class="pointer-events-none">
-          <!-- Étape 2: coachmark cellule disponibilité -->
-          <div
-            v-if="availabilityCoachmark.position"
-            class="fixed z-[600]"
-            :style="{ position: 'absolute', left: availabilityCoachmark.position.x + 'px', top: availabilityCoachmark.position.y + 'px' }"
-          >
-            <div id="coachmark-avail" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-pink-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-lg md:text-base font-semibold mb-1">Indiquez vos disponibilités</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez cette case pour alterner Oui / Non / Vide</div>
-              <div class="flex items-center justify-between">
-                <span class="text-pink-300 text-base md:text-sm">Étape 2/4</span>
-                <button @click="dismissCoachmarkStep(1)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="playerTourStep === 3 && guidedPlayerId" class="pointer-events-none">
-          <!-- Étape 3: coachmark nom joueur -->
-          <div
-            v-if="playerNameCoachmark.position"
-            class="fixed z-[600]"
-            :style="{ position: 'absolute', left: playerNameCoachmark.position.x + 'px', top: playerNameCoachmark.position.y + 'px' }"
-          >
-            <div id="coachmark-name" class="coachmark pointer-events-auto max-w-sm bg-gray-900 border border-yellow-500/40 rounded-xl shadow-2xl p-3 text-white relative">
-              <div class="text-lg md:text-base font-semibold mb-1">Ouvrez votre fiche</div>
-              <div class="text-base md:text-sm text-gray-300 mb-2">Cliquez sur votre nom pour voir les détails et la protection</div>
-              <div class="flex items-center justify-between">
-                <span class="text-yellow-300 text-base md:text-sm">Étape 3/4</span>
-                <button @click="dismissCoachmarkStep(2)" class="text-base md:text-sm text-white/80 hover:text-white">Suivant</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-
-        <table class="table-auto border-separate border-spacing-0 table-fixed w-auto min-w-max">
-          <colgroup>
-            <col class="col-left" />
-            <col v-for="(item, index) in displayColumns" :key="'c'+index" class="col-event" />
-            <col class="col-right" />
-          </colgroup>
-          <thead class="hidden"></thead>
-          <tbody>
-            <tr
-              v-for="(rowItem, index) in displayRows"
-              :key="currentViewMode === 'inverted' ? rowItem.id : rowItem.id"
-              class="border-b border-white/10 hover:bg-white/5 transition-all duration-200"
-              :data-player-id="currentViewMode === 'normal' ? rowItem.id : undefined"
-              :data-event-id="currentViewMode === 'inverted' ? rowItem.id : undefined"
-              :class="{ 
-                'highlighted-player': currentViewMode === 'normal' && rowItem.id === highlightedPlayer, 
-                'preferred-player': currentViewMode === 'normal' && preferredPlayerIdsSet.has(rowItem.id) 
-              }"
-            >
-              <td class="px-0 py-2 font-medium text-white relative group text-xl md:text-2xl sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-2 font-bold text-xl md:text-2xl flex items-center w-full min-w-0">
-                  <!-- Mode normal : affichage des joueurs -->
-                  <div 
-                    v-if="currentViewMode === 'normal'"
-                    @click="showPlayerDetails(rowItem)" 
-                    class="player-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block truncate max-w-full flex-1 min-w-0 group font-bold"
-                    :class="{ 'inline-block rounded px-1 ring-2 ring-yellow-400 animate-pulse': playerTourStep === 3 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) }"
-                    :title="'Cliquez pour voir les détails : ' + rowItem.name"
-                  >
-                    <div class="flex items-center gap-2 pt-1 md:pt-3">
-                      <div class="relative">
-                        <PlayerAvatar 
-                          :player-id="rowItem.id"
+    <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
+      <!-- Header sticky pour la vue chronologique -->
+      <ViewHeader
+        :current-view="validCurrentView"
+        :show-player-selector="true"
+        :selected-player="selectedPlayer"
+        :participants-display-text="dropdownDisplayText"
                           :season-id="seasonId"
-                          :player-name="rowItem.name"
-                          size="lg"
-                          :player-gender="rowItem.gender || 'non-specified'"
-                        />
-                        <!-- Superposed status icons -->
-                        <span 
-                          v-if="preferredPlayerIdsSet.has(rowItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          title="Ma personne"
-                        >
-                          ⭐
-                        </span>
-                        <span 
-                          v-else-if="isPlayerProtectedInGrid(rowItem.id)"
-                          class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                          :title="preferredPlayerIdsSet.has(rowItem.id) ? 'Ma personne protégée' : 'Personne protégée par mot de passe'"
-                        >
-                          🔒
-                        </span>
-                      </div>
-                      <span class="group-hover:text-purple-300 transition-colors duration-200 flex-1 min-w-0 truncate">{{ rowItem.name }}</span>
-                    </div>
-                  </div>
-                  
-                  <!-- Mode inversé : affichage des événements -->
-                  <div 
-                    v-else
-                    @click.stop="showEventDetails(rowItem)" 
-                    class="event-name hover:bg-white/10 rounded-lg p-2 cursor-pointer transition-colors duration-200 text-[22px] md:text-2xl leading-tight block max-w-full flex-1 min-w-0 group w-full"
-                    :title="'Cliquez pour voir les détails : ' + rowItem.title"
-                  >
-                    <div class="flex flex-col items-center gap-2 w-full">
-                      <!-- Ligne 1 : Titre du spectacle avec icône -->
-                      <div class="text-[18px] md:text-xl leading-snug text-white text-center group-hover:text-purple-300 transition-colors duration-200 w-full" style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                        <span v-if="rowItem.roles" :title="getEventTypeName(rowItem)" class="mr-1">{{ getEventTypeIcon(rowItem) }}</span>{{ rowItem.title || 'Sans titre' }}
-                      </div>
-                      
-                      <!-- Ligne 2 : Date du spectacle -->
-                      <div class="text-[16px] md:text-base text-gray-300 group-hover:text-purple-200 transition-colors duration-200 px-2 py-1 rounded" 
-                           :title="formatDateFull(rowItem.date)">
-                        {{ formatDate(rowItem.date) }}
-                      </div>
-                      
-                      <!-- Ligne 3 : Badge de type d'événement (affiché seulement s'il y a un badge) -->
-                      <div v-if="rowItem.archived" class="flex flex-col items-center">
-                        <!-- Indicateur de statut inactif -->
-                        <div 
-                          class="px-2 py-1 bg-gray-500/20 border border-gray-400/30 rounded-md flex items-center justify-center"
-                          title="Événement inactif"
-                        >
-                          <span class="text-xs text-gray-300 font-medium">📁</span>
-                          <span class="text-xs text-gray-200 font-medium ml-1">Inactif</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-
-              <td
-                v-for="(columnItem, colIndex) in displayColumns"
-                :key="columnItem.id"
-                :data-event-id="currentViewMode === 'normal' ? columnItem.id : undefined"
-                :data-player-id="currentViewMode === 'inverted' ? columnItem.id : undefined"
-                :class="[
-                  'p-0.5',
-                  currentViewMode === 'normal' && columnItem.archived ? 'archived-col' : '',
-                  { 'relative ring-2 ring-pink-400 rounded-md animate-pulse': playerTourStep === 2 && rowItem.id === (guidedPlayerId || (sortedPlayers[0]?.id)) && columnItem.id === (guidedEventId || (displayedEvents[0]?.id)) }
-                ]"
-              >
-                <AvailabilityCell
-                  :player-name="currentViewMode === 'normal' ? rowItem.name : columnItem.name"
-                  :event-id="currentViewMode === 'normal' ? columnItem.id : rowItem.id"
-                  :is-available="currentViewMode === 'normal' ? isAvailable(rowItem.name, columnItem.id) : isAvailable(columnItem.name, rowItem.id)"
-                  :is-selected="currentViewMode === 'normal' ? isSelected(rowItem.name, columnItem.id) : isSelected(columnItem.name, rowItem.id)"
-                  :is-selection-confirmed="currentViewMode === 'normal' ? isSelectionConfirmed(columnItem.id) : isSelectionConfirmed(rowItem.id)"
-                  :is-selection-confirmed-by-organizer="currentViewMode === 'normal' ? isSelectionConfirmedByOrganizer(columnItem.id) : isSelectionConfirmedByOrganizer(rowItem.id)"
-                  :player-selection-status="currentViewMode === 'normal' ? getPlayerSelectionStatus(rowItem.name, columnItem.id) : getPlayerSelectionStatus(columnItem.name, rowItem.id)"
-                  :season-id="seasonId"
-                  :chance-percent="currentViewMode === 'normal' ? (chances[rowItem.name]?.[columnItem.id] ?? null) : (chances[columnItem.name]?.[rowItem.id] ?? null)"
-                  :show-selected-chance="currentViewMode === 'normal' ? isSelectionComplete(columnItem.id) : isSelectionComplete(rowItem.id)"
-                  :disabled="currentViewMode === 'normal' ? (columnItem.archived === true) : (rowItem.archived === true)"
-                  :availability-data="currentViewMode === 'normal' ? getAvailabilityData(rowItem.name, columnItem.id) : getAvailabilityData(columnItem.name, rowItem.id)"
-                  :event-title="currentViewMode === 'normal' ? columnItem.title : rowItem.title"
-                  :event-date="currentViewMode === 'normal' ? columnItem.date : rowItem.date"
-                  :is-protected="currentViewMode === 'normal' ? isPlayerProtectedInGrid(rowItem.id) : isPlayerProtectedInGrid(columnItem.id)"
-                  :player-gender="currentViewMode === 'normal' ? (rowItem.gender || 'non-specified') : (columnItem.gender || 'non-specified')"
-                  :is-loading="currentViewMode === 'normal' ? isPlayerLoading(rowItem.id) : isPlayerLoading(columnItem.id)"
-                  :is-loaded="currentViewMode === 'normal' ? isPlayerAvailabilityLoaded(rowItem.id) : isPlayerAvailabilityLoaded(columnItem.id)"
-                  :is-error="currentViewMode === 'normal' ? isPlayerError(rowItem.id) : isPlayerError(columnItem.id)"
-                  @toggle="toggleAvailability"
-                  @toggle-selection-status="handlePlayerSelectionStatusToggle"
+        :player-gender="selectedPlayer?.gender || 'non-specified'"
+        @view-change="selectView"
+        @player-modal-toggle="togglePlayerModal"
+      />
+      
+      <!-- Modal de sélection de joueur -->
+      <PlayerSelectorModal
+        :show="showPlayerModal"
+        :players="allSeasonPlayers"
+                          :season-id="seasonId"
+        :selected-player-id="selectedPlayerId"
+        :preferred-player-ids-set="preferredPlayerIdsSet"
+        :is-player-protected="isPlayerProtectedInGrid"
+        :is-player-already-displayed="isPlayerAlreadyDisplayed"
+        @close="closePlayerModal"
+        @player-selected="handlePlayerSelected"
+        @all-players-selected="handleAllPlayersSelected"
+        @add-new-player="(name) => openNewPlayerForm(name)"
+      />
+      
+      <TimelineView
+        :events="events"
+        :players="allSeasonPlayers"
+        :availability="availability"
+        :casts="casts"
+        :season-id="seasonId"
+        :selected-player-id="selectedPlayerId"
+        :preferred-player-ids-set="preferredPlayerIdsSet"
+        :is-available="isAvailable"
+        :is-player-selected="isPlayerSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :chances="chances"
+        :is-selection-complete="isSelectionComplete"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        @event-click="showEventDetails"
+        @player-click="showPlayerDetails"
+        @view-change="selectView"
+        @availability-toggle="handleAvailabilityToggle"
+        @selection-status-toggle="handlePlayerSelectionStatusToggle"
                   @show-availability-modal="openAvailabilityModal"
-                />
-              </td>
-              <td class="p-3 md:p-4"></td>
-            </tr>
-            <!-- Dernière ligne: Afficher Plus/Moins pour la vue normale (Personnes=Lignes) -->
-            <tr v-if="currentUser?.email && currentViewMode === 'normal'" class="border-t border-white/10">
-              <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-2 flex items-center justify-center">
-                  <!-- Bouton Afficher Plus (quand pas tous les joueurs) -->
-                  <div v-if="!isAllPlayersView" @click="toggleShowMoreModal" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 p-2 pt-2 md:pt-4">
-                    <!-- Faux avatar avec icône + -->
-                    <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2">
-                      <span class="text-white text-lg md:text-xl font-bold">+</span>
-                    </div>
-                    <!-- Sous-titre -->
-                    <div class="text-xs text-gray-300 text-center">
-                      Afficher Plus
-                    </div>
-                  </div>
-                  
-                  <!-- Bouton Afficher Moins (quand tous les joueurs affichés) -->
-                  <div v-else @click="showFavoritesOnly" class="flex flex-col items-center justify-center h-20 w-full cursor-pointer hover:bg-gray-800 transition-colors duration-200 min-h-[80px] p-2 pt-2 md:pt-4">
-                    <!-- Faux avatar avec icône - -->
-                    <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mb-2 flex-shrink-0">
-                      <span class="text-white text-lg md:text-xl font-bold">-</span>
-                    </div>
-                    <!-- Sous-titre -->
-                    <div class="text-xs text-gray-300 text-center leading-tight whitespace-nowrap">
-                      Afficher Moins
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td
-                v-for="event in displayedEvents"
-                :key="'show-more-row-'+event.id"
-                :data-event-id="event.id"
-                :class="['p-3 md:p-5', event.archived ? 'archived-col' : '']"
-              ></td>
-              <td class="p-3 md:p-4"></td>
-            </tr>
-            
-            <!-- Ligne d'ajout de personne (fallback si pas d'utilisateur connecté) -->
-            <tr v-else class="border-t border-white/10">
-              <td class="px-0 py-2 sticky left-0 z-40 bg-gray-900 left-col-td">
-                <div class="px-2 flex items-center">
-                  <button
-                    @click="openNewPlayerForm"
-                    class="w-full md:w-auto flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 text-sm md:text-base font-medium"
-                    title="Ajouter une nouvelle personne"
-                    data-onboarding="add-player"
-                  >
-                    <span class="text-lg">➕</span>
-                    <span class="hidden sm:inline">Ajouter une personne</span>
-                    <span class="sm:hidden">Personne</span>
-                  </button>
-                </div>
-              </td>
-              <td
-                v-for="event in displayedEvents"
-                :key="'add-row-'+event.id"
-                :data-event-id="event.id"
-                :class="['p-3 md:p-5', event.archived ? 'archived-col' : '']"
-              ></td>
-              <td class="p-3 md:p-4"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Indicateurs legacy supprimés (remplacés par chevrons flottants) -->
+        @player-selected="handlePlayerSelected"
+        @all-players-selected="handleAllPlayersSelected"
+      />
     </div>
+    <!-- Message de chargement pour la vue chronologique -->
+    <div v-if="validCurrentView === 'timeline' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
+         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
+      <div class="text-white text-lg">Chargement des événements...</div>
   </div>
 
   <!-- Overlay de chargement pleine page -->
@@ -676,7 +384,7 @@
   <!-- Modale de création de joueur -->
   <div v-if="newPlayerForm" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1300] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-white text-center">✨ Nouvelle personne</h2>
+      <h2 class="text-2xl font-bold mb-6 text-white text-center">👤 Nouveau Participant</h2>
       
       <!-- Nom -->
       <div class="mb-6">
@@ -699,17 +407,8 @@
 
       <!-- Comment on t'appelle ? -->
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-300 mb-3">Qu'est-ce qui désigne le mieux cette personne ?</label>
+        <label class="block text-sm font-medium text-gray-300 mb-3">Quel genre utiliser pour la désigner ?</label>
         <div class="space-y-3">
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input
-              v-model="newPlayerGender"
-              type="radio"
-              value="non-specified"
-              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
-            >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un.e improvisateur.trice</span>
-          </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
               v-model="newPlayerGender"
@@ -717,7 +416,7 @@
               value="female"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est une improvisatrice</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Féminin (ex: une joueuse, une improvisatrice)</span>
           </label>
           <label class="flex items-center space-x-3 cursor-pointer group">
             <input
@@ -726,7 +425,16 @@
               value="male"
               class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
             >
-            <span class="text-white group-hover:text-purple-300 transition-colors">C'est un improvisateur</span>
+            <span class="text-white group-hover:text-purple-300 transition-colors">Masculin (ex: un joueur, un improvisateur)</span>
+          </label>
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input
+              v-model="newPlayerGender"
+              type="radio"
+              value="non-specified"
+              class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-500 focus:ring-2"
+            >
+            <span class="text-white group-hover:text-purple-300 transition-colors">Non spécifié (ex: un.e joueur.se, un.e improvisateur.trice)</span>
           </label>
         </div>
       </div>
@@ -1127,7 +835,7 @@
         <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
       </div>
     </div>
-  </div>
+    </div>
 
   <!-- Footer principal -->
   <AppFooter @open-help="goToHelpPage" />
@@ -1391,15 +1099,15 @@
   <!-- Modal de détails du joueur -->
   <PlayerModal
     ref="playerModalRef"
-    :show="showPlayerModal"
-    :player="selectedPlayer"
-    :stats="getPlayerStats(selectedPlayer)"
+    :show="showPlayerDetailsModal"
+    :player="selectedPlayerForDetails"
+    :stats="getPlayerStats(selectedPlayerForDetails)"
     :season-id="seasonId"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
-    :is-protected="selectedPlayer ? protectedPlayers.has(selectedPlayer.id) : false"
-    :is-preferred="selectedPlayer ? preferredPlayerIdsSet.has(selectedPlayer.id) : false"
-    @close="closePlayerModal"
+    :is-protected="selectedPlayerForDetails ? protectedPlayers.has(selectedPlayerForDetails.id) : false"
+    :is-preferred="selectedPlayerForDetails ? preferredPlayerIdsSet.has(selectedPlayerForDetails.id) : false"
+    @close="closePlayerDetailsModal"
     @update="handlePlayerUpdate"
     @delete="handlePlayerDelete"
     @refresh="handlePlayerRefresh"
@@ -1611,8 +1319,8 @@
   >
     <span class="text-2xl font-bold">›</span>
   </button>
-
-  
+  </div>
+  </div>
 </template>
 
 <style>
@@ -1649,6 +1357,9 @@
   width: 11rem;
   max-width: 11rem;
   min-width: 11rem;
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 105 !important;
 }
 
 /* Responsivité: adaptation des cellules sur écran réduit */
@@ -1688,14 +1399,74 @@
     background: rgba(100,116,139,0.08); /* extra veil */
     pointer-events: none;
   }
-.col-left { width: 13rem; }
-.col-event { width: 12rem; background: transparent !important; }
+.col-left { width: 5rem; }
+/* .col-event width gérée dynamiquement via :style dans les composants */
 .col-right { width: 4.5rem; }
 
+@media (max-width: 768px) {
+  /* Largeurs gérées dynamiquement via :style dans les composants */
+  
+  /* Largeurs gérées dynamiquement via :style dans les composants */
+  
+  /* S'assurer que l'header des événements a la même largeur que les cellules */
+  .col-event.flex-shrink-0 {
+    width: 5rem !important;
+  }
+}
+
+/* Responsive mobile - iPhone 16 Plus et plus */
+@media (max-width: 430px) {
+  /* Largeurs gérées dynamiquement via :style dans les composants */
+  
+  /* Vue Spectacles : largeur gérée dynamiquement via :style dans les composants */
+  
+  /* Vue Participants : largeur gérée dynamiquement via :style dans les composants */
+  
+  .col-player {
+    width: 20rem !important;
+    min-width: 20rem !important;
+    max-width: 20rem !important;
+  }
+  
+  .col-event {
+    width: 10rem !important;
+    min-width: 10rem !important;
+    max-width: 10rem !important;
+  }
+}
+
+/* Responsive mobile - iPhone 16 et plus petit */
+@media (max-width: 375px) {
+  /* Largeurs gérées dynamiquement via :style dans les composants */
+  
+  /* Vue Spectacles : largeur gérée dynamiquement via :style dans les composants */
+  
+  .col-player {
+    width: 18rem !important;
+    min-width: 18rem !important;
+    max-width: 18rem !important;
+  }
+  
+  .col-event {
+    width: 9rem !important;
+    min-width: 9rem !important;
+    max-width: 9rem !important;
+  }
+}
+
+
 @media (min-width: 640px) { /* sm */
-  .col-left { width: 13rem; }
-  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
-  .col-event { width: 12rem; }
+  .col-left { width: 5rem; }
+  .left-col-td { 
+    width: 5rem; 
+    max-width: 5rem; 
+    min-width: 5rem; 
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 105 !important;
+  }
+  /* .col-event width gérée dynamiquement via :style dans les composants */
+  .col-player { width: 6rem; min-width: 6rem; max-width: 6rem; }
   .col-right { width: 3rem; }
 }
 
@@ -1710,9 +1481,12 @@
   .header-date { font-size: 18px; }
   .header-title { font-size: 24px; line-height: 1.1; }
   .player-name { font-size: 22px; line-height: 1.1; }
-  .col-left { width: 13rem; }
-  .col-event { width: 12rem; }
-  .left-col-td { width: 13rem; max-width: 13rem; min-width: 13rem; }
+  
+  /* Largeurs gérées dynamiquement via :style dans les composants */
+  
+  .col-event { 
+    width: 5rem !important; /* Colonnes joueurs compactes */
+  }
 }
 
 /* Mise en évidence de l'événement ciblé - Halo subtil sur toute la colonne */
@@ -1861,6 +1635,11 @@ import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
 import AppFooter from './AppFooter.vue'
+import TimelineView from './TimelineView.vue'
+import ParticipantsView from './ParticipantsView.vue'
+import EventsView from './EventsView.vue'
+import PlayerSelectorModal from './PlayerSelectorModal.vue'
+import ViewHeader from './ViewHeader.vue'
 
 // Déclarer les props
 const props = defineProps({
@@ -1989,9 +1768,47 @@ const seasonMeta = ref({})
 // État du scroll pour le header sticky
 const isScrolled = ref(false)
 
-// État de la vue (normal ou inversée)
-const currentViewMode = ref('normal')
+// Vues valides disponibles
+const VALID_VIEWS = ['events', 'participants', 'timeline']
+const DEFAULT_VIEW = 'events'
+
+// Fonction utilitaire pour valider et obtenir une vue valide
+const getValidView = (view) => {
+  if (VALID_VIEWS.includes(view)) {
+    return view
+  }
+  return DEFAULT_VIEW
+}
+
+// Supprimé - on utilise directement validCurrentView maintenant
 const showViewToggle = ref(false)
+
+// État de la vue (lignes, colonnes, chronologique)
+const currentView = ref((() => {
+  // Charger la préférence depuis le localStorage
+  const savedView = localStorage.getItem('hatcast-view-preference')
+  
+  // Valider et retourner une vue valide
+  return getValidView(savedView)
+})())
+
+// Computed pour s'assurer qu'on a toujours une vue valide
+const validCurrentView = computed(() => {
+  return getValidView(currentView.value)
+})
+// showViewDropdown supprimé - maintenant géré par ViewHeader
+
+// Variables pour la vue chronologique
+const selectedPlayerId = ref(null)
+const showPlayerModal = ref(false)
+const showPlayerDetailsModal = ref(false)
+const selectedPlayerForDetails = ref(null)
+
+// Computed pour le joueur sélectionné (pour la vue chronologique)
+const selectedPlayer = computed(() => {
+  if (!selectedPlayerId.value || !players.value) return null
+  return players.value.find(p => p.id === selectedPlayerId.value) || null
+})
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -2028,13 +1845,17 @@ const originalPlayers = ref([]) // Sauvegarde des joueurs originaux pour revenir
 const isAllPlayersView = ref(false) // Indique si on affiche tous les joueurs (via "Tous")
 
 // Fonction pour ouvrir le formulaire avec focus
-async function openNewPlayerForm() {
+async function openNewPlayerForm(prefilledName = '') {
   console.log('🔍 openNewPlayerForm appelé')
   newPlayerForm.value = true
   newPlayerGender.value = 'non-specified'
   newPlayerNameError.value = ''
   
-  // Pré-remplir avec le pseudo de l'utilisateur s'il existe
+  // Pré-remplir avec le nom fourni ou le pseudo de l'utilisateur s'il existe
+  if (prefilledName) {
+    newPlayerName.value = prefilledName
+    console.log('🔍 Nom pré-rempli depuis la recherche:', prefilledName)
+  } else {
   try {
     const { getUserPseudo } = await import('../services/userProfileService.js')
     const pseudo = await getUserPseudo()
@@ -2043,6 +1864,7 @@ async function openNewPlayerForm() {
   } catch (error) {
     console.warn('Erreur lors de la récupération du pseudo:', error)
     newPlayerName.value = ''
+    }
   }
   
   // Focus automatique sur le champ nom après que le DOM soit mis à jour
@@ -2172,9 +1994,9 @@ async function selectExistingPlayer(player) {
 
 function addNewPlayerFromShowMore() {
   // Ouvrir la modale de création avec le nom prérempli
-  newPlayerName.value = showMoreSearchQuery.value.trim()
+  const name = showMoreSearchQuery.value.trim()
   closeShowMoreModal()
-  openNewPlayerForm()
+  openNewPlayerForm(name)
 }
 
 // Fonction pour gérer l'affichage des disponibilités d'un joueur
@@ -2227,7 +2049,7 @@ async function handleShowAvailabilityGrid(playerId) {
     isFocusedView.value = true
     
     // Fermer la modale de joueur
-    closePlayerModal()
+    closePlayerDetailsModal()
     
     // Faire défiler vers le joueur mis en avant
     nextTick(() => {
@@ -2238,7 +2060,7 @@ async function handleShowAvailabilityGrid(playerId) {
     })
     
     logger.debug('✅ Affichage focalisé activé:', {
-      joueur: selectedPlayer.name,
+      joueur: selectedPlayer?.name || 'Tous',
       totalJoueurs: focusedPlayers.length,
       favoris: focusedPlayers.filter(p => preferredPlayerIdsSet.value.has(p.id)).length
     })
@@ -2384,8 +2206,6 @@ const availabilityCoachmark = ref({ position: null })
 const playerNameCoachmark = ref({ position: null })
 
 // Variables pour le modal joueur
-const showPlayerModal = ref(false)
-const selectedPlayer = ref(null)
 const playerModalRef = ref(null)
 
 // Variables pour la protection par PIN
@@ -2684,23 +2504,204 @@ async function openPreferences() {
 
 // Fonction d'initialisation du mode de vue
 function initializeViewMode() {
-  if (currentUser.value?.email) {
-    // Pour les utilisateurs connectés, commencer en mode inversé
-    currentViewMode.value = 'inverted'
-    showViewToggle.value = true
-    logger.debug('✅ Mode de vue initialisé: inversé (utilisateur connecté)')
+  // Toujours charger la préférence sauvegardée, ne pas l'écraser
+  const savedView = localStorage.getItem('hatcast-view-preference')
+  if (savedView && VALID_VIEWS.includes(savedView)) {
+    currentView.value = savedView
+    logger.debug('✅ Mode de vue restauré depuis localStorage:', savedView)
   } else {
-    // Utilisateur non connecté - toggle visible mais mode normal par défaut
-    currentViewMode.value = 'normal'
-    showViewToggle.value = true
-    logger.debug('✅ Toggle visible pour utilisateur non connecté, mode normal par défaut')
+    // Vue par défaut pour tous les utilisateurs (connectés ou non)
+    currentView.value = 'timeline'
+    logger.debug('✅ Mode de vue par défaut: timeline (tous les utilisateurs)')
+  }
+  
+  showViewToggle.value = true
+}
+
+
+// toggleViewDropdown supprimé - maintenant géré par ViewHeader
+
+
+// Fonction de sélection de vue
+function selectView(view) {
+  // Valider la vue avant de l'appliquer
+  const validView = getValidView(view)
+  
+  currentView.value = validView
+  
+  // Sauvegarder la préférence dans le localStorage
+  localStorage.setItem('hatcast-view-preference', validView)
+  
+  logger.debug(`Vue sélectionnée: ${validView}`)
+}
+
+// Fonction pour obtenir le label de la vue
+function getViewLabel(view) {
+  switch (view) {
+    case 'events': return 'Spectacles'
+    case 'participants': return 'Participants'
+    case 'timeline': return 'Chronologique'
+    default: return 'Lignes'
   }
 }
 
-// Fonction de basculement de vue
-function toggleViewMode() {
-  currentViewMode.value = currentViewMode.value === 'normal' ? 'inverted' : 'normal'
-  logger.debug(`Mode de vue changé vers: ${currentViewMode.value}`)
+// Fonctions pour la vue chronologique
+async function togglePlayerModal() {
+  if (!showPlayerModal.value) {
+    // S'assurer que allSeasonPlayers est chargé avant d'ouvrir le modal
+    if (allSeasonPlayers.value.length === 0 && seasonId.value) {
+      try {
+        allSeasonPlayers.value = await loadPlayers(seasonId.value)
+        logger.debug(`📊 Chargé ${allSeasonPlayers.value.length} joueurs pour le modal`)
+      } catch (error) {
+        logger.error('❌ Erreur lors du chargement des joueurs pour le modal:', error)
+        allSeasonPlayers.value = []
+      }
+    }
+  }
+  showPlayerModal.value = !showPlayerModal.value
+}
+
+async function handlePlayerSelected(player) {
+  // Pour la vue chronologique : changer le joueur sélectionné
+  if (validCurrentView.value === 'timeline') {
+    selectedPlayerId.value = player.id
+    showPlayerModal.value = false
+    logger.debug('🎯 Joueur sélectionné pour la vue chronologique:', player.name, player.id)
+  } else {
+    // Pour les vues lignes/colonnes : remplacer la liste des joueurs par le joueur sélectionné
+    selectedPlayerId.value = player.id
+    
+    // Désactiver le mode "tous les joueurs" et la vue focalisée
+    isAllPlayersView.value = false
+    isFocusedView.value = false
+    
+    // Remplacer complètement la liste des joueurs
+    players.value = [player]
+    
+    // Réinitialiser les joueurs ajoutés manuellement
+    manuallyAddedPlayers.value.clear()
+    manuallyAddedPlayers.value.add(player.id)
+    
+    // Charger les disponibilités pour ce joueur uniquement
+    try {
+      logger.debug('🔄 Chargement des disponibilités pour le joueur sélectionné:', player.name)
+      const playerAvailability = await loadAvailability([player], events.value, seasonId.value)
+      availability.value = playerAvailability
+      
+      showPlayerModal.value = false
+      logger.debug('🎯 Joueur sélectionné pour la vue grille:', player.name, player.id)
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités:', error)
+    }
+  }
+}
+
+async function handleAllPlayersSelected() {
+  // Pour la vue chronologique : afficher tous les joueurs
+  if (validCurrentView.value === 'timeline') {
+    selectedPlayerId.value = null
+    showPlayerModal.value = false
+    logger.debug('🎯 Affichage de tous les joueurs pour la vue chronologique')
+  } else {
+    // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille et réinitialiser selectedPlayerId
+    selectedPlayerId.value = null
+    await addAllPlayersToGrid()
+    logger.debug('🎯 Affichage de tous les joueurs pour la vue grille')
+  }
+}
+
+// Fonction pour ajouter un joueur à la grille (vues lignes/colonnes)
+async function addPlayerToGrid(player) {
+  // Vérifier si le joueur est déjà dans la grille
+  const isAlreadyInGrid = players.value.some(p => p.id === player.id)
+  
+  if (isAlreadyInGrid) {
+    logger.debug('Joueur déjà dans la grille:', player.name)
+    showPlayerModal.value = false
+    return
+  }
+  
+  // Ajouter le joueur à la grille
+  try {
+    logger.debug('🔄 Ajout du joueur à la grille:', player.name)
+    
+    // Ajouter le joueur à la liste
+    players.value.push(player)
+    
+    // Marquer comme joueur ajouté manuellement
+    manuallyAddedPlayers.value.add(player.id)
+    
+    // Charger les disponibilités pour ce joueur
+    const playerAvailability = await loadAvailability([player], events.value, seasonId.value)
+    
+    // Fusionner avec les disponibilités existantes
+    Object.keys(playerAvailability).forEach(key => {
+      if (!availability.value[key]) {
+        availability.value[key] = playerAvailability[key]
+      } else {
+        // Fusionner les disponibilités existantes avec les nouvelles
+        Object.assign(availability.value[key], playerAvailability[key])
+      }
+    })
+    
+    // Marquer le joueur comme chargé
+    playerLoadingStates.value.set(player.id, 'loaded')
+    
+    logger.debug('✅ Joueur ajouté à la grille avec ses disponibilités')
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'ajout du joueur:', error)
+  }
+  
+  showPlayerModal.value = false
+}
+
+// Fonction pour ajouter tous les joueurs à la grille (vues lignes/colonnes)
+async function addAllPlayersToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les joueurs de la saison...')
+    
+    // Sauvegarder les joueurs originaux si ce n'est pas déjà fait
+    if (!isAllPlayersView.value) {
+      originalPlayers.value = [...players.value]
+    }
+    
+    // Charger tous les joueurs
+    const allPlayers = await loadPlayers(seasonId.value)
+    players.value = allPlayers
+    
+    // Marquer tous les joueurs comme ajoutés manuellement
+    allPlayers.forEach(player => {
+      manuallyAddedPlayers.value.add(player.id)
+    })
+    
+    // Activer le mode "tous les joueurs"
+    isAllPlayersView.value = true
+    isFocusedView.value = false // Désactiver la vue focalisée si elle était active
+    
+    logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
+    logger.debug('🔍 isAllPlayersView activé:', isAllPlayersView.value)
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Mettre à jour les états de chargement
+    allPlayers.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les joueurs:', error)
+  }
+  
+  showPlayerModal.value = false
+}
+
+// Fonction pour vérifier si un joueur est déjà affiché dans la grille
+function isPlayerAlreadyDisplayed(playerId) {
+  return players.value.some(p => p.id === playerId)
 }
 function closePreferences() { 
   showPreferences.value = false 
@@ -3172,9 +3173,6 @@ const isFocusedEventVisible = computed(() => {
 const gridboardRef = ref(null)
 const showLeftHint = ref(false)
 const showRightHint = ref(false)
-  const headerScrollX = ref(0)
-  const headerBarRef = ref(null)
-  const headerEventsRef = ref(null)
   const gridResizeObserver = ref(null)
 
 function updateScrollHints() {
@@ -3190,8 +3188,12 @@ function forceGridLayoutSync() {
   try {
     // Déclencher un reflow et resync des hints/header
     updateScrollHints()
-    headerScrollX.value = gridboardRef.value?.scrollLeft || 0
   } catch {}
+}
+
+// Gérer le scroll de la grille
+function handleGridScroll(event) {
+  updateScrollHints()
 }
 
 // (déplacé plus bas après déclaration de players/events)
@@ -3941,6 +3943,17 @@ async function addNewPlayer() {
     const newPlayer = players.value.find(p => p.id === newId)
     if (newPlayer) {
       highlightPlayer(newId)
+      
+      // S'assurer qu'on est en vue grille pour afficher le nouveau joueur
+      if (validCurrentView.value === 'timeline') {
+        currentView.value = 'spectacles'
+      }
+      
+      // Sélectionner automatiquement le nouveau joueur pour l'afficher dans la vue
+      await handlePlayerSelected(newPlayer)
+      
+      // Fermer le formulaire de création
+      newPlayerForm.value = false
 
       // Avancer à l'étape 2 (disponibilités) et définir les cibles du guidage
       guidedPlayerId.value = newId
@@ -4291,6 +4304,10 @@ watch([() => players.value.length, () => events.value.length, seasonId], () => {
   evaluatePlayerTourStart()
 })
 
+// Initialiser selectedPlayerId avec le premier joueur favori quand les données sont chargées
+// (Initialisation déplacée dans onMounted pour éviter les erreurs de watcher)
+
+
 // Surveiller les changements d'état d'authentification pour recharger les joueurs protégés
 watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) => {
   if (newEmail !== oldEmail && seasonId.value) {
@@ -4321,6 +4338,26 @@ watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
 onMounted(async () => {
   // Détecter si on est sur mobile (simplifié)
   isMobile.value = window.innerWidth < 768
+  
+  // Ajouter un listener pour la redimensionnement
+  const handleResize = () => {
+    isMobile.value = window.innerWidth < 768
+  }
+  window.addEventListener('resize', handleResize)
+  
+  // Listener pour fermer les menus déroulants (géré par ViewHeader maintenant)
+  // const handleClickOutside = (event) => {
+  //   if (showViewDropdown.value && !event.target.closest('.view-dropdown-container')) {
+  //     showViewDropdown.value = false
+  //   }
+  // }
+  // document.addEventListener('click', handleClickOutside)
+  
+  // Nettoyer les listeners au démontage
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+    // document.removeEventListener('click', handleClickOutside) // Géré par ViewHeader maintenant
+  })
   
   // Démarrer la mesure de performance globale de la grille
   performanceService.start('grid_loading', {
@@ -4576,7 +4613,6 @@ onMounted(async () => {
     if (el) {
       el.addEventListener('scroll', (e) => {
         updateScrollHints()
-        headerScrollX.value = el.scrollLeft || 0
       }, { passive: true })
       window.addEventListener('resize', updateScrollHints)
       // Observer les changements de taille/contenu pour mettre à jour les chevrons
@@ -4812,9 +4848,104 @@ const sortedPlayers = computed(() => {
 
 // Computed pour les joueurs affichés
 const displayedPlayers = computed(() => {
+  // Si un joueur spécifique est sélectionné, ne montrer que ce joueur
+  if (selectedPlayerId.value) {
+    const selectedPlayer = sortedPlayers.value.find(p => p.id === selectedPlayerId.value)
+    return selectedPlayer ? [selectedPlayer] : []
+  }
+  // Sinon, montrer tous les joueurs (option "Tous")
   return sortedPlayers.value
 })
 
+// Computed pour le nombre de participants masqués (pour les vues lignes/colonnes)
+const hiddenPlayersCount = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return 0
+  }
+  
+  // Si on est en mode "tous les joueurs", aucun n'est masqué
+  if (isAllPlayersView.value) {
+    return 0
+  }
+  
+  // Calculer la différence entre tous les joueurs de la saison et ceux affichés
+  const totalSeasonPlayers = allSeasonPlayers.value.length
+  const displayedCount = players.value.length
+  
+  return Math.max(0, totalSeasonPlayers - displayedCount)
+})
+
+// Computed pour l'affichage sous "Afficher Plus" (nombre de joueurs masqués)
+const hiddenPlayersDisplayText = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return null
+  }
+  
+  const displayedCount = players.value.length
+  const totalCount = allSeasonPlayers.value.length
+  const hiddenCount = totalCount - displayedCount
+  
+  if (displayedCount === 0) return null
+  
+  // Si tous les participants sont affichés, afficher "Tous"
+  if (hiddenCount === 0) {
+    return 'Tous'
+  }
+  
+  // Si des participants sont masqués, afficher le nombre
+  if (hiddenCount > 0) {
+    return `${hiddenCount} masqué${hiddenCount > 1 ? 's' : ''}`
+  }
+  
+  return null
+})
+
+// Computed pour l'affichage dans le dropdown (règles spécifiques)
+const dropdownDisplayText = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return null
+  }
+  
+  const displayedCount = players.value.length
+  const totalCount = allSeasonPlayers.value.length
+  
+  if (displayedCount === 0) return null
+  
+  // Si tous les participants sont affichés, afficher "Tous"
+  if (displayedCount === totalCount) {
+    return 'Tous'
+  }
+  
+  // Si plus d'un participant affiché, afficher "X/Y Participants"
+  if (displayedCount > 1) {
+    return `${displayedCount}/${totalCount} Participants`
+  }
+  
+  // Si un seul participant, ne pas afficher de texte (le nom sera affiché)
+  return null
+})
+
+
+// Watcher pour initialiser selectedPlayerId avec le premier favori
+watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], ([favoritesSize, seasonPlayersLength]) => {
+  try {
+    // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
+    if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
+      const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
+      const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
+      
+      if (firstFavorite) {
+        selectedPlayerId.value = firstFavoriteId
+        logger.debug('🎯 Joueur par défaut initialisé avec le premier favori:', firstFavorite.name)
+      }
+    }
+  } catch (error) {
+    logger.error('❌ Erreur dans le watcher selectedPlayerId:', error)
+  }
+}, { immediate: true })
 
 // Watcher pour recharger les joueurs protégés de l'utilisateur quand l'authentification change
 watch(() => currentUser.value?.email, async (newEmail) => {
@@ -5164,11 +5295,11 @@ const displayedEvents = computed(() => {
 
 // Computed properties pour l'affichage inversé
 const displayRows = computed(() => {
-  return currentViewMode.value === 'inverted' ? displayedEvents.value : displayedPlayers.value
+  return validCurrentView.value === 'participants' ? displayedEvents.value : displayedPlayers.value
 })
 
 const displayColumns = computed(() => {
-  return currentViewMode.value === 'inverted' ? displayedPlayers.value : displayedEvents.value
+  return validCurrentView.value === 'participants' ? displayedPlayers.value : displayedEvents.value
 })
 
 // Computed properties pour le popin Afficher Plus
@@ -6318,7 +6449,7 @@ function cancelPlayerDelete() {
 
 async function handlePlayerDelete(playerId) {
   // Fermer la popup du joueur d'abord
-  closePlayerModal();
+  closePlayerDetailsModal();
   
   // Vérifier si le joueur est protégé
   const isProtected = await isPlayerProtected(playerId, seasonId.value)
@@ -7313,7 +7444,7 @@ async function toggleEventArchived() {
 
 // Fonctions pour le modal joueur
 async function showPlayerDetails(player) {
-  selectedPlayer.value = player;
+  selectedPlayerForDetails.value = player;
   
   // Recharger les données pour avoir les stats à jour
   try {
@@ -7326,12 +7457,13 @@ async function showPlayerDetails(player) {
   } catch (error) {
     console.warn('Impossible de recharger les données pour les stats:', error);
   }
-  
-  showPlayerModal.value = true;
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation
   const newUrl = `/season/${props.slug}?player=${player.id}&modal=player_details`
-  router.push(newUrl)
+  await router.push(newUrl)
+  
+  // 2. Ouvrir la modale après la navigation
+  showPlayerDetailsModal.value = true;
 
   // 2. Tracker l'état de navigation (pas l'interaction modale)
   try {
@@ -7365,25 +7497,17 @@ async function showPlayerDetails(player) {
 
 function closePlayerModal() {
   showPlayerModal.value = false;
-  selectedPlayer.value = null;
+  selectedPlayerId.value = null;
+}
+
+function closePlayerDetailsModal() {
+  showPlayerDetailsModal.value = false;
+  selectedPlayerForDetails.value = null;
   
   // Retourner à l'URL de base de la saison
   const baseUrl = `/season/${props.slug}`
   if (route.path !== baseUrl) {
     router.push(baseUrl)
-    
-    // Tracker le retour à la vue d'ensemble
-    try {
-      const userId = getCurrentUserId()
-      if (userId) {
-        // Navigation tracking supprimé - remplacé par seasonPreferences
-      }
-    } catch (error) {
-      // Log silencieux pour les erreurs de tracking non critiques
-      if (error.code !== 'permission-denied') {
-        logger.error('Erreur lors du tracking du retour à la vue d\'ensemble:', error)
-      }
-    }
   }
 }
 
@@ -7835,6 +7959,37 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
       }, 1000) // Délai pour laisser le temps de voir le message de succès
     }
   }
+}
+
+// Fonction pour obtenir les données de disponibilité d'un joueur pour un événement
+function getPlayerAvailability(playerId, eventId) {
+  const player = players.value.find(p => p.id === playerId)
+  if (!player) return null
+  
+  return getAvailabilityData(player.name, eventId)
+}
+
+// Fonction pour vérifier si l'utilisateur peut modifier les disponibilités
+const canEditAvailability = computed(() => {
+  return canEditEvents.value
+})
+
+// Fonction pour gérer les changements de disponibilité
+function handleAvailabilityChanged(data) {
+  const { playerId, eventId, availability: newAvailability } = data
+  const player = players.value.find(p => p.id === playerId)
+  if (!player) return
+  
+  // Mettre à jour les données de disponibilité
+  if (!availability.value[player.name]) {
+    availability.value[player.name] = {}
+  }
+  availability.value[player.name][eventId] = newAvailability
+}
+
+// Fonction pour basculer le statut de sélection d'un joueur
+function toggleSelectionStatus(playerName, eventId, status, seasonId) {
+  handlePlayerSelectionStatusToggle(playerName, eventId, status, seasonId)
 }
 
 function getPlayerAvailabilityForEvent(eventId) {
@@ -8683,6 +8838,12 @@ function openAvailabilityModal(data) {
   showAvailabilityModal.value = true
 }
 
+function openEventModal(event) {
+  // Ouvrir la modale d'événement
+  selectedEvent.value = event
+  showEventDetailsModal.value = true
+}
+
 async function handleAvailabilitySave(availabilityData) {
   try {
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
@@ -8834,3 +8995,4 @@ async function handleAvailabilityRequestEdit() {
 
 // end of script setup
 </script>
+

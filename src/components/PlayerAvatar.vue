@@ -71,10 +71,12 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 import logger from '../services/logger.js'
 
+const emit = defineEmits(['avatar-loaded', 'avatar-error'])
+
 const props = defineProps({
   playerId: {
     type: String,
-    required: true
+    default: ''
   },
   seasonId: {
     type: String,
@@ -220,20 +222,15 @@ async function fetchPlayerAssociation() {
         userPhotoURL.value = url
       }
       
-      logger.debug('PlayerAvatar: Found association', {
-        playerId: props.playerId,
-        seasonId: props.seasonId,
-        email: result.email,
-        hasPhotoURL: !!result.photoURL
-      })
+      // Association trouvée (pas de log pour éviter la pollution)
+      emit('avatar-loaded', { playerId: props.playerId, result })
     } else {
-      logger.debug('PlayerAvatar: No association found', {
-        playerId: props.playerId,
-        seasonId: props.seasonId
-      })
+      // Pas de log pour les associations non trouvées (cas normal)
+      emit('avatar-loaded', { playerId: props.playerId, result })
     }
   } catch (error) {
     logger.warn('PlayerAvatar: Error fetching association', error)
+    emit('avatar-error', { playerId: props.playerId, error })
   }
 }
 
@@ -241,19 +238,13 @@ async function fetchPlayerAssociation() {
 function onImageLoad() {
   imageLoaded.value = true
   imageError.value = false
-  logger.debug('PlayerAvatar: Avatar image loaded successfully', { 
-    playerId: props.playerId,
-    url: userPhotoURL.value 
-  })
+  // Image chargée avec succès (pas de log pour éviter la pollution)
 }
 
 function onImageError() {
   imageLoaded.value = false
   imageError.value = true
-  logger.debug('PlayerAvatar: Avatar image failed to load, using fallback', { 
-    playerId: props.playerId,
-    url: userPhotoURL.value 
-  })
+  // Image échouée, utilisation du fallback (pas de log pour éviter la pollution)
 }
 
 // Reset states when avatar URL changes
@@ -298,10 +289,7 @@ onMounted(() => {
     const { playerId: updatedPlayerId, seasonId: updatedSeasonId } = event.detail
     if (updatedPlayerId === props.playerId && 
         (updatedSeasonId === props.seasonId || (!updatedSeasonId && !props.seasonId))) {
-      logger.debug('PlayerAvatar: Cache cleared, refetching avatar', { 
-        playerId: props.playerId, 
-        seasonId: props.seasonId 
-      })
+      // Cache vidé, rechargement de l'avatar (pas de log pour éviter la pollution)
       
       // Reset state and refetch
       userPhotoURL.value = null

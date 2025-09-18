@@ -23,7 +23,7 @@ Les rôles sont tirés dans l'ordre de priorité suivant :
 1. **Arbitre** (Priorité 1) - Critique pour les matchs
 2. **DJ** (Priorité 2) - Critique pour le spectacle
 3. **MC** (Priorité 3) - Critique pour le spectacle
-4. **Improvisateurs** (Priorité 4) - Essentiels
+4. **Joueurs** (Priorité 4) - Essentiels
 5. **Assistants arbitres** (Priorité 5)
 6. **Coach** (Priorité 6)
 7. **Régisseur** (Priorité 7) - Coordination

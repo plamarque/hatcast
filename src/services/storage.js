@@ -2,6 +2,7 @@
 import logger from './logger.js'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 import firestoreService from './firestoreService.js'
+import { LABELS } from '../constants/labels.js'
 
 // Fonctions utilitaires pour la migration vers les IDs de joueurs
 async function getPlayerIdByName(playerName, seasonId) {
@@ -60,7 +61,7 @@ export const ROLE_EMOJIS = {
 }
 
 export const ROLE_LABELS = {
-  [ROLES.PLAYER]: 'Improvisateur.trices',
+  [ROLES.PLAYER]: LABELS.ROLES.PLAYER.PLURAL_INCLUSIVE,
   [ROLES.VOLUNTEER]: 'Bénévoles',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
@@ -73,7 +74,7 @@ export const ROLE_LABELS = {
 
 // Labels au singulier pour les modales de disponibilité (individuelles)
 export const ROLE_LABELS_SINGULAR = {
-  [ROLES.PLAYER]: 'Improvisateur.trice',
+  [ROLES.PLAYER]: LABELS.ROLES.PLAYER.SINGULAR_INCLUSIVE,
   [ROLES.VOLUNTEER]: 'Bénévole',
   [ROLES.MC]: 'MC',
   [ROLES.DJ]: 'DJ',
@@ -102,7 +103,7 @@ export const ROLE_PRIORITY_ORDER = [
   ROLES.REFEREE,         // Priorité 1 : Arbitre - critique pour les matchs
   ROLES.DJ,              // Priorité 2 : DJ - critique pour le spectacle
   ROLES.MC,              // Priorité 3 : MC - critique pour le spectacle
-  ROLES.PLAYER,          // Priorité 4 : Improvisateurs - essentiels
+  ROLES.PLAYER,          // Priorité 4 : Joueurs - essentiels
   ROLES.ASSISTANT_REFEREE, // Priorité 5 : Assistants arbitres
   ROLES.COACH,           // Priorité 6 : Coach
   ROLES.STAGE_MANAGER,   // Priorité 7 : Régisseur pour coordination
@@ -113,7 +114,7 @@ export const ROLE_PRIORITY_ORDER = [
 // Labels par genre (nouveau système inclusif)
 export const ROLE_LABELS_BY_GENDER = {
   male: {
-    [ROLES.PLAYER]: 'Improvisateur',
+    [ROLES.PLAYER]: LABELS.ROLES.PLAYER.SINGULAR,
     [ROLES.VOLUNTEER]: 'Bénévole',
     [ROLES.MC]: 'MC',
     [ROLES.DJ]: 'DJ',
@@ -124,7 +125,7 @@ export const ROLE_LABELS_BY_GENDER = {
     [ROLES.STAGE_MANAGER]: 'Régisseur'
   },
   female: {
-    [ROLES.PLAYER]: 'Improvisatrice',
+    [ROLES.PLAYER]: LABELS.ROLES.PLAYER.SINGULAR_FEMININE,
     [ROLES.VOLUNTEER]: 'Bénévole',
     [ROLES.MC]: 'MC',
     [ROLES.DJ]: 'DJ',
@@ -135,7 +136,7 @@ export const ROLE_LABELS_BY_GENDER = {
     [ROLES.STAGE_MANAGER]: 'Régisseuse'
   },
   'non-specified': {
-    [ROLES.PLAYER]: 'Improvisateur.trice',
+    [ROLES.PLAYER]: LABELS.ROLES.PLAYER.SINGULAR_INCLUSIVE,
     [ROLES.VOLUNTEER]: 'Bénévole',
     [ROLES.MC]: 'MC',
     [ROLES.DJ]: 'DJ',
@@ -149,7 +150,7 @@ export const ROLE_LABELS_BY_GENDER = {
 
 export const ROLE_LABELS_PLURAL_BY_GENDER = {
   male: {
-    [ROLES.PLAYER]: 'Improvisateurs',
+    [ROLES.PLAYER]: LABELS.ROLES.PLAYER.PLURAL,
     [ROLES.VOLUNTEER]: 'Bénévoles',
     [ROLES.MC]: 'MC',
     [ROLES.DJ]: 'DJ',
@@ -160,7 +161,7 @@ export const ROLE_LABELS_PLURAL_BY_GENDER = {
     [ROLES.STAGE_MANAGER]: 'Régisseurs'
   },
   female: {
-    [ROLES.PLAYER]: 'Improvisatrices',
+    [ROLES.PLAYER]: LABELS.ROLES.PLAYER.PLURAL_FEMININE,
     [ROLES.VOLUNTEER]: 'Bénévoles',
     [ROLES.MC]: 'MC',
     [ROLES.DJ]: 'DJ',
@@ -171,7 +172,7 @@ export const ROLE_LABELS_PLURAL_BY_GENDER = {
     [ROLES.STAGE_MANAGER]: 'Régisseuses'
   },
   'non-specified': {
-    [ROLES.PLAYER]: 'Improvisateur.trices',
+    [ROLES.PLAYER]: LABELS.ROLES.PLAYER.PLURAL_INCLUSIVE,
     [ROLES.VOLUNTEER]: 'Bénévoles',
     [ROLES.MC]: 'MC',
     [ROLES.DJ]: 'DJ',

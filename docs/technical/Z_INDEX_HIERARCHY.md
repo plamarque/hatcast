@@ -20,6 +20,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 ├─────────────────────────────────────────────────────────────┤
 │ z-[1420] ForgotPasswordModal (enfant)                      │
 │ z-[1410] AvailabilityForgotPasswordModal                   │
+│ z-[1500] PlayerSelectorModal                                   │
 │ z-[1400] HowItWorksModal, ChangelogModal, PWAInstallModal, etc. │
 ├─────────────────────────────────────────────────────────────┤
 │                    NIVEAU 1300+ (Sécurité)                  │
@@ -67,12 +68,28 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 
 ## Hiérarchie complète
 
+### 🎯 Niveau 1500+ : Sélecteurs de joueurs
+
+| Z-Index | Composant | Description | Fichier |
+|---------|-----------|-------------|---------|
+| `z-[1500]` | PlayerSelectorModal | Sélection de joueur dans vue chronologique | `src/components/PlayerSelectorModal.vue` |
+
 ### 🎯 Niveau 1000+ : Éléments au-dessus de la grille
 
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[1100]` | CreatorOnboardingModal | Onboarding créateur | `src/components/CreatorOnboardingModal.vue` |
 | `z-[1110]` | PlayerOnboardingModal | Onboarding joueur (désactivé) | `src/components/PlayerOnboardingModal.vue` |
+
+### 🎯 Niveau 100-200 : Headers et navigation
+
+| Z-Index | Composant | Description | Fichier |
+|---------|-----------|-------------|---------|
+| `z-[110]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
+| `z-[105]` | GridTableHeader | En-tête sticky des tableaux (spectacles/participants) | `src/components/BaseGridView.vue` |
+| `z-[101]` | GridLeftColumn | Colonne de gauche de la grille (joueurs) | `src/components/GridBoard.vue` |
+| `z-[100]` | GridHeader | Header principal de la grille | `src/components/GridBoard.vue` |
+| `z-[60]` | GridEventsHeader | Header des événements dans la grille | `src/components/GridBoard.vue` |
 
 ### 🎪 Niveau 1000-1100 : Modales principales
 
@@ -91,6 +108,8 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[1200]` | FiltersDropdown | Dropdown des filtres (inline) | `src/components/GridBoard.vue` |
+| `z-[110]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
+| `z-[1210]` | ViewHeaderDropdown | Dropdown de sélection de vue (Lignes/Colonnes/Chronologique) | `src/components/ViewHeader.vue` |
 | `z-[1220]` | PasswordVerificationModal | Vérification mot de passe | `src/components/PasswordVerificationModal.vue` |
 | `z-[1230]` | PinModal | Saisie du PIN | `src/components/PinModal.vue` |
 | `z-[1250]` | AccountDropdown | Menu utilisateur (header) | `src/components/AccountDropdown.vue` |
@@ -178,6 +197,14 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 - **Dropdown** : `z-[9997]` (PlayerActionDropdowns - supprimés)
 - **Justification** : Le dropdown doit apparaître au-dessus de sa modale parent
 
+### Sélecteurs de joueurs
+- **Z-index** : `z-[1500]`
+- **Justification** : Doivent apparaître au-dessus de l'en-tête de saison et des autres modales
+
+### En-têtes de tableaux sticky
+- **Z-index** : `z-[105]`
+- **Justification** : Doivent être sticky sous le ViewHeader (z-[110]) mais au-dessus du header de saison (z-[100])
+
 ### Toasts de notification
 - **Z-index** : `z-[9999]`
 - **Justification** : Doivent toujours être visibles, même au-dessus des modales
@@ -200,6 +227,7 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 
 ## Historique des changements
 
+- **2024-01-XX** : Ajout de PlayerSelectorModal (z-[1500]) pour la vue chronologique
 - **2024-01-XX** : Création de la hiérarchie statique après abandon du ModalManager dynamique
 - **2024-01-XX** : Correction des imports Firebase Auth dans playerProtection.js
 - **2024-01-XX** : Suppression des dropdowns 3-dots problématiques du PlayerModal

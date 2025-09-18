@@ -42,12 +42,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       // Mettre en cache le résultat
       avatarCache.set(cacheKey, result)
       
-      logger.debug('PlayerAvatar service: Retrieved avatar from playerProtection', {
-        playerId,
-        seasonId,
-        hasAvatar: !!protectionData.photoURL,
-        hasEmail: !!protectionData.email
-      })
+      // Log supprimé pour éviter la pollution de la console
       
       return result
     }
@@ -69,12 +64,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       // Mettre en cache le résultat
       avatarCache.set(cacheKey, result)
       
-      logger.debug('PlayerAvatar service: Retrieved avatar from association', {
-        playerId,
-        seasonId,
-        email: association.email,
-        hasAvatar: !!photoURL
-      })
+
       
       return result
     }
@@ -114,16 +104,15 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
     const result = { photoURL: null, email: null, isAssociated: false, source: 'none' }
     avatarCache.set(cacheKey, result)
     
-    logger.debug('PlayerAvatar service: No avatar found', {
-      playerId,
-      seasonId,
-      hasAssociation: !!association
-    })
+    // Pas de log pour les avatars non trouvés (cas normal)
     
     return result
     
   } catch (error) {
-    logger.warn('PlayerAvatar service: Error getting player avatar', error)
+    // Ne pas logger les erreurs 'unavailable' qui sont normales
+    if (error.code !== 'unavailable') {
+      logger.warn('PlayerAvatar service: Error getting player avatar', error)
+    }
     const result = { photoURL: null, email: null, isAssociated: false, source: 'error' }
     avatarCache.set(cacheKey, result)
     return result
@@ -191,7 +180,10 @@ async function getPlayerAssociation(playerId, seasonId) {
     return null
     
   } catch (error) {
-    logger.warn('PlayerAvatar service: Error getting association', error)
+    // Ne pas logger les erreurs 'unavailable' qui sont normales
+    if (error.code !== 'unavailable') {
+      logger.warn('PlayerAvatar service: Error getting association', error)
+    }
     associationCache.set(cacheKey, null)
     return null
   }
@@ -240,11 +232,14 @@ async function getUserPhotoURL(email) {
       }
     }
     
-    logger.debug('PlayerAvatar service: No user avatar found', { email })
+    // Pas de log pour les avatars utilisateur non trouvés (cas normal)
     return null
     
   } catch (error) {
-    logger.warn('PlayerAvatar service: Error getting user photoURL', error)
+    // Ne pas logger les erreurs 'unavailable' qui sont normales
+    if (error.code !== 'unavailable') {
+      logger.warn('PlayerAvatar service: Error getting user photoURL', error)
+    }
     return null
   }
 }

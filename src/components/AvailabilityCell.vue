@@ -1,9 +1,9 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 rounded font-medium text-white relative w-full h-full m-0.5"
+    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1"
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
-      compact ? 'min-h-0 p-1 md:p-2 text-xs' : 'text-sm',
+      compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
       // Couleurs de fond appliquées directement à la cellule - plus lumineuses et attrayantes
       isSelected && isAvailable === true && playerSelectionStatus === 'confirmed' ? 'bg-gradient-to-br from-purple-500/60 to-pink-500/60' : '',
       isSelected && isAvailable === true && playerSelectionStatus === 'pending' ? 'bg-gradient-to-br from-orange-500/60 to-yellow-500/60' : '',
@@ -15,7 +15,7 @@
       isLoading ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30' : '',
       isError ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30' : ''
     ]"
-    @click="toggleAvailability"
+    @click.stop="toggleAvailability"
     @mouseenter="hover = true"
     @mouseleave="hover = false"
   >
@@ -51,7 +51,7 @@
           Pas dispo
         </span>
         <span v-else class="text-center text-gray-400">
-          Je sais pas
+          Non renseigné
         </span>
       </template>
       
@@ -122,7 +122,7 @@
         </div>
       </template>
       
-      <!-- Icône commentaire pour les "Je sais pas" avec commentaire -->
+      <!-- Icône commentaire pour les "Non renseigné" avec commentaire -->
       <template v-if="(isAvailable === null || isAvailable === undefined) && hasComment">
         <div class="flex items-center justify-center mt-1">
           <span 
