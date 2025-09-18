@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full" ref="gridboardRef" @scroll="handleScroll">
+  <div class="w-full overflow-x-auto" ref="gridboardRef" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0">
       <!-- En-tête de la table -->
       <thead class="bg-gray-800 sticky top-0 z-[110]">
