@@ -1,9 +1,9 @@
 <template>
-    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-screen flex items-center justify-between"
+    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-full flex items-center justify-between"
          :class="{ 'sticky top-0 left-0 z-[120] shadow-lg': isSticky }"
          :style="headerStyle + '; ' + containerStyle">
           <!-- Sélecteur de joueur (à gauche) -->
-          <div v-if="showPlayerSelector" class="relative flex-shrink-0">
+          <div v-if="showPlayerSelector" class="relative flex-shrink-0 ml-4 md:ml-6">
             <button
               @click="togglePlayerModal"
               class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
@@ -41,7 +41,7 @@
           </div>
 
           <!-- Tab switcher à droite -->
-          <div class="flex bg-gray-800/50 rounded-lg p-1">
+          <div class="flex bg-gray-800/50 rounded-lg p-1 mr-4 md:mr-6">
             <button
               @click="selectView('events')"
               class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
