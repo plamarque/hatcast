@@ -320,182 +320,59 @@ export default {
     }
     
     const getEventStatus = (eventId) => {
-      // Si un joueur spécifique est sélectionné, utiliser les données de disponibilité
-      if (props.selectedPlayerId && props.availability && eventId) {
-        try {
-          const eventAvailability = props.availability[eventId]
-          if (!eventAvailability) return 'Non renseigné'
-          
-          const totalPlayers = Object.keys(eventAvailability).length
-          if (totalPlayers === 0) return 'Non renseigné'
-          
-          const availableCount = Object.values(eventAvailability).filter(status => 
-            status === 'available' || status === 'confirmed'
-          ).length
-          
-          if (availableCount === 0) return 'Aucune disponibilité'
-          if (availableCount === totalPlayers) return 'Tous disponibles'
-          return `${availableCount} dispo`
-        } catch (error) {
-          console.warn('Erreur lors du calcul du statut:', error)
-          return 'Non renseigné'
-        }
-      }
-      
-      // Si "Tous" est sélectionné, afficher le statut général de l'événement/sélection
       if (props.events && eventId) {
         const event = props.events.find(e => e.id === eventId)
-        if (!event) return 'Non renseigné'
+        if (!event) return 'ready'
         
-        // Utiliser les fonctions de statut de sélection si disponibles
-        if (props.getSelectionPlayers && props.getTotalRequiredCount && props.countAvailablePlayers) {
-          const selectedPlayers = props.getSelectionPlayers(eventId)
-          const requiredCount = props.getTotalRequiredCount(event)
-          const availableCount = props.countAvailablePlayers(eventId)
-          const isConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer ? props.isSelectionConfirmedByOrganizer(eventId) : false
-          const isConfirmedByAllPlayers = props.isSelectionConfirmed ? props.isSelectionConfirmed(eventId) : false
-          
-          // Cas 0: Aucune composition → afficher "ready"
-          if (selectedPlayers.length === 0) {
-            return 'ready'
-          }
-          
-          // Priorité : utiliser le statut calculé stocké en base
-          if (props.casts && props.casts[eventId]?.status && props.casts[eventId]?.statusDetails) {
-            const status = props.casts[eventId].status
-            switch (status) {
-              case 'ready': return 'ready'
-              case 'complete': return 'complete'
-              case 'confirmed': return 'confirmed'
-              case 'pending_confirmation': return 'pending_confirmation'
-              case 'incomplete': return 'incomplete'
-              case 'insufficient': return 'insufficient'
-              default: return 'ready'
-            }
-          }
-
-          // Cas 1: Composition incomplète
-          if (selectedPlayers.length > 0) {
-            const hasUnavailablePlayers = selectedPlayers.some(playerName => !props.isAvailable(playerName, eventId))
-            const hasInsufficientPlayers = availableCount < requiredCount
-            
-            if (hasUnavailablePlayers || hasInsufficientPlayers) {
-              return 'incomplete'
-            }
-          }
-          
-          // Cas 2: Pas assez de joueurs
-          if (availableCount < requiredCount) {
-            return 'insufficient'
-          }
-          
-          // Cas 3: Composition confirmée par l'organisateur ET par tous les joueurs
-          if (isConfirmedByAllPlayers) {
-            return 'confirmed'
-          }
-          
-          // Cas 4: Composition confirmée par l'organisateur mais pas encore par tous les joueurs
-          if (isConfirmedByOrganizer) {
-            return 'pending_confirmation'
-          }
-          
-          // Cas 5: Composition complète mais non confirmée par l'organisateur
-          return 'complete'
-        }
-        
-        // Fallback si les fonctions ne sont pas disponibles
-        return 'ready'
+        return getEventStatusWithSelection(event, {
+          getSelectionPlayers: props.getSelectionPlayers,
+          getTotalRequiredCount: props.getTotalRequiredCount,
+          countAvailablePlayers: props.countAvailablePlayers,
+          isSelectionConfirmed: props.isSelectionConfirmed,
+          isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
+          casts: props.casts,
+          selectedPlayerId: props.selectedPlayerId,
+          availability: props.availability
+        })
       }
       
       return 'ready'
     }
     
     const getStatusColor = (eventId) => {
-      // Si un joueur spécifique est sélectionné, utiliser les données de disponibilité
-      if (props.selectedPlayerId && props.availability && eventId) {
-        try {
-          const eventAvailability = props.availability[eventId]
-          if (!eventAvailability) return 'bg-gray-500'
-          
-          const totalPlayers = Object.keys(eventAvailability).length
-          if (totalPlayers === 0) return 'bg-gray-500'
-          
-          const availableCount = Object.values(eventAvailability).filter(status => 
-            status === 'available' || status === 'confirmed'
-          ).length
-          
-          if (availableCount === 0) return 'bg-red-500'
-          if (availableCount === totalPlayers) return 'bg-green-500'
-          return 'bg-purple-500'
-        } catch (error) {
-          console.warn('Erreur lors du calcul de la couleur:', error)
-          return 'bg-gray-500'
-        }
-      }
-      
-      // Si "Tous" est sélectionné, utiliser les couleurs de statut de sélection
       if (props.events && eventId) {
         const event = props.events.find(e => e.id === eventId)
         if (!event) return 'bg-gray-500'
         
-        // Utiliser les fonctions de statut de sélection si disponibles
-        if (props.getSelectionPlayers && props.getTotalRequiredCount && props.countAvailablePlayers) {
-          const selectedPlayers = props.getSelectionPlayers(eventId)
-          const requiredCount = props.getTotalRequiredCount(event)
-          const availableCount = props.countAvailablePlayers(eventId)
-          const isConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer ? props.isSelectionConfirmedByOrganizer(eventId) : false
-          const isConfirmedByAllPlayers = props.isSelectionConfirmed ? props.isSelectionConfirmed(eventId) : false
-          
-          // Cas 0: Aucune composition → vert (Prêt)
-          if (selectedPlayers.length === 0) {
-            return 'bg-green-500'
-          }
-          
-          // Priorité : utiliser le statut calculé stocké en base
-          if (props.casts && props.casts[eventId]?.status && props.casts[eventId]?.statusDetails) {
-            const status = props.casts[eventId].status
-            switch (status) {
-              case 'ready': return 'bg-green-500'
-              case 'complete': return 'bg-blue-500'
-              case 'confirmed': return 'bg-green-600'
-              case 'pending_confirmation': return 'bg-yellow-500'
-              case 'incomplete': return 'bg-orange-500'
-              case 'insufficient': return 'bg-red-500'
-              default: return 'bg-green-500'
-            }
-          }
-
-          // Cas 1: Composition incomplète
-          if (selectedPlayers.length > 0) {
-            const hasUnavailablePlayers = selectedPlayers.some(playerName => !props.isAvailable(playerName, eventId))
-            const hasInsufficientPlayers = availableCount < requiredCount
-            
-            if (hasUnavailablePlayers || hasInsufficientPlayers) {
-              return 'bg-orange-500'
-            }
-          }
-          
-          // Cas 2: Pas assez de joueurs
-          if (availableCount < requiredCount) {
-            return 'bg-red-500'
-          }
-          
-          // Cas 3: Composition confirmée par l'organisateur ET par tous les joueurs
-          if (isConfirmedByAllPlayers) {
-            return 'bg-green-600'
-          }
-          
-          // Cas 4: Composition confirmée par l'organisateur mais pas encore par tous les joueurs
-          if (isConfirmedByOrganizer) {
-            return 'bg-yellow-500'
-          }
-          
-          // Cas 5: Composition complète mais non confirmée par l'organisateur
-          return 'bg-blue-500'
-        }
+        const status = getEventStatusWithSelection(event, {
+          getSelectionPlayers: props.getSelectionPlayers,
+          getTotalRequiredCount: props.getTotalRequiredCount,
+          countAvailablePlayers: props.countAvailablePlayers,
+          isSelectionConfirmed: props.isSelectionConfirmed,
+          isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
+          casts: props.casts,
+          selectedPlayerId: props.selectedPlayerId,
+          availability: props.availability
+        })
         
-        // Fallback si les fonctions ne sont pas disponibles
-        return 'bg-green-500'
+        // Convertir le statut en couleur pour la barre verticale
+        switch (status) {
+          case 'ready': return 'bg-cyan-500'
+          case 'complete': return 'bg-blue-500'
+          case 'confirmed': return 'bg-green-500'
+          case 'pending_confirmation': return 'bg-yellow-500'
+          case 'incomplete': return 'bg-orange-500'
+          case 'insufficient': return 'bg-red-500'
+          case 'Non renseigné': return 'bg-gray-500'
+          case 'Aucune disponibilité': return 'bg-red-500'
+          case 'Tous disponibles': return 'bg-green-500'
+          default: 
+            // Si c'est un format "X dispo", utiliser la couleur verte
+            if (typeof status === 'string' && status.includes('dispo')) {
+              return 'bg-green-500'
+            }
+            return 'bg-gray-500'
+        }
       }
       
       return 'bg-gray-500'
