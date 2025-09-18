@@ -69,13 +69,13 @@
             </div>
             
             <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0">
+            <div class="event-title flex-1 min-w-0 max-w-md">
               <div class="flex items-center gap-3">
                 <!-- Icône du type d'événement -->
                 <div class="event-icon flex-shrink-0 text-xl">
                   {{ getEventTypeIcon(event) }}
                 </div>
-                <div class="text-white font-medium text-base truncate">
+                <div class="text-white font-medium text-base line-clamp-2 leading-tight">
                   {{ event.title || 'Sans titre' }}
                 </div>
               </div>
@@ -487,6 +487,14 @@ export default {
 
 .event-title {
   min-width: 0;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .date-section {
