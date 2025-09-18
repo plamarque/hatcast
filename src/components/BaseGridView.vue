@@ -6,7 +6,7 @@
         <tr>
           <!-- Colonne de gauche -->
           <th 
-            class="col-left px-4 py-3 text-left sticky left-0 z-[111]"
+            class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[111]"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
