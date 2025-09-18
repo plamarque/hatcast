@@ -30,7 +30,7 @@
           <!-- Emoji et titre empilés -->
           <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
             <span class="text-lg">{{ getEventIcon(item) }}</span>
-            <span class="text-white font-semibold text-sm text-center leading-tight line-clamp-3 overflow-hidden" 
+            <span class="text-white font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
                   :title="item.title">
               {{ item.title }}
             </span>
