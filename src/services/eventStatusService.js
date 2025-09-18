@@ -29,27 +29,9 @@ export function getEventStatusWithSelection(event, options = {}) {
     availability
   } = options
 
-  // Si un joueur spécifique est sélectionné (vue timeline), utiliser les données de disponibilité
-  if (selectedPlayerId && availability && event.id) {
-    try {
-      const eventAvailability = availability[event.id]
-      if (!eventAvailability) return 'Non renseigné'
-      
-      const totalPlayers = Object.keys(eventAvailability).length
-      if (totalPlayers === 0) return 'Non renseigné'
-      
-      const availableCount = Object.values(eventAvailability).filter(status => 
-        status === 'available' || status === 'confirmed'
-      ).length
-      
-      if (availableCount === 0) return 'Aucune disponibilité'
-      if (availableCount === totalPlayers) return 'Tous disponibles'
-      return `${availableCount} dispo`
-    } catch (error) {
-      console.warn('Erreur lors du calcul du statut:', error)
-      return 'Non renseigné'
-    }
-  }
+  // Note: Pour la vue timeline, nous voulons toujours afficher le statut de sélection de l'événement,
+  // pas le statut de disponibilité du joueur sélectionné. Le statut de disponibilité du joueur
+  // est affiché dans AvailabilityCell.
   
   // Si "Tous" est sélectionné, afficher le statut général de l'événement/sélection
   if (event && getSelectionPlayers && getTotalRequiredCount && countAvailablePlayers) {
