@@ -74,9 +74,10 @@
             </div>
             <div class="flex items-center justify-between">
               <span class="text-gray-400 text-xs">{{ formatEventDate(event.date) }}</span>
-              <span :class="getStatusColor(getEventStatus(event))" class="text-xs px-2 py-1 rounded-full font-normal">
-                {{ getStatusLabel(getEventStatus(event)) }}
-              </span>
+              <StatusBadge 
+                :event-id="event.id" 
+                :event-status="getEventStatus(event)" 
+              />
             </div>
           </div>
         </td>
@@ -130,9 +131,10 @@ import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
+import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
-import { getEventStatusWithSelection, getStatusLabel, getStatusColor } from '../services/eventStatusService.js'
+import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 
 // Props
 const props = defineProps({

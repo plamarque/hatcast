@@ -81,17 +81,26 @@
             
             <!-- Titre de l'événement -->
             <div class="event-title flex-1 min-w-0">
-              <div class="text-white font-medium text-base truncate">
-                {{ event.title || 'Sans titre' }}
+              <div class="flex items-center gap-3">
+                <!-- Icône du type d'événement -->
+                <div class="event-icon flex-shrink-0 text-xl">
+                  {{ getEventTypeIcon(event) }}
+                </div>
+                <div class="text-white font-medium text-base truncate">
+                  {{ event.title || 'Sans titre' }}
+                </div>
               </div>
               <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
                 📍 {{ event.location }}
               </div>
             </div>
             
-            <!-- Icône du type d'événement -->
-            <div class="event-icon flex-shrink-0 text-xl">
-              {{ getEventTypeIcon(event) }}
+            <!-- Badge de statut de l'événement (aligné à droite) -->
+            <div class="event-status flex-shrink-0">
+              <StatusBadge 
+                :event-id="event.id" 
+                :event-status="getEventStatus(event.id)" 
+              />
             </div>
           </div>
         </div>
@@ -111,12 +120,17 @@
 <script>
 import { computed, ref } from 'vue'
 import { EVENT_TYPE_ICONS } from '../services/storage.js'
+import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import AvailabilityCell from './AvailabilityCell.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
+import StatusBadge from './StatusBadge.vue'
 
 export default {
   name: 'TimelineView',
   components: {
-    AvailabilityCell
+    AvailabilityCell,
+    PlayerAvatar,
+    StatusBadge
   },
   props: {
     events: {
@@ -293,6 +307,18 @@ export default {
       return EVENT_TYPE_ICONS[event.templateType] || '❓'
     }
     
+    const getPlayerName = (playerId) => {
+      if (!props.players) return 'Joueur inconnu'
+      const player = props.players.find(p => p.id === playerId)
+      return player?.name || 'Joueur inconnu'
+    }
+    
+    const getPlayerGender = (playerId) => {
+      if (!props.players) return 'non-specified'
+      const player = props.players.find(p => p.id === playerId)
+      return player?.gender || 'non-specified'
+    }
+    
     const getEventStatus = (eventId) => {
       // Si un joueur spécifique est sélectionné, utiliser les données de disponibilité
       if (props.selectedPlayerId && props.availability && eventId) {
@@ -329,22 +355,22 @@ export default {
           const isConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer ? props.isSelectionConfirmedByOrganizer(eventId) : false
           const isConfirmedByAllPlayers = props.isSelectionConfirmed ? props.isSelectionConfirmed(eventId) : false
           
-          // Cas 0: Aucune composition → afficher "Prêt"
+          // Cas 0: Aucune composition → afficher "ready"
           if (selectedPlayers.length === 0) {
-            return 'Prêt'
+            return 'ready'
           }
           
           // Priorité : utiliser le statut calculé stocké en base
           if (props.casts && props.casts[eventId]?.status && props.casts[eventId]?.statusDetails) {
             const status = props.casts[eventId].status
             switch (status) {
-              case 'ready': return 'Prêt'
-              case 'complete': return 'Complet'
-              case 'confirmed': return 'Confirmé'
-              case 'pending_confirmation': return 'À confirmer'
-              case 'incomplete': return 'Incomplet'
-              case 'insufficient': return 'Insuffisant'
-              default: return 'Prêt'
+              case 'ready': return 'ready'
+              case 'complete': return 'complete'
+              case 'confirmed': return 'confirmed'
+              case 'pending_confirmation': return 'pending_confirmation'
+              case 'incomplete': return 'incomplete'
+              case 'insufficient': return 'insufficient'
+              default: return 'ready'
             }
           }
 
@@ -354,34 +380,34 @@ export default {
             const hasInsufficientPlayers = availableCount < requiredCount
             
             if (hasUnavailablePlayers || hasInsufficientPlayers) {
-              return 'Incomplet'
+              return 'incomplete'
             }
           }
           
           // Cas 2: Pas assez de joueurs
           if (availableCount < requiredCount) {
-            return 'Insuffisant'
+            return 'insufficient'
           }
           
           // Cas 3: Composition confirmée par l'organisateur ET par tous les joueurs
           if (isConfirmedByAllPlayers) {
-            return 'Confirmé'
+            return 'confirmed'
           }
           
           // Cas 4: Composition confirmée par l'organisateur mais pas encore par tous les joueurs
           if (isConfirmedByOrganizer) {
-            return 'À confirmer'
+            return 'pending_confirmation'
           }
           
           // Cas 5: Composition complète mais non confirmée par l'organisateur
-          return 'Complet'
+          return 'complete'
         }
         
         // Fallback si les fonctions ne sont pas disponibles
-        return 'Prêt'
+        return 'ready'
       }
       
-      return 'Non renseigné'
+      return 'ready'
     }
     
     const getStatusColor = (eventId) => {
@@ -554,6 +580,8 @@ export default {
       getStatusColor,
       getStatusTextColor,
       getEventTypeIcon,
+      getPlayerName,
+      getPlayerGender,
       
       // Fonctions pour la disponibilité
       getPlayerAvailability,

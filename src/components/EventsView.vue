@@ -38,9 +38,10 @@
           <!-- Date et statut empilés -->
           <div class="flex flex-col items-center space-y-1">
             <span class="text-gray-400 text-xs text-center font-normal">{{ formatEventDate(item.date) }}</span>
-            <span :class="getStatusColor(getEventStatus(item))" class="text-xs px-2 py-1 rounded-full font-normal">
-              {{ getStatusLabel(getEventStatus(item)) }}
-            </span>
+            <StatusBadge 
+              :event-id="item.id" 
+              :event-status="getEventStatus(item)" 
+            />
           </div>
         </div>
       </div>
@@ -139,9 +140,10 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
+import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
-import { getEventStatusWithSelection, getStatusLabel, getStatusColor } from '../services/eventStatusService.js'
+import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 
 // Props
 const props = defineProps({
