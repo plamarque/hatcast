@@ -2510,17 +2510,12 @@ function initializeViewMode() {
     currentView.value = savedView
     logger.debug('✅ Mode de vue restauré depuis localStorage:', savedView)
   } else {
-    // Fallback seulement si aucune préférence sauvegardée
-  if (currentUser.value?.email) {
-      currentView.value = 'participants'
-      logger.debug('✅ Mode de vue par défaut: participants (utilisateur connecté)')
-  } else {
-      currentView.value = 'events'
-      logger.debug('✅ Mode de vue par défaut: events (utilisateur non connecté)')
-    }
+    // Vue par défaut pour tous les utilisateurs (connectés ou non)
+    currentView.value = 'timeline'
+    logger.debug('✅ Mode de vue par défaut: timeline (tous les utilisateurs)')
   }
   
-    showViewToggle.value = true
+  showViewToggle.value = true
 }
 
 
