@@ -13,6 +13,7 @@ fi
 # Parse command line arguments
 DRY_RUN=${DRY_RUN:-false}  # Use environment variable or default to false
 VERSION_BUMP="patch"  # default
+NO_USER_CHANGELOG=false
 stashed_before_switch=false
 
 for arg in "$@"; do
@@ -29,6 +30,9 @@ for arg in "$@"; do
         --patch)
             VERSION_BUMP="patch"
             ;;
+        --no-user-changelog)
+            NO_USER_CHANGELOG=true
+            ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -41,6 +45,7 @@ for arg in "$@"; do
             echo "  --major           Major version bump (1.2.3 → 2.0.0)"
             echo "  --minor           Minor version bump (1.2.3 → 1.3.0)"
             echo "  --patch           Patch version bump (1.2.3 → 1.2.4) [default]"
+            echo "  --no-user-changelog    Skip user-focused changelog.json generation (keep technical only)"
             echo "  --help, -h        Show this help"
             echo ""
             echo "Examples:"
@@ -354,27 +359,33 @@ generate_changelog_json() {
     echo "   └─ Step 2: Generating CHANGELOG.md from technical JSON..."
     generate_changelog_md_from_json "$technical_json" "$latest_version"
     
-    # Step 3: Transform technical JSON to user-focused JSON with OpenAI (same source)
-    echo "   └─ Step 3: Transforming technical JSON to user-focused JSON with OpenAI..."
-    local user_focused_json=$(transform_technical_json_with_openai "$technical_json" "$latest_version")
-    
-    if [ -n "$user_focused_json" ] && [ "$user_focused_json" != "null" ]; then
-        echo "   └─ ✅ OpenAI transformation successful!"
+    # Step 3: Transform technical JSON to user-focused JSON with OpenAI (skip if --no-user-changelog)
+    if [ "$NO_USER_CHANGELOG" = "true" ]; then
+        echo "   └─ Step 3: ⏭️  Skipping OpenAI transformation (--no-user-changelog flag)"
+        echo "   └─ Using technical JSON directly..."
+        update_changelog_json "$technical_json" "$latest_version"
+    else
+        echo "   └─ Step 3: Transforming technical JSON to user-focused JSON with OpenAI..."
+        local user_focused_json=$(transform_technical_json_with_openai "$technical_json" "$latest_version")
         
-        # Validate JSON structure
-        if echo "$user_focused_json" | jq empty 2>/dev/null; then
-            echo "   └─ ✅ JSON validation successful!"
+        if [ -n "$user_focused_json" ] && [ "$user_focused_json" != "null" ]; then
+            echo "   └─ ✅ OpenAI transformation successful!"
             
-            # Step 4: Update changelog.json with new version
-            echo "   └─ Step 4: Updating changelog.json..."
-            update_changelog_json "$user_focused_json" "$latest_version"
+            # Validate JSON structure
+            if echo "$user_focused_json" | jq empty 2>/dev/null; then
+                echo "   └─ ✅ JSON validation successful!"
+                
+                # Step 4: Update changelog.json with new version
+                echo "   └─ Step 4: Updating changelog.json..."
+                update_changelog_json "$user_focused_json" "$latest_version"
+            else
+                echo "   └─ ❌ JSON validation failed, using technical JSON as fallback..."
+                update_changelog_json "$technical_json" "$latest_version"
+            fi
         else
-            echo "   └─ ❌ JSON validation failed, using technical JSON as fallback..."
+            echo "   └─ ❌ OpenAI transformation failed, using technical JSON as fallback..."
             update_changelog_json "$technical_json" "$latest_version"
         fi
-    else
-        echo "   └─ ❌ OpenAI transformation failed, using technical JSON as fallback..."
-        update_changelog_json "$technical_json" "$latest_version"
     fi
 }
 
@@ -934,6 +945,9 @@ if [ "$DRY_RUN" = true ]; then
     echo "   └─ Analyzing commits since last tag"
     echo "   └─ Categorizing by type (feat/fix/improve/others)"
     echo "   └─ Creating/updating CHANGELOG.md"
+    if [ "$NO_USER_CHANGELOG" = "true" ]; then
+        echo "   └─ ⏭️  Will skip OpenAI transformation (--no-user-changelog flag)"
+    fi
     echo ""
     
     # Generate changelog once and display it
