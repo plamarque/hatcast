@@ -1,7 +1,7 @@
 <template>
-  <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30" 
-       :class="{ 'sticky top-0 z-[115] shadow-lg': isSticky }"
-       :style="headerStyle">
+    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30"
+         :class="{ 'sticky top-0 left-0 z-[120] shadow-lg': isSticky }"
+         :style="headerStyle">
     <div class="w-full" :style="containerStyle">
       <div class="max-w-4xl mx-auto px-2">
         <div class="flex items-center justify-between gap-4">

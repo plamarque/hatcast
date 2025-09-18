@@ -194,6 +194,7 @@ const dynamicLeftColumnWidth = computed(() => {
   }
 })
 
+
 // Methods
 const handleScroll = (event) => {
   const el = event.target
@@ -242,6 +243,7 @@ onUnmounted(() => {
   min-width: 5rem;
   max-width: 5rem;
 }
+
 
 .left-col-td {
   width: 5rem;
