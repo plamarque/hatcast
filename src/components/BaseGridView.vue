@@ -2,11 +2,11 @@
   <div class="w-full overflow-x-auto" ref="gridboardRef" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0">
       <!-- En-tête de la table -->
-      <thead class="bg-gray-800 sticky top-0 z-[110]">
+      <thead class="sticky top-0 z-[110]">
         <tr>
           <!-- Colonne de gauche -->
           <th 
-            class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[111]"
+            class="col-left px-4 py-3 text-left sticky left-0 z-[111]"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -20,7 +20,7 @@
           <th
             v-for="item in headerItems"
             :key="item.id"
-            class="col-header col-event bg-gray-800 px-2 py-3 text-center"
+            class="col-header col-event px-2 py-3 text-center"
             :style="{ width: `${itemColumnWidth}px`, minWidth: `${itemColumnWidth}px` }"
           >
             <slot name="headers" :item="item" :item-width="itemColumnWidth">
@@ -31,7 +31,7 @@
           <!-- En-tête "Afficher Plus" si nécessaire -->
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
-            class="col-header bg-gray-800 px-2 py-3 text-center"
+            class="col-header px-2 py-3 text-center"
             :style="{ width: `${itemColumnWidth * 1.5}px`, minWidth: `${itemColumnWidth * 1.5}px` }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
@@ -42,7 +42,7 @@
       </thead>
 
       <!-- Corps de la table -->
-      <tbody class="relative z-[45] bg-gray-900">
+      <tbody class="relative z-[45]">
         <slot name="rows" :items="rowItems" :columns="columnItems" :item-width="itemColumnWidth">
           <!-- Slot pour les lignes spécifiques à chaque vue -->
         </slot>
