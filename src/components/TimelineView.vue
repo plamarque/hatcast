@@ -37,22 +37,20 @@
           
           <!-- Contenu de l'événement -->
           <div class="event-content flex-1 flex items-center justify-between gap-2 md:gap-4">
+            <!-- Icône du type d'événement centrée verticalement dans toute la zone -->
+            <div class="event-icon flex-shrink-0 text-xl flex items-center h-16">
+              {{ getEventTypeIcon(event) }}
+            </div>
+            
             <!-- Titre de l'événement -->
             <div class="event-title flex-1 min-w-0 md:max-w-2xl">
-              <div class="flex items-center gap-3">
-                <!-- Icône du type d'événement -->
-                <div class="event-icon flex-shrink-0 text-xl">
-                  {{ getEventTypeIcon(event) }}
-                </div>
-                <div class="text-white font-medium text-base line-clamp-2 leading-tight flex-1 min-w-0">
-                  {{ event.title || 'Sans titre' }}
-                </div>
+              <div class="text-white font-medium text-base line-clamp-2 leading-tight">
+                {{ event.title || 'Sans titre' }}
               </div>
               <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
                 📍 {{ event.location }}
               </div>
-              
-              <!-- Badge de statut en dessous du texte -->
+              <!-- Badge de statut en dessous du titre, aligné avec le texte -->
               <div class="event-status mt-2 flex justify-start">
                 <StatusBadge 
                   :event-id="event.id" 
