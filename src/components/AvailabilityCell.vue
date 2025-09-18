@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1 m-1"
+    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1"
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
