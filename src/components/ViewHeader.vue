@@ -1,10 +1,7 @@
 <template>
-    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30"
+    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-screen flex items-center justify-between px-4"
          :class="{ 'sticky top-0 left-0 z-[120] shadow-lg': isSticky }"
          :style="headerStyle">
-    <div class="w-full" :style="containerStyle">
-      <div class="max-w-4xl mx-auto px-2">
-        <div class="flex items-center justify-between gap-4">
           <!-- Sélecteur de joueur (à gauche) -->
           <div v-if="showPlayerSelector" class="relative flex-shrink-0">
             <button
@@ -43,7 +40,7 @@
             </button>
           </div>
 
-          <!-- Tab switcher centré -->
+          <!-- Tab switcher à droite -->
           <div class="flex bg-gray-800/50 rounded-lg p-1">
             <button
               @click="selectView('events')"
@@ -79,12 +76,7 @@
             </button>
           </div>
 
-          <!-- Espace vide à droite pour équilibrer -->
-          <div class="flex-shrink-0 w-24 md:w-32"></div>
-        </div>
-      </div>
     </div>
-  </div>
 </template>
 
 <script setup>
