@@ -52,7 +52,7 @@
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->
         <td 
-          class="left-col-td px-4 py-3"
+          class="left-col-td bg-gray-800 px-4 py-3"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
