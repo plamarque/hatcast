@@ -86,7 +86,7 @@
         <td
           v-for="player in players"
           :key="`${event.id}-${player.id}`"
-          class="col-player p-1"
+          class="col-player p-2 md:p-1"
           :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
         >
           <AvailabilityCell
