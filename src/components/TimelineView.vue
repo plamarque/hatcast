@@ -89,30 +89,59 @@
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
-              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center gap-1">
-                  <div
-                    v-for="(player, index) in getEventAvatars(event.id).slice(0, 3)"
-                    :key="player.id"
-                    class="relative group"
-                    :title="getPlayerTooltip(player, event.id)"
-                  >
-                    <PlayerAvatar
-                      :player-id="player.id"
-                      :player-name="player.name"
-                      :season-id="seasonId"
-                      :player-gender="player.gender || 'non-specified'"
-                      size="sm"
-                      class="w-6 h-6"
-                    />
-                    <!-- Tooltip -->
-                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                      {{ getPlayerTooltip(player, event.id) }}
+              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center">
+                <div class="relative group">
+                  <!-- Container pour les avatars qui se chevauchent -->
+                  <div class="flex items-center">
+                    <div
+                      v-for="(player, index) in getEventAvatars(event.id).slice(0, 4)"
+                      :key="player.id"
+                      class="relative transition-all duration-300 ease-in-out group-hover:z-10"
+                      :class="{
+                        'z-10': index === 0,
+                        'z-0': index > 0,
+                        'group-hover:z-20': index > 0
+                      }"
+                      :style="{
+                        marginLeft: index > 0 ? '-12px' : '0px',
+                        zIndex: index === 0 ? 10 : 5 - index
+                      }"
+                    >
+                      <PlayerAvatar
+                        :player-id="player.id"
+                        :player-name="player.name"
+                        :season-id="seasonId"
+                        :player-gender="player.gender || 'non-specified'"
+                        size="md"
+                        class="w-10 h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
+                        :title="getPlayerTooltip(player, event.id)"
+                      />
+                    </div>
+                    <!-- Compteur pour les avatars supplémentaires -->
+                    <div 
+                      v-if="getEventAvatars(event.id).length > 4" 
+                      class="relative -ml-3 z-0 group-hover:z-20 transition-all duration-300"
+                    >
+                      <div class="w-10 h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-sm text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
+                        +{{ getEventAvatars(event.id).length - 4 }}
+                      </div>
                     </div>
                   </div>
-                  <span v-if="getEventAvatars(event.id).length > 3" class="text-xs text-gray-300 ml-1">
-                    +{{ getEventAvatars(event.id).length - 3 }}
-                  </span>
+                  
+                  <!-- Tooltip global pour le groupe -->
+                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                    <div class="font-medium mb-1">Équipe de l'événement</div>
+                    <div class="space-y-1">
+                      <div v-for="player in getEventAvatars(event.id).slice(0, 4)" :key="player.id" class="text-gray-300">
+                        {{ getPlayerTooltip(player, event.id) }}
+                      </div>
+                      <div v-if="getEventAvatars(event.id).length > 4" class="text-gray-400">
+                        +{{ getEventAvatars(event.id).length - 4 }} autres
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>
