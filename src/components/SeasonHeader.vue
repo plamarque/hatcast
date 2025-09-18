@@ -1,5 +1,5 @@
 <template>
-  <div class="sticky top-0 z-[60] bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10" 
+  <div class="season-header sticky top-0 z-[40] bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900/95 backdrop-blur-sm border-b border-white/10" 
        style="padding-top: calc(env(safe-area-inset-top) + 1rem); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
     <!-- Conteneur principal avec alignement horizontal -->
     <div class="flex items-center justify-between py-3 md:py-6 px-4 md:px-6">

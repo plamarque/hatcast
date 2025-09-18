@@ -2,11 +2,11 @@
   <div class="w-full overflow-x-auto" ref="gridboardRef" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0">
       <!-- En-tête de la table -->
-      <thead class="sticky top-0 z-[105] shadow-lg">
+      <thead class="bg-gray-800 sticky top-0 z-[110]">
         <tr>
           <!-- Colonne de gauche -->
           <th 
-            class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[106]"
+            class="col-left bg-gray-800 px-4 py-3 text-left sticky left-0 z-[111]"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -42,7 +42,7 @@
       </thead>
 
       <!-- Corps de la table -->
-      <tbody>
+      <tbody class="relative z-[45]">
         <slot name="rows" :items="rowItems" :columns="columnItems" :item-width="itemColumnWidth">
           <!-- Slot pour les lignes spécifiques à chaque vue -->
         </slot>
@@ -217,13 +217,16 @@ const togglePlayerModal = () => {
   emit('toggle-player-modal')
 }
 
+
 // Lifecycle
 onMounted(() => {
   // Ajouter un listener pour le scroll
   if (gridboardRef.value) {
     gridboardRef.value.addEventListener('scroll', handleScroll, { passive: true })
   }
+  
 })
+
 
 onUnmounted(() => {
   // Nettoyer les listeners
@@ -247,7 +250,7 @@ onUnmounted(() => {
   max-width: 5rem;
   position: sticky;
   left: 0;
-  z-index: 105;
+  z-index: 115;
   background-color: #1f2937; /* bg-gray-800 pour correspondre à l'en-tête */
 }
 
