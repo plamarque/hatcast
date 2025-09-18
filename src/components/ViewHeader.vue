@@ -1,7 +1,7 @@
 <template>
-    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-screen flex items-center justify-between px-4"
+    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-screen flex items-center justify-between"
          :class="{ 'sticky top-0 left-0 z-[120] shadow-lg': isSticky }"
-         :style="headerStyle">
+         :style="headerStyle + '; ' + containerStyle">
           <!-- Sélecteur de joueur (à gauche) -->
           <div v-if="showPlayerSelector" class="relative flex-shrink-0">
             <button
@@ -113,7 +113,7 @@ const props = defineProps({
   // Style props
   headerStyle: {
     type: String,
-    default: 'padding-top: max(4px, env(safe-area-inset-top) + 2px); padding-bottom: max(2px, env(safe-area-inset-bottom) + 2px);'
+    default: 'padding-top: max(4px, env(safe-area-inset-top) + 2px); padding-bottom: 8px;'
   },
   containerStyle: {
     type: String,
