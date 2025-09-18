@@ -57,7 +57,7 @@
 
     <!-- Lignes d'événements (vue participants) -->
     <template #rows="{ items: events, columns: players, itemWidth }">
-      <tr v-for="event in events" :key="event.id" class="mb-2">
+      <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
         <td 
           class="left-col-td bg-gray-800 rounded-xl px-4 py-3 m-1"
