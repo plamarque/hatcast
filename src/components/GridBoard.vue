@@ -22,23 +22,22 @@
       @open-development="openDevelopment"
     />
 
+    <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
+    <ViewHeader
+      v-if="validCurrentView === 'events' || validCurrentView === 'participants'"
+      :current-view="validCurrentView"
+      :show-player-selector="true"
+      :selected-player="selectedPlayer"
+      :participants-display-text="dropdownDisplayText"
+      :season-id="seasonId"
+      :player-gender="selectedPlayer?.gender || 'non-specified'"
+      :is-sticky="true"
+      @view-change="selectView"
+      @player-modal-toggle="togglePlayerModal"
+    />
 
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900"
-         style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
-      
-      <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
-      <ViewHeader
-        :current-view="validCurrentView"
-        :show-player-selector="true"
-        :selected-player="selectedPlayer"
-        :participants-display-text="dropdownDisplayText"
-        :season-id="seasonId"
-        :player-gender="selectedPlayer?.gender || 'non-specified'"
-        :is-sticky="true"
-        @view-change="selectView"
-        @player-modal-toggle="togglePlayerModal"
-      />
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
       
       <!-- Modal de sélection de joueur pour les vues lignes/colonnes -->
       <PlayerSelectorModal
@@ -184,7 +183,7 @@
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
       />
-  </div>      
+    </div>
     <!-- Message de chargement pour la vue chronologique -->
     <div v-if="validCurrentView === 'timeline' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
