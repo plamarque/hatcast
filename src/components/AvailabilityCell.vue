@@ -1,9 +1,9 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-24 h-24 rounded-lg px-2 py-1"
+    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1 m-1"
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
-      compact ? 'w-20 h-20 p-1 md:p-2 text-xs' : 'text-sm',
+      compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
       // Couleurs de fond appliquées directement à la cellule - plus lumineuses et attrayantes
       isSelected && isAvailable === true && playerSelectionStatus === 'confirmed' ? 'bg-gradient-to-br from-purple-500/60 to-pink-500/60' : '',
       isSelected && isAvailable === true && playerSelectionStatus === 'pending' ? 'bg-gradient-to-br from-orange-500/60 to-yellow-500/60' : '',
