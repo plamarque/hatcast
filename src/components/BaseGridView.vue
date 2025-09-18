@@ -1,6 +1,6 @@
 <template>
   <div class="w-full overflow-x-auto" ref="gridboardRef" @scroll="handleScroll">
-    <table class="w-full table-auto border-separate border-spacing-0">
+    <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 0 8px;">
       <!-- En-tête de la table -->
       <thead class="sticky top-0 z-[110]">
         <tr>
