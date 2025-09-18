@@ -2,11 +2,6 @@
   <div class="timeline-view bg-gray-900 relative z-[50] pt-6 pb-28">
     <!-- Contenu principal -->
     <div class="timeline-content">
-      <!-- Debug info -->
-      <div v-if="groupedEventsByMonth.length === 0" class="text-center py-12 text-white">
-        <div>Debug: groupedEventsByMonth.length = {{ groupedEventsByMonth.length }}</div>
-        <div>Events count: {{ events?.length || 0 }}</div>
-      </div>
       
       <!-- Liste des mois avec événements -->
       <div v-for="monthData in groupedEventsByMonth" :key="monthData.monthKey" class="month-section mb-8 max-w-4xl mx-auto px-4">
@@ -66,10 +61,12 @@
               </div>
             </div>
             
-            <!-- Cellule de disponibilité -->
+            <!-- Cellule de disponibilité ou avatars de la composition -->
             <div class="availability-cell flex-shrink-0">
+              
+              <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
-                v-if="selectedPlayerId"
+                v-if="selectedPlayerId && isPlayerInEventTeam(selectedPlayerId, event.id)"
                 :player-name="selectedPlayer.name"
                 :event-id="event.id"
                 :is-available="isAvailable(selectedPlayer.name, event.id)"
@@ -90,10 +87,36 @@
                 @toggle-selection-status="handleSelectionStatusToggle"
                 @show-availability-modal="handleShowAvailabilityModal"
               />
+              
+              <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
+              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center gap-1">
+                  <div
+                    v-for="(player, index) in getEventAvatars(event.id).slice(0, 3)"
+                    :key="player.id"
+                    class="relative group"
+                    :title="getPlayerTooltip(player, event.id)"
+                  >
+                    <PlayerAvatar
+                      :player-id="player.id"
+                      :player-name="player.name"
+                      :season-id="seasonId"
+                      :player-gender="player.gender || 'non-specified'"
+                      size="sm"
+                      class="w-6 h-6"
+                    />
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                      {{ getPlayerTooltip(player, event.id) }}
+                    </div>
+                  </div>
+                  <span v-if="getEventAvatars(event.id).length > 3" class="text-xs text-gray-300 ml-1">
+                    +{{ getEventAvatars(event.id).length - 3 }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
       
       <!-- Message si aucun événement -->
@@ -185,6 +208,18 @@ export default {
     isSelectionComplete: {
       type: Function,
       default: () => false
+    },
+    getSelectionPlayers: {
+      type: Function,
+      default: () => []
+    },
+    getTotalRequiredCount: {
+      type: Function,
+      default: () => 0
+    },
+    countAvailablePlayers: {
+      type: Function,
+      default: () => 0
     }
   },
   emits: [
@@ -197,25 +232,6 @@ export default {
     'player-selected',
     'all-players-selected'
   ],
-  props: {
-    events: Array,
-    players: Array,
-    availability: Object,
-    casts: Object,
-    seasonId: String,
-    selectedPlayerId: String,
-    preferredPlayerIdsSet: Set,
-    isAvailable: Function,
-    isPlayerSelected: Function,
-    isSelectionConfirmed: Function,
-    isSelectionConfirmedByOrganizer: Function,
-    getPlayerSelectionStatus: Function,
-    getAvailabilityData: Function,
-    isPlayerProtectedInGrid: Function,
-    getSelectionPlayers: Function,
-    getTotalRequiredCount: Function,
-    countAvailablePlayers: Function
-  },
   setup(props, { emit }) {
     // Variables réactives
     const showPlayerModal = ref(false)
@@ -338,6 +354,126 @@ export default {
     
     
     
+    // Fonction pour vérifier si un joueur fait partie de l'équipe de l'événement
+    const isPlayerInEventTeam = (playerId, eventId) => {
+      if (!playerId || !eventId) return false
+      
+      try {
+        // Vérifier si le joueur est dans la composition de l'événement
+        const selectionPlayers = props.getSelectionPlayers ? props.getSelectionPlayers(eventId) : []
+        if (selectionPlayers && selectionPlayers.includes(playerId)) {
+          return true
+        }
+        
+        // Vérifier si le joueur est disponible pour l'événement
+        const player = props.players.find(p => p.id === playerId)
+        if (player && props.availability && props.availability[player.name]) {
+          const eventAvailability = props.availability[player.name][eventId]
+          if (eventAvailability) {
+            const isAvailable = typeof eventAvailability === 'object' 
+              ? eventAvailability.available === true 
+              : eventAvailability === true
+            return isAvailable
+          }
+        }
+        
+        return false
+      } catch (error) {
+        console.warn('Erreur lors de la vérification de l\'équipe:', error)
+        return false
+      }
+    }
+    
+    // Fonction pour obtenir les avatars à afficher pour un événement
+    const getEventAvatars = (eventId) => {
+      if (!props.players || !eventId) return []
+      
+      try {
+        // D'abord, essayer d'obtenir la composition de l'événement
+        const selectionPlayers = props.getSelectionPlayers ? props.getSelectionPlayers(eventId) : []
+        
+        if (selectionPlayers && selectionPlayers.length > 0) {
+          // Si il y a une composition, afficher les joueurs de la composition
+          return selectionPlayers.map(playerId => 
+            props.players.find(p => p.id === playerId)
+          ).filter(Boolean)
+        }
+        
+        // Sinon, afficher les personnes disponibles
+        const availablePlayers = []
+        
+        if (props.availability) {
+          for (const [playerName, playerAvailability] of Object.entries(props.availability)) {
+            const player = props.players.find(p => p.name === playerName)
+            if (player && playerAvailability[eventId]) {
+              const eventAvailability = playerAvailability[eventId]
+              const isAvailable = typeof eventAvailability === 'object' 
+                ? eventAvailability.available === true 
+                : eventAvailability === true
+              
+              if (isAvailable) {
+                availablePlayers.push(player)
+              }
+            }
+          }
+        }
+        
+        return availablePlayers
+      } catch (error) {
+        console.warn('Erreur lors de la récupération des avatars:', error)
+        return []
+      }
+    }
+    
+    // Fonction pour obtenir le tooltip d'un joueur avec son rôle
+    const getPlayerTooltip = (player, eventId) => {
+      if (!player || !eventId) return player?.name || ''
+      
+      try {
+        // Essayer d'obtenir le rôle du joueur dans l'événement
+        const selectionPlayers = props.getSelectionPlayers ? props.getSelectionPlayers(eventId) : []
+        if (selectionPlayers && selectionPlayers.includes(player.id)) {
+          // Le joueur est dans la composition, essayer de trouver son rôle
+          const event = props.events?.find(e => e.id === eventId)
+          if (event && event.roles) {
+            // Chercher le rôle le plus probable (celui avec le plus grand nombre requis)
+            const roles = Object.entries(event.roles)
+              .filter(([role, count]) => count > 0)
+              .sort(([,a], [,b]) => b - a)
+            
+            if (roles.length > 0) {
+              const [roleName] = roles[0]
+              const roleLabel = getRoleLabel(roleName)
+              return `${player.name} - ${roleLabel}`
+            }
+          }
+          return `${player.name} - Membre de l'équipe`
+        }
+        
+        // Sinon, c'est une personne disponible
+        return `${player.name} - Disponible`
+      } catch (error) {
+        console.warn('Erreur lors de la génération du tooltip:', error)
+        return player.name || ''
+      }
+    }
+    
+    // Fonction pour obtenir le label d'un rôle
+    const getRoleLabel = (roleName) => {
+      const roleLabels = {
+        'player': 'Joueur',
+        'coach': 'Coach',
+        'referee': 'Arbitre',
+        'assistant_referee': 'Assistant arbitre',
+        'lighting': 'Éclairage',
+        'sound': 'Son',
+        'camera': 'Caméra',
+        'host': 'Animateur',
+        'organizer': 'Organisateur'
+      }
+      return roleLabels[roleName] || roleName
+    }
+    
     // Fonctions pour la disponibilité du joueur sélectionné
     const getPlayerAvailability = (eventId) => {
       if (!props.selectedPlayerId || !props.availability || !eventId) {
@@ -416,6 +552,10 @@ export default {
       getEventTypeIcon,
       getPlayerName,
       getPlayerGender,
+      getEventAvatars,
+      getPlayerTooltip,
+      getRoleLabel,
+      isPlayerInEventTeam,
       
       // Fonctions pour la disponibilité
       getPlayerAvailability,
