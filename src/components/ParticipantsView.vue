@@ -70,7 +70,7 @@
           <div class="flex flex-col">
             <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
               <span class="text-lg">{{ getEventIcon(event) }}</span>
-              <span class="text-white font-medium text-sm">{{ event.title }}</span>
+              <span class="text-white font-medium text-sm line-clamp-2 overflow-hidden" :title="event.title">{{ event.title }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-gray-400 text-xs">{{ formatEventDate(event.date) }}</span>
