@@ -140,6 +140,23 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- Affichage du nombre requis quand personne n'est disponible -->
+              <div v-else-if="getTotalRequiredCount(event.id) > 0" class="flex items-center">
+                <div class="relative group">
+                  <div class="w-10 h-10 bg-orange-600 border-2 border-orange-500 rounded-full flex items-center justify-center text-sm text-white font-medium hover:bg-orange-500 hover:border-orange-400 transition-all duration-200 hover:scale-110">
+                    {{ getTotalRequiredCount(event.id) }}
+                  </div>
+                  
+                  <!-- Tooltip pour le nombre requis -->
+                  <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                    <div class="font-medium mb-1">Personnes nécessaires</div>
+                    <div class="text-gray-300">
+                      {{ getTotalRequiredCount(event.id) }} personne{{ getTotalRequiredCount(event.id) > 1 ? 's' : '' }} requise{{ getTotalRequiredCount(event.id) > 1 ? 's' : '' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
               </div>
             </div>
           </div>
@@ -452,6 +469,24 @@ export default {
       }
     }
     
+    // Fonction pour obtenir le nombre total de personnes nécessaires pour un événement
+    const getTotalRequiredCount = (eventId) => {
+      if (!eventId) return 0
+      
+      try {
+        const event = props.events?.find(e => e.id === eventId)
+        if (!event || !event.roles) return 0
+        
+        // Calculer le total de tous les rôles
+        return Object.values(event.roles).reduce((total, count) => {
+          return total + (typeof count === 'number' ? count : 0)
+        }, 0)
+      } catch (error) {
+        console.warn('Erreur lors du calcul du nombre requis:', error)
+        return 0
+      }
+    }
+    
     // Fonction pour obtenir le tooltip d'un joueur avec son rôle
     const getPlayerTooltip = (player, eventId) => {
       if (!player || !eventId) return player?.name || ''
@@ -580,6 +615,7 @@ export default {
       getPlayerName,
       getPlayerGender,
       getEventAvatars,
+      getTotalRequiredCount,
       getPlayerTooltip,
       getRoleLabel,
       isPlayerInEventTeam,
