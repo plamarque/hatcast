@@ -42,7 +42,7 @@
       </thead>
 
       <!-- Corps de la table -->
-      <tbody class="relative z-[45]">
+      <tbody class="relative z-[45] bg-gray-900">
         <slot name="rows" :items="rowItems" :columns="columnItems" :item-width="itemColumnWidth">
           <!-- Slot pour les lignes spécifiques à chaque vue -->
         </slot>
