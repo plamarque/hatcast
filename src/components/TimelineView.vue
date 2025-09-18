@@ -42,41 +42,30 @@
           
           <!-- Contenu de l'événement -->
           <div class="event-content flex-1 flex items-center gap-2 md:gap-4">
-            <!-- Indicateur de statut coloré (barre verticale) -->
-            <div 
-              class="status-indicator w-1 h-8 rounded-full flex-shrink-0"
-              :class="getStatusColor(event.id)"
-            ></div>
-            
             <!-- Cellule de disponibilité -->
             <div class="availability-cell flex-shrink-0">
-              <!-- Debug: selectedPlayerId = {{ selectedPlayerId }} -->
               <AvailabilityCell
                 v-if="selectedPlayerId"
                 :player-name="selectedPlayer.name"
                 :event-id="event.id"
-                :is-available="getPlayerAvailability(event.id)"
-                :is-selected="isPlayerSelected(event.id)"
+                :is-available="isAvailable(selectedPlayer.name, event.id)"
+                :is-selected="isPlayerSelected(selectedPlayer.name, event.id)"
                 :is-selection-confirmed="isSelectionConfirmed(event.id)"
                 :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-                :player-selection-status="getPlayerSelectionStatus(event.id)"
+                :player-selection-status="getPlayerSelectionStatus(selectedPlayer.name, event.id)"
                 :season-id="seasonId"
+                :player-gender="selectedPlayer.gender || 'non-specified'"
+                :chance-percent="chances?.[selectedPlayer.name]?.[event.id] ?? null"
+                :show-selected-chance="isSelectionComplete ? isSelectionComplete(event.id) : false"
                 :disabled="event.archived === true"
-                :availability-data="getAvailabilityData(event.id)"
+                :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
                 :event-title="event.title"
                 :event-date="event.date ? event.date.toISOString() : ''"
                 :is-protected="isPlayerProtected(event.id)"
-                :player-gender="selectedPlayer.gender || 'non-specified'"
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handleSelectionStatusToggle"
                 @show-availability-modal="handleShowAvailabilityModal"
               />
-              <!-- Statut global si aucun joueur sélectionné -->
-              <div v-else class="status-text flex-shrink-0 min-w-0">
-                <div class="text-sm" :class="getStatusTextColor(event.id)">
-                  {{ getEventStatus(event.id) }}
-                </div>
-              </div>
             </div>
             
             <!-- Titre de l'événement -->
@@ -186,6 +175,14 @@ export default {
       default: () => ({})
     },
     isPlayerProtectedInGrid: {
+      type: Function,
+      default: () => false
+    },
+    chances: {
+      type: Object,
+      default: () => ({})
+    },
+    isSelectionComplete: {
       type: Function,
       default: () => false
     }
@@ -339,75 +336,37 @@ export default {
       return 'ready'
     }
     
-    const getStatusColor = (eventId) => {
-      if (props.events && eventId) {
-        const event = props.events.find(e => e.id === eventId)
-        if (!event) return 'bg-gray-500'
-        
-        const status = getEventStatusWithSelection(event, {
-          getSelectionPlayers: props.getSelectionPlayers,
-          getTotalRequiredCount: props.getTotalRequiredCount,
-          countAvailablePlayers: props.countAvailablePlayers,
-          isSelectionConfirmed: props.isSelectionConfirmed,
-          isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
-          casts: props.casts,
-          selectedPlayerId: props.selectedPlayerId,
-          availability: props.availability
-        })
-        
-        // Convertir le statut en couleur pour la barre verticale
-        switch (status) {
-          case 'ready': return 'bg-cyan-500'
-          case 'complete': return 'bg-blue-500'
-          case 'confirmed': return 'bg-green-500'
-          case 'pending_confirmation': return 'bg-yellow-500'
-          case 'incomplete': return 'bg-orange-500'
-          case 'insufficient': return 'bg-red-500'
-          case 'Non renseigné': return 'bg-gray-500'
-          case 'Aucune disponibilité': return 'bg-red-500'
-          case 'Tous disponibles': return 'bg-green-500'
-          default: 
-            // Si c'est un format "X dispo", utiliser la couleur verte
-            if (typeof status === 'string' && status.includes('dispo')) {
-              return 'bg-green-500'
-            }
-            return 'bg-gray-500'
-        }
-      }
-      
-      return 'bg-gray-500'
-    }
     
-    const getStatusTextColor = (eventId) => {
-      if (!props.availability || !eventId) return 'text-gray-400'
-      
-      try {
-        const eventAvailability = props.availability[eventId]
-        if (!eventAvailability) return 'text-gray-400'
-        
-        const totalPlayers = Object.keys(eventAvailability).length
-        if (totalPlayers === 0) return 'text-gray-400'
-        
-        const availableCount = Object.values(eventAvailability).filter(status => 
-          status === 'available' || status === 'confirmed'
-        ).length
-        
-        if (availableCount === 0) return 'text-red-400'
-        if (availableCount === totalPlayers) return 'text-green-400'
-        return 'text-purple-400'
-      } catch (error) {
-        console.warn('Erreur lors du calcul de la couleur du texte:', error)
-        return 'text-gray-400'
-      }
-    }
     
     // Fonctions pour la disponibilité du joueur sélectionné
     const getPlayerAvailability = (eventId) => {
-      if (!props.selectedPlayerId || !props.availability || !eventId) return false
+      if (!props.selectedPlayerId || !props.availability || !eventId) {
+        console.log('🔍 getPlayerAvailability: missing data', { selectedPlayerId: props.selectedPlayerId, availability: props.availability, eventId })
+        return false
+      }
       try {
-        const eventAvailability = props.availability[eventId]
-        if (!eventAvailability) return false
-        return eventAvailability[props.selectedPlayerId] === 'available' || eventAvailability[props.selectedPlayerId] === 'confirmed'
+        const playerAvailability = props.availability[props.selectedPlayerId]
+        if (!playerAvailability) {
+          console.log('🔍 getPlayerAvailability: no player availability for', props.selectedPlayerId)
+          return false
+        }
+        const eventAvailability = playerAvailability[eventId]
+        if (!eventAvailability) {
+          console.log('🔍 getPlayerAvailability: no event availability for', eventId, 'for player', props.selectedPlayerId)
+          return false
+        }
+        
+        // Gestion du nouveau format avec rôles
+        if (typeof eventAvailability === 'object' && eventAvailability.available !== undefined) {
+          const isAvailable = eventAvailability.available === true
+          console.log('🔍 getPlayerAvailability (new format):', { eventId, selectedPlayerId: props.selectedPlayerId, eventAvailability, isAvailable })
+          return isAvailable
+        }
+        
+        // Fallback pour l'ancien format (boolean direct)
+        const isAvailable = eventAvailability === true
+        console.log('🔍 getPlayerAvailability (old format):', { eventId, selectedPlayerId: props.selectedPlayerId, eventAvailability, isAvailable })
+        return isAvailable
       } catch (error) {
         console.warn('Erreur lors de la vérification de la disponibilité:', error)
         return false
@@ -454,8 +413,6 @@ export default {
       
       // Fonctions utilitaires
       getEventStatus,
-      getStatusColor,
-      getStatusTextColor,
       getEventTypeIcon,
       getPlayerName,
       getPlayerGender,
