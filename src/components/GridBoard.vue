@@ -127,8 +127,8 @@
         @show-availability-modal="openAvailabilityModal"
         @event-click="openEventModal"
       />
-                      </div>
-                      
+                </div>
+                
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
       <!-- Header sticky pour la vue chronologique -->
       <ViewHeader
@@ -136,7 +136,7 @@
         :show-player-selector="true"
         :selected-player="selectedPlayer"
         :participants-display-text="dropdownDisplayText"
-        :season-id="seasonId"
+                          :season-id="seasonId"
         :player-gender="selectedPlayer?.gender || 'non-specified'"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
@@ -184,8 +184,7 @@
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
       />
-                  </div>
-                  
+  </div>      
     <!-- Message de chargement pour la vue chronologique -->
     <div v-if="validCurrentView === 'timeline' && events.length === 0" class="w-full px-4 py-6 bg-gray-900 text-center"
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
@@ -8997,3 +8996,4 @@ async function handleAvailabilityRequestEdit() {
 
 // end of script setup
 </script>
+
