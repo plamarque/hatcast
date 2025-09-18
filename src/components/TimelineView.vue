@@ -28,7 +28,7 @@
           @click="$emit('event-click', event)"
         >
           <!-- Date compacte (numéro + jour) -->
-          <div class="date-section flex-shrink-0 text-center">
+          <div class="date-section flex-shrink-0 text-center w-16">
             <div class="date-number text-3xl font-bold text-white leading-none">
               {{ event.dayNumber }}
             </div>
@@ -69,7 +69,7 @@
             </div>
             
             <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0 md:max-w-md">
+            <div class="event-title flex-1 min-w-0 md:max-w-2xl">
               <div class="flex items-center gap-3">
                 <!-- Icône du type d'événement -->
                 <div class="event-icon flex-shrink-0 text-xl">
