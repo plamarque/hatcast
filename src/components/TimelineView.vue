@@ -24,7 +24,7 @@
         <div
           v-for="event in monthData.events"
           :key="event.id"
-          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30"
+          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative"
           @click="$emit('event-click', event)"
         >
           <!-- Date compacte (numéro + jour) -->
@@ -69,27 +69,27 @@
             </div>
             
             <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0 max-w-md">
+            <div class="event-title flex-1 min-w-0 md:max-w-md">
               <div class="flex items-center gap-3">
                 <!-- Icône du type d'événement -->
                 <div class="event-icon flex-shrink-0 text-xl">
                   {{ getEventTypeIcon(event) }}
                 </div>
-                <div class="text-white font-medium text-base line-clamp-2 leading-tight">
+                <div class="text-white font-medium text-base line-clamp-2 leading-tight flex-1 min-w-0">
                   {{ event.title || 'Sans titre' }}
                 </div>
               </div>
               <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
                 📍 {{ event.location }}
               </div>
-            </div>
-            
-            <!-- Badge de statut de l'événement (aligné à droite) -->
-            <div class="event-status flex-shrink-0">
-              <StatusBadge 
-                :event-id="event.id" 
-                :event-status="getEventStatus(event.id)" 
-              />
+              
+              <!-- Badge de statut en dessous sur mobile, à droite sur desktop -->
+              <div class="event-status mt-2 flex justify-start md:mt-0 md:absolute md:right-2 md:top-1/2 md:transform md:-translate-y-1/2">
+                <StatusBadge 
+                  :event-id="event.id" 
+                  :event-status="getEventStatus(event.id)" 
+                />
+              </div>
             </div>
           </div>
         </div>
