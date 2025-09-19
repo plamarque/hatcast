@@ -83,6 +83,8 @@
 import { ref, computed } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 
+import { usePlayerSelection } from '../composables/usePlayerSelection.js'
+
 // Props
 const props = defineProps({
   currentView: {
@@ -94,21 +96,9 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  selectedPlayer: {
-    type: Object,
-    default: null
-  },
-  participantsDisplayText: {
-    type: String,
-    default: null
-  },
   seasonId: {
     type: String,
     required: true
-  },
-  playerGender: {
-    type: String,
-    default: 'non-specified'
   },
   // Style props
   headerStyle: {
@@ -127,6 +117,13 @@ const props = defineProps({
 
 // Emits
 const emit = defineEmits(['view-change', 'player-modal-toggle'])
+
+// Utiliser le composable de sélection de joueur
+const { 
+  selectedPlayerId, 
+  selectedPlayer, 
+  participantsDisplayText
+} = usePlayerSelection()
 
 // Fonctions
 

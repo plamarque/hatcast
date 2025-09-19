@@ -60,7 +60,7 @@
             </div>
             
             <!-- Cellule de disponibilité ou avatars de la composition -->
-            <div class="availability-cell flex-shrink-0 w-28 md:w-28">
+            <div class="availability-cell flex-shrink-0 w-24 md:w-28">
               
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
@@ -89,20 +89,33 @@
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
-              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-3">
+              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-1 md:pr-3">
                 <div class="relative group cursor-pointer" @click="handleAvatarClick(event, $event)">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
-                      <div
-                        v-for="(player, index) in getEventAvatars(event.id).slice(0, 4)"
-                        :key="player.id"
-                        class="relative transition-all duration-300 ease-in-out group-hover:z-10"
-                        :class="{ 
-                          'z-10': index === 0,
-                          'z-0': index > 0,
-                          'group-hover:z-20': index > 0,
-                          'md:hidden': index >= 3
-                        }"
+                    <!-- Compteur pour les avatars supplémentaires - EN PREMIER -->
+                    <div 
+                      v-if="getEventAvatars(event.id).length > 4" 
+                      class="relative z-30 group-hover:z-40 transition-all duration-300"
+                      style="margin-right: -20px;"
+                    >
+                      <div class="w-10 h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-xs text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
+                        +{{ getEventAvatars(event.id).length - 4 }}
+                      </div>
+                    </div>
+                    
+                    <!-- Avatars qui se chevauchent -->
+                    <div
+                      v-for="(player, index) in getEventAvatars(event.id).slice(0, 4)"
+                      :key="player.id"
+                      class="relative transition-all duration-300 ease-in-out group-hover:z-10"
+                      :class="{ 
+                        'z-10': index === 0,
+                        'z-0': index > 0,
+                        'group-hover:z-20': index > 0,
+                        'md:block': true,
+                        'hidden': index >= 3
+                      }"
                       :style="{
                         marginLeft: index > 0 ? '-20px' : '0px',
                         zIndex: index === 0 ? 10 : 5 - index
@@ -117,15 +130,6 @@
                         class="!w-10 !h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
                         :title="getPlayerTooltip(player, event.id)"
                       />
-                    </div>
-                    <!-- Compteur pour les avatars supplémentaires -->
-                    <div 
-                      v-if="getEventAvatars(event.id).length > 4" 
-                      class="relative z-0 group-hover:z-20 transition-all duration-300 ml-1"
-                    >
-                      <div class="w-10 h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-xs text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
-                        +{{ getEventAvatars(event.id).length - 4 }}
-                      </div>
                     </div>
                   </div>
                   

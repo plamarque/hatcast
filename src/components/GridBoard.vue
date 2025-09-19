@@ -1808,7 +1808,16 @@ const selectedPlayerForDetails = ref(null)
 
 // Computed pour le joueur sélectionné (pour la vue chronologique)
 const selectedPlayer = computed(() => {
-  if (!selectedPlayerId.value || !players.value) return null
+  if (!selectedPlayerId.value) return null
+  
+  // Pour la vue timeline, utiliser allSeasonPlayers
+  if (validCurrentView.value === 'timeline') {
+    if (!allSeasonPlayers.value) return null
+    return allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
+  }
+  
+  // Pour les vues lignes/colonnes, utiliser players (liste filtrée)
+  if (!players.value) return null
   return players.value.find(p => p.id === selectedPlayerId.value) || null
 })
 
@@ -2565,11 +2574,20 @@ async function togglePlayerModal() {
 }
 
 async function handlePlayerSelected(player) {
-  // Pour la vue chronologique : changer le joueur sélectionné
+  // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
     showPlayerModal.value = false
-    logger.debug('🎯 Joueur sélectionné pour la vue chronologique:', player.name, player.id)
+    
+    // Charger les disponibilités pour ce joueur spécifique
+    try {
+      logger.debug('🔄 Chargement des disponibilités pour le joueur sélectionné (timeline):', player.name)
+      const playerAvailability = await loadAvailability([player], events.value, seasonId.value)
+      availability.value = playerAvailability
+      logger.debug('🎯 Joueur sélectionné pour la vue chronologique:', player.name, player.id)
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités pour la timeline:', error)
+    }
   } else {
     // Pour les vues lignes/colonnes : remplacer la liste des joueurs par le joueur sélectionné
     selectedPlayerId.value = player.id
@@ -2600,11 +2618,20 @@ async function handlePlayerSelected(player) {
 }
 
 async function handleAllPlayersSelected() {
-  // Pour la vue chronologique : afficher tous les joueurs
+  // Pour la vue chronologique : afficher tous les joueurs et recharger toutes les disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = null
     showPlayerModal.value = false
-    logger.debug('🎯 Affichage de tous les joueurs pour la vue chronologique')
+    
+    // Recharger toutes les disponibilités
+    try {
+      logger.debug('🔄 Rechargement de toutes les disponibilités pour la timeline')
+      const allAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
+      availability.value = allAvailability
+      logger.debug('🎯 Affichage de tous les joueurs pour la vue chronologique')
+    } catch (error) {
+      logger.error('Erreur lors du rechargement des disponibilités pour la timeline:', error)
+    }
   } else {
     // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille et réinitialiser selectedPlayerId
     selectedPlayerId.value = null
@@ -4906,11 +4933,18 @@ const hiddenPlayersDisplayText = computed(() => {
 
 // Computed pour l'affichage dans le dropdown (règles spécifiques)
 const dropdownDisplayText = computed(() => {
-  // Seulement pour les vues lignes et colonnes
+  // Pour la vue timeline, gérer l'affichage basé sur selectedPlayer
   if (validCurrentView.value === 'timeline') {
-    return null
+    if (selectedPlayerId.value && selectedPlayer.value) {
+      // Un joueur spécifique est sélectionné
+      return null // Le nom du joueur sera affiché via selectedPlayer.name
+    } else {
+      // Aucun joueur sélectionné = tous les joueurs
+      return 'Tous'
+    }
   }
   
+  // Pour les vues lignes et colonnes
   const displayedCount = players.value.length
   const totalCount = allSeasonPlayers.value.length
   
