@@ -1,7 +1,7 @@
 <template>
-  <div class="timeline-view bg-gray-900 relative z-[50] pt-6 pb-28">
+  <div class="timeline-view bg-gray-900 relative z-[50] pt-6 pb-28 overflow-x-hidden">
     <!-- Contenu principal -->
-    <div class="timeline-content">
+    <div class="timeline-content w-full">
       
       <!-- Liste des mois avec événements -->
       <div v-for="monthData in groupedEventsByMonth" :key="monthData.monthKey" class="month-section mb-8 max-w-4xl mx-auto px-4">
@@ -19,7 +19,7 @@
         <div
           v-for="event in monthData.events"
           :key="event.id"
-          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative"
+          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative w-full min-w-0"
           @click="$emit('event-click', event)"
         >
           <!-- Date compacte (numéro + jour) -->
@@ -36,14 +36,14 @@
           <div class="separator w-px h-12 bg-gray-600 flex-shrink-0"></div>
           
           <!-- Contenu de l'événement -->
-          <div class="event-content flex-1 flex items-center justify-between gap-2 md:gap-4">
+          <div class="event-content flex-1 flex items-center justify-between gap-2 md:gap-4 min-w-0">
             <!-- Icône du type d'événement centrée verticalement dans toute la zone -->
             <div class="event-icon flex-shrink-0 text-xl flex items-center h-16">
               {{ getEventTypeIcon(event) }}
             </div>
             
             <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0 md:max-w-2xl">
+            <div class="event-title flex-1 min-w-0 max-w-full">
               <div class="text-white font-medium text-base line-clamp-2 leading-tight">
                 {{ event.title || 'Sans titre' }}
               </div>
@@ -60,7 +60,7 @@
             </div>
             
             <!-- Cellule de disponibilité ou avatars de la composition -->
-            <div class="availability-cell flex-shrink-0">
+            <div class="availability-cell flex-shrink-0 max-w-20">
               
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
@@ -646,6 +646,7 @@ export default {
   background-color: #111827;
   min-height: 100vh;
   width: 100%;
+  overflow-x: hidden;
 }
 
 .month-section {
@@ -676,6 +677,7 @@ export default {
 
 .event-item {
   transition: all 0.2s;
+  overflow: hidden;
 }
 
 .event-item:hover {
@@ -690,6 +692,7 @@ export default {
 
 .event-title {
   min-width: 0;
+  overflow: hidden;
 }
 
 .line-clamp-2 {

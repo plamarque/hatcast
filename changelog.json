@@ -1,60 +1,305 @@
 [
   {
+    "version": "0.16.0",
+    "date": "2025-01-18",
+    "changes": [
+      "✨ La vue chronologique est maintenant la vue par défaut pour tous.",
+      "🔧 Les colonnes s'adaptent automatiquement au nombre de joueurs pour une meilleure lisibilité.",
+      "✨ Nouveau badge d'environnement compact dans le pied de page.",
+      "✨ Affichage du nombre de personnes requises quand personne n'est disponible.",
+      "✨ Les avatars des équipes d'événements sont visibles dans la vue chronologique.",
+      "🔧 Pied de page fixe en bas d'écran pour un meilleur confort de navigation.",
+      "🔧 En-têtes collants pour garder les infos importantes toujours visibles.",
+      "✨ Nouvelle fenêtre de sélection de joueurs avec gestion avancée.",
+      "🔧 Amélioration du flux de création de nouveaux participants.",
+      "🔧 Espacement vertical entre les lignes d'événements pour plus de clarté.",
+      "🔧 Suppression des séparateurs de colonnes inutiles pour un design plus épuré.",
+      "🐛 Corrections techniques diverses pour améliorer l'expérience utilisateur."
+    ]
+  },
+  {
+    "version": "0.15.2",
+    "date": "2025-09-15",
+    "changes": [
+      "🐛 Restauration des boutons admin dans le fenêtre de détail de joueur après l'introduction du système de rôles.",
+      "🐛 Préservation des joueurs refusés lors de la finalisation de la sélection.",
+      "🐛 Affichage continu du statut refusé sur la grille."
+    ]
+  },
+  {
+    "version": "0.15.1",
+    "date": "2025-09-15",
+    "changes": [
+      "🐛 Amélioration de l'affichage de disponibilité et du rafraîchissement en temps réel.",
+      "🐛 Plus de changements automatiques de disponibilité quand tu enlèves un joueur de la sélection.",
+      "🐛 Correction de drawForRole pour mieux filtrer les candidats avec allSeasonPlayers.",
+      "🔧 Amélioration de la gestion des timestamps et récupération des logs.",
+      "📝 La base de données exemple est maintenant configurée en développement pour ta sécurité."
+    ]
+  },
+  {
+    "version": "0.15.0",
+    "date": "2025-09-15",
+    "changes": [
+      "🔧 Amélioration de l'affichage des avatars sur desktop",
+      "✨ Ajout d'un bouton pour voir la compo dans le fenêtre de détails de l'événement",
+      "🔧 Optimisation du chargement des associations de joueurs et ajout d'outils de migration",
+      "✨ Firebase fonctionne maintenant hors ligne avec cache et écouteurs de synchronisation",
+      "✨ Gestion avancée des joueurs avec le composant 'Afficher Plus/Moins'",
+      "🔧 Le créateur de saison est maintenant automatiquement assigné comme admin",
+      "🔧 Les badges des joueurs sont déplacés sous leur nom dans le fenêtre",
+      "🔧 Amélioration de la densité de la grille et visibilité des icônes de saison",
+      "🔧 Les icônes de basculement sont remplacées par des flèches en L formant un symbole de recyclage",
+      "🔧 Optimisation de la mise en page du header mobile",
+      "🐛 Correction de l'affichage du statut de confirmation spécifique au rôle",
+      "🐛 Corrections techniques diverses"
+    ]
+  },
+  {
+    "version": "0.14.1",
+    "date": "2025-09-14",
+    "changes": [
+      "🔧 Amélioration du design de l'en-tête de saison et optimisation du toggle de la grille",
+      "🐛 Ajout de l'icône d'événement au titre de l'événement",
+      "🐛 Mise à jour du changelog avec le dernier commit de version",
+      "🔧 Amélioration de la hauteur des cellules de la grille sur desktop et mobile",
+      "🔧 Amélioration de l'espacement et de la mise en page des cellules de la grille",
+      "🔧 Renforcement du poids de la police pour les noms des joueurs dans les en-têtes de la grille",
+      "🔧 Réduction du padding mobile pour un meilleur affichage des caractères"
+    ]
+  },
+  {
+    "version": "0.14.0",
+    "date": "2025-09-14",
+    "changes": [
+      "🔧 Amélioration de l'affichage avec de nouvelles icônes pour basculer entre la grille et la liste",
+      "🔧 Filtrage des événements passés et inactifs pour une meilleure expérience utilisateur",
+      "🔧 Remplacement des emojis par des icônes SVG plus claires pour une navigation simplifiée",
+      "🔧 Optimisation de l'interface mobile avec un meilleur agencement des éléments",
+      "✨ Ajout de zones sécurisées pour une compatibilité avec l'encoche iPhone",
+      "✨ Ajout d'un champ de localisation optionnel aux événements avec intégration Google Maps",
+      "✨ Amélioration de l'intégration calendrier avec des détails d'événements plus clairs",
+      "🔧 Centralisation de la gestion des rôles pour une meilleure accessibilité aux fonctionnalités",
+      "🐛 Corrections diverses pour améliorer la gestion des sélections et des compositions",
+      "✨ Ajout d'un système de tri pour les versions de changelog et une nouvelle architecture orientée utilisateur",
+      "🔧 Amélioration de l'UI/UX mobile et optimisation des performances",
+      "🐛 Résolution de problèmes de vérification de token et gestion des erreurs"
+    ]
+  },
+  {
+    "version": "0.13.0",
+    "date": "2025-09-14",
+    "changes": [
+      "✨ Nouveaux icônes SVG pour basculer entre la grille et la liste, c'est plus clair !",
+      "✨ Gestion des rôles améliorée : maintenant, ça fonctionne aussi pour les boutons d'annonce et de composition.",
+      "✨ Système de contrôle d'accès basé sur les rôles pour une meilleure sécurité.",
+      "🔧 Déplacement des boutons de contrôle dans l'en-tête de la grille pour une navigation plus fluide.",
+      "🔧 Optimisation de l'interface mobile avec un meilleur agencement des éléments de navigation.",
+      "✨ Ajout d'un support pour les zones sûres, parfait pour les iPhones avec encoches.",
+      "✨ Ajout d'un champ de localisation optionnel pour les événements, avec intégration de Google Maps.",
+      "🔧 Amélioration de l'intégration du calendrier avec des détails confirmés sur l'équipe et l'événement.",
+      "🐛 Corrections diverses pour améliorer la robustesse et la logique de détection des rôles.",
+      "🐛 Corrections d'affichage et d'alignement pour une interface plus agréable.",
+      "🔧 Améliorations de la gestion des créneaux et des statuts pour une expérience utilisateur plus fluide.",
+      "✨ Nouveau type de show Long Form avec 4 joueurs, 1 MC et 1 DJ pour plus de variété."
+    ]
+  },
+  {
+    "version": "0.12.0",
+    "date": "2025-09-12",
+    "changes": [
+      "✨ Tu peux maintenant voir les détails des événements selon ton rôle, avec une meilleure présentation des informations !",
+      "✨ On a rendu la vue plus accessible pour tous, tu peux facilement basculer entre les affichages !",
+      "✨ Ta navigation sur mobile est plus fluide que jamais, et on a élargi la colonne des noms des joueurs pour plus de confort !",
+      "✨ Les événements peuvent maintenant avoir un champ de localisation en option, avec intégration Google Maps pour te guider !",
+      "✨ Le calendrier est encore plus pratique avec des détails confirmés sur les équipes et les événements !",
+      "🔧 On a amélioré la façon dont on te présente les changements, c'est plus clair et centré sur toi !",
+      "✨ Tu peux maintenant remplir manuellement les emplacements même quand la composition est verrouillée, c'est la liberté !",
+      "🔧 On a harmonisé le système d'audit avec la terminologie 'cast', pour que tout soit plus cohérent !",
+      "✨ Tu peux maintenant voir les pourcentages de chances selon les rôles dans la fenêtre des détails de l'événement !",
+      "✨ On a ajouté un système de priorités pour les rôles dans les sélections, pour que tout soit bien organisé !",
+      "✨ Tu peux maintenant cliquer sur la version dans le pied de page pour voir les changements récents, pratique non ?",
+      "🔧 On a réorganisé le pied de page pour que tout soit plus joli et facile à trouver !",
+      "🔧 La présentation des joueurs dans la fenêtre des événements est améliorée, pour une meilleure expérience !",
+      "✨ On a intégré une génération de changelog alimentée par OpenAI, pour te donner des infos encore plus pertinentes !",
+      "🐛 On a corrigé des problèmes d'affichage pour que tout soit bien aligné et fonctionnel, même en mode inversé !",
+      "🐛 Les joueurs qui déclinent ne seront plus affichés dans les sélections, c'est plus clair pour toi !",
+      "🐛 On a corrigé des bugs qui empêchaient la mise à jour des statuts de sélection, tout est maintenant synchronisé !",
+      "🐛 On a amélioré la vérification de disponibilité des joueurs pour les événements multi-rôles, tout est plus fiable !",
+      "🐛 On a corrigé des problèmes d'affichage dans les fenêtrees pour que tu ne rates rien !",
+      "🐛 On a veillé à ce que le pied de page soit toujours visible sur la page d'aide, pour que tu trouves ce dont tu as besoin !",
+      "🐛 On a corrigé des erreurs de gestion des slots pour que tout fonctionne comme sur des roulettes !",
+      "🔧 On a migré vers une nouvelle architecture de changelog pour te donner une expérience encore meilleure !"
+    ]
+  },
+  {
+    "version": "0.11.0",
+    "date": "2025-09-11",
+    "changes": [
+      "✨ Remplis manuellement les emplacements dans les sélections verrouillées.",
+      "🔧 Amélioration de la gestion des types de modèles pour mieux protéger ta personnalisation.",
+      "✨ Nouveau système d'audit pour les sélections, avec la terminologie 'composition'.",
+      "✨ Sélection complète ajoutée et messages d'interface utilisateur améliorés.",
+      "✨ Système de priorités de rôles pour les sélections maintenant disponible.",
+      "📝 Ajout d'une section sur le système multi-rôles dans l'aide générale.",
+      "✨ Version cliquable dans le pied de page avec un fenêtre de changelog.",
+      "🔧 Réorganisation du pied de page pour une meilleure navigation.",
+      "🔧 Amélioration de la mise en page des joueurs dans le fenêtre d'événements.",
+      "🔧 Optimisation de l'affichage mobile du fenêtre d'événements.",
+      "✨ Ajout de pourcentages de chances basés sur les rôles dans le fenêtre de détails de l'événement.",
+      "✨ Génération de changelog centrée sur l'utilisateur avec OpenAI.",
+      "✨ Système de tri dual pour l'ordre des versions du changelog.",
+      "🔧 Remplacement de 'Sélection' par 'Composition' dans l'interface et la doc.",
+      "🔧 Utilisation du genre des joueurs pour les étiquettes de rôle dans les cellules de disponibilité.",
+      "✨ Nouveau type de spectacle Long Form avec 4 joueurs, 1 MC, 1 DJ.",
+      "🐛 Correction des couleurs des emplacements et détection des joueurs refusés.",
+      "🐛 Correction de la gestion des emplacements et des mises à jour de statut dans le fenêtre de sélection.",
+      "🐛 Vérification de disponibilité des joueurs pour les événements multi-rôles corrigée.",
+      "🐛 Amélioration de l'interface pour les sélections incomplètes avec un message simplifié.",
+      "🐛 Lisibilité du changelog améliorée avec un langage centré sur l'utilisateur."
+    ]
+  },
+  {
+    "version": "0.10.0",
+    "date": "2025-09-10",
+    "changes": [
+      "✨ Nouvelle section sur le système multi-rôles dans l'aide générale",
+      "✨ Système de priorité des rôles pour les sélections ajouté",
+      "✨ Version cliquable dans le pied de page avec un fenêtre de changelog",
+      "🔧 Réorganisation et amélioration de la mise en page du pied de page",
+      "🔧 Optimisation de la mise en page mobile du fenêtre d'événement pour les joueurs",
+      "✨ Pourcentages de chances basés sur les rôles ajoutés dans le fenêtre de détails de l'événement",
+      "✨ Génération de changelog centrée sur l'utilisateur alimentée par OpenAI",
+      "🔧 Nouvelle architecture de changelog avec intégration OpenAI",
+      "🔧 Système de tri double pour l'ordre des versions du changelog ajouté",
+      "🔧 Remplacement des badges de statut de composition par des badges de type d'événement",
+      "🔧 'Sélection' remplacé par 'Composition' dans l'interface et la documentation",
+      "🔧 Unification des systèmes de réinitialisation de mot de passe sur Firebase Auth",
+      "🔧 Utilisation du genre des joueurs pour les étiquettes de rôle dans les cellules de disponibilité",
+      "✨ Ajout d'un type de spectacle Long Form avec 4 joueurs, 1 MC, 1 DJ",
+      "🐛 Correction de la visibilité du pied de page sur la page d'aide",
+      "🐛 Ajout du pied de page manquant sur les pages de saisons et d'aide",
+      "🐛 Prévention du défilement masquant les boutons du fenêtre d'événement",
+      "🐛 Gestion des refus des joueurs dans la logique de statut de sélection",
+      "🐛 Correction de la vérification de disponibilité des joueurs pour les événements multi-rôles",
+      "🐛 Amélioration de l'interface de sélection incomplète en supprimant un message redondant",
+      "🐛 Correction du calcul de requiredCount pour les événements multi-rôles",
+      "🐛 Amélioration de la lisibilité du changelog avec un langage centré sur l'utilisateur"
+    ]
+  },
+  {
+    "version": "0.9.4",
+    "date": "2025-09-09",
+    "changes": [
+      "✨ Ajout de pourcentages de chance basés sur les rôles avec un bouton bascule dans le détail des événements",
+      "✨ Génération de changelog centrée sur l'utilisateur alimentée par OpenAI",
+      "🔧 Nouvelle architecture de changelog intégrant OpenAI",
+      "🔧 Système de tri dual pour l'ordre des versions du changelog",
+      "🔧 Remplacement des badges de statut de composition par des badges de type d'événement dans l'en-tête de la grille",
+      "🔧 Remplacement de 'Sélection' par 'Composition' dans l'interface et la documentation",
+      "🔧 Unification des systèmes de réinitialisation de mot de passe sur Firebase Auth",
+      "🔧 Utilisation du genre des joueurs pour les étiquettes de rôle dans les cellules de disponibilité",
+      "✨ Ajout d'un type de spectacle Long Form avec 4 joueurs, 1 MC, 1 DJ",
+      "🐛 Correction de la vérification double du mot de passe dans le flux d'édition des joueurs",
+      "🐛 Utilisation du genre des joueurs pour les étiquettes de rôle dans les fenêtrees de disponibilité",
+      "🐛 Amélioration de la lisibilité du changelog avec un langage centré sur l'utilisateur"
+    ]
+  },
+  {
+    "version": "0.9.3",
+    "date": "2025-09-08",
+    "changes": [
+      "✨ Ajout d'un nouveau format Long Form (4 joueurs, 1 MC, 1 DJ)",
+      "🔧 Amélioration de l'affichage des rôles avec adoption du féminin/masculin et inclusif",
+      "🔧 Simplification de la réinitialisation de mot de passe pour une meilleure sécurité",
+      "🐛 Corrections des problèmes de superposition de fenêtres et d'interface",
+      "🐛 Amélioration de la stabilité de l'application au démarrage",
+      "🐛 Résolution des problèmes de connexion et d'authentification",
+      "🔧 Optimisation des performances et de la réactivité de l'interface"
+    ]
+  },
+  {
+    "version": "0.9.2",
+    "date": "2025-09-07",
+    "changes": [
+      "🔧 Amélioration des préférences de rôle pour les joueurs favoris",
+      "🔧 Refonte complète de la fenêtre de disponibilité pour plus de clarté",
+      "✨ Personnalisation des avatars avec icône d'édition",
+      "🔧 Amélioration de l'affichage des rôles avec libellés centrés",
+      "🐛 Sécurisation de l'édition des joueurs avec vérification de mot de passe",
+      "🐛 Correction du terme « volontaire » en « bénévole »",
+      "🐛 Résolution des problèmes de superposition de fenêtres",
+      "🔧 Amélioration du positionnement des menus de filtres"
+    ]
+  },
+  {
+    "version": "0.9.3",
+    "date": "2025-09-08",
+    "changes": [
+      "✨ Ajout d'un nouveau format Long Form (4 joueurs, 1 MC, 1 DJ)",
+      "🔧 Amélioration de l'affichage des rôles avec adoption du féminin/masculin et inclusif",
+      "🔧 Simplification de la réinitialisation de mot de passe pour une meilleure sécurité",
+      "🐛 Corrections des problèmes de superposition de fenêtres et d'interface",
+      "🐛 Amélioration de la stabilité de l'application au démarrage",
+      "🐛 Résolution des problèmes de connexion et d'authentification",
+      "🔧 Optimisation des performances et de la réactivité de l'interface"
+    ]
+  },
+  {
+    "version": "0.9.2",
+    "date": "2025-09-07",
+    "changes": [
+      "🔧 Amélioration des préférences de rôle pour les joueurs favoris",
+      "🔧 Refonte complète de la fenêtre de disponibilité pour plus de clarté",
+      "✨ Personnalisation des avatars avec icône d'édition",
+      "🔧 Amélioration de l'affichage des rôles avec libellés centrés",
+      "🐛 Sécurisation de l'édition des joueurs avec vérification de mot de passe",
+      "🐛 Correction du terme « volontaire » en « bénévole »",
+      "🐛 Résolution des problèmes de superposition de fenêtres",
+      "🔧 Amélioration du positionnement des menus de filtres"
+    ]
+  },
+  {
     "version": "0.9.1",
     "date": "2025-09-05",
     "changes": [
-      "🐛 correction des problèmes d'affichage du journal des modifications dans la page d'aide"
+      "🐛 Correction de l'affichage du journal des modifications dans l'aide"
     ]
   },
   {
     "version": "0.9.0",
     "date": "2025-09-04",
     "changes": [
-      "✨ ajout d'un système complet de journal des modifications avec traduction automatique et gestion des versions",
-      "✨ ajout d'un script de déploiement de production intelligent avec versioning automatique et mode dry-run",
-      "✨ ajout de l'authentification Google et du système d'affichage des avatars",
-      "✨ ajout du système de protection des joueurs avec disponibilité multi-rôles et flux de confirmation",
-      "✨ ajout d'un système de filtrage avancé avec interface dropdown",
-      "✨ ajout d'une piste d'audit complète et d'outils de développement",
-      "✨ ajout du support PWA avec invites d'installation et notifications push",
-      "✨ ajout d'un système d'aide complet et d'intégration utilisateur",
-      "✨ ajout de la gestion des événements et de la fonctionnalité d'archivage",
-      "🔧 amélioration de la centralisation de la détection d'environnement et de la configuration CORS",
-      "🔧 amélioration de la migration vers firestoreService pour une meilleure gestion des données",
-      "🔧 amélioration de la réactivité mobile et de la cohérence de l'interface utilisateur",
-      "🔧 amélioration de l'optimisation des performances et de la réduction de la duplication de code",
-      "🔧 amélioration de l'interface mobile et du design responsive",
-      "🐛 correction du flux de protection des joueurs et d'authentification",
-      "🐛 correction des problèmes d'interface mobile et de positionnement des modales",
-      "🐛 correction des problèmes de synchronisation des données et de gestion d'état",
-      "📝 documentation : mise à jour de la documentation de déploiement avec des permissions IAM complètes",
-      "📝 documentation : ajout de directives de message de commit suivant les commits conventionnels",
-      "📝 tâche : ajout d'une suite de tests automatisés avec Playwright",
-      "📝 tâche : ajout de workflows de déploiement spécifiques à l'environnement (développement/staging/production)",
-      "📝 tâche : migration complète vers firestoreService et nettoyage du code legacy",
-      "📝 correction des problèmes de migration Firebase et des conflits de base de données",
-      "📝 correction des conflits de déploiement et de workflow"
+      "✨ Ajout de l'authentification Google avec affichage des avatars pour te connecter facilement.",
+      "✨ Système de protection des joueurs avec confirmation multi-rôles pour plus de sécurité.",
+      "✨ Filtres avancés avec menu déroulant pour faciliter ta recherche.",
+      "✨ Support appli mobile : installation sur mobile et notifications push pour rester informé.",
+      "✨ Système d'aide complet et journal des modifications pour t'accompagner.",
+      "✨ Gestion des événements avec fonctionnalité d'archivage pour ne rien perdre.",
+      "🐛 Corrections des problèmes de connexion et d'authentification pour une expérience plus fluide.",
+      "🐛 Amélioration de l'interface mobile et du positionnement des fenêtres pour une navigation plus agréable.",
+      "🐛 Résolution des problèmes de synchronisation des données pour que tout soit à jour.",
+      "🔧 Optimisation des performances et de la réactivité mobile pour une utilisation plus rapide.",
+      "🔧 Amélioration de la stabilité et de la cohérence de l'interface pour éviter les bugs."
     ]
   },
   {
     "version": "0.8.0",
     "date": "2025-08-04",
     "changes": [
-      "✨ ajout d'un système complet de gestion et de protection des joueurs",
-      "✨ ajout de la gestion des saisons et des événements avec suivi de disponibilité",
-      "✨ ajout d'un design responsive mobile-first avec support PWA",
-      "✨ ajout des notifications push et du système de notifications par email",
-      "✨ ajout de l'authentification utilisateur et de la gestion des comptes",
-      "✨ ajout de l'algorithme de sélection automatique et du système de rappels",
-      "✨ ajout d'une piste d'audit complète et d'outils de développement",
-      "🐛 correction des problèmes de sélection de disponibilité et d'authentification",
-      "🐛 correction des problèmes d'affichage de l'interface et de synchronisation des données",
-      "🐛 correction des problèmes d'envoi d'emails et de navigation",
-      "🔧 amélioration de la réactivité mobile et de l'expérience utilisateur",
-      "🔧 amélioration de l'optimisation des performances et des requêtes de base de données",
-      "🔧 amélioration de la sécurité et des performances de chargement",
-      "🎨 implémentation d'un design moderne mobile-first avec support PWA",
-      "🎨 amélioration de l'accessibilité, de la facilité d'utilisation et du design visuel"
+      "✨ Nouveau système complet pour gérer et protéger les joueurs",
+      "✨ Gestion des saisons et événements avec suivi de disponibilité",
+      "🔧 Design responsive optimisé pour mobile avec installation d'appli",
+      "✨ Notifications push et par email pour les rappels",
+      "🔧 Authentification utilisateur et gestion des comptes améliorées",
+      "✨ Algorithme de sélection automatique et système de rappels",
+      "🐛 Corrections des problèmes de sélection de disponibilité",
+      "🐛 Corrections des problèmes d'authentification",
+      "🐛 Amélioration de l'affichage et de la synchronisation des données",
+      "🐛 Corrections des problèmes d'envoi d'emails et de navigation",
+      "🔧 Optimisation des performances et de la réactivité mobile",
+      "🔧 Amélioration de la sécurité et des performances de chargement",
+      "🎨 Design moderne et accessible optimisé pour mobile"
     ]
   }
 ]

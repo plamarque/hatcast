@@ -30,11 +30,27 @@ async function generateUserFocusedChangelog(technicalJson, version) {
     const prompt = `Traduis ces changements techniques en français utilisateur, style décontracté et direct (utilise "tu", "on"). 
 
 RÈGLES IMPORTANTES :
+- REGROUPE les changements similaires en grandes catégories (max 8-12 points au total)
+- ÉVITE les détails techniques de mise en page, CSS, props, etc.
+- CONCENTRE-TOI sur les vraies nouveautés et améliorations visibles par l'utilisateur
+- REMPLACE "modal/modale" par "fenêtre" pour plus de clarté utilisateur
+- REMPLACE les noms techniques de composants par des descriptions user-friendly :
+  * "PlayerModal" → "fenêtre de détail de joueur"
+  * "EventDetailsModal" → "fenêtre de détail d'événement"
+  * "SelectionModal" → "fenêtre de sélection"
+  * "AvailabilityModal" → "fenêtre de disponibilité"
+  * "ViewHeader" → "en-tête de vue"
+  * "AvailabilityCell" → "cellule de disponibilité"
 - Garde les termes techniques comme "MC", "DJ", "compo", "Long Form", etc.
 - Utilise les emojis appropriés : ✨ pour les nouvelles fonctionnalités, 🐛 pour les corrections, 🔧 pour les améliorations, 📝 pour les autres
 - Réponds UNIQUEMENT avec le JSON suivant, sans texte avant ou après
 - Chaque changement doit être une chaîne de caractères valide JSON (échapper les guillemets)
 - Ne mets PAS de guillemets autour du JSON entier
+
+EXEMPLES DE REGROUPEMENT :
+- Au lieu de "Correction du padding mobile" + "Amélioration de l'espacement" → "🔧 Amélioration de l'affichage mobile"
+- Au lieu de "Ajout de props manquantes" + "Correction des types" → "🐛 Corrections techniques diverses"
+- Au lieu de 20 corrections CSS → "🔧 Améliorations de l'interface utilisateur"
 
 Changements à traduire :
 ${changesText}
