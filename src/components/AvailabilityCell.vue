@@ -34,32 +34,44 @@
       
       <!-- Contenu normal -->
       <template v-else>
-        <!-- Texte du statut -->
-        <span v-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'confirmed'" class="text-center">
-          {{ getConfirmedRoleLabel() }}
-        </span>
-        <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'pending'" class="text-center">
-          À confirmer
-        </span>
-        <span v-else-if="isSelected && isAvailable === true && playerSelectionStatus === 'declined'" class="text-center">
-          Décliné
-        </span>
-        <span v-else-if="isAvailable === true" class="text-center">
-          Dispo
-        </span>
-        <span v-else-if="isAvailable === false" class="text-center">
-          Pas dispo
-        </span>
-        <span v-else class="text-center text-gray-400">
-          Non renseigné
-        </span>
+        <!-- Affichage avec confirmation (2 lignes) -->
+        <template v-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer">
+          <!-- Ligne 1: Icône rôle + nom du rôle ou "Décliné" -->
+          <div class="flex items-center gap-1 text-center">
+            <span class="text-lg">
+              {{ playerSelectionStatus === 'pending' ? '❓' : getRoleEmoji() }}
+            </span>
+            <span class="text-sm font-medium">
+              {{ playerSelectionStatus === 'declined' ? 'Décliné' : getConfirmedRoleLabel() }}
+            </span>
+          </div>
+          
+          <!-- Ligne 2: Statut de confirmation (seulement pour à confirmer) -->
+          <div v-if="playerSelectionStatus === 'pending'" class="text-xs text-center mt-1">
+            [à confirmer]
+          </div>
+          <!-- Pas de ligne 2 pour confirmé et décliné -->
+        </template>
+        
+        <!-- Affichage classique sans confirmation -->
+        <template v-else>
+          <span v-if="isAvailable === true" class="text-center">
+            Dispo
+          </span>
+          <span v-else-if="isAvailable === false" class="text-center">
+            Pas dispo
+          </span>
+          <span v-else class="text-center text-gray-400">
+            Non renseigné
+          </span>
+        </template>
       </template>
       
       <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
-      <!-- Afficher tous les rôles et l'icône de commentaire -->
-      <template v-if="isAvailable === true && hasSpecificRoles">
+      <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation) -->
+      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && isSelectionConfirmedByOrganizer)">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
@@ -95,7 +107,7 @@
       </template>
       
       <!-- Icône commentaire seule (quand pas de rôles spécifiques) -->
-      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment">
+      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && isSelectionConfirmedByOrganizer)">
         <div class="flex items-center justify-center mt-1">
           <span 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"
@@ -305,6 +317,17 @@ function getConfirmedRoleLabel() {
   // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
   const role = props.availabilityData.roles[0]
   return getRoleLabel(role, props.playerGender, false) || 'Joue'
+}
+
+// Fonction pour obtenir l'emoji du rôle confirmé
+function getRoleEmoji() {
+  if (!props.availabilityData?.roles || props.availabilityData.roles.length === 0) {
+    return '🎭' // Fallback si pas de rôle
+  }
+  
+  // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
+  const role = props.availabilityData.roles[0]
+  return ROLE_EMOJIS[role] || '🎭'
 }
 
 const shouldShowChance = computed(() => {
