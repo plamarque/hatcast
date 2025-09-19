@@ -497,19 +497,39 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
 
   const { getPlayerEmail } = await import('./playerProtection.js')
   const { createMagicLink } = await import('./magicLinks.js')
+  const { getPlayerCastStatus } = await import('./castService.js')
   const eventUrl = `${window.location.origin}/season/${seasonSlug}/event/${eventId}`
   
-  // Créer la liste des joueurs sélectionnés
-  const playersList = selectedPlayers.join(', ')
+  // Récupérer la composition pour vérifier les statuts de confirmation
+  const cast = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
+  
+  // Filtrer les joueurs : ne notifier que ceux qui sont "à confirmer" (statut 'pending')
+  const playersToNotify = selectedPlayers.filter(playerName => {
+    const status = getPlayerCastStatus(cast, playerName, players)
+    return status === 'pending'
+  })
+  
+  if (playersToNotify.length === 0) {
+    logger.info('Aucun joueur à notifier (tous ont déjà confirmé ou décliné)')
+    return { success: true, skipped: true, reason: 'all_players_already_responded' }
+  }
+  
+  // Créer la liste des joueurs à notifier
+  const playersList = playersToNotify.join(', ')
   
   const subject = isConfirmedTeam 
     ? `🎉 Équipe confirmée pour · ${eventData.title}`
     : `🎭 Confirme ta participation pour · ${eventData.title}`
 
-  // Envoyer un email personnalisé à chaque joueur sélectionné
+  logger.info(`Envoi de notifications à ${playersToNotify.length} personnes sur ${selectedPlayers.length} sélectionnées`, {
+    playersToNotify,
+    totalSelected: selectedPlayers.length
+  })
+
+  // Envoyer un email personnalisé à chaque joueur à notifier
   const emailPromises = []
   
-  for (const playerName of selectedPlayers) {
+  for (const playerName of playersToNotify) {
     logger.debug('Traitement du joueur', { playerName })
     try {
       // Trouver le joueur dans la liste des joueurs

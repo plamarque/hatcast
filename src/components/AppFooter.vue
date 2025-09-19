@@ -1,51 +1,32 @@
 <template>
-  <footer class="bg-gray-900 border-t border-white/10 backdrop-blur-sm fixed bottom-0 left-0 right-0 z-[50]">
-    <div class="max-w-7xl mx-auto px-4 py-6">
-      <!-- Mobile: Layout en 2 lignes pour réduire la hauteur -->
+  <footer class="bg-gray-900 border-t border-white/10 backdrop-blur-sm fixed bottom-0 left-0 right-0 z-[50] w-full">
+    <div class="w-full px-2 sm:px-4 py-4 sm:py-6 overflow-hidden">
+      <div class="max-w-7xl mx-auto w-full">
+      <!-- Mobile: Layout en une seule ligne simplifiée -->
       <div class="block md:hidden">
-        <div class="flex flex-wrap justify-center items-center gap-1 text-xs text-gray-300">
-          <!-- Ligne 1: HatCast + Aide + Contact + Copyright -->
-          <span class="text-white font-medium">HatCast</span>
+        <div class="flex flex-wrap justify-center items-center gap-1 text-xs text-gray-300 min-w-0">
+          <!-- HatCast + Aide + Version + Copyright + Badge environnement -->
+          <span class="text-white font-medium whitespace-nowrap">HatCast</span>
           <span class="text-gray-500">•</span>
           <button 
             @click="$emit('open-help')" 
-            class="text-gray-300 hover:text-white transition-colors"
+            class="text-gray-300 hover:text-white transition-colors whitespace-nowrap"
           >
             Aide
           </button>
           <span class="text-gray-500">•</span>
-          <a 
-            href="mailto:impropick@gmail.com" 
-            class="text-gray-300 hover:text-white transition-colors"
-          >
-            Contact
-          </a>
-          <span class="text-gray-500">•</span>
-          <span>&copy; 2025</span>
-        </div>
-        <div class="flex flex-wrap justify-center items-center gap-1 text-xs text-gray-300 mt-1">
-          <!-- Ligne 2: GitHub + Licence + Version + Badge environnement -->
-          <a 
-            href="https://github.com/plamarque/hatcast" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="text-gray-300 hover:text-white transition-colors"
-          >
-            GitHub
-          </a>
-          <span class="text-gray-500">•</span>
-          <span>Licence MIT</span>
-          <span class="text-gray-500">•</span>
           <button 
             @click="showChangelog = true"
-            class="text-gray-300 hover:text-white transition-colors cursor-pointer"
+            class="text-gray-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
             :title="`Voir les nouveautés de la version ${appVersion}`"
           >
             v{{ appVersion }}
           </button>
+          <span class="text-gray-500">•</span>
+          <span class="whitespace-nowrap">&copy; 2025</span>
           <span 
             v-if="environment !== 'production'"
-            class="px-2 py-1 text-xs font-medium rounded ml-1"
+            class="px-2 py-1 text-xs font-medium rounded ml-1 whitespace-nowrap"
             :class="environmentBadgeClass"
           >
             {{ getEnvironmentAbbreviation(environment) }}
@@ -109,6 +90,7 @@
             {{ getEnvironmentAbbreviation(environment) }}
           </span>
         </div>
+      </div>
       </div>
     </div>
   </footer>

@@ -152,7 +152,7 @@ class ConfigService {
         },
         email: {
           service: 'ethereal',
-          capture: true,
+          capture: false,
           from: {
             name: 'HatCast Dev',
             email: 'dev@ethereal.email',

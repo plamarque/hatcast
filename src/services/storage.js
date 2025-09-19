@@ -5,7 +5,7 @@ import firestoreService from './firestoreService.js'
 import { LABELS } from '../constants/labels.js'
 
 // Fonctions utilitaires pour la migration vers les IDs de joueurs
-async function getPlayerIdByName(playerName, seasonId) {
+export async function getPlayerIdByName(playerName, seasonId) {
   // Récupérer tous les joueurs et trouver l'ID correspondant au nom
   const players = await firestoreService.getDocuments('seasons', seasonId, 'players')
   const player = players.find(p => p.name === playerName)
@@ -1049,15 +1049,19 @@ export async function setEventArchived(eventId, archived, seasonId) {
  */
 export async function updatePlayerCastStatus(eventId, playerId, status, seasonId) {
   logger.info('🔄 updatePlayerCastStatus appelé:', { eventId, playerId, status, seasonId })
+  console.log('🔍 DEBUG updatePlayerCastStatus - Début:', { eventId, playerId, status, seasonId })
   
   try {
     // Récupérer la composition actuelle pour vérifier l'état global
     const castDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
+    console.log('🔍 DEBUG updatePlayerCastStatus - CastDoc récupéré:', castDoc)
+    
     if (!castDoc) {
       throw new Error('Composition non trouvée')
     }
     
     const { playerStatuses = {} } = castDoc
+    console.log('🔍 DEBUG updatePlayerCastStatus - PlayerStatuses actuels:', playerStatuses)
     
     // Mettre à jour le statut du joueur
     const updatedPlayerStatuses = { ...playerStatuses, [playerId]: status }

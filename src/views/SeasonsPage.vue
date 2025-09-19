@@ -155,8 +155,6 @@
       @close-development-modal="showDevelopmentModal = false"
     />
 
-    <!-- Footer principal -->
-    <AppFooter @open-help="openHelp" />
   </div>
 </template>
 
@@ -169,7 +167,6 @@ import { currentUser, isConnected } from '../services/authState.js'
 import { clearLastSeasonPreference } from '../services/seasonPreferences.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
 import AppHeader from '../components/AppHeader.vue'
-import AppFooter from '../components/AppFooter.vue'
 import CreateSeasonModal from '../components/CreateSeasonModal.vue'
 import ModalManager from '../components/ModalManager.vue'
 import SeasonCard from '../components/SeasonCard.vue'

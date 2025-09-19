@@ -100,6 +100,7 @@
             @toggle="toggleAvailability"
             @toggle-selection-status="toggleSelectionStatus"
             @show-availability-modal="openAvailabilityModal"
+            @show-confirmation-modal="openConfirmationModal"
           />
         </td>
         
@@ -346,6 +347,10 @@ const toggleSelectionStatus = (playerName, eventId, status, seasonId) => {
 
 const openAvailabilityModal = (data) => {
   emit('show-availability-modal', data)
+}
+
+const openConfirmationModal = (data) => {
+  emit('show-confirmation-modal', data)
 }
 
 const openEventModal = (event) => {
