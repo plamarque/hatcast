@@ -47,8 +47,8 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { auth, db } from '../services/firebase.js'
-import { doc, getDoc } from 'firebase/firestore'
+import { auth } from '../services/firebase.js'
+import firestoreService from '../services/firestoreService.js'
 import { listAssociationsForEmail } from '../services/playerProtection.js'
 import PlayerAvatar from './PlayerAvatar.vue'
 
@@ -77,9 +77,8 @@ async function loadData() {
       let playerName = a.playerId
       try {
         if (a.seasonId) {
-          const playerRef = doc(db, 'seasons', a.seasonId, 'players', a.playerId)
-          const snap = await getDoc(playerRef)
-          if (snap.exists()) playerName = snap.data().name || playerName
+          const playerDoc = await firestoreService.getDocument('seasons', a.seasonId, 'players', a.playerId)
+          if (playerDoc) playerName = playerDoc.name || playerName
         }
       } catch {}
       enriched.push({ ...a, playerName })

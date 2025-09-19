@@ -141,6 +141,7 @@ class FirestoreService {
   async getDocument(collectionName, docId, ...pathSegments) {
     try {
       const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
+      
       const snapshot = await getDoc(docRef)
       if (snapshot.exists()) {
         return { id: snapshot.id, ...snapshot.data() }
