@@ -829,8 +829,6 @@
     </div>
     </div>
 
-  <!-- Footer principal -->
-  <AppFooter @open-help="goToHelpPage" />
 
   <!-- Composant de debug des performances -->
   <PerformanceDebug v-if="performanceService.isEnabled" />
@@ -1644,7 +1642,6 @@ import ConfirmationModal from './ConfirmationModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
-import AppFooter from './AppFooter.vue'
 import TimelineView from './TimelineView.vue'
 import ParticipantsView from './ParticipantsView.vue'
 import EventsView from './EventsView.vue'
