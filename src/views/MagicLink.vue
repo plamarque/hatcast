@@ -371,9 +371,16 @@ onMounted(async () => {
     // Si le joueur décline sa participation à la sélection
     if (action === 'decline') {
       try {
+        // Convertir le nom de joueur en ID
+        const { getPlayerIdByName } = await import('../services/storage.js')
+        const playerId = await getPlayerIdByName(playerName, seasonId)
+        if (!playerId) {
+          throw new Error(`Joueur non trouvé: ${playerName}`)
+        }
+        
         // Mettre à jour le statut du joueur dans la sélection
         const { updatePlayerCastStatus } = await import('../services/storage.js')
-        await updatePlayerCastStatus(eventId, playerName, 'declined', seasonId)
+        await updatePlayerCastStatus(eventId, playerId, 'declined', seasonId)
         console.log('✅ Statut du joueur mis à jour : declined')
       } catch (error) {
         console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
@@ -383,9 +390,16 @@ onMounted(async () => {
     // Si le joueur confirme sa participation à la sélection
     if (action === 'confirm') {
       try {
+        // Convertir le nom de joueur en ID
+        const { getPlayerIdByName } = await import('../services/storage.js')
+        const playerId = await getPlayerIdByName(playerName, seasonId)
+        if (!playerId) {
+          throw new Error(`Joueur non trouvé: ${playerName}`)
+        }
+        
         // Mettre à jour le statut du joueur dans la sélection
         const { updatePlayerCastStatus } = await import('../services/storage.js')
-        await updatePlayerCastStatus(eventId, playerName, 'confirmed', seasonId)
+        await updatePlayerCastStatus(eventId, playerId, 'confirmed', seasonId)
         console.log('✅ Statut du joueur mis à jour : confirmed')
       } catch (error) {
         console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
@@ -407,9 +421,9 @@ onMounted(async () => {
       message.value = 'Votre disponibilité a été enregistrée: Pas dispo. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
     }
 
-    // Redirection vers la page de l'événement pour afficher les détails
+    // Redirection vers la modal de composition pour voir l'état de l'équipe
     if (slug) {
-      setTimeout(() => router.push(`/season/${slug}/event/${eventId}`), 1200)
+      setTimeout(() => router.push(`/season/${slug}?modal=selection&event=${eventId}`), 1200)
     } else {
       setTimeout(() => router.push('/seasons'), 1200)
     }
