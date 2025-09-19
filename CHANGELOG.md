@@ -1,30 +1,31 @@
-## [0.16.2] - 2025-09-19
+## [0.17.0] - 2025-09-19
 
 ### ✨ New Features
 
-- feat: add click handler for avatars in TimelineView
-- feat: show player availability cell when no team available
-- feat: add automatic staging synchronization after release
+- feat: améliorer la logique de notification et de sélection
+- feat: activer l'envoi d'emails via Ethereal en développement
+- feat: afficher les adresses email dans la modale d'envoi de notifications
+- feat: improve confirmation cell display
+- feat: add confirmation modal for player selection status
 
 ### 🐛 Bug Fixes
 
-- fix: hide remove buttons in selection modal for non-admin users
-- fix: implement Firebase singleton pattern and auto-initialization
-- fix: resolve Firebase database contamination between environments
-- fix: resolve player selection dropdown display issue in timeline view
-- fix: resolve ViewHeader reactivity issues and infinite recursion
-- fix: harmonize AvailabilityCell height for events without roles
-- fix: further increase avatar container width and padding
-- fix: prevent event propagation in TimelineView avatar clicks
-- fix: improve missing players detection by role in TimelineView
+- fix: supprimer la route magic-test restante
+- fix: corriger le traitement des magic links de confirmation
+- fix: corriger la conversion nom→ID pour les confirmations/déclinaisons
+- fix: use correct isAvailable function in TimelineView
+- fix: correct declined status display in timeline view
+- fix: remove footer from season views
 
 ### 📝 Other Changes
 
-- release: version 0.16.1
+- cleanup: supprimer les fichiers de test temporaires
+- release: version 0.16.2
 
 
 # Changelog
 
+## [0.17.0] - 2025-09-19
 ## [0.16.2] - 2025-09-19
 ## [0.16.1] - 2025-09-19
 ## [0.16.0] - 2025-09-18
