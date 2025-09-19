@@ -275,9 +275,9 @@
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
-        <!-- Bouton Demander confirmation (visible seulement si organisateur a validé ET on peut annoncer ET permissions d'édition) -->
+        <!-- Bouton Demander confirmation (visible seulement si organisateur a validé ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && isSelectionConfirmedByOrganizer && canAnnounce && canEditEvents" 
+          v-if="hasSelection && isSelectionConfirmedByOrganizer && canEditEvents" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Demander confirmation aux personnes composées"
@@ -922,10 +922,7 @@ const isSelectionComplete = computed(() => {
   return activePlayers >= requiredCount
 })
 
-// Vérifier si on peut demander confirmation (composition complète ET pas de joueurs déclinés)
-const canAnnounce = computed(() => {
-  return isSelectionComplete.value && !hasDeclinedPlayers.value
-})
+// canAnnounce supprimé : on peut toujours notifier les joueurs "à confirmer"
 
 // Raison de l'incomplétude pour le tooltip du badge
 const selectionIncompleteReason = computed(() => {
