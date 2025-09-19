@@ -60,7 +60,7 @@
             </div>
             
             <!-- Cellule de disponibilité ou avatars de la composition -->
-            <div class="availability-cell flex-shrink-0 max-w-20">
+            <div class="availability-cell flex-shrink-0 w-20 md:max-w-20">
               
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
@@ -81,13 +81,15 @@
                 :event-title="event.title"
                 :event-date="event.date ? event.date.toISOString() : ''"
                 :is-protected="isPlayerProtected(event.id)"
+                :compact="true"
+                class="w-full h-16"
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handleSelectionStatusToggle"
                 @show-availability-modal="handleShowAvailabilityModal"
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
-              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center">
+              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16">
                 <div class="relative group">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
@@ -101,7 +103,7 @@
                         'group-hover:z-20': index > 0
                       }"
                       :style="{
-                        marginLeft: index > 0 ? '-12px' : '0px',
+                        marginLeft: index > 0 ? '-8px' : '0px',
                         zIndex: index === 0 ? 10 : 5 - index
                       }"
                     >
@@ -111,16 +113,16 @@
                         :season-id="seasonId"
                         :player-gender="player.gender || 'non-specified'"
                         size="md"
-                        class="w-10 h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
+                        class="w-8 h-8 md:w-10 md:h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
                         :title="getPlayerTooltip(player, event.id)"
                       />
                     </div>
                     <!-- Compteur pour les avatars supplémentaires -->
                     <div 
                       v-if="getEventAvatars(event.id).length > 4" 
-                      class="relative -ml-3 z-0 group-hover:z-20 transition-all duration-300"
+                      class="relative -ml-2 z-0 group-hover:z-20 transition-all duration-300"
                     >
-                      <div class="w-10 h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-sm text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
+                      <div class="w-8 h-8 md:w-10 md:h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-xs md:text-sm text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
                         +{{ getEventAvatars(event.id).length - 4 }}
                       </div>
                     </div>
@@ -142,9 +144,9 @@
               </div>
               
               <!-- Affichage du nombre requis quand personne n'est disponible -->
-              <div v-else-if="getTotalRequiredCount(event.id) > 0" class="flex items-center">
+              <div v-else-if="getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
                 <div class="relative group">
-                  <div class="w-10 h-10 bg-orange-600 border-2 border-orange-500 rounded-full flex items-center justify-center text-sm text-white font-medium hover:bg-orange-500 hover:border-orange-400 transition-all duration-200 hover:scale-110">
+                  <div class="w-8 h-8 md:w-10 md:h-10 bg-orange-600 border-2 border-orange-500 rounded-full flex items-center justify-center text-xs md:text-sm text-white font-medium hover:bg-orange-500 hover:border-orange-400 transition-all duration-200 hover:scale-110">
                     {{ getTotalRequiredCount(event.id) }}
                   </div>
                   
@@ -264,6 +266,10 @@ export default {
     countAvailablePlayers: {
       type: Function,
       default: () => 0
+    },
+    isAvailableForRole: {
+      type: Function,
+      default: () => false
     }
   },
   emits: [
@@ -389,7 +395,9 @@ export default {
           isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
           casts: props.casts,
           selectedPlayerId: props.selectedPlayerId,
-          availability: props.availability
+          availability: props.availability,
+          players: props.players,
+          isAvailableForRole: props.isAvailableForRole
         })
       }
       
