@@ -14,6 +14,7 @@ fi
 DRY_RUN=${DRY_RUN:-false}  # Use environment variable or default to false
 VERSION_BUMP="patch"  # default
 NO_USER_CHANGELOG=false
+EXPLICIT_VERSION=""  # For --version=X.X.X
 stashed_before_switch=false
 
 for arg in "$@"; do
@@ -33,6 +34,9 @@ for arg in "$@"; do
         --no-user-changelog)
             NO_USER_CHANGELOG=true
             ;;
+        --version=*)
+            EXPLICIT_VERSION="${arg#*=}"
+            ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
@@ -46,11 +50,13 @@ for arg in "$@"; do
             echo "  --minor           Minor version bump (1.2.3 → 1.3.0)"
             echo "  --patch           Patch version bump (1.2.3 → 1.2.4) [default]"
             echo "  --no-user-changelog    Skip user-focused changelog.json generation (keep technical only)"
+            echo "  --version=X.X.X        Specify exact version (overrides automatic bump)"
             echo "  --help, -h        Show this help"
             echo ""
             echo "Examples:"
             echo "  $0 --dry-run --minor    # Simulate minor release"
             echo "  $0 --major              # Real major release"
+            echo "  $0 --version=0.16.0     # Release specific version"
             echo "  $0                      # Real patch release (default)"
             exit 0
             ;;
@@ -361,9 +367,8 @@ generate_changelog_json() {
     
     # Step 3: Transform technical JSON to user-focused JSON with OpenAI (skip if --no-user-changelog)
     if [ "$NO_USER_CHANGELOG" = "true" ]; then
-        echo "   └─ Step 3: ⏭️  Skipping OpenAI transformation (--no-user-changelog flag)"
-        echo "   └─ Using technical JSON directly..."
-        update_changelog_json "$technical_json" "$latest_version"
+        echo "   └─ Step 3: ⏭️  Skipping changelog.json update (--no-user-changelog flag)"
+        echo "   └─ Keeping existing changelog.json unchanged..."
     else
         echo "   └─ Step 3: Transforming technical JSON to user-focused JSON with OpenAI..."
         local user_focused_json=$(transform_technical_json_with_openai "$technical_json" "$latest_version")
@@ -883,28 +888,35 @@ fi
 
 # Generate new version number
 CURRENT_VERSION=$(grep -o '"version": "[^"]*"' package.json | cut -d'"' -f4)
-VERSION_PARTS=(${CURRENT_VERSION//./ })
-MAJOR=${VERSION_PARTS[0]}
-MINOR=${VERSION_PARTS[1]}
-PATCH=${VERSION_PARTS[2]}
 
-# Calculate new version according to bump type
-case $VERSION_BUMP in
-    major)
-        MAJOR=$((MAJOR + 1))
-        MINOR=0
-        PATCH=0
-        ;;
-    minor)
-        MINOR=$((MINOR + 1))
-        PATCH=0
-        ;;
-    patch)
-        PATCH=$((PATCH + 1))
-        ;;
-esac
+# Check if explicit version is provided
+if [ -n "$EXPLICIT_VERSION" ]; then
+    NEW_VERSION="$EXPLICIT_VERSION"
+    echo "📋 Using explicit version: $NEW_VERSION"
+else
+    VERSION_PARTS=(${CURRENT_VERSION//./ })
+    MAJOR=${VERSION_PARTS[0]}
+    MINOR=${VERSION_PARTS[1]}
+    PATCH=${VERSION_PARTS[2]}
 
-NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+    # Calculate new version according to bump type
+    case $VERSION_BUMP in
+        major)
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+        minor)
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+        patch)
+            PATCH=$((PATCH + 1))
+            ;;
+    esac
+
+    NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+fi
 
 BUILD_DATE=$(date +%Y-%m-%d)
 GIT_HASH=$(git rev-parse --short HEAD)
@@ -985,7 +997,11 @@ else
 fi
 
 # Commit version changes
-execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md public/changelog.json" "Add modified files"
+if [ "$NO_USER_CHANGELOG" = "true" ]; then
+    execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md" "Add modified files (excluding changelog.json)"
+else
+    execute_cmd "git add package.json public/version.txt CHANGELOG.md CHANGELOG_FR.md public/changelog.json" "Add modified files"
+fi
 execute_cmd "git commit -m \"chore: bump version to $NEW_VERSION for production release\"" "Commit version changes"
 
 # Push staging (only in real deployment)
