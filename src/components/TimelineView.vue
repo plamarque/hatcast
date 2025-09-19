@@ -90,7 +90,7 @@
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
               <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16">
-                <div class="relative group cursor-pointer" @click="handleAvatarClick(event)">
+                <div class="relative group cursor-pointer" @click="handleAvatarClick(event, $event)">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
                     <div
@@ -645,7 +645,10 @@ export default {
     }
     
     // Handler pour le clic sur les avatars
-    const handleAvatarClick = (event) => {
+    const handleAvatarClick = (event, clickEvent) => {
+      // Empêcher la propagation vers le clic de l'événement parent
+      clickEvent.stopPropagation()
+      
       if (hasEventComposition(event.id)) {
         // S'il y a une composition, ouvrir la modale de composition
         emit('show-composition-modal', event)
