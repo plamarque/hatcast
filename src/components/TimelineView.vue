@@ -12,16 +12,16 @@
           {{ monthData.monthName }}
         </div>
         <div class="flex-1 h-px bg-gray-600"></div>
-      </div>
-      
+        </div>
+        
       <!-- Liste des événements du mois -->
       <div class="events-list space-y-2 md:space-y-4">
-        <div
+          <div
           v-for="event in monthData.events"
-          :key="event.id"
+            :key="event.id"
           class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative w-full min-w-0"
-          @click="$emit('event-click', event)"
-        >
+            @click="$emit('event-click', event)"
+          >
           <!-- Date compacte (numéro + jour) -->
           <div class="date-section flex-shrink-0 text-center w-16">
             <div class="date-number text-3xl font-bold text-white leading-none">
@@ -90,7 +90,7 @@
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
               <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16">
-                <div class="relative group">
+                <div class="relative group cursor-pointer" @click="handleAvatarClick(event)">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
                     <div
@@ -187,16 +187,16 @@
                 </div>
               </div>
               </div>
-            </div>
           </div>
         </div>
       </div>
-      
-      <!-- Message si aucun événement -->
+    </div>
+    
+    <!-- Message si aucun événement -->
       <div v-if="groupedEventsByMonth.length === 0" class="text-center py-12">
-        <div class="text-6xl mb-4">📅</div>
-        <div class="text-white text-lg mb-2">Aucun événement</div>
-        <div class="text-gray-400 text-sm">Les événements apparaîtront ici</div>
+      <div class="text-6xl mb-4">📅</div>
+      <div class="text-white text-lg mb-2">Aucun événement</div>
+      <div class="text-gray-400 text-sm">Les événements apparaîtront ici</div>
       </div>
     </div>
   </div>
@@ -307,7 +307,8 @@ export default {
     'selection-status-toggle',
     'show-availability-modal',
     'player-selected',
-    'all-players-selected'
+    'all-players-selected',
+    'show-composition-modal'
   ],
   setup(props, { emit }) {
     // Variables réactives
@@ -328,12 +329,12 @@ export default {
         console.log('TimelineView: Pas d\'événements ou pas un tableau')
         return []
       }
-
+      
       const months = {}
-
+      
       props.events.forEach(event => {
         if (!event || event.archived) return // Ignorer les événements archivés ou invalides
-
+        
         try {
           const date = new Date(event.date)
           if (isNaN(date.getTime())) {
@@ -353,7 +354,7 @@ export default {
               events: []
             }
           }
-
+          
           months[monthKey].events.push({
             ...event,
             date: date,
@@ -364,7 +365,7 @@ export default {
           console.warn('Erreur lors du traitement de l\'événement:', event, error)
         }
       })
-
+      
       // Trier les événements dans chaque mois par date
       Object.values(months).forEach(month => {
         month.events.sort((a, b) => a.date - b.date)
@@ -636,6 +637,24 @@ export default {
       emit('all-players-selected')
     }
     
+    // Fonction pour vérifier s'il y a une composition pour un événement
+    const hasEventComposition = (eventId) => {
+      if (!props.getSelectionPlayers || !eventId) return false
+      const selectionPlayers = props.getSelectionPlayers(eventId)
+      return selectionPlayers && selectionPlayers.length > 0
+    }
+    
+    // Handler pour le clic sur les avatars
+    const handleAvatarClick = (event) => {
+      if (hasEventComposition(event.id)) {
+        // S'il y a une composition, ouvrir la modale de composition
+        emit('show-composition-modal', event)
+      } else {
+        // Sinon, ouvrir la modale de détail d'événement
+        emit('event-click', event)
+      }
+    }
+    
     return {
       // Variables réactives
       showPlayerModal,
@@ -669,7 +688,9 @@ export default {
       handleSelectionStatusToggle,
       handleShowAvailabilityModal,
       handlePlayerSelected,
-      handleAllPlayersSelected
+      handleAllPlayersSelected,
+      handleAvatarClick,
+      hasEventComposition
     }
   }
 }

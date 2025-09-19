@@ -185,6 +185,7 @@
         @availability-toggle="handleAvailabilityToggle"
         @selection-status-toggle="handlePlayerSelectionStatusToggle"
         @show-availability-modal="openAvailabilityModal"
+        @show-composition-modal="showCompositionModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
       />
@@ -8228,6 +8229,11 @@ function closeSelectionModal() {
       history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
     }
   } catch {}
+}
+
+// Fonction pour afficher la modale de composition depuis TimelineView
+function showCompositionModal(event) {
+  openSelectionModal(event)
 }
 
 // Désistement helpers supprimés
