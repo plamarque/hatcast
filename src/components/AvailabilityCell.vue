@@ -41,7 +41,7 @@
         <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'pending'" class="text-center">
           À confirmer
         </span>
-        <span v-else-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer && playerSelectionStatus === 'declined'" class="text-center">
+        <span v-else-if="isSelected && isAvailable === true && playerSelectionStatus === 'declined'" class="text-center">
           Décliné
         </span>
         <span v-else-if="isAvailable === true" class="text-center">
