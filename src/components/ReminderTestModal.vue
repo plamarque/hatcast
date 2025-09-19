@@ -113,8 +113,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { createRemindersForSelection, removeRemindersForEvent } from '../services/reminderService.js'
-import { db } from '../services/firebase.js'
-import { collection, query, where, getDocs, deleteDoc } from 'firebase/firestore'
+import firestoreService from '../services/firestoreService.js'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -228,17 +227,10 @@ async function checkReminders() {
   
   try {
     // Vérifier les rappels existants pour cet événement
-    const q = query(
-      collection(db, 'reminderQueue'),
-      where('seasonId', '==', props.seasonId),
-      where('eventId', '==', testEvent.value.id)
-    )
-    
-    const snapshot = await getDocs(q)
-    const reminders = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    const reminders = await firestoreService.queryDocuments('reminderQueue', [
+      firestoreService.where('seasonId', '==', props.seasonId),
+      firestoreService.where('eventId', '==', testEvent.value.id)
+    ])
     
     if (reminders.length === 0) {
       addResult('ℹ️ Aucun rappel trouvé pour cet événement de test')

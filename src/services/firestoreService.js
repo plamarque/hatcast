@@ -36,10 +36,20 @@ class FirestoreService {
     this.database = null
     this.region = null
     this.isInitialized = false
+    this.isInitializing = false
   }
 
   async initialize() {
     if (this.isInitialized) return this;
+    if (this.isInitializing) {
+      // Attendre que l'initialisation en cours se termine
+      while (this.isInitializing && !this.isInitialized) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      return this;
+    }
+    
+    this.isInitializing = true;
     
     try {
       // Attendre que Firebase soit complètement initialisé
@@ -82,6 +92,8 @@ class FirestoreService {
     } catch (error) {
       logger.error('❌ Erreur lors de l\'initialisation de FirestoreService:', error);
       throw error;
+    } finally {
+      this.isInitializing = false;
     }
   }
 
@@ -91,7 +103,10 @@ class FirestoreService {
    * @param {...string} pathSegments - Segments de chemin pour les sous-collections
    * @returns {CollectionReference} Référence de collection
    */
-  getCollection(collectionName, ...pathSegments) {
+  async getCollection(collectionName, ...pathSegments) {
+    // S'assurer que le service est initialisé avant d'accéder à la collection
+    await this.initialize();
+    
     if (pathSegments.length === 0) {
       return collection(this.db, collectionName)
     } else {
@@ -106,7 +121,10 @@ class FirestoreService {
    * @param {...string} pathSegments - Segments de chemin pour les sous-collections
    * @returns {DocumentReference} Référence de document
    */
-  getDocumentRef(collectionName, docId, ...pathSegments) {
+  async getDocumentRef(collectionName, docId, ...pathSegments) {
+    // S'assurer que le service est initialisé avant d'accéder au document
+    await this.initialize();
+    
     if (pathSegments.length === 0) {
       return doc(this.db, collectionName, docId)
     } else {
@@ -122,7 +140,7 @@ class FirestoreService {
    */
   async getDocuments(collectionName, ...pathSegments) {
     try {
-      const colRef = this.getCollection(collectionName, ...pathSegments)
+      const colRef = await this.getCollection(collectionName, ...pathSegments)
       const snapshot = await getDocs(colRef)
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     } catch (error) {
@@ -140,7 +158,10 @@ class FirestoreService {
    */
   async getDocument(collectionName, docId, ...pathSegments) {
     try {
-      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
+      // S'assurer que le service est initialisé avant de lire le document
+      await this.initialize();
+      const docRef = await this.getDocumentRef(collectionName, docId, ...pathSegments)
+      
       const snapshot = await getDoc(docRef)
       if (snapshot.exists()) {
         return { id: snapshot.id, ...snapshot.data() }
@@ -161,7 +182,9 @@ class FirestoreService {
    */
   async addDocument(collectionName, data, ...pathSegments) {
     try {
-      const colRef = this.getCollection(collectionName, ...pathSegments)
+      // S'assurer que le service est initialisé avant d'ajouter le document
+      await this.initialize();
+      const colRef = await this.getCollection(collectionName, ...pathSegments)
       const docRef = await addDoc(colRef, {
         ...data,
         createdAt: serverTimestamp()
@@ -185,17 +208,10 @@ class FirestoreService {
    */
   async setDocument(collectionName, docId, data, merge = false, ...pathSegments) {
     try {
-      // Vérifier que le service est initialisé
-      if (!this.isInitialized || !this.db) {
-        console.log('⏳ FirestoreService pas encore initialisé, attente...')
-        await this.initialize()
-      }
+      // S'assurer que le service est initialisé avant de définir le document
+      await this.initialize();
       
-      if (!this.db) {
-        throw new Error('FirestoreService.db est null après initialisation')
-      }
-      
-      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
+      const docRef = await this.getDocumentRef(collectionName, docId, ...pathSegments)
       await setDoc(docRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -217,7 +233,9 @@ class FirestoreService {
    */
   async updateDocument(collectionName, docId, data, ...pathSegments) {
     try {
-      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
+      // S'assurer que le service est initialisé avant de mettre à jour le document
+      await this.initialize();
+      const docRef = await this.getDocumentRef(collectionName, docId, ...pathSegments)
       await updateDoc(docRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -238,7 +256,9 @@ class FirestoreService {
    */
   async deleteDocument(collectionName, docId, ...pathSegments) {
     try {
-      const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
+      // S'assurer que le service est initialisé avant de supprimer le document
+      await this.initialize();
+      const docRef = await this.getDocumentRef(collectionName, docId, ...pathSegments)
       await deleteDoc(docRef)
       console.log(`✅ Document ${docId} supprimé de ${collectionName}`)
     } catch (error) {
@@ -254,8 +274,8 @@ class FirestoreService {
    * @param {...string} pathSegments - Segments de chemin pour les sous-collections
    * @returns {Query} Requête Firestore
    */
-  createQuery(collectionName, constraints = []) {
-    const colRef = this.getCollection(collectionName)
+  async createQuery(collectionName, constraints = []) {
+    const colRef = await this.getCollection(collectionName)
     return query(colRef, ...constraints)
   }
 
@@ -268,7 +288,9 @@ class FirestoreService {
    */
   async queryDocuments(collectionName, constraints = [], ...pathSegments) {
     try {
-      const colRef = this.getCollection(collectionName, ...pathSegments)
+      // S'assurer que le service est initialisé avant d'exécuter la requête
+      await this.initialize();
+      const colRef = await this.getCollection(collectionName, ...pathSegments)
       const queryRef = query(colRef, ...constraints)
       const snapshot = await getDocs(queryRef)
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
@@ -285,6 +307,20 @@ class FirestoreService {
    */
   async executeQuery(queryRef) {
     try {
+      logger.info('🔍 DEBUG: executeQuery appelé, état du service:', {
+        isInitialized: this.isInitialized,
+        isInitializing: this.isInitializing,
+        hasDb: !!this.db
+      });
+      
+      // S'assurer que le service est initialisé avant d'exécuter la requête
+      await this.initialize();
+      
+      logger.info('🔍 DEBUG: Exécution de la requête avec instance Firestore:', {
+        databaseId: this.db._databaseId?.database || this.db._delegate?._databaseId?.database || 'unknown',
+        projectId: this.db.app?.options?.projectId || 'unknown'
+      });
+      
       const snapshot = await getDocs(queryRef)
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     } catch (error) {
@@ -323,8 +359,8 @@ class FirestoreService {
    * @param {...string} pathSegments - Segments de chemin pour les sous-collections
    * @returns {Function} Fonction de désabonnement
    */
-  onCollectionSnapshot(collectionName, callback, ...pathSegments) {
-    const colRef = this.getCollection(collectionName, ...pathSegments)
+  async onCollectionSnapshot(collectionName, callback, ...pathSegments) {
+    const colRef = await this.getCollection(collectionName, ...pathSegments)
     return onSnapshot(colRef, (snapshot) => {
       const documents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       callback(documents)
@@ -339,8 +375,8 @@ class FirestoreService {
    * @param {...string} pathSegments - Segments de chemin pour les sous-collections
    * @returns {Function} Fonction de désabonnement
    */
-  onDocumentSnapshot(collectionName, docId, callback, ...pathSegments) {
-    const docRef = this.getDocumentRef(collectionName, docId, ...pathSegments)
+  async onDocumentSnapshot(collectionName, docId, callback, ...pathSegments) {
+    const docRef = await this.getDocumentRef(collectionName, docId, ...pathSegments)
     return onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         callback({ id: snapshot.id, ...snapshot.data() })

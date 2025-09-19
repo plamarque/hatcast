@@ -5,18 +5,12 @@ import { deleteImage, isFirebaseStorageUrl } from './imageUpload.js'
 
 const SEASONS_COLLECTION = 'seasons'
 
-// Helper function to ensure firestoreService is initialized
-async function ensureFirestoreService() {
-  if (!firestoreService.isInitialized) {
-    await firestoreService.initialize();
-  }
-  return firestoreService;
-}
+// firestoreService s'initialise automatiquement au chargement du module
 
 // Add a season
 export async function addSeason(name, slug, pinCode, description = '', logoUrl = '') {
   logger.info('🔧 addSeason: création depuis Firestore')
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   const seasonId = await service.addDocument(SEASONS_COLLECTION, {
     name,
     slug,
@@ -31,16 +25,17 @@ export async function addSeason(name, slug, pinCode, description = '', logoUrl =
 
 // Delete a season
 export async function deleteSeason(seasonId) {
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   return await service.deleteDocument(SEASONS_COLLECTION, seasonId)
 }
 
 // List all seasons (sorted by creation date desc)
 export async function getSeasons() {
   try {
-    const service = await ensureFirestoreService();
+    const service = firestoreService;
     logger.info('🔧 getSeasons: chargement depuis Firestore')
-    const q = service.createQuery(SEASONS_COLLECTION, [service.orderBy('createdAt', 'desc')])
+    const q = await service.createQuery(SEASONS_COLLECTION, [service.orderBy('createdAt', 'desc')])
+    
     const seasons = await service.executeQuery(q)
     logger.info('🔧 getSeasons: saisons chargées depuis Firebase:', seasons.length)
     
@@ -68,7 +63,7 @@ export async function getSeasons() {
 
 // Get season by slug
 export async function getSeasonBySlug(slug) {
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   const q = service.createQuery(SEASONS_COLLECTION, [service.where('slug', '==', slug)])
   const seasons = await service.executeQuery(q)
   return seasons.length > 0 ? seasons[0] : null
@@ -76,7 +71,7 @@ export async function getSeasonBySlug(slug) {
 
 // Verify PIN code for a season
 export async function verifySeasonPin(seasonId, pinCode) {
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   const season = await service.getDocument(SEASONS_COLLECTION, seasonId)
   return season ? season.pinCode === pinCode : false
 }
@@ -85,7 +80,7 @@ export async function verifySeasonPin(seasonId, pinCode) {
 export async function getSeasonPin(seasonId) {
   try {
     logger.info('🔍 getSeasonPin: début', { seasonId })
-    const service = await ensureFirestoreService();
+    const service = firestoreService;
     logger.info('🔍 getSeasonPin: service initialisé')
     const season = await service.getDocument(SEASONS_COLLECTION, seasonId)
     logger.info('🔍 getSeasonPin: document récupéré', { season: season ? { id: season.id, pinCode: season.pinCode } : null })
@@ -101,18 +96,18 @@ export async function setSeasonSortOrder(seasonId, sortOrder) {
   // Valider que sortOrder est un nombre valide
   const validSortOrder = typeof sortOrder === 'number' && !isNaN(sortOrder) ? sortOrder : 0
   logger.info('🔧 setSeasonSortOrder: seasonId =', seasonId, 'sortOrder =', sortOrder, 'validSortOrder =', validSortOrder)
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   await service.updateDocument(SEASONS_COLLECTION, seasonId, { sortOrder: validSortOrder })
 }
 // Update season name (slug remains unchanged)
 export async function updateSeasonName(seasonId, newName) {
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   await service.updateDocument(SEASONS_COLLECTION, seasonId, { name: newName })
 }
 
 // Update season (name, description and logo)
 export async function updateSeason(seasonId, updates) {
-  const service = await ensureFirestoreService();
+  const service = firestoreService;
   await service.updateDocument(SEASONS_COLLECTION, seasonId, updates)
 }
 

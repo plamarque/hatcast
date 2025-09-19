@@ -1,6 +1,5 @@
 // Service pour gérer les avatars des joueurs
-import { getFirebaseDb } from './firebase.js'
-import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 import { getPlayerProtectionData } from './playerProtection.js'
 

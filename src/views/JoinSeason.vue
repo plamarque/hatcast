@@ -48,8 +48,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { collection, getDocs, query, where } from 'firebase/firestore'
-import { db } from '../services/firebase.js'
+import firestoreService from '../services/firestoreService.js'
 import { addPlayer } from '../services/storage.js'
 import logger from '../services/logger.js'
 
@@ -65,13 +64,14 @@ const isSubmitting = ref(false)
 const feedback = ref('')
 
 onMounted(async () => {
-  // Charger la saison par slug
-  const q = query(collection(db, 'seasons'), where('slug', '==', seasonSlug))
-  const snap = await getDocs(q)
-  if (!snap.empty) {
-    const seasonDoc = snap.docs[0]
+  // Charger la saison par slug via firestoreService
+  const seasons = await firestoreService.queryDocuments('seasons', [
+    firestoreService.where('slug', '==', seasonSlug)
+  ])
+  if (seasons.length > 0) {
+    const seasonDoc = seasons[0]
     seasonId.value = seasonDoc.id
-    seasonName.value = seasonDoc.data().name
+    seasonName.value = seasonDoc.name
     document.title = `Rejoindre : ${seasonName.value}`
   } else {
     feedback.value = 'Saison introuvable'

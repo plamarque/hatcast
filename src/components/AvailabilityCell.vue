@@ -19,7 +19,7 @@
     @mouseenter="hover = true"
     @mouseleave="hover = false"
   >
-    <div class="flex flex-col items-center justify-center">
+    <div class="flex flex-col items-center justify-center h-full min-h-[4rem]">
       <!-- Indicateur de chargement -->
       <div v-if="isLoading" class="flex items-center gap-1">
         <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>

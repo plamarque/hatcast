@@ -1049,6 +1049,19 @@ Production release
 if [ "$DRY_RUN" = false ]; then
     execute_cmd "git push origin main" "Push main"
     execute_cmd "git push origin \"v$NEW_VERSION\"" "Push tag"
+    
+    # Synchronize staging with main to avoid future divergences
+    echo "🔄 Synchronizing staging with main..."
+    execute_cmd "git checkout staging" "Switch to staging branch"
+    execute_cmd "git rebase main" "Rebase staging on main"
+    execute_cmd "git push origin staging" "Push updated staging to GitHub"
+    echo "✅ Staging synchronized with main"
+else
+    # In dry-run mode, simulate the synchronization
+    echo "🔄 SIMULATION: Would synchronize staging with main"
+    echo "   └─ git checkout staging"
+    echo "   └─ git rebase main"
+    echo "   └─ git push origin staging"
 fi
 
 # Return to staging
@@ -1072,6 +1085,7 @@ if [ "$DRY_RUN" = true ]; then
     echo "   - Merge staging → main"
     echo "   - Create tag v$NEW_VERSION"
     echo "   - Push main + tag to origin"
+    echo "   - Synchronize staging with main (rebase + push)"
     echo "   - Trigger GitHub Action deployment"
     echo ""
     echo "✅ DRY RUN COMPLETED - All operations validated in sandbox"

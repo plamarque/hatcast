@@ -1,6 +1,6 @@
 // src/services/firebase.js
-import { initializeApp } from 'firebase/app'
-import { getFirestore, initializeFirestore } from 'firebase/firestore'
+import { initializeApp, getApp, getApps } from 'firebase/app'
+import { getFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
@@ -47,8 +47,14 @@ async function initializeFirestoreInstance() {
       measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
     };
     
-    // Initialiser l'app Firebase IMMÉDIATEMENT
-    app = initializeApp(firebaseConfig);
+    // Initialiser l'app Firebase avec pattern singleton
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+      logger.info('🆕 Nouvelle instance Firebase créée');
+    } else {
+      app = getApp();
+      logger.info('♻️ Instance Firebase existante réutilisée');
+    }
     
     // Maintenant que Firebase est initialisé, charger configService
     await configService.initializeConfig();
@@ -69,36 +75,29 @@ async function initializeFirestoreInstance() {
     // Priorité aux variables d'environnement Vite (override) - maintenant géré par configService
     const finalDatabase = database
     
-    logger.info('🌍 Initialisation Firestore avec la base depuis configService:', finalDatabase);
-    logger.info('🌍 URL complète:', window.location.href);
+    logger.info('🌍 Initialisation Firestore avec la base:', finalDatabase);
     
-    // Forcer la fermeture de toutes les connexions existantes
-    if (window.firebaseDbInstance) {
-      try {
-        window.firebaseDbInstance.terminate();
-        logger.info('🔄 Fermeture des connexions Firestore existantes');
-      } catch (error) {
-        logger.warn('⚠️ Erreur lors de la fermeture des connexions:', error);
+    // Initialiser Firestore avec pattern singleton
+    // Vérifier si une instance Firestore existe déjà pour cette base
+    const existingDb = window.firebaseServices?.db;
+    const existingDatabaseId = existingDb?._databaseId?.database || existingDb?._delegate?._databaseId?.database;
+    
+    if (existingDb && existingDatabaseId === finalDatabase) {
+      // Réutiliser l'instance existante
+      firestoreDb = existingDb;
+      logger.info('♻️ Instance Firestore existante réutilisée pour la base:', finalDatabase);
+    } else {
+      // Créer une nouvelle instance
+      if (finalDatabase === 'default') {
+        firestoreDb = getFirestore(app);
+        logger.info('🆕 Nouvelle instance Firestore créée: default');
+      } else {
+        firestoreDb = getFirestore(app, finalDatabase);
+        logger.info('🆕 Nouvelle instance Firestore créée:', finalDatabase);
       }
     }
     
-    // Initialiser Firestore avec la base spécifique et configuration offline
-    if (finalDatabase === 'default') {
-      // Base par défaut avec configuration offline
-      firestoreDb = initializeFirestore(app, {
-        cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache offline
-        experimentalForceOwningTab: false
-      });
-    } else {
-      // Base spécifique avec databaseId et configuration offline
-      firestoreDb = initializeFirestore(app, {
-        databaseId: finalDatabase,
-        cacheSizeBytes: 50 * 1024 * 1024, // 50MB de cache offline
-        experimentalForceOwningTab: false
-      });
-    }
-    
-    logger.info('🔧 Tentative de connexion à la base:', finalDatabase, 'avec getFirestore() et databaseId:', finalDatabase);
+    logger.info('🔧 Connexion Firestore établie avec la base:', finalDatabase);
     
     // Stocker l'instance pour pouvoir la fermer plus tard
     window.firebaseDbInstance = firestoreDb;
@@ -144,16 +143,12 @@ async function initializeFirestoreInstance() {
     
     // Exporter les services
     window.firebaseServices = { db: firestoreDb, storage, auth, functions };
-    
     // Marquer Firebase comme initialisé
-    window.firebaseInitialized = true
+    window.firebaseInitialized = true;
     
   } catch (error) {
-    logger.warn('⚠️ Erreur lors de l\'initialisation de la base spécifique, utilisation de la base par défaut:', error);
-    firestoreDb = initializeFirestore(app, {
-      cacheSizeBytes: 50 * 1024 * 1024,
-      experimentalForceOwningTab: false
-    });
+    logger.error('❌ Erreur fatale lors de l\'initialisation Firestore:', error);
+    throw error; // Ne pas fallback sur (default) - c'est dangereux !
   }
 }
 
@@ -368,7 +363,7 @@ export async function safeConfirmPasswordReset(oobCode, newPassword) {
 // Export des services pour compatibilité
 // Note: Ces exports sont dynamiques et peuvent être null au moment de l'import
 // Utilisez les getters pour un accès plus fiable
-export const db = getFirebaseDb();
+// IMPORTANT: db n'est plus exporté - utilisez firestoreService à la place
 export const auth = getFirebaseAuth();
 export const storage = getFirebaseStorage();
 export const functions = getFirebaseFunctions();

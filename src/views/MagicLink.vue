@@ -22,8 +22,7 @@ import { verifyMagicLink, consumeMagicLink, verifyAccountEmailUpdateLink, consum
 import { auth } from '../services/firebase.js'
 import { updateEmail as updateAuthEmail } from 'firebase/auth'
 import { setSingleAvailability } from '../services/storage.js'
-import { db } from '../services/firebase.js'
-import { doc, getDoc } from 'firebase/firestore'
+import firestoreService from '../services/firestoreService.js'
 import { markEmailVerifiedForProtection, finalizeProtectionAfterVerification } from '../services/playerProtection.js'
 import logger from '../services/logger.js'
 
@@ -340,9 +339,8 @@ onMounted(async () => {
     }
 
     // Récupérer le nom du joueur pour écrire dans la collection availability (clé = name)
-    const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
-    const playerSnap = await getDoc(playerRef)
-    const playerName = playerSnap.exists() ? (playerSnap.data().name || '') : ''
+    const playerDoc = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+    const playerName = playerDoc ? (playerDoc.name || '') : ''
     if (!playerName) {
       status.value = 'error'
       title.value = 'Lien invalide'
@@ -359,13 +357,12 @@ onMounted(async () => {
     // Si le joueur se déclare indisponible, le retirer de la sélection le cas échéant
     if (action === 'no') {
       try {
-        const selRef = doc(db, 'seasons', seasonId, 'casts', eventId)
-        const selSnap = await getDoc(selRef)
-        if (selSnap.exists()) {
-          const playersArr = Array.isArray(selSnap.data()?.players) ? selSnap.data().players : []
+        const castDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
+        if (castDoc) {
+          const playersArr = Array.isArray(castDoc.players) ? castDoc.players : []
           const next = playersArr.filter((n) => n !== playerName)
           if (next.length !== playersArr.length) {
-            await setDoc(selRef, { players: next }, { merge: true })
+            await firestoreService.updateDocument('seasons', seasonId, 'casts', eventId, { players: next })
           }
         }
       } catch (_) {}

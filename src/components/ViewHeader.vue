@@ -9,30 +9,22 @@
               class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
             >
               <!-- Avatar du joueur sélectionné (un seul joueur) -->
-              <div v-if="selectedPlayer && !participantsDisplayText" class="flex-shrink-0">
+              <div v-if="showPlayerAvatar" class="flex-shrink-0">
                 <PlayerAvatar
                   :player-id="selectedPlayer.id"
                   :player-name="selectedPlayer.name"
                   :season-id="seasonId"
-                  :player-gender="selectedPlayer.gender || playerGender"
+                  :player-gender="selectedPlayer.gender || 'non-specified'"
                   size="sm"
                   class="w-5 h-5"
                 />
               </div>
-              <!-- Icône "Tous" quand tous les participants -->
-              <div v-else-if="participantsDisplayText === 'Tous'" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
-                <span class="text-xs font-bold">T</span>
-              </div>
-              <!-- Icône "X/Y Participants" quand plusieurs participants -->
-              <div v-else-if="participantsDisplayText && participantsDisplayText.includes('/')" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-blue-600 rounded-full">
-                <span class="text-xs font-bold">👥</span>
-              </div>
-              <!-- Icône par défaut -->
+              <!-- Icône "Tous" quand aucun joueur spécifique sélectionné -->
               <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
                 <span class="text-xs font-bold">T</span>
               </div>
               <span class="flex-1 text-left text-xs md:text-sm truncate">
-                {{ participantsDisplayText || (selectedPlayer ? selectedPlayer.name : 'Tous') }}
+                {{ displayText }}
               </span>
               <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -80,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 
 // Props
@@ -98,17 +90,9 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  participantsDisplayText: {
-    type: String,
-    default: null
-  },
   seasonId: {
     type: String,
     required: true
-  },
-  playerGender: {
-    type: String,
-    default: 'non-specified'
   },
   // Style props
   headerStyle: {
@@ -127,6 +111,33 @@ const props = defineProps({
 
 // Emits
 const emit = defineEmits(['view-change', 'player-modal-toggle'])
+
+// Logique d'affichage du dropdown
+const displayText = computed(() => {
+  // Si aucun joueur sélectionné, afficher "Tous"
+  if (!props.selectedPlayer) {
+    return 'Tous'
+  }
+  // Sinon, afficher le nom du joueur
+  return props.selectedPlayer.name
+})
+
+const showPlayerAvatar = computed(() => {
+  // Afficher l'avatar seulement si un joueur spécifique est sélectionné
+  return !!props.selectedPlayer
+})
+
+// Debug: surveiller les changements d'état via les props
+watch(() => props.selectedPlayer, (selectedPlayer) => {
+  console.log('🔍 ViewHeader: player selection changed:', {
+    selectedPlayerId: selectedPlayer?.id,
+    selectedPlayerName: selectedPlayer?.name,
+    selectedPlayerObject: selectedPlayer,
+    displayText: displayText.value,
+    showPlayerAvatar: showPlayerAvatar.value,
+    currentView: props.currentView
+  })
+}, { immediate: true })
 
 // Fonctions
 

@@ -12,16 +12,16 @@
           {{ monthData.monthName }}
         </div>
         <div class="flex-1 h-px bg-gray-600"></div>
-      </div>
-      
+        </div>
+        
       <!-- Liste des événements du mois -->
       <div class="events-list space-y-2 md:space-y-4">
-        <div
+          <div
           v-for="event in monthData.events"
-          :key="event.id"
+            :key="event.id"
           class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative w-full min-w-0"
-          @click="$emit('event-click', event)"
-        >
+            @click="$emit('event-click', event)"
+          >
           <!-- Date compacte (numéro + jour) -->
           <div class="date-section flex-shrink-0 text-center w-16">
             <div class="date-number text-3xl font-bold text-white leading-none">
@@ -36,14 +36,14 @@
           <div class="separator w-px h-12 bg-gray-600 flex-shrink-0"></div>
           
           <!-- Contenu de l'événement -->
-          <div class="event-content flex-1 flex items-center justify-between gap-2 md:gap-4 min-w-0">
+          <div class="event-content flex-1 flex items-center gap-2 md:gap-4 min-w-0">
             <!-- Icône du type d'événement centrée verticalement dans toute la zone -->
             <div class="event-icon flex-shrink-0 text-xl flex items-center h-16">
               {{ getEventTypeIcon(event) }}
             </div>
             
             <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0 max-w-full">
+            <div class="event-title flex-1 min-w-0 mr-6">
               <div class="text-white font-medium text-base line-clamp-2 leading-tight">
                 {{ event.title || 'Sans titre' }}
               </div>
@@ -60,7 +60,7 @@
             </div>
             
             <!-- Cellule de disponibilité ou avatars de la composition -->
-            <div class="availability-cell flex-shrink-0 max-w-20">
+            <div class="availability-cell flex-shrink-0 w-24 md:w-28">
               
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
@@ -81,27 +81,43 @@
                 :event-title="event.title"
                 :event-date="event.date ? event.date.toISOString() : ''"
                 :is-protected="isPlayerProtected(event.id)"
+                :compact="true"
+                class="w-full h-16"
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handleSelectionStatusToggle"
                 @show-availability-modal="handleShowAvailabilityModal"
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
-              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center">
-                <div class="relative group">
+              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-1 md:pr-3">
+                <div class="relative group cursor-pointer" @click="handleAvatarClick(event, $event)">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
+                    <!-- Compteur pour les avatars supplémentaires - EN PREMIER -->
+                    <div 
+                      v-if="getEventAvatars(event.id).length > 4" 
+                      class="relative z-30 group-hover:z-40 transition-all duration-300"
+                      style="margin-right: -20px;"
+                    >
+                      <div class="w-10 h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-xs text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
+                        +{{ getEventAvatars(event.id).length - 4 }}
+                      </div>
+                    </div>
+                    
+                    <!-- Avatars qui se chevauchent -->
                     <div
                       v-for="(player, index) in getEventAvatars(event.id).slice(0, 4)"
                       :key="player.id"
                       class="relative transition-all duration-300 ease-in-out group-hover:z-10"
-                      :class="{
+                      :class="{ 
                         'z-10': index === 0,
                         'z-0': index > 0,
-                        'group-hover:z-20': index > 0
+                        'group-hover:z-20': index > 0,
+                        'md:block': true,
+                        'hidden': index >= 3
                       }"
                       :style="{
-                        marginLeft: index > 0 ? '-12px' : '0px',
+                        marginLeft: index > 0 ? '-20px' : '0px',
                         zIndex: index === 0 ? 10 : 5 - index
                       }"
                     >
@@ -110,19 +126,10 @@
                         :player-name="player.name"
                         :season-id="seasonId"
                         :player-gender="player.gender || 'non-specified'"
-                        size="md"
-                        class="w-10 h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
+                        size="lg"
+                        class="!w-10 !h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
                         :title="getPlayerTooltip(player, event.id)"
                       />
-                    </div>
-                    <!-- Compteur pour les avatars supplémentaires -->
-                    <div 
-                      v-if="getEventAvatars(event.id).length > 4" 
-                      class="relative -ml-3 z-0 group-hover:z-20 transition-all duration-300"
-                    >
-                      <div class="w-10 h-10 bg-gray-600 border-2 border-gray-700 rounded-full flex items-center justify-center text-sm text-white font-medium hover:bg-gray-500 hover:border-blue-400 transition-all duration-200 hover:scale-110">
-                        +{{ getEventAvatars(event.id).length - 4 }}
-                      </div>
                     </div>
                   </div>
                   
@@ -141,10 +148,37 @@
                 </div>
               </div>
               
-              <!-- Affichage du nombre requis quand personne n'est disponible -->
-              <div v-else-if="getTotalRequiredCount(event.id) > 0" class="flex items-center">
+              <!-- Affichage du joueur sélectionné quand personne n'est disponible -->
+              <div v-else-if="selectedPlayerId && getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
+                <AvailabilityCell
+                  :player-name="selectedPlayer.name"
+                  :event-id="event.id"
+                  :is-available="isAvailable(selectedPlayer.name, event.id)"
+                  :is-selected="isPlayerSelected(selectedPlayer.name, event.id)"
+                  :is-selection-confirmed="isSelectionConfirmed(event.id)"
+                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
+                  :player-selection-status="getPlayerSelectionStatus(selectedPlayer.name, event.id)"
+                  :season-id="seasonId"
+                  :player-gender="selectedPlayer.gender || 'non-specified'"
+                  :chance-percent="chances?.[selectedPlayer.name]?.[event.id] ?? null"
+                  :show-selected-chance="isSelectionComplete ? isSelectionComplete(event.id) : false"
+                  :disabled="event.archived === true"
+                  :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
+                  :event-title="event.title"
+                  :event-date="event.date ? event.date.toISOString() : ''"
+                  :is-protected="isPlayerProtected(event.id)"
+                  :compact="true"
+                  class="w-full h-16"
+                  @toggle="handleAvailabilityToggle"
+                  @toggle-selection-status="handleSelectionStatusToggle"
+                  @show-availability-modal="handleShowAvailabilityModal"
+                />
+              </div>
+              
+              <!-- Affichage du nombre requis quand personne n'est disponible ET aucun joueur sélectionné -->
+              <div v-else-if="getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
                 <div class="relative group">
-                  <div class="w-10 h-10 bg-orange-600 border-2 border-orange-500 rounded-full flex items-center justify-center text-sm text-white font-medium hover:bg-orange-500 hover:border-orange-400 transition-all duration-200 hover:scale-110">
+                  <div class="w-10 h-10 bg-orange-600 border-2 border-orange-500 rounded-full flex items-center justify-center text-xs text-white font-medium hover:bg-orange-500 hover:border-orange-400 transition-all duration-200 hover:scale-110">
                     {{ getTotalRequiredCount(event.id) }}
                   </div>
                   
@@ -158,16 +192,16 @@
                 </div>
               </div>
               </div>
-            </div>
           </div>
         </div>
       </div>
-      
-      <!-- Message si aucun événement -->
+    </div>
+    
+    <!-- Message si aucun événement -->
       <div v-if="groupedEventsByMonth.length === 0" class="text-center py-12">
-        <div class="text-6xl mb-4">📅</div>
-        <div class="text-white text-lg mb-2">Aucun événement</div>
-        <div class="text-gray-400 text-sm">Les événements apparaîtront ici</div>
+      <div class="text-6xl mb-4">📅</div>
+      <div class="text-white text-lg mb-2">Aucun événement</div>
+      <div class="text-gray-400 text-sm">Les événements apparaîtront ici</div>
       </div>
     </div>
   </div>
@@ -264,6 +298,10 @@ export default {
     countAvailablePlayers: {
       type: Function,
       default: () => 0
+    },
+    isAvailableForRole: {
+      type: Function,
+      default: () => false
     }
   },
   emits: [
@@ -274,7 +312,8 @@ export default {
     'selection-status-toggle',
     'show-availability-modal',
     'player-selected',
-    'all-players-selected'
+    'all-players-selected',
+    'show-composition-modal'
   ],
   setup(props, { emit }) {
     // Variables réactives
@@ -295,12 +334,12 @@ export default {
         console.log('TimelineView: Pas d\'événements ou pas un tableau')
         return []
       }
-
+      
       const months = {}
-
+      
       props.events.forEach(event => {
         if (!event || event.archived) return // Ignorer les événements archivés ou invalides
-
+        
         try {
           const date = new Date(event.date)
           if (isNaN(date.getTime())) {
@@ -320,7 +359,7 @@ export default {
               events: []
             }
           }
-
+          
           months[monthKey].events.push({
             ...event,
             date: date,
@@ -331,7 +370,7 @@ export default {
           console.warn('Erreur lors du traitement de l\'événement:', event, error)
         }
       })
-
+      
       // Trier les événements dans chaque mois par date
       Object.values(months).forEach(month => {
         month.events.sort((a, b) => a.date - b.date)
@@ -389,7 +428,9 @@ export default {
           isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
           casts: props.casts,
           selectedPlayerId: props.selectedPlayerId,
-          availability: props.availability
+          availability: props.availability,
+          players: props.players,
+          isAvailableForRole: props.isAvailableForRole
         })
       }
       
@@ -601,6 +642,27 @@ export default {
       emit('all-players-selected')
     }
     
+    // Fonction pour vérifier s'il y a une composition pour un événement
+    const hasEventComposition = (eventId) => {
+      if (!props.getSelectionPlayers || !eventId) return false
+      const selectionPlayers = props.getSelectionPlayers(eventId)
+      return selectionPlayers && selectionPlayers.length > 0
+    }
+    
+    // Handler pour le clic sur les avatars
+    const handleAvatarClick = (event, clickEvent) => {
+      // Empêcher la propagation vers le clic de l'événement parent
+      clickEvent.stopPropagation()
+      
+      if (hasEventComposition(event.id)) {
+        // S'il y a une composition, ouvrir la modale de composition
+        emit('show-composition-modal', event)
+      } else {
+        // Sinon, ouvrir la modale de détail d'événement
+        emit('event-click', event)
+      }
+    }
+    
     return {
       // Variables réactives
       showPlayerModal,
@@ -634,7 +696,9 @@ export default {
       handleSelectionStatusToggle,
       handleShowAvailabilityModal,
       handlePlayerSelected,
-      handleAllPlayersSelected
+      handleAllPlayersSelected,
+      handleAvatarClick,
+      hasEventComposition
     }
   }
 }
