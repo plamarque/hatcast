@@ -30,30 +30,31 @@
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
-      :participants-display-text="dropdownDisplayText"
       :season-id="seasonId"
       :is-sticky="true"
       @view-change="selectView"
       @player-modal-toggle="togglePlayerModal"
     />
 
+    <!-- Modal de sélection de joueur (global pour toutes les vues) -->
+    <PlayerSelectorModal
+      :show="showPlayerModal"
+      :players="allSeasonPlayers"
+      :season-id="seasonId"
+      :selected-player-id="selectedPlayerId"
+      :preferred-player-ids-set="preferredPlayerIdsSet"
+      :is-player-protected="isPlayerProtectedInGrid"
+      :is-player-already-displayed="isPlayerAlreadyDisplayed"
+      @close="closePlayerModal"
+      @player-selected="handlePlayerSelected"
+      @all-players-selected="handleAllPlayersSelected"
+      @add-new-player="(name) => openNewPlayerForm(name)"
+    />
+
     <!-- Vue grille (lignes ou colonnes) -->
     <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
       
-      <!-- Modal de sélection de joueur pour les vues lignes/colonnes -->
-      <PlayerSelectorModal
-        :show="showPlayerModal"
-        :players="allSeasonPlayers"
-        :season-id="seasonId"
-        :selected-player-id="selectedPlayerId"
-        :preferred-player-ids-set="preferredPlayerIdsSet"
-        :is-player-protected="isPlayerProtectedInGrid"
-        :is-player-already-displayed="isPlayerAlreadyDisplayed"
-        @close="closePlayerModal"
-        @player-selected="handlePlayerSelected"
-        @all-players-selected="handleAllPlayersSelected"
-        @add-new-player="(name) => openNewPlayerForm(name)"
-      />
+      <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
       <!-- Composants de vue séparés -->
       <ParticipantsView
@@ -135,26 +136,12 @@
         :current-view="validCurrentView"
         :show-player-selector="true"
         :selected-player="selectedPlayer"
-        :participants-display-text="dropdownDisplayText"
         :season-id="seasonId"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
       
-      <!-- Modal de sélection de joueur -->
-      <PlayerSelectorModal
-        :show="showPlayerModal"
-        :players="allSeasonPlayers"
-                          :season-id="seasonId"
-        :selected-player-id="selectedPlayerId"
-        :preferred-player-ids-set="preferredPlayerIdsSet"
-        :is-player-protected="isPlayerProtectedInGrid"
-        :is-player-already-displayed="isPlayerAlreadyDisplayed"
-        @close="closePlayerModal"
-        @player-selected="handlePlayerSelected"
-        @all-players-selected="handleAllPlayersSelected"
-        @add-new-player="(name) => openNewPlayerForm(name)"
-      />
+      <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
       <TimelineView
         :events="events"
@@ -1800,23 +1787,41 @@ const validCurrentView = computed(() => {
 
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
+
+// Debug watcher pour tracer qui modifie selectedPlayerId
+watch(selectedPlayerId, (newValue, oldValue) => {
+  console.log('🔍 selectedPlayerId changed:', {
+    from: oldValue,
+    to: newValue,
+    stack: new Error().stack?.split('\n').slice(1, 4) // 3 premières lignes de la stack
+  })
+}, { immediate: true })
 const showPlayerModal = ref(false)
 const showPlayerDetailsModal = ref(false)
 const selectedPlayerForDetails = ref(null)
 
-// Computed pour le joueur sélectionné (pour la vue chronologique)
+// Computed pour le joueur sélectionné (utilise toujours allSeasonPlayers)
 const selectedPlayer = computed(() => {
-  if (!selectedPlayerId.value) return null
+  console.log('🔍 selectedPlayer computed:', {
+    selectedPlayerId: selectedPlayerId.value,
+    allSeasonPlayersLength: allSeasonPlayers.value?.length || 0,
+    currentView: validCurrentView.value
+  })
   
-  // Pour la vue timeline, utiliser allSeasonPlayers
-  if (validCurrentView.value === 'timeline') {
-    if (!allSeasonPlayers.value) return null
-    return allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
+  if (!selectedPlayerId.value) {
+    console.log('🔍 selectedPlayer: no selectedPlayerId, returning null')
+    return null
   }
   
-  // Pour les vues lignes/colonnes, utiliser players (liste filtrée)
-  if (!players.value) return null
-  return players.value.find(p => p.id === selectedPlayerId.value) || null
+  // Toujours utiliser allSeasonPlayers car c'est la liste complète
+  if (!allSeasonPlayers.value) {
+    console.log('🔍 selectedPlayer: no allSeasonPlayers, returning null')
+    return null
+  }
+  
+  const found = allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
+  console.log('🔍 selectedPlayer found:', found ? { id: found.id, name: found.name } : null)
+  return found
 })
 
 // Le provide sera déplacé plus tard après la définition de dropdownDisplayText
@@ -2574,10 +2579,17 @@ async function togglePlayerModal() {
 }
 
 async function handlePlayerSelected(player) {
+  console.log('🎯 handlePlayerSelected called with:', player ? { id: player.id, name: player.name } : null)
+  console.log('🎯 Before: selectedPlayerId =', selectedPlayerId.value)
+  console.log('🎯 Current view =', validCurrentView.value)
+  
   // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
     showPlayerModal.value = false
+    
+    console.log('🎯 After: selectedPlayerId =', selectedPlayerId.value)
+    console.log('🎯 selectedPlayer computed should be:', selectedPlayer.value ? { id: selectedPlayer.value.id, name: selectedPlayer.value.name } : null)
     
     // Charger les disponibilités pour ce joueur spécifique
     try {
@@ -4931,50 +4943,13 @@ const hiddenPlayersDisplayText = computed(() => {
   return null
 })
 
-// Computed pour l'affichage dans le dropdown (règles spécifiques)
-const dropdownDisplayText = computed(() => {
-  // Vérification de sécurité pour éviter les erreurs d'initialisation
-  if (!validCurrentView.value) return 'Tous'
-  
-  // Pour la vue timeline, gérer l'affichage basé sur selectedPlayer
-  if (validCurrentView.value === 'timeline') {
-    if (selectedPlayerId.value && selectedPlayer.value) {
-      // Un joueur spécifique est sélectionné
-      return null // Le nom du joueur sera affiché via selectedPlayer.name
-    } else {
-      // Aucun joueur sélectionné = tous les joueurs
-      return 'Tous'
-    }
-  }
-  
-  // Pour les vues lignes et colonnes
-  if (!players.value || !allSeasonPlayers.value) return 'Tous'
-  
-  const displayedCount = players.value.length
-  const totalCount = allSeasonPlayers.value.length
-  
-  if (displayedCount === 0) return 'Tous'
-  
-  // Si tous les participants sont affichés, afficher "Tous"
-  if (displayedCount === totalCount) {
-    return 'Tous'
-  }
-  
-  // Si plus d'un participant affiché, afficher "X/Y Participants"
-  if (displayedCount > 1) {
-    return `${displayedCount}/${totalCount} Participants`
-  }
-  
-  // Si un seul participant, ne pas afficher de texte (le nom sera affiché)
-  return null
-})
+// Computed dropdownDisplayText supprimé - logique déplacée dans ViewHeader
 
 // Debug: surveiller les changements d'état de manière plus sûre
 watch([selectedPlayerId, validCurrentView], ([newSelectedPlayerId, newView]) => {
   console.log('🔍 GridBoard: player selection changed:', {
     selectedPlayerId: newSelectedPlayerId,
     selectedPlayer: selectedPlayer.value,
-    participantsDisplayText: dropdownDisplayText.value,
     currentView: newView
   })
 }, { immediate: true })
@@ -7546,8 +7521,17 @@ async function showPlayerDetails(player) {
 }
 
 function closePlayerModal() {
+  console.log('🚪 closePlayerModal called')
   showPlayerModal.value = false;
-  selectedPlayerId.value = null;
+  
+  // Ne pas remettre selectedPlayerId à null pour la vue timeline
+  // car on veut garder la sélection active
+  if (validCurrentView.value !== 'timeline') {
+    console.log('🚪 Resetting selectedPlayerId to null (not timeline view)')
+    selectedPlayerId.value = null;
+  } else {
+    console.log('🚪 Keeping selectedPlayerId for timeline view:', selectedPlayerId.value)
+  }
 }
 
 function closePlayerDetailsModal() {
