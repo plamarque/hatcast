@@ -1,7 +1,8 @@
-## [0.16.0] - 2025-09-18
+## [0.16.1] - 2025-09-19
 
 ### ✨ New Features
 
+- feat: optimize changelog for better user experience
 - feat: add user-focused changelog for version 0.16.0 and translate 0.14.0
 - feat: add --no-user-changelog flag to skip OpenAI transformation while keeping technical changelog
 - feat: add compact environment badge to footer
@@ -49,6 +50,7 @@
 
 ### 🐛 Bug Fixes
 
+- fix: optimize mobile footer layout and prevent horizontal scrolling
 - fix: increase footer z-index to prevent transparency on scroll
 - fix: restore opaque background to AppFooter
 - fix: remove border radius from participant cells for cleaner scroll
@@ -129,6 +131,10 @@
 
 ### 📝 Other Changes
 
+- fix --no-user-changelog
+- Merge branch 'staging'
+- resolve: merge conflict in changelog.json - keep user-focused version
+- chore: bump version to 0.16.0 for production release
 - remove: delete old floating EnvironmentBadge component
 - style: increase event title width and standardize date section width
 - style: standardize AvailabilityCell dimensions for visual harmony
@@ -148,6 +154,7 @@
 
 # Changelog
 
+## [0.16.1] - 2025-09-19
 ## [0.16.0] - 2025-09-18
 ## [0.15.2] - 2025-09-15
 ## [0.15.1] - 2025-09-15

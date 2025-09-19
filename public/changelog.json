@@ -1,4 +1,6 @@
-[{
+[
+{  "version": "0.16.1",  "date": "2025-09-19",  "changes": [    "✨ Amélioration de l'expérience utilisateur avec un changelog plus clair et centré sur toi.",    "✨ Ajout d'un badge d'environnement compact dans le pied de page.",    "✨ Ajout d'espacement vertical entre les lignes d'événements dans la vue Participants.",    "✨ Harmonisation du style des en-têtes d'événements avec la vue Chronologique.",    "✨ Amélioration de la présentation des événements avec des avatars d'équipe dans la vue Chronologique.",    "✨ Affichage du nombre de personnes requises lorsque personne n'est disponible.",    "🔧 Améliorations de l'interface utilisateur pour une meilleure lisibilité et un affichage plus propre.",    "🐛 Correction de divers problèmes d'affichage et de comportement pour une expérience plus fluide."  ]}
+,
   "version": "0.16.0",
   "date": "2025-09-18",
   "changes": [
