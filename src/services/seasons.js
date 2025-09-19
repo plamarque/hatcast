@@ -34,7 +34,7 @@ export async function getSeasons() {
   try {
     const service = firestoreService;
     logger.info('🔧 getSeasons: chargement depuis Firestore')
-    const q = service.createQuery(SEASONS_COLLECTION, [service.orderBy('createdAt', 'desc')])
+    const q = await service.createQuery(SEASONS_COLLECTION, [service.orderBy('createdAt', 'desc')])
     
     const seasons = await service.executeQuery(q)
     logger.info('🔧 getSeasons: saisons chargées depuis Firebase:', seasons.length)

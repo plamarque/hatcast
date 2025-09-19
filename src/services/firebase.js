@@ -1,5 +1,5 @@
 // src/services/firebase.js
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApp, getApps } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
@@ -47,8 +47,14 @@ async function initializeFirestoreInstance() {
       measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
     };
     
-    // Initialiser l'app Firebase IMMÉDIATEMENT
-    app = initializeApp(firebaseConfig);
+    // Initialiser l'app Firebase avec pattern singleton
+    if (!getApps().length) {
+      app = initializeApp(firebaseConfig);
+      logger.info('🆕 Nouvelle instance Firebase créée');
+    } else {
+      app = getApp();
+      logger.info('♻️ Instance Firebase existante réutilisée');
+    }
     
     // Maintenant que Firebase est initialisé, charger configService
     await configService.initializeConfig();
@@ -71,56 +77,24 @@ async function initializeFirestoreInstance() {
     
     logger.info('🌍 Initialisation Firestore avec la base:', finalDatabase);
     
-    // Forcer la fermeture de toutes les connexions existantes
-    if (window.firebaseDbInstance) {
-      try {
-        window.firebaseDbInstance.terminate();
-        logger.info('🔄 Fermeture des connexions Firestore existantes');
-      } catch (error) {
-        logger.warn('⚠️ Erreur lors de la fermeture des connexions:', error);
-      }
-    }
+    // Initialiser Firestore avec pattern singleton
+    // Vérifier si une instance Firestore existe déjà pour cette base
+    const existingDb = window.firebaseServices?.db;
+    const existingDatabaseId = existingDb?._databaseId?.database || existingDb?._delegate?._databaseId?.database;
     
-    // Forcer la fermeture de l'instance Firestore existante dans window.firebaseServices
-    if (window.firebaseServices?.db) {
-      try {
-        window.firebaseServices.db.terminate();
-        logger.info('🔄 Fermeture de l\'instance Firestore existante dans firebaseServices');
-      } catch (error) {
-        logger.warn('⚠️ Erreur lors de la fermeture de firebaseServices.db:', error);
-      }
-    }
-    
-    // Nettoyer les références
-    window.firebaseServices = null;
-    window.firebaseInitialized = false;
-    
-    // En mode développement, vider le cache localStorage pour éviter les conflits de données
-    if (environment === 'development') {
-      try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('firebase:') || key.includes('firestore') || key.includes('firebase'))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        logger.info('🧹 Cache Firebase vidé pour le mode développement');
-      } catch (error) {
-        logger.warn('⚠️ Erreur lors du nettoyage du cache:', error);
-      }
-    }
-    
-    // Initialiser Firestore avec la base spécifique
-    if (finalDatabase === 'default') {
-      // Base par défaut
-      firestoreDb = getFirestore(app);
-      logger.info('✅ Base Firestore initialisée: default');
+    if (existingDb && existingDatabaseId === finalDatabase) {
+      // Réutiliser l'instance existante
+      firestoreDb = existingDb;
+      logger.info('♻️ Instance Firestore existante réutilisée pour la base:', finalDatabase);
     } else {
-      // Base spécifique - utiliser getFirestore avec databaseId
-      firestoreDb = getFirestore(app, finalDatabase);
-      logger.info('✅ Base Firestore initialisée:', finalDatabase);
+      // Créer une nouvelle instance
+      if (finalDatabase === 'default') {
+        firestoreDb = getFirestore(app);
+        logger.info('🆕 Nouvelle instance Firestore créée: default');
+      } else {
+        firestoreDb = getFirestore(app, finalDatabase);
+        logger.info('🆕 Nouvelle instance Firestore créée:', finalDatabase);
+      }
     }
     
     logger.info('🔧 Connexion Firestore établie avec la base:', finalDatabase);
