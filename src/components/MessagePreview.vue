@@ -34,21 +34,26 @@
           
           <!-- Liste des personnes -->
           <div class="flex flex-wrap gap-2">
-            <span
+            <div
               v-for="player in allDisplayRecipients.filter(p => p.id !== 'ALL')"
               :key="player.id || player.name"
               :class="[
-                'px-3 py-1 rounded text-sm border flex items-center gap-1',
+                'px-3 py-2 rounded text-sm border flex flex-col gap-1',
                 player.hasContact
                   ? 'bg-gray-700 border-gray-600 text-white'
                   : 'bg-yellow-900/20 border-yellow-600/40 text-yellow-200 opacity-75'
               ]"
               :title="player.hasContact ? 'Peut être notifié automatiquement' : 'Aucun canal actif - notification manuelle requise'"
             >
-              {{ player.name }}
-              <span v-if="player.hasContact" class="text-green-400 text-xs">✓</span>
-              <span v-else class="text-yellow-400 text-xs">⚠️</span>
-            </span>
+              <div class="flex items-center gap-1">
+                <span class="font-medium">{{ player.name }}</span>
+                <span v-if="player.hasContact" class="text-green-400 text-xs">✓</span>
+                <span v-else class="text-yellow-400 text-xs">⚠️</span>
+              </div>
+              <div v-if="player.email" class="text-xs text-gray-400">
+                {{ player.email }}
+              </div>
+            </div>
           </div>
         </div>
         <div v-else class="text-amber-400 text-sm">
