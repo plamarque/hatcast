@@ -616,6 +616,7 @@ export default {
     }
     
     // Utiliser les fonctions passées en props
+    const isAvailable = props.isAvailable
     const isPlayerSelected = props.isPlayerSelected
     const isSelectionConfirmed = props.isSelectionConfirmed
     const isSelectionConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer
@@ -690,6 +691,7 @@ export default {
       isPlayerInEventTeam,
       
       // Fonctions pour la disponibilité
+      isAvailable,
       getPlayerAvailability,
       isPlayerSelected,
       isSelectionConfirmed,
