@@ -14,7 +14,7 @@
                   :player-id="selectedPlayer.id"
                   :player-name="selectedPlayer.name"
                   :season-id="seasonId"
-                  :player-gender="selectedPlayer.gender || playerGender"
+                  :player-gender="selectedPlayer.gender || 'non-specified'"
                   size="sm"
                   class="w-5 h-5"
                 />
@@ -24,7 +24,7 @@
                 <span class="text-xs font-bold">T</span>
               </div>
               <!-- Icône "X/Y Participants" quand plusieurs participants -->
-              <div v-else-if="participantsDisplayText && participantsDisplayText.includes('/')" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-blue-600 rounded-full">
+              <div v-else-if="participantsDisplayText && typeof participantsDisplayText === 'string' && participantsDisplayText.includes('/')" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-blue-600 rounded-full">
                 <span class="text-xs font-bold">👥</span>
               </div>
               <!-- Icône par défaut -->
@@ -80,10 +80,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-
-import { usePlayerSelection } from '../composables/usePlayerSelection.js'
 
 // Props
 const props = defineProps({
@@ -95,6 +93,14 @@ const props = defineProps({
   showPlayerSelector: {
     type: Boolean,
     default: false
+  },
+  selectedPlayer: {
+    type: Object,
+    default: null
+  },
+  participantsDisplayText: {
+    type: String,
+    default: null
   },
   seasonId: {
     type: String,
@@ -118,12 +124,14 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['view-change', 'player-modal-toggle'])
 
-// Utiliser le composable de sélection de joueur
-const { 
-  selectedPlayerId, 
-  selectedPlayer, 
-  participantsDisplayText
-} = usePlayerSelection()
+// Debug: surveiller les changements d'état via les props
+watch(() => [props.selectedPlayer?.id, props.participantsDisplayText], ([selectedId, displayText]) => {
+  console.log('🔍 ViewHeader: player selection changed:', {
+    selectedPlayerId: selectedId,
+    selectedPlayerName: props.selectedPlayer?.name,
+    participantsDisplayText: displayText
+  })
+}, { immediate: true })
 
 // Fonctions
 

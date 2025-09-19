@@ -32,7 +32,6 @@
       :selected-player="selectedPlayer"
       :participants-display-text="dropdownDisplayText"
       :season-id="seasonId"
-      :player-gender="selectedPlayer?.gender || 'non-specified'"
       :is-sticky="true"
       @view-change="selectView"
       @player-modal-toggle="togglePlayerModal"
@@ -137,8 +136,7 @@
         :show-player-selector="true"
         :selected-player="selectedPlayer"
         :participants-display-text="dropdownDisplayText"
-                          :season-id="seasonId"
-        :player-gender="selectedPlayer?.gender || 'non-specified'"
+        :season-id="seasonId"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
       />
@@ -1820,6 +1818,8 @@ const selectedPlayer = computed(() => {
   if (!players.value) return null
   return players.value.find(p => p.id === selectedPlayerId.value) || null
 })
+
+// Le provide sera déplacé plus tard après la définition de dropdownDisplayText
 
 const confirmDelete = ref(false)
 const eventToDelete = ref(null)
@@ -4933,6 +4933,9 @@ const hiddenPlayersDisplayText = computed(() => {
 
 // Computed pour l'affichage dans le dropdown (règles spécifiques)
 const dropdownDisplayText = computed(() => {
+  // Vérification de sécurité pour éviter les erreurs d'initialisation
+  if (!validCurrentView.value) return 'Tous'
+  
   // Pour la vue timeline, gérer l'affichage basé sur selectedPlayer
   if (validCurrentView.value === 'timeline') {
     if (selectedPlayerId.value && selectedPlayer.value) {
@@ -4945,10 +4948,12 @@ const dropdownDisplayText = computed(() => {
   }
   
   // Pour les vues lignes et colonnes
+  if (!players.value || !allSeasonPlayers.value) return 'Tous'
+  
   const displayedCount = players.value.length
   const totalCount = allSeasonPlayers.value.length
   
-  if (displayedCount === 0) return null
+  if (displayedCount === 0) return 'Tous'
   
   // Si tous les participants sont affichés, afficher "Tous"
   if (displayedCount === totalCount) {
@@ -4964,6 +4969,15 @@ const dropdownDisplayText = computed(() => {
   return null
 })
 
+// Debug: surveiller les changements d'état de manière plus sûre
+watch([selectedPlayerId, validCurrentView], ([newSelectedPlayerId, newView]) => {
+  console.log('🔍 GridBoard: player selection changed:', {
+    selectedPlayerId: newSelectedPlayerId,
+    selectedPlayer: selectedPlayer.value,
+    participantsDisplayText: dropdownDisplayText.value,
+    currentView: newView
+  })
+}, { immediate: true })
 
 // Watcher pour initialiser selectedPlayerId avec le premier favori
 watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], ([favoritesSize, seasonPlayersLength]) => {
