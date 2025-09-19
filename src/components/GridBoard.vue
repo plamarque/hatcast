@@ -8267,14 +8267,36 @@ function getPlayerDeclinedRole(playerName, eventId) {
 }
 
 // Fonctions pour la nouvelle popin de composition
-function openSelectionModal(event) {
+async function openSelectionModal(event) {
   if (event?.archived) {
     showSuccessMessage.value = true
     successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
     setTimeout(() => { showSuccessMessage.value = false }, 3000)
     return
   }
-  selectionModalEvent.value = event
+  
+  // Rafraîchir les données de l'événement pour avoir les dernières informations
+  if (event?.id && seasonId.value) {
+    try {
+      const updatedEvent = await firestoreService.getDocument('seasons', seasonId.value, 'events', event.id)
+      if (updatedEvent) {
+        // Mettre à jour l'événement dans la liste
+        const eventIndex = events.value.findIndex(e => e.id === event.id)
+        if (eventIndex !== -1) {
+          events.value[eventIndex] = updatedEvent
+        }
+        selectionModalEvent.value = updatedEvent
+      } else {
+        selectionModalEvent.value = event
+      }
+    } catch (error) {
+      console.warn('Erreur lors du rafraîchissement de l\'événement:', error)
+      selectionModalEvent.value = event
+    }
+  } else {
+    selectionModalEvent.value = event
+  }
+  
   showSelectionModal.value = true
   try {
     const params = new URLSearchParams(window.location.search)

@@ -16,7 +16,10 @@
   </template>
 
 <script setup>
+localStorage.setItem('debug-magic-link', 'Composant MagicLink.vue chargé !')
+
 import { ref, onMounted, computed } from 'vue'
+localStorage.setItem('debug-magic-link', 'Imports Vue chargés !')
 import { useRoute, useRouter } from 'vue-router'
 import { verifyMagicLink, consumeMagicLink, verifyAccountEmailUpdateLink, consumeAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { auth } from '../services/firebase.js'
@@ -32,6 +35,8 @@ const router = useRouter()
 const status = ref('loading') // loading | ok | error
 const title = ref('Traitement en cours...')
 const message = ref('Merci de patienter pendant la validation du lien.')
+
+localStorage.setItem('debug-magic-link', 'Variables initialisées, onMounted va commencer !')
 
 const statusIcon = computed(() => {
   if (status.value === 'loading') return '⏳'
@@ -50,6 +55,9 @@ function goToSeason() {
 
 onMounted(async () => {
   try {
+    console.log('🔍 DEBUG MAGIC LINK - Début du traitement')
+    console.log('🔍 DEBUG MAGIC LINK - Route query:', route.query)
+    
     // Assurer le mode Firebase pour les écritures
     // Le mode de stockage est maintenant géré par les variables d'environnement
     // setStorageMode('firebase') // SUPPRIMÉ
@@ -61,13 +69,18 @@ onMounted(async () => {
     const token = String(route.query.t || '')
     const action = String(route.query.a || '') // 'yes' | 'no' | 'verify_email'
     const slug = String(route.query.slug || '')
+    
+    console.log('🔍 DEBUG MAGIC LINK - Paramètres extraits:', { seasonId, playerId, eventId, token, action, slug })
 
     if (!token || !action) {
+      console.log('❌ DEBUG MAGIC LINK - Paramètres manquants:', { token: !!token, action: !!action })
       status.value = 'error'
       title.value = 'Lien invalide'
       message.value = 'Paramètres manquants. Vérifiez que le lien est complet.'
       return
     }
+    
+    console.log('✅ DEBUG MAGIC LINK - Paramètres valides, continuation...')
 
     // Validation supplémentaire pour les actions qui nécessitent des paramètres spécifiques
     if (action === 'verify_email' && (!seasonId || !playerId)) {
@@ -78,9 +91,18 @@ onMounted(async () => {
     }
 
     if ((action === 'yes' || action === 'no') && (!seasonId || !playerId || !eventId)) {
+      console.log('❌ DEBUG MAGIC LINK - Lien de disponibilité incomplet:', { seasonId: !!seasonId, playerId: !!playerId, eventId: !!eventId })
       status.value = 'error'
       title.value = 'Lien invalide'
       message.value = 'Lien de disponibilité incomplet : informations manquantes.'
+      return
+    }
+    
+    if ((action === 'confirm' || action === 'decline') && (!seasonId || !playerId || !eventId)) {
+      console.log('❌ DEBUG MAGIC LINK - Lien de confirmation incomplet:', { seasonId: !!seasonId, playerId: !!playerId, eventId: !!eventId })
+      status.value = 'error'
+      title.value = 'Lien invalide'
+      message.value = 'Lien de confirmation incomplet : informations manquantes.'
       return
     }
 
@@ -110,13 +132,20 @@ onMounted(async () => {
       eventId = 'protection'
     }
 
+    console.log('🔍 DEBUG MAGIC LINK - Avant vérification du magic link:', { seasonId, playerId, eventId, token, action })
+    
     const verification = await verifyMagicLink({ seasonId, playerId, eventId, token, action })
+    console.log('🔍 DEBUG MAGIC LINK - Résultat de la vérification:', verification)
+    
     if (!verification.valid) {
+      console.log('❌ DEBUG MAGIC LINK - Magic link invalide:', verification)
       status.value = 'error'
       title.value = 'Lien invalide'
       message.value = 'Le lien est invalide ou expiré.'
       return
     }
+    
+    console.log('✅ DEBUG MAGIC LINK - Magic link valide, continuation...')
 
     if (action === 'verify_email') {
       // Vérification d'email pour protection de joueur
@@ -371,17 +400,38 @@ onMounted(async () => {
     // Si le joueur décline sa participation à la sélection
     if (action === 'decline') {
       try {
+        console.log('🔍 DEBUG DECLINE - Début du traitement:', { playerName, seasonId, eventId })
+        
         // Convertir le nom de joueur en ID
         const { getPlayerIdByName } = await import('../services/storage.js')
         const playerId = await getPlayerIdByName(playerName, seasonId)
+        console.log('🔍 DEBUG DECLINE - PlayerId trouvé:', playerId)
+        
         if (!playerId) {
           throw new Error(`Joueur non trouvé: ${playerName}`)
         }
         
         // Mettre à jour le statut du joueur dans la sélection
         const { updatePlayerCastStatus } = await import('../services/storage.js')
-        await updatePlayerCastStatus(eventId, playerId, 'declined', seasonId)
-        console.log('✅ Statut du joueur mis à jour : declined')
+        console.log('🔍 DEBUG DECLINE - Appel updatePlayerCastStatus:', { eventId, playerId, status: 'declined', seasonId })
+        
+        const result = await updatePlayerCastStatus(eventId, playerId, 'declined', seasonId)
+        console.log('✅ Statut du joueur mis à jour : declined', result)
+        
+        // Log d'audit pour le déclinage
+        try {
+          const { default: AuditClient } = await import('../services/auditClient.js')
+          await AuditClient.logAction('player_declined_selection', {
+            playerId,
+            playerName,
+            eventId,
+            seasonId,
+            action: 'decline',
+            source: 'magic_link'
+          })
+        } catch (auditError) {
+          console.warn('Erreur audit déclinage:', auditError)
+        }
       } catch (error) {
         console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
       }
@@ -390,17 +440,38 @@ onMounted(async () => {
     // Si le joueur confirme sa participation à la sélection
     if (action === 'confirm') {
       try {
+        console.log('🔍 DEBUG CONFIRM - Début du traitement:', { playerName, seasonId, eventId })
+        
         // Convertir le nom de joueur en ID
         const { getPlayerIdByName } = await import('../services/storage.js')
         const playerId = await getPlayerIdByName(playerName, seasonId)
+        console.log('🔍 DEBUG CONFIRM - PlayerId trouvé:', playerId)
+        
         if (!playerId) {
           throw new Error(`Joueur non trouvé: ${playerName}`)
         }
         
         // Mettre à jour le statut du joueur dans la sélection
         const { updatePlayerCastStatus } = await import('../services/storage.js')
-        await updatePlayerCastStatus(eventId, playerId, 'confirmed', seasonId)
-        console.log('✅ Statut du joueur mis à jour : confirmed')
+        console.log('🔍 DEBUG CONFIRM - Appel updatePlayerCastStatus:', { eventId, playerId, status: 'confirmed', seasonId })
+        
+        const result = await updatePlayerCastStatus(eventId, playerId, 'confirmed', seasonId)
+        console.log('✅ Statut du joueur mis à jour : confirmed', result)
+        
+        // Log d'audit pour la confirmation
+        try {
+          const { default: AuditClient } = await import('../services/auditClient.js')
+          await AuditClient.logAction('player_confirmed_selection', {
+            playerId,
+            playerName,
+            eventId,
+            seasonId,
+            action: 'confirm',
+            source: 'magic_link'
+          })
+        } catch (auditError) {
+          console.warn('Erreur audit confirmation:', auditError)
+        }
       } catch (error) {
         console.error('❌ Erreur lors de la mise à jour du statut du joueur:', error)
       }
@@ -421,12 +492,12 @@ onMounted(async () => {
       message.value = 'Votre disponibilité a été enregistrée: Pas dispo. (Si vous étiez sélectionné(e), vous avez été retiré(e) de la sélection.)'
     }
 
-    // Redirection vers la modal de composition pour voir l'état de l'équipe
-    if (slug) {
-      setTimeout(() => router.push(`/season/${slug}?modal=selection&event=${eventId}`), 1200)
-    } else {
-      setTimeout(() => router.push('/seasons'), 1200)
-    }
+      // Redirection vers la modal de composition pour voir l'état de l'équipe
+      if (slug) {
+        setTimeout(() => router.push(`/season/${slug}?modal=selection&event=${eventId}`), 1200)
+      } else {
+        setTimeout(() => router.push('/seasons'), 1200)
+      }
   } catch (err) {
     logger.error('Magic link error', err)
     status.value = 'error'
