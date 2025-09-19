@@ -143,7 +143,34 @@
                 </div>
               </div>
               
-              <!-- Affichage du nombre requis quand personne n'est disponible -->
+              <!-- Affichage du joueur sélectionné quand personne n'est disponible -->
+              <div v-else-if="selectedPlayerId && getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
+                <AvailabilityCell
+                  :player-name="selectedPlayer.name"
+                  :event-id="event.id"
+                  :is-available="isAvailable(selectedPlayer.name, event.id)"
+                  :is-selected="isPlayerSelected(selectedPlayer.name, event.id)"
+                  :is-selection-confirmed="isSelectionConfirmed(event.id)"
+                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
+                  :player-selection-status="getPlayerSelectionStatus(selectedPlayer.name, event.id)"
+                  :season-id="seasonId"
+                  :player-gender="selectedPlayer.gender || 'non-specified'"
+                  :chance-percent="chances?.[selectedPlayer.name]?.[event.id] ?? null"
+                  :show-selected-chance="isSelectionComplete ? isSelectionComplete(event.id) : false"
+                  :disabled="event.archived === true"
+                  :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
+                  :event-title="event.title"
+                  :event-date="event.date ? event.date.toISOString() : ''"
+                  :is-protected="isPlayerProtected(event.id)"
+                  :compact="true"
+                  class="w-full h-16"
+                  @toggle="handleAvailabilityToggle"
+                  @toggle-selection-status="handleSelectionStatusToggle"
+                  @show-availability-modal="handleShowAvailabilityModal"
+                />
+              </div>
+              
+              <!-- Affichage du nombre requis quand personne n'est disponible ET aucun joueur sélectionné -->
               <div v-else-if="getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
                 <div class="relative group">
                   <div class="w-8 h-8 md:w-10 md:h-10 bg-orange-600 border-2 border-orange-500 rounded-full flex items-center justify-center text-xs md:text-sm text-white font-medium hover:bg-orange-500 hover:border-orange-400 transition-all duration-200 hover:scale-110">
