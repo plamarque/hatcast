@@ -39,7 +39,6 @@ const routes = [
   { path: '/season/:slug/admin', component: SeasonAdminPage, props: true },
   { path: '/reset-password', component: PasswordReset },
   { path: '/magic', component: MagicLink },
-  { path: '/magic-test', component: MagicLinkTest },
   { path: '/404', component: NotFoundPage },
   { path: '/:pathMatch(.*)*', component: NotFoundPage }
 ]
