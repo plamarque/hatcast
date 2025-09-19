@@ -98,7 +98,7 @@
                   </div>
                 </div>
                 <button
-                  v-if="!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player)"
+                  v-if="canEditEvents && (!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player))"
                   @click="clearSlot(slot.index)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer cette personne"
