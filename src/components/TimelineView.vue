@@ -86,6 +86,7 @@
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handleSelectionStatusToggle"
                 @show-availability-modal="handleShowAvailabilityModal"
+                @show-confirmation-modal="handleShowConfirmationModal"
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
@@ -172,6 +173,7 @@
                   @toggle="handleAvailabilityToggle"
                   @toggle-selection-status="handleSelectionStatusToggle"
                   @show-availability-modal="handleShowAvailabilityModal"
+                  @show-confirmation-modal="handleShowConfirmationModal"
                 />
               </div>
               
@@ -311,6 +313,7 @@ export default {
     'availability-toggle',
     'selection-status-toggle',
     'show-availability-modal',
+    'show-confirmation-modal',
     'player-selected',
     'all-players-selected',
     'show-composition-modal'
@@ -633,6 +636,10 @@ export default {
       emit('show-availability-modal', data)
     }
     
+    const handleShowConfirmationModal = (data) => {
+      emit('show-confirmation-modal', data)
+    }
+    
     // Handlers pour la sélection de participants
     const handlePlayerSelected = (player) => {
       emit('player-selected', player)
@@ -695,6 +702,7 @@ export default {
       handleAvailabilityToggle,
       handleSelectionStatusToggle,
       handleShowAvailabilityModal,
+      handleShowConfirmationModal,
       handlePlayerSelected,
       handleAllPlayersSelected,
       handleAvatarClick,

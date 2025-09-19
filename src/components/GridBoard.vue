@@ -90,6 +90,7 @@
         @toggle-availability="toggleAvailability"
         @toggle-selection-status="toggleSelectionStatus"
         @show-availability-modal="openAvailabilityModal"
+        @show-confirmation-modal="openConfirmationModal"
         @event-click="openEventModal"
       />
       
@@ -126,6 +127,7 @@
         @toggle-availability="toggleAvailability"
         @toggle-selection-status="toggleSelectionStatus"
         @show-availability-modal="openAvailabilityModal"
+        @show-confirmation-modal="openConfirmationModal"
         @event-click="openEventModal"
       />
                 </div>
@@ -170,6 +172,7 @@
         @availability-toggle="handleAvailabilityToggle"
         @selection-status-toggle="handlePlayerSelectionStatusToggle"
         @show-availability-modal="openAvailabilityModal"
+        @show-confirmation-modal="openConfirmationModal"
         @show-composition-modal="showCompositionModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
@@ -803,23 +806,25 @@
       </div>
 
       <!-- Footer sticky (mobile) -->
-      <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button 
-          v-if="canEditEvents"
-          @click="openEventAnnounceModal(selectedEvent)" 
-          :disabled="selectedEvent?.archived" 
-          class="h-12 px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-[1.4] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Annoncer
-        </button>
-        <button 
-          v-if="canEditEvents"
-          @click="openSelectionModal(selectedEvent)" 
-          class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-[1.4]"
-        >
-          Composition
-        </button>
-        <button @click="closeEventDetailsAndUpdateUrl" class="h-12 px-4 bg-gray-700 text-white rounded-lg flex-1">Fermer</button>
+      <div class="md:hidden sticky bottom-0 w-full p-2 sm:p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm">
+        <div class="flex items-center gap-1 sm:gap-2 min-w-0">
+          <button 
+            v-if="canEditEvents"
+            @click="openEventAnnounceModal(selectedEvent)" 
+            :disabled="selectedEvent?.archived" 
+            class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Annoncer
+          </button>
+          <button 
+            v-if="canEditEvents"
+            @click="openSelectionModal(selectedEvent)" 
+            class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm"
+          >
+            Composition
+          </button>
+          <button @click="closeEventDetailsAndUpdateUrl" class="h-10 sm:h-12 px-2 sm:px-4 bg-gray-700 text-white rounded-lg flex-1 min-w-0 text-xs sm:text-sm">Fermer</button>
+        </div>
       </div>
     </div>
     </div>
@@ -1271,6 +1276,23 @@
     @request-edit="handleAvailabilityRequestEdit"
   />
 
+  <!-- Modal de confirmation -->
+  <ConfirmationModal
+    :show="showConfirmationModal"
+    :player-name="confirmationModalData.playerName"
+    :player-gender="confirmationModalData.playerGender"
+    :event-id="confirmationModalData.eventId"
+    :event-title="confirmationModalData.eventTitle"
+    :event-date="confirmationModalData.eventDate"
+    :assigned-role="confirmationModalData.assignedRole"
+    :availability-comment="confirmationModalData.availabilityComment"
+    :current-status="confirmationModalData.currentStatus"
+    @close="showConfirmationModal = false"
+    @confirm="handleConfirmationConfirm"
+    @decline="handleConfirmationDecline"
+    @pending="handleConfirmationPending"
+  />
+
   <!-- Modal de développement -->
   <DevelopmentModal 
     :show="showDevelopmentModal"
@@ -1618,6 +1640,7 @@ import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import EventRoleGroupingView from './EventRoleGroupingView.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
+import ConfirmationModal from './ConfirmationModal.vue'
 import EventModal from './EventModal.vue'
 import DevelopmentModal from './DevelopmentModal.vue'
 import PerformanceDebug from './PerformanceDebug.vue'
@@ -2467,6 +2490,19 @@ const availabilityModalData = ref({
   },
   isReadOnly: false,
   chancePercent: null
+})
+
+// Variables pour la modale de confirmation
+const showConfirmationModal = ref(false)
+const confirmationModalData = ref({
+  playerName: '',
+  playerGender: 'non-specified',
+  eventId: '',
+  eventTitle: '',
+  eventDate: '',
+  assignedRole: 'player',
+  availabilityComment: null,
+  currentStatus: 'pending'
 })
 async function openAccountMenu() {
   showAccountMenu.value = true
@@ -9002,7 +9038,78 @@ async function handleAvailabilityClear(availabilityData) {
   }
 }
 
+// Handlers pour la modal de confirmation
+async function handleConfirmationConfirm(data) {
+  try {
+    await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'confirmed', seasonId.value)
+    showConfirmationModal.value = false
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Participation confirmée ! 👍'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+  } catch (error) {
+    console.error('Erreur lors de la confirmation:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors de la confirmation. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
 
+async function handleConfirmationDecline(data) {
+  try {
+    await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'declined', seasonId.value)
+    showConfirmationModal.value = false
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Participation déclinée 👎'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+  } catch (error) {
+    console.error('Erreur lors du déclin:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors du déclin. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+async function handleConfirmationPending(data) {
+  try {
+    await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'pending', seasonId.value)
+    showConfirmationModal.value = false
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Statut remis à "À confirmer" ⏳'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+  } catch (error) {
+    console.error('Erreur lors du changement de statut:', error)
+    showErrorMessage.value = true
+    errorMessage.value = 'Erreur lors du changement de statut. Veuillez réessayer.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+// Fonction pour ouvrir la modal de confirmation
+function openConfirmationModal(data) {
+  confirmationModalData.value = { ...data }
+  showConfirmationModal.value = true
+}
 
 // Fonction pour gérer la demande de modification depuis la modale en lecture seule
 async function handleAvailabilityRequestEdit() {

@@ -250,7 +250,7 @@ const props = defineProps({
 
 // Debug logs removed for cleaner console output
 
-const emit = defineEmits(['toggle', 'toggleSelectionStatus', 'show-availability-modal'])
+const emit = defineEmits(['toggle', 'toggleSelectionStatus', 'show-availability-modal', 'show-confirmation-modal'])
 
 const hover = ref(false)
 
@@ -351,11 +351,19 @@ const tooltipText = computed(() => {
 function toggleAvailability() {
   if (props.disabled) return
   
-  // Si le joueur est dans la composition validée par l'organisateur, gérer le cycle de confirmation
+  // Si le joueur est dans la composition validée par l'organisateur, ouvrir la modal de confirmation
   if (props.isSelected && props.isAvailable === true && props.isSelectionConfirmedByOrganizer) {
-    // Cycle de confirmation : pending → confirmed → declined → pending
-    const nextStatus = getNextSelectionStatus(props.playerSelectionStatus)
-    emit('toggleSelectionStatus', props.playerName, props.eventId, nextStatus, props.seasonId)
+    // Ouvrir la modal de confirmation au lieu de cycler directement
+    emit('show-confirmation-modal', {
+      playerName: props.playerName,
+      playerGender: props.playerGender,
+      eventId: props.eventId,
+      eventTitle: props.eventTitle,
+      eventDate: props.eventDate,
+      assignedRole: props.availabilityData?.roles?.[0] || 'player',
+      availabilityComment: props.availabilityData?.comment || null,
+      currentStatus: props.playerSelectionStatus
+    })
   } else {
     // Cycle classique de disponibilité
     emit('toggle', props.playerName, props.eventId)
