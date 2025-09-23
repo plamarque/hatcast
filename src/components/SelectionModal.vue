@@ -117,7 +117,9 @@
                     @blur="cancelEditSlot()"
                   >
                     <option value="">— Choisir —</option>
-                    <option v-for="name in availableOptionsForSlot(slot.index)" :key="name" :value="name">{{ name }}</option>
+                    <option v-for="option in availableOptionsForSlot(slot.index)" :key="option.name" :value="option.name">
+                      {{ option.name }} ({{ option.chance }})
+                    </option>
                   </select>
                 </template>
                 <button
@@ -355,6 +357,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
+import { calculatePlayerChanceForRole, formatChancePercentage } from '../services/chancesService.js'
 
 const props = defineProps({
   show: {
@@ -385,6 +388,10 @@ const props = defineProps({
   isAvailableForRole: {
     type: Function,
     default: () => false
+  },
+  countSelections: {
+    type: Function,
+    default: () => 0
   },
   // Nouvelles props pour EventAnnounceModal
   seasonId: {
@@ -566,8 +573,8 @@ function availableOptionsForSlot(index) {
     used.delete(currentSlot.player)
   }
   
-  // Filtrer les joueurs disponibles pour ce rôle spécifique
-  return allAvailableNames.value.filter(name => {
+  // Filtrer les joueurs disponibles pour ce rôle spécifique et calculer leurs chances
+  const availablePlayers = allAvailableNames.value.filter(name => {
     // Vérifier que le joueur n'est pas déjà utilisé
     if (used.has(name)) {
       return false
@@ -576,6 +583,23 @@ function availableOptionsForSlot(index) {
     // Vérifier que le joueur est disponible pour ce rôle spécifique
     return props.isAvailableForRole(name, requiredRole, props.event?.id)
   })
+  
+  // Calculer les chances pour chaque joueur disponible
+  return availablePlayers.map(name => {
+    const chance = calculatePlayerChanceForRole(
+      name, 
+      requiredRole, 
+      props.event?.id, 
+      props.event, 
+      props.availability.players || [], 
+      props.availability, 
+      props.countSelections || (() => 0)
+    )
+    return {
+      name,
+      chance: formatChancePercentage(chance)
+    }
+  }).sort((a, b) => parseFloat(a.chance) - parseFloat(b.chance)).reverse() // Trier par chances décroissantes
 }
 
 function startEditSlot(index) {

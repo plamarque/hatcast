@@ -1375,8 +1375,8 @@
                 <span>{{ ROLE_LABELS[role] }}</span>
               </h3>
               <p class="text-sm text-gray-400">
-                <span class="text-blue-400 font-semibold">{{ chancesData[role][0]?.requiredCount || 0 }}</span> places, 
-                <span class="text-green-400 font-semibold">{{ chancesData[role][0]?.availableCount || 0 }}</span> candidats
+                <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> places, 
+                <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats
               </p>
             </div>
             
@@ -1390,7 +1390,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="candidate in chancesData[role]" :key="candidate.name" class="border-b border-gray-700/50">
+                  <tr v-for="candidate in chancesData[role].candidates" :key="candidate.name" class="border-b border-gray-700/50">
                     <td class="py-2 text-white">{{ candidate.name }}</td>
                     <td class="py-2 text-center">
                       <div class="flex flex-col items-center gap-1">
@@ -1404,18 +1404,18 @@
                     </td>
                     <td class="py-2 text-gray-400 text-xs">
                       <span v-if="candidate.pastSelections === 0" class="text-gray-400">
-                        <span class="text-blue-400 font-semibold">{{ (candidate.weight * candidate.requiredCount) % 1 === 0 ? (candidate.weight * candidate.requiredCount).toFixed(0) : (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> place{{ (candidate.weight * candidate.requiredCount) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span> candidats = <span class="font-semibold" :class="candidate.practicalChance >= 20 ? 'text-emerald-400' : candidate.practicalChance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance / 100).toFixed(2) }}</span>
+                            <span class="text-blue-400 font-semibold">{{ ((candidate.weight || 0) * (candidate.requiredCount || 0)) % 1 === 0 ? ((candidate.weight || 0) * (candidate.requiredCount || 0)).toFixed(0) : ((candidate.weight || 0) * (candidate.requiredCount || 0)).toFixed(1) }}</span> place{{ ((candidate.weight || 0) * (candidate.requiredCount || 0)) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ (candidate.totalWeight || 0).toFixed(0) }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance || 0).toFixed(2) }}</span>
                       </span>
                       <span v-else class="text-gray-400">
                         <div class="flex flex-col gap-1">
                           <div>
-                            <span class="text-orange-400 font-semibold">{{ (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances / <span class="text-green-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span> candidats = <span class="font-semibold" :class="candidate.practicalChance >= 20 ? 'text-emerald-400' : candidate.practicalChance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance / 100).toFixed(2) }}</span>
+                            <span class="text-orange-400 font-semibold">{{ ((candidate.weight || 0) * (candidate.requiredCount || 0)).toFixed(1) }}</span> chances / <span class="text-green-400 font-semibold">{{ (candidate.totalWeight || 0).toFixed(0) }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance || 0).toFixed(2) }}</span>
                           </div>
                           <div class="text-xs text-gray-500 ml-2">
-                            chances = <span class="text-blue-400 font-semibold">{{ candidate.requiredCount }}</span> places × <span class="text-cyan-400 font-semibold">{{ candidate.weight.toFixed(2) }}</span> malus
+                            chances = <span class="text-blue-400 font-semibold">{{ candidate.requiredCount || 0 }}</span> places × <span class="text-cyan-400 font-semibold">{{ (candidate.weight || 0).toFixed(2) }}</span> malus
                           </div>
                           <div class="text-xs text-gray-500 ml-2">
-                            malus = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections }}</span> sélection{{ candidate.pastSelections > 1 ? 's' : '' }})
+                            malus = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections || 0 }}</span> sélection{{ (candidate.pastSelections || 0) > 1 ? 's' : '' }})
                           </div>
                         </div>
                       </span>
@@ -1662,7 +1662,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
-import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService, calculateRoleChances, calculateAllRoleChances } from '../services/playerAvailabilityService.js'
+import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
+import { calculateAllRoleChances, simulateWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -6151,7 +6152,7 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
   const declinedPlayers = getDeclinedPlayers(eventId)
   
   // Filtrer les candidats disponibles pour ce rôle
- const candidates = allSeasonPlayers.value.filter(p => {
+  const candidates = allSeasonPlayers.value.filter(p => {
     // Vérifier la disponibilité pour ce rôle spécifique
     const isAvailableForThisRole = isAvailableForRole(p.name, role, eventId)
     const notDeclined = !declinedPlayers.includes(p.name)
@@ -6167,54 +6168,39 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
     return []
   }
   
-  // Calculer et logger les chances détaillées
-  const event = events.value.find(e => e.id === eventId)
-  if (event) {
-    const roleChances = calculateRoleChances(role, event, allSeasonPlayers.value, availability.value, countSelections)
-    
-    logger.debug(`📊 CHANCES DÉTAILLÉES pour le rôle ${role}:`)
-    logger.debug(`┌─────────────────────┬─────────────┬─────────────┬─────────────┬─────────────┐`)
-    logger.debug(`│ Joueur              │ Sélections  │ Poids       │ Chance Théo │ Chance Prat │`)
-    logger.debug(`├─────────────────────┼─────────────┼─────────────┼─────────────┼─────────────┤`)
-    
-    roleChances.forEach(candidate => {
-      const name = candidate.name.padEnd(19)
-      const selections = candidate.pastSelections.toString().padStart(11)
-      const weight = candidate.weight.toFixed(4).padStart(11)
-      const theoretical = `${candidate.theoreticalChance}%`.padStart(11)
-      const practical = `${candidate.practicalChance}%`.padStart(11)
-      
-      logger.debug(`│ ${name} │ ${selections} │ ${weight} │ ${theoretical} │ ${practical} │`)
-    })
-    
-    logger.debug(`└─────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┘`)
-    logger.debug(`📈 Résumé: ${candidates.length} candidats disponibles pour ${count} poste(s)`)
-  }
-  
-  // Draw pondéré : moins compositionné = plus de chances
+  // Préparer les candidats avec leurs poids pour le service
   const weightedCandidates = candidates.map(player => {
-    const s = countSelections(player.name, role)
+    const pastSelections = countSelections(player.name, role)
+    const malus = 1 / (1 + pastSelections)
+    const event = events.value.find(e => e.id === eventId)
+    const requiredCount = event?.roles?.[role] || 1
+    const weightedChances = malus * requiredCount
+    
     return {
       name: player.name,
-      weight: 1 / (1 + s) // poids inverse du nombre de compositions
+      pastSelections,
+      malus,
+      weight: malus, // Le poids pour le tirage est le malus
+      weightedChances
     }
   })
   
+  // Utiliser le service pour le tirage avec logs détaillés
   const draw = []
   const pool = [...weightedCandidates]
   
   while (draw.length < count && pool.length > 0) {
-    const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
-    let r = Math.random() * totalWeight
+    const selectedCandidate = simulateWeightedDraw(pool, role, { logDetails: true })
     
-    const chosenIndex = pool.findIndex(p => {
-      r -= p.weight
-      return r <= 0
-    })
-    
-    if (chosenIndex >= 0) {
-      draw.push(pool[chosenIndex].name)
-      pool.splice(chosenIndex, 1)
+    if (selectedCandidate) {
+      draw.push(selectedCandidate.name)
+      // Retirer le candidat sélectionné du pool
+      const index = pool.findIndex(c => c.name === selectedCandidate.name)
+      if (index >= 0) {
+        pool.splice(index, 1)
+      }
+    } else {
+      break
     }
   }
   
@@ -8471,8 +8457,10 @@ async function openChancesModal() {
     selectedEvent.value, 
     allSeasonPlayers.value, 
     availability.value, 
-    countSelections
+    countSelections,
+    isAvailableForRole
   )
+  
   
   chancesData.value = allRoleChances
   showChancesModal.value = true

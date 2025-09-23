@@ -205,3 +205,6 @@ export function countAvailablePlayers(event, players, playerAvailability) {
     isAvailableForRole(player.name, 'player', event.id, playerAvailability)
   ).length;
 }
+
+// Les fonctions de calcul de chances ont été déplacées vers chancesService.js
+// pour éviter la duplication de code et centraliser la logique métier
