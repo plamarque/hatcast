@@ -353,7 +353,12 @@
           🔄 <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
         </button>
 
-        <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap">
+        <!-- Bouton Fermer (masqué si composition complète pour libérer l'espace) -->
+        <button 
+          v-if="!isSelectionComplete"
+          @click="handlePerfect" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap"
+        >
           <span class="hidden sm:inline">Fermer</span><span class="sm:hidden">Fermer</span>
         </button>
       </div>
