@@ -1762,10 +1762,10 @@ function prepareSimulationData() {
   currentSlotIndex.value = firstEmptySlot.index
   currentDrawRole.value = firstEmptySlot.role || 'player'
   
-  // Récupérer les joueurs déjà sélectionnés (depuis slots.value)
-  const alreadySelectedPlayers = slots.value
-    .filter(player => player) // Seulement les slots avec un joueur (non null/undefined)
-    .map(player => player) // Récupérer les noms des joueurs
+  // Récupérer les joueurs déjà sélectionnés (depuis teamSlots.value - source de vérité)
+  const alreadySelectedPlayers = teamSlots.value
+    .filter(slot => slot.player) // Seulement les slots avec un joueur
+    .map(slot => slot.player) // Récupérer les noms des joueurs
   
   console.log('🔍 Already selected players:', alreadySelectedPlayers)
   
