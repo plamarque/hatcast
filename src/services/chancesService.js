@@ -214,9 +214,9 @@ export function simulateWeightedDraw(candidates, role, options = {}) {
  * @param {Function} countSelections - Fonction pour compter les sélections passées
  * @returns {number} - Pourcentage de chance (0-100)
  */
-export function calculatePlayerChanceForRole(playerName, role, eventId, event, availablePlayers, playerAvailability, countSelections) {
-  // Vérifier que le joueur est disponible pour ce rôle
-  const isAvailableForRole = (playerName, role, eventId) => {
+export function calculatePlayerChanceForRole(playerName, role, eventId, event, availablePlayers, playerAvailability, countSelections, isAvailableForRole = null) {
+  // Utiliser la fonction isAvailableForRole passée en paramètre ou créer une fonction locale
+  const checkAvailableForRole = isAvailableForRole || ((playerName, role, eventId) => {
     const availabilityData = playerAvailability?.[playerName]?.[eventId]
     
     if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
@@ -231,9 +231,9 @@ export function calculatePlayerChanceForRole(playerName, role, eventId, event, a
     }
     
     return false
-  }
+  })
   
-  if (!isAvailableForRole(playerName, role, eventId)) {
+  if (!checkAvailableForRole(playerName, role, eventId)) {
     return 0
   }
   
