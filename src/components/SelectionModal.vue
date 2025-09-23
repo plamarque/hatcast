@@ -1925,30 +1925,35 @@ function startDraw(persistResults = false) {
   console.log('🎬 Starting draw...', { persistResults })
   isSimulating.value = true
   simulationComplete.value = false
+  showDrawVisualization.value = true
   canvasRetryCount.value = 0
-  prepareDrawData()
   
-  // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
-  if (persistResults) {
-    const stopWatcher = watch(simulationComplete, async (isComplete) => {
-      if (isComplete) {
-        stopWatcher() // Arrêter le watcher
-        await persistDrawResults()
-      }
-    })
-  }
-  
-  if (currentDrawCandidates.value.length > 0) {
-    nextTick(() => {
-      drawNextSlot()
-    })
-  } else {
-    console.log('❌ No candidates found for draw, checking if there are empty slots to process')
-    // Même s'il n'y a pas de candidats pour le premier slot, continuer pour traiter les autres slots
-    nextTick(() => {
-      drawNextSlot()
-    })
-  }
+  // Attendre que le DOM soit mis à jour avant de préparer les données
+  nextTick(() => {
+    prepareDrawData()
+    
+    // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
+    if (persistResults) {
+      const stopWatcher = watch(simulationComplete, async (isComplete) => {
+        if (isComplete) {
+          stopWatcher() // Arrêter le watcher
+          await persistDrawResults()
+        }
+      })
+    }
+    
+    if (currentDrawCandidates.value.length > 0) {
+      nextTick(() => {
+        drawNextSlot()
+      })
+    } else {
+      console.log('❌ No candidates found for draw, checking if there are empty slots to process')
+      // Même s'il n'y a pas de candidats pour le premier slot, continuer pour traiter les autres slots
+      nextTick(() => {
+        drawNextSlot()
+      })
+    }
+  })
 }
 
 function pauseSimulation() {
