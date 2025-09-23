@@ -55,6 +55,13 @@ export function calculatePracticalChance(weightedChances, totalWeight) {
 export function calculateRoleChances(roleData, availablePlayers, countSelections, isAvailableForRole) {
   const { role, requiredCount, eventId } = roleData
   
+  console.log('🔍 calculateRoleChances debug:', {
+    role,
+    requiredCount,
+    eventId,
+    availablePlayersCount: availablePlayers.length
+  })
+  
   // Filtrer les joueurs disponibles pour ce rôle
   const candidates = availablePlayers
     .filter(player => isAvailableForRole(player.name, role, eventId))
@@ -73,6 +80,13 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
         requiredCount
       }
     })
+  
+  console.log('🔍 calculateRoleChances candidates:', {
+    role,
+    candidatesCount: candidates.length,
+    requiredCount,
+    firstCandidate: candidates[0]
+  })
   
   // Calculer le total des poids
   const totalWeight = calculateTotalWeight(candidates)
