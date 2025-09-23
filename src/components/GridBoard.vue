@@ -1663,7 +1663,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
-import { calculateAllRoleChances, simulateWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
+import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -6040,7 +6040,7 @@ async function fillEmptyCastSlots(eventId) {
     return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
   })
   
-  for (const role of ROLE_DISPLAY_ORDER) {
+  for (const role of ROLE_PRIORITY_ORDER) {
     const requiredCount = roles[role] || 0
     
     if (requiredCount > 0) {
@@ -6153,6 +6153,23 @@ async function fillEmptyCastSlots(eventId) {
 }
 
 
+// Fonction helper pour calculer les chances d'un rôle avec les candidats filtrés
+function calculateRoleChancesForFill(role, candidates, eventId) {
+  const event = events.value.find(e => e.id === eventId)
+  if (!event) {
+    logger.warn(`⚠️ Événement non trouvé pour le calcul des chances: ${eventId}`)
+    return []
+  }
+  
+  const requiredCount = event?.roles?.[role] || 1
+  
+  // Utiliser le service officiel pour le calcul des chances
+  const roleData = { role, requiredCount, eventId }
+  const roleChances = calculateRoleChances(roleData, candidates, countSelections, isAvailableForRole)
+  
+  return roleChances.candidates || []
+}
+
 // Fonction helper pour draw des joueurs pour un rôle spécifique
 async function drawForRole(role, count, eventId, excludedPlayers = []) {
   logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected: excludedPlayers })
@@ -6177,29 +6194,17 @@ async function drawForRole(role, count, eventId, excludedPlayers = []) {
     return []
   }
   
-  // Préparer les candidats avec leurs poids pour le service
-  const weightedCandidates = candidates.map(player => {
-    const pastSelections = countSelections(player.name, role)
-    const malus = 1 / (1 + pastSelections)
-    const event = events.value.find(e => e.id === eventId)
-    const requiredCount = event?.roles?.[role] || 1
-    const weightedChances = malus * requiredCount
-    
-    return {
-      name: player.name,
-      pastSelections,
-      malus,
-      weight: malus, // Le poids pour le tirage est le malus
-      weightedChances
-    }
-  })
+  // Utiliser le service officiel pour calculer les poids des candidats
+  const weightedCandidates = calculateRoleChancesForFill(role, candidates, eventId)
+  
+  logger.debug(`🎭 Candidats avec poids calculés par chancesService:`, weightedCandidates)
   
   // Utiliser le service pour le tirage avec logs détaillés
   const draw = []
   const pool = [...weightedCandidates]
   
   while (draw.length < count && pool.length > 0) {
-    const selectedCandidate = simulateWeightedDraw(pool, role, { logDetails: true })
+    const selectedCandidate = performWeightedDraw(pool, role, { logDetails: true })
     
     if (selectedCandidate) {
       draw.push(selectedCandidate.name)

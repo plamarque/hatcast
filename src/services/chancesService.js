@@ -151,7 +151,7 @@ export function calculateAllRoleChances(event, availablePlayers, playerAvailabil
  * @param {Object} options - Options de logging
  * @returns {Object|null} - Candidat sélectionné ou null
  */
-export function simulateWeightedDraw(candidates, role, options = {}) {
+export function performWeightedDraw(candidates, role, options = {}) {
   const { logDetails = false } = options
   
   if (candidates.length === 0) {
