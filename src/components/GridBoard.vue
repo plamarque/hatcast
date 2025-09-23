@@ -1402,7 +1402,7 @@
                     </td>
                     <td class="py-2 text-gray-400 text-xs">
                       <span v-if="candidate.pastSelections === 0" class="text-gray-400">
-                            <span class="text-blue-400 font-semibold">{{ ((candidate.weight || 0) * (candidate.requiredCount || 0)) % 1 === 0 ? ((candidate.weight || 0) * (candidate.requiredCount || 0)).toFixed(0) : ((candidate.weight || 0) * (candidate.requiredCount || 0)).toFixed(1) }}</span> place{{ ((candidate.weight || 0) * (candidate.requiredCount || 0)) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ (candidate.totalWeight || 0).toFixed(0) }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance || 0).toFixed(2) }}</span>
+                            <span class="text-blue-400 font-semibold">{{ candidate.requiredCount || 0 }}</span> place{{ (candidate.requiredCount || 0) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ candidate.availableCount || 0 }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance || 0).toFixed(2) }}</span>
                       </span>
                       <span v-else class="text-gray-400">
                         <div class="flex flex-col gap-1">
