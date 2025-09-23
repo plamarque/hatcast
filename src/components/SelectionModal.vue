@@ -294,11 +294,11 @@
         <!-- Bouton Simuler Compo / Stop (visible pour tous les utilisateurs - fonction éducative) -->
         <button 
           v-if="!isSelectionConfirmedByOrganizer"
-          @click="isSimulating ? stopSimulation() : handleSimulateComposition()" 
+          @click="isSimulating ? abortDraw() : handleSimulateComposition()" 
           :disabled="!isSimulating && availableCount === 0" 
           :class="isSimulating ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700'"
           class="h-12 px-3 md:px-4 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="isSimulating ? 'Arrêter la simulation' : (availableCount === 0 ? 'Aucune personne disponible' : 'Simuler la composition avec visualisation')"
+          :title="isSimulating ? 'Arrêter le tirage' : (availableCount === 0 ? 'Aucune personne disponible' : 'Simuler la composition avec visualisation')"
         >
           {{ isSimulating ? '⏹️' : '🎲' }} <span class="hidden sm:inline">{{ isSimulating ? 'Arrêter' : 'Simuler Compo' }}</span><span class="sm:hidden">{{ isSimulating ? 'Stop' : 'Simuler' }}</span>
         </button>
@@ -1200,10 +1200,10 @@ const selectionMessage = computed(() => {
 // Watchers
 watch(() => props.show, (newValue) => {
   if (newValue) {
-    // Arrêter toute simulation en cours au cas où (protection contre les rafraîchissements)
+    // Arrêter tout tirage en cours au cas où (protection contre les rafraîchissements)
     if (isSimulating.value) {
-      console.log('🛑 Stopping any running simulation when opening modal')
-      stopSimulation()
+      console.log('🛑 Aborting any running draw when opening modal')
+      abortDraw()
     }
     
     copied.value = false
@@ -1804,8 +1804,8 @@ async function startDrawVisualization(resetExisting = false, persistResults = fa
       await new Promise(resolve => setTimeout(resolve, 100))
     }
     
-    // 2. Démarrer la simulation
-    startSimulation(persistResults)
+    // 2. Démarrer le tirage
+    startDraw(persistResults)
     
   } catch (error) {
     console.error('❌ Erreur dans startDrawVisualization:', error)
@@ -1823,12 +1823,12 @@ async function startDrawVisualization(resetExisting = false, persistResults = fa
   }
 }
 
-function prepareSimulationData() {
+function prepareDrawData() {
   // Utiliser les vrais joueurs et leurs vrais poids
   const event = props.event
   if (!event || !event.roles) return
   
-  console.log('🔍 Debug simulation:', {
+  console.log('🔍 Debug draw:', {
     teamSlots: teamSlots.value,
     teamSlotsLength: teamSlots.value.length,
     event: event,
@@ -1841,7 +1841,7 @@ function prepareSimulationData() {
   console.log('🔍 Empty teamSlots:', emptySlots)
   
   if (emptySlots.length === 0) {
-    console.log('❌ No empty slots found, simulation complete')
+    console.log('❌ No empty slots found, draw complete')
     simulationComplete.value = true
     return
   }
@@ -1919,19 +1919,19 @@ function handleDrawComplete() {
   // TODO: Finaliser le tirage
 }
 
-// Nouvelles fonctions pour la simulation complète
-function startSimulation(persistResults = false) {
-  console.log('🎬 Starting simulation...', { persistResults })
+// Nouvelles fonctions pour le tirage complet
+function startDraw(persistResults = false) {
+  console.log('🎬 Starting draw...', { persistResults })
   isSimulating.value = true
   simulationComplete.value = false
-  prepareSimulationData()
+  prepareDrawData()
   
   // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
   if (persistResults) {
     const stopWatcher = watch(simulationComplete, async (isComplete) => {
       if (isComplete) {
         stopWatcher() // Arrêter le watcher
-        await persistSimulationResults()
+        await persistDrawResults()
       }
     })
   }
@@ -1941,7 +1941,7 @@ function startSimulation(persistResults = false) {
       drawNextSlot()
     })
   } else {
-    console.log('❌ No candidates found for simulation, checking if there are empty slots to process')
+    console.log('❌ No candidates found for draw, checking if there are empty slots to process')
     // Même s'il n'y a pas de candidats pour le premier slot, continuer pour traiter les autres slots
     nextTick(() => {
       drawNextSlot()
@@ -1953,7 +1953,7 @@ function pauseSimulation() {
   isSimulating.value = false
 }
 
-function stopSimulation() {
+function abortDraw() {
   isSimulating.value = false
   simulationComplete.value = false
   showDrawVisualization.value = false
@@ -1989,9 +1989,9 @@ function cleanUndefinedValues(obj) {
   return cleaned
 }
 
-async function persistSimulationResults() {
+async function persistDrawResults() {
   try {
-    console.log('💾 Persisting simulation results...')
+    console.log('💾 Persisting draw results...')
     
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}
@@ -2015,7 +2015,7 @@ async function persistSimulationResults() {
       declined: cleanedDeclined // Utiliser les données nettoyées
     })
     
-    console.log('✅ Simulation results persisted successfully')
+    console.log('✅ Draw results persisted successfully')
     
     // Émettre un événement pour que le parent recharge les données
     emit('updateCast')
@@ -2028,7 +2028,7 @@ async function persistSimulationResults() {
     successMessageText.value = 'Composition automatique terminée !'
     
   } catch (error) {
-    console.error('❌ Erreur lors de la persistance des résultats:', error)
+    console.error('❌ Erreur lors de la persistance des résultats du tirage:', error)
     
     // Afficher une erreur à l'utilisateur
     showErrorMessage.value = true
@@ -2060,7 +2060,7 @@ function drawNextSlot() {
   // Démarrer l'animation directement
   setTimeout(() => {
     // Mettre à jour les candidats pour ce slot
-    prepareSimulationData()
+    prepareDrawData()
     
     if (currentDrawCandidates.value.length > 0) {
       console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
@@ -2113,8 +2113,8 @@ function animatePointer() {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not ready for animation:', canvas, 'for slot', currentSlotIndex.value)
-    console.log('❌ Stopping simulation due to missing canvas')
-    stopSimulation()
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
     return
   }
   
@@ -2234,8 +2234,8 @@ async function drawCanvasBands() {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not found or not ready:', canvas, 'for slot', currentSlotIndex.value)
-    console.log('❌ Stopping simulation due to missing canvas')
-    stopSimulation()
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
     return
   }
   
@@ -2392,8 +2392,8 @@ function showSelectionBoom(playerName, roleEmoji = '🎉') {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not ready for boom effect:', canvas, 'for slot', currentSlotIndex.value)
-    console.log('❌ Stopping simulation due to missing canvas')
-    stopSimulation()
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
     return
   }
   
