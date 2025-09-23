@@ -8218,35 +8218,25 @@ function getPlayerRoleChances(eventId) {
   const event = events.value.find(e => e.id === eventId)
   if (!event || !event.roles) return {}
   
+  // Utiliser le service pour calculer les chances de tous les rôles
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    allSeasonPlayers.value, 
+    availability.value, 
+    countSelections,
+    isAvailableForRole
+  )
+  
   const roleChances = {}
   
-  // Pour chaque rôle requis dans l'événement
-  Object.entries(event.roles).forEach(([role, requiredCount]) => {
-    if (requiredCount <= 0) return
-    
-    // Récupérer les joueurs disponibles pour ce rôle
-    const availablePlayers = players.value.filter(p => isAvailableForRole(p.name, role, eventId))
-    
-    if (availablePlayers.length === 0) return
-    
-    // Calculer les poids basés sur le nombre de compositions déjà faites POUR CE RÔLE SPÉCIFIQUE
-    const weights = availablePlayers.map(player => {
-      const pastSelectionsForThisRole = countSelectionsForRole(player.name, role)
-      return {
-        name: player.name,
-        weight: 1 / (1 + pastSelectionsForThisRole)
-      }
-    })
-    
-    const totalWeight = weights.reduce((sum, p) => sum + p.weight, 0)
-    
-    // Calculer les chances pour chaque joueur pour ce rôle
-    weights.forEach(player => {
-      if (!roleChances[player.name]) roleChances[player.name] = {}
-      
-      const chance = Math.min(1, (player.weight / totalWeight) * requiredCount)
-      roleChances[player.name][role] = Math.round(chance * 100)
-    })
+  // Extraire les chances par joueur et par rôle
+  Object.entries(allRoleChances).forEach(([role, roleData]) => {
+    if (roleData.candidates) {
+      roleData.candidates.forEach(candidate => {
+        if (!roleChances[candidate.name]) roleChances[candidate.name] = {}
+        roleChances[candidate.name][role] = Math.round(candidate.practicalChance || 0)
+      })
+    }
   })
   
   return roleChances
