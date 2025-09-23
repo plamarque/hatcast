@@ -1934,6 +1934,24 @@ function finishSimulation() {
   currentSlotIndex.value = 0
 }
 
+// Fonction utilitaire pour nettoyer les valeurs undefined
+function cleanUndefinedValues(obj) {
+  if (obj === null || obj === undefined) return null
+  if (typeof obj !== 'object') return obj
+  
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefinedValues).filter(item => item !== undefined)
+  }
+  
+  const cleaned = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = cleanUndefinedValues(value)
+    }
+  }
+  return cleaned
+}
+
 async function persistSimulationResults() {
   try {
     console.log('💾 Persisting simulation results...')
@@ -1950,11 +1968,14 @@ async function persistSimulationResults() {
       }
     })
     
+    // Nettoyer les données déclinées pour éviter les valeurs undefined
+    const cleanedDeclined = cleanUndefinedValues(props.currentSelection?.declined || {})
+    
     // Sauvegarder avec la nouvelle structure par rôle
     const { saveCast } = await import('../services/storage.js')
     await saveCast(props.event.id, roles, props.seasonId, { 
       preserveConfirmed: true,
-      declined: props.currentSelection?.declined || {} // Préserver la section déclinés
+      declined: cleanedDeclined // Utiliser les données nettoyées
     })
     
     console.log('✅ Simulation results persisted successfully')
