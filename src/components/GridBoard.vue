@@ -1132,7 +1132,7 @@
     @unconfirm-selection="handleUnconfirmCastFromModal"
     @reset-selection="handleResetSelectionFromModal"
     @confirm-reselect="handleConfirmReselectFromModal"
-    @complete-selection="handleCompleteSelectionFromModal"
+    @fill-cast="handleFillCastFromModal"
         />
 
   <!-- Modal d'annonce d'événement -->
@@ -6009,9 +6009,9 @@ async function drawMultiRoles(eventId) {
   updateAllChances()
 }
 
-// Fonction pour compléter uniquement les slots vides d'une composition
-async function completeCastSlots(eventId) {
-  logger.debug('🔧 completeCastSlots appelé:', { eventId })
+// Fonction pour remplir uniquement les slots vides d'une composition
+async function fillEmptyCastSlots(eventId) {
+  logger.debug('🔧 fillEmptyCastSlots appelé:', { eventId })
   
   const event = events.value.find(e => e.id === eventId)
   if (!event) {
@@ -6032,6 +6032,14 @@ async function completeCastSlots(eventId) {
   // Construire la nouvelle composition en gardant les joueurs existants et en complétant les vides
   const newSelections = {}
   
+  // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (depuis la composition actuelle)
+  // Convertir les IDs en noms pour la compatibilité avec drawForRole
+  const initialAlreadySelectedIds = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
+  let allAlreadySelected = initialAlreadySelectedIds.map(playerId => {
+    const player = allSeasonPlayers.value.find(p => p.id === playerId)
+    return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
+  })
+  
   for (const role of ROLE_DISPLAY_ORDER) {
     const requiredCount = roles[role] || 0
     
@@ -6039,14 +6047,6 @@ async function completeCastSlots(eventId) {
       // Récupérer les joueurs déjà compositionnés pour ce rôle
       const currentRoleSelection = currentSelection.roles?.[role] || []
       const declinedForRole = currentSelection.declined?.[role] || []
-      
-      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (depuis la composition actuelle)
-      // Convertir les IDs en noms pour la compatibilité avec drawForRole
-      const allAlreadySelectedIds = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
-      const allAlreadySelected = allAlreadySelectedIds.map(playerId => {
-        const player = allSeasonPlayers.value.find(p => p.id === playerId)
-        return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
-      })
       
       // Compléter seulement les slots vraiment vides (null/undefined) et exclure les déclinés
       const filledSlots = currentRoleSelection.filter(player => 
@@ -6086,6 +6086,10 @@ async function completeCastSlots(eventId) {
         logger.debug(`🔧 IDs convertis pour ${role}:`, { newPlayerIds })
         
         newSelections[role] = [...filledSlots, ...newPlayerIds]
+        
+        // Mettre à jour la liste d'exclusion avec les joueurs nouvellement tirés
+        allAlreadySelected = [...allAlreadySelected, ...newPlayerNames]
+        logger.debug(`🔧 Liste d'exclusion mise à jour pour les rôles suivants:`, allAlreadySelected)
       } else {
         // Rôle déjà complet
         newSelections[role] = [...currentRoleSelection]
@@ -6150,8 +6154,8 @@ async function completeCastSlots(eventId) {
 
 
 // Fonction helper pour draw des joueurs pour un rôle spécifique
-async function drawForRole(role, count, eventId, alreadySelected = []) {
-  logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected })
+async function drawForRole(role, count, eventId, excludedPlayers = []) {
+  logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected: excludedPlayers })
   
   // Exclure les joueurs qui ont décliné cette composition
   const declinedPlayers = getDeclinedPlayers(eventId)
@@ -6161,11 +6165,11 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
     // Vérifier la disponibilité pour ce rôle spécifique
     const isAvailableForThisRole = isAvailableForRole(p.name, role, eventId)
     const notDeclined = !declinedPlayers.includes(p.name)
-    const notAlreadySelected = !alreadySelected.includes(p.name)
+    const notExcluded = !excludedPlayers.includes(p.name)
     // Exclure aussi les joueurs marqués comme indisponibles pour cet événement
     const isNotUnavailable = isAvailable(p.name, eventId) !== false
     
-    return isAvailableForThisRole && notDeclined && notAlreadySelected && isNotUnavailable
+    return isAvailableForThisRole && notDeclined && notExcluded && isNotUnavailable
   })
   
   if (candidates.length === 0) {
@@ -6683,7 +6687,7 @@ function getPinModalMessage() {
     updateCast: 'Mise à jour de composition - Code PIN requis',
     resetCast: 'Réinitialisation de composition - Code PIN requis',
     unconfirmCast: 'Déverrouillage de composition - Code PIN requis',
-    completeCast: 'Complétion de composition - Code PIN requis'
+    fillCast: 'Remplissage de composition - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -7271,22 +7275,22 @@ async function executePendingOperation(operation) {
           }
         }
         break
-      case 'completeCast':
-        // Compléter les slots vides d'une composition verrouillée
+      case 'fillCast':
+        // Remplir les slots vides d'une composition verrouillée
         {
           const { eventId } = data
           try {
-            await completeCastSlots(eventId)
+            await fillEmptyCastSlots(eventId)
             
             showSuccessMessage.value = true
-            successMessage.value = 'Composition complétée !'
+            successMessage.value = 'Composition remplie !'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
           } catch (error) {
-            console.error('Erreur lors de la complétion de la composition:', error)
+            console.error('Erreur lors du remplissage de la composition:', error)
             showSuccessMessage.value = true
-            successMessage.value = 'Erreur lors de la complétion de la composition'
+            successMessage.value = 'Erreur lors du remplissage de la composition'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
@@ -8602,19 +8606,19 @@ async function handleResetSelectionFromModal() {
   }
 }
 
-async function handleCompleteSelectionFromModal() {
+async function handleFillCastFromModal() {
   if (!selectionModalEvent.value) return
   
   const eventId = selectionModalEvent.value.id
   
   try {
-    // Demander le PIN code avant de compléter la composition
+    // Demander le PIN code avant de remplir la composition
     await requirePin({
-      type: 'completeCast',
+      type: 'fillCast',
       data: { eventId }
     })
   } catch (error) {
-    console.error('Erreur lors de la demande de complétion:', error)
+    console.error('Erreur lors de la demande de remplissage:', error)
   }
 }
 
