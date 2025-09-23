@@ -1842,7 +1842,11 @@ function startSimulation() {
       drawNextSlot()
     })
   } else {
-    console.log('❌ No candidates found for simulation')
+    console.log('❌ No candidates found for simulation, checking if there are empty slots to process')
+    // Même s'il n'y a pas de candidats pour le premier slot, continuer pour traiter les autres slots
+    nextTick(() => {
+      drawNextSlot()
+    })
   }
 }
 
@@ -1894,7 +1898,11 @@ function drawNextSlot() {
       // Lancer l'animation de tirage
       animateDraw()
     } else {
-      console.log('❌ No candidates for current slot')
+      console.log('❌ No candidates for current slot, skipping to next slot')
+      // Pas de candidats disponibles pour ce rôle, passer au slot suivant
+      setTimeout(() => {
+        drawNextSlot()
+      }, 1000) // Délai court avant de passer au suivant
     }
   }, 500) // Délai pour l'effet d'illumination
 }
