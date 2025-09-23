@@ -56,25 +56,30 @@
             <div
               v-for="slot in teamSlots"
               :key="'sel-slot-'+slot.index"
-              class="relative p-3 rounded-lg border text-center transition-colors"
-              :class="slot.player
-                ? [
-                    'bg-gradient-to-r',
-                    // Statuts de confirmation individuelle (priorité sur la disponibilité)
-                    getPlayerSelectionStatus(slot.player) === 'declined'
-                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
-                      : getPlayerSelectionStatus(slot.player) === 'confirmed'
-                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
-                        : getPlayerSelectionStatus(slot.player) === 'pending'
-                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
-                          // Statuts de disponibilité classique (seulement si pas de statut individuel)
-                          : isPlayerUnavailable(slot.player)
-                            ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
-                            : (!isPlayerAvailable(slot.player)
-                                ? 'from-red-500/60 to-red-600/60 border-red-500/30'
-                                : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
-                  ]
-                : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
+              class="relative p-3 rounded-lg border text-center transition-all duration-500 ease-in-out"
+              :class="[
+                slot.player
+                  ? [
+                      'bg-gradient-to-r',
+                      // Statuts de confirmation individuelle (priorité sur la disponibilité)
+                      getPlayerSelectionStatus(slot.player) === 'declined'
+                        ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
+                        : getPlayerSelectionStatus(slot.player) === 'confirmed'
+                          ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
+                          : getPlayerSelectionStatus(slot.player) === 'pending'
+                            ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
+                            // Statuts de disponibilité classique (seulement si pas de statut individuel)
+                            : isPlayerUnavailable(slot.player)
+                              ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
+                              : (!isPlayerAvailable(slot.player)
+                                  ? 'from-red-500/60 to-red-600/60 border-red-500/30'
+                                  : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
+                    ]
+                  : 'border-dashed border-white/20 hover:border-white/40 bg-white/5',
+                // Animation pour le slot en cours de tirage
+                isSimulatingSlot(slot.index) ? 'border-yellow-400 bg-yellow-900/20' : ''
+              ]"
+              :style="getSlotStyle(slot, slot.index)"
             >
               <!-- Slot rempli -->
               <div v-if="slot.player" class="flex items-center justify-between gap-2">
@@ -110,7 +115,25 @@
 
               <!-- Slot vide -->
               <div v-else class="flex items-center justify-center">
-                <template v-if="editingSlotIndex === slot.index">
+                <!-- Canvas de tirage pour le slot en cours de simulation -->
+                <div v-if="isSimulatingSlot(slot.index)" class="w-full h-full flex flex-col">
+                  <div class="text-center mb-2">
+                    <div class="text-lg font-medium text-white">{{ slot.roleLabel }}</div>
+                    <div class="text-sm text-gray-300">Tirage en cours...</div>
+                  </div>
+                  <canvas 
+                    :ref="el => canvasRefs[currentSlotIndex] = el" 
+                    :width="canvasWidth" 
+                    :height="canvasHeight"
+                    class="border border-gray-600 rounded bg-gray-800 w-full mb-2"
+                  ></canvas>
+                  <div class="text-xs text-gray-400 text-center">
+                    {{ currentDrawCandidates.length }} candidats
+                  </div>
+                </div>
+                
+                <!-- Contenu normal du slot vide -->
+                <template v-else-if="editingSlotIndex === slot.index">
                   <select
                     class="w-full bg-gray-800 text-white rounded-md p-2 border border-white/20 focus:outline-none"
                     @change="onChooseForSlot($event, slot.index)"
@@ -247,6 +270,18 @@
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
+        <!-- Bouton Simuler Compo / Stop (visible seulement si organisateur n'a pas encore validé ET permissions d'édition) -->
+        <button 
+          v-if="!isSelectionConfirmedByOrganizer && canEditEvents"
+          @click="isSimulating ? stopSimulation() : handleSimulateComposition()" 
+          :disabled="!isSimulating && availableCount === 0" 
+          :class="isSimulating ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700'"
+          class="h-12 px-3 md:px-4 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
+          :title="isSimulating ? 'Arrêter la simulation' : (availableCount === 0 ? 'Aucune personne disponible' : 'Simuler la composition avec visualisation')"
+        >
+          {{ isSimulating ? '⏹️' : '🎲' }} <span class="hidden sm:inline">{{ isSimulating ? 'Arrêter' : 'Simuler Compo' }}</span><span class="sm:hidden">{{ isSimulating ? 'Stop' : 'Simuler' }}</span>
+        </button>
+
         <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
           v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canEditEvents" 
@@ -347,16 +382,6 @@
   </div>
   </Teleport>
 
-  <!-- Visualisation du tirage -->
-  <DrawVisualization
-    :show="showDrawVisualization"
-    :role="currentDrawRole"
-    :candidates="currentDrawCandidates"
-    :total-count="currentDrawCount"
-    :selected-count="currentDrawSelected"
-    :on-draw="handleDrawStep"
-    @complete="handleDrawComplete"
-  />
 </template>
 
 <script setup>
@@ -365,7 +390,6 @@ import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import DrawVisualization from './DrawVisualization.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
@@ -458,12 +482,18 @@ const showHowItWorks = ref(false)
 const showConfirmReselect = ref(false)
 const hasExistingSelection = ref(false)
 
-// Variables pour la visualisation du tirage
-const showDrawVisualization = ref(false)
+// Variables pour la simulation de tirage
 const currentDrawRole = ref('')
 const currentDrawCandidates = ref([])
 const currentDrawCount = ref(0)
 const currentDrawSelected = ref(0)
+const isSimulating = ref(false)
+const simulationComplete = ref(false)
+const currentSlotIndex = ref(0)
+const canvasRefs = ref([])
+const canvasWidth = 400
+const canvasHeight = 80
+
 
 // --- Manual slots state ---
 const requiredCount = computed(() => props.event?.playerCount || 6)
@@ -1224,6 +1254,11 @@ function handleSelection() {
   showReselectConfirmation()
 }
 
+function handleSimulateComposition() {
+  // Démarrer la simulation avec visualisation
+  startDrawVisualization()
+}
+
 function handlePerfect() {
   emit('perfect')
 }
@@ -1695,18 +1730,403 @@ function confirmReselect() {
 
 // Fonctions pour la visualisation du tirage
 function startDrawVisualization() {
-  // Pour l'instant, on émet directement l'événement
-  // TODO: Implémenter la visualisation étape par étape
-  emit('confirm-reselect')
+  // Démarrer directement la simulation
+  startSimulation()
+}
+
+function prepareSimulationData() {
+  // Utiliser les vrais joueurs et leurs vrais poids
+  const event = props.event
+  if (!event || !event.roles) return
+  
+  console.log('🔍 Debug simulation:', {
+    teamSlots: teamSlots.value,
+    event: event,
+    allSeasonPlayers: props.allSeasonPlayers?.length
+  })
+  
+  // Trouver le premier slot vide dans teamSlots
+  const emptySlots = teamSlots.value.filter(slot => !slot.player)
+  console.log('🔍 Empty teamSlots:', emptySlots)
+  
+  if (emptySlots.length === 0) {
+    simulationComplete.value = true
+    return
+  }
+  
+  const firstEmptySlot = emptySlots[0]
+  currentSlotIndex.value = firstEmptySlot.index
+  currentDrawRole.value = firstEmptySlot.role || 'player'
+  
+  // Calculer les candidats disponibles pour ce rôle
+  const candidates = props.allSeasonPlayers.filter(player => {
+    return props.isAvailableForRole(player.name, currentDrawRole.value, event.id)
+  })
+  
+  // Calculer les poids avec le service
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    props.allSeasonPlayers, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  const roleChances = allRoleChances[currentDrawRole.value]
+  if (roleChances && roleChances.candidates) {
+    currentDrawCandidates.value = roleChances.candidates
+    currentDrawCount.value = emptySlots.length
+    currentDrawSelected.value = 0
+  }
 }
 
 function handleDrawStep() {
-  // TODO: Implémenter la logique de tirage étape par étape
+  // Simuler un tirage avec l'algorithme de la roulette
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  const randomNumber = Math.random() * totalWeight
+  
+  // Trouver le candidat sélectionné
+  let currentWeight = 0
+  let selectedCandidate = null
+  
+  for (const candidate of currentDrawCandidates.value) {
+    currentWeight += candidate.weight
+    if (randomNumber <= currentWeight) {
+      selectedCandidate = candidate
+      break
+    }
+  }
+  
+  if (selectedCandidate) {
+    // Retirer le candidat sélectionné du pool
+    const index = currentDrawCandidates.value.findIndex(c => c.name === selectedCandidate.name)
+    if (index >= 0) {
+      currentDrawCandidates.value.splice(index, 1)
+    }
+    
+    // Mettre à jour le compteur
+    currentDrawSelected.value++
+    
+    console.log(`🎲 ${selectedCandidate.name} sélectionné ! (${selectedCandidate.practicalChance}% de chances)`)
+  }
 }
 
 function handleDrawComplete() {
   showDrawVisualization.value = false
   // TODO: Finaliser le tirage
+}
+
+// Nouvelles fonctions pour la simulation complète
+function startSimulation() {
+  console.log('🎬 Starting simulation...')
+  isSimulating.value = true
+  simulationComplete.value = false
+  prepareSimulationData()
+  if (currentDrawCandidates.value.length > 0) {
+    nextTick(() => {
+      drawNextSlot()
+    })
+  } else {
+    console.log('❌ No candidates found for simulation')
+  }
+}
+
+function pauseSimulation() {
+  isSimulating.value = false
+}
+
+function stopSimulation() {
+  isSimulating.value = false
+  simulationComplete.value = false
+  showDrawVisualization.value = false
+  currentDrawCandidates.value = []
+  currentDrawSelected.value = 0
+  currentSlotIndex.value = 0
+}
+
+function finishSimulation() {
+  showDrawVisualization.value = false
+  isSimulating.value = false
+  simulationComplete.value = false
+  currentDrawCandidates.value = []
+  currentDrawSelected.value = 0
+  currentSlotIndex.value = 0
+}
+
+function drawNextSlot() {
+  if (!isSimulating.value) return
+  
+  const emptySlots = teamSlots.value.filter(slot => !slot.player)
+  console.log('🎯 Drawing next slot, empty slots:', emptySlots.length)
+  
+  if (emptySlots.length === 0) {
+    simulationComplete.value = true
+    isSimulating.value = false
+    return
+  }
+  
+  const currentSlot = emptySlots[0]
+  currentSlotIndex.value = currentSlot.index
+  console.log('🎯 Current slot index:', currentSlotIndex.value)
+  
+  // Mettre à jour les candidats pour ce slot
+  prepareSimulationData()
+  
+  if (currentDrawCandidates.value.length > 0) {
+    console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
+    // Lancer l'animation de tirage
+    animateDraw()
+  } else {
+    console.log('❌ No candidates for current slot')
+  }
+}
+
+function animateDraw() {
+  // Animation du tirage avec la bande colorée
+  nextTick(() => {
+    // Attendre que le canvas soit rendu
+    setTimeout(() => {
+      drawCanvasBands()
+      
+      // Animation du marqueur qui se déplace
+      animatePointer()
+      
+      // Simuler le tirage après l'animation
+      setTimeout(() => {
+        performDraw()
+      }, 3000) // 3 secondes d'animation
+    }, 100) // Petit délai pour s'assurer que le canvas est rendu
+  })
+}
+
+function animatePointer() {
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not ready for animation:', canvas, 'for slot', currentSlotIndex.value)
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  let startTime = Date.now()
+  const duration = 2500 // 2.5 secondes d'animation
+  
+  function animate() {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    
+    // Effacer le canvas
+    ctx.clearRect(0, 0, width, height)
+    
+    // Redessiner la bande
+    drawCanvasBands()
+    
+    // Calculer la position du marqueur (oscillation puis arrêt)
+    let pointerX
+    if (progress < 0.8) {
+      // Phase d'oscillation (80% du temps)
+      const oscillation = Math.sin(progress * 20) * 0.3 + 0.7
+      pointerX = (width * 0.1) + (width * 0.8 * oscillation)
+    } else {
+      // Phase d'arrêt (20% du temps)
+      const finalProgress = (progress - 0.8) / 0.2
+      const startX = width * 0.5
+      const endX = width * 0.7 // Position finale
+      pointerX = startX + (endX - startX) * finalProgress
+    }
+    
+    // Dessiner le marqueur animé
+    ctx.fillStyle = '#EF4444' // Rouge
+    ctx.fillRect(pointerX - 2, 0, 4, height)
+    
+    // Ajouter un effet de lueur
+    ctx.shadowColor = '#EF4444'
+    ctx.shadowBlur = 10
+    ctx.fillRect(pointerX - 2, 0, 4, height)
+    ctx.shadowBlur = 0
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    }
+  }
+  
+  animate()
+}
+
+function drawCanvasBands() {
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not found or not ready:', canvas, 'for slot', currentSlotIndex.value)
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Dessiner la bande de tirage
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  let currentX = 0
+  
+  currentDrawCandidates.value.forEach((candidate, index) => {
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
+    const color = colors[index % colors.length]
+    
+    // Dessiner le segment
+    ctx.fillStyle = color
+    ctx.fillRect(currentX, 0, segmentWidth, height)
+    
+    // Dessiner le nom du candidat
+    ctx.fillStyle = 'white'
+    ctx.font = '12px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(
+      candidate.name, 
+      currentX + segmentWidth / 2, 
+      height / 2 + 4
+    )
+    
+    // Dessiner le pourcentage
+    ctx.font = '10px Arial'
+    ctx.fillText(
+      `${candidate.practicalChance.toFixed(1)}%`, 
+      currentX + segmentWidth / 2, 
+      height / 2 + 16
+    )
+    
+    currentX += segmentWidth
+  })
+}
+
+function performDraw() {
+  // Effectuer le tirage réel
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  const randomNumber = Math.random() * totalWeight
+  
+  let currentWeight = 0
+  let selectedCandidate = null
+  
+  for (const candidate of currentDrawCandidates.value) {
+    currentWeight += candidate.weight
+    if (randomNumber <= currentWeight) {
+      selectedCandidate = candidate
+      break
+    }
+  }
+  
+  if (selectedCandidate) {
+    // Effet "boom" - afficher le nom du joueur sélectionné
+    showSelectionBoom(selectedCandidate.name)
+    
+    // Assigner le joueur au slot après l'effet
+    setTimeout(() => {
+      const slotIndex = currentSlotIndex.value
+      if (slotIndex !== -1) {
+        const slot = teamSlots.value.find(s => s.index === slotIndex)
+        if (slot) {
+          slot.player = selectedCandidate.name
+          slot.playerId = selectedCandidate.name // Pour la compatibilité
+          slot.isEmpty = false
+        }
+      }
+      
+      // Retirer le candidat de la liste
+      currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
+      currentDrawSelected.value++
+      
+      // Continuer avec le prochain slot
+      setTimeout(() => {
+        drawNextSlot()
+      }, 1500) // Pause d'1.5 seconde entre les tirages
+    }, 1000) // Délai pour l'effet boom
+  }
+}
+
+function showSelectionBoom(playerName) {
+  // Créer un effet visuel de sélection
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not ready for boom effect:', canvas, 'for slot', currentSlotIndex.value)
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Effacer le canvas
+  ctx.clearRect(0, 0, width, height)
+  
+  // Fond vert pour l'effet de succès
+  ctx.fillStyle = '#10B981'
+  ctx.fillRect(0, 0, width, height)
+  
+  // Texte de sélection
+  ctx.fillStyle = 'white'
+  ctx.font = 'bold 24px Arial'
+  ctx.textAlign = 'center'
+  ctx.fillText('🎉 SÉLECTIONNÉ !', width / 2, height / 2 - 20)
+  
+  ctx.font = 'bold 18px Arial'
+  ctx.fillText(playerName, width / 2, height / 2 + 10)
+  
+  // Effet de particules (simplifié)
+  for (let i = 0; i < 20; i++) {
+    const x = Math.random() * width
+    const y = Math.random() * height
+    const size = Math.random() * 4 + 2
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`
+    ctx.fillRect(x, y, size, size)
+  }
+}
+
+
+// Fonctions utilitaires pour l'UI
+function getSlotClass(slot, index) {
+  if (isSimulatingSlot(index)) {
+    return 'border-yellow-400 bg-yellow-900/20'
+  } else if (slot) {
+    return 'border-green-400 bg-green-900/20'
+  } else {
+    return 'border-gray-600 bg-gray-800/50'
+  }
+}
+
+function getSlotStyle(slot, index) {
+  if (isSimulatingSlot(index)) {
+    // Le slot en cours de tirage vient au premier plan
+    return {
+      position: 'relative',
+      zIndex: '50', // Au premier plan
+      transform: 'scale(1.1)', // Légèrement agrandi
+      boxShadow: '0 0 30px rgba(251, 191, 36, 0.5)', // Effet de halo plus fort
+      border: '2px solid #FCD34D' // Bordure dorée
+    }
+  }
+  return {}
+}
+
+function isSimulatingSlot(index) {
+  return isSimulating.value && currentSlotIndex.value === index
+}
+
+function getCandidateClass(candidate) {
+  return 'bg-gray-700 border-gray-600 text-white'
+}
+
+function getRoleLabel(role) {
+  if (!role) return 'Joueur' // Par défaut
+  const labels = {
+    'player': 'Joueur',
+    'volunteer': 'Bénévole',
+    'referee': 'Arbitre',
+    'coach': 'Entraîneur'
+  }
+  return labels[role] || role
 }
 
 // Exposer la fonction pour le parent
