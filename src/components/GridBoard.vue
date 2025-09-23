@@ -672,20 +672,15 @@
               </span>
             </h3>
             <div class="flex items-center gap-2">
-              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages (masqué si sélection) -->
+              <!-- Bouton pour afficher les chances détaillées -->
               <button 
-                v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0"
-                @click="showRoleChances = !showRoleChances"
-                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer"
-                :class="showRoleChances 
-                  ? 'bg-emerald-500/20 border border-emerald-400/30 hover:bg-emerald-500/30' 
-                  : 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'"
-                :title="showRoleChances ? 'Voir les disponibilités' : 'Voir les pourcentages de chances'"
+                v-if="selectedEvent"
+                @click="openChancesModal"
+                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer bg-blue-500/20 border border-blue-400/30 hover:bg-blue-500/30"
+                title="Voir les pourcentages de chances pour chaque rôle"
               >
-                <span :class="showRoleChances ? 'text-emerald-300' : 'text-gray-300'">📊</span>
-                <span :class="showRoleChances ? 'text-emerald-200' : 'text-gray-200'">
-                  {{ showRoleChances ? 'Dispos' : 'Chances' }}
-                </span>
+                <span class="text-blue-300">📊</span>
+                <span class="text-blue-200">Chances</span>
               </button>
               
               <!-- Bouton pour afficher la composition (visible si composition faite) -->
@@ -1117,6 +1112,7 @@
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
     :availability="availability"
     :is-available-for-role="isAvailableForRole"
+    :count-selections="countSelections"
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedAllSeasonPlayers"
@@ -1328,6 +1324,123 @@
     <span class="text-2xl font-bold">›</span>
   </button>
   </div>
+  </div>
+
+  <!-- Modale des chances détaillées -->
+  <div v-if="showChancesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="closeChancesModal">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" @click.stop>
+      <div class="relative p-6 border-b border-white/10">
+        <button @click="closeChancesModal" title="Fermer" class="absolute right-4 top-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+        
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
+            <span class="text-xl">📊</span>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Chances de sélection</h2>
+            <p class="text-purple-300">{{ selectedEvent?.title }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-6 overflow-y-auto">
+        <div v-if="Object.keys(chancesData).length === 0" class="text-center text-gray-400 py-8">
+          Aucune donnée de chances disponible
+        </div>
+        
+        <div v-else class="space-y-6">
+          <div v-for="role in sortedRoles" :key="role" class="bg-gray-800/50 rounded-lg p-4">
+            <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+              <span>{{ ROLE_EMOJIS[role] }}</span>
+              <span>{{ ROLE_LABELS[role] }}</span>
+            </h3>
+            <p class="text-sm text-gray-400 mb-4">
+              <span class="text-red-400 font-semibold">{{ chancesData[role][0]?.requiredCount || 0 }}</span> requis, 
+              <span class="text-blue-400 font-semibold">{{ chancesData[role][0]?.availableCount || 0 }}</span> candidats
+            </p>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-600">
+                    <th class="text-center py-2 text-gray-300">Chance pratique</th>
+                    <th class="text-left py-2 text-gray-300">Joueur</th>
+                    <th class="text-center py-2 text-gray-300">Sélections passées</th>
+                    <th class="text-center py-2 text-gray-300">Coefficient</th>
+                    <th class="text-center py-2 text-gray-300">Chances pondérées</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="candidate in chancesData[role]" :key="candidate.name" class="border-b border-gray-700/50">
+                    <td class="py-2 text-center">
+                      <div class="flex flex-col items-center gap-1">
+                        <span class="px-2 py-1 rounded text-xs font-medium"
+                              :class="candidate.practicalChance >= 20 ? 'bg-green-500/20 text-green-300' : 
+                                      candidate.practicalChance >= 10 ? 'bg-yellow-500/20 text-yellow-300' : 
+                                      'bg-red-500/20 text-red-300'">
+                          {{ candidate.practicalChance }}%
+                        </span>
+                        <span class="text-xs text-gray-400">
+                          soit <span class="font-semibold" :class="candidate.weight === 1 ? 'text-red-400' : 'text-orange-400'">{{ (candidate.weight * candidate.requiredCount) % 1 === 0 ? (candidate.weight * candidate.requiredCount).toFixed(0) : (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances sur <span class="text-blue-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span>
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-2 text-white">{{ candidate.name }}</td>
+                    <td class="py-2 text-center">
+                      <span class="text-yellow-400 font-semibold">{{ candidate.pastSelections }}</span>
+                    </td>
+                    <td class="py-2 text-center">
+                      <div class="flex flex-col items-center gap-1">
+                        <span class="text-purple-400 font-semibold cursor-help" 
+                              :title="`Coefficient = 1 / (1 + ${candidate.pastSelections}) = 1 / (1 + ${candidate.pastSelections}) = ${candidate.weight.toFixed(2)}`">
+                          {{ candidate.weight % 1 === 0 ? candidate.weight.toFixed(0) : candidate.weight.toFixed(2) }}
+                        </span>
+                        <span class="text-xs text-gray-400">
+                          (1/(1+<span class="text-yellow-400 font-semibold">{{ candidate.pastSelections }}</span>))
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-2 text-center">
+                      <div class="flex flex-col items-center gap-1">
+                        <span class="font-semibold cursor-help"
+                              :class="candidate.weight === 1 ? 'text-red-400' : 'text-orange-400'"
+                              :title="`Chances = Coefficient × Requis = ${candidate.weight.toFixed(2)} × ${candidate.requiredCount} = ${(candidate.weight * candidate.requiredCount).toFixed(1)}`">
+                          {{ (candidate.weight * candidate.requiredCount) % 1 === 0 ? (candidate.weight * candidate.requiredCount).toFixed(0) : (candidate.weight * candidate.requiredCount).toFixed(1) }}
+                        </span>
+                        <span class="text-xs text-gray-400">
+                          (<span class="text-purple-400 font-semibold">{{ candidate.weight % 1 === 0 ? candidate.weight.toFixed(0) : candidate.weight.toFixed(2) }}</span> × <span class="text-red-400 font-semibold">{{ candidate.requiredCount }}</span>)
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="mt-3 text-xs text-gray-400">
+              <p><strong>Légende :</strong> Les chances sont calculées en fonction du nombre de sélections passées <strong>dans ce rôle spécifique</strong>. 
+              Moins un participant a été sélectionné pour ce rôle, plus ses chances sont élevées.</p>
+              <p><strong>Règles de comptage :</strong> Une sélection compte si l'événement n'était pas archivé, 
+              la sélection était verrouillée ET le participant n'avait pas décliné.</p>
+              <p><strong>Formule :</strong> Coefficient = 1 / (1 + sélections passées dans ce rôle) | Chances = Coefficient × Nombre de postes | Total = Somme de tous les coefficients</p>
+              <div class="mt-2 flex flex-wrap gap-3 text-xs">
+                <span><span class="text-red-400 font-semibold">●</span> Chances maximales (coefficient = 1)</span>
+                <span><span class="text-orange-400 font-semibold">●</span> Chances réduites (coefficient < 1)</span>
+                <span><span class="text-yellow-400 font-semibold">●</span> Sélections passées</span>
+                <span><span class="text-purple-400 font-semibold">●</span> Coefficient</span>
+                <span class="text-gray-400">💡 Survoler pour voir le calcul détaillé</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-6 border-t border-white/10 flex justify-end">
+        <button @click="closeChancesModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+          Fermer
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1556,7 +1669,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
-import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
+import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService, calculateRoleChances, calculateAllRoleChances } from '../services/playerAvailabilityService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -4166,6 +4279,23 @@ const editingEventData = computed(() => {
 // État pour afficher/masquer les détails des rôles
 const showRoleDetails = ref(false)
 const showRoleChances = ref(false)
+const showChancesModal = ref(false)
+const chancesData = ref({})
+
+// Trier les rôles par ordre de priorité dans la modale des chances
+const sortedRoles = computed(() => {
+  return Object.keys(chancesData.value).sort((a, b) => {
+    const indexA = ROLE_PRIORITY_ORDER.indexOf(a)
+    const indexB = ROLE_PRIORITY_ORDER.indexOf(b)
+    
+    // Si un rôle n'est pas dans ROLE_PRIORITY_ORDER, le mettre à la fin
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b)
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    
+    return indexA - indexB
+  })
+})
 
 // Fonction pour appliquer un type de rôles
 function applyRoleTemplate(templateId) {
@@ -6043,9 +6173,33 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
     return []
   }
   
+  // Calculer et logger les chances détaillées
+  const event = events.value.find(e => e.id === eventId)
+  if (event) {
+    const roleChances = calculateRoleChances(role, event, allSeasonPlayers.value, availability.value, countSelections)
+    
+    logger.debug(`📊 CHANCES DÉTAILLÉES pour le rôle ${role}:`)
+    logger.debug(`┌─────────────────────┬─────────────┬─────────────┬─────────────┬─────────────┐`)
+    logger.debug(`│ Joueur              │ Sélections  │ Poids       │ Chance Théo │ Chance Prat │`)
+    logger.debug(`├─────────────────────┼─────────────┼─────────────┼─────────────┼─────────────┤`)
+    
+    roleChances.forEach(candidate => {
+      const name = candidate.name.padEnd(19)
+      const selections = candidate.pastSelections.toString().padStart(11)
+      const weight = candidate.weight.toFixed(4).padStart(11)
+      const theoretical = `${candidate.theoreticalChance}%`.padStart(11)
+      const practical = `${candidate.practicalChance}%`.padStart(11)
+      
+      logger.debug(`│ ${name} │ ${selections} │ ${weight} │ ${theoretical} │ ${practical} │`)
+    })
+    
+    logger.debug(`└─────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┘`)
+    logger.debug(`📈 Résumé: ${candidates.length} candidats disponibles pour ${count} poste(s)`)
+  }
+  
   // Draw pondéré : moins compositionné = plus de chances
   const weightedCandidates = candidates.map(player => {
-    const s = countSelections(player.name)
+    const s = countSelections(player.name, role)
     return {
       name: player.name,
       weight: 1 / (1 + s) // poids inverse du nombre de compositions
@@ -6230,9 +6384,9 @@ function formatDateFull(dateValue) {
   })
 }
 
-function countSelections(playerName) {
+function countSelections(playerName, role = 'player') {
   // Trouver l'ID du joueur à partir de son nom
-  const player = players.value.find(p => p.name === playerName)
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
     return 0;
   }
@@ -6244,9 +6398,35 @@ function countSelections(playerName) {
       return false
     }
     
-    const players = getSelectionPlayers(eventId)
-    const isSelected = players.includes(player.id) // Chercher l'ID au lieu du nom
-    return isSelected
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) {
+      return false
+    }
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    // Vérifier le statut de confirmation dans la collection casts
+    const cast = casts.value[eventId]
+    if (!cast || !cast.confirmed) {
+      return false
+    }
+    
+    // Règle 3: Le joueur ne doit pas avoir décliné
+    const declinedPlayers = getDeclinedPlayers(eventId)
+    if (declinedPlayers.includes(playerName)) {
+      return false
+    }
+    
+    // Nouvelle structure multi-rôles
+    if (cast.roles && cast.roles[role]) {
+      return cast.roles[role].includes(player.id)
+    }
+    
+    // Ancienne structure (tous considérés comme "player")
+    if (role === 'player' && Array.isArray(cast)) {
+      return cast.includes(player.id)
+    }
+    
+    return false
   })
   
   return selectedEvents.length;
@@ -6258,6 +6438,30 @@ function countSelectionsForRole(playerName, role) {
     const cast = casts.value[eventId]
     if (!cast) return false
     
+    // Vérifier que l'événement existe encore
+    const event = events.value.find(e => e.id === eventId)
+    if (!event) {
+      return false
+    }
+    
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) {
+      return false
+    }
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    // Vérifier le statut de confirmation dans la collection casts
+    if (!cast.confirmed) {
+      return false
+    }
+    
+    // Règle 3: Le joueur ne doit pas avoir décliné
+    const declinedPlayers = getDeclinedPlayers(eventId)
+    if (declinedPlayers.includes(playerName)) {
+      return false
+    }
+    
+    // Vérifier que le joueur était sélectionné pour ce rôle spécifique
     // Nouvelle structure multi-rôles
     if (cast.roles && cast.roles[role]) {
       return cast.roles[role].includes(playerName)
@@ -8252,6 +8456,37 @@ function closeSelectionModal() {
 // Fonction pour afficher la modale de composition depuis TimelineView
 function showCompositionModal(event) {
   openSelectionModal(event)
+}
+
+async function openChancesModal() {
+  if (!selectedEvent.value) return
+  
+  // Attendre que les données soient chargées
+  if (Object.keys(casts.value).length === 0) {
+    try {
+      // Recharger les données de casts
+      casts.value = await loadCasts(seasonId.value);
+    } catch (error) {
+      console.error('❌ Erreur lors du rechargement des casts:', error);
+      return;
+    }
+  }
+  
+  // Calculer les chances pour tous les rôles
+  const allRoleChances = calculateAllRoleChances(
+    selectedEvent.value, 
+    allSeasonPlayers.value, 
+    availability.value, 
+    countSelections
+  )
+  
+  chancesData.value = allRoleChances
+  showChancesModal.value = true
+}
+
+function closeChancesModal() {
+  showChancesModal.value = false
+  chancesData.value = {}
 }
 
 // Désistement helpers supprimés
