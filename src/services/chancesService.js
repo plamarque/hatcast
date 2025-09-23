@@ -85,7 +85,8 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
     role,
     candidatesCount: candidates.length,
     requiredCount,
-    firstCandidate: candidates[0]
+    firstCandidate: candidates[0],
+    allCandidatesRequiredCount: candidates.map(c => c.requiredCount)
   })
   
   // Calculer le total des poids
@@ -99,6 +100,13 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
     availableCount: candidates.length, // Ajouter le nombre de candidats disponibles
     requiredCount // Ajouter requiredCount à chaque candidat pour le template
   }))
+  
+  console.log('🔍 calculateRoleChances final candidates:', {
+    role,
+    firstCandidateFinal: candidatesWithChances[0],
+    allCandidatesAvailableCount: candidatesWithChances.map(c => c.availableCount),
+    allCandidatesRequiredCount: candidatesWithChances.map(c => c.requiredCount)
+  })
   
   return {
     role,
