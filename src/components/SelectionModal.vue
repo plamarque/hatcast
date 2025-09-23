@@ -2094,55 +2094,16 @@ async function drawCanvasBands() {
     ctx.lineWidth = 1
     ctx.strokeRect(currentX, 0, segmentWidth, height)
     
-    // Charger et dessiner l'avatar du joueur
-    try {
-      const playerId = getPlayerIdFromName(candidate.name)
-      const avatarUrl = await getPlayerAvatar(playerId, seasonId, candidate.name)
-      
-      if (avatarUrl) {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        
-        await new Promise((resolve, reject) => {
-          img.onload = resolve
-          img.onerror = reject
-          img.src = avatarUrl
-        })
-        
-        // Dessiner l'avatar (cercle de 24px de diamètre)
-        const avatarSize = 24
-        const avatarX = currentX + segmentWidth / 2 - avatarSize / 2
-        const avatarY = 8
-        
-        // Créer un masque circulaire pour l'avatar
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
-        ctx.clip()
-        
-        // Dessiner l'image
-        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize)
-        ctx.restore()
-        
-        // Ajouter une bordure blanche autour de l'avatar
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-        ctx.lineWidth = 2
-        ctx.beginPath()
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
-        ctx.stroke()
-      }
-    } catch (error) {
-      console.log('🔍 Could not load avatar for', candidate.name, error)
-    }
+    // Pas d'avatar dans les bandes - affichage simplifié
     
-    // Dessiner le nom du candidat (sous l'avatar)
+    // Dessiner le nom du candidat
     // Si la bande est trop étroite, écrire verticalement
     const isNarrowBand = segmentWidth < 80
     
     if (isNarrowBand) {
       // Écriture verticale (de bas en haut)
       ctx.save()
-      ctx.translate(currentX + segmentWidth / 2, height / 2 + 8)
+      ctx.translate(currentX + segmentWidth / 2, height / 2)
       ctx.rotate(-Math.PI / 2) // Rotation de -90 degrés
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
@@ -2162,14 +2123,14 @@ async function drawCanvasBands() {
       ctx.fillText(
         candidate.name, 
         currentX + segmentWidth / 2 + 1, 
-        height / 2 + 8
+        height / 2
       )
       
       ctx.fillStyle = 'white'
       ctx.fillText(
         candidate.name, 
         currentX + segmentWidth / 2, 
-        height / 2 + 7
+        height / 2
       )
     }
     
