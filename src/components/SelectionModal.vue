@@ -59,22 +59,22 @@
               class="relative p-3 rounded-lg border text-center transition-all duration-700 ease-out"
               :class="[
                 slot.player
-                  ? [
-                      'bg-gradient-to-r',
-                      // Statuts de confirmation individuelle (priorité sur la disponibilité)
-                      getPlayerSelectionStatus(slot.player) === 'declined'
-                        ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
-                        : getPlayerSelectionStatus(slot.player) === 'confirmed'
-                          ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
-                          : getPlayerSelectionStatus(slot.player) === 'pending'
-                            ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
-                            // Statuts de disponibilité classique (seulement si pas de statut individuel)
-                            : isPlayerUnavailable(slot.player)
-                              ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
-                              : (!isPlayerAvailable(slot.player)
-                                  ? 'from-red-500/60 to-red-600/60 border-red-500/30'
-                                  : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
-                    ]
+                ? [
+                    'bg-gradient-to-r',
+                    // Statuts de confirmation individuelle (priorité sur la disponibilité)
+                    getPlayerSelectionStatus(slot.player) === 'declined'
+                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
+                      : getPlayerSelectionStatus(slot.player) === 'confirmed'
+                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
+                        : getPlayerSelectionStatus(slot.player) === 'pending'
+                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
+                          // Statuts de disponibilité classique (seulement si pas de statut individuel)
+                          : isPlayerUnavailable(slot.player)
+                            ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
+                            : (!isPlayerAvailable(slot.player)
+                                ? 'from-red-500/60 to-red-600/60 border-red-500/30'
+                                : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
+                  ]
                   : 'border-dashed border-white/20 hover:border-white/40 bg-white/5',
                 // Animation pour le slot en cours de tirage
                 isSimulatingSlot(slot.index) ? 'border-yellow-400 bg-yellow-900/20 animate-pulse' : '',
@@ -2176,7 +2176,7 @@ async function drawCanvasBands() {
     
     // Dessiner "Sélectionné·e" si c'est la personne sélectionnée
     if (candidate.isSelected) {
-      const player = allSeasonPlayers.value.find(p => p.name === candidate.name)
+      const player = props.allSeasonPlayers?.find(p => p.name === candidate.name)
       const gender = player?.gender || 'neutral'
       const selectedText = gender === 'female' ? 'Sélectionnée' : 
                           gender === 'male' ? 'Sélectionné' : 'Sélectionné·e'
@@ -2274,11 +2274,26 @@ function showSelectionBoom(playerName, roleEmoji = '🎉') {
   // Récupérer le rôle et le genre du joueur pour l'accord
   const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
   const role = currentSlot?.role || 'player'
-  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  const player = props.allSeasonPlayers?.find(p => p.name === playerName)
   const gender = player?.gender || 'neutral'
   
+  console.log('🔍 showSelectionBoom debug:', {
+    playerName,
+    role,
+    player,
+    gender,
+    allSeasonPlayers: props.allSeasonPlayers?.length
+  })
+  
   // Obtenir le label du rôle avec l'accord de genre
-  const roleLabel = ROLE_LABELS_BY_GENDER[gender]?.[role] || ROLE_LABELS_SINGULAR[role] || role
+  let roleLabel = ROLE_LABELS_BY_GENDER[gender]?.[role] || ROLE_LABELS_SINGULAR[role] || role
+  
+  // Fallback de sécurité si roleLabel est vide
+  if (!roleLabel || roleLabel === role) {
+    roleLabel = ROLE_LABELS_SINGULAR[role] || 'Sélectionné'
+  }
+  
+  console.log('🔍 Final roleLabel:', roleLabel)
   
   // Texte de sélection
   ctx.fillStyle = 'white'
@@ -2287,7 +2302,8 @@ function showSelectionBoom(playerName, roleEmoji = '🎉') {
   ctx.fillText(playerName, width / 2, height / 2 - 20)
   
   ctx.font = 'bold 18px Arial'
-  ctx.fillText(`${roleEmoji} ${roleLabel}`, width / 2, height / 2 + 10)
+  const displayText = `${roleEmoji} ${roleLabel || 'Sélectionné'}`
+  ctx.fillText(displayText, width / 2, height / 2 + 10)
   
   // Effet de particules (simplifié)
   for (let i = 0; i < 20; i++) {
