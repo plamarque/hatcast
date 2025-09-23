@@ -82,6 +82,16 @@
 
             <!-- Indicateurs de statut -->
             <div class="flex items-center gap-2 flex-shrink-0">
+              <!-- Pourcentage de chances -->
+              <span 
+                v-if="!isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
+                class="px-2 py-1 rounded text-xs font-medium"
+                :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
+              >
+                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+              </span>
+              
               <!-- Statut de sélection -->
               <span 
                 v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
