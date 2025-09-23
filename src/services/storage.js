@@ -777,7 +777,7 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
       // Préserver les statuts de confirmation existants ou utiliser les options
       confirmed: options.preserveConfirmed ? (oldCastDoc?.confirmed || false) : false,
       confirmedByAllPlayers: options.preserveConfirmed ? (oldCastDoc?.confirmedByAllPlayers || false) : false,
-      confirmedAt: options.preserveConfirmed ? oldCastDoc?.confirmedAt : null,
+      confirmedAt: options.preserveConfirmed ? (oldCastDoc?.confirmedAt || null) : null,
       
       playerStatuses, // Statuts individuels des joueurs
       

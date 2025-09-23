@@ -6,8 +6,21 @@
       
       <!-- Section gauche : bouton retour + logo -->
       <div class="flex items-center gap-3">
-        <!-- Flèche de retour -->
+        <!-- Bouton retour à la vue complète (visible en mode composition) -->
         <button 
+          v-if="isCompositionView"
+          @click="returnToFullView"
+          class="text-white hover:text-cyan-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 flex-shrink-0"
+          title="Retour à la vue complète"
+        >
+          <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+          </svg>
+        </button>
+        
+        <!-- Flèche de retour (visible en mode normal) -->
+        <button 
+          v-else
           @click="goBack"
           class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 flex-shrink-0"
           title="Retour aux saisons"
@@ -121,10 +134,11 @@ const props = defineProps({
   showViewToggle: { type: Boolean, default: false },
   currentViewMode: { type: String, default: 'grid' },
   isAdminMode: { type: Boolean, default: false },
-  seasonMeta: { type: Object, default: () => ({}) }
+  seasonMeta: { type: Object, default: () => ({}) },
+  isCompositionView: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration', 'toggle-view-mode'])
+const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration', 'toggle-view-mode', 'return-to-full-view'])
 
 // État de connexion reçu depuis le composant parent (GridBoard)
 // Plus besoin de logique locale d'authentification
@@ -156,6 +170,10 @@ onUnmounted(() => {
 
 function goBack() {
   emit('go-back')
+}
+
+function returnToFullView() {
+  emit('return-to-full-view')
 }
 
 function openAccountMenu() {

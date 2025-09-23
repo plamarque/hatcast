@@ -56,8 +56,9 @@
             <div
               v-for="slot in teamSlots"
               :key="'sel-slot-'+slot.index"
-              class="relative p-3 rounded-lg border text-center transition-colors"
-              :class="slot.player
+              class="relative p-3 rounded-lg border text-center transition-all duration-700 ease-out"
+              :class="[
+                slot.player
                 ? [
                     'bg-gradient-to-r',
                     // Statuts de confirmation individuelle (priorité sur la disponibilité)
@@ -74,7 +75,13 @@
                                 ? 'from-red-500/60 to-red-600/60 border-red-500/30'
                                 : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
                   ]
-                : 'border-dashed border-white/20 hover:border-white/40 bg-white/5'"
+                  : 'border-dashed border-white/20 hover:border-white/40 bg-white/5',
+                // Animation pour le slot en cours de tirage
+                isSimulatingSlot(slot.index) ? 'border-yellow-400 bg-yellow-900/20 animate-pulse' : '',
+                // Effet sur les autres slots pendant l'animation
+                isSimulating.value && !isSimulatingSlot(slot.index) ? 'opacity-30 scale-95' : ''
+              ]"
+              :style="getSlotStyle(slot, slot.index)"
             >
               <!-- Slot rempli -->
               <div v-if="slot.player" class="flex items-center justify-between gap-2">
@@ -110,14 +117,34 @@
 
               <!-- Slot vide -->
               <div v-else class="flex items-center justify-center">
-                <template v-if="editingSlotIndex === slot.index">
+                <!-- Canvas de tirage pour le slot en cours de simulation -->
+                <div v-if="isSimulatingSlot(slot.index)" class="w-full h-full flex flex-col">
+                  <div class="text-center mb-2">
+                    <div class="text-lg font-medium text-white">{{ slot.roleLabel }}</div>
+                    <div class="text-sm text-gray-300">Tirage en cours...</div>
+                  </div>
+                  <canvas 
+                    :ref="el => canvasRefs[currentSlotIndex] = el" 
+                    :width="canvasWidth" 
+                    :height="canvasHeight"
+                    class="border border-gray-600 rounded bg-gray-800 w-full mb-2 transition-all duration-500 ease-out"
+                  ></canvas>
+                  <div class="text-xs text-gray-400 text-center">
+                    {{ currentDrawCandidates.length }} candidats
+                  </div>
+                </div>
+                
+                <!-- Contenu normal du slot vide -->
+                <template v-else-if="editingSlotIndex === slot.index">
                   <select
                     class="w-full bg-gray-800 text-white rounded-md p-2 border border-white/20 focus:outline-none"
                     @change="onChooseForSlot($event, slot.index)"
                     @blur="cancelEditSlot()"
                   >
                     <option value="">— Choisir —</option>
-                    <option v-for="name in availableOptionsForSlot(slot.index)" :key="name" :value="name">{{ name }}</option>
+                    <option v-for="option in availableOptionsForSlot(slot.index)" :key="option.name" :value="option.name">
+                      {{ option.name }} ({{ option.chance }})
+                    </option>
                   </select>
                 </template>
                 <button
@@ -227,6 +254,25 @@
           </div>
         </div>
 
+        <!-- 7) Message d'erreur -->
+        <div v-if="showErrorMessage" class="mb-3">
+          <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
+            <div class="text-red-400 text-xl">⚠️</div>
+            <div class="flex-1">
+              <p class="text-red-300 text-sm font-medium">{{ errorMessageText }}</p>
+            </div>
+            <button 
+              @click="hideErrorMessage"
+              class="text-red-400 hover:text-red-300 transition-colors"
+              title="Fermer le message"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
         <!-- 5) (optionnel) Invitation concise supprimée pour éviter la redondance -->
       
       <!-- Anciennes sections redondantes supprimées -->
@@ -234,7 +280,7 @@
       </div>
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Bouton Composition Auto (visible seulement si organisateur n'a pas encore validé ET permissions d'édition) -->
+        <!-- Bouton Composition Auto (réservé aux admins - fonction privilégiée) -->
         <button 
           v-if="!isSelectionConfirmedByOrganizer && canEditEvents"
           @click="handleSelection" 
@@ -245,14 +291,26 @@
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
+        <!-- Bouton Simuler Compo / Stop (visible pour tous les utilisateurs - fonction éducative) -->
+        <button 
+          v-if="!isSelectionConfirmedByOrganizer"
+          @click="isSimulating ? abortDraw() : handleSimulateComposition()" 
+          :disabled="!isSimulating && availableCount === 0" 
+          :class="isSimulating ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700'"
+          class="h-12 px-3 md:px-4 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
+          :title="isSimulating ? 'Arrêter le tirage' : (availableCount === 0 ? 'Aucune personne disponible' : 'Simuler la composition avec visualisation')"
+        >
+          {{ isSimulating ? '⏹️' : '🎲' }} <span class="hidden sm:inline">{{ isSimulating ? 'Arrêter' : 'Simuler Compo' }}</span><span class="sm:hidden">{{ isSimulating ? 'Stop' : 'Simuler' }}</span>
+        </button>
+
+        <!-- Bouton Remplir Cast (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
           v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canEditEvents" 
-          @click="handleCompleteSelection" 
+          @click="handleFillCast" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
-          title="Compléter les slots vides avec des joueurs disponibles"
+          title="Remplir les slots vides avec des joueurs disponibles"
         >
-          🔧 <span class="hidden sm:inline">Compléter</span><span class="sm:hidden">Compléter</span>
+          🔧 <span class="hidden sm:inline">Remplir</span><span class="sm:hidden">Remplir</span>
         </button>
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé ET permissions d'édition) -->
@@ -295,7 +353,12 @@
           🔄 <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
         </button>
 
-        <button @click="handlePerfect" class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap">
+        <!-- Bouton Fermer (masqué s'il y a une sélection pour libérer l'espace) -->
+        <button 
+          v-if="!hasSelection"
+          @click="handlePerfect" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex-1 whitespace-nowrap"
+        >
           <span class="hidden sm:inline">Fermer</span><span class="sm:hidden">Fermer</span>
         </button>
       </div>
@@ -344,6 +407,7 @@
     </div>
   </div>
   </Teleport>
+
 </template>
 
 <script setup>
@@ -353,8 +417,10 @@ import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
-import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
+import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
+import { calculateAllRoleChances, formatChancePercentage } from '../services/chancesService.js'
+import { getPlayerAvatar } from '../services/playerAvatars.js'
 
 const props = defineProps({
   show: {
@@ -378,9 +444,21 @@ const props = defineProps({
     default: 0
   },
   // Props pour la gestion des disponibilités
-  playerAvailability: {
+  availability: {
     type: Object,
     default: () => ({})
+  },
+  isAvailableForRole: {
+    type: Function,
+    default: () => false
+  },
+  countSelections: {
+    type: Function,
+    default: () => 0
+  },
+  allSeasonPlayers: {
+    type: Array,
+    default: () => []
   },
   // Nouvelles props pour EventAnnounceModal
   seasonId: {
@@ -417,19 +495,37 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'complete-selection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'fill-cast'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
 const showAnnounce = ref(false)
 const showSuccessMessage = ref(false)
 const successMessageText = ref('')
+const showErrorMessage = ref(false)
+const errorMessageText = ref('')
 const isReselection = ref(false)
 const showHowItWorks = ref(false)
 
 // Variables pour la modale de confirmation de reselection
 const showConfirmReselect = ref(false)
 const hasExistingSelection = ref(false)
+
+// Variables pour la simulation de tirage
+const currentDrawRole = ref('')
+const currentDrawCandidates = ref([])
+const currentDrawCount = ref(0)
+const currentDrawSelected = ref(0)
+const isSimulating = ref(false)
+const simulationComplete = ref(false)
+const showDrawVisualization = ref(false)
+const currentSlotIndex = ref(0)
+const canvasRefs = ref([])
+const canvasRetryCount = ref(0)
+const canvasWidth = 400
+const canvasHeight = 80
+const currentRandomNumber = ref(0) // Pour partager le même nombre aléatoire entre animation et tirage
+
 
 // --- Manual slots state ---
 const requiredCount = computed(() => props.event?.playerCount || 6)
@@ -487,12 +583,20 @@ function generateSlotsForMultiRoleEvent() {
   const slots = []
   let slotIndex = 0
   
-  // Parcourir les rôles dans l'ordre d'affichage
-  for (const role of ROLE_DISPLAY_ORDER) {
+  console.log('🔍 generateSlotsForMultiRoleEvent:', {
+    roles,
+    currentSelection: props.currentSelection,
+    ROLE_PRIORITY_ORDER
+  })
+  
+  // Parcourir les rôles dans l'ordre de priorité (rôles critiques en premier)
+  for (const role of ROLE_PRIORITY_ORDER) {
     const count = roles[role] || 0
     if (count > 0) {
       // Récupérer les joueurs déjà composés pour ce rôle
       const selectedPlayers = props.currentSelection?.roles?.[role] || []
+      
+      console.log(`🔍 Role ${role}: count=${count}, selectedPlayers=`, selectedPlayers)
       
       // Créer les slots pour ce rôle (afficher tous les joueurs, même ceux qui ont décliné)
       for (let i = 0; i < count; i++) {
@@ -506,6 +610,7 @@ function generateSlotsForMultiRoleEvent() {
           roleEmoji: ROLE_EMOJIS[role],
           roleLabel: ROLE_LABELS_SINGULAR[role],
           isEmpty: !playerName,
+          isSkipped: false, // Add this property to track skipped slots
           isLegacy: false
         })
       }
@@ -522,11 +627,33 @@ function generateSlotsForMultiRoleEvent() {
 const allAvailableNames = computed(() => {
   return (props.players || [])
     .map(p => p.name)
-    .filter(name => props.playerAvailability?.[name] === true)
+    .filter(name => {
+      // Vérifier si le joueur est disponible pour au moins un rôle
+      if (!props.event?.roles) {
+        return props.isAvailableForRole(name, 'player', props.event?.id)
+      }
+      
+      // Pour les événements multi-rôles, vérifier si disponible pour au moins un rôle requis
+      for (const role of Object.keys(props.event.roles)) {
+        if (props.event.roles[role] > 0 && props.isAvailableForRole(name, role, props.event.id)) {
+          return true
+        }
+      }
+      return false
+    })
     .sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
+
 function availableOptionsForSlot(index) {
+  // Récupérer le slot actuel pour connaître son rôle
+  const currentSlot = teamSlots.value.find(s => s.index === index)
+  if (!currentSlot) {
+    return []
+  }
+  
+  const requiredRole = currentSlot.role
+  
   // Récupérer tous les joueurs déjà utilisés dans tous les slots
   const used = new Set()
   teamSlots.value.forEach(slot => {
@@ -536,12 +663,53 @@ function availableOptionsForSlot(index) {
   })
   
   // Si on édite un slot qui a déjà une valeur, permettre de la garder
-  const currentSlot = teamSlots.value.find(s => s.index === index)
   if (currentSlot && currentSlot.player) {
     used.delete(currentSlot.player)
   }
   
-  return allAvailableNames.value.filter(name => !used.has(name))
+  // Filtrer les joueurs disponibles pour ce rôle spécifique et calculer leurs chances
+  const availablePlayers = allAvailableNames.value.filter(name => {
+    // Vérifier que le joueur n'est pas déjà utilisé
+    if (used.has(name)) {
+      return false
+    }
+    
+    // Vérifier que le joueur est disponible pour ce rôle spécifique
+    return props.isAvailableForRole(name, requiredRole, props.event?.id)
+  })
+  
+  // Calculer les chances pour tous les rôles (même logique que GridBoard.vue)
+  const allRoleChances = calculateAllRoleChances(
+    props.event, 
+    props.allSeasonPlayers, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  // Extraire les chances pour le rôle spécifique
+  const roleChances = allRoleChances[requiredRole]
+  if (!roleChances || !roleChances.candidates) {
+    return availablePlayers.map(name => ({
+      name,
+      chance: formatChancePercentage(0)
+    }))
+  }
+  
+  // Créer un map des chances par nom de joueur
+  const chancesMap = {}
+  roleChances.candidates.forEach(candidate => {
+    chancesMap[candidate.name] = candidate.practicalChance || 0
+  })
+  
+  // Calculer les chances pour chaque joueur disponible
+  return availablePlayers.map(name => {
+    const chance = chancesMap[name] || 0
+    return {
+      name,
+      chance: formatChancePercentage(chance)
+    }
+  }).sort((a, b) => parseFloat(a.chance) - parseFloat(b.chance)).reverse() // Trier par chances décroissantes
 }
 
 function startEditSlot(index) {
@@ -1035,10 +1203,18 @@ const selectionMessage = computed(() => {
 // Watchers
 watch(() => props.show, (newValue) => {
   if (newValue) {
+    // Arrêter tout tirage en cours au cas où (protection contre les rafraîchissements)
+    if (isSimulating.value) {
+      console.log('🛑 Aborting any running draw when opening modal')
+      abortDraw()
+    }
+    
     copied.value = false
     copyButtonText.value = 'Copier le message'
     showSuccessMessage.value = false
     successMessageText.value = ''
+    showErrorMessage.value = false
+    errorMessageText.value = ''
     isReselection.value = false
     showAnnounce.value = false
     // Initialize slots from current selection and requiredCount
@@ -1124,7 +1300,17 @@ function copyToClipboard() {
 }
 
 function handleSelection() {
+  console.log('🎯 handleSelection called:', {
+    hasSelection: hasSelection.value,
+    currentSelection: props.currentSelection,
+    isSelectionComplete: isSelectionComplete.value
+  })
   showReselectConfirmation()
+}
+
+function handleSimulateComposition() {
+  // Démarrer la simulation avec visualisation (pas de reset, pas de persistance)
+  startDrawVisualization(false, false)
 }
 
 function handlePerfect() {
@@ -1195,16 +1381,16 @@ async function handleUnconfirmSelection() {
   }
 }
 
-async function handleCompleteSelection() {
+async function handleFillCast() {
   try {
-    // Émettre l'événement de complétion vers le parent
-    emit('complete-selection')
+    // Émettre l'événement de remplissage vers le parent
+    emit('fill-cast')
     
     // Le toast de succès est affiché par le parent (GridBoard.vue)
   } catch (error) {
-    console.error('Erreur lors de la complétion de la composition:', error)
+    console.error('Erreur lors du remplissage de la composition:', error)
     showSuccessMessage.value = true
-    successMessageText.value = 'Erreur lors de la complétion de la composition'
+    successMessageText.value = 'Erreur lors du remplissage de la composition'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -1313,11 +1499,22 @@ function openHowItWorks() {
 
 // Fonctions pour vérifier la disponibilité des joueurs
 function isPlayerAvailable(playerName) {
-  return props.playerAvailability[playerName] === true
+  // Vérifier si le joueur est disponible pour au moins un rôle
+  if (!props.event?.roles) {
+    return props.isAvailableForRole(playerName, 'player', props.event?.id)
+  }
+  
+  // Pour les événements multi-rôles, vérifier si disponible pour au moins un rôle requis
+  for (const role of Object.keys(props.event.roles)) {
+    if (props.event.roles[role] > 0 && props.isAvailableForRole(playerName, role, props.event.id)) {
+      return true
+    }
+  }
+  return false
 }
 
 function isPlayerUnavailable(playerName) {
-  return props.playerAvailability[playerName] === false
+  return !isPlayerAvailable(playerName)
 }
 
 function getSelectedPlayersArray() {
@@ -1451,6 +1648,10 @@ function hideSuccessMessage() {
   showSuccessMessage.value = false
 }
 
+function hideErrorMessage() {
+  showErrorMessage.value = false
+}
+
 // Fonctions pour gérer les joueurs déclinés
 function getDeclinedPlayers() {
   if (!props.currentSelection || !props.currentSelection.declined) {
@@ -1569,7 +1770,8 @@ async function removeFromDeclined(playerName, role) {
 
 // Fonctions pour la modale de confirmation de reselection
 function showReselectConfirmation() {
-  hasExistingSelection.value = props.currentSelection && props.currentSelection.length > 0
+  // Utiliser la même logique que hasSelection computed
+  hasExistingSelection.value = hasSelection.value
   showConfirmReselect.value = true
 }
 
@@ -1579,10 +1781,782 @@ function cancelReselect() {
 }
 
 function confirmReselect() {
+  console.log('✅ confirmReselect called - starting draw visualization with reset and persist')
   showConfirmReselect.value = false
   hasExistingSelection.value = false
-  // Émettre l'événement vers le parent pour déclencher la composition automatique
-  emit('confirm-reselect')
+  // Démarrer la visualisation du tirage avec reset et persistance
+  startDrawVisualization(true, true)
+}
+
+// Fonctions pour la visualisation du tirage
+async function startDrawVisualization(resetExisting = false, persistResults = false) {
+  try {
+    // 1. Reset de la sélection existante si demandé
+    if (resetExisting) {
+      console.log('🔄 Resetting existing selection...')
+      const { deleteCast } = await import('../services/storage.js')
+      await deleteCast(props.event.id, props.seasonId)
+      console.log('✅ Selection reset completed')
+      
+      // Ne pas émettre updateCast immédiatement pour éviter les perturbations
+      // L'émission se fera à la fin du tirage dans persistDrawResults()
+      
+      // Attendre un peu pour que la suppression soit effective
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    
+    // 2. Démarrer le tirage
+    startDraw(persistResults)
+    
+  } catch (error) {
+    console.error('❌ Erreur dans startDrawVisualization:', error)
+    
+    // Afficher une erreur à l'utilisateur
+    showErrorMessage.value = true
+    errorMessageText.value = resetExisting 
+      ? 'Erreur lors du reset de la sélection. Veuillez réessayer.'
+      : 'Erreur lors du démarrage de la simulation. Veuillez réessayer.'
+    
+    // Auto-masquer l'erreur après 5 secondes
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+function prepareDrawData() {
+  // Utiliser les vrais joueurs et leurs vrais poids
+  const event = props.event
+  if (!event || !event.roles) return
+  
+  console.log('🔍 Debug draw:', {
+    teamSlots: teamSlots.value,
+    teamSlotsLength: teamSlots.value.length,
+    event: event,
+    allSeasonPlayers: props.allSeasonPlayers?.length,
+    currentSelection: props.currentSelection
+  })
+  
+  // Trouver le premier slot vide dans teamSlots
+  const emptySlots = teamSlots.value.filter(slot => !slot.player)
+  console.log('🔍 Empty teamSlots:', emptySlots)
+  
+  if (emptySlots.length === 0) {
+    console.log('❌ No empty slots found, draw complete')
+    simulationComplete.value = true
+    return
+  }
+  
+  const firstEmptySlot = emptySlots[0]
+  // currentSlotIndex.value is already set in drawNextSlot(), don't override it
+  // currentDrawRole.value is already set in drawNextSlot(), don't override it
+  
+  // Récupérer les joueurs déjà sélectionnés (depuis teamSlots.value - source de vérité)
+  const alreadySelectedPlayers = teamSlots.value
+    .filter(slot => slot.player) // Seulement les slots avec un joueur
+    .map(slot => slot.player) // Récupérer les noms des joueurs
+  
+  console.log('🔍 Already selected players:', alreadySelectedPlayers)
+  
+  // Filtrer les joueurs déjà sélectionnés de la liste des candidats
+  const availablePlayers = props.allSeasonPlayers.filter(player => {
+    // Le joueur doit être disponible pour le rôle ET ne pas être déjà sélectionné
+    return props.isAvailableForRole(player.name, currentDrawRole.value, event.id) &&
+           !alreadySelectedPlayers.includes(player.name)
+  })
+  
+  console.log('🔍 Available players for role', currentDrawRole.value, ':', availablePlayers.map(p => p.name))
+  
+  // Calculer les poids avec le service en utilisant la liste filtrée
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    availablePlayers, // Utiliser la liste filtrée
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  const roleChances = allRoleChances[currentDrawRole.value]
+  if (roleChances && roleChances.candidates) {
+    currentDrawCandidates.value = roleChances.candidates
+    currentDrawCount.value = emptySlots.length
+    currentDrawSelected.value = 0
+  }
+}
+
+function handleDrawStep() {
+  // Simuler un tirage avec l'algorithme de la roulette
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  const randomNumber = Math.random() * totalWeight
+  
+  // Trouver le candidat sélectionné
+  let currentWeight = 0
+  let selectedCandidate = null
+  
+  for (const candidate of currentDrawCandidates.value) {
+    currentWeight += candidate.weight
+    if (randomNumber <= currentWeight) {
+      selectedCandidate = candidate
+      break
+    }
+  }
+  
+  if (selectedCandidate) {
+    // Retirer le candidat sélectionné du pool
+    const index = currentDrawCandidates.value.findIndex(c => c.name === selectedCandidate.name)
+    if (index >= 0) {
+      currentDrawCandidates.value.splice(index, 1)
+    }
+    
+    // Mettre à jour le compteur
+    currentDrawSelected.value++
+    
+    console.log(`🎲 ${selectedCandidate.name} sélectionné ! (${selectedCandidate.practicalChance}% de chances)`)
+  }
+}
+
+function handleDrawComplete() {
+  showDrawVisualization.value = false
+  // TODO: Finaliser le tirage
+}
+
+// Nouvelles fonctions pour le tirage complet
+function startDraw(persistResults = false) {
+  console.log('🎬 Starting draw...', { persistResults })
+  isSimulating.value = true
+  simulationComplete.value = false
+  showDrawVisualization.value = true
+  canvasRetryCount.value = 0
+  
+  // Attendre que le DOM soit mis à jour avant de préparer les données
+  nextTick(() => {
+    prepareDrawData()
+    
+    // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
+    if (persistResults) {
+      const stopWatcher = watch(simulationComplete, async (isComplete) => {
+        if (isComplete) {
+          stopWatcher() // Arrêter le watcher
+          await persistDrawResults()
+        }
+      })
+    }
+    
+    if (currentDrawCandidates.value.length > 0) {
+      nextTick(() => {
+        drawNextSlot()
+      })
+    } else {
+      console.log('❌ No candidates found for draw, checking if there are empty slots to process')
+      // Même s'il n'y a pas de candidats pour le premier slot, continuer pour traiter les autres slots
+      nextTick(() => {
+        drawNextSlot()
+      })
+    }
+  })
+}
+
+function pauseSimulation() {
+  isSimulating.value = false
+}
+
+function abortDraw() {
+  isSimulating.value = false
+  simulationComplete.value = false
+  showDrawVisualization.value = false
+  currentDrawCandidates.value = []
+  currentDrawSelected.value = 0
+  currentSlotIndex.value = 0
+  canvasRetryCount.value = 0
+  
+  // Reset all slots' isSkipped flag
+  teamSlots.value.forEach(slot => {
+    slot.isSkipped = false
+  })
+}
+
+function finishSimulation() {
+  showDrawVisualization.value = false
+  isSimulating.value = false
+  simulationComplete.value = false
+  currentDrawCandidates.value = []
+  currentDrawSelected.value = 0
+  currentSlotIndex.value = 0
+}
+
+// Fonction utilitaire pour nettoyer les valeurs undefined
+function cleanUndefinedValues(obj) {
+  if (obj === null || obj === undefined) return null
+  if (typeof obj !== 'object') return obj
+  
+  if (Array.isArray(obj)) {
+    return obj.map(cleanUndefinedValues).filter(item => item !== undefined)
+  }
+  
+  const cleaned = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = cleanUndefinedValues(value)
+    }
+  }
+  return cleaned
+}
+
+async function persistDrawResults() {
+  try {
+    console.log('💾 Persisting draw results...')
+    
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
+    
+    teamSlots.value.forEach(slot => {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.playerId)
+      }
+    })
+    
+    // Nettoyer les données déclinées pour éviter les valeurs undefined
+    const cleanedDeclined = cleanUndefinedValues(props.currentSelection?.declined || {})
+    
+    // Sauvegarder avec la nouvelle structure par rôle
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId, { 
+      preserveConfirmed: true,
+      declined: cleanedDeclined // Utiliser les données nettoyées
+    })
+    
+    console.log('✅ Draw results persisted successfully')
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+    
+    // Ne pas fermer la modale automatiquement - laisser l'utilisateur voir le résultat
+    // emit('close')
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessageText.value = 'Composition automatique terminée !'
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la persistance des résultats du tirage:', error)
+    
+    // Afficher une erreur à l'utilisateur
+    showErrorMessage.value = true
+    errorMessageText.value = 'Erreur lors de la sauvegarde de la composition. Veuillez réessayer.'
+    
+    // Auto-masquer l'erreur après 5 secondes
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
+}
+
+function drawNextSlot() {
+  if (!isSimulating.value) return
+  
+  const emptySlots = teamSlots.value.filter(slot => !slot.player && !slot.isSkipped)
+  console.log('🎯 Drawing next slot, empty slots:', emptySlots.length)
+  console.log('🔍 Debug slots state:', teamSlots.value.map(slot => ({
+    index: slot.index,
+    role: slot.role,
+    player: slot.player,
+    isSkipped: slot.isSkipped
+  })))
+  
+  if (emptySlots.length === 0) {
+    simulationComplete.value = true
+    isSimulating.value = false
+    return
+  }
+  
+  const currentSlot = emptySlots[0]
+  currentSlotIndex.value = currentSlot.index
+  currentDrawRole.value = currentSlot.role || 'player'
+  console.log('🎯 Current slot index:', currentSlotIndex.value, 'role:', currentDrawRole.value)
+  
+  // Démarrer l'animation directement
+  setTimeout(() => {
+    // Mettre à jour les candidats pour ce slot
+    prepareDrawData()
+    
+    if (currentDrawCandidates.value.length > 0) {
+      console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
+      
+      // Vérifier que le canvas est disponible avant de lancer l'animation
+      const canvas = canvasRefs.value[currentSlotIndex.value]
+      if (!canvas || !canvas.getContext) {
+        canvasRetryCount.value++
+        console.log('🔍 Canvas not ready yet, waiting... (attempt', canvasRetryCount.value, ')')
+        
+        // Limiter le nombre de tentatives pour éviter les boucles infinies
+        if (canvasRetryCount.value > 10) {
+          console.log('❌ Too many canvas retry attempts, aborting draw')
+          abortDraw()
+          return
+        }
+        
+        // Attendre un peu plus et réessayer
+        setTimeout(() => {
+          drawNextSlot()
+        }, 200)
+        return
+      }
+      
+      // Reset du compteur si le canvas est trouvé
+      canvasRetryCount.value = 0
+      
+      // Lancer l'animation de tirage
+      animateDraw()
+    } else {
+      console.log('❌ No candidates for current slot, skipping to next slot')
+      // Marquer le slot comme sauté car aucun candidat disponible
+      const slot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+      if (slot) {
+        slot.player = null
+        slot.playerId = null
+        slot.isEmpty = true
+        slot.isSkipped = true // Mark as skipped to exclude from future iterations
+        console.log('✅ Slot marked as skipped:', {
+          index: slot.index,
+          role: slot.role,
+          isSkipped: slot.isSkipped
+        })
+      }
+      // Passer au slot suivant
+      setTimeout(() => {
+        drawNextSlot()
+      }, 1000) // Délai court avant de passer au suivant
+    }
+  }, 500) // Délai pour l'effet d'illumination
+}
+
+async function animateDraw() {
+  // Générer le nombre aléatoire une seule fois pour l'animation et le tirage
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  currentRandomNumber.value = Math.random() * totalWeight
+  
+  // Calculer les dimensions du canvas basées sur le conteneur
+  nextTick(async () => {
+    const canvas = canvasRefs.value[currentSlotIndex.value]
+    if (canvas) {
+      const container = canvas.parentElement
+      const containerWidth = container.clientWidth - 32 // Soustraire le padding
+      const containerHeight = Math.min(300, containerWidth * 0.6) // Hauteur max 300px, ratio 16:10
+      
+      // Redimensionner le canvas
+      canvas.width = containerWidth
+      canvas.height = containerHeight
+    }
+    
+    // Attendre que le canvas soit rendu
+    setTimeout(async () => {
+      await drawCanvasBands()
+      
+      // Animation du marqueur qui se déplace
+      animatePointer()
+      
+      // Simuler le tirage après l'animation
+      setTimeout(() => {
+        performDraw()
+      }, 3000) // 3 secondes d'animation
+    }, 100) // Petit délai pour s'assurer que le canvas est rendu
+  })
+}
+
+function animatePointer() {
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not ready for animation:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Calculer la position finale du marqueur (où il doit s'arrêter)
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  const randomNumber = currentRandomNumber.value
+  
+  let currentWeight = 0
+  let selectedCandidate = null
+  let selectedCandidateIndex = -1
+  let selectedCandidateStartX = 0
+  let selectedCandidateEndX = 0
+  
+  // Trouver le candidat sélectionné et sa position
+  for (let i = 0; i < currentDrawCandidates.value.length; i++) {
+    const candidate = currentDrawCandidates.value[i]
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const segmentStartX = currentWeight / totalWeight * width
+    const segmentEndX = segmentStartX + segmentWidth
+    
+    currentWeight += candidate.weight
+    if (randomNumber <= currentWeight) {
+      selectedCandidate = candidate
+      selectedCandidateIndex = i
+      selectedCandidateStartX = segmentStartX
+      selectedCandidateEndX = segmentEndX
+      break
+    }
+  }
+  
+  // Position finale du marqueur (au centre du segment du candidat sélectionné)
+  const finalPointerX = selectedCandidateStartX + (selectedCandidateEndX - selectedCandidateStartX) / 2
+  
+  let startTime = Date.now()
+  const duration = 2500 // 2.5 secondes d'animation
+  
+  function animate() {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    
+    // Effacer le canvas
+    ctx.clearRect(0, 0, width, height)
+    
+    // Redessiner la bande
+    drawCanvasBands()
+    
+    // Calculer la position du marqueur (oscillation puis arrêt sur la bonne zone)
+    let pointerX
+    if (progress < 0.8) {
+      // Phase d'oscillation (80% du temps) - va de bout en bout avec ralentissement
+      const slowDown = 1 - (progress * 0.5) // Ralentit progressivement
+      const oscillation = Math.sin(progress * 20 * slowDown) * 0.5 + 0.5
+      // Utiliser une fonction d'easing pour que le marqueur touche vraiment les bords
+      const easedOscillation = Math.pow(oscillation, 0.7) // Courbe plus prononcée
+      pointerX = (width * 0.02) + (width * 0.96 * easedOscillation) // De 2% à 98% de la largeur
+    } else {
+      // Phase d'arrêt (20% du temps) - se dirige vers la position finale
+      const finalProgress = (progress - 0.8) / 0.2
+      const startX = width * 0.5 // Position de départ pour l'arrêt
+      pointerX = startX + (finalPointerX - startX) * finalProgress
+    }
+    
+    // Dessiner le marqueur animé
+    ctx.fillStyle = '#EF4444' // Rouge
+    ctx.fillRect(pointerX - 2, 0, 4, height)
+    
+    // Ajouter un effet de lueur
+    ctx.shadowColor = '#EF4444'
+    ctx.shadowBlur = 10
+    ctx.fillRect(pointerX - 2, 0, 4, height)
+    ctx.shadowBlur = 0
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    }
+  }
+  
+  animate()
+}
+
+// Fonction pour générer une couleur unique et belle pour chaque joueur
+function getPlayerColor(playerName, index) {
+  // Palette de couleurs harmonieuses inspirée des dégradés de l'app
+  const colorPalettes = [
+    // Bleu/Violet
+    { primary: '#3B82F6', secondary: '#8B5CF6', tertiary: '#A855F7' },
+    // Vert/Emeraude  
+    { primary: '#10B981', secondary: '#059669', tertiary: '#047857' },
+    // Orange/Ambre
+    { primary: '#F59E0B', secondary: '#D97706', tertiary: '#B45309' },
+    // Rose/Rouge
+    { primary: '#EF4444', secondary: '#DC2626', tertiary: '#B91C1C' },
+    // Cyan/Turquoise
+    { primary: '#06B6D4', secondary: '#0891B2', tertiary: '#0E7490' },
+    // Violet/Magenta
+    { primary: '#8B5CF6', secondary: '#7C3AED', tertiary: '#6D28D9' },
+    // Indigo/Bleu foncé
+    { primary: '#6366F1', secondary: '#4F46E5', tertiary: '#4338CA' },
+    // Teal/Vert bleu
+    { primary: '#14B8A6', secondary: '#0D9488', tertiary: '#0F766E' },
+    // Rose/Magenta
+    { primary: '#EC4899', secondary: '#DB2777', tertiary: '#BE185D' },
+    // Jaune/Ambre
+    { primary: '#EAB308', secondary: '#CA8A04', tertiary: '#A16207' }
+  ]
+  
+  // Utiliser l'index pour sélectionner une palette, avec un peu d'aléatoire basé sur le nom
+  const paletteIndex = (index + playerName.charCodeAt(0)) % colorPalettes.length
+  return colorPalettes[paletteIndex]
+}
+
+async function drawCanvasBands() {
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not found or not ready:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Dessiner la bande de tirage
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  let currentX = 0
+  
+  for (let index = 0; index < currentDrawCandidates.value.length; index++) {
+    const candidate = currentDrawCandidates.value[index]
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const colors = getPlayerColor(candidate.name, index)
+    
+    // Créer un dégradé pour chaque segment
+    const gradient = ctx.createLinearGradient(currentX, 0, currentX + segmentWidth, 0)
+    gradient.addColorStop(0, colors.primary)
+    gradient.addColorStop(0.5, colors.secondary)
+    gradient.addColorStop(1, colors.tertiary)
+    
+    // Dessiner le segment avec dégradé
+    ctx.fillStyle = gradient
+    ctx.fillRect(currentX, 0, segmentWidth, height)
+    
+    // Ajouter une bordure subtile
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(currentX, 0, segmentWidth, height)
+    
+    // Pas d'avatar dans les bandes - affichage simplifié
+    
+    // Dessiner le nom du candidat
+    // Si la bande est trop étroite, écrire verticalement
+    const isNarrowBand = segmentWidth < 80
+    
+    if (isNarrowBand) {
+      // Écriture verticale (de bas en haut)
+      ctx.save()
+      ctx.translate(currentX + segmentWidth / 2, height / 2)
+      ctx.rotate(-Math.PI / 2) // Rotation de -90 degrés
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.font = 'bold 12px Arial' // Plus gros pour le nom
+      ctx.textAlign = 'center'
+      ctx.fillText(candidate.name, 1, 0)
+      
+      ctx.fillStyle = 'white'
+      ctx.fillText(candidate.name, 0, 0)
+      
+      ctx.restore()
+    } else {
+      // Écriture horizontale normale
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.font = 'bold 13px Arial' // Plus gros pour le nom
+      ctx.textAlign = 'center'
+      ctx.fillText(
+        candidate.name, 
+        currentX + segmentWidth / 2 + 1, 
+        height / 2
+      )
+      
+      ctx.fillStyle = 'white'
+      ctx.fillText(
+        candidate.name, 
+        currentX + segmentWidth / 2, 
+        height / 2
+      )
+    }
+    
+    
+    // Dessiner "Sélectionné·e" si c'est la personne sélectionnée
+    if (candidate.isSelected) {
+      const player = props.allSeasonPlayers?.find(p => p.name === candidate.name)
+      const gender = player?.gender || 'neutral'
+      const selectedText = gender === 'female' ? 'Sélectionnée' : 
+                          gender === 'male' ? 'Sélectionné' : 'Sélectionné·e'
+      
+      ctx.font = 'bold 7px Arial' // Plus petit que le nom
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillText(
+        selectedText, 
+        currentX + segmentWidth / 2 + 1, 
+        height - 6
+      )
+      
+      ctx.fillStyle = '#10B981' // Vert pour "sélectionné"
+      ctx.fillText(
+        selectedText, 
+        currentX + segmentWidth / 2, 
+        height - 7
+      )
+    }
+    
+    currentX += segmentWidth
+  }
+}
+
+function performDraw() {
+  // Effectuer le tirage réel (utilise le même nombre aléatoire que l'animation)
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  const randomNumber = currentRandomNumber.value
+  
+  let currentWeight = 0
+  let selectedCandidate = null
+  
+  for (const candidate of currentDrawCandidates.value) {
+    currentWeight += candidate.weight
+    if (randomNumber <= currentWeight) {
+      selectedCandidate = candidate
+      break
+    }
+  }
+  
+  if (selectedCandidate) {
+    // Effet "boom" - afficher le nom du joueur sélectionné
+    const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+    const roleEmoji = currentSlot?.roleEmoji || '🎉'
+    showSelectionBoom(selectedCandidate.name, roleEmoji)
+    
+    // Assigner le joueur au slot après l'effet
+    setTimeout(() => {
+      const slotIndex = currentSlotIndex.value
+      if (slotIndex !== -1) {
+        const slot = teamSlots.value.find(s => s.index === slotIndex)
+        if (slot) {
+          slot.player = selectedCandidate.name
+          // Utiliser directement l'ID du candidat
+          slot.playerId = selectedCandidate.id 
+          slot.isEmpty = false
+        }
+        
+        // Mettre à jour aussi slots.value pour la cohérence
+        if (slots.value && slots.value[slotIndex] !== undefined) {
+          slots.value[slotIndex] = selectedCandidate.name
+        }
+      }
+    
+      // Retirer le candidat de la liste
+      currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
+      currentDrawSelected.value++
+      
+      // Continuer avec le prochain slot
+      setTimeout(() => {
+        drawNextSlot()
+      }, 1500) // Pause d'1.5 seconde entre les tirages
+    }, 1000) // Délai pour l'effet boom
+  }
+}
+
+function showSelectionBoom(playerName, roleEmoji = '🎉') {
+  // Créer un effet visuel de sélection
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not ready for boom effect:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Effacer le canvas
+  ctx.clearRect(0, 0, width, height)
+  
+  // Fond vert pour l'effet de succès
+  ctx.fillStyle = '#10B981'
+  ctx.fillRect(0, 0, width, height)
+  
+  // Récupérer le rôle et le genre du joueur pour l'accord
+  const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+  const role = currentSlot?.role || 'player'
+  const player = props.allSeasonPlayers?.find(p => p.name === playerName)
+  const gender = player?.gender || 'neutral'
+  
+  console.log('🔍 showSelectionBoom debug:', {
+    playerName,
+    role,
+    player,
+    gender,
+    allSeasonPlayers: props.allSeasonPlayers?.length
+  })
+  
+  // Obtenir le label du rôle avec l'accord de genre
+  let roleLabel = ROLE_LABELS_BY_GENDER[gender]?.[role] || ROLE_LABELS_SINGULAR[role] || role
+  
+  // Fallback de sécurité si roleLabel est vide
+  if (!roleLabel || roleLabel === role) {
+    roleLabel = ROLE_LABELS_SINGULAR[role] || 'Sélectionné'
+  }
+  
+  console.log('🔍 Final roleLabel:', roleLabel)
+  
+  // Texte de sélection
+  ctx.fillStyle = 'white'
+  ctx.font = 'bold 24px Arial'
+  ctx.textAlign = 'center'
+  ctx.fillText(playerName, width / 2, height / 2 - 20)
+  
+  ctx.font = 'bold 18px Arial'
+  const displayText = `${roleEmoji} ${roleLabel || 'Sélectionné'}`
+  ctx.fillText(displayText, width / 2, height / 2 + 10)
+  
+  // Effet de particules (simplifié)
+  for (let i = 0; i < 20; i++) {
+    const x = Math.random() * width
+    const y = Math.random() * height
+    const size = Math.random() * 4 + 2
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`
+    ctx.fillRect(x, y, size, size)
+  }
+}
+
+
+// Fonctions utilitaires pour l'UI
+function getSlotClass(slot, index) {
+  if (isSimulatingSlot(index)) {
+    return 'border-yellow-400 bg-yellow-900/20 transition-all duration-700 ease-out'
+  } else if (slot) {
+    return 'border-green-400 bg-green-900/20'
+  } else {
+    return 'border-gray-600 bg-gray-800/50'
+  }
+}
+
+function getSlotStyle(slot, index) {
+  if (isSimulatingSlot(index)) {
+    // Le slot en cours de tirage s'étend sur toute la largeur disponible dans la modale
+    return {
+      position: 'relative',
+      zIndex: '100', // Au premier plan
+      gridColumn: '1 / -1', // S'étend sur toutes les colonnes de la grille
+      minHeight: '300px', // Hauteur minimale pour le canvas
+      transform: 'scale(1.02)', // Légèrement agrandi
+      boxShadow: '0 0 40px rgba(251, 191, 36, 0.6)', // Effet de halo plus fort
+      border: '3px solid #FCD34D', // Bordure dorée plus épaisse
+      backgroundColor: 'rgba(17, 24, 39, 0.95)', // Fond semi-transparent
+      backdropFilter: 'blur(10px)' // Effet de flou d'arrière-plan
+    }
+  }
+  return {}
+}
+
+function isSimulatingSlot(index) {
+  return isSimulating.value && currentSlotIndex.value === index
+}
+
+function getCandidateClass(candidate) {
+  return 'bg-gray-700 border-gray-600 text-white'
+}
+
+function getRoleLabel(role) {
+  if (!role) return 'Joueur' // Par défaut
+  const labels = {
+    'player': 'Joueur',
+    'volunteer': 'Bénévole',
+    'referee': 'Arbitre',
+    'coach': 'Entraîneur'
+  }
+  return labels[role] || role
 }
 
 // Exposer la fonction pour le parent

@@ -76,16 +76,26 @@
             </div>
 
             <!-- Nom du joueur -->
-            <span class="text-white text-sm flex-1 min-w-0 truncate">
+            <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
               {{ player.name }}
             </span>
 
             <!-- Indicateurs de statut -->
             <div class="flex items-center gap-2 flex-shrink-0">
+              <!-- Pourcentage de chances -->
+              <span 
+                v-if="!isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
+                class="px-2 py-1 rounded text-xs font-medium"
+                :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
+              >
+                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+              </span>
+              
               <!-- Statut de sélection -->
               <span 
                 v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
-                class="px-2 py-1 rounded text-xs font-medium"
+                class="px-1.5 py-0.5 rounded text-xs font-medium"
                 :class="isSelectionConfirmed(selectedEvent.id) 
                   ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
                   : 'bg-blue-600/20 text-blue-400 border border-blue-600/30'"
@@ -95,13 +105,6 @@
                   : (player.gender === 'female' ? 'Sélectionnée' : player.gender === 'male' ? 'Sélectionné' : 'Sélectionné·e') }}
               </span>
               
-              <!-- Pourcentage de chance - temporairement masqué -->
-              <!-- <span 
-                v-if="getPlayerChanceForRole(player.name, role, selectedEvent.id) !== null"
-                class="px-2 py-1 rounded text-xs font-medium bg-purple-600/20 text-purple-400 border border-purple-600/30"
-              >
-                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) }}%
-              </span> -->
             </div>
           </div>
 
@@ -131,6 +134,7 @@ import {
   ROLE_PRIORITY_ORDER,
   getRoleLabel 
 } from '../services/storage.js'
+import { getChanceColorClass } from '../services/chancesService.js'
 
 const props = defineProps({
   selectedEvent: {
@@ -292,6 +296,13 @@ function getPlayerChanceForRole(playerName, role, eventId) {
   // Cela garantit que les pourcentages correspondent à l'algorithme de tirage
   const roleChances = props.getPlayerRoleChances(eventId)
   return roleChances[playerName]?.[role] ?? null
+}
+
+function getChanceBadgeClass(chance) {
+  // Utiliser le même style que dans la modale des chances
+  if (chance >= 20) return 'bg-green-500/20 text-green-300'
+  if (chance >= 10) return 'bg-yellow-500/20 text-yellow-300'
+  return 'bg-red-500/20 text-red-300'
 }
 
 function getRoleStatusClass(role) {

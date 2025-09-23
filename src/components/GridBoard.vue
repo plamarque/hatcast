@@ -11,6 +11,7 @@
       :show-view-toggle="showViewToggle"
       :current-view-mode="validCurrentView"
       :season-meta="seasonMeta"
+      :is-composition-view="isCompositionView"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -22,6 +23,7 @@
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
       @open-development="openDevelopment"
+      @return-to-full-view="returnToFullView"
     />
 
     <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
@@ -672,20 +674,15 @@
               </span>
             </h3>
             <div class="flex items-center gap-2">
-              <!-- Bouton toggle pour basculer entre disponibilités et pourcentages (masqué si sélection) -->
+              <!-- Bouton pour afficher les chances détaillées -->
               <button 
-                v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0"
-                @click="showRoleChances = !showRoleChances"
-                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer"
-                :class="showRoleChances 
-                  ? 'bg-emerald-500/20 border border-emerald-400/30 hover:bg-emerald-500/30' 
-                  : 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'"
-                :title="showRoleChances ? 'Voir les disponibilités' : 'Voir les pourcentages de chances'"
+                v-if="selectedEvent"
+                @click="openChancesModal"
+                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer bg-blue-500/20 border border-blue-400/30 hover:bg-blue-500/30"
+                title="Voir les pourcentages de chances pour chaque rôle"
               >
-                <span :class="showRoleChances ? 'text-emerald-300' : 'text-gray-300'">📊</span>
-                <span :class="showRoleChances ? 'text-emerald-200' : 'text-gray-200'">
-                  {{ showRoleChances ? 'Dispos' : 'Chances' }}
-                </span>
+                <span class="text-blue-300">📊</span>
+                <span class="text-blue-200">Chances</span>
               </button>
               
               <!-- Bouton pour afficher la composition (visible si composition faite) -->
@@ -1115,10 +1112,13 @@
     :current-selection="casts[selectionModalEvent?.id] || []"
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
-    :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
+    :availability="availability"
+    :is-available-for-role="isAvailableForRole"
+    :count-selections="countSelections"
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedAllSeasonPlayers"
+    :all-season-players="allSeasonPlayers"
     :sending="isSendingNotifications"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
@@ -1132,7 +1132,7 @@
     @unconfirm-selection="handleUnconfirmCastFromModal"
     @reset-selection="handleResetSelectionFromModal"
     @confirm-reselect="handleConfirmReselectFromModal"
-    @complete-selection="handleCompleteSelectionFromModal"
+    @fill-cast="handleFillCastFromModal"
         />
 
   <!-- Modal d'annonce d'événement -->
@@ -1327,6 +1327,113 @@
     <span class="text-2xl font-bold">›</span>
   </button>
   </div>
+  </div>
+
+  <!-- Modale des chances détaillées -->
+  <div v-if="showChancesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="closeChancesModal">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" @click.stop>
+      <div class="relative p-6 border-b border-white/10">
+        <button @click="closeChancesModal" title="Fermer" class="absolute right-4 top-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+        
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
+            <span class="text-xl">📊</span>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Chances de sélection</h2>
+            <p class="text-purple-300">{{ selectedEvent?.title }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-3 sm:p-6 overflow-y-auto">
+        <div v-if="Object.keys(chancesData).length === 0" class="text-center text-gray-400 py-4">
+          Aucune donnée de chances disponible
+        </div>
+        
+        <div v-else class="space-y-4">
+          <!-- Zone collapsible d'explication -->
+          <div class="mb-4">
+            <button @click="showExplanation = !showExplanation" 
+                    class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors">
+              <span class="text-lg">💡</span>
+              <span>Comment ça marche ?</span>
+              <span class="text-xs">{{ showExplanation ? '▼' : '▶' }}</span>
+            </button>
+            
+            <div v-if="showExplanation" class="mt-2 text-xs text-gray-400">
+              <p><strong>Explications :</strong></p>
+              <ul class="ml-3 mt-1 space-y-1">
+                <li>• Les chances sont calculées en fonction du nombre de sélections passées dans ce rôle spécifique. Moins un participant a été sélectionné pour ce rôle, plus ses chances sont élevées.</li>
+                <li>• Une sélection compte si l'événement n'était pas archivé, la sélection était verrouillée ET le participant n'avait pas décliné.</li>
+              </ul>
+              <p class="mt-2"><strong>Formule :</strong> (<span class="text-blue-400 font-semibold">Places</span> × <span class="text-cyan-400 font-semibold">Malus</span>) ÷ <span class="text-green-400 font-semibold">Candidats</span> × 100% | <span class="text-cyan-400 font-semibold">Malus</span> = 1 ÷ (1 + <span class="text-purple-400 font-semibold">Sélections</span>)</p>
+            </div>
+          </div>
+          
+          <div v-for="role in sortedRoles" :key="role" class="bg-gray-800/50 rounded-lg p-3">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                <span>{{ ROLE_EMOJIS[role] }}</span>
+                <span>{{ ROLE_LABELS[role] }}</span>
+              </h3>
+              <p class="text-sm text-gray-400">
+                <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> places, 
+                <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats
+              </p>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-600">
+                    <th class="text-left py-2 text-gray-300">Participant</th>
+                    <th class="text-center py-2 text-gray-300">Chances</th>
+                    <th class="text-left py-2 text-gray-300">Explications</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="candidate in chancesData[role].candidates" :key="candidate.name" class="border-b border-gray-700/50">
+                    <td class="py-2 text-white">{{ candidate.name }}</td>
+                    <td class="py-2 text-center">
+                      <div class="flex flex-col items-center gap-1">
+                        <span class="px-2 py-1 rounded text-xs font-medium bg-gray-600/20 text-gray-300">
+                          {{ Math.round(candidate.practicalChance) }}%
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-2 text-gray-400 text-xs">
+                      <span v-if="candidate.pastSelections === 0" class="text-gray-400">
+                            <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> place{{ (chancesData[role]?.requiredCount || 0) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ ((candidate.practicalChance || 0) / 100).toFixed(2) }}</span>
+                      </span>
+                      <span v-else class="text-gray-400">
+                        <div class="flex flex-col gap-1">
+                          <div>
+                            <span class="text-orange-400 font-semibold">{{ ((candidate.malus || 0) * (chancesData[role]?.requiredCount || 0)).toFixed(1) }}</span> chances / <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ ((candidate.practicalChance || 0) / 100).toFixed(2) }}</span>
+                          </div>
+                          <div class="text-xs text-gray-500 ml-2">
+                            chances = <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> places × <span class="text-cyan-400 font-semibold">{{ (candidate.malus || 0).toFixed(2) }}</span> malus
+                          </div>
+                          <div class="text-xs text-gray-500 ml-2">
+                            malus = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections || 0 }}</span> sélection{{ (candidate.pastSelections || 0) > 1 ? 's' : '' }})
+                          </div>
+                        </div>
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-3 sm:p-6 border-t border-white/10 flex justify-end">
+        <button @click="closeChancesModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+          Fermer
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1555,6 +1662,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
+import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
+import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -4164,6 +4273,24 @@ const editingEventData = computed(() => {
 // État pour afficher/masquer les détails des rôles
 const showRoleDetails = ref(false)
 const showRoleChances = ref(false)
+const showChancesModal = ref(false)
+const showExplanation = ref(false)
+const chancesData = ref({})
+
+// Trier les rôles par ordre de priorité dans la modale des chances
+const sortedRoles = computed(() => {
+  return Object.keys(chancesData.value).sort((a, b) => {
+    const indexA = ROLE_PRIORITY_ORDER.indexOf(a)
+    const indexB = ROLE_PRIORITY_ORDER.indexOf(b)
+    
+    // Si un rôle n'est pas dans ROLE_PRIORITY_ORDER, le mettre à la fin
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b)
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    
+    return indexA - indexB
+  })
+})
 
 // Fonction pour appliquer un type de rôles
 function applyRoleTemplate(templateId) {
@@ -4851,6 +4978,11 @@ onMounted(async () => {
 watch(() => currentUser.value?.email, (newEmail) => {
   logger.debug('Changement d\'état d\'authentification détecté:', newEmail ? 'connecté' : 'déconnecté')
   initializeViewMode()
+  
+  // Fermer la modale de sélection si l'utilisateur se déconnecte
+  if (!newEmail && showSelectionModal.value) {
+    closeSelectionModal()
+  }
 }, { immediate: false })
 
 
@@ -5731,89 +5863,16 @@ function isAvailableForPlayerRole(player, eventId) {
 
 // Fonction pour vérifier si un joueur est disponible pour un rôle spécifique
 function isAvailableForRole(playerName, role, eventId) {
-  const availabilityData = availability.value[playerName]?.[eventId]
-  
-  // Gestion du nouveau format avec rôles
-  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
-    // Le joueur doit être disponible ET avoir le rôle demandé
-    if (availabilityData.available && availabilityData.roles) {
-      // Vérifier si le joueur a le rôle spécifique demandé
-      if (availabilityData.roles.includes(role)) {
-        return true
-      }
-      // Vérifier si le joueur est disponible "en général" (pas de rôles spécifiques)
-      if (availabilityData.roles.length === 0) {
-        return true
-      }
-    }
-    return false
-  }
-  
-  // Fallback pour l'ancien format (boolean direct)
-  // Dans l'ancien format, true signifiait "disponible en tant que joueur"
-  // Donc on ne peut vérifier que pour le rôle "player"
-  if (role === 'player') {
-    return availabilityData === true
-  }
-  
-  // Pour les autres rôles, on ne peut pas vérifier dans l'ancien format
-  return false
+  return checkAvailableForRole(playerName, role, eventId, availability.value)
 }
 
 function getAvailabilityData(player, eventId) {
-  const availabilityData = availability.value[player]?.[eventId]
-  
-  // Vérifier s'il y a une sélection ET si elle est validée par l'organisateur
-  const selectionRole = getPlayerSelectionRole(player, eventId)
-  const cast = casts.value[eventId]
-  const isSelectionValidated = cast ? isSelectionConfirmedByOrganizer(eventId) : false
-  
-  // Vérifier aussi si le joueur est dans la section déclinés
-  const declinedRole = getPlayerDeclinedRole(player, eventId)
-  
-  if ((selectionRole && isSelectionValidated) || declinedRole) {
-    const selectionStatus = getPlayerSelectionStatus(player, eventId)
-    return {
-      available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
-      roles: [selectionRole || declinedRole],
-      comment: availabilityData?.comment || null,
-      isSelectionDisplay: true,
-      selectionStatus: selectionStatus
-    }
-  }
-  
-  // Pas de sélection, afficher la disponibilité normale
-  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
-    return {
-      ...availabilityData,
-      isSelectionDisplay: false
-    }
-  }
-  
-  // Fallback pour l'ancien format (boolean direct)
-  if (availabilityData === true) {
-    return {
-      available: true,
-      roles: ['player'],
-      comment: null,
-      isSelectionDisplay: false
-    }
-  } else if (availabilityData === false) {
-    return {
-      available: false,
-      roles: [],
-      comment: null,
-      isSelectionDisplay: false
-    }
-  } else {
-    // Pas de disponibilité définie (undefined/null)
-    return {
-      available: undefined,
-      roles: [],
-      comment: null,
-      isSelectionDisplay: false
-    }
-  }
+  return getAvailabilityDataFromService(player, eventId, availability.value, {
+    getPlayerSelectionRole,
+    getPlayerDeclinedRole,
+    getPlayerSelectionStatus,
+    isSelectionConfirmedByOrganizer
+  })
 }
 
 function isSelected(player, eventId) {
@@ -5950,9 +6009,9 @@ async function drawMultiRoles(eventId) {
   updateAllChances()
 }
 
-// Fonction pour compléter uniquement les slots vides d'une composition
-async function completeCastSlots(eventId) {
-  logger.debug('🔧 completeCastSlots appelé:', { eventId })
+// Fonction pour remplir uniquement les slots vides d'une composition
+async function fillEmptyCastSlots(eventId) {
+  logger.debug('🔧 fillEmptyCastSlots appelé:', { eventId })
   
   const event = events.value.find(e => e.id === eventId)
   if (!event) {
@@ -5973,21 +6032,21 @@ async function completeCastSlots(eventId) {
   // Construire la nouvelle composition en gardant les joueurs existants et en complétant les vides
   const newSelections = {}
   
-  for (const role of ROLE_DISPLAY_ORDER) {
+  // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (depuis la composition actuelle)
+  // Convertir les IDs en noms pour la compatibilité avec drawForRole
+  const initialAlreadySelectedIds = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
+  let allAlreadySelected = initialAlreadySelectedIds.map(playerId => {
+    const player = allSeasonPlayers.value.find(p => p.id === playerId)
+    return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
+  })
+  
+  for (const role of ROLE_PRIORITY_ORDER) {
     const requiredCount = roles[role] || 0
     
     if (requiredCount > 0) {
       // Récupérer les joueurs déjà compositionnés pour ce rôle
       const currentRoleSelection = currentSelection.roles?.[role] || []
       const declinedForRole = currentSelection.declined?.[role] || []
-      
-      // Récupérer TOUS les joueurs déjà compositionnés pour TOUS les rôles (depuis la composition actuelle)
-      // Convertir les IDs en noms pour la compatibilité avec drawForRole
-      const allAlreadySelectedIds = Object.values(currentSelection.roles || {}).flat().filter(Boolean)
-      const allAlreadySelected = allAlreadySelectedIds.map(playerId => {
-        const player = allSeasonPlayers.value.find(p => p.id === playerId)
-        return player ? player.name : playerId // Fallback sur l'ID si nom non trouvé
-      })
       
       // Compléter seulement les slots vraiment vides (null/undefined) et exclure les déclinés
       const filledSlots = currentRoleSelection.filter(player => 
@@ -6027,6 +6086,10 @@ async function completeCastSlots(eventId) {
         logger.debug(`🔧 IDs convertis pour ${role}:`, { newPlayerIds })
         
         newSelections[role] = [...filledSlots, ...newPlayerIds]
+        
+        // Mettre à jour la liste d'exclusion avec les joueurs nouvellement tirés
+        allAlreadySelected = [...allAlreadySelected, ...newPlayerNames]
+        logger.debug(`🔧 Liste d'exclusion mise à jour pour les rôles suivants:`, allAlreadySelected)
       } else {
         // Rôle déjà complet
         newSelections[role] = [...currentRoleSelection]
@@ -6090,23 +6153,40 @@ async function completeCastSlots(eventId) {
 }
 
 
+// Fonction helper pour calculer les chances d'un rôle avec les candidats filtrés
+function calculateRoleChancesForFill(role, candidates, eventId) {
+  const event = events.value.find(e => e.id === eventId)
+  if (!event) {
+    logger.warn(`⚠️ Événement non trouvé pour le calcul des chances: ${eventId}`)
+    return []
+  }
+  
+  const requiredCount = event?.roles?.[role] || 1
+  
+  // Utiliser le service officiel pour le calcul des chances
+  const roleData = { role, requiredCount, eventId }
+  const roleChances = calculateRoleChances(roleData, candidates, countSelections, isAvailableForRole)
+  
+  return roleChances.candidates || []
+}
+
 // Fonction helper pour draw des joueurs pour un rôle spécifique
-async function drawForRole(role, count, eventId, alreadySelected = []) {
-  logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected })
+async function drawForRole(role, count, eventId, excludedPlayers = []) {
+  logger.debug(`🎭 drawForRole appelé:`, { role, count, eventId, alreadySelected: excludedPlayers })
   
   // Exclure les joueurs qui ont décliné cette composition
   const declinedPlayers = getDeclinedPlayers(eventId)
   
   // Filtrer les candidats disponibles pour ce rôle
- const candidates = allSeasonPlayers.value.filter(p => {
+  const candidates = allSeasonPlayers.value.filter(p => {
     // Vérifier la disponibilité pour ce rôle spécifique
     const isAvailableForThisRole = isAvailableForRole(p.name, role, eventId)
     const notDeclined = !declinedPlayers.includes(p.name)
-    const notAlreadySelected = !alreadySelected.includes(p.name)
+    const notExcluded = !excludedPlayers.includes(p.name)
     // Exclure aussi les joueurs marqués comme indisponibles pour cet événement
     const isNotUnavailable = isAvailable(p.name, eventId) !== false
     
-    return isAvailableForThisRole && notDeclined && notAlreadySelected && isNotUnavailable
+    return isAvailableForThisRole && notDeclined && notExcluded && isNotUnavailable
   })
   
   if (candidates.length === 0) {
@@ -6114,30 +6194,27 @@ async function drawForRole(role, count, eventId, alreadySelected = []) {
     return []
   }
   
-  // Draw pondéré : moins compositionné = plus de chances
-  const weightedCandidates = candidates.map(player => {
-    const s = countSelections(player.name)
-    return {
-      name: player.name,
-      weight: 1 / (1 + s) // poids inverse du nombre de compositions
-    }
-  })
+  // Utiliser le service officiel pour calculer les poids des candidats
+  const weightedCandidates = calculateRoleChancesForFill(role, candidates, eventId)
   
+  logger.debug(`🎭 Candidats avec poids calculés par chancesService:`, weightedCandidates)
+  
+  // Utiliser le service pour le tirage avec logs détaillés
   const draw = []
   const pool = [...weightedCandidates]
   
   while (draw.length < count && pool.length > 0) {
-    const totalWeight = pool.reduce((sum, p) => sum + p.weight, 0)
-    let r = Math.random() * totalWeight
+    const selectedCandidate = performWeightedDraw(pool, role, { logDetails: true })
     
-    const chosenIndex = pool.findIndex(p => {
-      r -= p.weight
-      return r <= 0
-    })
-    
-    if (chosenIndex >= 0) {
-      draw.push(pool[chosenIndex].name)
-      pool.splice(chosenIndex, 1)
+    if (selectedCandidate) {
+      draw.push(selectedCandidate.name)
+      // Retirer le candidat sélectionné du pool
+      const index = pool.findIndex(c => c.name === selectedCandidate.name)
+      if (index >= 0) {
+        pool.splice(index, 1)
+      }
+    } else {
+      break
     }
   }
   
@@ -6301,9 +6378,9 @@ function formatDateFull(dateValue) {
   })
 }
 
-function countSelections(playerName) {
+function countSelections(playerName, role = 'player') {
   // Trouver l'ID du joueur à partir de son nom
-  const player = players.value.find(p => p.name === playerName)
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
     return 0;
   }
@@ -6315,9 +6392,35 @@ function countSelections(playerName) {
       return false
     }
     
-    const players = getSelectionPlayers(eventId)
-    const isSelected = players.includes(player.id) // Chercher l'ID au lieu du nom
-    return isSelected
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) {
+      return false
+    }
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    // Vérifier le statut de confirmation dans la collection casts
+    const cast = casts.value[eventId]
+    if (!cast || !cast.confirmed) {
+      return false
+    }
+    
+    // Règle 3: Le joueur ne doit pas avoir décliné
+    const declinedPlayers = getDeclinedPlayers(eventId)
+    if (declinedPlayers.includes(playerName)) {
+      return false
+    }
+    
+    // Nouvelle structure multi-rôles
+    if (cast.roles && cast.roles[role]) {
+      return cast.roles[role].includes(player.id)
+    }
+    
+    // Ancienne structure (tous considérés comme "player")
+    if (role === 'player' && Array.isArray(cast)) {
+      return cast.includes(player.id)
+    }
+    
+    return false
   })
   
   return selectedEvents.length;
@@ -6329,6 +6432,30 @@ function countSelectionsForRole(playerName, role) {
     const cast = casts.value[eventId]
     if (!cast) return false
     
+    // Vérifier que l'événement existe encore
+    const event = events.value.find(e => e.id === eventId)
+    if (!event) {
+      return false
+    }
+    
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) {
+      return false
+    }
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    // Vérifier le statut de confirmation dans la collection casts
+    if (!cast.confirmed) {
+      return false
+    }
+    
+    // Règle 3: Le joueur ne doit pas avoir décliné
+    const declinedPlayers = getDeclinedPlayers(eventId)
+    if (declinedPlayers.includes(playerName)) {
+      return false
+    }
+    
+    // Vérifier que le joueur était sélectionné pour ce rôle spécifique
     // Nouvelle structure multi-rôles
     if (cast.roles && cast.roles[role]) {
       return cast.roles[role].includes(playerName)
@@ -6361,9 +6488,11 @@ function countAvailability(playerName) {
 
 function countAvailablePlayers(eventId) {
   if (!eventId) return 0;
-  return players.value.filter(player => 
-    isAvailableForPlayerRole(player.name, eventId)
-  ).length;
+  
+  const event = events.value.find(e => e.id === eventId);
+  if (!event) return 0;
+  
+  return countAvailablePlayersFromService(event, players.value, availability.value);
 }
 
 function countSelectedPlayers(eventId) {
@@ -6563,7 +6692,7 @@ function getPinModalMessage() {
     updateCast: 'Mise à jour de composition - Code PIN requis',
     resetCast: 'Réinitialisation de composition - Code PIN requis',
     unconfirmCast: 'Déverrouillage de composition - Code PIN requis',
-    completeCast: 'Complétion de composition - Code PIN requis'
+    fillCast: 'Remplissage de composition - Code PIN requis'
   }
   
   return messages[pendingOperation.value.type] || 'Code PIN requis'
@@ -7151,22 +7280,22 @@ async function executePendingOperation(operation) {
           }
         }
         break
-      case 'completeCast':
-        // Compléter les slots vides d'une composition verrouillée
+      case 'fillCast':
+        // Remplir les slots vides d'une composition verrouillée
         {
           const { eventId } = data
           try {
-            await completeCastSlots(eventId)
+            await fillEmptyCastSlots(eventId)
             
             showSuccessMessage.value = true
-            successMessage.value = 'Composition complétée !'
+            successMessage.value = 'Composition remplie !'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
           } catch (error) {
-            console.error('Erreur lors de la complétion de la composition:', error)
+            console.error('Erreur lors du remplissage de la composition:', error)
             showSuccessMessage.value = true
-            successMessage.value = 'Erreur lors de la complétion de la composition'
+            successMessage.value = 'Erreur lors du remplissage de la composition'
             setTimeout(() => {
               showSuccessMessage.value = false
             }, 3000)
@@ -8102,35 +8231,25 @@ function getPlayerRoleChances(eventId) {
   const event = events.value.find(e => e.id === eventId)
   if (!event || !event.roles) return {}
   
+  // Utiliser le service pour calculer les chances de tous les rôles
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    allSeasonPlayers.value, 
+    availability.value, 
+    countSelections,
+    isAvailableForRole
+  )
+  
   const roleChances = {}
   
-  // Pour chaque rôle requis dans l'événement
-  Object.entries(event.roles).forEach(([role, requiredCount]) => {
-    if (requiredCount <= 0) return
-    
-    // Récupérer les joueurs disponibles pour ce rôle
-    const availablePlayers = players.value.filter(p => isAvailableForRole(p.name, role, eventId))
-    
-    if (availablePlayers.length === 0) return
-    
-    // Calculer les poids basés sur le nombre de compositions déjà faites POUR CE RÔLE SPÉCIFIQUE
-    const weights = availablePlayers.map(player => {
-      const pastSelectionsForThisRole = countSelectionsForRole(player.name, role)
-      return {
-        name: player.name,
-        weight: 1 / (1 + pastSelectionsForThisRole)
-      }
-    })
-    
-    const totalWeight = weights.reduce((sum, p) => sum + p.weight, 0)
-    
-    // Calculer les chances pour chaque joueur pour ce rôle
-    weights.forEach(player => {
-      if (!roleChances[player.name]) roleChances[player.name] = {}
-      
-      const chance = Math.min(1, (player.weight / totalWeight) * requiredCount)
-      roleChances[player.name][role] = Math.round(chance * 100)
-    })
+  // Extraire les chances par joueur et par rôle
+  Object.entries(allRoleChances).forEach(([role, roleData]) => {
+    if (roleData.candidates) {
+      roleData.candidates.forEach(candidate => {
+        if (!roleChances[candidate.name]) roleChances[candidate.name] = {}
+        roleChances[candidate.name][role] = Math.round(candidate.practicalChance || 0)
+      })
+    }
   })
   
   return roleChances
@@ -8323,6 +8442,39 @@ function showCompositionModal(event) {
   openSelectionModal(event)
 }
 
+async function openChancesModal() {
+  if (!selectedEvent.value) return
+  
+  // Attendre que les données soient chargées
+  if (Object.keys(casts.value).length === 0) {
+    try {
+      // Recharger les données de casts
+      casts.value = await loadCasts(seasonId.value);
+    } catch (error) {
+      console.error('❌ Erreur lors du rechargement des casts:', error);
+      return;
+    }
+  }
+  
+  // Calculer les chances pour tous les rôles
+  const allRoleChances = calculateAllRoleChances(
+    selectedEvent.value, 
+    allSeasonPlayers.value, 
+    availability.value, 
+    countSelections,
+    isAvailableForRole
+  )
+  
+  
+  chancesData.value = allRoleChances
+  showChancesModal.value = true
+}
+
+function closeChancesModal() {
+  showChancesModal.value = false
+  chancesData.value = {}
+}
+
 // Désistement helpers supprimés
 
 async function handleSelectionFromModal() {
@@ -8459,19 +8611,19 @@ async function handleResetSelectionFromModal() {
   }
 }
 
-async function handleCompleteSelectionFromModal() {
+async function handleFillCastFromModal() {
   if (!selectionModalEvent.value) return
   
   const eventId = selectionModalEvent.value.id
   
   try {
-    // Demander le PIN code avant de compléter la composition
+    // Demander le PIN code avant de remplir la composition
     await requirePin({
-      type: 'completeCast',
+      type: 'fillCast',
       data: { eventId }
     })
   } catch (error) {
-    console.error('Erreur lors de la demande de complétion:', error)
+    console.error('Erreur lors de la demande de remplissage:', error)
   }
 }
 
