@@ -254,6 +254,25 @@
           </div>
         </div>
 
+        <!-- 7) Message d'erreur -->
+        <div v-if="showErrorMessage" class="mb-3">
+          <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
+            <div class="text-red-400 text-xl">⚠️</div>
+            <div class="flex-1">
+              <p class="text-red-300 text-sm font-medium">{{ errorMessageText }}</p>
+            </div>
+            <button 
+              @click="hideErrorMessage"
+              class="text-red-400 hover:text-red-300 transition-colors"
+              title="Fermer le message"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
         <!-- 5) (optionnel) Invitation concise supprimée pour éviter la redondance -->
       
       <!-- Anciennes sections redondantes supprimées -->
@@ -478,6 +497,8 @@ const copyButtonText = ref('Copier le message')
 const showAnnounce = ref(false)
 const showSuccessMessage = ref(false)
 const successMessageText = ref('')
+const showErrorMessage = ref(false)
+const errorMessageText = ref('')
 const isReselection = ref(false)
 const showHowItWorks = ref(false)
 
@@ -1170,6 +1191,8 @@ watch(() => props.show, (newValue) => {
     copyButtonText.value = 'Copier le message'
     showSuccessMessage.value = false
     successMessageText.value = ''
+    showErrorMessage.value = false
+    errorMessageText.value = ''
     isReselection.value = false
     showAnnounce.value = false
     // Initialize slots from current selection and requiredCount
@@ -1259,8 +1282,8 @@ function handleSelection() {
 }
 
 function handleSimulateComposition() {
-  // Démarrer la simulation avec visualisation
-  startDrawVisualization()
+  // Démarrer la simulation avec visualisation (pas de reset, pas de persistance)
+  startDrawVisualization(false, false)
 }
 
 function handlePerfect() {
@@ -1598,6 +1621,10 @@ function hideSuccessMessage() {
   showSuccessMessage.value = false
 }
 
+function hideErrorMessage() {
+  showErrorMessage.value = false
+}
+
 // Fonctions pour gérer les joueurs déclinés
 function getDeclinedPlayers() {
   if (!props.currentSelection || !props.currentSelection.declined) {
@@ -1728,14 +1755,38 @@ function cancelReselect() {
 function confirmReselect() {
   showConfirmReselect.value = false
   hasExistingSelection.value = false
-  // Démarrer la visualisation du tirage
-  startDrawVisualization()
+  // Démarrer la visualisation du tirage avec reset et persistance
+  startDrawVisualization(true, true)
 }
 
 // Fonctions pour la visualisation du tirage
-function startDrawVisualization() {
-  // Démarrer directement la simulation
-  startSimulation()
+async function startDrawVisualization(resetExisting = false, persistResults = false) {
+  try {
+    // 1. Reset de la sélection existante si demandé
+    if (resetExisting) {
+      console.log('🔄 Resetting existing selection...')
+      const { deleteCast } = await import('../services/storage.js')
+      await deleteCast(props.event.id, props.seasonId)
+      console.log('✅ Selection reset completed')
+    }
+    
+    // 2. Démarrer la simulation
+    startSimulation(persistResults)
+    
+  } catch (error) {
+    console.error('❌ Erreur dans startDrawVisualization:', error)
+    
+    // Afficher une erreur à l'utilisateur
+    showErrorMessage.value = true
+    errorMessageText.value = resetExisting 
+      ? 'Erreur lors du reset de la sélection. Veuillez réessayer.'
+      : 'Erreur lors du démarrage de la simulation. Veuillez réessayer.'
+    
+    // Auto-masquer l'erreur après 5 secondes
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
 }
 
 function prepareSimulationData() {
@@ -1832,11 +1883,22 @@ function handleDrawComplete() {
 }
 
 // Nouvelles fonctions pour la simulation complète
-function startSimulation() {
-  console.log('🎬 Starting simulation...')
+function startSimulation(persistResults = false) {
+  console.log('🎬 Starting simulation...', { persistResults })
   isSimulating.value = true
   simulationComplete.value = false
   prepareSimulationData()
+  
+  // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
+  if (persistResults) {
+    const stopWatcher = watch(simulationComplete, async (isComplete) => {
+      if (isComplete) {
+        stopWatcher() // Arrêter le watcher
+        await persistSimulationResults()
+      }
+    })
+  }
+  
   if (currentDrawCandidates.value.length > 0) {
     nextTick(() => {
       drawNextSlot()
@@ -1870,6 +1932,52 @@ function finishSimulation() {
   currentDrawCandidates.value = []
   currentDrawSelected.value = 0
   currentSlotIndex.value = 0
+}
+
+async function persistSimulationResults() {
+  try {
+    console.log('💾 Persisting simulation results...')
+    
+    // Construire la structure par rôle à partir de teamSlots
+    const roles = {}
+    
+    teamSlots.value.forEach(slot => {
+      if (slot.playerId) { // Utiliser l'ID pour la sauvegarde
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.playerId)
+      }
+    })
+    
+    // Sauvegarder avec la nouvelle structure par rôle
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId, { 
+      preserveConfirmed: true,
+      declined: props.currentSelection?.declined || {} // Préserver la section déclinés
+    })
+    
+    console.log('✅ Simulation results persisted successfully')
+    
+    // Fermer la modale
+    emit('close')
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessageText.value = 'Composition automatique terminée !'
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la persistance des résultats:', error)
+    
+    // Afficher une erreur à l'utilisateur
+    showErrorMessage.value = true
+    errorMessageText.value = 'Erreur lors de la sauvegarde de la composition. Veuillez réessayer.'
+    
+    // Auto-masquer l'erreur après 5 secondes
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+  }
 }
 
 function drawNextSlot() {
