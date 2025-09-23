@@ -11,6 +11,7 @@
       :show-view-toggle="showViewToggle"
       :current-view-mode="validCurrentView"
       :season-meta="seasonMeta"
+      :is-composition-view="isCompositionView"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -22,6 +23,7 @@
       @open-account="openAccount"
       @open-account-creation="openAccountCreation"
       @open-development="openDevelopment"
+      @return-to-full-view="returnToFullView"
     />
 
     <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
