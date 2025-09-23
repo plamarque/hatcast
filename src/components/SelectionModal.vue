@@ -1200,6 +1200,12 @@ const selectionMessage = computed(() => {
 // Watchers
 watch(() => props.show, (newValue) => {
   if (newValue) {
+    // Arrêter toute simulation en cours au cas où (protection contre les rafraîchissements)
+    if (isSimulating.value) {
+      console.log('🛑 Stopping any running simulation when opening modal')
+      stopSimulation()
+    }
+    
     copied.value = false
     copyButtonText.value = 'Copier le message'
     showSuccessMessage.value = false
@@ -2107,6 +2113,8 @@ function animatePointer() {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not ready for animation:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Stopping simulation due to missing canvas')
+    stopSimulation()
     return
   }
   
@@ -2226,6 +2234,8 @@ async function drawCanvasBands() {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not found or not ready:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Stopping simulation due to missing canvas')
+    stopSimulation()
     return
   }
   
@@ -2382,6 +2392,8 @@ function showSelectionBoom(playerName, roleEmoji = '🎉') {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not ready for boom effect:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Stopping simulation due to missing canvas')
+    stopSimulation()
     return
   }
   
