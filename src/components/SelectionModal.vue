@@ -581,12 +581,20 @@ function generateSlotsForMultiRoleEvent() {
   const slots = []
   let slotIndex = 0
   
+  console.log('🔍 generateSlotsForMultiRoleEvent:', {
+    roles,
+    currentSelection: props.currentSelection,
+    ROLE_PRIORITY_ORDER
+  })
+  
   // Parcourir les rôles dans l'ordre de priorité (rôles critiques en premier)
   for (const role of ROLE_PRIORITY_ORDER) {
     const count = roles[role] || 0
     if (count > 0) {
       // Récupérer les joueurs déjà composés pour ce rôle
       const selectedPlayers = props.currentSelection?.roles?.[role] || []
+      
+      console.log(`🔍 Role ${role}: count=${count}, selectedPlayers=`, selectedPlayers)
       
       // Créer les slots pour ce rôle (afficher tous les joueurs, même ceux qui ont décliné)
       for (let i = 0; i < count; i++) {
@@ -1780,6 +1788,14 @@ async function startDrawVisualization(resetExisting = false, persistResults = fa
       const { deleteCast } = await import('../services/storage.js')
       await deleteCast(props.event.id, props.seasonId)
       console.log('✅ Selection reset completed')
+      
+      // Émettre l'événement pour que le parent recharge les données
+      emit('updateCast')
+      
+      // Attendre que le parent mette à jour currentSelection
+      await nextTick()
+      // Petit délai pour s'assurer que les données sont mises à jour
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
     
     // 2. Démarrer la simulation
@@ -1808,8 +1824,10 @@ function prepareSimulationData() {
   
   console.log('🔍 Debug simulation:', {
     teamSlots: teamSlots.value,
+    teamSlotsLength: teamSlots.value.length,
     event: event,
-    allSeasonPlayers: props.allSeasonPlayers?.length
+    allSeasonPlayers: props.allSeasonPlayers?.length,
+    currentSelection: props.currentSelection
   })
   
   // Trouver le premier slot vide dans teamSlots
@@ -1817,6 +1835,7 @@ function prepareSimulationData() {
   console.log('🔍 Empty teamSlots:', emptySlots)
   
   if (emptySlots.length === 0) {
+    console.log('❌ No empty slots found, simulation complete')
     simulationComplete.value = true
     return
   }
