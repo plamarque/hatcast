@@ -1411,11 +1411,11 @@
                           <div>
                             <span class="text-orange-400 font-semibold">{{ (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances / <span class="text-green-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span> candidats = <span class="font-semibold" :class="candidate.practicalChance >= 20 ? 'text-emerald-400' : candidate.practicalChance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance / 100).toFixed(2) }}</span>
                           </div>
-                          <div class="text-xs text-gray-500">
-                            Malus: 1 / (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections }}</span> sélection{{ candidate.pastSelections > 1 ? 's' : '' }}) = <span class="text-cyan-400 font-semibold">{{ candidate.weight.toFixed(2) }}</span>
+                          <div class="text-xs text-gray-500 ml-2">
+                            chances = <span class="text-blue-400 font-semibold">{{ candidate.requiredCount }}</span> places × <span class="text-cyan-400 font-semibold">{{ candidate.weight.toFixed(2) }}</span> malus
                           </div>
-                          <div class="text-xs text-gray-500">
-                            <span class="text-blue-400 font-semibold">{{ candidate.requiredCount }}</span> place{{ candidate.requiredCount > 1 ? 's' : '' }} × <span class="text-cyan-400 font-semibold">{{ candidate.weight.toFixed(2) }}</span> = <span class="text-orange-400 font-semibold">{{ (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances
+                          <div class="text-xs text-gray-500 ml-2">
+                            malus = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections }}</span> sélection{{ candidate.pastSelections > 1 ? 's' : '' }})
                           </div>
                         </div>
                       </span>
