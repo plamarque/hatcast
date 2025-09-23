@@ -378,9 +378,13 @@ const props = defineProps({
     default: 0
   },
   // Props pour la gestion des disponibilités
-  playerAvailability: {
+  availability: {
     type: Object,
     default: () => ({})
+  },
+  isAvailableForRole: {
+    type: Function,
+    default: () => false
   },
   // Nouvelles props pour EventAnnounceModal
   seasonId: {
@@ -522,11 +526,33 @@ function generateSlotsForMultiRoleEvent() {
 const allAvailableNames = computed(() => {
   return (props.players || [])
     .map(p => p.name)
-    .filter(name => props.playerAvailability?.[name] === true)
+    .filter(name => {
+      // Vérifier si le joueur est disponible pour au moins un rôle
+      if (!props.event?.roles) {
+        return props.isAvailableForRole(name, 'player', props.event?.id)
+      }
+      
+      // Pour les événements multi-rôles, vérifier si disponible pour au moins un rôle requis
+      for (const role of Object.keys(props.event.roles)) {
+        if (props.event.roles[role] > 0 && props.isAvailableForRole(name, role, props.event.id)) {
+          return true
+        }
+      }
+      return false
+    })
     .sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 })
 
+
 function availableOptionsForSlot(index) {
+  // Récupérer le slot actuel pour connaître son rôle
+  const currentSlot = teamSlots.value.find(s => s.index === index)
+  if (!currentSlot) {
+    return []
+  }
+  
+  const requiredRole = currentSlot.role
+  
   // Récupérer tous les joueurs déjà utilisés dans tous les slots
   const used = new Set()
   teamSlots.value.forEach(slot => {
@@ -536,12 +562,20 @@ function availableOptionsForSlot(index) {
   })
   
   // Si on édite un slot qui a déjà une valeur, permettre de la garder
-  const currentSlot = teamSlots.value.find(s => s.index === index)
   if (currentSlot && currentSlot.player) {
     used.delete(currentSlot.player)
   }
   
-  return allAvailableNames.value.filter(name => !used.has(name))
+  // Filtrer les joueurs disponibles pour ce rôle spécifique
+  return allAvailableNames.value.filter(name => {
+    // Vérifier que le joueur n'est pas déjà utilisé
+    if (used.has(name)) {
+      return false
+    }
+    
+    // Vérifier que le joueur est disponible pour ce rôle spécifique
+    return props.isAvailableForRole(name, requiredRole, props.event?.id)
+  })
 }
 
 function startEditSlot(index) {
@@ -1313,11 +1347,22 @@ function openHowItWorks() {
 
 // Fonctions pour vérifier la disponibilité des joueurs
 function isPlayerAvailable(playerName) {
-  return props.playerAvailability[playerName] === true
+  // Vérifier si le joueur est disponible pour au moins un rôle
+  if (!props.event?.roles) {
+    return props.isAvailableForRole(playerName, 'player', props.event?.id)
+  }
+  
+  // Pour les événements multi-rôles, vérifier si disponible pour au moins un rôle requis
+  for (const role of Object.keys(props.event.roles)) {
+    if (props.event.roles[role] > 0 && props.isAvailableForRole(playerName, role, props.event.id)) {
+      return true
+    }
+  }
+  return false
 }
 
 function isPlayerUnavailable(playerName) {
-  return props.playerAvailability[playerName] === false
+  return !isPlayerAvailable(playerName)
 }
 
 function getSelectedPlayersArray() {

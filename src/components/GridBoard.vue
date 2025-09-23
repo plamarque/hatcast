@@ -1115,7 +1115,8 @@
     :current-selection="casts[selectionModalEvent?.id] || []"
     :available-count="countAvailablePlayers(selectionModalEvent?.id)"
     :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
-    :player-availability="getPlayerAvailabilityForEvent(selectionModalEvent?.id)"
+    :availability="availability"
+    :is-available-for-role="isAvailableForRole"
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedAllSeasonPlayers"
@@ -1555,6 +1556,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
+import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService } from '../services/playerAvailabilityService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -5731,89 +5733,16 @@ function isAvailableForPlayerRole(player, eventId) {
 
 // Fonction pour vérifier si un joueur est disponible pour un rôle spécifique
 function isAvailableForRole(playerName, role, eventId) {
-  const availabilityData = availability.value[playerName]?.[eventId]
-  
-  // Gestion du nouveau format avec rôles
-  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
-    // Le joueur doit être disponible ET avoir le rôle demandé
-    if (availabilityData.available && availabilityData.roles) {
-      // Vérifier si le joueur a le rôle spécifique demandé
-      if (availabilityData.roles.includes(role)) {
-        return true
-      }
-      // Vérifier si le joueur est disponible "en général" (pas de rôles spécifiques)
-      if (availabilityData.roles.length === 0) {
-        return true
-      }
-    }
-    return false
-  }
-  
-  // Fallback pour l'ancien format (boolean direct)
-  // Dans l'ancien format, true signifiait "disponible en tant que joueur"
-  // Donc on ne peut vérifier que pour le rôle "player"
-  if (role === 'player') {
-    return availabilityData === true
-  }
-  
-  // Pour les autres rôles, on ne peut pas vérifier dans l'ancien format
-  return false
+  return checkAvailableForRole(playerName, role, eventId, availability.value)
 }
 
 function getAvailabilityData(player, eventId) {
-  const availabilityData = availability.value[player]?.[eventId]
-  
-  // Vérifier s'il y a une sélection ET si elle est validée par l'organisateur
-  const selectionRole = getPlayerSelectionRole(player, eventId)
-  const cast = casts.value[eventId]
-  const isSelectionValidated = cast ? isSelectionConfirmedByOrganizer(eventId) : false
-  
-  // Vérifier aussi si le joueur est dans la section déclinés
-  const declinedRole = getPlayerDeclinedRole(player, eventId)
-  
-  if ((selectionRole && isSelectionValidated) || declinedRole) {
-    const selectionStatus = getPlayerSelectionStatus(player, eventId)
-    return {
-      available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
-      roles: [selectionRole || declinedRole],
-      comment: availabilityData?.comment || null,
-      isSelectionDisplay: true,
-      selectionStatus: selectionStatus
-    }
-  }
-  
-  // Pas de sélection, afficher la disponibilité normale
-  if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
-    return {
-      ...availabilityData,
-      isSelectionDisplay: false
-    }
-  }
-  
-  // Fallback pour l'ancien format (boolean direct)
-  if (availabilityData === true) {
-    return {
-      available: true,
-      roles: ['player'],
-      comment: null,
-      isSelectionDisplay: false
-    }
-  } else if (availabilityData === false) {
-    return {
-      available: false,
-      roles: [],
-      comment: null,
-      isSelectionDisplay: false
-    }
-  } else {
-    // Pas de disponibilité définie (undefined/null)
-    return {
-      available: undefined,
-      roles: [],
-      comment: null,
-      isSelectionDisplay: false
-    }
-  }
+  return getAvailabilityDataFromService(player, eventId, availability.value, {
+    getPlayerSelectionRole,
+    getPlayerDeclinedRole,
+    getPlayerSelectionStatus,
+    isSelectionConfirmedByOrganizer
+  })
 }
 
 function isSelected(player, eventId) {
