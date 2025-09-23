@@ -2265,10 +2265,10 @@ function showSelectionBoom(playerName) {
   ctx.fillStyle = 'white'
   ctx.font = 'bold 24px Arial'
   ctx.textAlign = 'center'
-  ctx.fillText('🎉 SÉLECTIONNÉ !', width / 2, height / 2 - 20)
+  ctx.fillText(playerName, width / 2, height / 2 - 20)
   
   ctx.font = 'bold 18px Arial'
-  ctx.fillText(playerName, width / 2, height / 2 + 10)
+  ctx.fillText('🎉 Sélectionné !', width / 2, height / 2 + 10)
   
   // Effet de particules (simplifié)
   for (let i = 0; i < 20; i++) {
