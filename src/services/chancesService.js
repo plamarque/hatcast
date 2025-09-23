@@ -66,7 +66,7 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
       return {
         name: player.name,
         pastSelections,
-        weight: malus, // Utiliser 'weight' pour la cohérence avec le template
+        weight: weightedChances, // Utiliser les chances pondérées pour les bandes de l'animation
         malus,
         weightedChances,
         requiredCount

@@ -494,11 +494,9 @@ const isSimulating = ref(false)
 const simulationComplete = ref(false)
 const currentSlotIndex = ref(0)
 const canvasRefs = ref([])
-const canvasWidth = 500
-const canvasHeight = 300
+const canvasWidth = 400
+const canvasHeight = 80
 const currentRandomNumber = ref(0) // Pour partager le même nombre aléatoire entre animation et tirage
-const isSlotExpanded = ref(false) // Pour contrôler l'état d'expansion du slot
-const expandedSlotIndex = ref(-1) // Index du slot en cours d'expansion
 
 
 // --- Manual slots state ---
@@ -1764,49 +1762,25 @@ function prepareSimulationData() {
   currentSlotIndex.value = firstEmptySlot.index
   currentDrawRole.value = firstEmptySlot.role || 'player'
   
-  // Récupérer les joueurs déjà sélectionnés dans les slots (peu importe le rôle)
-  const alreadySelectedPlayers = slots.value
-    .filter(player => player) // Seulement les slots avec un joueur (non null/undefined)
-    .map(player => player) // Récupérer les noms des joueurs
-  
-  console.log('🔍 Already selected players (any role):', alreadySelectedPlayers)
-  
-  // Calculer les candidats disponibles pour ce rôle (en excluant ceux déjà sélectionnés pour N'IMPORTE QUEL rôle)
-  const availablePlayers = props.allSeasonPlayers.filter(player => {
-    // Le joueur doit être disponible pour le rôle ET pas déjà sélectionné pour AUCUN rôle
-    return props.isAvailableForRole(player.name, currentDrawRole.value, event.id) &&
-           !alreadySelectedPlayers.includes(player.name)
+  // Calculer les candidats disponibles pour ce rôle
+  const candidates = props.allSeasonPlayers.filter(player => {
+    return props.isAvailableForRole(player.name, currentDrawRole.value, event.id)
   })
   
-  console.log('🔍 Available players for role', currentDrawRole.value, ':', availablePlayers.map(p => p.name))
-  
-  // Calculer les poids avec le service en utilisant seulement les joueurs disponibles
+  // Calculer les poids avec le service
   const allRoleChances = calculateAllRoleChances(
     event, 
-    availablePlayers, // Utiliser seulement les joueurs disponibles
+    props.allSeasonPlayers, 
     props.availability, 
     props.countSelections || (() => 0),
     props.isAvailableForRole
   )
   
   const roleChances = allRoleChances[currentDrawRole.value]
-  if (roleChances && roleChances.candidates && roleChances.candidates.length > 0) {
+  if (roleChances && roleChances.candidates) {
     currentDrawCandidates.value = roleChances.candidates
     currentDrawCount.value = emptySlots.length
     currentDrawSelected.value = 0
-    console.log('🔍 Final candidates for draw:', currentDrawCandidates.value.map(c => c.name))
-  } else {
-    // Aucun candidat disponible pour ce rôle - slot restera vide
-    console.log('⚠️ No candidates available for role', currentDrawRole.value, '- slot will remain empty')
-    currentDrawCandidates.value = []
-    currentDrawCount.value = 0
-    currentDrawSelected.value = 0
-    
-    // Passer au slot suivant sans faire de tirage
-    setTimeout(() => {
-      drawNextSlot()
-    }, 1000) // Pause courte pour la cohérence visuelle
-    return
   }
 }
 
@@ -1884,21 +1858,12 @@ function finishSimulation() {
 }
 
 function drawNextSlot() {
-  console.log('🎯 ===== drawNextSlot called =====')
-  console.log('🎯 isSimulating:', isSimulating.value)
-  console.log('🎯 currentSlotIndex:', currentSlotIndex.value)
-  console.log('🎯 simulationComplete:', simulationComplete.value)
-  
-  if (!isSimulating.value) {
-    console.log('❌ Simulation not active, returning')
-    return
-  }
+  if (!isSimulating.value) return
   
   const emptySlots = teamSlots.value.filter(slot => !slot.player)
-  console.log('🎯 Empty slots found:', emptySlots.length, 'slots:', emptySlots.map(s => ({ index: s.index, role: s.role, player: s.player })))
+  console.log('🎯 Drawing next slot, empty slots:', emptySlots.length)
   
   if (emptySlots.length === 0) {
-    console.log('✅ No more empty slots - simulation complete')
     simulationComplete.value = true
     isSimulating.value = false
     return
@@ -1906,71 +1871,50 @@ function drawNextSlot() {
   
   const currentSlot = emptySlots[0]
   currentSlotIndex.value = currentSlot.index
-  expandedSlotIndex.value = currentSlot.index
-  console.log('🎯 Processing slot:', currentSlotIndex.value, 'role:', currentSlot.role)
+  console.log('🎯 Current slot index:', currentSlotIndex.value)
   
-  // Phase 1: Illumination du slot (bordure + halo)
-  isSlotExpanded.value = true
-  
-  // Phase 2: Expansion du slot après un délai
+  // Démarrer l'animation directement
   setTimeout(() => {
-    console.log('🎯 Preparing simulation data for slot', currentSlotIndex.value)
     // Mettre à jour les candidats pour ce slot
     prepareSimulationData()
-    
-    console.log('🎯 Candidates after prepareSimulationData:', currentDrawCandidates.value.length, 'candidates:', currentDrawCandidates.value.map(c => c.name))
     
     if (currentDrawCandidates.value.length > 0) {
       console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
       // Lancer l'animation de tirage
       animateDraw()
     } else {
-      console.log('❌ No candidates for current slot, moving to next')
-      // Passer au slot suivant
-      setTimeout(() => {
-        drawNextSlot()
-      }, 1000)
+      console.log('❌ No candidates for current slot')
     }
   }, 500) // Délai pour l'effet d'illumination
 }
 
 async function animateDraw() {
-  console.log('🎬 animateDraw called for slot', currentSlotIndex.value)
-  
-  // Vérifier s'il y a des candidats disponibles
-  if (currentDrawCandidates.value.length === 0) {
-    console.log('⚠️ No candidates available for animation - skipping draw')
-    // Passer au slot suivant sans animation
-    setTimeout(() => {
-      drawNextSlot()
-    }, 1000)
-    return
-  }
-  
   // Générer le nombre aléatoire une seule fois pour l'animation et le tirage
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
   currentRandomNumber.value = Math.random() * totalWeight
   
-  console.log('🎬 Animation setup:', {
-    candidates: currentDrawCandidates.value.map(c => ({ name: c.name, weight: c.weight })),
-    totalWeight: totalWeight,
-    randomNumber: currentRandomNumber.value
-  })
-  
-  // Animation du tirage avec la roue qui tourne
+  // Calculer les dimensions du canvas basées sur le conteneur
   nextTick(async () => {
+    const canvas = canvasRefs.value[currentSlotIndex.value]
+    if (canvas) {
+      const container = canvas.parentElement
+      const containerWidth = container.clientWidth - 32 // Soustraire le padding
+      const containerHeight = Math.min(300, containerWidth * 0.6) // Hauteur max 300px, ratio 16:10
+      
+      // Redimensionner le canvas
+      canvas.width = containerWidth
+      canvas.height = containerHeight
+    }
+    
     // Attendre que le canvas soit rendu
     setTimeout(async () => {
-      // Dessiner le pie chart initial (sans rotation)
-      await drawRotatingPieChart(0)
+      await drawCanvasBands()
       
-      // Animation de la roue qui tourne
-      console.log('🎬 Starting wheel animation')
+      // Animation du marqueur qui se déplace
       animatePointer()
       
       // Simuler le tirage après l'animation
       setTimeout(() => {
-        console.log('🎬 Animation complete, performing draw')
         performDraw()
       }, 3000) // 3 secondes d'animation
     }, 100) // Petit délai pour s'assurer que le canvas est rendu
@@ -1988,51 +1932,38 @@ function animatePointer() {
   const width = canvas.width
   const height = canvas.height
   
-  // Calculer les dimensions du pie chart
-  const centerX = width / 2
-  const centerY = height / 2
-  const radius = Math.min(width, height) / 2 - 20
-  
   // Calculer la position finale du marqueur (où il doit s'arrêter)
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
   const randomNumber = currentRandomNumber.value
   
   let currentWeight = 0
   let selectedCandidate = null
-  let selectedCandidateAngle = 0
+  let selectedCandidateIndex = -1
+  let selectedCandidateStartX = 0
+  let selectedCandidateEndX = 0
   
-  // Trouver le candidat sélectionné et son angle
-  let currentAngle = -Math.PI / 2 // Commencer en haut
+  // Trouver le candidat sélectionné et sa position
   for (let i = 0; i < currentDrawCandidates.value.length; i++) {
     const candidate = currentDrawCandidates.value[i]
-    const segmentAngle = (candidate.weight / totalWeight) * 2 * Math.PI
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const segmentStartX = currentWeight / totalWeight * width
+    const segmentEndX = segmentStartX + segmentWidth
     
     currentWeight += candidate.weight
     if (randomNumber <= currentWeight) {
       selectedCandidate = candidate
-      // L'angle final doit être tel que le segment soit sous la flèche à droite
-      // La flèche est à 90° (π/2), donc on calcule l'angle de rotation nécessaire
-      selectedCandidateAngle = currentAngle + segmentAngle / 2 // Angle du centre du segment
-      // Ajuster pour que le segment soit sous la flèche à droite
-      selectedCandidateAngle = Math.PI / 2 - selectedCandidateAngle
+      selectedCandidateIndex = i
+      selectedCandidateStartX = segmentStartX
+      selectedCandidateEndX = segmentEndX
       break
     }
-    
-    currentAngle += segmentAngle
   }
   
-  console.log('🎯 Animation target:', {
-    selectedCandidate: selectedCandidate?.name,
-    selectedCandidateAngle: selectedCandidateAngle,
-    randomNumber: randomNumber,
-    totalWeight: totalWeight
-  })
-  
   // Position finale du marqueur (au centre du segment du candidat sélectionné)
-  const finalAngle = selectedCandidateAngle
+  const finalPointerX = selectedCandidateStartX + (selectedCandidateEndX - selectedCandidateStartX) / 2
   
   let startTime = Date.now()
-  const duration = 3000 // 3 secondes d'animation
+  const duration = 2500 // 2.5 secondes d'animation
   
   function animate() {
     const elapsed = Date.now() - startTime
@@ -2041,94 +1972,37 @@ function animatePointer() {
     // Effacer le canvas
     ctx.clearRect(0, 0, width, height)
     
-    // Calculer l'angle de rotation avec décélération naturelle (pas de position finale forcée)
-    let wheelRotation = 0
+    // Redessiner la bande
+    drawCanvasBands()
     
-    if (progress < 0.6) {
-      // Phase 1: Rotation rapide (60% du temps)
-      const fastProgress = progress / 0.6
-      // Décélération naturelle dès le début
-      const deceleration = 1 - Math.pow(1 - fastProgress, 1.5)
-      wheelRotation = deceleration * 8 * Math.PI // 4 tours complets
+    // Calculer la position du marqueur (oscillation puis arrêt sur la bonne zone)
+    let pointerX
+    if (progress < 0.8) {
+      // Phase d'oscillation (80% du temps) - va de bout en bout avec ralentissement
+      const slowDown = 1 - (progress * 0.5) // Ralentit progressivement
+      const oscillation = Math.sin(progress * 20 * slowDown) * 0.5 + 0.5
+      // Utiliser une fonction d'easing pour que le marqueur touche vraiment les bords
+      const easedOscillation = Math.pow(oscillation, 0.7) // Courbe plus prononcée
+      pointerX = (width * 0.02) + (width * 0.96 * easedOscillation) // De 2% à 98% de la largeur
     } else {
-      // Phase 2: Ralentissement final très progressif (40% du temps)
-      const slowProgress = (progress - 0.6) / 0.4
-      // Décélération très douce - la roue ralentit naturellement
-      const finalDeceleration = 1 - Math.pow(1 - slowProgress, 3)
-      
-      // Rotation basée uniquement sur le temps, pas sur une position cible
-      const baseRotation = 8 * Math.PI
-      const additionalRotation = 2 * Math.PI * finalDeceleration // 1 tour supplémentaire qui ralentit
-      wheelRotation = baseRotation + additionalRotation
+      // Phase d'arrêt (20% du temps) - se dirige vers la position finale
+      const finalProgress = (progress - 0.8) / 0.2
+      const startX = width * 0.5 // Position de départ pour l'arrêt
+      pointerX = startX + (finalPointerX - startX) * finalProgress
     }
     
-    // Dessiner le pie chart avec rotation
-    drawRotatingPieChart(wheelRotation)
+    // Dessiner le marqueur animé
+    ctx.fillStyle = '#EF4444' // Rouge
+    ctx.fillRect(pointerX - 2, 0, 4, height)
     
-    // Dessiner l'indicateur fixe (pointe rouge en haut) - APRÈS le pie chart
-    const indicatorX = centerX + radius + 40
-    const indicatorY = centerY
-    
-    // Dessiner la flèche rouge simple et visible
-    ctx.save()
-    ctx.translate(indicatorX, indicatorY)
-    
-    // Fond sombre pour la flèche (pour la rendre visible)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
-    ctx.beginPath()
-    ctx.arc(-30, 0, 10, 0, 2 * Math.PI)
-    ctx.fill()
-    
-    // Flèche rouge pointant vers le bord extérieur de la roue
-    ctx.fillStyle = '#EF4444'
-    ctx.beginPath()
-    ctx.moveTo(-40, 0) // Pointe vers le bord extérieur de la roue
-    ctx.lineTo(-25, -10) // Côté haut
-    ctx.lineTo(-25, -4) // Base haut
-    ctx.lineTo(-15, -4) // Tige haut
-    ctx.lineTo(-15, 4)  // Tige bas
-    ctx.lineTo(-25, 4)   // Base bas
-    ctx.lineTo(-25, 10)   // Côté bas
-    ctx.closePath()
-    ctx.fill()
-    
-    // Bordure blanche pour la visibilité
-    ctx.strokeStyle = 'white'
-    ctx.lineWidth = 3
-    ctx.stroke()
-    
-    // Effet de lueur pour la visibilité
+    // Ajouter un effet de lueur
     ctx.shadowColor = '#EF4444'
     ctx.shadowBlur = 10
-    ctx.fill()
+    ctx.fillRect(pointerX - 2, 0, 4, height)
     ctx.shadowBlur = 0
-    
-    ctx.restore()
     
     if (progress < 1) {
       requestAnimationFrame(animate)
-    } else {
-      console.log('🎯 Animation finished, calculating final selection')
-      // Calculer quel segment est sous la flèche à la fin de l'animation
-      const finalRotation = wheelRotation
-      console.log('🎯 Final rotation angle:', finalRotation)
-      
-      const selectedCandidate = calculateSelectedCandidateFromRotation(finalRotation)
-      console.log('🎯 Selected candidate from rotation:', selectedCandidate?.name)
-      
-      // Pause pour laisser le temps de voir où la roue s'est arrêtée
-      setTimeout(() => {
-        console.log('🎯 Timeout reached, performing draw')
-        if (selectedCandidate) {
-          console.log('🎯 Using performDrawWithCandidate for:', selectedCandidate.name)
-          // Utiliser le candidat calculé à partir de la position finale de la roue
-          performDrawWithCandidate(selectedCandidate)
-        } else {
-          console.log('🎯 Using fallback performDraw')
-          // Fallback sur l'ancienne méthode
-          performDraw()
-        }
-      }, 1000) // 1 seconde de pause
     }
   }
   
@@ -2166,156 +2040,6 @@ function getPlayerColor(playerName, index) {
   return colorPalettes[paletteIndex]
 }
 
-async function drawRotatingPieChart(rotationAngle) {
-  const canvas = canvasRefs.value[currentSlotIndex.value]
-  if (!canvas || !canvas.getContext) {
-    console.log('🔍 Canvas not found or not ready:', canvas, 'for slot', currentSlotIndex.value)
-    return
-  }
-  
-  const ctx = canvas.getContext('2d')
-  const width = canvas.width
-  const height = canvas.height
-  
-  // Calculer les dimensions du pie chart (plus grand)
-  const centerX = width / 2
-  const centerY = height / 2
-  const radius = Math.min(width, height) / 2 - 5 // Encore plus grand
-  const innerRadius = radius * 0.35 // Donut plus fin pour plus d'espace pour les noms
-  
-  // Dessiner le fond du pie chart
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-  ctx.fillRect(0, 0, width, height)
-  
-  // Appliquer la rotation au pie chart
-  ctx.save()
-  ctx.translate(centerX, centerY)
-  ctx.rotate(rotationAngle)
-  ctx.translate(-centerX, -centerY)
-  
-  // Dessiner le pie chart
-  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
-  let currentAngle = -Math.PI / 2 // Commencer en haut
-  
-  for (let index = 0; index < currentDrawCandidates.value.length; index++) {
-    const candidate = currentDrawCandidates.value[index]
-    const segmentAngle = (candidate.weight / totalWeight) * 2 * Math.PI
-    const colors = getPlayerColor(candidate.name, index)
-    
-    // Dessiner le segment du pie chart
-    ctx.beginPath()
-    ctx.moveTo(centerX, centerY)
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + segmentAngle)
-    ctx.closePath()
-    
-    // Créer un dégradé radial pour le segment
-    const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, radius)
-    gradient.addColorStop(0, colors.primary)
-    gradient.addColorStop(0.7, colors.secondary)
-    gradient.addColorStop(1, colors.tertiary)
-    
-    ctx.fillStyle = gradient
-    ctx.fill()
-    
-    // Ajouter une bordure blanche
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
-    ctx.lineWidth = 2
-    ctx.stroke()
-    
-    // Dessiner le nom du joueur sur le segment
-    const labelAngle = currentAngle + segmentAngle / 2
-    const labelRadius = (innerRadius + radius) / 2
-    const labelX = centerX + Math.cos(labelAngle) * labelRadius
-    const labelY = centerY + Math.sin(labelAngle) * labelRadius
-    
-    // Texte vertical du centre vers l'extérieur (comme des rayons)
-    ctx.save()
-    ctx.translate(labelX, labelY)
-    ctx.rotate(labelAngle) // Rotation selon l'angle du segment
-    
-    // Ombre du texte
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-        ctx.font = 'bold 18px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(candidate.name, 1, 1)
-    
-    // Texte principal
-    ctx.fillStyle = 'white'
-    ctx.fillText(candidate.name, 0, 0)
-    
-    ctx.restore()
-    
-    // Charger et dessiner l'avatar du joueur au centre du segment
-    try {
-      const playerId = getPlayerIdFromName(candidate.name)
-      const avatarUrl = await getPlayerAvatar(playerId, seasonId, candidate.name)
-      
-      if (avatarUrl) {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        
-        await new Promise((resolve, reject) => {
-          img.onload = resolve
-          img.onerror = reject
-          img.src = avatarUrl
-        })
-        
-        // Position de l'avatar sur le segment
-        const avatarRadius = (innerRadius + radius) / 2
-        const avatarX = centerX + Math.cos(labelAngle) * avatarRadius - 12
-        const avatarY = centerY + Math.sin(labelAngle) * avatarRadius - 12
-        
-        // Dessiner l'avatar (cercle de 24px de diamètre)
-        const avatarSize = 24
-        
-        // Créer un masque circulaire pour l'avatar
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
-        ctx.clip()
-        
-        // Dessiner l'image
-        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize)
-        ctx.restore()
-        
-        // Ajouter une bordure blanche autour de l'avatar
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
-        ctx.lineWidth = 2
-        ctx.beginPath()
-        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
-        ctx.stroke()
-      }
-    } catch (error) {
-      console.log('🔍 Could not load avatar for', candidate.name, error)
-    }
-    
-    // Dessiner "Sélectionné·e" si c'est la personne sélectionnée
-    if (candidate.isSelected) {
-      const player = allSeasonPlayers.value.find(p => p.name === candidate.name)
-      const gender = player?.gender || 'neutral'
-      const selectedText = gender === 'female' ? 'Sélectionnée' : 
-                          gender === 'male' ? 'Sélectionné' : 'Sélectionné·e'
-      
-      ctx.save()
-      ctx.translate(labelX, labelY)
-      ctx.rotate(labelAngle + Math.PI / 2)
-      
-      ctx.font = 'bold 8px Arial'
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillText(selectedText, 1, 15)
-      
-      ctx.fillStyle = '#10B981'
-      ctx.fillText(selectedText, 0, 14)
-      
-      ctx.restore()
-    }
-    
-    currentAngle += segmentAngle
-  }
-  
-  ctx.restore() // Restaurer la transformation
-}
-
 async function drawCanvasBands() {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
@@ -2327,69 +2051,31 @@ async function drawCanvasBands() {
   const width = canvas.width
   const height = canvas.height
   
-  // Calculer les dimensions du pie chart (plus grand)
-  const centerX = width / 2
-  const centerY = height / 2
-  const radius = Math.min(width, height) / 2 - 5 // Encore plus grand
-  const innerRadius = radius * 0.35 // Donut plus fin pour plus d'espace pour les noms
-  
-  // Dessiner le fond du pie chart
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-  ctx.fillRect(0, 0, width, height)
-  
-  // Dessiner le pie chart
+  // Dessiner la bande de tirage
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
-  let currentAngle = -Math.PI / 2 // Commencer en haut
+  let currentX = 0
   
   for (let index = 0; index < currentDrawCandidates.value.length; index++) {
     const candidate = currentDrawCandidates.value[index]
-    const segmentAngle = (candidate.weight / totalWeight) * 2 * Math.PI
+    const segmentWidth = (candidate.weight / totalWeight) * width
     const colors = getPlayerColor(candidate.name, index)
     
-    // Dessiner le segment du pie chart
-    ctx.beginPath()
-    ctx.moveTo(centerX, centerY)
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + segmentAngle)
-    ctx.closePath()
-    
-    // Créer un dégradé radial pour le segment
-    const gradient = ctx.createRadialGradient(centerX, centerY, innerRadius, centerX, centerY, radius)
+    // Créer un dégradé pour chaque segment
+    const gradient = ctx.createLinearGradient(currentX, 0, currentX + segmentWidth, 0)
     gradient.addColorStop(0, colors.primary)
-    gradient.addColorStop(0.7, colors.secondary)
+    gradient.addColorStop(0.5, colors.secondary)
     gradient.addColorStop(1, colors.tertiary)
     
+    // Dessiner le segment avec dégradé
     ctx.fillStyle = gradient
-    ctx.fill()
+    ctx.fillRect(currentX, 0, segmentWidth, height)
     
-    // Ajouter une bordure blanche
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
-    ctx.lineWidth = 2
-    ctx.stroke()
+    // Ajouter une bordure subtile
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(currentX, 0, segmentWidth, height)
     
-    // Dessiner le nom du joueur sur le segment
-    const labelAngle = currentAngle + segmentAngle / 2
-    const labelRadius = (innerRadius + radius) / 2
-    const labelX = centerX + Math.cos(labelAngle) * labelRadius
-    const labelY = centerY + Math.sin(labelAngle) * labelRadius
-    
-    // Texte vertical du centre vers l'extérieur (comme des rayons)
-    ctx.save()
-    ctx.translate(labelX, labelY)
-    ctx.rotate(labelAngle) // Rotation selon l'angle du segment
-    
-    // Ombre du texte
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-        ctx.font = 'bold 18px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(candidate.name, 1, 1)
-    
-    // Texte principal
-    ctx.fillStyle = 'white'
-    ctx.fillText(candidate.name, 0, 0)
-    
-    ctx.restore()
-    
-    // Charger et dessiner l'avatar du joueur au centre du segment
+    // Charger et dessiner l'avatar du joueur
     try {
       const playerId = getPlayerIdFromName(candidate.name)
       const avatarUrl = await getPlayerAvatar(playerId, seasonId, candidate.name)
@@ -2404,13 +2090,10 @@ async function drawCanvasBands() {
           img.src = avatarUrl
         })
         
-        // Position de l'avatar sur le segment
-        const avatarRadius = (innerRadius + radius) / 2
-        const avatarX = centerX + Math.cos(labelAngle) * avatarRadius - 12
-        const avatarY = centerY + Math.sin(labelAngle) * avatarRadius - 12
-        
         // Dessiner l'avatar (cercle de 24px de diamètre)
         const avatarSize = 24
+        const avatarX = currentX + segmentWidth / 2 - avatarSize / 2
+        const avatarY = 8
         
         // Créer un masque circulaire pour l'avatar
         ctx.save()
@@ -2433,6 +2116,45 @@ async function drawCanvasBands() {
       console.log('🔍 Could not load avatar for', candidate.name, error)
     }
     
+    // Dessiner le nom du candidat (sous l'avatar)
+    // Si la bande est trop étroite, écrire verticalement
+    const isNarrowBand = segmentWidth < 80
+    
+    if (isNarrowBand) {
+      // Écriture verticale (de bas en haut)
+      ctx.save()
+      ctx.translate(currentX + segmentWidth / 2, height / 2 + 8)
+      ctx.rotate(-Math.PI / 2) // Rotation de -90 degrés
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.font = 'bold 12px Arial' // Plus gros pour le nom
+      ctx.textAlign = 'center'
+      ctx.fillText(candidate.name, 1, 0)
+      
+      ctx.fillStyle = 'white'
+      ctx.fillText(candidate.name, 0, 0)
+      
+      ctx.restore()
+    } else {
+      // Écriture horizontale normale
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.font = 'bold 13px Arial' // Plus gros pour le nom
+      ctx.textAlign = 'center'
+      ctx.fillText(
+        candidate.name, 
+        currentX + segmentWidth / 2 + 1, 
+        height / 2 + 8
+      )
+      
+      ctx.fillStyle = 'white'
+      ctx.fillText(
+        candidate.name, 
+        currentX + segmentWidth / 2, 
+        height / 2 + 7
+      )
+    }
+    
+    
     // Dessiner "Sélectionné·e" si c'est la personne sélectionnée
     if (candidate.isSelected) {
       const player = allSeasonPlayers.value.find(p => p.name === candidate.name)
@@ -2440,134 +2162,30 @@ async function drawCanvasBands() {
       const selectedText = gender === 'female' ? 'Sélectionnée' : 
                           gender === 'male' ? 'Sélectionné' : 'Sélectionné·e'
       
-      ctx.save()
-      ctx.translate(labelX, labelY)
-      ctx.rotate(labelAngle + Math.PI / 2)
-      
-      ctx.font = 'bold 8px Arial'
+      ctx.font = 'bold 7px Arial' // Plus petit que le nom
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillText(selectedText, 1, 15)
+      ctx.fillText(
+        selectedText, 
+        currentX + segmentWidth / 2 + 1, 
+        height - 6
+      )
       
-      ctx.fillStyle = '#10B981'
-      ctx.fillText(selectedText, 0, 14)
-      
-      ctx.restore()
+      ctx.fillStyle = '#10B981' // Vert pour "sélectionné"
+      ctx.fillText(
+        selectedText, 
+        currentX + segmentWidth / 2, 
+        height - 7
+      )
     }
     
-    currentAngle += segmentAngle
-  }
-}
-
-// Calculer quel candidat est sélectionné basé sur la rotation finale de la roue
-function calculateSelectedCandidateFromRotation(rotation) {
-  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
-  
-  // Normaliser la rotation (0 à 2π)
-  const normalizedRotation = ((rotation % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI)
-  
-  // Ajuster pour le fait que la roue commence en haut (-π/2) et tourne dans le sens horaire
-  // La flèche est à droite (90°), donc on doit calculer l'angle par rapport à la position de la flèche
-  const arrowAngle = Math.PI / 2 // Flèche à droite (90°)
-  // L'angle de rotation est déjà ajusté pour que le segment soit sous la flèche
-  // Donc on peut utiliser directement la rotation normalisée
-  const relativeAngle = normalizedRotation
-  
-  // Convertir en position sur la roue (0 à 1)
-  const wheelPosition = relativeAngle / (2 * Math.PI)
-  
-  console.log('🔍 Rotation calculation:', {
-    normalizedRotation: normalizedRotation,
-    arrowAngle: arrowAngle,
-    relativeAngle: relativeAngle,
-    wheelPosition: wheelPosition,
-    totalWeight: totalWeight
-  })
-  
-  // Trouver le candidat correspondant à cette position
-  let currentWeight = 0
-  for (const candidate of currentDrawCandidates.value) {
-    const candidateStart = currentWeight / totalWeight
-    const candidateEnd = (currentWeight + candidate.weight) / totalWeight
-    
-    console.log('🔍 Candidate check:', {
-      name: candidate.name,
-      candidateStart: candidateStart,
-      candidateEnd: candidateEnd,
-      wheelPosition: wheelPosition,
-      matches: wheelPosition >= candidateStart && wheelPosition < candidateEnd
-    })
-    
-    if (wheelPosition >= candidateStart && wheelPosition < candidateEnd) {
-      console.log('✅ Selected candidate:', candidate.name)
-      return candidate
-    }
-    currentWeight += candidate.weight
-  }
-  
-  // Si on arrive ici, prendre le dernier candidat (cas de bord)
-  console.log('⚠️ No candidate found, using last one:', currentDrawCandidates.value[currentDrawCandidates.value.length - 1]?.name)
-  return currentDrawCandidates.value[currentDrawCandidates.value.length - 1]
-}
-
-// Effectuer le tirage avec un candidat spécifique
-function performDrawWithCandidate(selectedCandidate) {
-  console.log('🎯 performDrawWithCandidate called with:', selectedCandidate?.name)
-  
-  if (selectedCandidate) {
-    console.log('🎯 Showing selection boom for:', selectedCandidate.name)
-    // Effet "boom" - afficher le nom du joueur sélectionné
-    showSelectionBoom(selectedCandidate.name)
-    
-    // Assigner le joueur au slot après l'effet
-    setTimeout(() => {
-      const slotIndex = currentSlotIndex.value
-      if (slotIndex !== -1) {
-        // Mettre à jour slots (la source de données principale)
-        if (slots.value && slots.value[slotIndex] !== undefined) {
-          slots.value[slotIndex] = selectedCandidate.name
-        }
-        
-        console.log('✅ Assigned', selectedCandidate.name, 'to slot', slotIndex)
-        console.log('🔍 Current slots state:', slots.value)
-      }
-      
-      // Retirer le candidat de la liste
-      currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
-      currentDrawSelected.value++
-      
-      console.log('🔍 Remaining candidates after selection:', currentDrawCandidates.value.length)
-      
-      // Vérifier s'il reste des candidats
-      if (currentDrawCandidates.value.length === 0) {
-        console.log('⚠️ No more candidates - ending simulation')
-        isSimulating.value = false
-        simulationComplete.value = true
-        currentSlotIndex.value = 0
-        isSlotExpanded.value = false
-        expandedSlotIndex.value = -1
-        return
-      }
-      
-      // Continuer avec le prochain slot
-      setTimeout(() => {
-        drawNextSlot()
-      }, 1500) // Pause d'1.5 seconde entre les tirages
-    }, 1000) // Délai pour l'effet boom
+    currentX += segmentWidth
   }
 }
 
 function performDraw() {
-  console.log('🎲 performDraw called for slot', currentSlotIndex.value)
-  
   // Effectuer le tirage réel (utilise le même nombre aléatoire que l'animation)
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
   const randomNumber = currentRandomNumber.value
-  
-  console.log('🎲 Draw setup:', {
-    totalWeight: totalWeight,
-    randomNumber: randomNumber,
-    candidates: currentDrawCandidates.value.map(c => ({ name: c.name, weight: c.weight }))
-  })
   
   let currentWeight = 0
   let selectedCandidate = null
@@ -2576,7 +2194,6 @@ function performDraw() {
     currentWeight += candidate.weight
     if (randomNumber <= currentWeight) {
       selectedCandidate = candidate
-      console.log('🎲 Selected candidate by weight:', candidate.name)
       break
     }
   }
@@ -2589,31 +2206,17 @@ function performDraw() {
     setTimeout(() => {
       const slotIndex = currentSlotIndex.value
       if (slotIndex !== -1) {
-        // Mettre à jour slots (la source de données principale)
-        if (slots.value && slots.value[slotIndex] !== undefined) {
-          slots.value[slotIndex] = selectedCandidate.name
+        const slot = teamSlots.value.find(s => s.index === slotIndex)
+        if (slot) {
+          slot.player = selectedCandidate.name
+          slot.playerId = selectedCandidate.name // Pour la compatibilité
+          slot.isEmpty = false
         }
-        
-        console.log('✅ Assigned', selectedCandidate.name, 'to slot', slotIndex)
-        console.log('🔍 Current slots state:', slots.value)
       }
       
       // Retirer le candidat de la liste
       currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
       currentDrawSelected.value++
-      
-      console.log('🔍 Remaining candidates after selection:', currentDrawCandidates.value.length)
-      
-      // Vérifier s'il reste des candidats
-      if (currentDrawCandidates.value.length === 0) {
-        console.log('⚠️ No more candidates - ending simulation')
-        isSimulating.value = false
-        simulationComplete.value = true
-        currentSlotIndex.value = 0
-        isSlotExpanded.value = false
-        expandedSlotIndex.value = -1
-        return
-      }
       
       // Continuer avec le prochain slot
       setTimeout(() => {
@@ -2624,8 +2227,6 @@ function performDraw() {
 }
 
 function showSelectionBoom(playerName) {
-  console.log('🎉 Showing selection boom for:', playerName, 'in slot:', currentSlotIndex.value)
-  
   // Créer un effet visuel de sélection
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
@@ -2669,8 +2270,6 @@ function showSelectionBoom(playerName) {
 function getSlotClass(slot, index) {
   if (isSimulatingSlot(index)) {
     return 'border-yellow-400 bg-yellow-900/20 transition-all duration-700 ease-out'
-  } else if (isSlotExpanded.value && expandedSlotIndex.value === index) {
-    return 'border-blue-400 bg-blue-900/20 transition-all duration-700 ease-out'
   } else if (slot) {
     return 'border-green-400 bg-green-900/20'
   } else {
@@ -2685,30 +2284,12 @@ function getSlotStyle(slot, index) {
       position: 'relative',
       zIndex: '100', // Au premier plan
       gridColumn: '1 / -1', // S'étend sur toutes les colonnes de la grille
-      minHeight: '500px', // Hauteur minimale pour le canvas plus grand
+      minHeight: '300px', // Hauteur minimale pour le canvas
       transform: 'scale(1.02)', // Légèrement agrandi
       boxShadow: '0 0 40px rgba(251, 191, 36, 0.6)', // Effet de halo plus fort
       border: '3px solid #FCD34D', // Bordure dorée plus épaisse
       backgroundColor: 'rgba(17, 24, 39, 0.95)', // Fond semi-transparent
       backdropFilter: 'blur(10px)' // Effet de flou d'arrière-plan
-    }
-  } else if (isSlotExpanded.value && expandedSlotIndex.value === index) {
-    // Animation de zoom : le slot recouvre toute la zone équipe
-    return {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: '50',
-      gridColumn: '1 / -1',
-      minHeight: '500px',
-      transform: 'scale(1.05)',
-      boxShadow: '0 0 50px rgba(59, 130, 246, 0.8)',
-      border: '4px solid #3B82F6',
-      backgroundColor: 'rgba(59, 130, 246, 0.15)',
-      backdropFilter: 'blur(15px)',
-      borderRadius: '12px'
     }
   }
   return {}
