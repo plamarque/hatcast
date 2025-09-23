@@ -2027,8 +2027,8 @@ async function persistDrawResults() {
     // Émettre un événement pour que le parent recharge les données
     emit('updateCast')
     
-    // Fermer la modale
-    emit('close')
+    // Ne pas fermer la modale automatiquement - laisser l'utilisateur voir le résultat
+    // emit('close')
     
     // Afficher un message de succès
     showSuccessMessage.value = true
