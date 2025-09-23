@@ -4976,6 +4976,11 @@ onMounted(async () => {
 watch(() => currentUser.value?.email, (newEmail) => {
   logger.debug('Changement d\'état d\'authentification détecté:', newEmail ? 'connecté' : 'déconnecté')
   initializeViewMode()
+  
+  // Fermer la modale de sélection si l'utilisateur se déconnecte
+  if (!newEmail && showSelectionModal.value) {
+    closeSelectionModal()
+  }
 }, { immediate: false })
 
 
