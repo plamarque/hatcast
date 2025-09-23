@@ -303,14 +303,14 @@
           {{ isSimulating ? '⏹️' : '🎲' }} <span class="hidden sm:inline">{{ isSimulating ? 'Arrêter' : 'Simuler Compo' }}</span><span class="sm:hidden">{{ isSimulating ? 'Stop' : 'Simuler' }}</span>
         </button>
 
-        <!-- Bouton Compléter Compo (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
+        <!-- Bouton Remplir Cast (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
           v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canEditEvents" 
-          @click="handleCompleteSelection" 
+          @click="handleFillCast" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
-          title="Compléter les slots vides avec des joueurs disponibles"
+          title="Remplir les slots vides avec des joueurs disponibles"
         >
-          🔧 <span class="hidden sm:inline">Compléter</span><span class="sm:hidden">Compléter</span>
+          🔧 <span class="hidden sm:inline">Remplir</span><span class="sm:hidden">Remplir</span>
         </button>
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé ET permissions d'édition) -->
@@ -495,7 +495,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'complete-selection'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'fill-cast'])
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
@@ -1381,16 +1381,16 @@ async function handleUnconfirmSelection() {
   }
 }
 
-async function handleCompleteSelection() {
+async function handleFillCast() {
   try {
-    // Émettre l'événement de complétion vers le parent
-    emit('complete-selection')
+    // Émettre l'événement de remplissage vers le parent
+    emit('fill-cast')
     
     // Le toast de succès est affiché par le parent (GridBoard.vue)
   } catch (error) {
-    console.error('Erreur lors de la complétion de la composition:', error)
+    console.error('Erreur lors du remplissage de la composition:', error)
     showSuccessMessage.value = true
-    successMessageText.value = 'Erreur lors de la complétion de la composition'
+    successMessageText.value = 'Erreur lors du remplissage de la composition'
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
