@@ -2062,7 +2062,8 @@ function drawNextSlot() {
   
   const currentSlot = emptySlots[0]
   currentSlotIndex.value = currentSlot.index
-  console.log('🎯 Current slot index:', currentSlotIndex.value)
+  currentDrawRole.value = currentSlot.role || 'player'
+  console.log('🎯 Current slot index:', currentSlotIndex.value, 'role:', currentDrawRole.value)
   
   // Démarrer l'animation directement
   setTimeout(() => {
@@ -2099,7 +2100,14 @@ function drawNextSlot() {
       animateDraw()
     } else {
       console.log('❌ No candidates for current slot, skipping to next slot')
-      // Pas de candidats disponibles pour ce rôle, passer au slot suivant
+      // Marquer le slot comme vide (sans joueur) car aucun candidat disponible
+      const slot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+      if (slot) {
+        slot.player = null
+        slot.playerId = null
+        slot.isEmpty = true
+      }
+      // Passer au slot suivant
       setTimeout(() => {
         drawNextSlot()
       }, 1000) // Délai court avant de passer au suivant
