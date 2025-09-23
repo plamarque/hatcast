@@ -2320,14 +2320,8 @@ function performDraw() {
         const slot = teamSlots.value.find(s => s.index === slotIndex)
         if (slot) {
           slot.player = selectedCandidate.name
-          // Trouver l'ID du joueur dans availablePlayers (plus direct que getPlayerIdFromName)
-          const player = props.allSeasonPlayers.find(p => p.name === selectedCandidate.name)
-          if (player?.id) {
-            slot.playerId = player.id
-          } else {
-            console.error('❌ ID de joueur non trouvé pour:', selectedCandidate.name)
-            slot.playerId = selectedCandidate.name // Fallback
-          }
+          // Utiliser directement l'ID du candidat (maintenant disponible dans chancesService)
+          slot.playerId = selectedCandidate.id || selectedCandidate.name // Fallback sur le nom si pas d'ID
           slot.isEmpty = false
         }
         

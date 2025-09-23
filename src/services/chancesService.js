@@ -65,6 +65,7 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
       
       return {
         name: player.name,
+        id: player.id, // Ajouter l'ID pour éviter les conversions côté client
         pastSelections,
         weight: weightedChances, // Utiliser les chances pondérées pour les bandes de l'animation
         malus,
