@@ -1849,7 +1849,7 @@ function prepareDrawData() {
   
   const firstEmptySlot = emptySlots[0]
   currentSlotIndex.value = firstEmptySlot.index
-  currentDrawRole.value = firstEmptySlot.role || 'player'
+  // currentDrawRole.value is already set in drawNextSlot(), don't override it
   
   // Récupérer les joueurs déjà sélectionnés (depuis teamSlots.value - source de vérité)
   const alreadySelectedPlayers = teamSlots.value
