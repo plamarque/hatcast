@@ -2111,38 +2111,67 @@ async function drawCanvasBands() {
       console.log('🔍 Could not load avatar for', candidate.name, error)
     }
     
-    // Dessiner le nom du candidat avec ombre (sous l'avatar)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-    ctx.font = 'bold 11px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(
-      candidate.name, 
-      currentX + segmentWidth / 2 + 1, 
-      height / 2 + 8
-    )
+    // Dessiner le nom du candidat (sous l'avatar)
+    // Si la bande est trop étroite, écrire verticalement
+    const isNarrowBand = segmentWidth < 80
     
-    ctx.fillStyle = 'white'
-    ctx.fillText(
-      candidate.name, 
-      currentX + segmentWidth / 2, 
-      height / 2 + 7
-    )
+    if (isNarrowBand) {
+      // Écriture verticale (de bas en haut)
+      ctx.save()
+      ctx.translate(currentX + segmentWidth / 2, height / 2 + 8)
+      ctx.rotate(-Math.PI / 2) // Rotation de -90 degrés
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.font = 'bold 12px Arial' // Plus gros pour le nom
+      ctx.textAlign = 'center'
+      ctx.fillText(candidate.name, 1, 0)
+      
+      ctx.fillStyle = 'white'
+      ctx.fillText(candidate.name, 0, 0)
+      
+      ctx.restore()
+    } else {
+      // Écriture horizontale normale
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+      ctx.font = 'bold 13px Arial' // Plus gros pour le nom
+      ctx.textAlign = 'center'
+      ctx.fillText(
+        candidate.name, 
+        currentX + segmentWidth / 2 + 1, 
+        height / 2 + 8
+      )
+      
+      ctx.fillStyle = 'white'
+      ctx.fillText(
+        candidate.name, 
+        currentX + segmentWidth / 2, 
+        height / 2 + 7
+      )
+    }
     
-    // Dessiner le pourcentage avec ombre (sous le nom)
-    ctx.font = '9px Arial'
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
-    ctx.fillText(
-      `${candidate.practicalChance.toFixed(1)}%`, 
-      currentX + segmentWidth / 2 + 1, 
-      height / 2 + 20
-    )
     
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-    ctx.fillText(
-      `${candidate.practicalChance.toFixed(1)}%`, 
-      currentX + segmentWidth / 2, 
-      height / 2 + 19
-    )
+    // Dessiner "Sélectionné·e" si c'est la personne sélectionnée
+    if (candidate.isSelected) {
+      const player = allSeasonPlayers.value.find(p => p.name === candidate.name)
+      const gender = player?.gender || 'neutral'
+      const selectedText = gender === 'female' ? 'Sélectionnée' : 
+                          gender === 'male' ? 'Sélectionné' : 'Sélectionné·e'
+      
+      ctx.font = 'bold 7px Arial' // Plus petit que le nom
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+      ctx.fillText(
+        selectedText, 
+        currentX + segmentWidth / 2 + 1, 
+        height - 6
+      )
+      
+      ctx.fillStyle = '#10B981' // Vert pour "sélectionné"
+      ctx.fillText(
+        selectedText, 
+        currentX + segmentWidth / 2, 
+        height - 7
+      )
+    }
     
     currentX += segmentWidth
   }
