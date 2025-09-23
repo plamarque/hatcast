@@ -1116,6 +1116,7 @@
     :season-id="seasonId"
     :season-slug="seasonSlug"
     :players="enrichedAllSeasonPlayers"
+    :all-season-players="allSeasonPlayers"
     :sending="isSendingNotifications"
     :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"

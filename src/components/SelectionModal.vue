@@ -357,7 +357,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
-import { calculatePlayerChanceForRole, formatChancePercentage } from '../services/chancesService.js'
+import { calculateAllRoleChances, formatChancePercentage } from '../services/chancesService.js'
 
 const props = defineProps({
   show: {
@@ -392,6 +392,10 @@ const props = defineProps({
   countSelections: {
     type: Function,
     default: () => 0
+  },
+  allSeasonPlayers: {
+    type: Array,
+    default: () => []
   },
   // Nouvelles props pour EventAnnounceModal
   seasonId: {
@@ -584,17 +588,33 @@ function availableOptionsForSlot(index) {
     return props.isAvailableForRole(name, requiredRole, props.event?.id)
   })
   
+  // Calculer les chances pour tous les rôles (même logique que GridBoard.vue)
+  const allRoleChances = calculateAllRoleChances(
+    props.event, 
+    props.allSeasonPlayers, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  // Extraire les chances pour le rôle spécifique
+  const roleChances = allRoleChances[requiredRole]
+  if (!roleChances || !roleChances.candidates) {
+    return availablePlayers.map(name => ({
+      name,
+      chance: formatChancePercentage(0)
+    }))
+  }
+  
+  // Créer un map des chances par nom de joueur
+  const chancesMap = {}
+  roleChances.candidates.forEach(candidate => {
+    chancesMap[candidate.name] = candidate.practicalChance || 0
+  })
+  
   // Calculer les chances pour chaque joueur disponible
   return availablePlayers.map(name => {
-    const chance = calculatePlayerChanceForRole(
-      name, 
-      requiredRole, 
-      props.event?.id, 
-      props.event, 
-      props.availability.players || [], 
-      props.availability, 
-      props.countSelections || (() => 0)
-    )
+    const chance = chancesMap[name] || 0
     return {
       name,
       chance: formatChancePercentage(chance)
