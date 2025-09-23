@@ -1395,10 +1395,7 @@
                     <td class="py-2 text-white">{{ candidate.name }}</td>
                     <td class="py-2 text-center">
                       <div class="flex flex-col items-center gap-1">
-                        <span class="px-2 py-1 rounded text-xs font-medium"
-                              :class="candidate.practicalChance >= 20 ? 'bg-green-500/20 text-green-300' : 
-                                      candidate.practicalChance >= 10 ? 'bg-yellow-500/20 text-yellow-300' : 
-                                      'bg-red-500/20 text-red-300'">
+                        <span class="px-2 py-1 rounded text-xs font-medium bg-gray-600/20 text-gray-300">
                           {{ Math.round(candidate.practicalChance) }}%
                         </span>
                       </div>

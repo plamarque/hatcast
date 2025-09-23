@@ -56,7 +56,7 @@
             <div
               v-for="slot in teamSlots"
               :key="'sel-slot-'+slot.index"
-              class="relative p-3 rounded-lg border text-center transition-all duration-500 ease-in-out"
+              class="relative p-3 rounded-lg border text-center transition-all duration-700 ease-out"
               :class="[
                 slot.player
                   ? [
@@ -77,7 +77,9 @@
                     ]
                   : 'border-dashed border-white/20 hover:border-white/40 bg-white/5',
                 // Animation pour le slot en cours de tirage
-                isSimulatingSlot(slot.index) ? 'border-yellow-400 bg-yellow-900/20' : ''
+                isSimulatingSlot(slot.index) ? 'border-yellow-400 bg-yellow-900/20 animate-pulse' : '',
+                // Effet sur les autres slots pendant l'animation
+                isSimulating.value && !isSimulatingSlot(slot.index) ? 'opacity-30 scale-95' : ''
               ]"
               :style="getSlotStyle(slot, slot.index)"
             >
@@ -125,7 +127,7 @@
                     :ref="el => canvasRefs[currentSlotIndex] = el" 
                     :width="canvasWidth" 
                     :height="canvasHeight"
-                    class="border border-gray-600 rounded bg-gray-800 w-full mb-2"
+                    class="border border-gray-600 rounded bg-gray-800 w-full mb-2 transition-all duration-500 ease-out"
                   ></canvas>
                   <div class="text-xs text-gray-400 text-center">
                     {{ currentDrawCandidates.length }} candidats
@@ -394,6 +396,7 @@ import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
 import { calculateAllRoleChances, formatChancePercentage } from '../services/chancesService.js'
+import { getPlayerAvatar } from '../services/playerAvatars.js'
 
 const props = defineProps({
   show: {
@@ -493,6 +496,9 @@ const currentSlotIndex = ref(0)
 const canvasRefs = ref([])
 const canvasWidth = 400
 const canvasHeight = 80
+const currentRandomNumber = ref(0) // Pour partager le même nombre aléatoire entre animation et tirage
+const isSlotExpanded = ref(false) // Pour contrôler l'état d'expansion du slot
+const expandedSlotIndex = ref(-1) // Index du slot en cours d'expansion
 
 
 // --- Manual slots state ---
@@ -1867,26 +1873,37 @@ function drawNextSlot() {
   
   const currentSlot = emptySlots[0]
   currentSlotIndex.value = currentSlot.index
+  expandedSlotIndex.value = currentSlot.index
   console.log('🎯 Current slot index:', currentSlotIndex.value)
   
-  // Mettre à jour les candidats pour ce slot
-  prepareSimulationData()
+  // Phase 1: Illumination du slot (bordure + halo)
+  isSlotExpanded.value = true
   
-  if (currentDrawCandidates.value.length > 0) {
-    console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
-    // Lancer l'animation de tirage
-    animateDraw()
-  } else {
-    console.log('❌ No candidates for current slot')
-  }
+  // Phase 2: Expansion du slot après un délai
+  setTimeout(() => {
+    // Mettre à jour les candidats pour ce slot
+    prepareSimulationData()
+    
+    if (currentDrawCandidates.value.length > 0) {
+      console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
+      // Lancer l'animation de tirage
+      animateDraw()
+    } else {
+      console.log('❌ No candidates for current slot')
+    }
+  }, 500) // Délai pour l'effet d'illumination
 }
 
-function animateDraw() {
+async function animateDraw() {
+  // Générer le nombre aléatoire une seule fois pour l'animation et le tirage
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  currentRandomNumber.value = Math.random() * totalWeight
+  
   // Animation du tirage avec la bande colorée
-  nextTick(() => {
+  nextTick(async () => {
     // Attendre que le canvas soit rendu
-    setTimeout(() => {
-      drawCanvasBands()
+    setTimeout(async () => {
+      await drawCanvasBands()
       
       // Animation du marqueur qui se déplace
       animatePointer()
@@ -1910,6 +1927,36 @@ function animatePointer() {
   const width = canvas.width
   const height = canvas.height
   
+  // Calculer la position finale du marqueur (où il doit s'arrêter)
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  const randomNumber = currentRandomNumber.value
+  
+  let currentWeight = 0
+  let selectedCandidate = null
+  let selectedCandidateIndex = -1
+  let selectedCandidateStartX = 0
+  let selectedCandidateEndX = 0
+  
+  // Trouver le candidat sélectionné et sa position
+  for (let i = 0; i < currentDrawCandidates.value.length; i++) {
+    const candidate = currentDrawCandidates.value[i]
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const segmentStartX = currentWeight / totalWeight * width
+    const segmentEndX = segmentStartX + segmentWidth
+    
+    currentWeight += candidate.weight
+    if (randomNumber <= currentWeight) {
+      selectedCandidate = candidate
+      selectedCandidateIndex = i
+      selectedCandidateStartX = segmentStartX
+      selectedCandidateEndX = segmentEndX
+      break
+    }
+  }
+  
+  // Position finale du marqueur (au centre du segment du candidat sélectionné)
+  const finalPointerX = selectedCandidateStartX + (selectedCandidateEndX - selectedCandidateStartX) / 2
+  
   let startTime = Date.now()
   const duration = 2500 // 2.5 secondes d'animation
   
@@ -1923,18 +1970,20 @@ function animatePointer() {
     // Redessiner la bande
     drawCanvasBands()
     
-    // Calculer la position du marqueur (oscillation puis arrêt)
+    // Calculer la position du marqueur (oscillation puis arrêt sur la bonne zone)
     let pointerX
     if (progress < 0.8) {
-      // Phase d'oscillation (80% du temps)
-      const oscillation = Math.sin(progress * 20) * 0.3 + 0.7
-      pointerX = (width * 0.1) + (width * 0.8 * oscillation)
+      // Phase d'oscillation (80% du temps) - va de bout en bout avec ralentissement
+      const slowDown = 1 - (progress * 0.5) // Ralentit progressivement
+      const oscillation = Math.sin(progress * 20 * slowDown) * 0.5 + 0.5
+      // Utiliser une fonction d'easing pour que le marqueur touche vraiment les bords
+      const easedOscillation = Math.pow(oscillation, 0.7) // Courbe plus prononcée
+      pointerX = (width * 0.02) + (width * 0.96 * easedOscillation) // De 2% à 98% de la largeur
     } else {
-      // Phase d'arrêt (20% du temps)
+      // Phase d'arrêt (20% du temps) - se dirige vers la position finale
       const finalProgress = (progress - 0.8) / 0.2
-      const startX = width * 0.5
-      const endX = width * 0.7 // Position finale
-      pointerX = startX + (endX - startX) * finalProgress
+      const startX = width * 0.5 // Position de départ pour l'arrêt
+      pointerX = startX + (finalPointerX - startX) * finalProgress
     }
     
     // Dessiner le marqueur animé
@@ -1955,7 +2004,38 @@ function animatePointer() {
   animate()
 }
 
-function drawCanvasBands() {
+// Fonction pour générer une couleur unique et belle pour chaque joueur
+function getPlayerColor(playerName, index) {
+  // Palette de couleurs harmonieuses inspirée des dégradés de l'app
+  const colorPalettes = [
+    // Bleu/Violet
+    { primary: '#3B82F6', secondary: '#8B5CF6', tertiary: '#A855F7' },
+    // Vert/Emeraude  
+    { primary: '#10B981', secondary: '#059669', tertiary: '#047857' },
+    // Orange/Ambre
+    { primary: '#F59E0B', secondary: '#D97706', tertiary: '#B45309' },
+    // Rose/Rouge
+    { primary: '#EF4444', secondary: '#DC2626', tertiary: '#B91C1C' },
+    // Cyan/Turquoise
+    { primary: '#06B6D4', secondary: '#0891B2', tertiary: '#0E7490' },
+    // Violet/Magenta
+    { primary: '#8B5CF6', secondary: '#7C3AED', tertiary: '#6D28D9' },
+    // Indigo/Bleu foncé
+    { primary: '#6366F1', secondary: '#4F46E5', tertiary: '#4338CA' },
+    // Teal/Vert bleu
+    { primary: '#14B8A6', secondary: '#0D9488', tertiary: '#0F766E' },
+    // Rose/Magenta
+    { primary: '#EC4899', secondary: '#DB2777', tertiary: '#BE185D' },
+    // Jaune/Ambre
+    { primary: '#EAB308', secondary: '#CA8A04', tertiary: '#A16207' }
+  ]
+  
+  // Utiliser l'index pour sélectionner une palette, avec un peu d'aléatoire basé sur le nom
+  const paletteIndex = (index + playerName.charCodeAt(0)) % colorPalettes.length
+  return colorPalettes[paletteIndex]
+}
+
+async function drawCanvasBands() {
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
     console.log('🔍 Canvas not found or not ready:', canvas, 'for slot', currentSlotIndex.value)
@@ -1970,41 +2050,108 @@ function drawCanvasBands() {
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
   let currentX = 0
   
-  currentDrawCandidates.value.forEach((candidate, index) => {
+  for (let index = 0; index < currentDrawCandidates.value.length; index++) {
+    const candidate = currentDrawCandidates.value[index]
     const segmentWidth = (candidate.weight / totalWeight) * width
-    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
-    const color = colors[index % colors.length]
+    const colors = getPlayerColor(candidate.name, index)
     
-    // Dessiner le segment
-    ctx.fillStyle = color
+    // Créer un dégradé pour chaque segment
+    const gradient = ctx.createLinearGradient(currentX, 0, currentX + segmentWidth, 0)
+    gradient.addColorStop(0, colors.primary)
+    gradient.addColorStop(0.5, colors.secondary)
+    gradient.addColorStop(1, colors.tertiary)
+    
+    // Dessiner le segment avec dégradé
+    ctx.fillStyle = gradient
     ctx.fillRect(currentX, 0, segmentWidth, height)
     
-    // Dessiner le nom du candidat
-    ctx.fillStyle = 'white'
-    ctx.font = '12px Arial'
+    // Ajouter une bordure subtile
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(currentX, 0, segmentWidth, height)
+    
+    // Charger et dessiner l'avatar du joueur
+    try {
+      const playerId = getPlayerIdFromName(candidate.name)
+      const avatarUrl = await getPlayerAvatar(playerId, seasonId, candidate.name)
+      
+      if (avatarUrl) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+          img.src = avatarUrl
+        })
+        
+        // Dessiner l'avatar (cercle de 24px de diamètre)
+        const avatarSize = 24
+        const avatarX = currentX + segmentWidth / 2 - avatarSize / 2
+        const avatarY = 8
+        
+        // Créer un masque circulaire pour l'avatar
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
+        ctx.clip()
+        
+        // Dessiner l'image
+        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize)
+        ctx.restore()
+        
+        // Ajouter une bordure blanche autour de l'avatar
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
+        ctx.stroke()
+      }
+    } catch (error) {
+      console.log('🔍 Could not load avatar for', candidate.name, error)
+    }
+    
+    // Dessiner le nom du candidat avec ombre (sous l'avatar)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    ctx.font = 'bold 11px Arial'
     ctx.textAlign = 'center'
     ctx.fillText(
       candidate.name, 
-      currentX + segmentWidth / 2, 
-      height / 2 + 4
+      currentX + segmentWidth / 2 + 1, 
+      height / 2 + 8
     )
     
-    // Dessiner le pourcentage
-    ctx.font = '10px Arial'
+    ctx.fillStyle = 'white'
+    ctx.fillText(
+      candidate.name, 
+      currentX + segmentWidth / 2, 
+      height / 2 + 7
+    )
+    
+    // Dessiner le pourcentage avec ombre (sous le nom)
+    ctx.font = '9px Arial'
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    ctx.fillText(
+      `${candidate.practicalChance.toFixed(1)}%`, 
+      currentX + segmentWidth / 2 + 1, 
+      height / 2 + 20
+    )
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
     ctx.fillText(
       `${candidate.practicalChance.toFixed(1)}%`, 
       currentX + segmentWidth / 2, 
-      height / 2 + 16
+      height / 2 + 19
     )
     
     currentX += segmentWidth
-  })
+  }
 }
 
 function performDraw() {
-  // Effectuer le tirage réel
+  // Effectuer le tirage réel (utilise le même nombre aléatoire que l'animation)
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
-  const randomNumber = Math.random() * totalWeight
+  const randomNumber = currentRandomNumber.value
   
   let currentWeight = 0
   let selectedCandidate = null
@@ -2088,7 +2235,9 @@ function showSelectionBoom(playerName) {
 // Fonctions utilitaires pour l'UI
 function getSlotClass(slot, index) {
   if (isSimulatingSlot(index)) {
-    return 'border-yellow-400 bg-yellow-900/20'
+    return 'border-yellow-400 bg-yellow-900/20 transition-all duration-700 ease-out'
+  } else if (isSlotExpanded.value && expandedSlotIndex.value === index) {
+    return 'border-blue-400 bg-blue-900/20 transition-all duration-700 ease-out'
   } else if (slot) {
     return 'border-green-400 bg-green-900/20'
   } else {
@@ -2098,13 +2247,35 @@ function getSlotClass(slot, index) {
 
 function getSlotStyle(slot, index) {
   if (isSimulatingSlot(index)) {
-    // Le slot en cours de tirage vient au premier plan
+    // Le slot en cours de tirage s'étend sur toute la largeur disponible dans la modale
     return {
       position: 'relative',
-      zIndex: '50', // Au premier plan
-      transform: 'scale(1.1)', // Légèrement agrandi
-      boxShadow: '0 0 30px rgba(251, 191, 36, 0.5)', // Effet de halo plus fort
-      border: '2px solid #FCD34D' // Bordure dorée
+      zIndex: '100', // Au premier plan
+      gridColumn: '1 / -1', // S'étend sur toutes les colonnes de la grille
+      minHeight: '300px', // Hauteur minimale pour le canvas
+      transform: 'scale(1.02)', // Légèrement agrandi
+      boxShadow: '0 0 40px rgba(251, 191, 36, 0.6)', // Effet de halo plus fort
+      border: '3px solid #FCD34D', // Bordure dorée plus épaisse
+      backgroundColor: 'rgba(17, 24, 39, 0.95)', // Fond semi-transparent
+      backdropFilter: 'blur(10px)' // Effet de flou d'arrière-plan
+    }
+  } else if (isSlotExpanded.value && expandedSlotIndex.value === index) {
+    // Animation de zoom : le slot recouvre toute la zone équipe
+    return {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: '50',
+      gridColumn: '1 / -1',
+      minHeight: '400px',
+      transform: 'scale(1.05)',
+      boxShadow: '0 0 50px rgba(59, 130, 246, 0.8)',
+      border: '4px solid #3B82F6',
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      backdropFilter: 'blur(15px)',
+      borderRadius: '12px'
     }
   }
   return {}

@@ -76,7 +76,7 @@
             </div>
 
             <!-- Nom du joueur -->
-            <span class="text-white text-sm flex-1 min-w-0 truncate">
+            <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
               {{ player.name }}
             </span>
 
@@ -85,7 +85,7 @@
               <!-- Statut de sélection -->
               <span 
                 v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
-                class="px-2 py-1 rounded text-xs font-medium"
+                class="px-1.5 py-0.5 rounded text-xs font-medium"
                 :class="isSelectionConfirmed(selectedEvent.id) 
                   ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
                   : 'bg-blue-600/20 text-blue-400 border border-blue-600/30'"
@@ -95,14 +95,6 @@
                   : (player.gender === 'female' ? 'Sélectionnée' : player.gender === 'male' ? 'Sélectionné' : 'Sélectionné·e') }}
               </span>
               
-              <!-- Pourcentage de chance -->
-              <span 
-                v-if="getPlayerChanceForRole(player.name, role, selectedEvent.id) !== null"
-                class="px-2 py-1 rounded text-xs font-medium"
-                :class="getChanceBadgeClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-              >
-                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) }}%
-              </span>
             </div>
           </div>
 
