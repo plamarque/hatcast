@@ -1797,12 +1797,10 @@ async function startDrawVisualization(resetExisting = false, persistResults = fa
       await deleteCast(props.event.id, props.seasonId)
       console.log('✅ Selection reset completed')
       
-      // Émettre l'événement pour que le parent recharge les données
-      emit('updateCast')
+      // Ne pas émettre updateCast immédiatement pour éviter les perturbations
+      // L'émission se fera à la fin du tirage dans persistDrawResults()
       
-      // Attendre que le parent mette à jour currentSelection
-      await nextTick()
-      // Petit délai pour s'assurer que les données sont mises à jour
+      // Attendre un peu pour que la suppression soit effective
       await new Promise(resolve => setTimeout(resolve, 100))
     }
     
