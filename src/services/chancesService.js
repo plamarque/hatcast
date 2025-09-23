@@ -82,6 +82,7 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
     ...candidate,
     practicalChance: calculatePracticalChance(candidate.weightedChances, totalWeight),
     totalWeight,
+    availableCount: candidates.length, // Ajouter le nombre de candidats disponibles
     requiredCount // Ajouter requiredCount à chaque candidat pour le template
   }))
   
