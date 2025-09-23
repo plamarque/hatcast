@@ -1343,99 +1343,92 @@
         </div>
       </div>
       
-      <div class="p-6 overflow-y-auto">
-        <div v-if="Object.keys(chancesData).length === 0" class="text-center text-gray-400 py-8">
+      <div class="p-3 sm:p-6 overflow-y-auto">
+        <div v-if="Object.keys(chancesData).length === 0" class="text-center text-gray-400 py-4">
           Aucune donnée de chances disponible
         </div>
         
-        <div v-else class="space-y-6">
-          <div v-for="role in sortedRoles" :key="role" class="bg-gray-800/50 rounded-lg p-4">
-            <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-              <span>{{ ROLE_EMOJIS[role] }}</span>
-              <span>{{ ROLE_LABELS[role] }}</span>
-            </h3>
-            <p class="text-sm text-gray-400 mb-4">
-              <span class="text-red-400 font-semibold">{{ chancesData[role][0]?.requiredCount || 0 }}</span> requis, 
-              <span class="text-blue-400 font-semibold">{{ chancesData[role][0]?.availableCount || 0 }}</span> candidats
-            </p>
+        <div v-else class="space-y-4">
+          <!-- Zone collapsible d'explication -->
+          <div class="mb-4">
+            <button @click="showExplanation = !showExplanation" 
+                    class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors">
+              <span class="text-lg">💡</span>
+              <span>Comment ça marche ?</span>
+              <span class="text-xs">{{ showExplanation ? '▼' : '▶' }}</span>
+            </button>
+            
+            <div v-if="showExplanation" class="mt-2 text-xs text-gray-400">
+              <p><strong>Explications :</strong></p>
+              <ul class="ml-3 mt-1 space-y-1">
+                <li>• Les chances sont calculées en fonction du nombre de sélections passées dans ce rôle spécifique. Moins un participant a été sélectionné pour ce rôle, plus ses chances sont élevées.</li>
+                <li>• Une sélection compte si l'événement n'était pas archivé, la sélection était verrouillée ET le participant n'avait pas décliné.</li>
+              </ul>
+              <p class="mt-2"><strong>Formule :</strong> (<span class="text-blue-400 font-semibold">Places</span> × <span class="text-cyan-400 font-semibold">Malus</span>) ÷ <span class="text-green-400 font-semibold">Candidats</span> × 100% | <span class="text-cyan-400 font-semibold">Malus</span> = 1 ÷ (1 + <span class="text-purple-400 font-semibold">Sélections</span>)</p>
+            </div>
+          </div>
+          
+          <div v-for="role in sortedRoles" :key="role" class="bg-gray-800/50 rounded-lg p-3">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                <span>{{ ROLE_EMOJIS[role] }}</span>
+                <span>{{ ROLE_LABELS[role] }}</span>
+              </h3>
+              <p class="text-sm text-gray-400">
+                <span class="text-blue-400 font-semibold">{{ chancesData[role][0]?.requiredCount || 0 }}</span> places, 
+                <span class="text-green-400 font-semibold">{{ chancesData[role][0]?.availableCount || 0 }}</span> candidats
+              </p>
+            </div>
             
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-gray-600">
-                    <th class="text-center py-2 text-gray-300">Chance pratique</th>
-                    <th class="text-left py-2 text-gray-300">Joueur</th>
-                    <th class="text-center py-2 text-gray-300">Sélections passées</th>
-                    <th class="text-center py-2 text-gray-300">Coefficient</th>
-                    <th class="text-center py-2 text-gray-300">Chances pondérées</th>
+                    <th class="text-left py-2 text-gray-300">Participant</th>
+                    <th class="text-center py-2 text-gray-300">Chances</th>
+                    <th class="text-left py-2 text-gray-300">Explications</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="candidate in chancesData[role]" :key="candidate.name" class="border-b border-gray-700/50">
+                    <td class="py-2 text-white">{{ candidate.name }}</td>
                     <td class="py-2 text-center">
                       <div class="flex flex-col items-center gap-1">
                         <span class="px-2 py-1 rounded text-xs font-medium"
                               :class="candidate.practicalChance >= 20 ? 'bg-green-500/20 text-green-300' : 
                                       candidate.practicalChance >= 10 ? 'bg-yellow-500/20 text-yellow-300' : 
                                       'bg-red-500/20 text-red-300'">
-                          {{ candidate.practicalChance }}%
-                        </span>
-                        <span class="text-xs text-gray-400">
-                          soit <span class="font-semibold" :class="candidate.weight === 1 ? 'text-red-400' : 'text-orange-400'">{{ (candidate.weight * candidate.requiredCount) % 1 === 0 ? (candidate.weight * candidate.requiredCount).toFixed(0) : (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances sur <span class="text-blue-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span>
+                          {{ Math.round(candidate.practicalChance) }}%
                         </span>
                       </div>
                     </td>
-                    <td class="py-2 text-white">{{ candidate.name }}</td>
-                    <td class="py-2 text-center">
-                      <span class="text-yellow-400 font-semibold">{{ candidate.pastSelections }}</span>
-                    </td>
-                    <td class="py-2 text-center">
-                      <div class="flex flex-col items-center gap-1">
-                        <span class="text-purple-400 font-semibold cursor-help" 
-                              :title="`Coefficient = 1 / (1 + ${candidate.pastSelections}) = 1 / (1 + ${candidate.pastSelections}) = ${candidate.weight.toFixed(2)}`">
-                          {{ candidate.weight % 1 === 0 ? candidate.weight.toFixed(0) : candidate.weight.toFixed(2) }}
-                        </span>
-                        <span class="text-xs text-gray-400">
-                          (1/(1+<span class="text-yellow-400 font-semibold">{{ candidate.pastSelections }}</span>))
-                        </span>
-                      </div>
-                    </td>
-                    <td class="py-2 text-center">
-                      <div class="flex flex-col items-center gap-1">
-                        <span class="font-semibold cursor-help"
-                              :class="candidate.weight === 1 ? 'text-red-400' : 'text-orange-400'"
-                              :title="`Chances = Coefficient × Requis = ${candidate.weight.toFixed(2)} × ${candidate.requiredCount} = ${(candidate.weight * candidate.requiredCount).toFixed(1)}`">
-                          {{ (candidate.weight * candidate.requiredCount) % 1 === 0 ? (candidate.weight * candidate.requiredCount).toFixed(0) : (candidate.weight * candidate.requiredCount).toFixed(1) }}
-                        </span>
-                        <span class="text-xs text-gray-400">
-                          (<span class="text-purple-400 font-semibold">{{ candidate.weight % 1 === 0 ? candidate.weight.toFixed(0) : candidate.weight.toFixed(2) }}</span> × <span class="text-red-400 font-semibold">{{ candidate.requiredCount }}</span>)
-                        </span>
-                      </div>
+                    <td class="py-2 text-gray-400 text-xs">
+                      <span v-if="candidate.pastSelections === 0" class="text-gray-400">
+                        <span class="text-blue-400 font-semibold">{{ (candidate.weight * candidate.requiredCount) % 1 === 0 ? (candidate.weight * candidate.requiredCount).toFixed(0) : (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> place{{ (candidate.weight * candidate.requiredCount) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span> candidats = <span class="font-semibold" :class="candidate.practicalChance >= 20 ? 'text-emerald-400' : candidate.practicalChance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance / 100).toFixed(2) }}</span>
+                      </span>
+                      <span v-else class="text-gray-400">
+                        <div class="flex flex-col gap-1">
+                          <div>
+                            <span class="text-orange-400 font-semibold">{{ (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances / <span class="text-green-400 font-semibold">{{ candidate.totalWeight.toFixed(0) }}</span> candidats = <span class="font-semibold" :class="candidate.practicalChance >= 20 ? 'text-emerald-400' : candidate.practicalChance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (candidate.practicalChance / 100).toFixed(2) }}</span>
+                          </div>
+                          <div class="text-xs text-gray-500">
+                            Malus: 1 / (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections }}</span> sélection{{ candidate.pastSelections > 1 ? 's' : '' }}) = <span class="text-cyan-400 font-semibold">{{ candidate.weight.toFixed(2) }}</span>
+                          </div>
+                          <div class="text-xs text-gray-500">
+                            <span class="text-blue-400 font-semibold">{{ candidate.requiredCount }}</span> place{{ candidate.requiredCount > 1 ? 's' : '' }} × <span class="text-cyan-400 font-semibold">{{ candidate.weight.toFixed(2) }}</span> = <span class="text-orange-400 font-semibold">{{ (candidate.weight * candidate.requiredCount).toFixed(1) }}</span> chances
+                          </div>
+                        </div>
+                      </span>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            
-            <div class="mt-3 text-xs text-gray-400">
-              <p><strong>Légende :</strong> Les chances sont calculées en fonction du nombre de sélections passées <strong>dans ce rôle spécifique</strong>. 
-              Moins un participant a été sélectionné pour ce rôle, plus ses chances sont élevées.</p>
-              <p><strong>Règles de comptage :</strong> Une sélection compte si l'événement n'était pas archivé, 
-              la sélection était verrouillée ET le participant n'avait pas décliné.</p>
-              <p><strong>Formule :</strong> Coefficient = 1 / (1 + sélections passées dans ce rôle) | Chances = Coefficient × Nombre de postes | Total = Somme de tous les coefficients</p>
-              <div class="mt-2 flex flex-wrap gap-3 text-xs">
-                <span><span class="text-red-400 font-semibold">●</span> Chances maximales (coefficient = 1)</span>
-                <span><span class="text-orange-400 font-semibold">●</span> Chances réduites (coefficient < 1)</span>
-                <span><span class="text-yellow-400 font-semibold">●</span> Sélections passées</span>
-                <span><span class="text-purple-400 font-semibold">●</span> Coefficient</span>
-                <span class="text-gray-400">💡 Survoler pour voir le calcul détaillé</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
       
-      <div class="p-6 border-t border-white/10 flex justify-end">
+      <div class="p-3 sm:p-6 border-t border-white/10 flex justify-end">
         <button @click="closeChancesModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
           Fermer
         </button>
@@ -4280,6 +4273,7 @@ const editingEventData = computed(() => {
 const showRoleDetails = ref(false)
 const showRoleChances = ref(false)
 const showChancesModal = ref(false)
+const showExplanation = ref(false)
 const chancesData = ref({})
 
 // Trier les rôles par ordre de priorité dans la modale des chances
