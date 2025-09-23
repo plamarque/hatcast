@@ -1762,15 +1762,26 @@ function prepareSimulationData() {
   currentSlotIndex.value = firstEmptySlot.index
   currentDrawRole.value = firstEmptySlot.role || 'player'
   
-  // Calculer les candidats disponibles pour ce rôle
-  const candidates = props.allSeasonPlayers.filter(player => {
-    return props.isAvailableForRole(player.name, currentDrawRole.value, event.id)
+  // Récupérer les joueurs déjà sélectionnés (depuis slots.value)
+  const alreadySelectedPlayers = slots.value
+    .filter(player => player) // Seulement les slots avec un joueur (non null/undefined)
+    .map(player => player) // Récupérer les noms des joueurs
+  
+  console.log('🔍 Already selected players:', alreadySelectedPlayers)
+  
+  // Filtrer les joueurs déjà sélectionnés de la liste des candidats
+  const availablePlayers = props.allSeasonPlayers.filter(player => {
+    // Le joueur doit être disponible pour le rôle ET ne pas être déjà sélectionné
+    return props.isAvailableForRole(player.name, currentDrawRole.value, event.id) &&
+           !alreadySelectedPlayers.includes(player.name)
   })
   
-  // Calculer les poids avec le service
+  console.log('🔍 Available players for role', currentDrawRole.value, ':', availablePlayers.map(p => p.name))
+  
+  // Calculer les poids avec le service en utilisant la liste filtrée
   const allRoleChances = calculateAllRoleChances(
     event, 
-    props.allSeasonPlayers, 
+    availablePlayers, // Utiliser la liste filtrée
     props.availability, 
     props.countSelections || (() => 0),
     props.isAvailableForRole
@@ -2212,8 +2223,13 @@ function performDraw() {
           slot.playerId = selectedCandidate.name // Pour la compatibilité
           slot.isEmpty = false
         }
+        
+        // Mettre à jour aussi slots.value pour la cohérence
+        if (slots.value && slots.value[slotIndex] !== undefined) {
+          slots.value[slotIndex] = selectedCandidate.name
+        }
       }
-      
+    
       // Retirer le candidat de la liste
       currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
       currentDrawSelected.value++
