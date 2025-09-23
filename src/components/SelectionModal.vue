@@ -393,7 +393,7 @@ import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
-import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
+import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
 import { calculateAllRoleChances, formatChancePercentage } from '../services/chancesService.js'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
@@ -555,8 +555,8 @@ function generateSlotsForMultiRoleEvent() {
   const slots = []
   let slotIndex = 0
   
-  // Parcourir les rôles dans l'ordre d'affichage
-  for (const role of ROLE_DISPLAY_ORDER) {
+  // Parcourir les rôles dans l'ordre de priorité (rôles critiques en premier)
+  for (const role of ROLE_PRIORITY_ORDER) {
     const count = roles[role] || 0
     if (count > 0) {
       // Récupérer les joueurs déjà composés pour ce rôle
