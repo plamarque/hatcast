@@ -1980,6 +1980,9 @@ async function persistSimulationResults() {
     
     console.log('✅ Simulation results persisted successfully')
     
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+    
     // Fermer la modale
     emit('close')
     
@@ -2320,8 +2323,8 @@ function performDraw() {
         const slot = teamSlots.value.find(s => s.index === slotIndex)
         if (slot) {
           slot.player = selectedCandidate.name
-          // Utiliser directement l'ID du candidat (maintenant disponible dans chancesService)
-          slot.playerId = selectedCandidate.id || selectedCandidate.name // Fallback sur le nom si pas d'ID
+          // Utiliser directement l'ID du candidat
+          slot.playerId = selectedCandidate.id 
           slot.isEmpty = false
         }
         
