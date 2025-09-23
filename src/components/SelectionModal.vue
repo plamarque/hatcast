@@ -610,6 +610,7 @@ function generateSlotsForMultiRoleEvent() {
           roleEmoji: ROLE_EMOJIS[role],
           roleLabel: ROLE_LABELS_SINGULAR[role],
           isEmpty: !playerName,
+          isSkipped: false, // Add this property to track skipped slots
           isLegacy: false
         })
       }
@@ -1967,6 +1968,11 @@ function abortDraw() {
   currentDrawSelected.value = 0
   currentSlotIndex.value = 0
   canvasRetryCount.value = 0
+  
+  // Reset all slots' isSkipped flag
+  teamSlots.value.forEach(slot => {
+    slot.isSkipped = false
+  })
 }
 
 function finishSimulation() {
@@ -2051,7 +2057,7 @@ async function persistDrawResults() {
 function drawNextSlot() {
   if (!isSimulating.value) return
   
-  const emptySlots = teamSlots.value.filter(slot => !slot.player)
+  const emptySlots = teamSlots.value.filter(slot => !slot.player && !slot.isSkipped)
   console.log('🎯 Drawing next slot, empty slots:', emptySlots.length)
   
   if (emptySlots.length === 0) {
@@ -2100,12 +2106,13 @@ function drawNextSlot() {
       animateDraw()
     } else {
       console.log('❌ No candidates for current slot, skipping to next slot')
-      // Marquer le slot comme vide (sans joueur) car aucun candidat disponible
+      // Marquer le slot comme sauté car aucun candidat disponible
       const slot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
       if (slot) {
         slot.player = null
         slot.playerId = null
         slot.isEmpty = true
+        slot.isSkipped = true // Mark as skipped to exclude from future iterations
       }
       // Passer au slot suivant
       setTimeout(() => {
