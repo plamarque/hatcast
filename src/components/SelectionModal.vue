@@ -393,7 +393,7 @@ import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
-import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
+import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
 import { calculateAllRoleChances, formatChancePercentage } from '../services/chancesService.js'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
@@ -2271,6 +2271,15 @@ function showSelectionBoom(playerName, roleEmoji = '🎉') {
   ctx.fillStyle = '#10B981'
   ctx.fillRect(0, 0, width, height)
   
+  // Récupérer le rôle et le genre du joueur pour l'accord
+  const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+  const role = currentSlot?.role || 'player'
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  const gender = player?.gender || 'neutral'
+  
+  // Obtenir le label du rôle avec l'accord de genre
+  const roleLabel = ROLE_LABELS_BY_GENDER[gender]?.[role] || ROLE_LABELS_SINGULAR[role] || role
+  
   // Texte de sélection
   ctx.fillStyle = 'white'
   ctx.font = 'bold 24px Arial'
@@ -2278,7 +2287,7 @@ function showSelectionBoom(playerName, roleEmoji = '🎉') {
   ctx.fillText(playerName, width / 2, height / 2 - 20)
   
   ctx.font = 'bold 18px Arial'
-  ctx.fillText(`${roleEmoji} Sélectionné !`, width / 2, height / 2 + 10)
+  ctx.fillText(`${roleEmoji} ${roleLabel}`, width / 2, height / 2 + 10)
   
   // Effet de particules (simplifié)
   for (let i = 0; i < 20; i++) {
