@@ -1848,7 +1848,7 @@ function prepareDrawData() {
   }
   
   const firstEmptySlot = emptySlots[0]
-  currentSlotIndex.value = firstEmptySlot.index
+  // currentSlotIndex.value is already set in drawNextSlot(), don't override it
   // currentDrawRole.value is already set in drawNextSlot(), don't override it
   
   // Récupérer les joueurs déjà sélectionnés (depuis teamSlots.value - source de vérité)
@@ -2059,6 +2059,12 @@ function drawNextSlot() {
   
   const emptySlots = teamSlots.value.filter(slot => !slot.player && !slot.isSkipped)
   console.log('🎯 Drawing next slot, empty slots:', emptySlots.length)
+  console.log('🔍 Debug slots state:', teamSlots.value.map(slot => ({
+    index: slot.index,
+    role: slot.role,
+    player: slot.player,
+    isSkipped: slot.isSkipped
+  })))
   
   if (emptySlots.length === 0) {
     simulationComplete.value = true
@@ -2113,6 +2119,11 @@ function drawNextSlot() {
         slot.playerId = null
         slot.isEmpty = true
         slot.isSkipped = true // Mark as skipped to exclude from future iterations
+        console.log('✅ Slot marked as skipped:', {
+          index: slot.index,
+          role: slot.role,
+          isSkipped: slot.isSkipped
+        })
       }
       // Passer au slot suivant
       setTimeout(() => {
