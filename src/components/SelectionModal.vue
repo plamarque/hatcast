@@ -1283,6 +1283,11 @@ function copyToClipboard() {
 }
 
 function handleSelection() {
+  console.log('🎯 handleSelection called:', {
+    hasSelection: hasSelection.value,
+    currentSelection: props.currentSelection,
+    isSelectionComplete: isSelectionComplete.value
+  })
   showReselectConfirmation()
 }
 
@@ -1748,7 +1753,8 @@ async function removeFromDeclined(playerName, role) {
 
 // Fonctions pour la modale de confirmation de reselection
 function showReselectConfirmation() {
-  hasExistingSelection.value = props.currentSelection && props.currentSelection.length > 0
+  // Utiliser la même logique que hasSelection computed
+  hasExistingSelection.value = hasSelection.value
   showConfirmReselect.value = true
 }
 
@@ -1758,6 +1764,7 @@ function cancelReselect() {
 }
 
 function confirmReselect() {
+  console.log('✅ confirmReselect called - starting draw visualization with reset and persist')
   showConfirmReselect.value = false
   hasExistingSelection.value = false
   // Démarrer la visualisation du tirage avec reset et persistance
