@@ -2219,7 +2219,9 @@ function performDraw() {
   
   if (selectedCandidate) {
     // Effet "boom" - afficher le nom du joueur sélectionné
-    showSelectionBoom(selectedCandidate.name)
+    const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+    const roleEmoji = currentSlot?.roleEmoji || '🎉'
+    showSelectionBoom(selectedCandidate.name, roleEmoji)
     
     // Assigner le joueur au slot après l'effet
     setTimeout(() => {
@@ -2250,7 +2252,7 @@ function performDraw() {
   }
 }
 
-function showSelectionBoom(playerName) {
+function showSelectionBoom(playerName, roleEmoji = '🎉') {
   // Créer un effet visuel de sélection
   const canvas = canvasRefs.value[currentSlotIndex.value]
   if (!canvas || !canvas.getContext) {
@@ -2276,7 +2278,7 @@ function showSelectionBoom(playerName) {
   ctx.fillText(playerName, width / 2, height / 2 - 20)
   
   ctx.font = 'bold 18px Arial'
-  ctx.fillText('🎉 Sélectionné !', width / 2, height / 2 + 10)
+  ctx.fillText(`${roleEmoji} Sélectionné !`, width / 2, height / 2 + 10)
   
   // Effet de particules (simplifié)
   for (let i = 0; i < 20; i++) {
