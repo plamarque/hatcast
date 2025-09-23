@@ -176,3 +176,32 @@ export function countPlayersForRole(players, role, eventId, playerAvailability) 
     return isAvailableForRole(playerName, role, eventId, playerAvailability)
   }).length
 }
+
+/**
+ * Compte le nombre total de joueurs disponibles pour un événement
+ * @param {Object} event - Données de l'événement
+ * @param {Array} players - Liste des joueurs
+ * @param {Object} playerAvailability - Données de disponibilité des joueurs
+ * @returns {number} - Nombre total de joueurs disponibles
+ */
+export function countAvailablePlayers(event, players, playerAvailability) {
+  if (!event) return 0;
+  
+  // Pour les événements multi-rôles, compter les joueurs disponibles pour au moins un rôle requis
+  if (event.roles && typeof event.roles === 'object') {
+    return players.filter(player => {
+      // Vérifier si le joueur est disponible pour au moins un rôle requis
+      for (const role of Object.keys(event.roles)) {
+        if (event.roles[role] > 0 && isAvailableForRole(player.name, role, event.id, playerAvailability)) {
+          return true;
+        }
+      }
+      return false;
+    }).length;
+  }
+  
+  // Pour les anciens événements, utiliser la logique existante
+  return players.filter(player => 
+    isAvailableForRole(player.name, 'player', event.id, playerAvailability)
+  ).length;
+}

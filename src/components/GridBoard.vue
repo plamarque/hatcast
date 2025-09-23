@@ -1556,7 +1556,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
-import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService } from '../services/playerAvailabilityService.js'
+import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 import { useRouter, useRoute } from 'vue-router'
 import firestoreService from '../services/firestoreService.js'
@@ -6290,9 +6290,11 @@ function countAvailability(playerName) {
 
 function countAvailablePlayers(eventId) {
   if (!eventId) return 0;
-  return players.value.filter(player => 
-    isAvailableForPlayerRole(player.name, eventId)
-  ).length;
+  
+  const event = events.value.find(e => e.id === eventId);
+  if (!event) return 0;
+  
+  return countAvailablePlayersFromService(event, players.value, availability.value);
 }
 
 function countSelectedPlayers(eventId) {
