@@ -520,6 +520,7 @@ const isSimulating = ref(false)
 const simulationComplete = ref(false)
 const currentSlotIndex = ref(0)
 const canvasRefs = ref([])
+const canvasRetryCount = ref(0)
 const canvasWidth = 400
 const canvasHeight = 80
 const currentRandomNumber = ref(0) // Pour partager le même nombre aléatoire entre animation et tirage
@@ -1924,6 +1925,7 @@ function startDraw(persistResults = false) {
   console.log('🎬 Starting draw...', { persistResults })
   isSimulating.value = true
   simulationComplete.value = false
+  canvasRetryCount.value = 0
   prepareDrawData()
   
   // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
@@ -1960,6 +1962,7 @@ function abortDraw() {
   currentDrawCandidates.value = []
   currentDrawSelected.value = 0
   currentSlotIndex.value = 0
+  canvasRetryCount.value = 0
 }
 
 function finishSimulation() {
@@ -2064,6 +2067,30 @@ function drawNextSlot() {
     
     if (currentDrawCandidates.value.length > 0) {
       console.log('🎯 Starting animation with', currentDrawCandidates.value.length, 'candidates')
+      
+      // Vérifier que le canvas est disponible avant de lancer l'animation
+      const canvas = canvasRefs.value[currentSlotIndex.value]
+      if (!canvas || !canvas.getContext) {
+        canvasRetryCount.value++
+        console.log('🔍 Canvas not ready yet, waiting... (attempt', canvasRetryCount.value, ')')
+        
+        // Limiter le nombre de tentatives pour éviter les boucles infinies
+        if (canvasRetryCount.value > 10) {
+          console.log('❌ Too many canvas retry attempts, aborting draw')
+          abortDraw()
+          return
+        }
+        
+        // Attendre un peu plus et réessayer
+        setTimeout(() => {
+          drawNextSlot()
+        }, 200)
+        return
+      }
+      
+      // Reset du compteur si le canvas est trouvé
+      canvasRetryCount.value = 0
+      
       // Lancer l'animation de tirage
       animateDraw()
     } else {
