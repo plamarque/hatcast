@@ -280,7 +280,7 @@
       </div>
       <!-- Footer sticky -->
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Bouton Composition Auto (visible seulement si organisateur n'a pas encore validé ET permissions d'édition) -->
+        <!-- Bouton Composition Auto (réservé aux admins - fonction privilégiée) -->
         <button 
           v-if="!isSelectionConfirmedByOrganizer && canEditEvents"
           @click="handleSelection" 
@@ -291,9 +291,9 @@
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <!-- Bouton Simuler Compo / Stop (visible seulement si organisateur n'a pas encore validé ET permissions d'édition) -->
+        <!-- Bouton Simuler Compo / Stop (visible pour tous les utilisateurs - fonction éducative) -->
         <button 
-          v-if="!isSelectionConfirmedByOrganizer && canEditEvents"
+          v-if="!isSelectionConfirmedByOrganizer"
           @click="isSimulating ? stopSimulation() : handleSimulateComposition()" 
           :disabled="!isSimulating && availableCount === 0" 
           :class="isSimulating ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700'"
