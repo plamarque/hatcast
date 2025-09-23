@@ -346,6 +346,17 @@
     </div>
   </div>
   </Teleport>
+
+  <!-- Visualisation du tirage -->
+  <DrawVisualization
+    :show="showDrawVisualization"
+    :role="currentDrawRole"
+    :candidates="currentDrawCandidates"
+    :total-count="currentDrawCount"
+    :selected-count="currentDrawSelected"
+    :on-draw="handleDrawStep"
+    @complete="handleDrawComplete"
+  />
 </template>
 
 <script setup>
@@ -354,6 +365,7 @@ import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import DrawVisualization from './DrawVisualization.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
@@ -445,6 +457,13 @@ const showHowItWorks = ref(false)
 // Variables pour la modale de confirmation de reselection
 const showConfirmReselect = ref(false)
 const hasExistingSelection = ref(false)
+
+// Variables pour la visualisation du tirage
+const showDrawVisualization = ref(false)
+const currentDrawRole = ref('')
+const currentDrawCandidates = ref([])
+const currentDrawCount = ref(0)
+const currentDrawSelected = ref(0)
 
 // --- Manual slots state ---
 const requiredCount = computed(() => props.event?.playerCount || 6)
@@ -1670,8 +1689,24 @@ function cancelReselect() {
 function confirmReselect() {
   showConfirmReselect.value = false
   hasExistingSelection.value = false
-  // Émettre l'événement vers le parent pour déclencher la composition automatique
+  // Démarrer la visualisation du tirage
+  startDrawVisualization()
+}
+
+// Fonctions pour la visualisation du tirage
+function startDrawVisualization() {
+  // Pour l'instant, on émet directement l'événement
+  // TODO: Implémenter la visualisation étape par étape
   emit('confirm-reselect')
+}
+
+function handleDrawStep() {
+  // TODO: Implémenter la logique de tirage étape par étape
+}
+
+function handleDrawComplete() {
+  showDrawVisualization.value = false
+  // TODO: Finaliser le tirage
 }
 
 // Exposer la fonction pour le parent
