@@ -532,8 +532,20 @@
         <!-- Layout horizontal compact -->
         <div class="flex items-start gap-4 md:gap-6">
           <!-- Icône illustrative du type d'événement -->
-          <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex-shrink-0 flex items-center justify-center">
-            <span class="text-xl md:text-2xl">{{ getEventTypeIcon(selectedEvent) }}</span>
+          <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex-shrink-0 flex items-center justify-center">
+              <span class="text-xl md:text-2xl">{{ getEventTypeIcon(selectedEvent) }}</span>
+            </div>
+            
+            <!-- Statut de l'événement sous l'avatar -->
+            <SelectionStatusBadge
+              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
+              :status="eventStatus?.type"
+              :show="true"
+              :clickable="false"
+              :reason="eventWarningText"
+              class="text-xs"
+            />
           </div>
           
                      <!-- Informations principales -->
@@ -546,16 +558,6 @@
                >
                  {{ selectedEvent?.title }}
                </h2>
-               
-               <!-- Statut de l'événement -->
-               <SelectionStatusBadge
-                 v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
-                 :status="eventStatus?.type"
-                 :show="true"
-                 :clickable="false"
-                 :reason="eventWarningText"
-                 class="text-sm"
-               />
                
                <!-- Dropdown des actions -->
                <div class="relative">
@@ -570,17 +572,9 @@
                  </button>
                  
                  <!-- Menu dropdown -->
-                 <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[160px]">
-                   <!-- Action Modifier -->
-                   <button
-                     v-if="canEditEvents"
-                     @click="startEditingFromDetails; showEventActionsDropdown = false"
-                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                   >
-                     <span>✏️</span>
-                     <span>Modifier</span>
-                   </button>
+                 <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
                    
+                   <!-- Actions utilisateur -->
                    <!-- Action Partager -->
                    <button
                      @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
@@ -590,28 +584,54 @@
                      <span>Partager</span>
                    </button>
                    
-                   <!-- Action Supprimer -->
-                   <button
-                     v-if="canEditEvents"
-                     @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
-                     class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
-                   >
-                     <span>🗑️</span>
-                     <span>Supprimer</span>
-                   </button>
-                   
-                   <!-- Séparateur -->
-                   <div class="border-t border-gray-600 my-1"></div>
-                   
                    <!-- Action Notifications -->
                    <button
                      @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
                      class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
                      :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
+                     :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
                    >
                      <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
-                     <span>{{ isEventMonitoredState ? 'Désactiver notifications' : 'Activer notifications' }}</span>
+                     <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
                    </button>
+                   
+                   <!-- Actions admin (avec PIN) -->
+                   <template v-if="canEditEvents">
+                     <!-- Séparateur -->
+                     <div class="border-t border-gray-600 my-1"></div>
+                     
+                     <!-- En-tête admin -->
+                     <div class="px-3 py-1 text-xs text-gray-400 font-medium">
+                       Actions administrateur
+                     </div>
+                     
+                     <!-- Action Modifier -->
+                     <button
+                       @click="startEditingFromDetails; showEventActionsDropdown = false"
+                       class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                     >
+                       <span>✏️</span>
+                       <span>Modifier</span>
+                     </button>
+                     
+                     <!-- Action Archiver -->
+                     <button
+                       @click="toggleEventArchived(); showEventActionsDropdown = false"
+                       class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                     >
+                       <span>📁</span>
+                       <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+                     </button>
+                     
+                     <!-- Action Supprimer -->
+                     <button
+                       @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
+                       class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
+                     >
+                       <span>🗑️</span>
+                       <span>Supprimer</span>
+                     </button>
+                   </template>
                  </div>
                </div>
              </div>
@@ -771,7 +791,7 @@
                   </div>
                 </div>
                 <button
-                  @click="openAvailabilityModalFromEventDetails"
+                  @click="openConfirmationModalFromEventDetails"
                   class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                 >
                   Modifier
@@ -828,7 +848,14 @@
                   DEBUG: currentUser={{ !!currentUser }}, currentUserPlayer={{ !!currentUserPlayer }}
                   <br>Email: {{ currentUser?.email }}
                   <br>Joueurs chargés: {{ allSeasonPlayers.length }}
+                  <br>Joueurs avec email: {{ allSeasonPlayers.filter(p => p.email).length }}
                   <br>
+                  <details class="mt-2">
+                    <summary class="cursor-pointer text-blue-300">Voir les emails des joueurs</summary>
+                    <div class="mt-1 text-xs">
+                      {{ allSeasonPlayers.filter(p => p.email).map(p => `${p.name}: ${p.email}`).join(', ') }}
+                    </div>
+                  </details>
                   <button 
                     @click="currentUserPlayer = getCurrentUserPlayer()"
                     class="mt-2 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs hover:bg-blue-500/30"
@@ -9935,6 +9962,26 @@ async function handleConfirmationPending(data) {
 function openConfirmationModal(data) {
   confirmationModalData.value = { ...data }
   showConfirmationModal.value = true
+}
+
+// Fonction pour ouvrir la modal de confirmation depuis l'onglet "Ma Dispo"
+function openConfirmationModalFromEventDetails() {
+  if (!selectedEvent.value || !currentUserPlayer.value) {
+    console.warn('Impossible d\'ouvrir la modale de confirmation: événement ou joueur manquant')
+    return
+  }
+  
+  const data = {
+    playerName: currentUserPlayer.value.name,
+    playerId: currentUserPlayer.value.id,
+    eventId: selectedEvent.value.id,
+    eventTitle: selectedEvent.value.title,
+    eventDate: selectedEvent.value.date,
+    seasonId: seasonId.value,
+    seasonSlug: props.slug
+  }
+  
+  openConfirmationModal(data)
 }
 
 // Fonction pour gérer la demande de modification depuis la modale en lecture seule
