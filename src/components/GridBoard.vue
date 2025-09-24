@@ -656,6 +656,43 @@
 
         <!-- Content scrollable -->
   <div class="px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto flex-1 min-h-0">
+        <!-- Section Mes Dispos (si showAvailabilityInEventDetails est true) -->
+        <div v-if="showAvailabilityInEventDetails && currentUserPlayer" class="bg-gray-800/50 rounded-lg p-4 border border-white/10">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <span>📅</span>
+            <span>Mes Dispos</span>
+          </h3>
+          
+          <!-- Affichage de la disponibilité actuelle -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
+              <AvailabilityCell
+                :player-name="currentUserPlayer.name"
+                :player-id="currentUserPlayer.id"
+                :player-gender="currentUserPlayer.gender"
+                :event-id="selectedEvent?.id"
+                :event-title="selectedEvent?.title"
+                :event-date="selectedEvent?.date"
+                :current-availability="getCurrentUserAvailabilityForEvent()"
+                :is-read-only="false"
+                :season-id="seasonId"
+                :chance-percent="null"
+                :is-protected="false"
+                :event-roles="selectedEvent?.roles || {}"
+                @availability-changed="handleAvailabilityChanged"
+                @show-availability-modal="openAvailabilityModalFromEventDetails"
+              />
+            </div>
+            <button
+              @click="openAvailabilityModalFromEventDetails"
+              class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+            >
+              Modifier
+            </button>
+          </div>
+        </div>
+
         <!-- Section Équipe à Constituer -->
         <div class="mb-4 md:mb-6">
           <div class="flex items-center justify-between mb-3">
@@ -1144,8 +1181,12 @@
     :players="enrichedAllSeasonPlayers"
     :sending="isSendingNotifications"
     :availability-by-player="getPlayerAvailabilityForEvent(eventToAnnounce?.id)"
+    :show-availability="showAvailabilityInEventModal"
+    :current-user-player="currentUserPlayer"
+    :event-roles="getEventRoles(eventToAnnounce?.id)"
     @close="closeEventAnnounceModal"
     @send-notifications="handleSendNotifications"
+    @availability-changed="handleAvailabilityChangedFromEventModal"
   />
 
 
@@ -2568,6 +2609,9 @@ const showEventAnnounceModal = ref(false)
 const eventToAnnounce = ref(null)
 const showAnnouncePrompt = ref(false)
 const announcePromptEvent = ref(null)
+const showAvailabilityInEventModal = ref(false)
+const currentUserPlayer = ref(null)
+const showAvailabilityInEventDetails = ref(false)
 const showAccountMenu = ref(false)
 const showAccountAuth = ref(false)
 const showAccountLogin = ref(false)
@@ -3151,10 +3195,11 @@ onMounted(async () => {
     // Ouvrir automatiquement les détails d'événement si demandé
     if (urlParams.get('modal') === 'event_details' && urlParams.get('event')) {
       const eventId = urlParams.get('event')
+      const showAvailability = urlParams.get('showAvailability') === 'true'
       const targetEvent = events.value.find(e => e.id === eventId)
       if (targetEvent) {
         nextTick(() => {
-          showEventDetails(targetEvent)
+          showEventDetails(targetEvent, showAvailability)
         })
       }
     }
@@ -7415,7 +7460,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event) {
+async function showEventDetails(event, showAvailability = false) {
   // Démarrer la mesure de performance pour l'écran détail événement
   performanceService.start('event_detail_loading', {
     eventId: event.id,
@@ -7426,9 +7471,15 @@ async function showEventDetails(event) {
   selectedEvent.value = event
   editingDescription.value = event.description || ''
   editingArchived.value = !!event.archived
+  showAvailabilityInEventDetails.value = showAvailability
+
+  // Si showAvailability est true, récupérer le joueur de l'utilisateur connecté
+  if (showAvailability) {
+    currentUserPlayer.value = getCurrentUserPlayer()
+  }
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation
-  const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details`
+  const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details${showAvailability ? '&showAvailability=true' : ''}`
   router.push(newUrl)
 
   // 2. Tracker l'état de navigation (pas l'interaction modale)
@@ -7534,6 +7585,10 @@ async function handleAddToCalendar(type, event = null) {
 function closeEventDetailsAndUpdateUrl() {
   // Fermer la popup
   closeEventDetails();
+  
+  // Nettoyer les variables de disponibilité
+  showAvailabilityInEventDetails.value = false
+  currentUserPlayer.value = null
   
   // Forcer la mise à jour de l'URL pour revenir à la vue d'ensemble de la saison
   const baseUrl = `/season/${props.slug}`
@@ -8104,7 +8159,7 @@ async function buildProtectedPlayersWithEmails() {
 }
 
 // Fonctions pour le modal d'annonce d'événement
-function openEventAnnounceModal(event) {
+function openEventAnnounceModal(event, showAvailability = false) {
   if (event?.archived) {
     showSuccessMessage.value = true
     successMessage.value = 'Impossible d\'annoncer un événement inactif'
@@ -8116,12 +8171,22 @@ function openEventAnnounceModal(event) {
   closeAnnouncePrompt()
   
   eventToAnnounce.value = event
+  showAvailabilityInEventModal.value = showAvailability
+  
+  // Si showAvailability est true, récupérer le joueur de l'utilisateur connecté
+  if (showAvailability) {
+    currentUserPlayer.value = getCurrentUserPlayer()
+  }
+  
   showEventAnnounceModal.value = true
   // Mémoriser dans l'URL pour restauration après refresh
   try {
     const params = new URLSearchParams(window.location.search)
     params.set('modal', 'announce')
     params.set('event', event?.id || '')
+    if (showAvailability) {
+      params.set('showAvailability', 'true')
+    }
     history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
   } catch {}
 }
@@ -8129,10 +8194,14 @@ function openEventAnnounceModal(event) {
 function closeEventAnnounceModal() {
   showEventAnnounceModal.value = false
   eventToAnnounce.value = null
+  showAvailabilityInEventModal.value = false
+  currentUserPlayer.value = null
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('modal') === 'announce') {
-      params.delete('modal'); params.delete('event')
+      params.delete('modal')
+      params.delete('event')
+      params.delete('showAvailability')
       history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
     }
   } catch {}
@@ -8141,6 +8210,71 @@ function closeEventAnnounceModal() {
 function closeAnnouncePrompt() {
   showAnnouncePrompt.value = false
   announcePromptEvent.value = null
+}
+
+// Fonction pour récupérer le joueur de l'utilisateur connecté
+function getCurrentUserPlayer() {
+  const user = currentUser.value
+  if (!user?.email) return null
+  
+  // Chercher le joueur correspondant à l'email de l'utilisateur
+  return allSeasonPlayers.value.find(player => player.email === user.email) || null
+}
+
+// Fonction pour récupérer les rôles d'un événement
+function getEventRoles(eventId) {
+  if (!eventId) return {}
+  const event = events.value.find(e => e.id === eventId)
+  return event?.roles || {}
+}
+
+// Fonction pour gérer les changements de disponibilité depuis la modale d'événement
+function handleAvailabilityChangedFromEventModal(data) {
+  // Déléguer à la fonction existante
+  handleAvailabilityChanged(data)
+}
+
+// Fonction pour récupérer la disponibilité de l'utilisateur connecté pour l'événement courant
+function getCurrentUserAvailabilityForEvent() {
+  if (!currentUserPlayer.value || !selectedEvent.value) {
+    return { available: null, roles: [], comment: null }
+  }
+  
+  const playerName = currentUserPlayer.value.name
+  const eventId = selectedEvent.value.id
+  
+  // Récupérer depuis availability
+  const availability = getAvailabilityData(playerName, eventId)
+  if (availability === undefined) {
+    return { available: null, roles: [], comment: null }
+  }
+  
+  return {
+    available: availability,
+    roles: [], // TODO: récupérer les rôles depuis les données
+    comment: null // TODO: récupérer le commentaire depuis les données
+  }
+}
+
+// Fonction pour ouvrir la modale de disponibilité depuis les détails d'événement
+function openAvailabilityModalFromEventDetails() {
+  if (!currentUserPlayer.value || !selectedEvent.value) return
+  
+  availabilityModalData.value = {
+    playerName: currentUserPlayer.value.name,
+    playerId: currentUserPlayer.value.id,
+    playerGender: currentUserPlayer.value.gender || 'non-specified',
+    eventId: selectedEvent.value.id,
+    eventTitle: selectedEvent.value.title,
+    eventDate: selectedEvent.value.date,
+    availabilityData: getCurrentUserAvailabilityForEvent(),
+    isReadOnly: false,
+    chancePercent: null,
+    isProtected: false,
+    eventRoles: selectedEvent.value.roles || {}
+  }
+  
+  showAvailabilityModal.value = true
 }
 
 const isSendingNotifications = ref(false)
@@ -8823,10 +8957,11 @@ watch(events, (list) => {
     const params = new URLSearchParams(window.location.search)
     const modal = params.get('modal')
     const eventId = params.get('event')
+    const showAvailability = params.get('showAvailability') === 'true'
     if (!modal || !eventId) return
     const t = list.find(e => e.id === eventId)
     if (!t) return
-    if (modal === 'announce') openEventAnnounceModal(t)
+    if (modal === 'announce') openEventAnnounceModal(t, showAvailability)
     if (modal === 'selection') openSelectionModal(t)
   } catch {}
 }, { immediate: true })
