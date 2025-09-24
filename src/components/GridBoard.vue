@@ -557,34 +557,63 @@
                  class="text-sm"
                />
                
-               <!-- Icône Modifier (visible seulement si permissions d'édition) -->
-               <button
-                 v-if="canEditEvents"
-                 @click="startEditingFromDetails"
-                 class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
-                 title="Modifier cet événement"
-               >
-                 <span class="text-lg">✏️</span>
-               </button>
-               
-               <!-- Icône Partager -->
-               <button
-                 @click="copyEventLinkToClipboard(selectedEvent)"
-                 class="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all duration-200 group"
-                 title="Copier le lien de partage"
-               >
-                 <span class="text-lg">🔗</span>
-               </button>
-               
-               <!-- Icône Supprimer (visible seulement si permissions d'édition) -->
-               <button
-                 v-if="canEditEvents"
-                 @click="confirmDeleteEvent(selectedEvent?.id)"
-                 class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
-                 title="Supprimer cet événement"
-               >
-                 <span class="text-lg">🗑️</span>
-               </button>
+               <!-- Dropdown des actions -->
+               <div class="relative">
+                 <button
+                   @click="showEventActionsDropdown = !showEventActionsDropdown"
+                   class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                   title="Actions de l'événement"
+                 >
+                   <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                   </svg>
+                 </button>
+                 
+                 <!-- Menu dropdown -->
+                 <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[160px]">
+                   <!-- Action Modifier -->
+                   <button
+                     v-if="canEditEvents"
+                     @click="startEditingFromDetails; showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>✏️</span>
+                     <span>Modifier</span>
+                   </button>
+                   
+                   <!-- Action Partager -->
+                   <button
+                     @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>🔗</span>
+                     <span>Partager</span>
+                   </button>
+                   
+                   <!-- Action Supprimer -->
+                   <button
+                     v-if="canEditEvents"
+                     @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
+                   >
+                     <span>🗑️</span>
+                     <span>Supprimer</span>
+                   </button>
+                   
+                   <!-- Séparateur -->
+                   <div class="border-t border-gray-600 my-1"></div>
+                   
+                   <!-- Action Notifications -->
+                   <button
+                     @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
+                     :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
+                   >
+                     <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
+                     <span>{{ isEventMonitoredState ? 'Désactiver notifications' : 'Activer notifications' }}</span>
+                   </button>
+                 </div>
+               </div>
              </div>
              
 
@@ -601,27 +630,6 @@
                  <p class="text-base md:text-lg text-purple-300 cursor-pointer hover:text-purple-200 transition-colors" @click="showCalendarDropdown = !showCalendarDropdown">
                    {{ formatDateFull(selectedEvent?.date) }}
                  </p>
-                 
-                 <!-- Badge notifications après la date -->
-                 <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm ml-2">
-                   <span class="text-purple-300">✅</span>
-                   <span class="text-purple-200">
-                     <span class="hidden md:inline">Notifications activées</span>
-                     <span class="md:hidden">Notifié</span>
-                   </span>
-                 </div>
-                 <button 
-                   v-else 
-                   @click="promptForNotifications(selectedEvent)"
-                   class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer ml-2"
-                   title="Reçois des alertes en temps réel : compositions, changements d'horaires, et plus !"
-                 >
-                   <span class="text-purple-300">🔔</span>
-                   <span class="text-purple-200">
-                     <span class="hidden md:inline">Notifiez-moi</span>
-                     <span class="md:hidden">Notifier</span>
-                   </span>
-                 </button>
                </div>
                
                <!-- Menu déroulant d'agenda -->
@@ -2782,6 +2790,9 @@ watch(eventDetailsActiveTab, (newTab) => {
 
 // État du menu déroulant d'agenda
 const showCalendarDropdown = ref(false)
+
+// État du dropdown des actions d'événement
+const showEventActionsDropdown = ref(false)
 
 // Variables pour la modale de confirmation
 const showConfirmationModal = ref(false)
@@ -7842,6 +7853,9 @@ function closeEventDetails() {
   // Fermer les menus d'agenda
   closeCalendarMenuDetails();
   
+  // Fermer le dropdown des actions d'événement
+  showEventActionsDropdown.value = false;
+  
   // Réinitialiser l'état du partage de lien
   showShareLinkCopied.value = false;
   // Cache fix: removed eventMoreActionsStyle references
@@ -9513,6 +9527,38 @@ function promptForNotifications(event) {
   setTimeout(() => {
     showNotificationPrompt.value = true
   }, 500); // Délai court pour l'entête d'événement
+}
+
+// Fonction pour désactiver les notifications d'un événement
+async function disableEventNotifications(event) {
+  if (!event) return
+  
+  try {
+    // Supprimer le token FCM du localStorage
+    localStorage.removeItem('fcmToken')
+    
+    // Supprimer les préférences de notifications
+    localStorage.removeItem('notificationPreferences')
+    
+    // Mettre à jour l'état local
+    await updateEventMonitoredState()
+    
+    // Afficher un message de succès
+    showSuccessMessage.value = true
+    successMessage.value = 'Notifications désactivées pour cet événement'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+    
+    logger.debug('✅ Notifications désactivées pour l\'événement:', event.title)
+  } catch (error) {
+    logger.error('❌ Erreur lors de la désactivation des notifications:', error)
+    showSuccessMessage.value = true
+    successMessage.value = 'Erreur lors de la désactivation des notifications'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 3000)
+  }
 }
 
 // Fonction pour gérer le succès de l'incitation aux notifications
