@@ -1,5 +1,7 @@
 // src/services/emailTemplates.js
 
+import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_PRIORITY_ORDER } from './storage.js'
+
 /**
  * Templates centralisés pour tous les emails
  * Utilisés à la fois pour la prévisualisation et l'envoi réel
@@ -105,18 +107,42 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 /**
  * Template pour l'annonce globale de sélection (à copier-coller pour WhatsApp)
  */
-export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, eventUrl, selectedPlayers }) {
-  const playersList = selectedPlayers.length > 0 ? selectedPlayers.join(', ') : 'les personnes sélectionnées'
+export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, selectedPlayersByRole, players }) {
+  const roleLines = []
   
-  return `🎭 PRÉSÉLECTION À CONFIRMER pour ${eventTitle} 🎭
+  // Parcourir les rôles dans l'ordre de priorité défini
+  for (const role of ROLE_PRIORITY_ORDER) {
+    const playerIds = selectedPlayersByRole?.[role]
+    if (Array.isArray(playerIds) && playerIds.length > 0) {
+      // Convertir les IDs en noms
+      const playerNames = playerIds.map(playerId => {
+        const player = players?.find(p => p.id === playerId)
+        return player ? player.name : playerId
+      }).filter(Boolean)
+      
+      if (playerNames.length > 0) {
+        const emoji = ROLE_EMOJIS[role] || '🎭'
+        const label = ROLE_LABELS_SINGULAR[role] || role
+        const playersList = playerNames.join(', ')
+        
+        // Adapter le label selon le nombre de joueurs
+        const displayLabel = playerNames.length > 1 ? 
+          (label.endsWith('.e') ? label.replace('.e', '.es') : label + 's') : 
+          label
+        
+        roleLines.push(`${emoji} ${displayLabel} : ${playersList}`)
+      }
+    }
+  }
+  
+  return `🎊 🎊 🎊  COMPO 🎊 🎊 🎊 
 
-📅 ${eventDate}
+📆 ${eventTitle} du ${eventDate}
 
-Équipe proposée : ${playersList}
+${roleLines.join('\n')}
 
-⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
 
-🔗 Pour confirmer ou suivre les confirmations : ${eventUrl}`
+Un petit 👍 habituel pour confirmer que c'est OK pour vous.`
 }
 
 /**

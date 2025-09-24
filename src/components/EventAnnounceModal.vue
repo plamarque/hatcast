@@ -23,6 +23,7 @@
           :season-slug="seasonSlug"
           :players="players"
           :selected-players="selectedPlayers"
+          :selected-players-by-role="selectedPlayersByRole"
           :availability-by-player="availabilityByPlayer"
           :is-selection-confirmed-by-all-players="isSelectionConfirmedByAllPlayers"
         />
@@ -77,6 +78,8 @@ const props = defineProps({
   mode: { type: String, default: 'event', validator: (value) => ['event', 'selection'].includes(value) },
   // Pour le mode sélection, on peut passer les joueurs sélectionnés
   selectedPlayers: { type: Array, default: () => [] },
+  // Pour le mode sélection, structure par rôles
+  selectedPlayersByRole: { type: Object, default: () => ({}) },
   // Contrôle du spinner depuis le parent pendant l'envoi
   sending: { type: Boolean, default: false },
   // Map des disponibilités pour l'événement courant: { [playerName]: true|false|undefined }

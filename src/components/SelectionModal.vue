@@ -440,6 +440,7 @@
     :players="players"
     mode="selection"
     :selected-players="getSelectedPlayersArray()"
+    :selected-players-by-role="currentSelection?.roles || {}"
     :sending="sending"
     :is-selection-confirmed-by-all-players="isSelectionConfirmed"
     @close="showAnnounce = false"

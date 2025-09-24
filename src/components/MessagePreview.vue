@@ -118,6 +118,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  selectedPlayersByRole: {
+    type: Object,
+    default: () => ({})
+  },
   availabilityByPlayer: {
     type: Object,
     default: () => ({})
@@ -189,8 +193,8 @@ const unifiedMessage = computed(() => {
       return buildGlobalSelectionAnnouncementTemplate({
         eventTitle,
         eventDate: dateStr,
-        eventUrl: directLink,
-        selectedPlayers: props.selectedPlayers
+        selectedPlayersByRole: props.selectedPlayersByRole,
+        players: props.players
       })
     }
   }
