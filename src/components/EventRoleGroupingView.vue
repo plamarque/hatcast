@@ -1,17 +1,5 @@
 <template>
   <div v-if="selectedEvent" class="space-y-4">
-    <!-- En-tête avec statut uniquement -->
-    <div class="flex items-center justify-end mb-4">
-      <div v-if="eventStatus" class="flex items-center gap-1">
-        <span 
-          class="px-2 py-1 rounded-full text-xs font-medium"
-          :class="getStatusBadgeClass(eventStatus.type)"
-          :title="eventStatus.message"
-        >
-          {{ eventStatus.label }}
-        </span>
-      </div>
-    </div>
 
     <!-- Affichage par rôles -->
     <div class="space-y-3">
@@ -344,16 +332,4 @@ function getRoleStatusText(role) {
   }
 }
 
-function getStatusBadgeClass(statusType) {
-  switch (statusType) {
-    case 'complete':
-      return 'bg-green-600/20 text-green-400 border border-green-600/30'
-    case 'incomplete':
-      return 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/30'
-    case 'insufficient':
-      return 'bg-red-600/20 text-red-400 border border-red-600/30'
-    default:
-      return 'bg-gray-600/20 text-gray-400 border border-gray-600/30'
-  }
-}
 </script>

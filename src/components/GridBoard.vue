@@ -312,13 +312,10 @@
                    @click="selectExistingPlayer(player)"
                    class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200 relative"
                  >
-                   <PlayerAvatar 
-                     :player-id="player.id"
-                     :season-id="seasonId"
-                     :player-name="player.name"
-                     size="md"
-                     :player-gender="player.gender || 'non-specified'"
-                   />
+                  <PlayerAvatar 
+                    v-bind="getPlayerAvatarProps(player)"
+                    :show-status-icons="true"
+                  />
                    <div class="flex-1">
                      <div class="text-white font-medium">{{ player.name }}</div>
                    </div>
@@ -512,7 +509,23 @@
                      <!-- Informations principales -->
            <div class="flex-1 min-w-0">
              <div class="flex items-center gap-3 mb-2">
-               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ selectedEvent?.title }}</h2>
+               <h2 
+                 @click="copyEventLinkToClipboard(selectedEvent)"
+                 class="text-xl md:text-2xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors"
+                 title="Cliquer pour copier le lien de partage"
+               >
+                 {{ selectedEvent?.title }}
+               </h2>
+               
+               <!-- Statut de l'événement -->
+               <SelectionStatusBadge
+                 v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
+                 :status="eventStatus?.type"
+                 :show="true"
+                 :clickable="false"
+                 :reason="eventWarningText"
+                 class="text-sm"
+               />
                
                <!-- Icône Modifier (visible seulement si permissions d'édition) -->
                <button
@@ -522,6 +535,15 @@
                  title="Modifier cet événement"
                >
                  <span class="text-lg">✏️</span>
+               </button>
+               
+               <!-- Icône Partager -->
+               <button
+                 @click="copyEventLinkToClipboard(selectedEvent)"
+                 class="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all duration-200 group"
+                 title="Copier le lien de partage"
+               >
+                 <span class="text-lg">🔗</span>
                </button>
                
                <!-- Icône Supprimer (visible seulement si permissions d'édition) -->
@@ -538,7 +560,66 @@
 
              <!-- Date sur sa propre ligne -->
              <div class="mb-3">
-               <p class="text-base md:text-lg text-purple-300">{{ formatDateFull(selectedEvent?.date) }}</p>
+               <div class="flex items-center gap-2">
+                 <button
+                   @click="showCalendarDropdown = !showCalendarDropdown"
+                   class="text-lg hover:scale-110 transition-transform duration-200 cursor-pointer"
+                   title="Ajouter à votre agenda"
+                 >
+                   📅
+                 </button>
+                 <p class="text-base md:text-lg text-purple-300 cursor-pointer hover:text-purple-200 transition-colors" @click="showCalendarDropdown = !showCalendarDropdown">
+                   {{ formatDateFull(selectedEvent?.date) }}
+                 </p>
+                 
+                 <!-- Badge notifications après la date -->
+                 <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm ml-2">
+                   <span class="text-purple-300">✅</span>
+                   <span class="text-purple-200">
+                     <span class="hidden md:inline">Notifications activées</span>
+                     <span class="md:hidden">Notifié</span>
+                   </span>
+                 </div>
+                 <button 
+                   v-else 
+                   @click="promptForNotifications(selectedEvent)"
+                   class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer ml-2"
+                   title="Reçois des alertes en temps réel : compositions, changements d'horaires, et plus !"
+                 >
+                   <span class="text-purple-300">🔔</span>
+                   <span class="text-purple-200">
+                     <span class="hidden md:inline">Notifiez-moi</span>
+                     <span class="md:hidden">Notifier</span>
+                   </span>
+                 </button>
+               </div>
+               
+               <!-- Menu déroulant d'agenda -->
+               <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg">
+                 <div class="p-2">
+                   <button
+                     @click="addToGoogleCalendar(selectedEvent)"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>📅</span>
+                     <span>Google Calendar</span>
+                   </button>
+                   <button
+                     @click="addToOutlookCalendar(selectedEvent)"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>📧</span>
+                     <span>Outlook</span>
+                   </button>
+                   <button
+                     @click="addToAppleCalendar(selectedEvent)"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>🍎</span>
+                     <span>Apple Calendar</span>
+                   </button>
+                 </div>
+               </div>
              </div>
              
              <!-- Lieu sur sa propre ligne si défini -->
@@ -555,94 +636,6 @@
                </a>
              </div>
              
-             <!-- Boutons agenda, partage et notifications sur la même ligne -->
-             <div class="flex items-center gap-3 mb-3 pl-0 md:pl-0">
-               <div class="relative">
-                 <button 
-                   @click="toggleCalendarMenuDetails()"
-                   class="px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm flex items-center gap-2 hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
-                   title="Ajouter à votre agenda"
-                 >
-                   <span class="text-purple-300">📅</span>
-                   <span class="text-purple-200">
-                     <span class="hidden md:inline">Ajouter à mon Agenda</span>
-                     <span class="md:hidden">Agenda</span>
-                   </span>
-                 </button>
-                 
-                 <!-- Menu déroulant d'agenda pour la modal -->
-                 <div 
-                   v-if="showCalendarMenuDetails"
-                   class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-white/20 rounded-lg shadow-xl z-[1370] overflow-hidden"
-                 >
-                   <div class="p-2">
-                     <button 
-                       @click="handleAddToCalendar('google'); closeCalendarMenuDetails()"
-                       class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
-                       title="Ouvrir dans Google Calendar"
-                     >
-                       <span>🌐</span>
-                       <span>Google Calendar</span>
-                     </button>
-                     <button 
-                       @click="handleAddToCalendar('outlook'); closeCalendarMenuDetails()"
-                       class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm"
-                       title="Ouvrir dans Outlook"
-                     >
-                       <span>📧</span>
-                       <span>Outlook</span>
-                     </button>
-                     <button 
-                       @click="handleAddToCalendar('ics'); closeCalendarMenuDetails()"
-                       class="w-full text-left px-3 py-2 text-white hover:bg-white/10 flex items-center gap-2 rounded text-sm border-t border-white/10 pt-2 mt-2"
-                       title="Télécharger un fichier .ics compatible avec tous les agendas"
-                     >
-                       <span>📥</span>
-                       <span>Télécharger (.ics)</span>
-                     </button>
-                   </div>
-                 </div>
-               </div>
-               
-               <!-- Bouton de partage de lien -->
-               <div class="relative">
-                 <button 
-                   @click="copyEventLinkToClipboard(selectedEvent)"
-                   class="px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm flex items-center gap-2 hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
-                   title="Copier le lien direct vers cet événement pour le partager"
-                 >
-                   <span class="text-purple-300">🔗</span>
-                   <span class="text-purple-200">
-                     <span class="hidden md:inline">Partager le lien</span>
-                     <span class="md:hidden">Partager</span>
-                   </span>
-                 </button>
-                 <div v-if="showShareLinkCopied" class="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 text-xs text-green-400 whitespace-nowrap">
-                   ✓ Lien copié !
-                 </div>
-               </div>
-               
-               <!-- Bouton notifications -->
-               <div v-if="isEventMonitoredState" class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm">
-                 <span class="text-purple-300">✅</span>
-                 <span class="text-purple-200">
-                   <span class="hidden md:inline">Notifications activées</span>
-                   <span class="md:hidden">Notifié</span>
-                 </span>
-               </div>
-               <button 
-                 v-else 
-                 @click="promptForNotifications(selectedEvent)"
-                 class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
-                 title="Reçois des alertes en temps réel : compositions, changements d'horaires, et plus !"
-               >
-                 <span class="text-purple-300">🔔</span>
-                 <span class="text-purple-200">
-                   <span class="hidden md:inline">Notifiez-moi</span>
-                   <span class="md:hidden">Notifier</span>
-                 </span>
-               </button>
-             </div>
             
             <!-- Description intégrée dans le header si elle existe -->
             <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30 ml-0 md:ml-0">
@@ -656,158 +649,238 @@
 
         <!-- Content scrollable -->
   <div class="px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto flex-1 min-h-0">
-        <!-- Section Mes Dispos (si showAvailabilityInEventDetails est true) -->
-        <div v-if="showAvailabilityInEventDetails && currentUserPlayer" class="bg-gray-800/50 rounded-lg p-4 border border-white/10">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <span>📅</span>
-            <span>Mes Dispos</span>
-          </h3>
-          
-          <!-- Affichage de la disponibilité actuelle -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
-              <AvailabilityCell
-                :player-name="currentUserPlayer.name"
-                :player-id="currentUserPlayer.id"
-                :player-gender="currentUserPlayer.gender"
-                :event-id="selectedEvent?.id"
-                :event-title="selectedEvent?.title"
-                :event-date="selectedEvent?.date"
-                :current-availability="getCurrentUserAvailabilityForEvent()"
-                :is-read-only="false"
-                :season-id="seasonId"
-                :chance-percent="null"
-                :is-protected="false"
-                :event-roles="selectedEvent?.roles || {}"
-                @availability-changed="handleAvailabilityChanged"
-                @show-availability-modal="openAvailabilityModalFromEventDetails"
-              />
-            </div>
+        
+        <!-- Section avec onglets (si utilisateur connecté) -->
+        <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10">
+          <!-- Onglets -->
+          <div class="flex border-b border-white/10">
             <button
-              @click="openAvailabilityModalFromEventDetails"
-              class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+              @click="eventDetailsActiveTab = 'availability'"
+              :class="[
+                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                eventDetailsActiveTab === 'availability' 
+                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+              ]"
             >
-              Modifier
+              <span class="flex items-center justify-center gap-2">
+                <span>📅</span>
+                <span>Ma Dispo</span>
+              </span>
+            </button>
+            <button
+              @click="eventDetailsActiveTab = 'team'"
+              :class="[
+                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                eventDetailsActiveTab === 'team' 
+                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+              ]"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <span>🎭</span>
+                <span>Équipe</span>
+              </span>
             </button>
           </div>
-        </div>
-
-        <!-- Section Équipe à Constituer -->
-        <div class="mb-4 md:mb-6">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
-              <span class="hidden md:inline">🎭</span>
-              <span v-if="!selectedEvent || getSelectionPlayers(selectedEvent.id).length === 0">Disponibilités</span>
-              <span v-else class="flex items-center gap-2">
-                <span>Équipe:</span>
-                <SelectionStatusBadge
-                  :status="eventStatus?.type"
-                  :show="true"
-                  :clickable="false"
-                  :reason="eventWarningText"
-                  class="text-sm"
-                />
-              </span>
-            </h3>
-            <div class="flex items-center gap-2">
-              <!-- Bouton pour afficher les chances détaillées -->
-              <button 
-                v-if="selectedEvent"
-                @click="openChancesModal"
-                class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer bg-blue-500/20 border border-blue-400/30 hover:bg-blue-500/30"
-                title="Voir les pourcentages de chances pour chaque rôle"
-              >
-                <span class="text-blue-300">📊</span>
-                <span class="text-blue-200">Chances</span>
-              </button>
-              
-              <!-- Bouton pour afficher la composition (visible si composition faite) -->
-              <button 
-                v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
-                @click="showCompositionInGrid"
-                class="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 border border-purple-400/30 rounded text-sm hover:bg-purple-500/30 transition-colors duration-200 cursor-pointer"
-                title="Afficher la grille avec uniquement les joueurs de la composition"
-              >
-                <span class="text-purple-300">🎭</span>
-                <span class="text-purple-200">
-                  <span class="hidden md:inline">Afficher la composition</span>
-                  <span class="md:hidden">Voir compo</span>
-                </span>
-              </button>
-              
-              <button 
-                @click="showRoleDetails = !showRoleDetails"
-                class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
-                title="Cliquer pour voir le détail des rôles"
-              >
-                <span class="text-blue-300">👥</span>
-                <span class="text-blue-200">
-                  {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
-                </span>
-              </button>
-            </div>
-          </div>
           
-          <!-- Détails des rôles -->
-          <div v-if="showRoleDetails" class="text-sm text-gray-400">
-            <div v-if="selectedEvent?.roles">
-              <span v-for="(role, index) in Object.keys(selectedEvent.roles)" :key="role">
-                <span>{{ ROLE_LABELS[role] }}: </span>
-                <span 
-                  class="font-semibold"
-                  :class="{
-                    'text-cyan-400': role === 'player',
-                    'text-purple-400': role === 'dj',
-                    'text-pink-400': role === 'mc',
-                    'text-orange-400': role === 'volunteer',
-                    'text-yellow-400': role === 'referee',
-                    'text-green-400': role === 'assistant_referee',
-                    'text-blue-400': role === 'lighting',
-                    'text-indigo-400': role === 'coach'
-                  }"
+          <!-- Contenu des onglets -->
+          <div class="p-4">
+            <!-- Onglet Mes Dispos -->
+            <div v-if="eventDetailsActiveTab === 'availability'">
+              <div v-if="currentUserPlayer" class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <div class="flex-shrink-0">
+                    <PlayerAvatar 
+                      v-bind="getPlayerAvatarProps(currentUserPlayer)"
+                    />
+                  </div>
+                  <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
+                  <div class="w-20 h-16 flex-shrink-0">
+                    <AvailabilityCell
+                    :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
+                    :player-name="currentUserPlayer.name"
+                    :player-id="currentUserPlayer.id"
+                    :player-gender="currentUserPlayer.gender"
+                    :event-id="selectedEvent?.id"
+                    :event-title="selectedEvent?.title"
+                    :event-date="selectedEvent?.date"
+                    :availability-data="getCurrentUserAvailabilityForEvent()"
+                    :is-available="getCurrentUserAvailabilityForEvent()?.available"
+                    :is-selected="isPlayerSelected(currentUserPlayer.name, selectedEvent?.id)"
+                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
+                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                    :player-selection-status="getPlayerSelectionStatus(currentUserPlayer.name, selectedEvent?.id)"
+                    :season-id="seasonId"
+                    :chance-percent="null"
+                    :is-protected="false"
+                    :event-roles="selectedEvent?.roles || {}"
+                    @availability-changed="handleAvailabilityChanged"
+                    @show-availability-modal="openAvailabilityModalFromEventDetails"
+                    />
+                  </div>
+                </div>
+                <button
+                  @click="openAvailabilityModalFromEventDetails"
+                  class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                 >
-                  {{ selectedEvent.roles[role] }}
-                </span>
-                <span v-if="index < Object.keys(selectedEvent.roles).length - 1">, </span>
-              </span>
+                  Modifier
+                </button>
+              </div>
+              
+              <!-- Affichage des chances pour les rôles choisis -->
+              <div v-if="getCurrentUserAvailabilityForEvent()?.roles?.length > 0" class="bg-gray-700/30 rounded-lg p-3">
+                <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                  <span>📊</span>
+                  <span>Mes chances pour les rôles choisis</span>
+                </h4>
+                <div class="space-y-2">
+                  <div 
+                    v-for="role in getCurrentUserAvailabilityForEvent()?.roles" 
+                    :key="role"
+                    class="flex items-center justify-between"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
+                      <span class="text-sm text-gray-300">{{ getRoleLabelByGender(role, currentUserPlayer?.gender, false) || role }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span 
+                        class="text-sm font-medium px-2 py-1 rounded"
+                        :class="getChanceColorClass(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role))"
+                      >
+                        {{ formatChancePercentage(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role)) }}
+                      </span>
+                      <span 
+                        v-if="isPlayerSelectedForRole(currentUserPlayer.name, selectedEvent?.id, role)"
+                        class="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300 border border-green-400/30"
+                      >
+                        Sélectionné
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Message si aucun rôle choisi -->
+              <div v-else-if="getCurrentUserAvailabilityForEvent()?.available === true" class="bg-gray-700/30 rounded-lg p-3">
+                <p class="text-sm text-gray-400 text-center">
+                  Aucun rôle spécifique choisi - vous serez assigné selon les besoins
+                </p>
+              </div>
+              
+              <!-- Message si currentUserPlayer n'est pas défini -->
+              <div v-else-if="!currentUserPlayer" class="bg-gray-700/30 rounded-lg p-3">
+                <p class="text-sm text-gray-400 text-center">
+                  Chargement de votre profil...
+                </p>
+                <div class="text-xs text-gray-500 mt-2">
+                  DEBUG: currentUser={{ !!currentUser }}, currentUserPlayer={{ !!currentUserPlayer }}
+                  <br>Email: {{ currentUser?.email }}
+                  <br>Joueurs chargés: {{ allSeasonPlayers.length }}
+                  <br>
+                  <button 
+                    @click="currentUserPlayer = getCurrentUserPlayer()"
+                    class="mt-2 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs hover:bg-blue-500/30"
+                  >
+                    Recharger profil
+                  </button>
+                </div>
+              </div>
             </div>
-            <div v-else>
-              <span class="text-cyan-400 font-semibold">{{ selectedEvent?.playerCount || 6 }}</span> comédiens
+            
+            <!-- Onglet Équipe -->
+            <div v-if="eventDetailsActiveTab === 'team'">
+              <!-- Header de l'équipe -->
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <!-- Bouton pour afficher les chances détaillées -->
+                  <button 
+                    v-if="selectedEvent"
+                    @click="openChancesModal"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer bg-blue-500/20 border border-blue-400/30 hover:bg-blue-500/30"
+                    title="Voir les pourcentages de chances pour chaque rôle"
+                  >
+                    <span class="text-blue-300">📊</span>
+                    <span class="text-blue-200">Chances</span>
+                  </button>
+                  
+                  
+                  <button 
+                    @click="showRoleDetails = !showRoleDetails"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
+                    title="Cliquer pour voir le détail des rôles"
+                  >
+                    <span class="text-blue-300">👥</span>
+                    <span class="text-blue-200">
+                      {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Détails des rôles -->
+              <div v-if="showRoleDetails" class="text-sm text-gray-400 mb-4">
+                <div v-if="selectedEvent?.roles">
+                  <span v-for="(role, index) in Object.keys(selectedEvent.roles)" :key="role">
+                    <span>{{ ROLE_LABELS[role] }}: </span>
+                    <span 
+                      class="font-semibold"
+                      :class="{
+                        'text-cyan-400': role === 'player',
+                        'text-purple-400': role === 'dj',
+                        'text-pink-400': role === 'mc',
+                        'text-orange-400': role === 'volunteer',
+                        'text-yellow-400': role === 'referee',
+                        'text-green-400': role === 'assistant_referee',
+                        'text-blue-400': role === 'lighting',
+                        'text-indigo-400': role === 'coach'
+                      }"
+                    >
+                      {{ selectedEvent.roles[role] }}
+                    </span>
+                    <span v-if="index < Object.keys(selectedEvent.roles).length - 1">, </span>
+                  </span>
+                </div>
+                <div v-else>
+                  <span class="text-cyan-400 font-semibold">{{ selectedEvent?.playerCount || 6 }}</span> comédiens
+                </div>
+              </div>
+
+              <!-- Vue par rôles -->
+              <EventRoleGroupingView
+                v-if="selectedEvent"
+                :selected-event="selectedEvent"
+                :season-id="seasonId"
+                :players="enrichedAllSeasonPlayers"
+                :availability="availability"
+                :casts="casts"
+                :chances="chances"
+                :preferred-player-ids-set="preferredPlayerIdsSet"
+                :is-available="isAvailable"
+                :is-player-selected="isPlayerSelected"
+                :is-player-selected-for-role="isPlayerSelectedForRole"
+                :is-selection-confirmed="isSelectionConfirmed"
+                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+                :get-player-selection-status="getPlayerSelectionStatus"
+                :get-availability-data="getAvailabilityData"
+                :is-player-protected-in-grid="isPlayerProtectedInGrid"
+                :is-player-loading="isPlayerLoading"
+                :is-player-availability-loaded="isPlayerAvailabilityLoaded"
+                :is-player-error="isPlayerError"
+                :get-event-status="getEventStatus"
+                :get-event-tooltip="getEventTooltip"
+                :handle-availability-toggle="handleAvailabilityToggle"
+                :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle"
+                :open-availability-modal="openAvailabilityModal"
+                :is-available-for-role="isAvailableForRole"
+                :is-selection-complete="isSelectionComplete"
+                :get-player-role-chances="getPlayerRoleChances"
+              />
             </div>
           </div>
         </div>
 
-        <!-- Nouvelle vue par rôles -->
-        <EventRoleGroupingView
-          v-if="selectedEvent"
-          :selected-event="selectedEvent"
-          :season-id="seasonId"
-          :players="enrichedAllSeasonPlayers"
-          :availability="availability"
-          :casts="casts"
-          :chances="chances"
-          :preferred-player-ids-set="preferredPlayerIdsSet"
-          :is-available="isAvailable"
-          :is-player-selected="isPlayerSelected"
-          :is-player-selected-for-role="isPlayerSelectedForRole"
-          :is-selection-confirmed="isSelectionConfirmed"
-          :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
-          :get-player-selection-status="getPlayerSelectionStatus"
-          :get-availability-data="getAvailabilityData"
-          :is-player-protected-in-grid="isPlayerProtectedInGrid"
-          :is-player-loading="isPlayerLoading"
-          :is-player-availability-loaded="isPlayerAvailabilityLoaded"
-          :is-player-error="isPlayerError"
-          :get-event-status="getEventStatus"
-          :get-event-tooltip="getEventTooltip"
-          :handle-availability-toggle="handleAvailabilityToggle"
-          :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle"
-          :open-availability-modal="openAvailabilityModal"
-          :is-available-for-role="isAvailableForRole"
-          :is-selection-complete="isSelectionComplete"
-          :get-player-role-chances="getPlayerRoleChances"
-        />
 
         <!-- More actions (mobile) - Supprimé, remplacé par un dropdown flottant -->
       </div>
@@ -1701,7 +1774,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
@@ -2642,6 +2715,27 @@ const availabilityModalData = ref({
   chancePercent: null
 })
 
+// Compteur pour forcer le re-render de AvailabilityCell
+const availabilityCellRefreshKey = ref(0)
+
+// Onglet actif dans la modale de détails d'événement
+const eventDetailsActiveTab = ref('availability')
+
+// Watcher pour forcer la mise à jour de currentUserPlayer quand on va sur l'onglet availability
+watch(eventDetailsActiveTab, (newTab) => {
+  if (newTab === 'availability' && currentUser.value) {
+    console.log('🔄 DEBUG: Forçage de la mise à jour de currentUserPlayer pour l\'onglet availability')
+    currentUserPlayer.value = getCurrentUserPlayer()
+    console.log('🔄 DEBUG: currentUserPlayer après mise à jour:', currentUserPlayer.value ? { 
+      id: currentUserPlayer.value.id, 
+      name: currentUserPlayer.value.name 
+    } : null)
+  }
+})
+
+// État du menu déroulant d'agenda
+const showCalendarDropdown = ref(false)
+
 // Variables pour la modale de confirmation
 const showConfirmationModal = ref(false)
 const confirmationModalData = ref({
@@ -3204,6 +3298,32 @@ onMounted(async () => {
       }
     }
     
+    // Gérer le paramètre showAvailability pour les routes /event/:eventId
+    console.log('🔍 DEBUG onMounted: vérification showAvailability:', {
+      eventId: props.eventId,
+      showAvailabilityParam: urlParams.get('showAvailability'),
+      allUrlParams: Object.fromEntries(urlParams.entries()),
+      currentUrl: window.location.href
+    })
+    
+    if (props.eventId && urlParams.get('showAvailability') === 'true') {
+      console.log('🎯 DEBUG onMounted: showAvailability détecté pour eventId:', props.eventId)
+      // Attendre que les événements soient chargés
+      const checkForEvent = () => {
+        const targetEvent = events.value.find(e => e.id === props.eventId)
+        if (targetEvent) {
+          console.log('🎯 DEBUG onMounted: événement trouvé, ouverture des détails avec showAvailability')
+          showEventDetails(targetEvent, true, false) // Ne pas mettre à jour l'URL
+        } else if (events.value.length > 0) {
+          console.log('❌ DEBUG onMounted: événement non trouvé dans la liste')
+        } else {
+          // Réessayer dans 100ms
+          setTimeout(checkForEvent, 100)
+        }
+      }
+      checkForEvent()
+    }
+    
     // Ouvrir automatiquement les détails de joueur si demandé (sauf si on vient de vérifier l'email)
     if (urlParams.get('modal') === 'player_details' && urlParams.get('player') && !urlParams.get('verified')) {
       const playerId = urlParams.get('player')
@@ -3338,6 +3458,15 @@ const focusedEventId = ref(props.eventId || null)
 const showFocusedEventHighlight = ref(false)
 const focusedEventScrollTimeout = ref(null)
 
+// Debug: Log de chargement du composant
+console.log('🚀 DEBUG GridBoard chargé avec props:', {
+  slug: props.slug,
+  eventId: props.eventId,
+  url: window.location.href,
+  showAvailability: new URLSearchParams(window.location.search).get('showAvailability'),
+  allSearchParams: window.location.search
+})
+
 // Watcher pour la prop eventId
 watch(() => props.eventId, (newEventId) => {
   if (newEventId) {
@@ -3356,6 +3485,7 @@ watch(() => props.eventId, (newEventId) => {
     }
   }
 })
+
 
 // Computed property pour enrichir les joueurs avec leur statut de protection et email
 const enrichedPlayers = computed(() => {
@@ -4537,6 +4667,33 @@ const casts = ref({})
 const stats = ref({})
 const chances = ref({})
 
+// Fonction pour récupérer la disponibilité de l'utilisateur connecté pour l'événement courant
+function getCurrentUserAvailabilityForEvent() {
+  if (!currentUserPlayer.value || !selectedEvent.value) {
+    return { available: null, roles: [], comment: null }
+  }
+  
+  const playerName = currentUserPlayer.value.name
+  const eventId = selectedEvent.value.id
+  
+  // D'abord vérifier les données locales (plus récentes)
+  if (availability.value[playerName] && availability.value[playerName][eventId]) {
+    return availability.value[playerName][eventId]
+  }
+  
+  // Sinon, récupérer depuis le service
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  if (availabilityData === undefined) {
+    return { available: null, roles: [], comment: null }
+  }
+  
+  return {
+    available: availabilityData,
+    roles: [], // TODO: récupérer les rôles depuis les données
+    comment: null // TODO: récupérer le commentaire depuis les données
+  }
+}
+
 // Resynchroniser header/grille quand la structure change (1er event/joueur)
 watch([() => events.value.length, () => players.value.length, isLoadingGrid], () => {
   if (isLoadingGrid.value) return
@@ -4572,6 +4729,21 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
   }
 })
 
+// Watcher pour mettre à jour currentUserPlayer quand currentUser ou allSeasonPlayers changent
+watch([() => currentUser.value, () => allSeasonPlayers.value], () => {
+  console.log('🔄 DEBUG watcher currentUser/allSeasonPlayers:', {
+    currentUser: currentUser.value ? { email: currentUser.value.email } : null,
+    allSeasonPlayersCount: allSeasonPlayers.value.length
+  })
+  
+  currentUserPlayer.value = getCurrentUserPlayer()
+  
+  console.log('🔄 DEBUG currentUserPlayer mis à jour:', currentUserPlayer.value ? { 
+    id: currentUserPlayer.value.id, 
+    name: currentUserPlayer.value.name 
+  } : null)
+}, { immediate: true })
+
 // Surveiller les changements de saison pour re-vérifier les permissions
 watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
   if (newSeasonId !== oldSeasonId && newSeasonId) {
@@ -4579,6 +4751,50 @@ watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
     await checkEditPermissions()
   }
 })
+
+// Watcher pour gérer le paramètre showAvailability dans l'URL
+const showAvailabilityProcessed = ref(false)
+watch(() => [props.eventId, events.value], ([eventId, eventsList]) => {
+  console.log('🔍 DEBUG showAvailability watcher déclenché:', {
+    eventId,
+    eventsCount: eventsList?.length || 0,
+    hasEventId: !!eventId,
+    alreadyProcessed: showAvailabilityProcessed.value,
+    url: window.location.href,
+    searchParams: window.location.search
+  })
+  
+  if (eventId && eventsList.length > 0 && !showAvailabilityProcessed.value) {
+    // Vérifier si showAvailability=true est dans l'URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const showAvailability = urlParams.get('showAvailability') === 'true'
+    
+    console.log('🔍 DEBUG showAvailability watcher:', {
+      eventId,
+      eventsCount: eventsList.length,
+      urlParams: window.location.search,
+      showAvailability,
+      hasEventId: !!eventId
+    })
+    
+    if (showAvailability) {
+      showAvailabilityProcessed.value = true // Marquer comme traité pour éviter les boucles
+      const targetEvent = eventsList.find(e => e.id === eventId)
+      console.log('🎯 DEBUG showAvailability: targetEvent trouvé:', {
+        targetEvent: targetEvent ? { id: targetEvent.id, title: targetEvent.title } : null,
+        eventId
+      })
+      
+      if (targetEvent) {
+        // Ouvrir les détails de l'événement avec showAvailability=true
+        console.log('🚀 DEBUG showAvailability: ouverture de showEventDetails avec showAvailability=true')
+        nextTick(() => {
+          showEventDetails(targetEvent, true, false) // Ne pas mettre à jour l'URL
+        })
+      }
+    }
+  }
+}, { immediate: true })
 
 // Initialiser les données au montage
 onMounted(async () => {
@@ -7461,6 +7677,12 @@ onUnmounted(() => {
 })
 
 async function showEventDetails(event, showAvailability = false, updateUrl = true) {
+  console.log('📋 DEBUG showEventDetails appelée:', {
+    event: event ? { id: event.id, title: event.title } : null,
+    showAvailability,
+    updateUrl
+  })
+
   // Démarrer la mesure de performance pour l'écran détail événement
   performanceService.start('event_detail_loading', {
     eventId: event.id,
@@ -7473,9 +7695,17 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
   editingArchived.value = !!event.archived
   showAvailabilityInEventDetails.value = showAvailability
 
-  // Si showAvailability est true, récupérer le joueur de l'utilisateur connecté
-  if (showAvailability) {
+  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
+    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
+    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null
+  })
+
+  // Toujours récupérer le joueur de l'utilisateur connecté pour l'onglet "Ma Dispo"
+  if (currentUser.value) {
     currentUserPlayer.value = getCurrentUserPlayer()
+    console.log('👤 DEBUG showEventDetails: currentUserPlayer récupéré:', {
+      currentUserPlayer: currentUserPlayer.value ? { id: currentUserPlayer.value.id, name: currentUserPlayer.value.name } : null
+    })
   }
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
@@ -7688,23 +7918,43 @@ function isPlayerSelected(playerName, eventId) {
 
 // Fonction pour vérifier si un joueur est sélectionné pour un rôle spécifique
 function isPlayerSelectedForRole(playerName, role, eventId) {
+  console.log('🔍 DEBUG isPlayerSelectedForRole:', {
+    playerName,
+    role,
+    eventId,
+    hasCasts: !!casts.value,
+    hasEventCast: !!casts.value[eventId],
+    castsKeys: Object.keys(casts.value || {})
+  })
+  
   const selection = casts.value[eventId]
   if (!selection || !selection.roles) {
+    console.log('❌ DEBUG isPlayerSelectedForRole: pas de sélection ou de rôles')
     return false
   }
   
   // Trouver l'ID du joueur dans tous les joueurs de la saison
   const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
+    console.log('❌ DEBUG isPlayerSelectedForRole: joueur non trouvé')
     return false
   }
   
   // Vérifier si le joueur est dans le rôle spécifique
   const rolePlayers = selection.roles[role]
+  console.log('🔍 DEBUG isPlayerSelectedForRole: vérification rôle:', {
+    role,
+    rolePlayers,
+    playerId: player.id,
+    isInRole: Array.isArray(rolePlayers) && rolePlayers.includes(player.id)
+  })
+  
   if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
+    console.log('✅ DEBUG isPlayerSelectedForRole: joueur sélectionné pour le rôle')
     return true
   }
   
+  console.log('❌ DEBUG isPlayerSelectedForRole: joueur non sélectionné pour le rôle')
   return false
 }
 
@@ -8217,10 +8467,33 @@ function closeAnnouncePrompt() {
 // Fonction pour récupérer le joueur de l'utilisateur connecté
 function getCurrentUserPlayer() {
   const user = currentUser.value
-  if (!user?.email) return null
+  console.log('🔍 DEBUG getCurrentUserPlayer:', {
+    user: user ? { email: user.email, uid: user.uid } : null,
+    allSeasonPlayersCount: allSeasonPlayers.value.length,
+    playersWithEmail: allSeasonPlayers.value.filter(p => p.email).length
+  })
+  
+  if (!user?.email) {
+    console.log('❌ DEBUG getCurrentUserPlayer: pas d\'email utilisateur')
+    return null
+  }
   
   // Chercher le joueur correspondant à l'email de l'utilisateur
-  return allSeasonPlayers.value.find(player => player.email === user.email) || null
+  const foundPlayer = allSeasonPlayers.value.find(player => player.email === user.email)
+  console.log('🔍 DEBUG getCurrentUserPlayer: joueur trouvé:', foundPlayer ? { id: foundPlayer.id, name: foundPlayer.name, email: foundPlayer.email } : null)
+  
+  return foundPlayer || null
+}
+
+// Fonction utilitaire pour les props standard de PlayerAvatar
+function getPlayerAvatarProps(player) {
+  return {
+    'player-id': player.id,
+    'season-id': seasonId.value,
+    'player-name': player.name,
+    size: 'sm',
+    'player-gender': player.gender || 'non-specified'
+  }
 }
 
 // Fonction pour récupérer les rôles d'un événement
@@ -8236,31 +8509,18 @@ function handleAvailabilityChangedFromEventModal(data) {
   handleAvailabilityChanged(data)
 }
 
-// Fonction pour récupérer la disponibilité de l'utilisateur connecté pour l'événement courant
-function getCurrentUserAvailabilityForEvent() {
-  if (!currentUserPlayer.value || !selectedEvent.value) {
-    return { available: null, roles: [], comment: null }
-  }
-  
-  const playerName = currentUserPlayer.value.name
-  const eventId = selectedEvent.value.id
-  
-  // Récupérer depuis availability
-  const availability = getAvailabilityData(playerName, eventId)
-  if (availability === undefined) {
-    return { available: null, roles: [], comment: null }
-  }
-  
-  return {
-    available: availability,
-    roles: [], // TODO: récupérer les rôles depuis les données
-    comment: null // TODO: récupérer le commentaire depuis les données
-  }
-}
 
 // Fonction pour ouvrir la modale de disponibilité depuis les détails d'événement
 function openAvailabilityModalFromEventDetails() {
-  if (!currentUserPlayer.value || !selectedEvent.value) return
+  console.log('🎭 DEBUG openAvailabilityModalFromEventDetails appelée:', {
+    currentUserPlayer: currentUserPlayer.value ? { id: currentUserPlayer.value.id, name: currentUserPlayer.value.name } : null,
+    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null
+  })
+  
+  if (!currentUserPlayer.value || !selectedEvent.value) {
+    console.log('❌ DEBUG openAvailabilityModalFromEventDetails: conditions non remplies, sortie')
+    return
+  }
   
   availabilityModalData.value = {
     playerName: currentUserPlayer.value.name,
@@ -8275,6 +8535,14 @@ function openAvailabilityModalFromEventDetails() {
     isProtected: false,
     eventRoles: selectedEvent.value.roles || {}
   }
+  
+  console.log('🎭 DEBUG openAvailabilityModalFromEventDetails: ouverture de la modale avec:', {
+    availabilityModalData: {
+      playerName: availabilityModalData.value.playerName,
+      eventId: availabilityModalData.value.eventId,
+      eventTitle: availabilityModalData.value.eventTitle
+    }
+  })
   
   showAvailabilityModal.value = true
 }
@@ -8494,6 +8762,26 @@ function getPlayerSelectedRoleChances(playerName, eventId) {
       chance: playerChances[role]
     }))
     .sort((a, b) => b.chance - a.chance) // Trier par pourcentage décroissant
+}
+
+// Fonction pour récupérer le pourcentage de chance pour un rôle spécifique d'un joueur
+function getPlayerRoleChance(playerName, eventId, role) {
+  const allRoleChances = getPlayerRoleChances(eventId)
+  const playerChances = allRoleChances[playerName] || {}
+  return playerChances[role] || 0
+}
+
+// Fonction pour obtenir le label d'un rôle selon le genre du joueur
+function getRoleLabelByGender(role, userGender, plural = false) {
+  // Rétro-compatibilité : si userGender n'est pas défini ou invalide, utiliser 'non-specified'
+  const validGenders = ['male', 'female', 'non-specified']
+  const gender = validGenders.includes(userGender) ? userGender : 'non-specified'
+  
+  if (plural) {
+    return ROLE_LABELS_PLURAL_BY_GENDER[gender]?.[role] || ROLE_LABELS[role] || role
+  } else {
+    return ROLE_LABELS_BY_GENDER[gender]?.[role] || ROLE_LABELS_SINGULAR[role] || role
+  }
 }
 
 // Fonction helper pour extraire les joueurs d'une composition
@@ -9308,9 +9596,8 @@ function openAvailabilityModal(data) {
 }
 
 function openEventModal(event) {
-  // Ouvrir la modale d'événement
-  selectedEvent.value = event
-  showEventDetailsModal.value = true
+  // Ouvrir la modale d'événement et mettre à jour l'URL
+  showEventDetails(event, false, true) // showAvailability=false, updateUrl=true
 }
 
 async function handleAvailabilitySave(availabilityData) {
@@ -9330,6 +9617,13 @@ async function handleAvailabilitySave(availabilityData) {
       availability.value[availabilityModalData.value.playerName] = {}
     }
     availability.value[availabilityModalData.value.playerName][availabilityModalData.value.eventId] = availabilityData
+    
+    // Forcer le rechargement des disponibilités pour synchroniser avec le service
+    const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Forcer le re-render de AvailabilityCell
+    availabilityCellRefreshKey.value++
     
     showAvailabilityModal.value = false
     
