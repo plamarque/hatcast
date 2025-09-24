@@ -26,16 +26,20 @@
       @return-to-full-view="returnToFullView"
     />
 
-    <!-- Header sticky avec dropdown de vue et sélecteur de joueur -->
+    <!-- Header sticky avec dropdown de vue et sélecteurs -->
     <ViewHeader
       v-if="validCurrentView === 'events' || validCurrentView === 'participants'"
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
       :season-id="seasonId"
+      :show-event-selector="true"
+      :selected-event="selectedEventForFilter"
+      :events="events"
       :is-sticky="true"
       @view-change="selectView"
       @player-modal-toggle="togglePlayerModal"
+      @event-modal-toggle="toggleEventModal"
     />
 
     <!-- Modal de sélection de joueur (global pour toutes les vues) -->
@@ -47,10 +51,32 @@
       :preferred-player-ids-set="preferredPlayerIdsSet"
       :is-player-protected="isPlayerProtectedInGrid"
       :is-player-already-displayed="isPlayerAlreadyDisplayed"
+      :events="events"
+      :is-available="isAvailable"
+      :get-selection-players="getSelectionPlayers"
       @close="closePlayerModal"
       @player-selected="handlePlayerSelected"
       @all-players-selected="handleAllPlayersSelected"
       @add-new-player="(name) => openNewPlayerForm(name)"
+    />
+
+    <!-- Modal de sélection d'événement -->
+    <EventSelectorModal
+      :show="showEventModal"
+      :events="events"
+      :selected-event-id="selectedEventId"
+      :get-selection-players="getSelectionPlayers"
+      :get-total-required-count="getTotalRequiredCount"
+      :count-available-players="countAvailablePlayers"
+      :is-selection-confirmed="isSelectionConfirmed"
+      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+      :casts="casts"
+      :is-available="isAvailable"
+      :players="allSeasonPlayers"
+      :is-player-protected="isPlayerProtectedInGrid"
+      @close="closeEventModal"
+      @event-selected="handleEventSelected"
+      @all-events-selected="handleAllEventsSelected"
     />
 
     <!-- Vue grille (lignes ou colonnes) -->
@@ -62,7 +88,7 @@
       <ParticipantsView
         v-if="validCurrentView === 'participants'"
         key="participants-view"
-        :events="events"
+        :events="displayedEvents"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
         :hidden-players-count="hiddenPlayersCount"
@@ -99,7 +125,7 @@
       <EventsView
         v-if="validCurrentView === 'events'"
         key="events-view"
-        :events="events"
+        :events="displayedEvents"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
         :hidden-players-count="hiddenPlayersCount"
@@ -141,14 +167,18 @@
         :show-player-selector="true"
         :selected-player="selectedPlayer"
         :season-id="seasonId"
+        :show-event-selector="true"
+        :selected-event="selectedEventForFilter"
+        :events="events"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
+        @event-modal-toggle="toggleEventModal"
       />
       
       <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
       <TimelineView
-        :events="events"
+        :events="displayedEvents"
         :players="allSeasonPlayers"
         :availability="availability"
         :casts="casts"
@@ -718,6 +748,18 @@
                     @availability-changed="handleAvailabilityChanged"
                     @show-availability-modal="openAvailabilityModalFromEventDetails"
                     />
+                  </div>
+                  <!-- Affichage de la note de disponibilité -->
+                  <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="flex-1 max-w-xs">
+                    <div class="bg-gray-700/50 rounded-lg p-2 border border-gray-600/50">
+                      <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                        <span>📝</span>
+                        <span>Note</span>
+                      </div>
+                      <div class="text-sm text-gray-200 break-words">
+                        {{ getCurrentUserAvailabilityForEvent()?.comment }}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -1869,6 +1911,7 @@ import TimelineView from './TimelineView.vue'
 import ParticipantsView from './ParticipantsView.vue'
 import EventsView from './EventsView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
+import EventSelectorModal from './EventSelectorModal.vue'
 import ViewHeader from './ViewHeader.vue'
 
 // Déclarer les props
@@ -2031,6 +2074,9 @@ const validCurrentView = computed(() => {
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
 
+// Variables pour le filtrage des événements
+const selectedEventId = ref(null)
+
 // Debug watcher pour tracer qui modifie selectedPlayerId
 watch(selectedPlayerId, (newValue, oldValue) => {
   console.log('🔍 selectedPlayerId changed:', {
@@ -2040,6 +2086,7 @@ watch(selectedPlayerId, (newValue, oldValue) => {
   })
 }, { immediate: true })
 const showPlayerModal = ref(false)
+const showEventModal = ref(false)
 const showPlayerDetailsModal = ref(false)
 const selectedPlayerForDetails = ref(null)
 
@@ -4678,20 +4725,28 @@ function getCurrentUserAvailabilityForEvent() {
   
   // D'abord vérifier les données locales (plus récentes)
   if (availability.value[playerName] && availability.value[playerName][eventId]) {
-    return availability.value[playerName][eventId]
+    const localData = availability.value[playerName][eventId]
+    // Si c'est un objet avec la nouvelle structure, le retourner tel quel
+    if (typeof localData === 'object' && localData.available !== undefined) {
+      return localData
+    }
+    // Sinon, convertir l'ancien format (boolean) vers le nouveau
+    return {
+      available: localData,
+      roles: localData ? ['player'] : [],
+      comment: null
+    }
   }
   
-  // Sinon, récupérer depuis le service
-  const availabilityData = getAvailabilityData(playerName, eventId)
-  if (availabilityData === undefined) {
-    return { available: null, roles: [], comment: null }
-  }
+  // Sinon, récupérer depuis le service avec la fonction getAvailabilityData
+  const availabilityData = getAvailabilityData(playerName, eventId, availability.value, {
+    getPlayerSelectionRole: getPlayerSelectionRole,
+    getPlayerDeclinedRole: getPlayerDeclinedRole,
+    getPlayerSelectionStatus: getPlayerSelectionStatus,
+    isSelectionConfirmedByOrganizer: isSelectionConfirmedByOrganizer
+  })
   
-  return {
-    available: availabilityData,
-    roles: [], // TODO: récupérer les rôles depuis les données
-    comment: null // TODO: récupérer le commentaire depuis les données
-  }
+  return availabilityData || { available: null, roles: [], comment: null }
 }
 
 // Resynchroniser header/grille quand la structure change (1er event/joueur)
@@ -5811,6 +5866,7 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   }
 }
 
+
 const sortedEvents = computed(() => {
   // Tri chronologique gauche→droite, puis titre en cas d'égalité
   return [...events.value].sort((a, b) => {
@@ -5825,8 +5881,21 @@ const sortedEvents = computed(() => {
 
 
 const displayedEvents = computed(() => {
-    // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
-  return sortedEvents.value
+  // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
+  let filteredEvents = sortedEvents.value
+  
+  // Appliquer le filtre d'événement si un événement spécifique est sélectionné
+  if (selectedEventId.value) {
+    filteredEvents = filteredEvents.filter(event => event.id === selectedEventId.value)
+  }
+  
+  return filteredEvents
+})
+
+// Computed pour l'événement sélectionné pour le filtre
+const selectedEventForFilter = computed(() => {
+  if (!selectedEventId.value || !events.value) return null
+  return events.value.find(event => event.id === selectedEventId.value)
 })
 
 
@@ -8087,6 +8156,29 @@ function closePlayerModal() {
   } else {
     console.log('🚪 Keeping selectedPlayerId for timeline view:', selectedPlayerId.value)
   }
+}
+
+// Fonctions pour le modal d'événements
+function toggleEventModal() {
+  console.log('🎭 toggleEventModal called')
+  showEventModal.value = !showEventModal.value
+}
+
+function closeEventModal() {
+  console.log('🚪 closeEventModal called')
+  showEventModal.value = false
+}
+
+function handleEventSelected(event) {
+  console.log('🎭 handleEventSelected:', event)
+  selectedEventId.value = event.id
+  closeEventModal()
+}
+
+function handleAllEventsSelected() {
+  console.log('🎭 handleAllEventsSelected')
+  selectedEventId.value = null
+  closeEventModal()
 }
 
 function closePlayerDetailsModal() {
