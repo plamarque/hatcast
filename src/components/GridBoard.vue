@@ -1712,8 +1712,8 @@ import {
 } from '../services/storage.js'
 
 import { createMagicLink } from '../services/magicLinks.js'
-import { sendDeselectionEmailsForEvent } from '../services/emailService.js'
-import { sendAvailabilityNotificationsForEvent, sendSelectionNotificationsForEvent } from '../services/notificationsService.js'
+import { sendDecastEmailsForEvent } from '../services/emailService.js'
+import { sendAvailabilityNotificationsForEvent, sendCastNotificationsForEvent } from '../services/notificationsService.js'
 import { addToCalendar } from '../services/calendarService.js'
 import { shouldPromptForNotifications, checkEmailExists } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
@@ -7280,7 +7280,7 @@ async function executePendingOperation(operation) {
             const removedPlayers = oldSelection.filter(name => !nextSelection.includes(name))
             if (removedPlayers.length > 0) {
               const event = events.value.find(e => e.id === eventId)
-              await sendDeselectionEmailsForEvent({
+              await sendDecastEmailsForEvent({
                 eventId,
                 eventData: event,
                 removedPlayers,
@@ -8161,7 +8161,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
       
       if (scope === 'single' && recipient?.email) {
         // Envoi ciblé pour un joueur compositionné
-        await sendSelectionNotificationsForEvent({
+        await sendCastNotificationsForEvent({
           eventId,
           eventData,
           selectedPlayers: [recipient.name],
@@ -8172,7 +8172,7 @@ async function handleSendNotifications({ eventId, eventData, reason, selectedPla
         })
       } else {
         // Batch pour tous les compositionnés
-        await sendSelectionNotificationsForEvent({ 
+        await sendCastNotificationsForEvent({ 
           eventId, 
           eventData, 
           selectedPlayers,

@@ -90,7 +90,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { buildAvailabilityTextTemplate, buildSelectionTextTemplate, buildGlobalSelectionAnnouncementTemplate, buildGlobalConfirmedTeamAnnouncementTemplate } from '../services/emailTemplates.js'
+import { buildAvailabilityTextTemplate, buildCastTextMessage, buildGlobalCastAnnouncementMessage, buildGlobalConfirmedTeamAnnouncementTemplate } from '../services/emailTemplates.js'
 
 const props = defineProps({
   mode: {
@@ -189,8 +189,8 @@ const unifiedMessage = computed(() => {
         confirmedPlayers: props.selectedPlayers
       })
     } else {
-      // Sélection temporaire : utiliser le template d'annonce de sélection
-      return buildGlobalSelectionAnnouncementTemplate({
+      // Sélection temporaire : utiliser le message d'annonce de cast
+      return buildGlobalCastAnnouncementMessage({
         eventTitle,
         eventDate: dateStr,
         selectedPlayersByRole: props.selectedPlayersByRole,

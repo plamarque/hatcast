@@ -61,9 +61,9 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 }
 
 /**
- * Template pour les notifications de cast
+ * Construit le message email pour les notifications de cast
  */
-export function buildCastEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayersByRole, players }) {
+export function buildCastEmailMessage({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayersByRole, players }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   
   // Trouver le joueur pour obtenir son genre
@@ -134,7 +134,7 @@ Es-tu dispo le ${eventDate} pour ${eventTitle} ?
 Lien direct : ${eventUrl}`
 }
 
-export function buildCastTextTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmUrl, selectedPlayersByRole, players }) {
+export function buildCastTextMessage({ playerName, eventTitle, eventDate, eventUrl, confirmUrl, selectedPlayersByRole, players }) {
   const greeting = playerName ? `Bonjour ${playerName}` : 'Hello'
   
   // Trouver le joueur pour obtenir son genre
@@ -165,9 +165,9 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 }
 
 /**
- * Template pour l'annonce globale de cast (à copier-coller pour WhatsApp)
+ * Construit le message d'annonce globale de cast (à copier-coller pour WhatsApp)
  */
-export function buildGlobalCastAnnouncementTemplate({ eventTitle, eventDate, selectedPlayersByRole, players }) {
+export function buildGlobalCastAnnouncementMessage({ eventTitle, eventDate, selectedPlayersByRole, players }) {
   // Construire la liste des rôles avec la fonction utilitaire
   const roleLines = buildRoleListText(selectedPlayersByRole, players)
   
@@ -184,7 +184,7 @@ Un petit 👍 habituel pour confirmer que c'est OK pour vous.`
 /**
  * Template pour l'activation des notifications
  */
-export function buildNotificationActivationTemplate({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
+export function buildNotificationActivationMessage({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
@@ -305,7 +305,7 @@ export function buildReminderEmailTemplate({
 /**
  * Template pour l'annonce de l'équipe confirmée (quand tous les joueurs ont confirmé)
  */
-export function buildConfirmedTeamEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmedPlayers }) {
+export function buildConfirmedTeamEmailMessage({ playerName, eventTitle, eventDate, eventUrl, confirmedPlayers }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   const playersList = confirmedPlayers ? confirmedPlayers.join(', ') : ''
   return `
