@@ -682,16 +682,44 @@
              
              <!-- Lieu sur sa propre ligne si défini -->
              <div v-if="selectedEvent?.location" class="mb-3">
-               <a 
-                 :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 class="text-sm text-blue-300 hover:text-blue-200 flex items-center gap-2 transition-colors duration-200 cursor-pointer"
-                 :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
-               >
-                 <span>📍</span>
-                 <span class="underline">{{ selectedEvent.location }}</span>
-               </a>
+               <div class="relative inline-block">
+                 <button
+                   @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                   class="text-sm text-blue-300 hover:text-blue-200 flex items-center gap-2 transition-colors duration-200 cursor-pointer"
+                   :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+                 >
+                   <span>📍</span>
+                   <span class="underline">{{ selectedEvent.location }}</span>
+                   <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                   </svg>
+                 </button>
+                 
+                 <!-- Dropdown Google Maps -->
+                 <div v-if="showGoogleMapsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
+                   <!-- Option Web -->
+                   <a 
+                     :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     @click="showGoogleMapsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>🌐</span>
+                     <span>Ouvrir dans Google Maps (Web)</span>
+                   </a>
+                   
+                   <!-- Option Mobile App -->
+                   <a 
+                     :href="`comgooglemaps://?q=${encodeURIComponent(selectedEvent.location)}`"
+                     @click="showGoogleMapsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>📱</span>
+                     <span>Ouvrir dans Google Maps (App)</span>
+                   </a>
+                 </div>
+               </div>
              </div>
              
             
@@ -778,13 +806,13 @@
                     />
                   </div>
                   <!-- Affichage de la note de disponibilité -->
-                  <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="flex-1 max-w-xs">
-                    <div class="bg-gray-700/50 rounded-lg p-2 border border-gray-600/50">
+                  <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="flex-1 h-16 mx-2">
+                    <div class="h-full bg-gray-700/50 rounded-lg p-2 border border-gray-600/50 flex flex-col justify-center">
                       <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
                         <span>📝</span>
                         <span>Note</span>
                       </div>
-                      <div class="text-sm text-gray-200 break-words">
+                      <div class="text-sm text-gray-200 break-words leading-tight">
                         {{ getCurrentUserAvailabilityForEvent()?.comment }}
                       </div>
                     </div>
@@ -2820,6 +2848,9 @@ const showCalendarDropdown = ref(false)
 
 // État du dropdown des actions d'événement
 const showEventActionsDropdown = ref(false)
+
+// État du dropdown Google Maps
+const showGoogleMapsDropdown = ref(false)
 
 // Variables pour la modale de confirmation
 const showConfirmationModal = ref(false)
@@ -7882,6 +7913,9 @@ function closeEventDetails() {
   
   // Fermer le dropdown des actions d'événement
   showEventActionsDropdown.value = false;
+  
+  // Fermer le dropdown Google Maps
+  showGoogleMapsDropdown.value = false;
   
   // Réinitialiser l'état du partage de lien
   showShareLinkCopied.value = false;

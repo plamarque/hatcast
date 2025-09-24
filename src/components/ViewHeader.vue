@@ -2,34 +2,60 @@
     <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-full flex items-center justify-between"
          :class="{ 'sticky top-0 left-0 z-[120] shadow-lg': isSticky }"
          :style="headerStyle + '; ' + containerStyle">
-          <!-- Sélecteur de joueur (à gauche) -->
-          <div v-if="showPlayerSelector" class="relative flex-shrink-0 ml-4 md:ml-6">
-            <button
-              @click="togglePlayerModal"
-              class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
-            >
-              <!-- Avatar du joueur sélectionné (un seul joueur) -->
-              <div v-if="showPlayerAvatar" class="flex-shrink-0">
-                <PlayerAvatar
-                  :player-id="selectedPlayer.id"
-                  :player-name="selectedPlayer.name"
-                  :season-id="seasonId"
-                  :player-gender="selectedPlayer.gender || 'non-specified'"
-                  size="sm"
-                  class="w-5 h-5"
-                />
-              </div>
-              <!-- Icône "Tous" quand aucun joueur spécifique sélectionné -->
+          <!-- Filtres (à gauche) -->
+          <div v-if="showPlayerSelector || showEventSelector" class="flex items-center gap-2 ml-4 md:ml-6">
+            <!-- Sélecteur de joueur -->
+            <div v-if="showPlayerSelector" class="relative flex-shrink-0">
+              <button
+                @click="togglePlayerModal"
+                class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+              >
+                <!-- Avatar du joueur sélectionné (un seul joueur) -->
+                <div v-if="showPlayerAvatar" class="flex-shrink-0">
+                  <PlayerAvatar
+                    :player-id="selectedPlayer.id"
+                    :player-name="selectedPlayer.name"
+                    :season-id="seasonId"
+                    :player-gender="selectedPlayer.gender || 'non-specified'"
+                    size="sm"
+                    class="w-5 h-5"
+                  />
+                </div>
+              <!-- Icône "Tous les joueurs" quand aucun joueur spécifique sélectionné -->
               <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
-                <span class="text-xs font-bold">T</span>
+                <span class="text-xs">👥</span>
               </div>
-              <span class="flex-1 text-left text-xs md:text-sm truncate">
-                {{ displayText }}
-              </span>
-              <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </button>
+                <span class="flex-1 text-left text-xs md:text-sm truncate">
+                  {{ displayText }}
+                </span>
+                <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Sélecteur d'événement -->
+            <div v-if="showEventSelector" class="relative flex-shrink-0">
+              <button
+                @click="toggleEventModal"
+                class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+              >
+                <!-- Icône de l'événement sélectionné -->
+                <div v-if="showEventIcon" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-700 rounded-full">
+                  <span class="text-sm">{{ selectedEventIcon }}</span>
+                </div>
+                <!-- Icône "Tous les événements" quand aucun événement spécifique sélectionné -->
+                <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
+                  <span class="text-xs">🎭</span>
+                </div>
+                <span class="flex-1 text-left text-xs md:text-sm truncate">
+                  {{ eventDisplayText }}
+                </span>
+                <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- Tab switcher à droite -->
@@ -74,6 +100,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import { EVENT_TYPE_ICONS } from '../services/storage.js'
 
 // Props
 const props = defineProps({
@@ -94,6 +121,19 @@ const props = defineProps({
     type: String,
     required: true
   },
+  // Props pour le sélecteur d'événements
+  showEventSelector: {
+    type: Boolean,
+    default: false
+  },
+  selectedEvent: {
+    type: Object,
+    default: null
+  },
+  events: {
+    type: Array,
+    default: () => []
+  },
   // Style props
   headerStyle: {
     type: String,
@@ -110,7 +150,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['view-change', 'player-modal-toggle'])
+const emit = defineEmits(['view-change', 'player-modal-toggle', 'event-modal-toggle'])
 
 // Logique d'affichage du dropdown
 const displayText = computed(() => {
@@ -125,6 +165,27 @@ const displayText = computed(() => {
 const showPlayerAvatar = computed(() => {
   // Afficher l'avatar seulement si un joueur spécifique est sélectionné
   return !!props.selectedPlayer
+})
+
+// Logique d'affichage du sélecteur d'événements
+const eventDisplayText = computed(() => {
+  // Si aucun événement sélectionné, afficher "Tous"
+  if (!props.selectedEvent) {
+    return 'Tous'
+  }
+  // Sinon, afficher le titre de l'événement
+  return props.selectedEvent.title
+})
+
+const showEventIcon = computed(() => {
+  // Afficher l'icône seulement si un événement spécifique est sélectionné
+  return !!props.selectedEvent
+})
+
+const selectedEventIcon = computed(() => {
+  if (!props.selectedEvent) return 'T'
+  // Utiliser l'icône de l'événement selon son templateType
+  return EVENT_TYPE_ICONS[props.selectedEvent.templateType] || '❓'
 })
 
 // Debug: surveiller les changements d'état via les props
@@ -147,6 +208,10 @@ function selectView(view) {
 
 function togglePlayerModal() {
   emit('player-modal-toggle')
+}
+
+function toggleEventModal() {
+  emit('event-modal-toggle')
 }
 
 function getViewLabel(view) {
