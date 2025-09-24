@@ -8,33 +8,11 @@ import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_PRIORITY_ORDER } from './storag
  */
 
 /**
- * Template pour les demandes de disponibilité (événements)
+ * Fonction utilitaire pour construire la liste des rôles formatée
  */
-export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, yesUrl, noUrl }) {
-  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
-  return `
-    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting},</p>
-      <p>🎯 <strong>Nouvel événement à l'horizon !</strong></p>
-      <p>Es-tu dispo le ${eventDate} pour <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;font-weight:600;">${eventTitle}</a> ?</p>
-      <p>🎭 <em>On a besoin de toi pour que ça brille ! ✨</em></p>
-      <p style="margin-top: 12px; text-align: center;">
-        <a href="${yesUrl}" style="display:inline-block;padding:10px 12px;margin-right:8px;border:2px solid #16a34a;color:#16a34a;border-radius:8px;text-decoration:none;">✅ Dispo</a>
-        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
-      </p>
-      <p style="margin-top: 16px; color:#6b7280;">Détails : <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;">${eventUrl}</a></p>
-    </div>
-  `
-}
-
-/**
- * Template pour les notifications de sélection
- */
-export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayersByRole, players }) {
-  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
-  
-  // Construire la liste des rôles comme dans le message WhatsApp
+function buildRoleListText(selectedPlayersByRole, players) {
   const roleLines = []
+  
   for (const role of ROLE_PRIORITY_ORDER) {
     const playerIds = selectedPlayersByRole?.[role]
     if (Array.isArray(playerIds) && playerIds.length > 0) {
@@ -59,11 +37,48 @@ export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate,
     }
   }
   
+  return roleLines
+}
+
+/**
+ * Template pour les demandes de disponibilité (événements)
+ */
+export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, yesUrl, noUrl }) {
+  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  return `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting},</p>
+      <p>🎯 <strong>Nouvel événement à l'horizon !</strong></p>
+      <p>Es-tu dispo le ${eventDate} pour <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;font-weight:600;">${eventTitle}</a> ?</p>
+      <p>🎭 <em>On a besoin de toi pour que ça brille ! ✨</em></p>
+      <p style="margin-top: 12px; text-align: center;">
+        <a href="${yesUrl}" style="display:inline-block;padding:10px 12px;margin-right:8px;border:2px solid #16a34a;color:#16a34a;border-radius:8px;text-decoration:none;">✅ Dispo</a>
+        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
+      </p>
+      <p style="margin-top: 16px; color:#6b7280;">Détails : <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;">${eventUrl}</a></p>
+    </div>
+  `
+}
+
+/**
+ * Template pour les notifications de cast
+ */
+export function buildCastEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayersByRole, players }) {
+  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  
+  // Trouver le joueur pour obtenir son genre
+  const player = players?.find(p => p.name === playerName)
+  const isFemale = player?.gender === 'female'
+  const isMale = player?.gender === 'male'
+  const selectedText = isFemale ? 'SÉLECTIONNÉE' : (isMale ? 'SÉLECTIONNÉ' : 'SÉLECTIONNÉ·E')
+  
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
   const compositionText = roleLines.length > 0 ? roleLines.join('<br>') : 'Composition en cours...'
   
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting}, tu es <strong>COMPOSÉ(E)</strong> pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      <p>${greeting}, tu es <strong>${selectedText}</strong> pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
       
       <p>Voici la <strong>composition temporaire</strong> :</p>
       <div style="margin: 10px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px; font-family: monospace; font-size: 14px;">
@@ -119,40 +134,22 @@ Es-tu dispo le ${eventDate} pour ${eventTitle} ?
 Lien direct : ${eventUrl}`
 }
 
-export function buildSelectionTextTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmUrl, selectedPlayersByRole, players }) {
+export function buildCastTextTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmUrl, selectedPlayersByRole, players }) {
   const greeting = playerName ? `Bonjour ${playerName}` : 'Hello'
   
-  // Construire la liste des rôles comme dans le message WhatsApp
-  const roleLines = []
-  for (const role of ROLE_PRIORITY_ORDER) {
-    const playerIds = selectedPlayersByRole?.[role]
-    if (Array.isArray(playerIds) && playerIds.length > 0) {
-      // Convertir les IDs en noms
-      const playerNames = playerIds.map(playerId => {
-        const player = players?.find(p => p.id === playerId)
-        return player ? player.name : playerId
-      }).filter(Boolean)
-      
-      if (playerNames.length > 0) {
-        const emoji = ROLE_EMOJIS[role] || '🎭'
-        const label = ROLE_LABELS_SINGULAR[role] || role
-        const playersList = playerNames.join(', ')
-        
-        // Adapter le label selon le nombre de joueurs
-        const displayLabel = playerNames.length > 1 ? 
-          (label.endsWith('.e') ? label.replace('.e', '.es') : label + 's') : 
-          label
-        
-        roleLines.push(`${emoji} ${displayLabel} : ${playersList}`)
-      }
-    }
-  }
+  // Trouver le joueur pour obtenir son genre
+  const player = players?.find(p => p.name === playerName)
+  const isFemale = player?.gender === 'female'
+  const isMale = player?.gender === 'male'
+  const selectedText = isFemale ? 'SÉLECTIONNÉE' : (isMale ? 'SÉLECTIONNÉ' : 'SÉLECTIONNÉ·E')
   
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
   const compositionText = roleLines.length > 0 ? roleLines.join('\n') : 'Composition en cours...'
   
   return `${greeting},
 
-Tu es PRÉSÉLECTIONNÉ(E) pour ${eventTitle} le ${eventDate}!
+Tu es ${selectedText} pour ${eventTitle} le ${eventDate}!
 
 Voici la composition temporaire de l'équipe :
 ${compositionText}
@@ -168,35 +165,11 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 }
 
 /**
- * Template pour l'annonce globale de sélection (à copier-coller pour WhatsApp)
+ * Template pour l'annonce globale de cast (à copier-coller pour WhatsApp)
  */
-export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, selectedPlayersByRole, players }) {
-  const roleLines = []
-  
-  // Parcourir les rôles dans l'ordre de priorité défini
-  for (const role of ROLE_PRIORITY_ORDER) {
-    const playerIds = selectedPlayersByRole?.[role]
-    if (Array.isArray(playerIds) && playerIds.length > 0) {
-      // Convertir les IDs en noms
-      const playerNames = playerIds.map(playerId => {
-        const player = players?.find(p => p.id === playerId)
-        return player ? player.name : playerId
-      }).filter(Boolean)
-      
-      if (playerNames.length > 0) {
-        const emoji = ROLE_EMOJIS[role] || '🎭'
-        const label = ROLE_LABELS_SINGULAR[role] || role
-        const playersList = playerNames.join(', ')
-        
-        // Adapter le label selon le nombre de joueurs
-        const displayLabel = playerNames.length > 1 ? 
-          (label.endsWith('.e') ? label.replace('.e', '.es') : label + 's') : 
-          label
-        
-        roleLines.push(`${emoji} ${displayLabel} : ${playersList}`)
-      }
-    }
-  }
+export function buildGlobalCastAnnouncementTemplate({ eventTitle, eventDate, selectedPlayersByRole, players }) {
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
   
   return `🎊 🎊 🎊  COMPO 🎊 🎊 🎊 
 
