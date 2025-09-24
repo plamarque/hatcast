@@ -488,7 +488,7 @@ export async function queueDeselectionEmail({
 }
 
 // Fonction pour envoyer des emails de notification de sélection pour un événement
-export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, seasonId, seasonSlug, players, isConfirmedTeam = false }) {
+export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, selectedPlayersByRole, seasonId, seasonSlug, players, isConfirmedTeam = false }) {
   logger.info('sendSelectionEmailsForEvent', { eventId, seasonId, seasonSlug, playersCount: players?.length, selectedCount: selectedPlayers?.length })
   
   if (!eventData || !selectedPlayers || selectedPlayers.length === 0) {
@@ -594,7 +594,8 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
             eventUrl,
             declineUrl: declineUrl, // Magic link de déclin
             confirmUrl: confirmUrl, // Magic link de confirmation
-            selectedPlayers: selectedPlayers // Liste des joueurs sélectionnés
+            selectedPlayersByRole: selectedPlayersByRole, // Structure par rôles
+            players: players // Liste des joueurs pour conversion ID -> nom
           })
         }
         logger.debug('HTML généré avec le template approprié')

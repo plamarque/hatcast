@@ -160,9 +160,24 @@ export async function sendAvailabilityNotificationsForEvent({
  * This function delegates to email service for now, keeping a single source of truth.
  */
 export async function sendSelectionNotificationsForEvent(args) {
+  // Récupérer la structure par rôles depuis le cast si pas déjà fournie
+  let selectedPlayersByRole = args.selectedPlayersByRole
+  
+  if (!selectedPlayersByRole && args.eventId && args.seasonId) {
+    try {
+      const { firestoreService } = await import('./firestoreService.js')
+      const cast = await firestoreService.getDocument('seasons', args.seasonId, 'casts', args.eventId)
+      selectedPlayersByRole = cast?.roles || {}
+    } catch (error) {
+      console.warn('Impossible de récupérer la structure par rôles:', error)
+      selectedPlayersByRole = {}
+    }
+  }
+  
   // Ajouter le paramètre isConfirmedTeam si pas déjà présent
   const argsWithConfirmedTeam = {
     ...args,
+    selectedPlayersByRole,
     isConfirmedTeam: args.isConfirmedTeam || false
   }
   return sendSelectionEmailsViaEmail(argsWithConfirmedTeam)
