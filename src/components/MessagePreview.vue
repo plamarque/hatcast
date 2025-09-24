@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4 message-preview">
     <!-- Personnes à Prévenir -->
     <div>
       <label class="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
