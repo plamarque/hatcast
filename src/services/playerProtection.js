@@ -397,7 +397,6 @@ export async function listAssociationsForEmail(email) {
     
     // OPTIMISATION: Rechercher directement dans les players avec l'email
     const seasons = await firestoreService.getDocuments('seasons')
-    logger.debug(`listAssociationsForEmail: Recherche optimisée dans ${seasons.length} saisons pour ${email}`)
     
     for (const season of seasons) {
       const sid = season.id
@@ -412,8 +411,6 @@ export async function listAssociationsForEmail(email) {
           'players'
         )
         
-        logger.debug(`listAssociationsForEmail: ${players.length} joueurs trouvés avec cet email dans ${sid}`)
-        
         players.forEach((player) => {
           // Si le joueur a un email défini, c'est qu'il est protégé
           if (player?.email && player.email === email) {
@@ -425,21 +422,17 @@ export async function listAssociationsForEmail(email) {
               isProtected: player.isProtected !== false, // true par défaut si email présent
               firebaseUid: player.firebaseUid // si présent
             })
-            logger.debug(`listAssociationsForEmail: Association optimisée trouvée pour ${sid}/${player.id}`)
           }
         })
         
         // FALLBACK: Si aucun joueur trouvé dans players, chercher dans l'ancienne collection playerProtection
         if (players.length === 0) {
-          logger.debug(`listAssociationsForEmail: Fallback vers playerProtection pour ${sid}`)
           const protections = await firestoreService.queryDocuments(
             'seasons', 
             [firestoreService.where('email', '==', email)], 
             sid, 
             'playerProtection'
           )
-          
-          logger.debug(`listAssociationsForEmail: ${protections.length} protections trouvées dans ${sid} (fallback)`)
           
           protections.forEach((protection) => {
             if (protection?.isProtected) {
@@ -449,7 +442,6 @@ export async function listAssociationsForEmail(email) {
                 playerId: protection.id, 
                 ...protection 
               })
-              logger.debug(`listAssociationsForEmail: Association fallback trouvée pour ${sid}/${protection.id}`)
             }
           })
         }
@@ -462,7 +454,6 @@ export async function listAssociationsForEmail(email) {
       }
     }
     
-    logger.debug(`listAssociationsForEmail: ${results.length} associations trouvées pour ${email}`)
     return results
   } catch (error) {
     // Log silencieux pour les erreurs non critiques

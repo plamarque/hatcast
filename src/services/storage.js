@@ -335,15 +335,13 @@ export async function loadEvents(seasonId) {
 export async function loadActiveEvents(seasonId) {
   const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
 
-  // Filtrer les événements inactifs et passés
+  // TEMPORAIRE: Charger TOUS les événements pour visibilité complète et debugging
+  // TODO: Réimplémenter le filtrage avec une option dans l'UI
+  console.log(`🔍 Chargement de TOUS les événements (${events.length} trouvés) pour visibilité complète`)
+  
+  // Marquer visuellement les événements archivés et passés
   const now = new Date()
-  const filteredEvents = events.filter(event => {
-    // Exclure les événements archivés (inactifs)
-    if (event.archived === true) {
-      return false
-    }
-    
-    // Exclure les événements passés (date < aujourd'hui)
+  const processedEvents = events.map(event => {
     const eventDate = (() => {
       if (!event.date) return null
       if (event.date instanceof Date) return event.date
@@ -352,27 +350,19 @@ export async function loadActiveEvents(seasonId) {
       return isNaN(d.getTime()) ? null : d
     })()
     
-    if (eventDate && eventDate < now) {
-      return false
+    return {
+      ...event,
+      _isArchived: event.archived === true,
+      _isPast: eventDate && eventDate < now,
+      _eventDate: eventDate
     }
-    
-    return true
   })
 
   // Tri des événements par date (croissant) puis par titre (alphabétique)
-  return filteredEvents.sort((a, b) => {
-    const toDate = (v) => {
-      if (!v) return null
-      if (v instanceof Date) return v
-      if (typeof v?.toDate === 'function') return v.toDate()
-      const d = new Date(v)
-      return isNaN(d.getTime()) ? null : d
-    }
-
-    const da = toDate(a.date)
-    const db = toDate(b.date)
-    const ta = da ? da.getTime() : Number.POSITIVE_INFINITY
-    const tb = db ? db.getTime() : Number.POSITIVE_INFINITY
+  return processedEvents.sort((a, b) => {
+    // Utiliser les dates déjà calculées
+    const ta = a._eventDate ? a._eventDate.getTime() : Number.POSITIVE_INFINITY
+    const tb = b._eventDate ? b._eventDate.getTime() : Number.POSITIVE_INFINITY
     if (ta !== tb) return ta - tb
     return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
   })

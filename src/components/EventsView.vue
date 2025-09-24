@@ -23,21 +23,50 @@
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="col-event bg-gray-800 rounded-xl flex items-center justify-center px-2 py-3"
+        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200"
+        :class="[
+          item._isArchived 
+            ? 'bg-gray-600/50 border border-gray-500/30' 
+            : item._isPast 
+              ? 'bg-amber-800/30 border border-amber-600/30' 
+              : 'bg-gray-800 border border-gray-700/30'
+        ]"
         :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
       >
         <div class="flex flex-col items-center space-y-1 w-full">
           <!-- Emoji et titre empilés -->
           <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
             <span class="text-lg">{{ getEventIcon(item) }}</span>
-            <span class="text-white font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
-                  :title="item.title">
+            <span 
+              class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
+              :class="[
+                item._isArchived 
+                  ? 'text-gray-400' 
+                  : item._isPast 
+                    ? 'text-amber-200' 
+                    : 'text-white'
+              ]"
+              :title="item.title + (item._isArchived ? ' (Archivé)' : item._isPast ? ' (Passé)' : '')"
+            >
               {{ item.title }}
+              <span v-if="item._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
+              <span v-else-if="item._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
             </span>
           </div>
           <!-- Date et statut empilés -->
           <div class="flex flex-col items-center space-y-1">
-            <span class="text-gray-400 text-xs text-center font-normal">{{ formatEventDate(item.date) }}</span>
+            <span 
+              class="text-xs text-center font-normal"
+              :class="[
+                item._isArchived 
+                  ? 'text-gray-500' 
+                  : item._isPast 
+                    ? 'text-amber-300' 
+                    : 'text-gray-400'
+              ]"
+            >
+              {{ formatEventDate(item.date) }}
+            </span>
             <StatusBadge 
               :event-id="item.id" 
               :event-status="getEventStatus(item)" 
@@ -91,7 +120,7 @@
             :player-gender="player.gender || 'non-specified'"
             :chance-percent="chances[player.name]?.[event.id] ?? null"
             :show-selected-chance="isSelectionComplete(event.id)"
-            :disabled="event.archived === true"
+            :disabled="event._isArchived === true"
             :availability-data="getAvailabilityData(player.name, event.id)"
             :event-title="event.title"
             :event-date="event.date"

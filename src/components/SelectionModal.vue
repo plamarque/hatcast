@@ -52,6 +52,40 @@
             </button>
 
           </div>
+          
+          <!-- Warning de simulation -->
+          <div v-if="showDrawVisualization && !isAutoComposition" class="mb-4 p-4 bg-amber-500/20 border border-amber-500/40 rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class="text-2xl">🎲</div>
+              <div class="flex-1">
+                <h4 class="text-amber-200 font-semibold text-sm mb-1">
+                  {{ isSimulating ? 'Simulation en cours' : 'Résultat de simulation' }}
+                  <span class="text-amber-400 text-xs font-normal">
+                    ({{ selectedAlgorithm === 'bruno' ? 'AlgoBruno' : 'Algorithme par défaut' }})
+                  </span>
+                </h4>
+                <p class="text-amber-300 text-xs leading-relaxed">
+                  Ce tirage est une <strong>simulation</strong> à des fins éducatives. 
+                  Les résultats ne seront <strong>pas sauvegardés</strong> et n'affecteront pas la composition réelle.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Warning de composition auto -->
+          <div v-if="isSimulating && isAutoComposition" class="mb-4 p-4 bg-blue-500/20 border border-blue-500/40 rounded-lg">
+            <div class="flex items-center gap-3">
+              <div class="text-2xl">🤖</div>
+              <div class="flex-1">
+                <h4 class="text-blue-200 font-semibold text-sm mb-1">Composition automatique en cours</h4>
+                <p class="text-blue-300 text-xs leading-relaxed">
+                  Cette composition sera <strong>sauvegardée</strong> et remplacera la sélection actuelle.
+                  L'animation montre le processus de tirage équitable.
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-0">
             <div
               v-for="slot in teamSlots"
@@ -291,17 +325,49 @@
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <!-- Bouton Simuler Compo / Stop (visible pour tous les utilisateurs - fonction éducative) -->
-        <button 
-          v-if="!isSelectionConfirmedByOrganizer"
-          @click="isSimulating ? abortDraw() : handleSimulateComposition()" 
-          :disabled="!isSimulating && availableCount === 0" 
-          :class="isSimulating ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700'"
-          class="h-12 px-3 md:px-4 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="isSimulating ? 'Arrêter le tirage' : (availableCount === 0 ? 'Aucune personne disponible' : 'Simuler la composition avec visualisation')"
-        >
-          {{ isSimulating ? '⏹️' : '🎲' }} <span class="hidden sm:inline">{{ isSimulating ? 'Arrêter' : 'Simuler Compo' }}</span><span class="sm:hidden">{{ isSimulating ? 'Stop' : 'Simuler' }}</span>
-        </button>
+        <!-- Bouton Simuler Compo avec dropdown / Stop (visible pour tous les utilisateurs - fonction éducative) -->
+        <div v-if="!isSelectionConfirmedByOrganizer" class="flex-1 relative algorithm-dropdown-container">
+          <!-- Bouton principal -->
+          <button 
+            v-if="!isSimulating"
+            @click="toggleAlgorithmDropdown" 
+            :disabled="availableCount === 0" 
+            class="w-full h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+            :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
+          >
+            <span class="flex items-center">
+              🎲 <span class="hidden sm:inline ml-1">Simuler Compo</span><span class="sm:hidden ml-1">Simuler</span>
+            </span>
+            <span class="text-xs">▼</span>
+          </button>
+          
+          
+          <!-- Bouton Stop -->
+          <button 
+            v-if="isSimulating"
+            @click="abortDraw()" 
+            class="w-full h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center"
+            title="Arrêter le tirage"
+          >
+            ⏹️ <span class="hidden sm:inline ml-1">Arrêter</span><span class="sm:hidden ml-1">Stop</span>
+          </button>
+          
+          <!-- Dropdown des algorithmes -->
+          <div 
+            v-if="showAlgorithmDropdown && !isSimulating"
+            class="absolute left-0 right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50"
+            style="bottom: 100%; margin-bottom: 4px;"
+          >
+            <div 
+              v-for="algorithm in availableAlgorithms" 
+              :key="algorithm.value"
+              @click="selectAlgorithm(algorithm.value)"
+              class="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors"
+            >
+              <div class="font-medium text-white">{{ algorithm.label }}</div>
+            </div>
+          </div>
+        </div>
 
         <!-- Bouton Remplir Cast (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
@@ -419,7 +485,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
 import { getPlayerCastStatus } from '../services/castService.js'
-import { calculateAllRoleChances, formatChancePercentage } from '../services/chancesService.js'
+import { calculateAllRoleChances, formatChancePercentage, performAlgoBruno, performDefaultDraw } from '../services/chancesService.js'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 
 const props = defineProps({
@@ -505,6 +571,21 @@ const successMessageText = ref('')
 const showErrorMessage = ref(false)
 const errorMessageText = ref('')
 const isReselection = ref(false)
+
+// Variables pour la sélection d'algorithme
+const selectedAlgorithm = ref('default')
+const showAlgorithmDropdown = ref(false)
+const showAlgorithmDropdownUpward = ref(false)
+const availableAlgorithms = ref([
+  { value: 'default', label: 'Algorithme par défaut' },
+  { value: 'bruno', label: 'Bruno' }
+])
+
+// Variable pour stocker le résultat du tirage pour l'animation
+const currentDrawResult = ref(null)
+
+// Variable pour distinguer simulation vs composition auto
+const isAutoComposition = ref(false)
 const showHowItWorks = ref(false)
 
 // Variables pour la modale de confirmation de reselection
@@ -1217,6 +1298,7 @@ watch(() => props.show, (newValue) => {
     errorMessageText.value = ''
     isReselection.value = false
     showAnnounce.value = false
+    showAlgorithmDropdown.value = false
     // Initialize slots from current selection and requiredCount
     let filled = []
     if (!props.currentSelection) {
@@ -1268,6 +1350,13 @@ watch([requiredCount, () => props.currentSelection, () => props.event?.id], () =
   slots.value = next.slice(0, len)
 })
 
+// Watcher pour fermer le dropdown quand la simulation commence
+watch(isSimulating, (newValue) => {
+  if (newValue) {
+    showAlgorithmDropdown.value = false
+  }
+})
+
 // Methods
 function formatDateFull(dateValue) {
   if (!dateValue) return ''
@@ -1309,8 +1398,30 @@ function handleSelection() {
 }
 
 function handleSimulateComposition() {
-  // Démarrer la simulation avec visualisation (pas de reset, pas de persistance)
-  startDrawVisualization(false, false)
+  // Si une simulation est en cours, l'arrêter d'abord
+  if (isSimulating.value) {
+    abortDraw()
+  }
+  
+  // Reset la sélection affichée (mais pas en base) et lancer la simulation
+  startDrawVisualization(true, false)
+}
+
+function toggleAlgorithmDropdown() {
+  showAlgorithmDropdown.value = !showAlgorithmDropdown.value
+}
+
+function selectAlgorithm(algorithmValue) {
+  selectedAlgorithm.value = algorithmValue
+  showAlgorithmDropdown.value = false
+  
+  // Si une simulation est en cours, l'arrêter d'abord
+  if (isSimulating.value) {
+    abortDraw()
+  }
+  
+  // Reset la sélection affichée et lancer la simulation avec l'algorithme sélectionné
+  startDrawVisualization(true, false)
 }
 
 function handlePerfect() {
@@ -1791,18 +1902,35 @@ function confirmReselect() {
 // Fonctions pour la visualisation du tirage
 async function startDrawVisualization(resetExisting = false, persistResults = false) {
   try {
+    // Définir le type de tirage
+    isAutoComposition.value = resetExisting && persistResults
+    
     // 1. Reset de la sélection existante si demandé
     if (resetExisting) {
-      console.log('🔄 Resetting existing selection...')
-      const { deleteCast } = await import('../services/storage.js')
-      await deleteCast(props.event.id, props.seasonId)
-      console.log('✅ Selection reset completed')
+      if (persistResults) {
+        // Pour les compositions auto : supprimer en base ET reset l'affichage
+        console.log('🔄 Resetting existing selection in database...')
+        const { deleteCast } = await import('../services/storage.js')
+        await deleteCast(props.event.id, props.seasonId)
+        console.log('✅ Selection reset completed in database')
+        
+        // Ne pas émettre updateCast immédiatement pour éviter les perturbations
+        // L'émission se fera à la fin du tirage dans persistDrawResults()
+        
+        // Attendre un peu pour que la suppression soit effective
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
       
-      // Ne pas émettre updateCast immédiatement pour éviter les perturbations
-      // L'émission se fera à la fin du tirage dans persistDrawResults()
-      
-      // Attendre un peu pour que la suppression soit effective
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Pour toutes les simulations (et compositions auto) : reset l'affichage
+      console.log('🔄 Resetting display for new draw...')
+      // Vider les slots affichés
+      teamSlots.value.forEach(slot => {
+        slot.player = null
+        slot.playerId = null
+        slot.isEmpty = true
+        slot.isSkipped = false
+      })
+      console.log('✅ Display reset completed')
     }
     
     // 2. Démarrer le tirage
@@ -1866,6 +1994,12 @@ function prepareDrawData() {
   })
   
   console.log('🔍 Available players for role', currentDrawRole.value, ':', availablePlayers.map(p => p.name))
+  
+  // Debug: Vérifier la fonction countSelections
+  console.log('🔍 Debug countSelections:', {
+    hasCountSelections: !!props.countSelections,
+    testResult: props.countSelections ? props.countSelections('Rachid', 'player') : 'N/A'
+  })
   
   // Calculer les poids avec le service en utilisant la liste filtrée
   const allRoleChances = calculateAllRoleChances(
@@ -1958,12 +2092,14 @@ function startDraw(persistResults = false) {
 
 function pauseSimulation() {
   isSimulating.value = false
+  isAutoComposition.value = false
 }
 
 function abortDraw() {
   isSimulating.value = false
   simulationComplete.value = false
   showDrawVisualization.value = false
+  isAutoComposition.value = false
   currentDrawCandidates.value = []
   currentDrawSelected.value = 0
   currentSlotIndex.value = 0
@@ -1976,8 +2112,15 @@ function abortDraw() {
 }
 
 function finishSimulation() {
-  showDrawVisualization.value = false
+  // Pour les simulations, garder l'encart visible
+  if (isSimulating.value && !isAutoComposition.value) {
+    // Garder showDrawVisualization.value = true pour les simulations
+  } else {
+    showDrawVisualization.value = false
+  }
+  
   isSimulating.value = false
+  isAutoComposition.value = false
   simulationComplete.value = false
   currentDrawCandidates.value = []
   currentDrawSelected.value = 0
@@ -2069,6 +2212,7 @@ function drawNextSlot() {
   if (emptySlots.length === 0) {
     simulationComplete.value = true
     isSimulating.value = false
+    isAutoComposition.value = false
     return
   }
   
@@ -2134,9 +2278,17 @@ function drawNextSlot() {
 }
 
 async function animateDraw() {
-  // Générer le nombre aléatoire une seule fois pour l'animation et le tirage
-  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
-  currentRandomNumber.value = Math.random() * totalWeight
+  // D'abord, exécuter le tirage pour obtenir le joueur sélectionné
+  const drawResult = await performDrawForAnimation()
+  
+  if (!drawResult || !drawResult.selectedCandidate) {
+    console.log('❌ Aucun résultat de tirage, abandon de l\'animation')
+    abortDraw()
+    return
+  }
+  
+  // Stocker le résultat pour l'animation
+  currentDrawResult.value = drawResult
   
   // Calculer les dimensions du canvas basées sur le conteneur
   nextTick(async () => {
@@ -2155,12 +2307,12 @@ async function animateDraw() {
     setTimeout(async () => {
       await drawCanvasBands()
       
-      // Animation du marqueur qui se déplace
-      animatePointer()
+      // Animation du marqueur qui se déplace vers le joueur sélectionné
+      animatePointerToPlayer(drawResult.selectedCandidate.name)
       
-      // Simuler le tirage après l'animation
+      // Appliquer le résultat après l'animation
       setTimeout(() => {
-        performDraw()
+        applyDrawResult(drawResult)
       }, 3000) // 3 secondes d'animation
     }, 100) // Petit délai pour s'assurer que le canvas est rendu
   })
@@ -2392,55 +2544,191 @@ async function drawCanvasBands() {
   }
 }
 
-function performDraw() {
-  // Effectuer le tirage réel (utilise le même nombre aléatoire que l'animation)
+// Fonction pour exécuter le tirage sans appliquer le résultat (pour l'animation)
+async function performDrawForAnimation() {
+  // Utiliser l'algorithme sélectionné pour le tirage
+  let drawResult = null
+  
+  if (selectedAlgorithm.value === 'bruno') {
+    // Utiliser l'algorithme AlgoBruno
+    drawResult = await performAlgoBruno(
+      currentDrawCandidates.value, 
+      currentDrawRole.value, 
+      props.seasonId, 
+      props.event.id,
+      props.isAvailableForRole,
+      currentDrawSelected.value > 0 ? teamSlots.value.filter(s => !s.isEmpty).map(s => s.player) : [],
+      { logDetails: true }
+    )
+  } else {
+    // Utiliser l'algorithme par défaut (synchrone)
+    drawResult = performDefaultDraw(currentDrawCandidates.value, currentDrawRole.value, { logDetails: true })
+  }
+  
+  return drawResult
+}
+
+// Fonction pour appliquer le résultat du tirage
+function applyDrawResult(drawResult) {
+  if (!drawResult || !drawResult.selectedCandidate) {
+    return
+  }
+  
+  const selectedCandidate = drawResult.selectedCandidate
+  
+  // Effet "boom" - afficher le nom du joueur sélectionné
+  const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
+  const roleEmoji = currentSlot?.roleEmoji || '🎉'
+  showSelectionBoom(selectedCandidate.name, roleEmoji)
+  
+  // Assigner le joueur au slot après l'effet
+  setTimeout(() => {
+    const slotIndex = currentSlotIndex.value
+    if (slotIndex !== -1) {
+      const slot = teamSlots.value.find(s => s.index === slotIndex)
+      if (slot) {
+        slot.player = selectedCandidate.name
+        // Utiliser directement l'ID du candidat
+        slot.playerId = selectedCandidate.id 
+        slot.isEmpty = false
+      }
+      
+      // Mettre à jour aussi slots.value pour la cohérence
+      if (slots.value && slots.value[slotIndex] !== undefined) {
+        slots.value[slotIndex] = selectedCandidate.name
+      }
+    }
+  
+    // Retirer le candidat de la liste
+    currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
+    currentDrawSelected.value++
+    
+    // Continuer avec le prochain slot
+    setTimeout(() => {
+      drawNextSlot()
+    }, 1500) // Pause d'1.5 seconde entre les tirages
+  }, 1000) // Délai pour l'effet boom
+}
+
+// Nouvelle fonction d'animation qui trouve la position du joueur par son nom
+function animatePointerToPlayer(selectedPlayerName) {
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas || !canvas.getContext) {
+    console.log('🔍 Canvas not ready for animation:', canvas, 'for slot', currentSlotIndex.value)
+    console.log('❌ Aborting draw due to missing canvas')
+    abortDraw()
+    return
+  }
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Trouver la position du joueur sélectionné par son nom
   const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
-  const randomNumber = currentRandomNumber.value
-  
   let currentWeight = 0
-  let selectedCandidate = null
+  let selectedPlayerStartX = 0
+  let selectedPlayerEndX = 0
+  let found = false
   
-  for (const candidate of currentDrawCandidates.value) {
-    currentWeight += candidate.weight
-    if (randomNumber <= currentWeight) {
-      selectedCandidate = candidate
+  for (let i = 0; i < currentDrawCandidates.value.length; i++) {
+    const candidate = currentDrawCandidates.value[i]
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const segmentStartX = currentWeight / totalWeight * width
+    const segmentEndX = segmentStartX + segmentWidth
+    
+    if (candidate.name === selectedPlayerName) {
+      selectedPlayerStartX = segmentStartX
+      selectedPlayerEndX = segmentEndX
+      found = true
       break
+    }
+    
+    currentWeight += candidate.weight
+  }
+  
+  if (!found) {
+    console.log('❌ Joueur sélectionné non trouvé dans les candidats:', selectedPlayerName)
+    abortDraw()
+    return
+  }
+  
+  // Position finale du marqueur (au centre du segment du joueur sélectionné)
+  const finalPointerX = selectedPlayerStartX + (selectedPlayerEndX - selectedPlayerStartX) / 2
+  
+  let startTime = Date.now()
+  const duration = 2500 // 2.5 secondes d'animation
+  
+  function animate() {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    
+    // Effacer le canvas
+    ctx.clearRect(0, 0, width, height)
+    
+    // Redessiner la bande
+    drawCanvasBands()
+    
+    // Calculer la position du marqueur (oscillation puis arrêt sur la bonne zone)
+    let pointerX
+    if (progress < 0.8) {
+      // Phase d'oscillation (80% du temps) - va de bout en bout avec ralentissement
+      const slowDown = 1 - (progress * 0.5) // Ralentit progressivement
+      const oscillation = Math.sin(progress * 20 * slowDown) * 0.5 + 0.5
+      pointerX = oscillation * width
+    } else {
+      // Phase finale (20% du temps) - se dirige vers la position finale
+      const finalProgress = (progress - 0.8) / 0.2
+      const startX = width * 0.5 // Commencer du centre
+      pointerX = startX + (finalPointerX - startX) * finalProgress
+    }
+    
+    // Dessiner le marqueur rouge
+    ctx.fillStyle = '#EF4444'
+    ctx.fillRect(pointerX - 2, 0, 4, height)
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    } else {
+      // Animation terminée, marquer le joueur sélectionné
+      markSelectedPlayer(selectedPlayerName)
     }
   }
   
-  if (selectedCandidate) {
-    // Effet "boom" - afficher le nom du joueur sélectionné
-    const currentSlot = teamSlots.value.find(s => s.index === currentSlotIndex.value)
-    const roleEmoji = currentSlot?.roleEmoji || '🎉'
-    showSelectionBoom(selectedCandidate.name, roleEmoji)
+  animate()
+}
+
+// Fonction pour marquer visuellement le joueur sélectionné
+function markSelectedPlayer(selectedPlayerName) {
+  const canvas = canvasRefs.value[currentSlotIndex.value]
+  if (!canvas) return
+  
+  const ctx = canvas.getContext('2d')
+  const width = canvas.width
+  const height = canvas.height
+  
+  // Trouver et marquer le joueur sélectionné
+  const totalWeight = currentDrawCandidates.value.reduce((sum, c) => sum + c.weight, 0)
+  let currentWeight = 0
+  
+  for (let i = 0; i < currentDrawCandidates.value.length; i++) {
+    const candidate = currentDrawCandidates.value[i]
+    const segmentWidth = (candidate.weight / totalWeight) * width
+    const segmentStartX = currentWeight / totalWeight * width
     
-    // Assigner le joueur au slot après l'effet
-    setTimeout(() => {
-      const slotIndex = currentSlotIndex.value
-      if (slotIndex !== -1) {
-        const slot = teamSlots.value.find(s => s.index === slotIndex)
-        if (slot) {
-          slot.player = selectedCandidate.name
-          // Utiliser directement l'ID du candidat
-          slot.playerId = selectedCandidate.id 
-          slot.isEmpty = false
-        }
-        
-        // Mettre à jour aussi slots.value pour la cohérence
-        if (slots.value && slots.value[slotIndex] !== undefined) {
-          slots.value[slotIndex] = selectedCandidate.name
-        }
-      }
-    
-      // Retirer le candidat de la liste
-      currentDrawCandidates.value = currentDrawCandidates.value.filter(c => c.name !== selectedCandidate.name)
-      currentDrawSelected.value++
+    if (candidate.name === selectedPlayerName) {
+      // Marquer le segment du joueur sélectionné
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.3)' // Vert transparent
+      ctx.fillRect(segmentStartX, 0, segmentWidth, height)
       
-      // Continuer avec le prochain slot
-      setTimeout(() => {
-        drawNextSlot()
-      }, 1500) // Pause d'1.5 seconde entre les tirages
-    }, 1000) // Délai pour l'effet boom
+      // Bordure verte
+      ctx.strokeStyle = '#10B981'
+      ctx.lineWidth = 3
+      ctx.strokeRect(segmentStartX, 0, segmentWidth, height)
+      break
+    }
+    
+    currentWeight += candidate.weight
   }
 }
 

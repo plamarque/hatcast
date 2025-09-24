@@ -4618,6 +4618,92 @@ onMounted(async () => {
       return
     }
 
+    // Fonction de debug pour charger TOUS les événements
+    window.loadAllEventsForDebug = async function() {
+      if (!seasonId.value) return
+      
+      try {
+        console.log('🔍 Debug: Chargement de TOUS les événements (y compris archivés et passés)')
+        const allEvents = await firestoreService.getDocuments('seasons', seasonId.value, 'events')
+        console.log('🔍 Debug: Événements trouvés:', allEvents.length)
+        
+        // Afficher les détails de chaque événement
+        allEvents.forEach(event => {
+          console.log(`  - ${event.title} (${event.date}): archived=${event.archived}, confirmed=${event.confirmed}`)
+        })
+        
+        // Remplacer temporairement la liste des événements
+        events.value = allEvents
+        console.log('🔍 Debug: Liste des événements mise à jour avec tous les événements')
+        
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement de tous les événements:', error)
+      }
+    }
+
+    // Fonction pour restaurer la vue normale (événements actifs seulement)
+    window.restoreNormalEventsView = async function() {
+      if (!seasonId.value) return
+      
+      try {
+        console.log('🔍 Debug: Restauration de la vue normale (événements actifs seulement)')
+        const activeEvents = await loadActiveEvents(seasonId.value)
+        events.value = activeEvents
+        console.log('🔍 Debug: Vue normale restaurée avec', activeEvents.length, 'événements actifs')
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la restauration de la vue normale:', error)
+      }
+    }
+
+    // Fonction pour tester le comptage des sélections
+    window.testSelectionCounting = function() {
+      console.log('🔍 Debug: Test du comptage des sélections')
+      console.log('📊 Événements disponibles:', events.value.length)
+      console.log('📊 Casts disponibles:', Object.keys(casts.value).length)
+      
+      // Tester avec quelques joueurs
+      const testPlayers = ['Rachid', 'Patrice', 'Véro', 'Marjo']
+      const testRoles = ['player', 'volunteer', 'mc', 'referee']
+      
+      testPlayers.forEach(playerName => {
+        console.log(`\n👤 ${playerName}:`)
+        testRoles.forEach(role => {
+          const count = countSelections(playerName, role)
+          console.log(`  ${role}: ${count} sélections`)
+        })
+      })
+    }
+
+    // Fonction pour tester le comptage avec tous les événements
+    window.testSelectionCountingWithAllEvents = function() {
+      console.log('🔍 Debug: Test du comptage avec TOUS les événements')
+      
+      // Sauvegarder la liste actuelle
+      const originalEvents = [...events.value]
+      
+      // Charger tous les événements
+      loadAllEventsForDebug().then(() => {
+        console.log('📊 Événements avec tous:', events.value.length)
+        
+        // Tester le comptage
+        const testPlayers = ['Rachid', 'Patrice', 'Véro', 'Marjo']
+        const testRoles = ['player', 'volunteer', 'mc', 'referee']
+        
+        testPlayers.forEach(playerName => {
+          console.log(`\n👤 ${playerName}:`)
+          testRoles.forEach(role => {
+            const count = countSelections(playerName, role)
+            console.log(`  ${role}: ${count} sélections`)
+          })
+        })
+        
+        // Restaurer la liste originale
+        events.value = originalEvents
+        console.log('✅ Liste des événements restaurée')
+      })
+    }
+
     // Charger les données de la saison
     if (seasonId.value) {
       // Étape 1: événements
