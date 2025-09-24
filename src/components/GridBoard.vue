@@ -3199,7 +3199,7 @@ onMounted(async () => {
       const targetEvent = events.value.find(e => e.id === eventId)
       if (targetEvent) {
         nextTick(() => {
-          showEventDetails(targetEvent, showAvailability)
+          showEventDetails(targetEvent, showAvailability, false) // Ne pas mettre à jour l'URL
         })
       }
     }
@@ -7460,7 +7460,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event, showAvailability = false) {
+async function showEventDetails(event, showAvailability = false, updateUrl = true) {
   // Démarrer la mesure de performance pour l'écran détail événement
   performanceService.start('event_detail_loading', {
     eventId: event.id,
@@ -7478,9 +7478,11 @@ async function showEventDetails(event, showAvailability = false) {
     currentUserPlayer.value = getCurrentUserPlayer()
   }
 
-  // 1. Mettre à jour l'URL pour refléter l'état de navigation
-  const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details${showAvailability ? '&showAvailability=true' : ''}`
-  router.push(newUrl)
+  // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
+  if (updateUrl) {
+    const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details${showAvailability ? '&showAvailability=true' : ''}`
+    router.push(newUrl)
+  }
 
   // 2. Tracker l'état de navigation (pas l'interaction modale)
   try {
