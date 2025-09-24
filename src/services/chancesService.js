@@ -191,16 +191,6 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
       const malus = calculateMalus(pastSelections)
       const weightedChances = calculateWeightedChances(malus, requiredCount)
       
-      // Debug: Log pour les joueurs avec des sélections passées
-      if (pastSelections > 0) {
-        logger.debug('ChancesService: Joueur avec sélections passées', {
-          player: player.name,
-          role,
-          pastSelections,
-          malus: malus.toFixed(2),
-          weight: weightedChances.toFixed(2)
-        })
-      }
       
       return {
         name: player.name,
