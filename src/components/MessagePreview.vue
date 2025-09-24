@@ -97,8 +97,8 @@
         </div>
       </div>
       
-      <!-- Bouton Demander confirmation (mode sélection uniquement) -->
-      <div v-if="mode === 'selection'" class="mt-4 flex justify-center">
+      <!-- Bouton Envoyer les notifications -->
+      <div class="mt-4 flex justify-center">
         <button
           @click="$emit('send-notifications')"
           :disabled="sending"
