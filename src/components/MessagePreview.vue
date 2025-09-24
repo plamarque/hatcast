@@ -38,7 +38,7 @@
               v-for="player in allDisplayRecipients.filter(p => p.id !== 'ALL')"
               :key="player.id || player.name"
               :class="[
-                'px-3 py-2 rounded text-sm border flex flex-col gap-1',
+                'px-2 py-1.5 rounded text-sm border flex flex-col gap-0.5 max-w-[200px]',
                 player.hasContact
                   ? 'bg-gray-700 border-gray-600 text-white'
                   : 'bg-yellow-900/20 border-yellow-600/40 text-yellow-200 opacity-75'
@@ -51,7 +51,7 @@
                 <span v-else class="text-yellow-400 text-xs">⚠️</span>
               </div>
               <div v-if="player.email" class="text-xs text-gray-400">
-                {{ player.email }}
+                {{ obfuscateEmail(player.email) }}
               </div>
             </div>
           </div>
@@ -59,6 +59,27 @@
         <div v-else class="text-amber-400 text-sm">
           ⚠️ Aucun destinataire disponible.
         </div>
+      </div>
+      
+      <!-- Bouton Demander confirmation (mode sélection uniquement) -->
+      <div v-if="mode === 'selection'" class="mt-4">
+        <button
+          @click="$emit('send-notifications')"
+          :disabled="sending"
+          class="w-full h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex items-center justify-center gap-2"
+        >
+          <span v-if="!sending">
+            <span class="hidden sm:inline">🔔 Envoyer notifications</span>
+            <span class="sm:hidden">🔔 Notifications</span>
+          </span>
+          <span v-else class="inline-flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            Envoi en cours...
+          </span>
+        </button>
       </div>
     </div>
 
@@ -91,6 +112,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { buildAvailabilityTextTemplate, buildCastTextMessage, buildGlobalCastAnnouncementMessage, buildGlobalConfirmedTeamAnnouncementTemplate } from '../services/emailTemplates.js'
+import { obfuscateEmail } from '../utils/obfuscation.js'
+
+const emit = defineEmits(['send-notifications'])
 
 const props = defineProps({
   mode: {
@@ -128,6 +152,11 @@ const props = defineProps({
   },
   // Pour le mode sélection, indique si tous les joueurs ont confirmé
   isSelectionConfirmedByAllPlayers: {
+    type: Boolean,
+    default: false
+  },
+  // Props pour le bouton de confirmation
+  sending: {
     type: Boolean,
     default: false
   }

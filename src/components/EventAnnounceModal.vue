@@ -26,38 +26,19 @@
           :selected-players-by-role="selectedPlayersByRole"
           :availability-by-player="availabilityByPlayer"
           :is-selection-confirmed-by-all-players="isSelectionConfirmedByAllPlayers"
+          :sending="computedSending"
+          @send-notifications="confirmAndSend"
         />
 
         <!-- Section Copie supprimée: bouton de copie présent dans le footer -->
       </div>
 
       <!-- Footer sticky -->
-      <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Action principale: Confirmer et envoyer -->
-        <div class="flex items-center gap-2 w-full">
-          <button
-            @click="confirmAndSend"
-            :disabled="computedSending"
-            class="h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex-1"
-          >
-            <span v-if="!computedSending">
-              <span class="hidden sm:inline">{{ mode === 'selection' ? '⏳ Demander confirmation' : '🔔 Notifier' }}</span>
-              <span class="sm:hidden">{{ mode === 'selection' ? '⏳ Confirmation' : '🔔 Notifier' }}</span>
-            </span>
-            <span v-else class="inline-flex items-center gap-2">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-              </svg>
-              Envoi en cours...
-            </span>
-          </button>
-        </div>
-        
+      <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center justify-center gap-3">
         <!-- Bouton WhatsApp -->
         <button 
           @click="openWhatsApp" 
-          class="h-12 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          class="h-12 px-6 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
           title="Ouvrir WhatsApp pour partager le message"
         >
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -67,7 +48,7 @@
         </button>
         
         <!-- Bouton fermer -->
-        <button @click="onClose" class="h-12 px-4 bg-gray-700 text-white rounded-lg">
+        <button @click="onClose" class="h-12 px-6 bg-gray-700 text-white rounded-lg">
           Fermer
         </button>
       </div>
