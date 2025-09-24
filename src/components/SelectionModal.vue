@@ -247,7 +247,7 @@
         <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-blue-200 text-sm">
             <span>⏳</span>
-            <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitivement confirmée lorsque tout le monde aura confirmé. Utilisez le bouton "Demander confirmation" pour les notifier !</span>
+            <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitivement confirmée lorsque tout le monde aura confirmé. Utilisez le bouton "Annoncer la compo" pour les notifier !</span>
           </div>
         </div>
 
@@ -399,14 +399,14 @@
           ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
-        <!-- Bouton Demander confirmation (visible seulement si organisateur a validé ET permissions d'édition) -->
+        <!-- Bouton Annoncer la compo (visible seulement si organisateur a validé ET permissions d'édition) -->
         <button 
           v-if="hasSelection && isSelectionConfirmedByOrganizer && canEditEvents" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Demander confirmation aux personnes composées"
+          title="Annoncer la composition à toute la troupe"
         >
-          ⏳ <span class="hidden sm:inline">Demander confirmation</span><span class="sm:hidden">Confirmation</span>
+          📢 <span class="hidden sm:inline">Annoncer la compo</span><span class="sm:hidden">Annoncer</span>
         </button>
 
         <!-- Bouton Réinitialiser (visible seulement si il y a une sélection ET que la composition n'est pas verrouillée ET permissions d'édition) -->
