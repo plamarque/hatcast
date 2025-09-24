@@ -28,14 +28,14 @@
             </slot>
           </th>
           
-          <!-- En-tête "Afficher Plus" si nécessaire -->
+          <!-- En-tête "Afficher Tous" si nécessaire -->
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
             class="col-header px-2 py-3 text-center"
             :style="{ width: `${itemColumnWidth * 1.5}px`, minWidth: `${itemColumnWidth * 1.5}px` }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
-              <!-- Slot pour le bouton "Afficher Plus" -->
+              <!-- Slot pour le bouton "Afficher Tous" -->
             </slot>
           </th>
         </tr>

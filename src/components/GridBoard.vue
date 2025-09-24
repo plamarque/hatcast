@@ -259,7 +259,7 @@
   </div>
 
 
-  <!-- Popin Afficher Plus avec autocomplete -->
+  <!-- Popin Afficher Tous avec autocomplete -->
   <div v-if="showShowMoreModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="closeShowMoreModal">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
       <!-- Header -->
@@ -2093,12 +2093,12 @@ const newPlayerGender = ref('non-specified')
 const newPlayerNameError = ref('')
 const newPlayerNameInput = ref(null)
 
-// Variables pour le popin Afficher Plus
+// Variables pour le popin Afficher Tous
 const showShowMoreModal = ref(false)
 const showMoreSearchQuery = ref('')
 const showMoreSearchInput = ref(null)
 const allSeasonPlayers = ref([]) // Tous les joueurs de la saison pour l'autocomplete
-const manuallyAddedPlayers = ref(new Set()) // Joueurs ajoutés manuellement via "Afficher Plus"
+const manuallyAddedPlayers = ref(new Set()) // Joueurs ajoutés manuellement via "Afficher Tous"
 const isFocusedView = ref(false) // Indique si on est en vue focalisée (favoris + joueur sélectionné)
 const originalPlayers = ref([]) // Sauvegarde des joueurs originaux pour revenir à la vue complète
 const isAllPlayersView = ref(false) // Indique si on affiche tous les joueurs (via "Tous")
@@ -2136,7 +2136,7 @@ async function openNewPlayerForm(prefilledName = '') {
   })
 }
 
-// Fonctions pour le popin Afficher Plus
+// Fonctions pour le popin Afficher Tous
 async function toggleShowMoreModal() {
   showShowMoreModal.value = !showShowMoreModal.value
   if (showShowMoreModal.value) {
@@ -5429,7 +5429,7 @@ const hiddenPlayersCount = computed(() => {
   return Math.max(0, totalSeasonPlayers - displayedCount)
 })
 
-// Computed pour l'affichage sous "Afficher Plus" (nombre de joueurs masqués)
+// Computed pour l'affichage sous "Afficher Tous" (nombre de joueurs masqués)
 const hiddenPlayersDisplayText = computed(() => {
   // Seulement pour les vues lignes et colonnes
   if (validCurrentView.value === 'timeline') {
@@ -5839,7 +5839,7 @@ const displayColumns = computed(() => {
   return validCurrentView.value === 'participants' ? displayedPlayers.value : displayedEvents.value
 })
 
-// Computed properties pour le popin Afficher Plus
+// Computed properties pour le popin Afficher Tous
 const filteredShowMorePlayers = computed(() => {
   if (!showMoreSearchQuery.value.trim()) {
     return allSeasonPlayers.value

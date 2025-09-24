@@ -48,7 +48,7 @@
           <span class="text-white text-sm font-normal">+</span>
         </div>
         <span class="text-white text-xs text-center leading-tight">
-          Afficher Plus
+          Afficher Tous
           <br>
           <span class="text-blue-200">{{ hiddenPlayersDisplayText }}</span>
         </span>
