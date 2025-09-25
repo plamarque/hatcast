@@ -69,7 +69,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
-import { isPlayerProtected } from '../services/playerProtection.js'
+import { isPlayerProtected } from '../services/players.js'
 import logger from '../services/logger.js'
 
 const emit = defineEmits(['avatar-loaded', 'avatar-error'])

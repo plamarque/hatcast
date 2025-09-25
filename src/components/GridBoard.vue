@@ -1923,9 +1923,9 @@ function getCurrentUserId() {
 }
 import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
-import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { listAssociationsForEmail } from '../services/players.js'
 import { signOut } from 'firebase/auth'
-import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
+import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/players.js'
 import { 
   setEventArchived,
   loadPlayers,
@@ -6087,7 +6087,7 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   
   try {
     // Vérifier directement si ce joueur est protégé par l'utilisateur connecté
-    const { getPlayerProtectionData } = await import('../services/playerProtection.js')
+    const { getPlayerData } = await import('../services/players.js')
     const protectionData = await getPlayerProtectionData(playerId, seasonId.value)
     
     // Le joueur appartient à l'utilisateur si :

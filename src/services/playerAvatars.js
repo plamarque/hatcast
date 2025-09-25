@@ -1,7 +1,7 @@
 // Service pour gérer les avatars des joueurs
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
-import { getPlayerProtectionData } from './playerProtection.js'
+import { getPlayerData } from './players.js'
 import { getFirebaseDb } from './firebase.js'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 
@@ -30,7 +30,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
     }
     
     // 1. Essayer d'abord de récupérer depuis la collection playerProtection
-    const protectionData = await getPlayerProtectionData(playerId, seasonId)
+    const protectionData = await getPlayerData(playerId, seasonId)
     
     if (protectionData && protectionData.photoURL) {
       const result = {

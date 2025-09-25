@@ -26,7 +26,7 @@ import { auth } from '../services/firebase.js'
 import { updateEmail as updateAuthEmail } from 'firebase/auth'
 import { setSingleAvailability } from '../services/storage.js'
 import firestoreService from '../services/firestoreService.js'
-import { markEmailVerifiedForProtection, finalizeProtectionAfterVerification } from '../services/playerProtection.js'
+import { markEmailVerifiedForProtection } from '../services/players.js'
 import logger from '../services/logger.js'
 
 const route = useRoute()

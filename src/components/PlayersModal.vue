@@ -49,7 +49,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { auth } from '../services/firebase.js'
 import firestoreService from '../services/firestoreService.js'
-import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { listAssociationsForEmail } from '../services/players.js'
 import PlayerAvatar from './PlayerAvatar.vue'
 
 const props = defineProps({

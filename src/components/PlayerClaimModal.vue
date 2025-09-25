@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { unprotectPlayer, isPlayerProtected, getPlayerProtectionData } from '../services/playerProtection.js'
+import { unprotectPlayer, isPlayerProtected, getPlayerData } from '../services/players.js'
 import { useRoute } from 'vue-router'
 import { currentUser } from '../services/authState.js'
 import logger from '../services/logger.js'
@@ -259,7 +259,7 @@ async function associatePlayerDirectly() {
     console.log('✅ Association créée avec succès dans Firestore')
     
     // Marquer l'email comme vérifié et sauvegarder l'avatar
-    const { markEmailVerifiedForProtection } = await import('../services/playerProtection.js')
+    const { markEmailVerifiedForProtection } = await import('../services/players.js')
     await markEmailVerifiedForProtection({ playerId: props.player.id, seasonId: props.seasonId })
     console.log('✅ Email marqué comme vérifié et avatar sauvegardé')
     
@@ -320,7 +320,7 @@ async function sendVerificationEmail() {
 
 async function restartEmailStep() {
   try {
-    const { clearEmailVerificationForProtection } = await import('../services/playerProtection.js')
+    const { clearEmailVerificationForProtection } = await import('../services/players.js')
     await clearEmailVerificationForProtection({ playerId: props.player.id, seasonId: props.seasonId })
   } catch {}
   step.value = 1
