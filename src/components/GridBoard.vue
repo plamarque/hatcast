@@ -874,28 +874,24 @@
               </div>
               
               <!-- Message si currentUserPlayer n'est pas défini -->
-              <div v-else-if="!currentUserPlayer" class="bg-gray-700/30 rounded-lg p-3">
-                <p class="text-sm text-gray-400 text-center">
-                  Chargement de votre profil...
+              <div v-else-if="!currentUserPlayer" class="bg-gray-700/30 rounded-lg p-4 text-center">
+                <div class="text-4xl mb-3">👤</div>
+                <h3 class="text-lg font-medium text-white mb-2">Profil joueur non trouvé</h3>
+                <p class="text-sm text-gray-400 mb-4">
+                  Pour indiquer tes disponibilités, tu dois d'abord être ajouté comme joueur dans cette saison.
                 </p>
-                <div class="text-xs text-gray-500 mt-2">
-                  DEBUG: currentUser={{ !!currentUser }}, currentUserPlayer={{ !!currentUserPlayer }}
-                  <br>Email: {{ currentUser?.email }}
-                  <br>Joueurs chargés: {{ allSeasonPlayers.length }}
-                  <br>Joueurs avec email: {{ allSeasonPlayers.filter(p => p.email).length }}
-                  <br>
-                  <details class="mt-2">
-                    <summary class="cursor-pointer text-blue-300">Voir les emails des joueurs</summary>
-                    <div class="mt-1 text-xs">
-                      {{ allSeasonPlayers.filter(p => p.email).map(p => `${p.name}: ${p.email}`).join(', ') }}
-                    </div>
-                  </details>
-                  <button 
-                    @click="currentUserPlayer = getCurrentUserPlayer()"
-                    class="mt-2 px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs hover:bg-blue-500/30"
-                  >
-                    Recharger profil
-                  </button>
+                <div class="space-y-2">
+                  <p class="text-xs text-gray-500">
+                    📧 Email connecté : <span class="text-gray-300">{{ currentUser?.email }}</span>
+                  </p>
+                  <p class="text-xs text-gray-500">
+                    👥 Joueurs dans la saison : {{ allSeasonPlayers.length }}
+                  </p>
+                </div>
+                <div class="mt-4 p-3 bg-blue-500/10 border border-blue-400/20 rounded-lg">
+                  <p class="text-sm text-blue-300">
+                    💡 Demande à l'organisateur de t'ajouter comme joueur avec ton email pour pouvoir participer !
+                  </p>
                 </div>
               </div>
             </div>
