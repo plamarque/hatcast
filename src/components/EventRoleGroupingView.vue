@@ -17,7 +17,7 @@
               ({{ getAvailableCountForRole(role) }}/{{ getRequiredCountForRole(role) }})
             </span>
           </div>
-          <div class="flex items-center gap-2">
+          <div v-if="showRoleStatus" class="flex items-center gap-2">
             <!-- Indicateur de statut du rôle -->
             <div 
               class="w-3 h-3 rounded-full"
@@ -229,6 +229,16 @@ const props = defineProps({
   getPlayerRoleChances: {
     type: Function,
     required: true
+  },
+  // Rôles filtrés (optionnel, si non fourni utilise availableRoles)
+  filteredRoles: {
+    type: Array,
+    default: null
+  },
+  // Afficher les indicateurs de statut des rôles (par défaut true)
+  showRoleStatus: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -236,6 +246,12 @@ const emit = defineEmits(['close'])
 
 // Computed properties
 const availableRoles = computed(() => {
+  // Si des rôles filtrés sont fournis, les utiliser
+  if (props.filteredRoles) {
+    return props.filteredRoles
+  }
+  
+  // Sinon, utiliser la logique par défaut
   if (!props.selectedEvent?.roles) return []
   
   return ROLE_PRIORITY_ORDER.filter(role => {

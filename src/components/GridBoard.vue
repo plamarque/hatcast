@@ -539,7 +539,7 @@
             
             <!-- Statut de l'événement sous l'avatar -->
             <SelectionStatusBadge
-              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0"
+              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
               :status="eventStatus?.type"
               :show="true"
               :clickable="false"
@@ -780,56 +780,60 @@
           <div class="p-4">
             <!-- Onglet Mes Dispos -->
             <div v-if="eventDetailsActiveTab === 'availability'">
-              <div v-if="currentUserPlayer" class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex-shrink-0">
-                    <PlayerAvatar 
-                      v-bind="getPlayerAvatarProps(currentUserPlayer)"
-                    />
+              <div v-if="currentUserPlayer">
+                <!-- Ligne principale : Avatar, nom, AvailabilityCell et bouton -->
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0">
+                      <PlayerAvatar 
+                        v-bind="getPlayerAvatarProps(currentUserPlayer)"
+                      />
+                    </div>
+                    <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
+                    <div class="w-20 h-16 flex-shrink-0">
+                      <AvailabilityCell
+                      :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
+                      :player-name="currentUserPlayer.name"
+                      :player-id="currentUserPlayer.id"
+                      :player-gender="currentUserPlayer.gender"
+                      :event-id="selectedEvent?.id"
+                      :event-title="selectedEvent?.title"
+                      :event-date="selectedEvent?.date"
+                      :availability-data="getCurrentUserAvailabilityForEvent()"
+                      :is-available="getCurrentUserAvailabilityForEvent()?.available"
+                      :is-selected="isPlayerSelected(currentUserPlayer.name, selectedEvent?.id)"
+                      :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
+                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                      :player-selection-status="getPlayerSelectionStatus(currentUserPlayer.name, selectedEvent?.id)"
+                      :season-id="seasonId"
+                      :chance-percent="null"
+                      :is-protected="false"
+                      :event-roles="selectedEvent?.roles || {}"
+                      @availability-changed="handleAvailabilityChanged"
+                      @show-availability-modal="openAvailabilityModalFromEventDetails"
+                      />
+                    </div>
                   </div>
-                  <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
-                  <div class="w-20 h-16 flex-shrink-0">
-                    <AvailabilityCell
-                    :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
-                    :player-name="currentUserPlayer.name"
-                    :player-id="currentUserPlayer.id"
-                    :player-gender="currentUserPlayer.gender"
-                    :event-id="selectedEvent?.id"
-                    :event-title="selectedEvent?.title"
-                    :event-date="selectedEvent?.date"
-                    :availability-data="getCurrentUserAvailabilityForEvent()"
-                    :is-available="getCurrentUserAvailabilityForEvent()?.available"
-                    :is-selected="isPlayerSelected(currentUserPlayer.name, selectedEvent?.id)"
-                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
-                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                    :player-selection-status="getPlayerSelectionStatus(currentUserPlayer.name, selectedEvent?.id)"
-                    :season-id="seasonId"
-                    :chance-percent="null"
-                    :is-protected="false"
-                    :event-roles="selectedEvent?.roles || {}"
-                    @availability-changed="handleAvailabilityChanged"
-                    @show-availability-modal="openAvailabilityModalFromEventDetails"
-                    />
-                  </div>
-                  <!-- Affichage de la note de disponibilité -->
-                  <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="flex-1 h-16 mx-2">
-                    <div class="h-full bg-gray-700/50 rounded-lg p-2 border border-gray-600/50 flex flex-col justify-center">
-                      <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-                        <span>📝</span>
-                        <span>Note</span>
-                      </div>
-                      <div class="text-sm text-gray-200 break-words leading-tight">
-                        {{ getCurrentUserAvailabilityForEvent()?.comment }}
-                      </div>
+                  <button
+                    @click="openConfirmationModalFromEventDetails"
+                    class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                  >
+                    Modifier
+                  </button>
+                </div>
+                
+                <!-- Ligne de la note : pleine largeur -->
+                <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="w-full mb-4">
+                  <div class="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
+                    <div class="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                      <span>📝</span>
+                      <span>Note</span>
+                    </div>
+                    <div class="text-sm text-gray-200 break-words leading-relaxed">
+                      {{ getCurrentUserAvailabilityForEvent()?.comment }}
                     </div>
                   </div>
                 </div>
-                <button
-                  @click="openConfirmationModalFromEventDetails"
-                  class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                >
-                  Modifier
-                </button>
               </div>
               
               <!-- Affichage des chances pour les rôles choisis -->
@@ -901,6 +905,73 @@
               <!-- Header de l'équipe -->
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
+                  <!-- Sélecteur de joueur pour l'équipe -->
+                  <div class="relative flex-shrink-0">
+                    <button
+                      @click="toggleTeamPlayerSelector"
+                      class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+                    >
+                      <!-- Avatar du joueur sélectionné -->
+                      <div v-if="showTeamPlayerAvatar" class="flex-shrink-0">
+                        <PlayerAvatar
+                          :player-id="currentTeamPlayer?.id"
+                          :player-name="currentTeamPlayer?.name"
+                          :season-id="seasonId"
+                          :player-gender="currentTeamPlayer?.gender || 'non-specified'"
+                          size="sm"
+                          class="w-5 h-5"
+                        />
+                      </div>
+                      <!-- Icône "Tous les joueurs" quand aucun joueur spécifique sélectionné -->
+                      <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
+                        <span class="text-xs">👥</span>
+                      </div>
+                      <span class="flex-1 text-left text-xs md:text-sm truncate">
+                        {{ teamPlayerDisplayText }}
+                      </span>
+                      <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </button>
+                    
+                    <!-- Dropdown du sélecteur de joueur -->
+                    <div v-if="showTeamPlayerSelector" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px] max-h-60 overflow-y-auto">
+                      <!-- Option "Tous les disponibles" -->
+                      <button
+                        @click="selectAllTeamPlayers"
+                        class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                      >
+                        <div class="w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
+                          <span class="text-xs">👥</span>
+                        </div>
+                        <span>Tous les disponibles</span>
+                      </button>
+                      
+                      <!-- Liste des joueurs disponibles -->
+                      <div v-for="player in availablePlayersForDropdown" :key="player.id" class="border-t border-gray-600">
+                        <button
+                          @click="selectTeamPlayer(player)"
+                          class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                        >
+                          <PlayerAvatar
+                            :player-id="player.id"
+                            :player-name="player.name"
+                            :season-id="seasonId"
+                            :player-gender="player.gender || 'non-specified'"
+                            size="sm"
+                            class="w-5 h-5"
+                          />
+                          <span>{{ player.name }}</span>
+                        </button>
+                      </div>
+                      
+                      <!-- Message si aucun joueur disponible -->
+                      <div v-if="availablePlayersForDropdown.length === 0" class="border-t border-gray-600 px-3 py-2 text-center text-sm text-gray-400">
+                        Aucun joueur disponible pour cet événement
+                      </div>
+                    </div>
+                  </div>
+                  
                   <!-- Bouton pour afficher les chances détaillées -->
                   <button 
                     v-if="selectedEvent"
@@ -959,7 +1030,9 @@
                 v-if="selectedEvent"
                 :selected-event="selectedEvent"
                 :season-id="seasonId"
-                :players="enrichedAllSeasonPlayers"
+                :players="filteredTeamPlayers"
+                :filtered-roles="filteredTeamRoles"
+                :show-role-status="!selectedTeamPlayer"
                 :availability="availability"
                 :casts="casts"
                 :chances="chances"
@@ -2853,6 +2926,10 @@ const showEventActionsDropdown = ref(false)
 
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
+
+// État du sélecteur de joueur dans l'onglet équipe
+const showTeamPlayerSelector = ref(false)
+const selectedTeamPlayer = ref(null)
 
 // Variables pour la modale de confirmation
 const showConfirmationModal = ref(false)
@@ -7919,6 +7996,9 @@ function closeEventDetails() {
   // Fermer le dropdown Google Maps
   showGoogleMapsDropdown.value = false;
   
+  // Fermer le sélecteur de joueur dans l'équipe
+  showTeamPlayerSelector.value = false;
+  
   // Réinitialiser l'état du partage de lien
   showShareLinkCopied.value = false;
   // Cache fix: removed eventMoreActionsStyle references
@@ -9120,6 +9200,79 @@ function closeSelectionModal() {
 function showCompositionModal(event) {
   openSelectionModal(event)
 }
+
+// Fonctions pour le sélecteur de joueur dans l'onglet équipe
+function toggleTeamPlayerSelector() {
+  showTeamPlayerSelector.value = !showTeamPlayerSelector.value
+}
+
+function selectTeamPlayer(player) {
+  selectedTeamPlayer.value = player
+  showTeamPlayerSelector.value = false
+}
+
+function selectAllTeamPlayers() {
+  selectedTeamPlayer.value = null
+  showTeamPlayerSelector.value = false
+}
+
+// Computed pour le joueur sélectionné dans l'équipe (par défaut le joueur courant)
+const currentTeamPlayer = computed(() => {
+  if (selectedTeamPlayer.value) {
+    return selectedTeamPlayer.value
+  }
+  return currentUserPlayer.value
+})
+
+// Computed pour le texte d'affichage du sélecteur
+const teamPlayerDisplayText = computed(() => {
+  if (selectedTeamPlayer.value) {
+    return selectedTeamPlayer.value.name
+  }
+  return currentUserPlayer.value ? currentUserPlayer.value.name : 'Tous les disponibles'
+})
+
+// Computed pour savoir si on affiche l'avatar
+const showTeamPlayerAvatar = computed(() => {
+  return selectedTeamPlayer.value || currentUserPlayer.value
+})
+
+// Computed pour filtrer les joueurs selon la sélection dans l'équipe
+const filteredTeamPlayers = computed(() => {
+  if (selectedTeamPlayer.value) {
+    return [selectedTeamPlayer.value]
+  }
+  return allSeasonPlayers.value
+})
+
+// Computed pour filtrer les rôles selon la sélection dans l'équipe
+const filteredTeamRoles = computed(() => {
+  if (!selectedEvent.value?.roles) return []
+  
+  const allRoles = ROLE_PRIORITY_ORDER.filter(role => {
+    const count = selectedEvent.value.roles[role] || 0
+    return count > 0
+  })
+  
+  // Si un joueur spécifique est sélectionné, filtrer les rôles où il est disponible
+  if (selectedTeamPlayer.value) {
+    return allRoles.filter(role => {
+      return isAvailableForRole(selectedTeamPlayer.value.name, role, selectedEvent.value.id)
+    })
+  }
+  
+  // Sinon, afficher tous les rôles
+  return allRoles
+})
+
+// Computed pour filtrer les joueurs disponibles dans le dropdown
+const availablePlayersForDropdown = computed(() => {
+  if (!selectedEvent.value) return []
+  
+  return allSeasonPlayers.value.filter(player => {
+    return isAvailable(player.name, selectedEvent.value.id)
+  })
+})
 
 async function openChancesModal() {
   if (!selectedEvent.value) return
