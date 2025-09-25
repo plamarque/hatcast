@@ -36,8 +36,8 @@
           :player-name="item.name"
           :player-gender="item.gender || 'non-specified'"
           :show-status-icons="true"
-          :size="'sm'"
-          class="w-6 h-6"
+          :size="'lg'"
+          class="!w-10 !h-10"
         />
         <span class="text-white text-xs text-center leading-tight">{{ item.name }}</span>
       </div>
