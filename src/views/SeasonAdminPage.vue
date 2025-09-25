@@ -585,7 +585,7 @@ import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, 
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
-import { migratePlayerProtectionToPlayers } from '../services/playerProtection.js'
+import { migratePlayerProtectionToPlayers } from '../services/players.js'
 
 // Props et route
 const router = useRouter()
