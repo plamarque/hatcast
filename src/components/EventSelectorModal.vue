@@ -224,7 +224,10 @@ const selectEvent = (event) => {
 }
 
 const selectAllEvents = () => {
-  emit('all-events-selected')
+  emit('all-events-selected', {
+    hidePastEvents: hidePastEvents.value,
+    hideArchivedEvents: hideArchivedEvents.value
+  })
   closeModal()
 }
 

@@ -28,14 +28,25 @@
             </slot>
           </th>
           
-          <!-- En-tête "Afficher Tous" si nécessaire -->
+          <!-- En-tête "Afficher Tous" pour les joueurs si nécessaire -->
           <th
             v-if="!isAllPlayersView && hiddenPlayersCount > 0"
             class="col-header px-2 py-3 text-center"
             :style="{ width: `${itemColumnWidth * 1.5}px`, minWidth: `${itemColumnWidth * 1.5}px` }"
           >
             <slot name="show-more-header" :item-width="itemColumnWidth">
-              <!-- Slot pour le bouton "Afficher Tous" -->
+              <!-- Slot pour le bouton "Afficher Tous" des joueurs -->
+            </slot>
+          </th>
+          
+          <!-- En-tête "Afficher Tous" pour les événements si nécessaire -->
+          <th
+            v-if="!isAllEventsView && hiddenEventsCount > 0"
+            class="col-header px-2 py-3 text-center"
+            :style="{ width: `${itemColumnWidth * 1.5}px`, minWidth: `${itemColumnWidth * 1.5}px` }"
+          >
+            <slot name="show-more-events-header" :item-width="itemColumnWidth">
+              <!-- Slot pour le bouton "Afficher Tous" des événements -->
             </slot>
           </th>
         </tr>
@@ -121,6 +132,20 @@ const props = defineProps({
     default: ''
   },
   
+  // Props pour les événements cachés
+  isAllEventsView: {
+    type: Boolean,
+    default: false
+  },
+  hiddenEventsCount: {
+    type: Number,
+    default: 0
+  },
+  hiddenEventsDisplayText: {
+    type: String,
+    default: ''
+  },
+  
   // Permissions et fonctions
   canEditAvailability: {
     type: Boolean,
@@ -138,7 +163,8 @@ const emit = defineEmits([
   'player-selected',
   'availability-changed',
   'scroll',
-  'toggle-player-modal'
+  'toggle-player-modal',
+  'toggle-event-modal'
 ])
 
 // Refs
@@ -220,6 +246,10 @@ const handleAvailabilityChanged = (data) => {
 
 const togglePlayerModal = () => {
   emit('toggle-player-modal')
+}
+
+const toggleEventModal = () => {
+  emit('toggle-event-modal')
 }
 
 

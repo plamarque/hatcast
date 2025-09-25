@@ -19,7 +19,14 @@
           <div
           v-for="event in monthData.events"
             :key="event.id"
-          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative w-full min-w-0"
+          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl transition-all duration-200 cursor-pointer relative w-full min-w-0"
+          :class="[
+            event._isArchived 
+              ? 'bg-gray-600/30 hover:bg-gray-500/40 border border-gray-500/30' 
+              : event._isPast 
+                ? 'bg-amber-800/30 hover:bg-amber-700/40 border border-amber-600/30' 
+                : 'bg-gray-800/30 hover:bg-gray-700/40 border border-gray-700/30'
+          ]"
             @click="$emit('event-click', event)"
           >
           <!-- Date compacte (numéro + jour) -->
@@ -44,10 +51,32 @@
             
             <!-- Titre de l'événement -->
             <div class="event-title flex-1 min-w-0 mr-6">
-              <div class="text-white font-medium text-base line-clamp-2 leading-tight">
+              <div 
+                class="font-medium text-base line-clamp-2 leading-tight"
+                :class="[
+                  event._isArchived 
+                    ? 'text-gray-400' 
+                    : event._isPast 
+                      ? 'text-amber-200' 
+                      : 'text-white'
+                ]"
+                :title="event.title + (event._isArchived ? ' (Archivé)' : event._isPast ? ' (Passé)' : '')"
+              >
                 {{ event.title || 'Sans titre' }}
+                <span v-if="event._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
+                <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
               </div>
-              <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
+              <div 
+                v-if="event.location" 
+                class="text-xs truncate mt-1"
+                :class="[
+                  event._isArchived 
+                    ? 'text-gray-500' 
+                    : event._isPast 
+                      ? 'text-amber-300' 
+                      : 'text-gray-400'
+                ]"
+              >
                 📍 {{ event.location }}
               </div>
               <!-- Badge de statut en dessous du titre, aligné avec le texte -->
@@ -359,6 +388,7 @@ export default {
     // Grouper les événements par mois
     const groupedEventsByMonth = computed(() => {
       console.log('TimelineView: groupedEventsByMonth computed, events:', props.events)
+      console.log('TimelineView: selectedEventId:', props.selectedEventId)
 
       // Vérifier que les données sont disponibles
       if (!props.events || !Array.isArray(props.events)) {
@@ -366,13 +396,21 @@ export default {
         return []
       }
       
+      console.log('TimelineView: Nombre d\'événements à traiter:', props.events.length)
+      
       const months = {}
       
       props.events.forEach(event => {
-        if (!event || event.archived) return // Ignorer les événements archivés ou invalides
+        if (!event) return // Ignorer les événements invalides
+        
+        // Si un événement spécifique est sélectionné, afficher même les archivés
+        // Sinon, ignorer les événements archivés
+        if (event._isArchived && !props.selectedEventId) return
         
         try {
+          console.log('TimelineView: Traitement de la date pour:', event.title, 'date:', event.date)
           const date = new Date(event.date)
+          console.log('TimelineView: Date parsée:', date, 'isValid:', !isNaN(date.getTime()))
           if (isNaN(date.getTime())) {
             console.warn('TimelineView: Date invalide pour l\'événement:', event)
             return
@@ -393,7 +431,8 @@ export default {
           
           months[monthKey].events.push({
             ...event,
-            date: date,
+            // Garder la date originale (string) pour les composants qui l'attendent
+            // date: date, // ← Ne pas remplacer la date originale
             dayNumber: date.getDate(),
             dayName: getDayName(date)
           })

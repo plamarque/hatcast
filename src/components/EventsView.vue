@@ -11,6 +11,9 @@
     :is-all-players-view="isAllPlayersView"
     :hidden-players-count="hiddenPlayersCount"
     :hidden-players-display-text="hiddenPlayersDisplayText"
+    :is-all-events-view="isAllEventsView"
+    :hidden-events-count="hiddenEventsCount"
+    :hidden-events-display-text="hiddenEventsDisplayText"
     :can-edit-availability="canEditAvailability"
     :get-player-availability="getPlayerAvailability"
     :header-offset-x="headerOffsetX"
@@ -19,6 +22,7 @@
     @availability-changed="handleAvailabilityChanged"
     @scroll="handleScroll"
     @toggle-player-modal="togglePlayerModal"
+    @toggle-event-modal="toggleEventModal"
   >
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
@@ -146,21 +150,35 @@
         >
           <button
             class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
-            @click="togglePlayerModal"
+            @click="addAllPlayersToGrid"
           >
             <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
               <span class="text-white text-sm font-normal">+</span>
             </div>
             <span class="text-sm">
-              Afficher Tous
-              <br>
-              <span class="text-blue-200 text-xs">{{ hiddenPlayersDisplayText }}</span>
+              voir les {{ hiddenPlayersCount }} autres
             </span>
           </button>
         </td>
         
         <!-- Cellules vides pour "Afficher Plus" -->
       </tr>
+      
+    </template>
+    
+    <!-- En-tête "Afficher Tous" pour les événements -->
+    <template #show-more-events-header="{ itemWidth }">
+      <div
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
+        @click="addAllEventsToGrid"
+      >
+        <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+          <span class="text-white text-sm font-normal">+</span>
+        </div>
+        <span class="text-white text-xs text-center leading-tight">
+          voir les {{ hiddenEventsCount }} autres
+        </span>
+      </div>
     </template>
   </BaseGridView>
 </template>
@@ -174,6 +192,8 @@ import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
+import { loadPlayers, loadAvailability } from '../services/storage.js'
+import logger from '../services/logger.js'
 
 // Props
 const props = defineProps({
@@ -278,6 +298,19 @@ const props = defineProps({
   headerScrollX: {
     type: Number,
     default: 0
+  },
+  // Props pour les événements cachés
+  isAllEventsView: {
+    type: Boolean,
+    default: false
+  },
+  hiddenEventsCount: {
+    type: Number,
+    default: 0
+  },
+  hiddenEventsDisplayText: {
+    type: String,
+    default: ''
   }
 })
 
@@ -287,10 +320,13 @@ const emit = defineEmits([
   'availability-changed',
   'scroll',
   'toggle-player-modal',
+  'toggle-event-modal',
   'toggle-availability',
   'toggle-selection-status',
   'show-availability-modal',
-  'event-click'
+  'event-click',
+  'all-players-loaded',
+  'all-events-loaded'
 ])
 
 // State pour la réactivité de la largeur d'écran
@@ -412,6 +448,10 @@ const togglePlayerModal = () => {
   emit('toggle-player-modal')
 }
 
+const toggleEventModal = () => {
+  emit('toggle-event-modal')
+}
+
 const toggleAvailability = (playerName, eventId) => {
   emit('toggle-availability', playerName, eventId)
 }
@@ -430,6 +470,41 @@ const openConfirmationModal = (data) => {
 
 const openEventModal = (event) => {
   emit('event-click', event)
+}
+
+// Fonction pour ajouter tous les joueurs à la grille
+async function addAllPlayersToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les joueurs de la saison...')
+    
+    // Charger tous les joueurs
+    const allPlayers = await loadPlayers(props.seasonId)
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(allPlayers, props.events, props.seasonId)
+    
+    logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
+    logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
+    
+    // Émettre l'événement pour notifier le parent
+    emit('all-players-loaded', { players: allPlayers, availability: newAvailability })
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les joueurs:', error)
+  }
+}
+
+// Fonction pour ajouter tous les événements à la grille
+async function addAllEventsToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les événements de la saison...')
+    
+    // Émettre l'événement pour notifier le parent de charger tous les événements
+    emit('all-events-loaded')
+    
+    logger.debug('✅ Demande de chargement de tous les événements envoyée')
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les événements:', error)
+  }
 }
 </script>
 

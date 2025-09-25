@@ -63,7 +63,7 @@
     <!-- Modal de sélection d'événement -->
     <EventSelectorModal
       :show="showEventModal"
-      :events="events"
+      :events="allEvents"
       :selected-event-id="selectedEventId"
       :get-selection-players="getSelectionPlayers"
       :get-total-required-count="getTotalRequiredCount"
@@ -194,6 +194,7 @@
         :casts="casts"
         :season-id="seasonId"
         :selected-player-id="selectedPlayerId"
+        :selected-event-id="selectedEventId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-available="isAvailable"
         :is-player-selected="isPlayerSelected"
@@ -3312,8 +3313,15 @@ async function handleAllEventsLoaded() {
   try {
     logger.debug('🔄 Réception de l\'événement all-events-loaded')
     
+    // Charger TOUS les événements (y compris archivés et passés)
+    if (seasonId.value) {
+      logger.debug('🔄 Chargement de tous les événements (y compris archivés et passés)')
+      const allEvents = await firestoreService.getDocuments('seasons', seasonId.value, 'events')
+      events.value = allEvents
+      logger.debug(`📊 Chargé ${allEvents.length} événements (tous, y compris archivés et passés)`)
+    }
+    
     // Activer le mode "tous les événements" (afficher tous les événements, y compris archivés et passés)
-    // On utilise un état spécial pour indiquer qu'on veut voir tous les événements
     isAllEventsView.value = true
     
     // Réinitialiser la sélection d'événement pour afficher tous les événements
@@ -4966,6 +4974,7 @@ async function openNewEventForm() {
 }
 
 const events = ref([])
+const allEventsData = ref([]) // Tous les événements (y compris passés et archivés)
 const players = ref([])
 const availability = ref({})
 const casts = ref({})
@@ -5283,6 +5292,13 @@ onMounted(async () => {
       // Étape 1: événements
       currentLoadingLabel.value = 'Chargement des événements de la saison'
       loadingProgress.value = 20
+      
+      // Charger TOUS les événements (y compris passés et archivés)
+      allEventsData.value = await performanceService.measureStep('load_all_events', async () => {
+        return await firestoreService.getDocuments('seasons', seasonId.value, 'events')
+      }, { seasonId: seasonId.value, count: 'unknown' })
+      
+      // Filtrer pour ne garder que les événements actifs dans events.value
       events.value = await performanceService.measureStep('load_events', async () => {
         return await loadActiveEvents(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
@@ -6179,12 +6195,33 @@ const sortedEvents = computed(() => {
   })
 })
 
+// Computed pour tous les événements (y compris passés et archivés) - utilisé par EventSelectorModal
+const allEvents = computed(() => {
+  // Utiliser allEventsData qui contient tous les événements
+  return [...allEventsData.value].sort((a, b) => {
+    const da = toDateObject(a.date)
+    const db = toDateObject(b.date)
+    const ta = da ? da.getTime() : Number.POSITIVE_INFINITY
+    const tb = db ? db.getTime() : Number.POSITIVE_INFINITY
+    if (ta !== tb) return ta - tb
+    return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
+  })
+})
+
 
 const displayedEvents = computed(() => {
-  let filteredEvents = sortedEvents.value
+  let filteredEvents
   
-  // Par défaut, filtrer les événements archivés et passés (sauf si on est en mode "tous les événements")
-  if (!isAllEventsView.value) {
+  // Si un événement spécifique est sélectionné, utiliser tous les événements pour le trouver
+  if (selectedEventId.value) {
+    filteredEvents = allEvents.value
+    filteredEvents = filteredEvents.filter(event => event.id === selectedEventId.value)
+  } else if (isAllEventsView.value) {
+    // Mode "tous les événements" : afficher tous les événements
+    filteredEvents = allEvents.value
+  } else {
+    // Mode normal : afficher seulement les événements actifs
+    filteredEvents = sortedEvents.value
     const now = new Date()
     filteredEvents = filteredEvents.filter(event => {
       // Garder les événements non archivés
@@ -6206,12 +6243,22 @@ const displayedEvents = computed(() => {
     })
   }
   
-  // Appliquer le filtre d'événement si un événement spécifique est sélectionné
-  if (selectedEventId.value) {
-    filteredEvents = filteredEvents.filter(event => event.id === selectedEventId.value)
-  }
-  
-  return filteredEvents
+  // Enrichir les événements avec les propriétés _isPast et _isArchived
+  const now = new Date()
+  return filteredEvents.map(event => {
+    const eventDate = (() => {
+      if (event.date instanceof Date) return event.date
+      if (typeof event.date?.toDate === 'function') return event.date.toDate()
+      const d = new Date(event.date)
+      return isNaN(d.getTime()) ? null : d
+    })()
+    
+    return {
+      ...event,
+      _isArchived: event.archived === true,
+      _isPast: eventDate ? eventDate < now : false
+    }
+  })
 })
 
 // Computed pour l'événement sélectionné pour le filtre
@@ -8500,17 +8547,46 @@ function toggleEventModal() {
 
 function closeEventModal() {
   console.log('🚪 closeEventModal called')
-  showEventModal.value = false
+  try {
+    showEventModal.value = false
+  } catch (error) {
+    console.error('❌ Erreur lors de la fermeture de la modale:', error)
+  }
 }
 
 function handleEventSelected(event) {
   console.log('🎭 handleEventSelected:', event)
-  selectedEventId.value = event.id
-  closeEventModal()
+  
+  // Utiliser nextTick pour éviter les problèmes de réactivité
+  nextTick(() => {
+    try {
+      selectedEventId.value = event.id
+      closeEventModal()
+    } catch (error) {
+      console.error('❌ Erreur lors de la sélection d\'événement:', error)
+    }
+  })
 }
 
-function handleAllEventsSelected() {
-  console.log('🎭 handleAllEventsSelected')
+function handleAllEventsSelected(filters = {}) {
+  console.log('🎭 handleAllEventsSelected', filters)
+  
+  // Si les filtres permettent d'afficher les événements passés/archivés, charger tous les événements
+  if (!filters.hidePastEvents || !filters.hideArchivedEvents) {
+    // Charger TOUS les événements (y compris passés et archivés)
+    if (seasonId.value) {
+      console.log('🔄 Chargement de tous les événements (y compris passés et archivés)')
+      firestoreService.getDocuments('seasons', seasonId.value, 'events').then(allEvents => {
+        events.value = allEvents
+        console.log(`📊 Chargé ${allEvents.length} événements (tous, y compris passés et archivés)`)
+      }).catch(error => {
+        console.error('❌ Erreur lors du chargement de tous les événements:', error)
+      })
+    }
+  }
+  
+  // Activer le mode "tous les événements"
+  isAllEventsView.value = true
   selectedEventId.value = null
   closeEventModal()
 }
