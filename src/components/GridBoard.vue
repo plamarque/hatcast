@@ -1088,6 +1088,7 @@
                 :is-available-for-role="isAvailableForRole"
                 :is-selection-complete="isSelectionComplete"
                 :get-player-role-chances="getPlayerRoleChances"
+                :count-selections="countSelections"
               />
             </div>
           </div>

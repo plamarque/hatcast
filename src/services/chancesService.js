@@ -126,17 +126,16 @@ export function calculateExactProbability(places, totalCandidates, malus = 1) {
   if (places === 0 || totalCandidates === 0) return 0
   if (places >= totalCandidates) return 1
   
-  // Calcul exact : somme des probabilités pour chaque tirage sans remise
-  // P(être sélectionné) = Σ(i=1 à places) [1 / (totalCandidates - i + 1)]
+  // Calcul exact : somme des probabilités pour chaque tirage avec malus appliqué
+  // P(être sélectionné) = Σ(i=1 à places) [malus / (totalCandidates - i + 1)]
   let probability = 0
   
   for (let i = 1; i <= places; i++) {
     const remainingCandidates = totalCandidates - i + 1
-    probability += 1 / remainingCandidates
+    probability += malus / remainingCandidates
   }
   
-  // Appliquer le malus : réduire la probabilité selon le coefficient
-  return probability * malus
+  return probability
 }
 
 /**
@@ -233,13 +232,13 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
   
   // Ajouter les chances pratiques et le total des poids à chaque candidat
   const candidatesWithChances = candidates.map(candidate => {
-    // Calculer la probabilité exacte
-    const exactProbability = calculateExactProbability(requiredCount, candidates.length, candidate.malus)
+    // Utiliser la largeur de l'intervalle du joueur (cohérent avec l'algorithme de tirage)
+    // Pourcentage = (poids du joueur / poids total) × 100
+    const practicalChance = totalWeight > 0 ? (candidate.weight / totalWeight) * 100 : 0
     
     return {
       ...candidate,
-      practicalChance: exactProbability * 100, // Convertir en pourcentage
-      exactProbability, // Garder la probabilité exacte pour les explications
+      practicalChance, // Utiliser le calcul simple basé sur la largeur d'intervalle
       totalWeight,
       availableCount: candidates.length, // Ajouter le nombre de candidats disponibles
       requiredCount // Ajouter requiredCount à chaque candidat pour le template

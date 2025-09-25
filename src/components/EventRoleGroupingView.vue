@@ -302,6 +302,10 @@ const props = defineProps({
     type: Function,
     required: true
   },
+  countSelections: {
+    type: Function,
+    required: true
+  },
   // Rôles filtrés (optionnel, si non fourni utilise availableRoles)
   filteredRoles: {
     type: Array,
@@ -444,6 +448,16 @@ function getChanceExplanation(playerName, role) {
   console.log('🔍 Candidate pastSelections:', candidate?.pastSelections)
   console.log('🔍 Candidate malus:', candidate?.malus)
   console.log('🔍 Candidate practicalChance:', candidate?.practicalChance)
+  
+  // Debug des données de base
+  console.log('🔍 Props countSelections function:', typeof props.countSelections)
+  
+  // Tester la fonction countSelections directement
+  if (props.countSelections) {
+    const directCount = props.countSelections(playerName, role)
+    console.log('🔍 Direct countSelections call:', directCount)
+    console.log('🔍 Expected pastSelections should match directCount:', directCount)
+  }
   
   if (!candidate) {
     console.log('❌ No candidate found for player:', playerName)
