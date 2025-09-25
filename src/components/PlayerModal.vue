@@ -228,7 +228,7 @@ import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
+import { isPlayerProtected, isPlayerPasswordCached } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
 import roleService from '../services/roleService.js'
 
@@ -446,7 +446,7 @@ async function handleProtectionUpdate() {
   if (props.player?.id) {
     try {
       console.log('🔄 Rechargement de l\'état de protection depuis le backend...')
-      const { isPlayerProtected } = await import('../services/playerProtection.js')
+      const { isPlayerProtected } = await import('../services/players.js')
       isProtectedForPlayer.value = await isPlayerProtected(props.player.id, props.seasonId)
       console.log('✅ État de protection rechargé:', isProtectedForPlayer.value)
     } catch (error) {
@@ -490,7 +490,7 @@ watch(() => props.show, (newValue) => {
   }
   if (newValue && props.player?.id) {
     isPlayerProtected(props.player.id, props.seasonId).then(v => { isProtectedForPlayer.value = !!v })
-    import('../services/playerProtection.js').then(mod => {
+    import('../services/players.js').then(mod => {
       try { 
         // Seulement considérer comme owner si l'utilisateur est connecté ET a un cache
         const isConnected = !!currentUser.value?.email

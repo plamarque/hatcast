@@ -155,7 +155,7 @@ import { getFirebaseAuth, getFirebaseDb, resetPlayerPassword } from '../services
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { createAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { queueVerificationEmail } from '../services/emailService.js'
-import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { listAssociationsForEmail } from '../services/players.js'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({

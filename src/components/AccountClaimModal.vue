@@ -67,7 +67,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { startEmailVerificationForProtection, protectPlayer, getPlayerProtectionData, clearEmailVerificationForProtection } from '../services/playerProtection.js'
+import { startEmailVerificationForProtection, protectPlayer, getPlayerData, clearEmailVerificationForProtection } from '../services/players.js'
 import { queueProtectionVerificationEmail } from '../services/emailService.js'
 import { useRoute } from 'vue-router'
 
@@ -136,7 +136,7 @@ async function refreshVerificationStatus() {
   }
   
   try {
-    const data = await getPlayerProtectionData(props.player.id, props.seasonId)
+    const data = await getPlayerData(props.player.id, props.seasonId)
     if (data?.email && data?.emailVerifiedAt) {
       step.value = 2
     } else {
