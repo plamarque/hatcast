@@ -35,65 +35,92 @@
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
-            class="flex items-center gap-3 p-2 rounded-md hover:bg-gray-700/50 transition-colors"
+            :class="[
+              'p-3 rounded-lg border transition-all duration-200',
+              isPlayerSelectedForRole(player.name, role, selectedEvent.id)
+                ? [
+                    'bg-gradient-to-r',
+                    getPlayerSelectionStatus(player.name) === 'declined'
+                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
+                      : getPlayerSelectionStatus(player.name) === 'confirmed'
+                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
+                        : getPlayerSelectionStatus(player.name) === 'pending'
+                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
+                          : 'from-green-500/60 to-emerald-500/60 border-green-500/30'
+                  ]
+                : 'flex items-center gap-3 rounded-md hover:bg-gray-700/50 border-transparent'
+            ]"
           >
-            <!-- Avatar du joueur -->
-            <div class="relative flex-shrink-0">
-              <PlayerAvatar 
-                :player-id="player.id"
-                :season-id="seasonId"
-                :player-name="player.name"
-                :player-gender="player.gender || 'non-specified'"
-                size="sm"
-              />
-              <!-- Statuts superposés -->
-              <span
-                v-if="preferredPlayerIdsSet.has(player.id)"
-                class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                title="Ma personne"
-              >
-                ⭐
+            <!-- Design carte de composition pour joueurs sélectionnés -->
+            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)" class="flex items-center gap-3">
+              <!-- Avatar du joueur -->
+              <div class="flex-shrink-0">
+                <PlayerAvatar 
+                  :player-id="player.id"
+                  :season-id="seasonId"
+                  :player-name="player.name"
+                  :player-gender="player.gender || 'non-specified'"
+                  size="sm"
+                />
+              </div>
+              
+              <!-- Nom du joueur -->
+              <span class="text-white font-medium flex-1 min-w-0 truncate">
+                {{ player.name }}
               </span>
-              <span
-                v-else-if="isPlayerProtectedInGrid(player.id)"
-                class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                title="Personne protégée par mot de passe"
+              
+              <!-- Pourcentage de chances -->
+              <span 
+                class="px-2 py-1 rounded text-xs font-medium flex-shrink-0"
+                :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
               >
-                🔒
+                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
               </span>
             </div>
 
-            <!-- Nom du joueur -->
-            <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
-              {{ player.name }}
-            </span>
+            <!-- Design classique pour joueurs non sélectionnés -->
+            <template v-else>
+              <!-- Avatar du joueur -->
+              <div class="relative flex-shrink-0">
+                <PlayerAvatar 
+                  :player-id="player.id"
+                  :season-id="seasonId"
+                  :player-name="player.name"
+                  :player-gender="player.gender || 'non-specified'"
+                  size="sm"
+                />
+                <!-- Statuts superposés -->
+                <span
+                  v-if="preferredPlayerIdsSet.has(player.id)"
+                  class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                  title="Ma personne"
+                >
+                  ⭐
+                </span>
+                <span
+                  v-else-if="isPlayerProtectedInGrid(player.id)"
+                  class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                  title="Personne protégée par mot de passe"
+                >
+                  🔒
+                </span>
+              </div>
 
-            <!-- Indicateurs de statut -->
-            <div class="flex items-center gap-2 flex-shrink-0">
+              <!-- Nom du joueur -->
+              <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
+                {{ player.name }}
+              </span>
+
               <!-- Pourcentage de chances -->
               <span 
-                v-if="!isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
                 class="px-2 py-1 rounded text-xs font-medium"
                 :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
                 :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
               </span>
-              
-              <!-- Statut de sélection -->
-              <span 
-                v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
-                class="px-1.5 py-0.5 rounded text-xs font-medium"
-                :class="isSelectionConfirmed(selectedEvent.id) 
-                  ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
-                  : 'bg-blue-600/20 text-blue-400 border border-blue-600/30'"
-              >
-                {{ isSelectionConfirmed(selectedEvent.id) 
-                  ? (player.gender === 'female' ? 'Confirmée' : player.gender === 'male' ? 'Confirmé' : 'Confirmé·e')
-                  : (player.gender === 'female' ? 'Sélectionnée' : player.gender === 'male' ? 'Sélectionné' : 'Sélectionné·e') }}
-              </span>
-              
-            </div>
+            </template>
           </div>
 
           <!-- Message si aucun joueur disponible -->

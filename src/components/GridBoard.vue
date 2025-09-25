@@ -997,6 +997,38 @@
                 </div>
               </div>
               
+              <!-- Affichage du joueur sélectionné (style composition) -->
+              <div v-if="selectedTeamPlayer" class="mb-4">
+                <div class="p-3 rounded-lg border bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-green-500/30">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex-1 flex items-center gap-2 min-w-0">
+                      <!-- Avatar du joueur -->
+                      <div class="flex-shrink-0">
+                        <PlayerAvatar 
+                          :player-id="selectedTeamPlayer.id"
+                          :season-id="seasonId"
+                          :player-name="selectedTeamPlayer.name"
+                          :player-gender="selectedTeamPlayer.gender || 'non-specified'"
+                          size="sm"
+                        />
+                      </div>
+                      
+                      <!-- Nom du joueur -->
+                      <div class="flex-1 min-w-0">
+                        <span class="text-white font-medium truncate">{{ selectedTeamPlayer.name }}</span>
+                      </div>
+                    </div>
+                    <button
+                      @click="selectAllTeamPlayers"
+                      class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
+                      title="Voir tous les joueurs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <!-- Détails des rôles -->
               <div v-if="showRoleDetails" class="text-sm text-gray-400 mb-4">
                 <div v-if="selectedEvent?.roles">
@@ -9273,6 +9305,7 @@ const availablePlayersForDropdown = computed(() => {
     return isAvailable(player.name, selectedEvent.value.id)
   })
 })
+
 
 async function openChancesModal() {
   if (!selectedEvent.value) return
