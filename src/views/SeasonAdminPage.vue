@@ -839,7 +839,27 @@ async function loadUsersWithPlayers() {
     
     // Charger les données de protection des joueurs
     logger.debug('🔐 Chargement des données de protection des joueurs...')
-    const protectionData = await firestoreService.getDocuments('seasons', seasonId.value, 'playerProtection')
+    
+    // PRIORITY: Lire d'abord dans la collection players
+    const players = await firestoreService.getDocuments('seasons', seasonId.value, 'players')
+    const protectedPlayers = players.filter(player => player.email && player.isProtected !== false)
+    
+    let protectionData = protectedPlayers.map(player => ({
+      playerId: player.id,
+      email: player.email,
+      isProtected: player.isProtected !== false,
+      firebaseUid: player.firebaseUid || null,
+      photoURL: player.photoURL || null,
+      emailVerifiedAt: player.emailVerifiedAt || null,
+      createdAt: player.createdAt || null,
+      updatedAt: player.updatedAt || null
+    }))
+    
+    // FALLBACK: Si aucun joueur protégé trouvé dans players, chercher dans playerProtection
+    if (protectionData.length === 0) {
+      protectionData = await firestoreService.getDocuments('seasons', seasonId.value, 'playerProtection')
+    }
+    
     logger.debug('🔐 Données de protection chargées:', protectionData)
     
     // Créer une map des protections par playerId

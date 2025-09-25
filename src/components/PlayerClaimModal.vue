@@ -243,7 +243,17 @@ async function associatePlayerDirectly() {
       throw new Error('Firestore n\'est pas encore initialisé')
     }
     
-    // Créer dans la collection playerProtection de la saison
+    // PRIORITY: Créer dans la collection players de la saison
+    await updateDoc(doc(db, 'seasons', props.seasonId, 'players', props.player.id), {
+      email: associationData.email,
+      isProtected: true,
+      firebaseUid: associationData.firebaseUid || null,
+      photoURL: associationData.photoURL || null,
+      emailVerifiedAt: new Date(),
+      updatedAt: new Date()
+    })
+    
+    // FALLBACK: Créer aussi dans playerProtection pour compatibilité
     await setDoc(doc(db, 'seasons', props.seasonId, 'playerProtection', props.player.id), associationData)
     
     console.log('✅ Association créée avec succès dans Firestore')

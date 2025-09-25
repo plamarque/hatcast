@@ -148,7 +148,7 @@ async function getPlayerAssociation(playerId, seasonId) {
       }
     }
     
-    // Fallback vers l'ancienne collection playerProtection pour compatibilité
+    // FALLBACK: Si pas trouvé dans players, chercher dans l'ancienne collection playerProtection
     if (seasonId) {
       const seasonProtectionRef = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
       const seasonSnap = await getDoc(seasonProtectionRef)
@@ -156,21 +156,21 @@ async function getPlayerAssociation(playerId, seasonId) {
       if (seasonSnap.exists()) {
         const data = seasonSnap.data()
         if (data.email && data.isProtected) {
-          const association = { email: data.email, source: 'season' }
+          const association = { email: data.email, source: 'season_protection' }
           associationCache.set(cacheKey, association)
           return association
         }
       }
     }
     
-    // Fallback vers la collection globale
+    // FALLBACK: Collection globale playerProtection
     const globalProtectionRef = doc(db, 'playerProtection', playerId)
     const globalSnap = await getDoc(globalProtectionRef)
     
     if (globalSnap.exists()) {
       const data = globalSnap.data()
       if (data.email && data.isProtected) {
-        const association = { email: data.email, source: 'global' }
+        const association = { email: data.email, source: 'global_protection' }
         associationCache.set(cacheKey, association)
         return association
       }

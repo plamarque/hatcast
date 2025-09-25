@@ -306,6 +306,15 @@ export async function isPlayerProtected(playerId, seasonId = null) {
   }
   
   try {
+    // PRIORITY: Lire d'abord dans la collection players
+    if (seasonId) {
+      const playerDoc = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+      if (playerDoc && playerDoc.email && playerDoc.isProtected !== false) {
+        return true
+      }
+    }
+    
+    // FALLBACK: Si pas trouvé dans players, chercher dans playerProtection
     let protectionDoc
     if (seasonId) {
       protectionDoc = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
@@ -340,6 +349,26 @@ export async function getPlayerProtectionData(playerId, seasonId = null) {
   }
   
   try {
+    // PRIORITY: Lire d'abord dans la collection players
+    if (seasonId) {
+      const playerDoc = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+      if (playerDoc && playerDoc.email) {
+        // Retourner un objet compatible avec l'ancien format
+        return {
+          id: playerId,
+          playerId: playerId,
+          email: playerDoc.email,
+          isProtected: playerDoc.isProtected !== false,
+          firebaseUid: playerDoc.firebaseUid || null,
+          photoURL: playerDoc.photoURL || null,
+          emailVerifiedAt: playerDoc.emailVerifiedAt || null,
+          createdAt: playerDoc.createdAt || null,
+          updatedAt: playerDoc.updatedAt || null
+        }
+      }
+    }
+    
+    // FALLBACK: Si pas trouvé dans players, chercher dans playerProtection
     let protectionDoc
     if (seasonId) {
       protectionDoc = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
@@ -382,11 +411,31 @@ export async function listProtectedPlayers(seasonId = null) {
   logger.warn('DEPRECATED: listProtectedPlayers reads from playerProtection collection. Use players collection instead.')
   try {
     if (seasonId) {
-      // Protection pour une saison spécifique
+      // PRIORITY: Lire d'abord dans la collection players
+      const players = await firestoreService.getDocuments('seasons', seasonId, 'players')
+      const protectedPlayers = players
+        .filter(player => player.email && player.isProtected !== false)
+        .map(player => ({
+          id: player.id,
+          playerId: player.id,
+          email: player.email,
+          isProtected: player.isProtected !== false,
+          firebaseUid: player.firebaseUid || null,
+          photoURL: player.photoURL || null,
+          emailVerifiedAt: player.emailVerifiedAt || null,
+          createdAt: player.createdAt || null,
+          updatedAt: player.updatedAt || null
+        }))
+      
+      if (protectedPlayers.length > 0) {
+        return protectedPlayers
+      }
+      
+      // FALLBACK: Si aucun joueur protégé trouvé dans players, chercher dans playerProtection
       const protections = await firestoreService.getDocuments('seasons', seasonId, 'playerProtection')
       return protections.map(protection => ({ id: protection.id, ...protection }))
     } else {
-      // Protection globale (racine)
+      // Protection globale (racine) - fallback uniquement vers playerProtection
       const protections = await firestoreService.getDocuments('playerProtection')
       return protections.map(protection => ({ id: protection.id, ...protection }))
     }
