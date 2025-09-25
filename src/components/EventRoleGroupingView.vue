@@ -168,7 +168,7 @@
         <!-- Probabilités -->
         <div>
           <span class="text-gray-300">Probabilités :</span> 
-          <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ explanationData.chance.toFixed(0) }}%</span>
+          <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
         </div>
       </div>
     </div>
@@ -377,10 +377,23 @@ function getPlayersForRole(role) {
 }
 
 function getPlayerChanceForRole(playerName, role, eventId) {
-  // Utiliser toujours les chances par rôle pour tous les rôles
-  // Cela garantit que les pourcentages correspondent à l'algorithme de tirage
-  const roleChances = props.getPlayerRoleChances(eventId)
-  return roleChances[playerName]?.[role] ?? null
+  // Utiliser le même calcul que dans la popup d'explication
+  // Calculer les chances pour tous les rôles (même logique que GridBoard)
+  const allRoleChances = calculateAllRoleChances(
+    props.selectedEvent, 
+    props.players, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  const roleData = allRoleChances[role]
+  if (!roleData || !roleData.candidates) {
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === playerName)
+  return candidate ? Math.round(candidate.practicalChance) : null
 }
 
 function getChanceBadgeClass(chance) {
