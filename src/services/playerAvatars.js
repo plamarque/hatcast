@@ -2,6 +2,8 @@
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 import { getPlayerProtectionData } from './playerProtection.js'
+import { getFirebaseDb } from './firebase.js'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 // Cache pour éviter les requêtes répétées
 const avatarCache = new Map()
@@ -22,7 +24,8 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
   }
   
   try {
-    if (!firestoreService.isInitialized()) {
+    const db = getFirebaseDb()
+    if (!db) {
       throw new Error('Firestore not initialized')
     }
     
@@ -128,35 +131,49 @@ async function getPlayerAssociation(playerId, seasonId) {
   }
   
   try {
+    const db = getFirebaseDb()
+    
     // OPTIMISATION: Essayer d'abord dans le document player (plus efficace)
     if (seasonId) {
-      const playerData = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+      const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
+      const playerSnap = await getDoc(playerRef)
       
-      if (playerData && playerData.email) {
-        const association = { email: playerData.email, source: 'player' }
-        associationCache.set(cacheKey, association)
-        return association
+      if (playerSnap.exists()) {
+        const data = playerSnap.data()
+        if (data.email) {
+          const association = { email: data.email, source: 'player' }
+          associationCache.set(cacheKey, association)
+          return association
+        }
       }
     }
     
     // Fallback vers l'ancienne collection playerProtection pour compatibilité
     if (seasonId) {
-      const protectionData = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
+      const seasonProtectionRef = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+      const seasonSnap = await getDoc(seasonProtectionRef)
       
-      if (protectionData && protectionData.email && protectionData.isProtected) {
-        const association = { email: protectionData.email, source: 'season' }
-        associationCache.set(cacheKey, association)
-        return association
+      if (seasonSnap.exists()) {
+        const data = seasonSnap.data()
+        if (data.email && data.isProtected) {
+          const association = { email: data.email, source: 'season' }
+          associationCache.set(cacheKey, association)
+          return association
+        }
       }
     }
     
     // Fallback vers la collection globale
-    const globalProtectionData = await firestoreService.getDocument('playerProtection', playerId)
+    const globalProtectionRef = doc(db, 'playerProtection', playerId)
+    const globalSnap = await getDoc(globalProtectionRef)
     
-    if (globalProtectionData && globalProtectionData.email && globalProtectionData.isProtected) {
-      const association = { email: globalProtectionData.email, source: 'global' }
-      associationCache.set(cacheKey, association)
-      return association
+    if (globalSnap.exists()) {
+      const data = globalSnap.data()
+      if (data.email && data.isProtected) {
+        const association = { email: data.email, source: 'global' }
+        associationCache.set(cacheKey, association)
+        return association
+      }
     }
     
     // Aucune association trouvée
@@ -199,7 +216,7 @@ async function getUserPhotoURL(email) {
       return photoURL
     }
     
-    // 2. Essayer de récupérer depuis userPreferences
+    // 2. Essayer de récupérer depuis userPreferences (utilise firestoreService car ce n'est pas un joueur/protection)
     const userData = await firestoreService.getDocument('userPreferences', `email_${email}`)
     
     if (userData && userData.photoURL) {
@@ -267,7 +284,8 @@ export async function preloadPlayersAvatars(playerIds, seasonId = null) {
  */
 export async function savePlayerAvatar(playerId, photoURL, email = null, seasonId = null) {
   try {
-    if (!firestoreService.isInitialized()) {
+    const db = getFirebaseDb()
+    if (!db) {
       throw new Error('Firestore not initialized')
     }
     
@@ -282,17 +300,17 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
     }
     
     // Mettre à jour le document playerProtection existant
+    const protectionRef = seasonId
+      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+      : doc(db, 'playerProtection', playerId)
+    
     const updateData = {
       photoURL: sanitizedPhotoURL,
       updatedAt: new Date().toISOString(),
       updatedBy: email || 'anonymous'
     }
     
-    if (seasonId) {
-      await firestoreService.setDocument('seasons', seasonId, 'playerProtection', playerId, updateData, { merge: true })
-    } else {
-      await firestoreService.setDocument('playerProtection', playerId, updateData, { merge: true })
-    }
+    await setDoc(protectionRef, updateData, { merge: true })
     
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
@@ -324,7 +342,8 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
  */
 export async function deletePlayerAvatar(playerId, seasonId = null) {
   try {
-    if (!firestoreService.isInitialized()) {
+    const db = getFirebaseDb()
+    if (!db) {
       throw new Error('Firestore not initialized')
     }
     
@@ -333,16 +352,16 @@ export async function deletePlayerAvatar(playerId, seasonId = null) {
     }
     
     // Mettre à jour le document playerProtection pour supprimer l'avatar
+    const protectionRef = seasonId
+      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+      : doc(db, 'playerProtection', playerId)
+    
     const updateData = {
       photoURL: null,
       updatedAt: new Date().toISOString()
     }
     
-    if (seasonId) {
-      await firestoreService.setDocument('seasons', seasonId, 'playerProtection', playerId, updateData, { merge: true })
-    } else {
-      await firestoreService.setDocument('playerProtection', playerId, updateData, { merge: true })
-    }
+    await setDoc(protectionRef, updateData, { merge: true })
     
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
