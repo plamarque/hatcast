@@ -2,8 +2,6 @@
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 import { getPlayerData } from './players.js'
-import { getFirebaseDb } from './firebase.js'
-import { doc, setDoc } from 'firebase/firestore'
 
 // Cache pour éviter les requêtes répétées
 const avatarCache = new Map()
@@ -29,7 +27,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       throw new Error('Firestore not initialized')
     }
     
-    // 1. Essayer d'abord de récupérer depuis la collection playerProtection
+    // 1. Essayer d'abord de récupérer depuis la collection players
     const protectionData = await getPlayerData(playerId, seasonId)
     
     if (protectionData && protectionData.photoURL) {
@@ -37,7 +35,7 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
         photoURL: protectionData.photoURL,
         email: protectionData.email || null,
         isAssociated: !!protectionData.email,
-        source: 'playerProtection'
+        source: 'players'
       }
       
       // Mettre en cache le résultat
@@ -239,7 +237,7 @@ export async function preloadPlayersAvatars(playerIds, seasonId = null) {
 }
 
 /**
- * Sauvegarde l'avatar d'un joueur dans la collection playerProtection
+ * Sauvegarde l'avatar d'un joueur dans la collection players
  * @param {string} playerId - ID du joueur
  * @param {string} photoURL - URL de l'avatar
  * @param {string} email - Email de l'utilisateur associé (optionnel)
@@ -248,11 +246,6 @@ export async function preloadPlayersAvatars(playerIds, seasonId = null) {
  */
 export async function savePlayerAvatar(playerId, photoURL, email = null, seasonId = null) {
   try {
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore not initialized')
-    }
-    
     if (!playerId || !photoURL) {
       throw new Error('playerId and photoURL are required')
     }
@@ -263,18 +256,13 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
       sanitizedPhotoURL = sanitizedPhotoURL.replace(/=s\d+-c$/, '=s96')
     }
     
-    // Mettre à jour le document playerProtection existant
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
-    const updateData = {
-      photoURL: sanitizedPhotoURL,
-      updatedAt: new Date().toISOString(),
-      updatedBy: email || 'anonymous'
+    // Mettre à jour le document players
+    if (seasonId) {
+      await firestoreService.updateDocument('seasons', seasonId, {
+        photoURL: sanitizedPhotoURL,
+        updatedAt: new Date()
+      }, 'players', playerId)
     }
-    
-    await setDoc(protectionRef, updateData, { merge: true })
     
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
@@ -283,7 +271,7 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
     const associationCacheKey = `${playerId}_${seasonId || 'global'}`
     associationCache.delete(associationCacheKey)
     
-    logger.debug('PlayerAvatar service: Saved player avatar in playerProtection', {
+    logger.debug('PlayerAvatar service: Saved player avatar in players', {
       playerId,
       seasonId,
       hasPhotoURL: !!sanitizedPhotoURL,
@@ -299,33 +287,24 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
 }
 
 /**
- * Supprime l'avatar d'un joueur de la collection playerProtection
+ * Supprime l'avatar d'un joueur de la collection players
  * @param {string} playerId - ID du joueur
  * @param {string} seasonId - ID de la saison (optionnel)
  * @returns {Promise<boolean>} - true si supprimé avec succès
  */
 export async function deletePlayerAvatar(playerId, seasonId = null) {
   try {
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore not initialized')
-    }
-    
     if (!playerId) {
       throw new Error('playerId is required')
     }
     
-    // Mettre à jour le document playerProtection pour supprimer l'avatar
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
-    const updateData = {
-      photoURL: null,
-      updatedAt: new Date().toISOString()
+    // Mettre à jour le document players pour supprimer l'avatar
+    if (seasonId) {
+      await firestoreService.updateDocument('seasons', seasonId, {
+        photoURL: null,
+        updatedAt: new Date()
+      }, 'players', playerId)
     }
-    
-    await setDoc(protectionRef, updateData, { merge: true })
     
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
@@ -334,7 +313,7 @@ export async function deletePlayerAvatar(playerId, seasonId = null) {
     const associationCacheKey = `${playerId}_${seasonId || 'global'}`
     associationCache.delete(associationCacheKey)
     
-    logger.debug('PlayerAvatar service: Deleted player avatar from playerProtection', { playerId, seasonId })
+    logger.debug('PlayerAvatar service: Deleted player avatar from players', { playerId, seasonId })
     
     return true
     

@@ -810,7 +810,7 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
                 continue
               }
               
-              // Récupérer l'email du joueur depuis playerProtection
+              // Récupérer l'email du joueur depuis players
               const { getPlayerEmail } = await import('./players.js')
               const playerEmail = await getPlayerEmail(playerName, seasonId)
               if (playerEmail) {
@@ -838,7 +838,7 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
                 continue
               }
               
-              // Récupérer l'email du joueur depuis playerProtection
+              // Récupérer l'email du joueur depuis players
               const { getPlayerEmail } = await import('./players.js')
               const playerEmail = await getPlayerEmail(playerName, seasonId)
               

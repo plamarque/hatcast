@@ -855,10 +855,7 @@ async function loadUsersWithPlayers() {
       updatedAt: player.updatedAt || null
     }))
     
-    // FALLBACK: Si aucun joueur protégé trouvé dans players, chercher dans playerProtection
-    if (protectionData.length === 0) {
-      protectionData = await firestoreService.getDocuments('seasons', seasonId.value, 'playerProtection')
-    }
+    // Note: Toutes les données de protection sont maintenant dans la collection players
     
     logger.debug('🔐 Données de protection chargées:', protectionData)
     

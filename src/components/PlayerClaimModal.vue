@@ -222,11 +222,11 @@ async function associatePlayerDirectly() {
   try {
     console.log('🔒 Association directe du joueur à l\'utilisateur connecté')
     
-    // Créer l'association dans la collection playerProtection (pas playerAssociations)
-    const { doc, setDoc, updateDoc } = await import('firebase/firestore')
+    // Créer l'association dans la collection players
+    const { updateDoc } = await import('firebase/firestore')
     const { getFirebaseDb } = await import('../services/firebase.js')
     
-    console.log('🆔 Création de l\'association dans playerProtection')
+    console.log('🆔 Création de l\'association dans players')
     
     const associationData = {
       playerId: props.player.id,
@@ -253,8 +253,6 @@ async function associatePlayerDirectly() {
       updatedAt: new Date()
     })
     
-    // FALLBACK: Créer aussi dans playerProtection pour compatibilité
-    await setDoc(doc(db, 'seasons', props.seasonId, 'playerProtection', props.player.id), associationData)
     
     console.log('✅ Association créée avec succès dans Firestore')
     
