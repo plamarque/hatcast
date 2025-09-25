@@ -762,6 +762,7 @@
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
             <button
+              v-if="currentUserPlayer"
               @click="eventDetailsActiveTab = 'availability'"
               :class="[
                 'flex-1 px-4 py-3 text-sm font-medium transition-colors',
@@ -794,8 +795,8 @@
           <!-- Contenu des onglets -->
           <div class="p-4">
             <!-- Onglet Mes Dispos -->
-            <div v-if="eventDetailsActiveTab === 'availability'">
-              <div v-if="currentUserPlayer">
+            <div v-if="eventDetailsActiveTab === 'availability' && currentUserPlayer">
+              <div>
                 <!-- Ligne principale : Avatar, nom, AvailabilityCell et bouton -->
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-3">
@@ -891,28 +892,6 @@
                   Aucun rôle spécifique choisi - vous serez assigné selon les besoins
                 </p>
               </div>
-              
-              <!-- Message si currentUserPlayer n'est pas défini -->
-              <div v-else-if="!currentUserPlayer" class="bg-gray-700/30 rounded-lg p-4 text-center">
-                <div class="text-4xl mb-3">👤</div>
-                <h3 class="text-lg font-medium text-white mb-2">Profil joueur non trouvé</h3>
-                <p class="text-sm text-gray-400 mb-4">
-                  Pour indiquer tes disponibilités, tu dois d'abord être ajouté comme joueur dans cette saison.
-                </p>
-                <div class="space-y-2">
-                  <p class="text-xs text-gray-500">
-                    📧 Email connecté : <span class="text-gray-300">{{ currentUser?.email }}</span>
-                  </p>
-                  <p class="text-xs text-gray-500">
-                    👥 Joueurs dans la saison : {{ allSeasonPlayers.length }}
-                  </p>
-                </div>
-                <div class="mt-4 p-3 bg-blue-500/10 border border-blue-400/20 rounded-lg">
-                  <p class="text-sm text-blue-300">
-                    💡 Demande à l'organisateur de t'ajouter comme joueur avec ton email pour pouvoir participer !
-                  </p>
-                </div>
-              </div>
             </div>
             
             <!-- Onglet Équipe -->
@@ -959,7 +938,7 @@
                         <div class="w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
                           <span class="text-xs">👥</span>
                         </div>
-                        <span>Tous les disponibles</span>
+                      <span>Personnes Disponibles</span>
                       </button>
                       
                       <!-- Liste des joueurs disponibles -->
@@ -987,28 +966,7 @@
                     </div>
                   </div>
                   
-                  <!-- Bouton pour afficher les chances détaillées -->
-                  <button 
-                    v-if="selectedEvent"
-                    @click="openChancesModal"
-                    class="flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors duration-200 cursor-pointer bg-blue-500/20 border border-blue-400/30 hover:bg-blue-500/30"
-                    title="Voir les pourcentages de chances pour chaque rôle"
-                  >
-                    <span class="text-blue-300">📊</span>
-                    <span class="text-blue-200">Chances</span>
-                  </button>
                   
-                  
-                  <button 
-                    @click="showRoleDetails = !showRoleDetails"
-                    class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 border border-blue-400/30 rounded text-sm hover:bg-blue-500/30 transition-colors duration-200 cursor-pointer"
-                    title="Cliquer pour voir le détail des rôles"
-                  >
-                    <span class="text-blue-300">👥</span>
-                    <span class="text-blue-200">
-                      {{ selectedEventTotalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
-                    </span>
-                  </button>
                 </div>
               </div>
               
@@ -1044,33 +1002,7 @@
                 </div>
               </div>
               
-              <!-- Détails des rôles -->
-              <div v-if="showRoleDetails" class="text-sm text-gray-400 mb-4">
-                <div v-if="selectedEvent?.roles">
-                  <span v-for="(role, index) in Object.keys(selectedEvent.roles)" :key="role">
-                    <span>{{ ROLE_LABELS[role] }}: </span>
-                    <span 
-                      class="font-semibold"
-                      :class="{
-                        'text-cyan-400': role === 'player',
-                        'text-purple-400': role === 'dj',
-                        'text-pink-400': role === 'mc',
-                        'text-orange-400': role === 'volunteer',
-                        'text-yellow-400': role === 'referee',
-                        'text-green-400': role === 'assistant_referee',
-                        'text-blue-400': role === 'lighting',
-                        'text-indigo-400': role === 'coach'
-                      }"
-                    >
-                      {{ selectedEvent.roles[role] }}
-                    </span>
-                    <span v-if="index < Object.keys(selectedEvent.roles).length - 1">, </span>
-                  </span>
-                </div>
-                <div v-else>
-                  <span class="text-cyan-400 font-semibold">{{ selectedEvent?.playerCount || 6 }}</span> comédiens
-                </div>
-              </div>
+              
 
               <!-- Vue par rôles -->
               <EventRoleGroupingView
@@ -1671,112 +1603,7 @@
   </div>
   </div>
 
-  <!-- Modale des chances détaillées -->
-  <div v-if="showChancesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="closeChancesModal">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col" @click.stop>
-      <div class="relative p-6 border-b border-white/10">
-        <button @click="closeChancesModal" title="Fermer" class="absolute right-4 top-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
-        
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-            <span class="text-xl">📊</span>
-          </div>
-          <div>
-            <h2 class="text-2xl font-bold text-white">Chances de sélection</h2>
-            <p class="text-purple-300">{{ selectedEvent?.title }}</p>
-          </div>
-        </div>
-      </div>
-      
-      <div class="p-3 sm:p-6 overflow-y-auto">
-        <div v-if="Object.keys(chancesData).length === 0" class="text-center text-gray-400 py-4">
-          Aucune donnée de chances disponible
-        </div>
-        
-        <div v-else class="space-y-4">
-          <!-- Zone collapsible d'explication -->
-          <div class="mb-4">
-            <button @click="showExplanation = !showExplanation" 
-                    class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors">
-              <span class="text-lg">💡</span>
-              <span>Comment ça marche ?</span>
-              <span class="text-xs">{{ showExplanation ? '▼' : '▶' }}</span>
-            </button>
-            
-            <div v-if="showExplanation" class="mt-2 text-xs text-gray-400">
-              <p><strong>Explications :</strong></p>
-              <ul class="ml-3 mt-1 space-y-1">
-                <li>• Les chances sont calculées en fonction du nombre de sélections passées dans ce rôle spécifique. Moins un participant a été sélectionné pour ce rôle, plus ses chances sont élevées.</li>
-                <li>• Une sélection compte si l'événement n'était pas archivé, la sélection était verrouillée ET le participant n'avait pas décliné.</li>
-              </ul>
-              <p class="mt-2"><strong>Formule :</strong> (<span class="text-blue-400 font-semibold">Places</span> × <span class="text-cyan-400 font-semibold">Malus</span>) ÷ <span class="text-green-400 font-semibold">Candidats</span> × 100% | <span class="text-cyan-400 font-semibold">Malus</span> = 1 ÷ (1 + <span class="text-purple-400 font-semibold">Sélections</span>)</p>
-            </div>
-          </div>
-          
-          <div v-for="role in sortedRoles" :key="role" class="bg-gray-800/50 rounded-lg p-3">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                <span>{{ ROLE_EMOJIS[role] }}</span>
-                <span>{{ ROLE_LABELS[role] }}</span>
-              </h3>
-              <p class="text-sm text-gray-400">
-                <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> places, 
-                <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats
-              </p>
-            </div>
-            
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-gray-600">
-                    <th class="text-left py-2 text-gray-300">Participant</th>
-                    <th class="text-center py-2 text-gray-300">Chances</th>
-                    <th class="text-left py-2 text-gray-300">Explications</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="candidate in chancesData[role].candidates" :key="candidate.name" class="border-b border-gray-700/50">
-                    <td class="py-2 text-white">{{ candidate.name }}</td>
-                    <td class="py-2 text-center">
-                      <div class="flex flex-col items-center gap-1">
-                        <span class="px-2 py-1 rounded text-xs font-medium bg-gray-600/20 text-gray-300">
-                          {{ Math.round(candidate.practicalChance) }}%
-                        </span>
-                      </div>
-                    </td>
-                    <td class="py-2 text-gray-400 text-xs">
-                      <span v-if="candidate.pastSelections === 0" class="text-gray-400">
-                            <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> place{{ (chancesData[role]?.requiredCount || 0) > 1 ? 's' : '' }} / <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ ((candidate.practicalChance || 0) / 100).toFixed(2) }}</span>
-                      </span>
-                      <span v-else class="text-gray-400">
-                        <div class="flex flex-col gap-1">
-                          <div>
-                            <span class="text-orange-400 font-semibold">{{ ((candidate.malus || 0) * (chancesData[role]?.requiredCount || 0)).toFixed(1) }}</span> chances / <span class="text-green-400 font-semibold">{{ chancesData[role]?.availableCount || 0 }}</span> candidats = <span class="font-semibold" :class="(candidate.practicalChance || 0) >= 20 ? 'text-emerald-400' : (candidate.practicalChance || 0) >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ ((candidate.practicalChance || 0) / 100).toFixed(2) }}</span>
-                          </div>
-                          <div class="text-xs text-gray-500 ml-2">
-                            chances = <span class="text-blue-400 font-semibold">{{ chancesData[role]?.requiredCount || 0 }}</span> places × <span class="text-cyan-400 font-semibold">{{ (candidate.malus || 0).toFixed(2) }}</span> malus
-                          </div>
-                          <div class="text-xs text-gray-500 ml-2">
-                            malus = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ candidate.pastSelections || 0 }}</span> sélection{{ (candidate.pastSelections || 0) > 1 ? 's' : '' }})
-                          </div>
-                        </div>
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="p-3 sm:p-6 border-t border-white/10 flex justify-end">
-        <button @click="closeChancesModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
-          Fermer
-        </button>
-      </div>
-    </div>
-  </div>
+  
 
   <!-- Footer (desktop seulement) -->
   <div class="hidden md:block">
@@ -2967,6 +2794,11 @@ const eventDetailsActiveTab = ref('availability')
 
 // Watcher pour forcer la mise à jour de currentUserPlayer quand on va sur l'onglet availability
 watch(eventDetailsActiveTab, (newTab) => {
+  if (newTab === 'availability' && !currentUserPlayer.value) {
+    // Prevent showing an empty tab if no player profile exists
+    eventDetailsActiveTab.value = 'team'
+    return
+  }
   if (newTab === 'availability' && currentUser.value) {
     console.log('🔄 DEBUG: Forçage de la mise à jour de currentUserPlayer pour l\'onglet availability')
     currentUserPlayer.value = getCurrentUserPlayer()
@@ -2974,6 +2806,13 @@ watch(eventDetailsActiveTab, (newTab) => {
       id: currentUserPlayer.value.id, 
       name: currentUserPlayer.value.name 
     } : null)
+  }
+})
+
+// If the current user player disappears, ensure we are not stuck on the hidden tab
+watch(currentUserPlayer, (player) => {
+  if (!player && eventDetailsActiveTab.value === 'availability') {
+    eventDetailsActiveTab.value = 'team'
   }
 })
 
@@ -4736,17 +4575,7 @@ const isRoleDataReady = computed(() => {
   return ready
 })
 
-// Calculer le total de l'équipe pour un événement existant
-const selectedEventTotalTeamSize = computed(() => {
-  if (!selectedEvent.value) return 0
-  if (selectedEvent.value.roles) {
-    // Si l'événement a des rôles définis, calculer le total
-    return Object.values(selectedEvent.value.roles).reduce((sum, count) => sum + count, 0)
-  } else {
-    // Fallback vers l'ancien système (playerCount)
-    return selectedEvent.value.playerCount || 6
-  }
-})
+// Removed selectedEventTotalTeamSize (badge removed)
 
 // Computed property pour les données de l'événement en cours d'édition
 const editingEventData = computed(() => {
@@ -4763,26 +4592,7 @@ const editingEventData = computed(() => {
 })
 
 // État pour afficher/masquer les détails des rôles
-const showRoleDetails = ref(false)
-const showRoleChances = ref(false)
-const showChancesModal = ref(false)
-const showExplanation = ref(false)
-const chancesData = ref({})
-
-// Trier les rôles par ordre de priorité dans la modale des chances
-const sortedRoles = computed(() => {
-  return Object.keys(chancesData.value).sort((a, b) => {
-    const indexA = ROLE_PRIORITY_ORDER.indexOf(a)
-    const indexB = ROLE_PRIORITY_ORDER.indexOf(b)
-    
-    // Si un rôle n'est pas dans ROLE_PRIORITY_ORDER, le mettre à la fin
-    if (indexA === -1 && indexB === -1) return a.localeCompare(b)
-    if (indexA === -1) return 1
-    if (indexB === -1) return -1
-    
-    return indexA - indexB
-  })
-})
+// Removed chances-related state (no longer used)
 
 // Fonction pour appliquer un type de rôles
 function applyRoleTemplate(templateId) {
@@ -8173,6 +7983,18 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     })
   }
 
+  // If we tried to show availability but there is no player, default to team tab
+  if (showAvailability && !currentUserPlayer.value) {
+    eventDetailsActiveTab.value = 'team'
+  } else if (showAvailability) {
+    eventDetailsActiveTab.value = 'availability'
+  } else {
+    // Keep current selection unless it's invalid
+    if (eventDetailsActiveTab.value === 'availability' && !currentUserPlayer.value) {
+      eventDetailsActiveTab.value = 'team'
+    }
+  }
+
   // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
   if (updateUrl) {
     const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details${showAvailability ? '&showAvailability=true' : ''}`
@@ -9532,7 +9354,7 @@ const teamPlayerDisplayText = computed(() => {
   if (selectedTeamPlayer.value) {
     return selectedTeamPlayer.value.name
   }
-  return currentUserPlayer.value ? currentUserPlayer.value.name : 'Tous les disponibles'
+  return currentUserPlayer.value ? currentUserPlayer.value.name : 'Personnes Disponibles'
 })
 
 // Computed pour savoir si on affiche l'avatar
@@ -9578,38 +9400,7 @@ const availablePlayersForDropdown = computed(() => {
 })
 
 
-async function openChancesModal() {
-  if (!selectedEvent.value) return
-  
-  // Attendre que les données soient chargées
-  if (Object.keys(casts.value).length === 0) {
-    try {
-      // Recharger les données de casts
-      casts.value = await loadCasts(seasonId.value);
-    } catch (error) {
-      console.error('❌ Erreur lors du rechargement des casts:', error);
-      return;
-    }
-  }
-  
-  // Calculer les chances pour tous les rôles
-  const allRoleChances = calculateAllRoleChances(
-    selectedEvent.value, 
-    allSeasonPlayers.value, 
-    availability.value, 
-    countSelections,
-    isAvailableForRole
-  )
-  
-  
-  chancesData.value = allRoleChances
-  showChancesModal.value = true
-}
-
-function closeChancesModal() {
-  showChancesModal.value = false
-  chancesData.value = {}
-}
+// Removed chances modal logic
 
 // Désistement helpers supprimés
 
