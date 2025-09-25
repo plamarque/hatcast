@@ -589,11 +589,15 @@ export async function migratePlayerProtectionToPlayers(seasonId) {
         const isProtected = protection.isProtected
         
         if (email && isProtected) {
-          // Mettre à jour le document player avec les données de protection
+          // Mettre à jour le document player avec toutes les données de protection
           await firestoreService.updateDocument('seasons', seasonId, {
             email: email,
             isProtected: isProtected,
-            firebaseUid: protection.firebaseUid || null
+            firebaseUid: protection.firebaseUid || null,
+            photoURL: protection.photoURL || null,
+            emailVerifiedAt: protection.emailVerifiedAt || null,
+            createdAt: protection.createdAt || null,
+            updatedAt: new Date()
           }, 'players', playerId)
           
           migrated++
