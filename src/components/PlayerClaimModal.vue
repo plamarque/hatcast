@@ -223,7 +223,7 @@ async function associatePlayerDirectly() {
     console.log('🔒 Association directe du joueur à l\'utilisateur connecté')
     
     // Créer l'association dans la collection playerProtection (pas playerAssociations)
-    const { doc, setDoc } = await import('firebase/firestore')
+    const { doc, setDoc, updateDoc } = await import('firebase/firestore')
     const { getFirebaseDb } = await import('../services/firebase.js')
     
     console.log('🆔 Création de l\'association dans playerProtection')
