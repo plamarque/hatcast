@@ -71,9 +71,10 @@
               
               <!-- Pourcentage de chances -->
               <span 
-                class="px-2 py-1 rounded text-xs font-medium flex-shrink-0"
+                @click="showChanceDetails($event, player.name, role)"
+                class="px-2 py-1 rounded text-xs font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                 :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
+                :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
               </span>
@@ -114,9 +115,10 @@
 
               <!-- Pourcentage de chances -->
               <span 
-                class="px-2 py-1 rounded text-xs font-medium"
+                @click="showChanceDetails($event, player.name, role)"
+                class="px-2 py-1 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
                 :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
+                :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
               </span>
@@ -135,10 +137,51 @@
 
     </div>
   </div>
+
+  <!-- Mini-popup des explications de chances -->
+  <div v-if="showChanceExplanation && explanationData" 
+       data-explanation-popup
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 max-w-xs"
+       :style="{
+         left: `${explanationPosition.x}px`,
+         top: `${explanationPosition.y}px`,
+         transform: 'translateX(-50%)'
+       }"
+       @click.stop>
+    <div class="text-xs">
+      <div class="font-medium text-white mb-2">Explications</div>
+      <div class="space-y-2">
+        <!-- Calcul principal -->
+        <div>
+          <span class="text-orange-400 font-semibold">{{ (explanationData.malus * explanationData.requiredCount).toFixed(1) }}</span> 
+          <span class="text-gray-300">chances</span> / <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
+          <span class="text-gray-300">candidats</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (explanationData.chance / 100).toFixed(2) }}</span>
+        </div>
+        
+        <!-- Détail des chances -->
+        <div class="text-gray-300 ml-2">
+          <span class="text-gray-300">chances</span> = <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> 
+          <span class="text-gray-300">places</span> × <span class="text-cyan-400 font-semibold">{{ explanationData.malus.toFixed(2) }}</span> <span class="text-gray-300">malus</span>
+        </div>
+        
+        <!-- Détail du malus -->
+        <div class="text-gray-300 ml-2">
+          <span class="text-gray-300">malus</span> = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span> 
+          <span class="text-gray-300">sélection{{ explanationData.pastSelections > 1 ? 's' : '' }})</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bouton de fermeture -->
+    <button @click="hideChanceExplanation" 
+            class="absolute top-1 right-1 text-gray-400 hover:text-white text-xs">
+      ×
+    </button>
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import { 
@@ -150,6 +193,7 @@ import {
   getRoleLabel 
 } from '../services/storage.js'
 import { getChanceColorClass } from '../services/chancesService.js'
+import { calculateAllRoleChances } from '../services/chancesService.js'
 
 const props = defineProps({
   selectedEvent: {
@@ -271,6 +315,11 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+// État de la mini-popup des explications de chances
+const showChanceExplanation = ref(false)
+const explanationData = ref(null)
+const explanationPosition = ref({ x: 0, y: 0 })
+
 // Computed properties
 const availableRoles = computed(() => {
   // Si des rôles filtrés sont fournis, les utiliser
@@ -335,6 +384,96 @@ function getChanceBadgeClass(chance) {
   if (chance >= 10) return 'bg-yellow-500/20 text-yellow-300'
   return 'bg-red-500/20 text-red-300'
 }
+
+// Fonctions pour la mini-popup des explications
+function showChanceDetails(event, playerName, role) {
+  console.log('🖱️ Click on percentage:', { playerName, role, event })
+  
+  // Calculer la position de la popup
+  const rect = event.target.getBoundingClientRect()
+  explanationPosition.value = {
+    x: rect.left + rect.width / 2,
+    y: rect.top - 10
+  }
+  
+  // Récupérer les données d'explication
+  explanationData.value = getChanceExplanation(playerName, role)
+  console.log('📊 Explanation data set:', explanationData.value)
+  
+  showChanceExplanation.value = true
+  console.log('👁️ Show explanation:', showChanceExplanation.value)
+}
+
+function hideChanceExplanation() {
+  showChanceExplanation.value = false
+  explanationData.value = null
+}
+
+function getChanceExplanation(playerName, role) {
+  console.log('🔍 Debug getChanceExplanation:', { playerName, role, selectedEvent: props.selectedEvent })
+  
+  if (!props.selectedEvent) {
+    console.log('❌ Missing selectedEvent')
+    return null
+  }
+  
+  // Utiliser la même logique que dans la modale de chances
+  const event = props.selectedEvent
+  const eventId = event.id
+  
+  // Calculer les chances pour tous les rôles (même logique que GridBoard)
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    props.players, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  console.log('🔍 Calculated role chances:', allRoleChances)
+  
+  const roleData = allRoleChances[role]
+  if (!roleData || !roleData.candidates) {
+    console.log('❌ No role data found for role:', role)
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === playerName)
+  console.log('🔍 Candidate found:', candidate)
+  
+  if (!candidate) {
+    console.log('❌ No candidate found for player:', playerName)
+    return null
+  }
+  
+  const explanation = {
+    playerName,
+    role,
+    chance: candidate.practicalChance || 0,
+    requiredCount: roleData.requiredCount || 0,
+    availableCount: roleData.availableCount || 0,
+    malus: candidate.malus || 0,
+    pastSelections: candidate.pastSelections || 0
+  }
+  
+  console.log('✅ Explanation data:', explanation)
+  return explanation
+}
+
+// Gestion des événements pour fermer la popup
+function handleClickOutside(event) {
+  if (showChanceExplanation.value && !event.target.closest('[data-explanation-popup]')) {
+    hideChanceExplanation()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 function getRoleStatusClass(role) {
   const available = getAvailableCountForRole(role)
