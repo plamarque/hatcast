@@ -207,6 +207,9 @@
         :get-selection-players="getSelectionPlayers"
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
+        :is-all-events-view="isAllEventsView"
+        :hidden-events-count="hiddenEventsCount"
+        :hidden-events-display-text="hiddenEventsDisplayText"
         :is-available-for-role="isAvailableForRole"
         @event-click="showEventDetails"
         @player-click="showPlayerDetails"
@@ -218,6 +221,7 @@
         @show-composition-modal="showCompositionModal"
         @player-selected="handlePlayerSelected"
         @all-players-selected="handleAllPlayersSelected"
+        @all-events-loaded="handleAllEventsLoaded"
       />
     </div>
     <!-- Message de chargement pour la vue chronologique -->
@@ -5766,30 +5770,26 @@ const hiddenPlayersDisplayText = computed(() => {
 
 // Computed pour les événements cachés (similaire aux joueurs cachés)
 const hiddenEventsCount = computed(() => {
-  // Seulement pour les vues lignes et colonnes
-  if (validCurrentView.value === 'timeline') {
-    return 0
-  }
-  
   // Si on est en mode "tous les événements", aucun n'est masqué
-  if (!selectedEventId.value) {
+  if (isAllEventsView.value) {
     return 0
   }
   
-  // Calculer la différence entre tous les événements et ceux affichés
+  // Si un événement spécifique est sélectionné, calculer les événements masqués
+  if (selectedEventId.value) {
+    const totalEvents = events.value.length
+    const displayedCount = displayedEvents.value.length
+    return Math.max(0, totalEvents - displayedCount)
+  }
+  
+  // Si aucun événement n'est sélectionné, calculer les événements masqués (archivés/passés)
   const totalEvents = events.value.length
   const displayedCount = displayedEvents.value.length
-  
   return Math.max(0, totalEvents - displayedCount)
 })
 
 // Computed pour l'affichage sous "Afficher Tous" (nombre d'événements masqués)
 const hiddenEventsDisplayText = computed(() => {
-  // Seulement pour les vues lignes et colonnes
-  if (validCurrentView.value === 'timeline') {
-    return null
-  }
-  
   const displayedCount = displayedEvents.value.length
   const totalCount = events.value.length
   const hiddenCount = totalCount - displayedCount

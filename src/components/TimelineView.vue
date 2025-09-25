@@ -203,7 +203,22 @@
       <div v-if="groupedEventsByMonth.length === 0" class="text-center py-12">
       <div class="text-6xl mb-4">📅</div>
       <div class="text-white text-lg mb-2">Aucun événement</div>
-      <div class="text-gray-400 text-sm">Les événements apparaîtront ici</div>
+      <div class="text-gray-400 text-sm">Les événements apparaîtront ici        </div>
+      </div>
+      
+      <!-- Bouton "voir les XX autres" pour les événements -->
+      <div v-if="!isAllEventsView && hiddenEventsCount > 0" class="flex justify-center mt-6">
+        <button
+          class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors px-4 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50"
+          @click="addAllEventsToGrid"
+        >
+          <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+            <span class="text-white text-sm font-normal">+</span>
+          </div>
+          <span class="text-sm">
+            voir les {{ hiddenEventsCount }} autres
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -304,6 +319,18 @@ export default {
     isAvailableForRole: {
       type: Function,
       default: () => false
+    },
+    isAllEventsView: {
+      type: Boolean,
+      default: false
+    },
+    hiddenEventsCount: {
+      type: Number,
+      default: 0
+    },
+    hiddenEventsDisplayText: {
+      type: String,
+      default: ''
     }
   },
   emits: [
@@ -316,7 +343,8 @@ export default {
     'show-confirmation-modal',
     'player-selected',
     'all-players-selected',
-    'show-composition-modal'
+    'show-composition-modal',
+    'all-events-loaded'
   ],
   setup(props, { emit }) {
     // Variables réactives
@@ -650,6 +678,11 @@ export default {
       emit('all-players-selected')
     }
     
+    // Fonction pour charger tous les événements
+    const addAllEventsToGrid = () => {
+      emit('all-events-loaded')
+    }
+    
     // Fonction pour vérifier s'il y a une composition pour un événement
     const hasEventComposition = (eventId) => {
       if (!props.getSelectionPlayers || !eventId) return false
@@ -708,7 +741,8 @@ export default {
       handlePlayerSelected,
       handleAllPlayersSelected,
       handleAvatarClick,
-      hasEventComposition
+      hasEventComposition,
+      addAllEventsToGrid
     }
   }
 }
