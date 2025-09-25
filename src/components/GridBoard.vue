@@ -524,7 +524,7 @@
 
   <!-- Popin de détails de l'événement -->
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-[calc(100vh-2rem)] md:max-h-[92vh] flex flex-col" @click.stop>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-6rem)] md:max-h-[92vh] flex flex-col mb-6 md:mb-0" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
