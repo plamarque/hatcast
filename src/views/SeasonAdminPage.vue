@@ -841,8 +841,8 @@ async function loadUsersWithPlayers() {
     logger.debug('🔐 Chargement des données de protection des joueurs...')
     
     // PRIORITY: Lire d'abord dans la collection players
-    const playersData = await firestoreService.getDocuments('seasons', seasonId.value, 'players')
-    const protectedPlayers = playersData.filter(player => player.email && player.isProtected !== false)
+    const playersFromDb = await firestoreService.getDocuments('seasons', seasonId.value, 'players')
+    const protectedPlayers = playersFromDb.filter(player => player.email && player.isProtected !== false)
     
     let protectionData = protectedPlayers.map(player => ({
       playerId: player.id,
