@@ -93,6 +93,9 @@
         :is-all-players-view="isAllPlayersView"
         :hidden-players-count="hiddenPlayersCount"
         :hidden-players-display-text="hiddenPlayersDisplayText"
+        :is-all-events-view="isAllEventsView"
+        :hidden-events-count="hiddenEventsCount"
+        :hidden-events-display-text="hiddenEventsDisplayText"
         :can-edit-availability="canEditAvailability"
         :get-player-availability="getPlayerAvailability"
                           :season-id="seasonId"
@@ -120,6 +123,8 @@
         @show-availability-modal="openAvailabilityModal"
         @show-confirmation-modal="openConfirmationModal"
         @event-click="openEventModal"
+        @all-players-loaded="handleAllPlayersLoaded"
+        @all-events-loaded="handleAllEventsLoaded"
       />
       
       <EventsView
@@ -130,6 +135,9 @@
         :is-all-players-view="isAllPlayersView"
         :hidden-players-count="hiddenPlayersCount"
         :hidden-players-display-text="hiddenPlayersDisplayText"
+        :is-all-events-view="isAllEventsView"
+        :hidden-events-count="hiddenEventsCount"
+        :hidden-events-display-text="hiddenEventsDisplayText"
         :can-edit-availability="canEditAvailability"
         :get-player-availability="getPlayerAvailability"
         :season-id="seasonId"
@@ -157,6 +165,8 @@
         @show-availability-modal="openAvailabilityModal"
         @show-confirmation-modal="openConfirmationModal"
         @event-click="openEventModal"
+        @all-players-loaded="handleAllPlayersLoaded"
+        @all-events-loaded="handleAllEventsLoaded"
       />
                 </div>
                 
@@ -2253,6 +2263,7 @@ const selectedPlayerId = ref(null)
 
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
+const isAllEventsView = ref(false)
 
 // Debug watcher pour tracer qui modifie selectedPlayerId
 watch(selectedPlayerId, (newValue, oldValue) => {
@@ -3252,6 +3263,62 @@ async function addAllPlayersToGrid() {
   }
   
   showPlayerModal.value = false
+}
+
+// Fonction pour gérer l'événement all-players-loaded des composants enfants
+async function handleAllPlayersLoaded(data) {
+  try {
+    logger.debug('🔄 Réception de l\'événement all-players-loaded:', data)
+    
+    // Sauvegarder les joueurs originaux si ce n'est pas déjà fait
+    if (!isAllPlayersView.value) {
+      originalPlayers.value = [...players.value]
+    }
+    
+    // Mettre à jour les joueurs et disponibilités
+    players.value = data.players
+    availability.value = data.availability
+    
+    // Marquer tous les joueurs comme ajoutés manuellement
+    data.players.forEach(player => {
+      manuallyAddedPlayers.value.add(player.id)
+    })
+    
+    // Activer le mode "tous les joueurs"
+    isAllPlayersView.value = true
+    isFocusedView.value = false // Désactiver la vue focalisée si elle était active
+    
+    // Réinitialiser la sélection de joueur pour que le dropdown affiche "Tous"
+    selectedPlayerId.value = null
+    
+    // Mettre à jour les états de chargement
+    data.players.forEach(player => {
+      playerLoadingStates.value.set(player.id, 'loaded')
+    })
+    
+    logger.debug(`📊 Mis à jour avec ${data.players.length} joueurs (mode "tous")`)
+    logger.debug('✅ Tous les joueurs chargés via l\'événement des composants enfants')
+  } catch (error) {
+    logger.error('❌ Erreur lors du traitement de l\'événement all-players-loaded:', error)
+  }
+}
+
+// Fonction pour gérer l'événement all-events-loaded des composants enfants
+async function handleAllEventsLoaded() {
+  try {
+    logger.debug('🔄 Réception de l\'événement all-events-loaded')
+    
+    // Activer le mode "tous les événements" (afficher tous les événements, y compris archivés et passés)
+    // On utilise un état spécial pour indiquer qu'on veut voir tous les événements
+    isAllEventsView.value = true
+    
+    // Réinitialiser la sélection d'événement pour afficher tous les événements
+    selectedEventId.value = null
+    
+    logger.debug('✅ Mode "tous les événements" activé via l\'événement des composants enfants')
+  } catch (error) {
+    logger.error('❌ Erreur lors du traitement de l\'événement all-events-loaded:', error)
+  }
 }
 
 // Fonction pour vérifier si un joueur est déjà affiché dans la grille
@@ -5697,6 +5764,52 @@ const hiddenPlayersDisplayText = computed(() => {
   return null
 })
 
+// Computed pour les événements cachés (similaire aux joueurs cachés)
+const hiddenEventsCount = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return 0
+  }
+  
+  // Si on est en mode "tous les événements", aucun n'est masqué
+  if (!selectedEventId.value) {
+    return 0
+  }
+  
+  // Calculer la différence entre tous les événements et ceux affichés
+  const totalEvents = events.value.length
+  const displayedCount = displayedEvents.value.length
+  
+  return Math.max(0, totalEvents - displayedCount)
+})
+
+// Computed pour l'affichage sous "Afficher Tous" (nombre d'événements masqués)
+const hiddenEventsDisplayText = computed(() => {
+  // Seulement pour les vues lignes et colonnes
+  if (validCurrentView.value === 'timeline') {
+    return null
+  }
+  
+  const displayedCount = displayedEvents.value.length
+  const totalCount = events.value.length
+  const hiddenCount = totalCount - displayedCount
+  
+  if (displayedCount === 0) return null
+  
+  // Si tous les événements sont affichés, afficher "Tous"
+  if (hiddenCount === 0) {
+    return 'Tous'
+  }
+  
+  // Si des événements sont masqués, afficher le nombre
+  if (hiddenCount > 0) {
+    return `${hiddenCount} masqué${hiddenCount > 1 ? 's' : ''}`
+  }
+  
+  return null
+})
+
+
 // Computed dropdownDisplayText supprimé - logique déplacée dans ViewHeader
 
 // Debug: surveiller les changements d'état de manière plus sûre
@@ -6068,8 +6181,30 @@ const sortedEvents = computed(() => {
 
 
 const displayedEvents = computed(() => {
-  // Les événements inactifs (archived: true) et passés sont déjà filtrés au niveau du chargement dans loadActiveEvents()
   let filteredEvents = sortedEvents.value
+  
+  // Par défaut, filtrer les événements archivés et passés (sauf si on est en mode "tous les événements")
+  if (!isAllEventsView.value) {
+    const now = new Date()
+    filteredEvents = filteredEvents.filter(event => {
+      // Garder les événements non archivés
+      if (event.archived === true) return false
+      
+      // Garder les événements futurs ou sans date
+      if (event.date) {
+        const eventDate = (() => {
+          if (event.date instanceof Date) return event.date
+          if (typeof event.date?.toDate === 'function') return event.date.toDate()
+          const d = new Date(event.date)
+          return isNaN(d.getTime()) ? null : d
+        })()
+        
+        if (eventDate && eventDate < now) return false
+      }
+      
+      return true
+    })
+  }
   
   // Appliquer le filtre d'événement si un événement spécifique est sélectionné
   if (selectedEventId.value) {
@@ -8348,13 +8483,12 @@ function closePlayerModal() {
   console.log('🚪 closePlayerModal called')
   showPlayerModal.value = false;
   
-  // Ne pas remettre selectedPlayerId à null pour la vue timeline
-  // car on veut garder la sélection active
-  if (validCurrentView.value !== 'timeline') {
-    console.log('🚪 Resetting selectedPlayerId to null (not timeline view)')
-    selectedPlayerId.value = null;
+  // Ne pas remettre selectedPlayerId à null si on a un joueur sélectionné
+  // (que ce soit pour la vue timeline ou les autres vues)
+  if (!selectedPlayerId.value) {
+    console.log('🚪 No player selected, keeping selectedPlayerId as null')
   } else {
-    console.log('🚪 Keeping selectedPlayerId for timeline view:', selectedPlayerId.value)
+    console.log('🚪 Keeping selectedPlayerId for selected player:', selectedPlayerId.value)
   }
 }
 
