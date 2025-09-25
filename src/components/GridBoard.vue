@@ -6088,7 +6088,7 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   try {
     // Vérifier directement si ce joueur est protégé par l'utilisateur connecté
     const { getPlayerData } = await import('../services/players.js')
-    const protectionData = await getPlayerProtectionData(playerId, seasonId.value)
+    const protectionData = await getPlayerData(playerId, seasonId.value)
     
     // Le joueur appartient à l'utilisateur si :
     // 1. Il est protégé
