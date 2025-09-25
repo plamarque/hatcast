@@ -384,13 +384,19 @@ function getPlayersForRole(role) {
 }
 
 function getPlayerChanceForRole(playerName, role, eventId) {
+  // Créer une fonction countSelections qui exclut l'événement en cours
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, eventId)
+  }
+  
   // Utiliser le même calcul que dans la popup d'explication
   // Calculer les chances pour tous les rôles (même logique que GridBoard)
   const allRoleChances = calculateAllRoleChances(
     props.selectedEvent, 
     props.players, 
     props.availability, 
-    props.countSelections || (() => 0),
+    countSelectionsExcludingCurrentEvent,
     props.isAvailableForRole
   )
   
@@ -404,12 +410,18 @@ function getPlayerChanceForRole(playerName, role, eventId) {
 }
 
 function getPlayerChanceForRoleBruno(playerName, role, eventId) {
+  // Créer une fonction countSelections qui exclut l'événement en cours
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, eventId)
+  }
+  
   // Calculer les chances selon l'algorithme Bruno
   const allRoleChancesBruno = calculateAllRoleChancesBruno(
     props.selectedEvent, 
     props.players, 
     props.availability, 
-    props.countSelections || (() => 0),
+    countSelectionsExcludingCurrentEvent,
     props.isAvailableForRole
   )
   

@@ -6975,7 +6975,7 @@ function formatDateFull(dateValue) {
   })
 }
 
-function countSelections(playerName, role = 'player') {
+function countSelections(playerName, role = 'player', excludeEventId = null) {
   // Trouver l'ID du joueur à partir de son nom
   const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
@@ -6983,6 +6983,10 @@ function countSelections(playerName, role = 'player') {
   }
   
   const selectedEvents = Object.keys(casts.value).filter(eventId => {
+    // Exclure l'événement spécifié si fourni
+    if (excludeEventId && eventId === excludeEventId) {
+      return false
+    }
     // Vérifier que l'événement existe encore
     const event = events.value.find(e => e.id === eventId)
     if (!event) {
