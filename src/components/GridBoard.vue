@@ -790,7 +790,7 @@
                       />
                     </div>
                     <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
-                    <div class="w-20 h-16 flex-shrink-0">
+                    <div class="w-32 h-16 flex-shrink-0">
                       <AvailabilityCell
                       :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
                       :player-name="currentUserPlayer.name"
