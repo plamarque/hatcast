@@ -77,7 +77,7 @@
                 :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                <span v-if="import.meta.env.DEV" class="text-gray-400 ml-1" title="Algorithme Bruno">
+                <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1" title="Algorithme Bruno">
                   ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
                 </span>
               </span>
@@ -124,7 +124,7 @@
                 :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                <span v-if="import.meta.env.DEV" class="text-gray-400 ml-1" title="Algorithme Bruno">
+                <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1" title="Algorithme Bruno">
                   ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
                 </span>
               </span>
@@ -202,6 +202,7 @@ import {
 } from '../services/storage.js'
 import { getChanceColorClass } from '../services/chancesService.js'
 import { calculateAllRoleChances, calculateAllRoleChancesBruno } from '../services/chancesService.js'
+import configService from '../services/configService.js'
 
 const props = defineProps({
   selectedEvent: {
@@ -331,6 +332,12 @@ const emit = defineEmits(['close'])
 const showChanceExplanation = ref(false)
 const explanationData = ref(null)
 const explanationPosition = ref({ x: 0, y: 0 })
+
+// Computed pour afficher l'algorithme Bruno seulement en dev/staging
+const showBrunoAlgorithm = computed(() => {
+  const environment = configService.getEnvironment()
+  return environment === 'development' || environment === 'staging'
+})
 
 // Computed properties
 const availableRoles = computed(() => {
