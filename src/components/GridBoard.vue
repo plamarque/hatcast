@@ -2269,6 +2269,10 @@ const selectedPlayerId = ref(null)
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
 const isAllEventsView = ref(false)
+const eventFilters = ref({
+  hidePastEvents: true,
+  hideArchivedEvents: true
+})
 
 // Debug watcher pour tracer qui modifie selectedPlayerId
 watch(selectedPlayerId, (newValue, oldValue) => {
@@ -6217,8 +6221,27 @@ const displayedEvents = computed(() => {
     filteredEvents = allEvents.value
     filteredEvents = filteredEvents.filter(event => event.id === selectedEventId.value)
   } else if (isAllEventsView.value) {
-    // Mode "tous les événements" : afficher tous les événements
+    // Mode "tous les événements" : afficher tous les événements selon les filtres
     filteredEvents = allEvents.value
+    const now = new Date()
+    filteredEvents = filteredEvents.filter(event => {
+      // Appliquer le filtre des événements archivés
+      if (eventFilters.value.hideArchivedEvents && event.archived === true) return false
+      
+      // Appliquer le filtre des événements passés
+      if (eventFilters.value.hidePastEvents && event.date) {
+        const eventDate = (() => {
+          if (event.date instanceof Date) return event.date
+          if (typeof event.date?.toDate === 'function') return event.date.toDate()
+          const d = new Date(event.date)
+          return isNaN(d.getTime()) ? null : d
+        })()
+        
+        if (eventDate && eventDate < now) return false
+      }
+      
+      return true
+    })
   } else {
     // Mode normal : afficher seulement les événements actifs
     filteredEvents = sortedEvents.value
@@ -8575,6 +8598,17 @@ function handleEventSelected(event) {
 
 function handleAllEventsSelected(filters = {}) {
   console.log('🎭 handleAllEventsSelected', filters)
+  console.log('🎭 Filtres reçus:', {
+    hidePastEvents: filters.hidePastEvents,
+    hideArchivedEvents: filters.hideArchivedEvents,
+    condition: !filters.hidePastEvents || !filters.hideArchivedEvents
+  })
+  
+  // Stocker les filtres pour les appliquer dans displayedEvents
+  eventFilters.value = {
+    hidePastEvents: filters.hidePastEvents || false,
+    hideArchivedEvents: filters.hideArchivedEvents || false
+  }
   
   // Si les filtres permettent d'afficher les événements passés/archivés, charger tous les événements
   if (!filters.hidePastEvents || !filters.hideArchivedEvents) {

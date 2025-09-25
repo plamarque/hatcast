@@ -297,6 +297,10 @@ export default {
       type: String,
       default: null
     },
+    isAllEventsView: {
+      type: Boolean,
+      default: false
+    },
     preferredPlayerIdsSet: {
       type: Set,
       default: () => new Set()
@@ -399,11 +403,23 @@ export default {
       const months = {}
       
       props.events.forEach(event => {
+        console.log('TimelineView: Traitement de l\'événement:', {
+          id: event.id,
+          title: event.title,
+          archived: event.archived,
+          _isArchived: event._isArchived,
+          selectedEventId: props.selectedEventId,
+          willBeProcessed: !(event._isArchived && !props.selectedEventId)
+        })
+        
         if (!event) return // Ignorer les événements invalides
         
-        // Si un événement spécifique est sélectionné, afficher même les archivés
+        // Si un événement spécifique est sélectionné OU si on est en mode "tous les événements", afficher même les archivés
         // Sinon, ignorer les événements archivés
-        if (event._isArchived && !props.selectedEventId) return
+        if (event._isArchived && !props.selectedEventId && !props.isAllEventsView) {
+          console.log('TimelineView: Événement archivé ignoré (pas de sélection spécifique et pas en mode "tous"):', event.title)
+          return
+        }
         
         try {
           const date = new Date(event.date)
