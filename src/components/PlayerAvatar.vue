@@ -9,7 +9,7 @@
       :src="userPhotoURL"
       :alt="`Avatar de ${playerName || 'joueur'}`"
       :class="imageClass"
-      class="object-cover"
+      class="object-cover object-center"
       @load="onImageLoad"
       @error="onImageError"
       referrerpolicy="no-referrer"
@@ -338,3 +338,12 @@ const isProtectedEffective = computed(() => {
   return props.isProtected || isProtectedInternal.value
 })
 </script>
+
+<style scoped>
+/* Ensure avatars maintain proper aspect ratio and don't get distorted */
+img {
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  max-height: 100%;
+}
+</style>
