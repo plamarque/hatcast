@@ -1762,6 +1762,11 @@
       </div>
     </div>
   </div>
+
+  <!-- Footer (desktop seulement) -->
+  <div class="hidden md:block">
+    <AppFooter @open-help="() => {}" />
+  </div>
 </template>
 
 <style>
@@ -2064,6 +2069,7 @@ import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
 import AccountMenu from './AccountMenu.vue'
 import AccountClaimModal from './AccountClaimModal.vue'
 import AccountLoginModal from './AccountLoginModal.vue'
+import AppFooter from './AppFooter.vue'
 import SeasonHeader from './SeasonHeader.vue'
 import PreferencesModal from './PreferencesModal.vue'
 import PlayersModal from './PlayersModal.vue'
