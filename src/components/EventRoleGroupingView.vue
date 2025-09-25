@@ -151,23 +151,24 @@
     <div class="text-xs">
       <div class="font-medium text-white mb-2">Explications</div>
       <div class="space-y-2">
-        <!-- Calcul principal -->
+        <!-- Sélections passées -->
         <div>
-          <span class="text-orange-400 font-semibold">{{ (explanationData.malus * explanationData.requiredCount).toFixed(1) }}</span> 
-          <span class="text-gray-300">chances</span> / <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
-          <span class="text-gray-300">candidats</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ (explanationData.chance / 100).toFixed(2) }}</span>
+          <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span> 
+          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}</span>
         </div>
         
-        <!-- Détail des chances -->
-        <div class="text-gray-300 ml-2">
-          <span class="text-gray-300">chances</span> = <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> 
-          <span class="text-gray-300">places</span> × <span class="text-cyan-400 font-semibold">{{ explanationData.malus.toFixed(2) }}</span> <span class="text-gray-300">malus</span>
+        <!-- Candidats et places -->
+        <div>
+          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
+          <span class="text-gray-300"> candidats</span> <span class="text-white">pour </span>
+          <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> 
+          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }}</span>
         </div>
         
-        <!-- Détail du malus -->
-        <div class="text-gray-300 ml-2">
-          <span class="text-gray-300">malus</span> = 1 ÷ (1+ <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span> 
-          <span class="text-gray-300">sélection{{ explanationData.pastSelections > 1 ? 's' : '' }})</span>
+        <!-- Probabilités -->
+        <div>
+          <span class="text-gray-300">Probabilités :</span> 
+          <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ explanationData.chance.toFixed(0) }}%</span>
         </div>
       </div>
     </div>
@@ -440,6 +441,9 @@ function getChanceExplanation(playerName, role) {
   
   const candidate = roleData.candidates.find(c => c.name === playerName)
   console.log('🔍 Candidate found:', candidate)
+  console.log('🔍 Candidate pastSelections:', candidate?.pastSelections)
+  console.log('🔍 Candidate malus:', candidate?.malus)
+  console.log('🔍 Candidate practicalChance:', candidate?.practicalChance)
   
   if (!candidate) {
     console.log('❌ No candidate found for player:', playerName)

@@ -116,6 +116,30 @@ export function calculatePracticalChance(weightedChances, totalWeight) {
 }
 
 /**
+ * Calcule la probabilité exacte d'être sélectionné dans un tirage sans remise
+ * @param {number} places - Nombre de places disponibles
+ * @param {number} totalCandidates - Nombre total de candidats
+ * @param {number} malus - Coefficient de malus du joueur (0-1)
+ * @returns {number} - Probabilité exacte (0-1)
+ */
+export function calculateExactProbability(places, totalCandidates, malus = 1) {
+  if (places === 0 || totalCandidates === 0) return 0
+  if (places >= totalCandidates) return 1
+  
+  // Calcul exact : somme des probabilités pour chaque tirage sans remise
+  // P(être sélectionné) = Σ(i=1 à places) [1 / (totalCandidates - i + 1)]
+  let probability = 0
+  
+  for (let i = 1; i <= places; i++) {
+    const remainingCandidates = totalCandidates - i + 1
+    probability += 1 / remainingCandidates
+  }
+  
+  // Appliquer le malus : réduire la probabilité selon le coefficient
+  return probability * malus
+}
+
+/**
  * Calcule les chances pour un rôle spécifique (version asynchrone)
  * @param {Object} roleData - Données du rôle
  * @param {Array} availablePlayers - Liste des joueurs disponibles
@@ -208,13 +232,19 @@ export function calculateRoleChances(roleData, availablePlayers, countSelections
   const totalWeight = calculateTotalWeight(candidates)
   
   // Ajouter les chances pratiques et le total des poids à chaque candidat
-  const candidatesWithChances = candidates.map(candidate => ({
-    ...candidate,
-    practicalChance: calculatePracticalChance(candidate.weightedChances, totalWeight),
-    totalWeight,
-    availableCount: candidates.length, // Ajouter le nombre de candidats disponibles
-    requiredCount // Ajouter requiredCount à chaque candidat pour le template
-  }))
+  const candidatesWithChances = candidates.map(candidate => {
+    // Calculer la probabilité exacte
+    const exactProbability = calculateExactProbability(requiredCount, candidates.length, candidate.malus)
+    
+    return {
+      ...candidate,
+      practicalChance: exactProbability * 100, // Convertir en pourcentage
+      exactProbability, // Garder la probabilité exacte pour les explications
+      totalWeight,
+      availableCount: candidates.length, // Ajouter le nombre de candidats disponibles
+      requiredCount // Ajouter requiredCount à chaque candidat pour le template
+    }
+  })
   
   
   return {
