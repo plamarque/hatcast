@@ -8542,7 +8542,11 @@ function closePlayerModal() {
 // Fonctions pour le modal d'événements
 function toggleEventModal() {
   console.log('🎭 toggleEventModal called')
-  showEventModal.value = !showEventModal.value
+  try {
+    showEventModal.value = !showEventModal.value
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'ouverture/fermeture de la modale:', error)
+  }
 }
 
 function closeEventModal() {
@@ -8557,15 +8561,16 @@ function closeEventModal() {
 function handleEventSelected(event) {
   console.log('🎭 handleEventSelected:', event)
   
-  // Utiliser nextTick pour éviter les problèmes de réactivité
-  nextTick(() => {
-    try {
-      selectedEventId.value = event.id
-      closeEventModal()
-    } catch (error) {
-      console.error('❌ Erreur lors de la sélection d\'événement:', error)
-    }
-  })
+  try {
+    // Fermer la modale d'abord
+    closeEventModal()
+    
+    // Changer l'ID de l'événement sélectionné directement
+    // sans délai pour éviter les conflits de réactivité
+    selectedEventId.value = event.id
+  } catch (error) {
+    console.error('❌ Erreur lors de la sélection d\'événement:', error)
+  }
 }
 
 function handleAllEventsSelected(filters = {}) {
@@ -8756,6 +8761,17 @@ function getTotalRequiredCount(event) {
 
 // Fonctions pour détecter l'état des événements
 function getEventStatus(eventId) {
+  // Protection contre les eventId null ou undefined
+  if (!eventId) {
+    return {
+      type: 'ready',
+      availableCount: 0,
+      requiredCount: 0,
+      isConfirmedByOrganizer: false,
+      isConfirmedByAllPlayers: false
+    }
+  }
+  
   const selectedPlayers = getSelectionPlayers(eventId)
   const event = events.value.find(e => e.id === eventId)
   const requiredCount = getTotalRequiredCount(event)

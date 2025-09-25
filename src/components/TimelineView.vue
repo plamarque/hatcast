@@ -108,7 +108,7 @@
                 :disabled="event.archived === true"
                 :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
                 :event-title="event.title"
-                :event-date="event.date ? event.date.toISOString() : ''"
+                :event-date="event.date ? new Date(event.date).toISOString() : ''"
                 :is-protected="isPlayerProtected(event.id)"
                 :compact="true"
                 class="w-full h-16"
@@ -195,7 +195,7 @@
                   :disabled="event.archived === true"
                   :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
                   :event-title="event.title"
-                  :event-date="event.date ? event.date.toISOString() : ''"
+                  :event-date="event.date ? new Date(event.date).toISOString() : ''"
                   :is-protected="isPlayerProtected(event.id)"
                   :compact="true"
                   class="w-full h-16"
@@ -293,6 +293,10 @@ export default {
       type: String,
       default: null
     },
+    selectedEventId: {
+      type: String,
+      default: null
+    },
     preferredPlayerIdsSet: {
       type: Set,
       default: () => new Set()
@@ -387,16 +391,10 @@ export default {
     
     // Grouper les événements par mois
     const groupedEventsByMonth = computed(() => {
-      console.log('TimelineView: groupedEventsByMonth computed, events:', props.events)
-      console.log('TimelineView: selectedEventId:', props.selectedEventId)
-
       // Vérifier que les données sont disponibles
       if (!props.events || !Array.isArray(props.events)) {
-        console.log('TimelineView: Pas d\'événements ou pas un tableau')
         return []
       }
-      
-      console.log('TimelineView: Nombre d\'événements à traiter:', props.events.length)
       
       const months = {}
       
@@ -408,9 +406,7 @@ export default {
         if (event._isArchived && !props.selectedEventId) return
         
         try {
-          console.log('TimelineView: Traitement de la date pour:', event.title, 'date:', event.date)
           const date = new Date(event.date)
-          console.log('TimelineView: Date parsée:', date, 'isValid:', !isNaN(date.getTime()))
           if (isNaN(date.getTime())) {
             console.warn('TimelineView: Date invalide pour l\'événement:', event)
             return
