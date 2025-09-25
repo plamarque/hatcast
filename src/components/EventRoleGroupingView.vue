@@ -77,6 +77,9 @@
                 :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                <span class="text-gray-400 ml-1" title="Algorithme Bruno">
+                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                </span>
               </span>
             </div>
 
@@ -121,6 +124,9 @@
                 :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                <span class="text-gray-400 ml-1" title="Algorithme Bruno">
+                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                </span>
               </span>
             </template>
           </div>
@@ -157,12 +163,13 @@
           <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}</span>
         </div>
         
-        <!-- Candidats et places -->
+        <!-- Places et candidats -->
         <div>
-          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
-          <span class="text-gray-300"> candidats</span> <span class="text-white">pour </span>
           <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> 
-          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }}</span>
+          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }}</span> 
+          <span class="text-white">pour </span>
+          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
+          <span class="text-gray-300"> candidats</span>
         </div>
         
         <!-- Probabilités -->
@@ -194,7 +201,7 @@ import {
   getRoleLabel 
 } from '../services/storage.js'
 import { getChanceColorClass } from '../services/chancesService.js'
-import { calculateAllRoleChances } from '../services/chancesService.js'
+import { calculateAllRoleChances, calculateAllRoleChancesBruno } from '../services/chancesService.js'
 
 const props = defineProps({
   selectedEvent: {
@@ -394,6 +401,29 @@ function getPlayerChanceForRole(playerName, role, eventId) {
   
   const candidate = roleData.candidates.find(c => c.name === playerName)
   return candidate ? Math.round(candidate.practicalChance) : null
+}
+
+function getPlayerChanceForRoleBruno(playerName, role, eventId) {
+  // Calculer les chances selon l'algorithme Bruno
+  const allRoleChancesBruno = calculateAllRoleChancesBruno(
+    props.selectedEvent, 
+    props.players, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  console.log('🔍 Bruno debug pour', playerName, role, ':', allRoleChancesBruno[role])
+  
+  const roleData = allRoleChancesBruno[role]
+  if (!roleData || !roleData.candidates) {
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === playerName)
+  console.log('🔍 Candidat Bruno trouvé:', candidate)
+  
+  return candidate ? Math.round(candidate.brunoChance) : null
 }
 
 function getChanceBadgeClass(chance) {

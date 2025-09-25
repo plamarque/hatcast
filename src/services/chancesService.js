@@ -679,3 +679,146 @@ function groupCandidatesByExperience(candidates) {
   
   return groups
 }
+
+/**
+ * Calcule les chances selon l'algorithme Bruno (par niveau d'expérience)
+ * @param {Object} event - Événement
+ * @param {Array} availablePlayers - Liste des joueurs disponibles
+ * @param {Object} playerAvailability - Données de disponibilité
+ * @param {Function} countSelections - Fonction pour compter les sélections passées
+ * @param {Function} isAvailableForRole - Fonction pour vérifier la disponibilité (optionnelle)
+ * @returns {Object} - Données calculées pour tous les rôles selon l'algorithme Bruno
+ */
+export function calculateAllRoleChancesBruno(event, availablePlayers, playerAvailability, countSelections, isAvailableForRole = null) {
+  const allRoleChances = {}
+  
+  if (!event.roles || typeof event.roles !== 'object') {
+    return allRoleChances
+  }
+  
+  // Utiliser la fonction isAvailableForRole passée en paramètre ou créer une fonction locale
+  const checkAvailableForRole = isAvailableForRole || ((playerName, role, eventId) => {
+    const availabilityData = playerAvailability?.[playerName]?.[eventId]
+    
+    if (availabilityData && typeof availabilityData === 'object' && availabilityData.available !== undefined) {
+      if (availabilityData.available && availabilityData.roles) {
+        return availabilityData.roles.includes(role) || availabilityData.roles.length === 0
+      }
+      return false
+    }
+    
+    // Fallback pour l'ancien format
+    if (role === 'player') {
+      return availabilityData === true
+    }
+    
+    return false
+  })
+  
+  // Calculer les chances pour chaque rôle selon l'algorithme Bruno
+  Object.entries(event.roles).forEach(([role, requiredCount]) => {
+    if (requiredCount > 0) {
+      const roleData = { role, requiredCount, eventId: event.id }
+      allRoleChances[role] = calculateRoleChancesBruno(roleData, availablePlayers, countSelections, checkAvailableForRole)
+    }
+  })
+  
+  return allRoleChances
+}
+
+/**
+ * Calcule les chances pour un rôle selon l'algorithme Bruno
+ * @param {Object} roleData - Données du rôle
+ * @param {Array} availablePlayers - Liste des joueurs disponibles
+ * @param {Function} countSelections - Fonction pour compter les sélections passées
+ * @param {Function} isAvailableForRole - Fonction pour vérifier la disponibilité
+ * @returns {Object} - Données calculées pour le rôle selon l'algorithme Bruno
+ */
+function calculateRoleChancesBruno(roleData, availablePlayers, countSelections, isAvailableForRole) {
+  const { role, requiredCount, eventId } = roleData
+  
+  // Filtrer les joueurs disponibles pour ce rôle
+  const candidates = availablePlayers
+    .filter(player => isAvailableForRole(player.name, role, eventId))
+    .map(player => {
+      const pastSelections = countSelections(player.name, role)
+      const malus = calculateMalus(pastSelections)
+      const weightedChances = calculateWeightedChances(malus, requiredCount)
+      
+      return {
+        name: player.name,
+        id: player.id,
+        pastSelections,
+        weight: weightedChances,
+        malus,
+        weightedChances,
+        requiredCount,
+        experience: pastSelections // Utiliser pastSelections comme niveau d'expérience
+      }
+    })
+  
+  if (candidates.length === 0) {
+    return {
+      role,
+      requiredCount,
+      candidates: [],
+      totalWeight: 0,
+      availableCount: 0
+    }
+  }
+  
+  // Grouper par niveau d'expérience
+  const candidatesByExperience = groupCandidatesByExperience(candidates)
+  
+  // Calculer les chances selon l'algorithme Bruno
+  const candidatesWithBrunoChances = []
+  
+  // Trier les niveaux d'expérience (0 sélections d'abord, puis 1, puis 2, etc.)
+  const sortedLevels = Object.keys(candidatesByExperience).sort((a, b) => parseInt(a) - parseInt(b))
+  let remainingPlaces = requiredCount
+  
+  sortedLevels.forEach((experience, levelIndex) => {
+    const candidatesAtLevel = candidatesByExperience[experience]
+    const levelRequiredCount = Math.min(remainingPlaces, candidatesAtLevel.length)
+    
+    console.log(`🔍 Niveau ${experience} sélections: ${candidatesAtLevel.length} candidats, ${remainingPlaces} places restantes avant niveau, ${levelRequiredCount} places attribuées au niveau`)
+    
+    // Pour chaque candidat de ce niveau, calculer sa chance
+    candidatesAtLevel.forEach(candidate => {
+      let brunoChance = 0
+      
+      if (remainingPlaces > 0 && levelRequiredCount > 0) {
+        // Chance = places disponibles à ce niveau / candidats à ce niveau
+        brunoChance = levelRequiredCount / candidatesAtLevel.length
+        console.log(`  - ${candidate.name}: ${levelRequiredCount}/${candidatesAtLevel.length} = ${brunoChance}`)
+      } else {
+        console.log(`  - ${candidate.name}: 0% (plus de places ou niveau sans places)`)
+      }
+      
+      candidatesWithBrunoChances.push({
+        ...candidate,
+        practicalChance: brunoChance * 100, // Convertir en pourcentage
+        brunoChance: brunoChance * 100,
+        levelChance: brunoChance * 100,
+        experience: parseInt(experience),
+        levelIndex,
+        remainingPlacesAtLevel: levelRequiredCount
+      })
+    })
+    
+    // Réduire le nombre de places restantes
+    remainingPlaces -= levelRequiredCount
+    console.log(`  Places restantes après niveau ${experience}: ${remainingPlaces}`)
+  })
+  
+  // Calculer le poids total pour la cohérence avec l'interface
+  const totalWeight = candidatesWithBrunoChances.reduce((total, candidate) => total + candidate.weight, 0)
+  
+  return {
+    role,
+    requiredCount,
+    candidates: candidatesWithBrunoChances,
+    totalWeight,
+    availableCount: candidatesWithBrunoChances.length
+  }
+}
