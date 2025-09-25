@@ -815,7 +815,7 @@
                     </div>
                   </div>
                   <button
-                    @click="openConfirmationModalFromEventDetails"
+                    @click="handleModifyAvailabilityFromEventDetails"
                     class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                   >
                     Modifier
@@ -10189,6 +10189,25 @@ async function handleConfirmationPending(data) {
 function openConfirmationModal(data) {
   confirmationModalData.value = { ...data }
   showConfirmationModal.value = true
+}
+
+// Fonction pour gérer le bouton "Modifier" dans l'onglet "Ma Dispo"
+function handleModifyAvailabilityFromEventDetails() {
+  if (!selectedEvent.value || !currentUserPlayer.value) {
+    console.warn('Impossible de modifier: événement ou joueur manquant')
+    return
+  }
+  
+  // Vérifier si l'utilisateur est sélectionné pour cet événement
+  const isSelected = isPlayerSelected(currentUserPlayer.value.name, selectedEvent.value.id)
+  
+  if (isSelected) {
+    // Si sélectionné → ouvrir la modale de confirmation
+    openConfirmationModalFromEventDetails()
+  } else {
+    // Si pas sélectionné → ouvrir la modale de disponibilités
+    openAvailabilityModalFromEventDetails()
+  }
 }
 
 // Fonction pour ouvrir la modal de confirmation depuis l'onglet "Ma Dispo"
