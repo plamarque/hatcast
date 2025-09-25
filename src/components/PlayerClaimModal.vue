@@ -222,44 +222,20 @@ async function associatePlayerDirectly() {
   try {
     console.log('🔒 Association directe du joueur à l\'utilisateur connecté')
     
-    // Créer l'association dans la collection players
-    const { updateDoc } = await import('firebase/firestore')
-    const { getFirebaseDb } = await import('../services/firebase.js')
+    // Utiliser le service players.js pour protéger le joueur
+    const { protectPlayer } = await import('../services/players.js')
     
-    console.log('🆔 Création de l\'association dans players')
+    console.log('🆔 Protection du joueur via le service players.js')
     
-    const associationData = {
-      playerId: props.player.id,
+    // Protéger le joueur avec l'email de l'utilisateur connecté
+    await protectPlayer(props.player.id, props.seasonId, {
       email: currentUserEmail.value,
-      isProtected: true,
-      associatedAt: new Date(),
-      source: 'direct_association'
-    }
-    console.log('📝 Données d\'association:', associationData)
-    
-    // Obtenir l'instance Firestore via le getter
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore n\'est pas encore initialisé')
-    }
-    
-    // PRIORITY: Créer dans la collection players de la saison
-    await updateDoc(doc(db, 'seasons', props.seasonId, 'players', props.player.id), {
-      email: associationData.email,
-      isProtected: true,
-      firebaseUid: associationData.firebaseUid || null,
-      photoURL: associationData.photoURL || null,
       emailVerifiedAt: new Date(),
-      updatedAt: new Date()
+      source: 'direct_association'
     })
     
     
-    console.log('✅ Association créée avec succès dans Firestore')
-    
-    // Marquer l'email comme vérifié et sauvegarder l'avatar
-    const { markEmailVerifiedForProtection } = await import('../services/players.js')
-    await markEmailVerifiedForProtection({ playerId: props.player.id, seasonId: props.seasonId })
-    console.log('✅ Email marqué comme vérifié et avatar sauvegardé')
+    console.log('✅ Joueur protégé avec succès via le service players.js')
     
     // Afficher le message de succès
     success.value = `${props.player.name} est maintenant associé à ton compte !`
