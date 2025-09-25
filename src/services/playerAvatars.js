@@ -3,7 +3,7 @@ import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 import { getPlayerData } from './players.js'
 import { getFirebaseDb } from './firebase.js'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, setDoc } from 'firebase/firestore'
 
 // Cache pour éviter les requêtes répétées
 const avatarCache = new Map()
@@ -131,49 +131,13 @@ async function getPlayerAssociation(playerId, seasonId) {
   }
   
   try {
-    const db = getFirebaseDb()
+    // Utiliser le nouveau service players.js
+    const playerData = await getPlayerData(playerId, seasonId)
     
-    // OPTIMISATION: Essayer d'abord dans le document player (plus efficace)
-    if (seasonId) {
-      const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
-      const playerSnap = await getDoc(playerRef)
-      
-      if (playerSnap.exists()) {
-        const data = playerSnap.data()
-        if (data.email) {
-          const association = { email: data.email, source: 'player' }
-          associationCache.set(cacheKey, association)
-          return association
-        }
-      }
-    }
-    
-    // FALLBACK: Si pas trouvé dans players, chercher dans l'ancienne collection playerProtection
-    if (seasonId) {
-      const seasonProtectionRef = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      const seasonSnap = await getDoc(seasonProtectionRef)
-      
-      if (seasonSnap.exists()) {
-        const data = seasonSnap.data()
-        if (data.email && data.isProtected) {
-          const association = { email: data.email, source: 'season_protection' }
-          associationCache.set(cacheKey, association)
-          return association
-        }
-      }
-    }
-    
-    // FALLBACK: Collection globale playerProtection
-    const globalProtectionRef = doc(db, 'playerProtection', playerId)
-    const globalSnap = await getDoc(globalProtectionRef)
-    
-    if (globalSnap.exists()) {
-      const data = globalSnap.data()
-      if (data.email && data.isProtected) {
-        const association = { email: data.email, source: 'global_protection' }
-        associationCache.set(cacheKey, association)
-        return association
-      }
+    if (playerData && playerData.email) {
+      const association = { email: playerData.email, source: 'player' }
+      associationCache.set(cacheKey, association)
+      return association
     }
     
     // Aucune association trouvée
