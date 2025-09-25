@@ -5,7 +5,7 @@
  * Build per-channel payloads from a single input.
  */
 
-import { buildAvailabilityEmailTemplate, buildSelectionEmailTemplate } from './emailTemplates.js'
+import { buildAvailabilityEmailTemplate, buildCastEmailMessage } from './emailTemplates.js'
 
 export function buildNotificationPayloads({ reason, recipientName, eventTitle, eventDate, urls = {}, prefs = {}, extra = {} }) {
   const payloads = { email: null, push: null }
@@ -163,7 +163,7 @@ export function buildSelectionEmailPreview({ recipientName, eventTitle, eventDat
     subject: `🎭 Tu es dans la sélection pour ${eventTitle}!`,
     from: 'HatCast',
     to: recipientName,
-    html: buildSelectionEmailTemplate({ playerName: recipientName, eventTitle, eventDate, eventUrl, noUrl, confirmUrl })
+    html: buildCastEmailMessage({ playerName: recipientName, eventTitle, eventDate, eventUrl, noUrl, confirmUrl })
   }
 }
 

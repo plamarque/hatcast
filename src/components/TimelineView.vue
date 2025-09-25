@@ -19,7 +19,14 @@
           <div
           v-for="event in monthData.events"
             :key="event.id"
-          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl bg-gray-800/30 hover:bg-gray-700/40 transition-all duration-200 cursor-pointer border border-gray-700/30 relative w-full min-w-0"
+          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl transition-all duration-200 cursor-pointer relative w-full min-w-0"
+          :class="[
+            event._isArchived 
+              ? 'bg-gray-600/30 hover:bg-gray-500/40 border border-gray-500/30' 
+              : event._isPast 
+                ? 'bg-amber-800/30 hover:bg-amber-700/40 border border-amber-600/30' 
+                : 'bg-gray-800/30 hover:bg-gray-700/40 border border-gray-700/30'
+          ]"
             @click="$emit('event-click', event)"
           >
           <!-- Date compacte (numéro + jour) -->
@@ -44,10 +51,32 @@
             
             <!-- Titre de l'événement -->
             <div class="event-title flex-1 min-w-0 mr-6">
-              <div class="text-white font-medium text-base line-clamp-2 leading-tight">
+              <div 
+                class="font-medium text-base line-clamp-2 leading-tight"
+                :class="[
+                  event._isArchived 
+                    ? 'text-gray-400' 
+                    : event._isPast 
+                      ? 'text-amber-200' 
+                      : 'text-white'
+                ]"
+                :title="event.title + (event._isArchived ? ' (Archivé)' : event._isPast ? ' (Passé)' : '')"
+              >
                 {{ event.title || 'Sans titre' }}
+                <span v-if="event._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
+                <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
               </div>
-              <div v-if="event.location" class="text-xs text-gray-400 truncate mt-1">
+              <div 
+                v-if="event.location" 
+                class="text-xs truncate mt-1"
+                :class="[
+                  event._isArchived 
+                    ? 'text-gray-500' 
+                    : event._isPast 
+                      ? 'text-amber-300' 
+                      : 'text-gray-400'
+                ]"
+              >
                 📍 {{ event.location }}
               </div>
               <!-- Badge de statut en dessous du titre, aligné avec le texte -->
@@ -79,7 +108,7 @@
                 :disabled="event.archived === true"
                 :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
                 :event-title="event.title"
-                :event-date="event.date ? event.date.toISOString() : ''"
+                :event-date="event.date ? new Date(event.date).toISOString() : ''"
                 :is-protected="isPlayerProtected(event.id)"
                 :compact="true"
                 class="w-full h-16"
@@ -127,6 +156,7 @@
                         :player-name="player.name"
                         :season-id="seasonId"
                         :player-gender="player.gender || 'non-specified'"
+                        :show-status-icons="false"
                         size="lg"
                         class="!w-10 !h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
                         :title="getPlayerTooltip(player, event.id)"
@@ -166,7 +196,7 @@
                   :disabled="event.archived === true"
                   :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
                   :event-title="event.title"
-                  :event-date="event.date ? event.date.toISOString() : ''"
+                  :event-date="event.date ? new Date(event.date).toISOString() : ''"
                   :is-protected="isPlayerProtected(event.id)"
                   :compact="true"
                   class="w-full h-16"
@@ -203,7 +233,22 @@
       <div v-if="groupedEventsByMonth.length === 0" class="text-center py-12">
       <div class="text-6xl mb-4">📅</div>
       <div class="text-white text-lg mb-2">Aucun événement</div>
-      <div class="text-gray-400 text-sm">Les événements apparaîtront ici</div>
+      <div class="text-gray-400 text-sm">Les événements apparaîtront ici        </div>
+      </div>
+      
+      <!-- Bouton "voir les XX autres" pour les événements -->
+      <div v-if="!isAllEventsView && hiddenEventsCount > 0" class="flex justify-center mt-6">
+        <button
+          class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors px-4 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50"
+          @click="addAllEventsToGrid"
+        >
+          <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+            <span class="text-white text-sm font-normal">+</span>
+          </div>
+          <span class="text-sm">
+            voir les {{ hiddenEventsCount }} autres
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -248,6 +293,14 @@ export default {
     selectedPlayerId: {
       type: String,
       default: null
+    },
+    selectedEventId: {
+      type: String,
+      default: null
+    },
+    isAllEventsView: {
+      type: Boolean,
+      default: false
     },
     preferredPlayerIdsSet: {
       type: Set,
@@ -304,6 +357,18 @@ export default {
     isAvailableForRole: {
       type: Function,
       default: () => false
+    },
+    isAllEventsView: {
+      type: Boolean,
+      default: false
+    },
+    hiddenEventsCount: {
+      type: Number,
+      default: 0
+    },
+    hiddenEventsDisplayText: {
+      type: String,
+      default: ''
     }
   },
   emits: [
@@ -316,7 +381,8 @@ export default {
     'show-confirmation-modal',
     'player-selected',
     'all-players-selected',
-    'show-composition-modal'
+    'show-composition-modal',
+    'all-events-loaded'
   ],
   setup(props, { emit }) {
     // Variables réactives
@@ -330,18 +396,31 @@ export default {
     
     // Grouper les événements par mois
     const groupedEventsByMonth = computed(() => {
-      console.log('TimelineView: groupedEventsByMonth computed, events:', props.events)
-
       // Vérifier que les données sont disponibles
       if (!props.events || !Array.isArray(props.events)) {
-        console.log('TimelineView: Pas d\'événements ou pas un tableau')
         return []
       }
       
       const months = {}
       
       props.events.forEach(event => {
-        if (!event || event.archived) return // Ignorer les événements archivés ou invalides
+        console.log('TimelineView: Traitement de l\'événement:', {
+          id: event.id,
+          title: event.title,
+          archived: event.archived,
+          _isArchived: event._isArchived,
+          selectedEventId: props.selectedEventId,
+          willBeProcessed: !(event._isArchived && !props.selectedEventId)
+        })
+        
+        if (!event) return // Ignorer les événements invalides
+        
+        // Si un événement spécifique est sélectionné OU si on est en mode "tous les événements", afficher même les archivés
+        // Sinon, ignorer les événements archivés
+        if (event._isArchived && !props.selectedEventId && !props.isAllEventsView) {
+          console.log('TimelineView: Événement archivé ignoré (pas de sélection spécifique et pas en mode "tous"):', event.title)
+          return
+        }
         
         try {
           const date = new Date(event.date)
@@ -365,7 +444,8 @@ export default {
           
           months[monthKey].events.push({
             ...event,
-            date: date,
+            // Garder la date originale (string) pour les composants qui l'attendent
+            // date: date, // ← Ne pas remplacer la date originale
             dayNumber: date.getDate(),
             dayName: getDayName(date)
           })
@@ -650,6 +730,11 @@ export default {
       emit('all-players-selected')
     }
     
+    // Fonction pour charger tous les événements
+    const addAllEventsToGrid = () => {
+      emit('all-events-loaded')
+    }
+    
     // Fonction pour vérifier s'il y a une composition pour un événement
     const hasEventComposition = (eventId) => {
       if (!props.getSelectionPlayers || !eventId) return false
@@ -708,7 +793,8 @@ export default {
       handlePlayerSelected,
       handleAllPlayersSelected,
       handleAvatarClick,
-      hasEventComposition
+      hasEventComposition,
+      addAllEventsToGrid
     }
   }
 }

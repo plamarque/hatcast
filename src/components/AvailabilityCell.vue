@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1"
+    class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1 z-10"
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
@@ -372,11 +372,22 @@ const tooltipText = computed(() => {
 })
 
 function toggleAvailability() {
-  if (props.disabled) return
+  console.log('🖱️ DEBUG toggleAvailability appelée:')
+  console.log('  - playerName:', props.playerName)
+  console.log('  - isSelected:', props.isSelected)
+  console.log('  - playerSelectionStatus:', props.playerSelectionStatus)
+  console.log('  - isAvailable:', props.isAvailable)
+  console.log('  - disabled:', props.disabled)
+  
+  if (props.disabled) {
+    console.log('❌ DEBUG toggleAvailability: disabled, sortie')
+    return
+  }
   
   // Si le joueur est dans la composition validée par l'organisateur, ouvrir la modal de confirmation
   if (props.isSelected && props.isAvailable === true && props.isSelectionConfirmedByOrganizer) {
     // Ouvrir la modal de confirmation au lieu de cycler directement
+    console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
     emit('show-confirmation-modal', {
       playerName: props.playerName,
       playerGender: props.playerGender,
@@ -387,8 +398,26 @@ function toggleAvailability() {
       availabilityComment: props.availabilityData?.comment || null,
       currentStatus: props.playerSelectionStatus
     })
+  } else if (props.isSelected && props.playerSelectionStatus === 'pending') {
+    // Si le joueur est sélectionné mais en attente de confirmation, ouvrir la modal de disponibilité
+    console.log('🎯 DEBUG toggleAvailability: branche pending, émission show-availability-modal')
+    console.log('  - Condition isSelected:', props.isSelected)
+    console.log('  - Condition playerSelectionStatus === "pending":', props.playerSelectionStatus === 'pending')
+    console.log('  - Condition combinée:', props.isSelected && props.playerSelectionStatus === 'pending')
+    emit('show-availability-modal', {
+      playerName: props.playerName,
+      eventId: props.eventId,
+      eventTitle: props.eventTitle,
+      eventDate: props.eventDate,
+      availabilityData: props.availabilityData,
+      isReadOnly: false,
+      chancePercent: props.chancePercent,
+      isProtected: props.isProtected,
+      eventRoles: props.eventRoles
+    })
   } else {
     // Cycle classique de disponibilité
+    console.log('🔄 DEBUG toggleAvailability: branche par défaut, émission toggle')
     emit('toggle', props.playerName, props.eventId)
   }
 }

@@ -2,6 +2,8 @@
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
 import { getPlayerProtectionData } from './playerProtection.js'
+import { getFirebaseDb } from './firebase.js'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 // Cache pour éviter les requêtes répétées
 const avatarCache = new Map()
@@ -214,21 +216,14 @@ async function getUserPhotoURL(email) {
       return photoURL
     }
     
-    // 2. Essayer de récupérer depuis userPreferences
-    const db = getFirebaseDb()
-    if (db) {
-      const userRef = doc(db, 'userPreferences', `email_${email}`)
-      const userSnap = await getDoc(userRef)
-      
-      if (userSnap.exists()) {
-        const userData = userSnap.data()
-        if (userData.photoURL) {
-          // Stocker dans le cache pour la prochaine fois
-          userAvatarsCache.set(email, userData.photoURL)
-          logger.debug('PlayerAvatar service: Found user avatar in userPreferences', { email, photoURL: userData.photoURL })
-          return userData.photoURL
-        }
-      }
+    // 2. Essayer de récupérer depuis userPreferences (utilise firestoreService car ce n'est pas un joueur/protection)
+    const userData = await firestoreService.getDocument('userPreferences', `email_${email}`)
+    
+    if (userData && userData.photoURL) {
+      // Stocker dans le cache pour la prochaine fois
+      userAvatarsCache.set(email, userData.photoURL)
+      logger.debug('PlayerAvatar service: Found user avatar in userPreferences', { email, photoURL: userData.photoURL })
+      return userData.photoURL
     }
     
     // Pas de log pour les avatars utilisateur non trouvés (cas normal)

@@ -1,7 +1,7 @@
 <template>
   <div 
     :class="containerClass"
-    class="relative overflow-hidden flex items-center justify-center"
+    class="relative overflow-visible flex items-center justify-center"
   >
     <!-- User Avatar (if player is associated) -->
     <img 
@@ -9,7 +9,7 @@
       :src="userPhotoURL"
       :alt="`Avatar de ${playerName || 'joueur'}`"
       :class="imageClass"
-      class="object-cover"
+      class="object-cover object-center"
       @load="onImageLoad"
       @error="onImageError"
       referrerpolicy="no-referrer"
@@ -56,7 +56,7 @@
       
       <!-- Indicateur de protection -->
       <span 
-        v-else-if="isProtected"
+        v-else-if="isProtectedEffective"
         class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
         title="Personne protégée par mot de passe"
       >
@@ -69,6 +69,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
+import { isPlayerProtected } from '../services/playerProtection.js'
 import logger from '../services/logger.js'
 
 const emit = defineEmits(['avatar-loaded', 'avatar-error'])
@@ -120,6 +121,7 @@ const imageError = ref(false)
 const userPhotoURL = ref(null)
 const associatedUserEmail = ref(null)
 const isAssociated = ref(false)
+const isProtectedInternal = ref(false)
 
 // Size classes
 const sizeClasses = {
@@ -234,6 +236,17 @@ async function fetchPlayerAssociation() {
   }
 }
 
+// Fetch protection status only when status icons are shown
+async function fetchProtectionStatus() {
+  if (!props.playerId || !props.showStatusIcons) return
+  try {
+    const result = await isPlayerProtected(props.playerId, props.seasonId)
+    isProtectedInternal.value = !!result
+  } catch (_) {
+    isProtectedInternal.value = false
+  }
+}
+
 // Image loading handlers
 function onImageLoad() {
   imageLoaded.value = true
@@ -278,8 +291,17 @@ watch([() => props.playerId, () => props.seasonId], () => {
     
     // Fetch new data
     fetchPlayerAssociation()
+    // Fetch protection status if needed
+    if (props.showStatusIcons) fetchProtectionStatus()
   }
 }, { immediate: true })
+
+// Also react to showStatusIcons toggling on/off without id changes
+watch(() => props.showStatusIcons, (show) => {
+  if (show) {
+    fetchProtectionStatus()
+  }
+})
 
 // Écouter les événements de mise à jour d'avatar
 let avatarUpdateListener = null
@@ -310,4 +332,18 @@ onUnmounted(() => {
     window.removeEventListener('avatar-cache-cleared', avatarUpdateListener)
   }
 })
+
+// Effective protection status (prop OR auto-loaded)
+const isProtectedEffective = computed(() => {
+  return props.isProtected || isProtectedInternal.value
+})
 </script>
+
+<style scoped>
+/* Ensure avatars maintain proper aspect ratio and don't get distorted */
+img {
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  max-height: 100%;
+}
+</style>

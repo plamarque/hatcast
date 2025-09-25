@@ -1,9 +1,44 @@
 // src/services/emailTemplates.js
 
+import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_PRIORITY_ORDER } from './storage.js'
+
 /**
  * Templates centralisés pour tous les emails
  * Utilisés à la fois pour la prévisualisation et l'envoi réel
  */
+
+/**
+ * Fonction utilitaire pour construire la liste des rôles formatée
+ */
+function buildRoleListText(selectedPlayersByRole, players) {
+  const roleLines = []
+  
+  for (const role of ROLE_PRIORITY_ORDER) {
+    const playerIds = selectedPlayersByRole?.[role]
+    if (Array.isArray(playerIds) && playerIds.length > 0) {
+      // Convertir les IDs en noms
+      const playerNames = playerIds.map(playerId => {
+        const player = players?.find(p => p.id === playerId)
+        return player ? player.name : playerId
+      }).filter(Boolean)
+      
+      if (playerNames.length > 0) {
+        const emoji = ROLE_EMOJIS[role] || '🎭'
+        const label = ROLE_LABELS_SINGULAR[role] || role
+        const playersList = playerNames.join(', ')
+        
+        // Adapter le label selon le nombre de joueurs
+        const displayLabel = playerNames.length > 1 ? 
+          (label.endsWith('.e') ? label.replace('.e', '.es') : label + 's') : 
+          label
+        
+        roleLines.push(`${emoji} ${displayLabel} : ${playersList}`)
+      }
+    }
+  }
+  
+  return roleLines
+}
 
 /**
  * Template pour les demandes de disponibilité (événements)
@@ -26,20 +61,28 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 }
 
 /**
- * Template pour les notifications de sélection
+ * Construit le message email pour les notifications de cast
  */
-export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayers }) {
+export function buildCastEmailMessage({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayersByRole, players }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
-  const playersList = selectedPlayers ? selectedPlayers.join(', ') : ''
+  
+  // Trouver le joueur pour obtenir son genre
+  const player = players?.find(p => p.name === playerName)
+  const isFemale = player?.gender === 'female'
+  const isMale = player?.gender === 'male'
+  const selectedText = isFemale ? 'SÉLECTIONNÉE' : (isMale ? 'SÉLECTIONNÉ' : 'SÉLECTIONNÉ·E')
+  
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
+  const compositionText = roleLines.length > 0 ? roleLines.join('<br>') : 'Composition en cours...'
+  
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting}, tu es <strong>PRÉSÉLECTIONNÉ(E)</strong> pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      <p>${greeting}, tu es <strong>${selectedText}</strong> pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
       
-      <p>Voici la <strong>présélection temporaire</strong> : <strong>${playersList}</strong></p>
-      
-      <div style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
-        <strong>⚠️ IMPORTANT</strong><br>
-        ⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
+      <p>Voici la <strong>composition temporaire</strong> :</p>
+      <div style="margin: 10px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px; font-family: monospace; font-size: 14px;">
+        ${compositionText}
       </div>
       
       <div style="margin: 20px 0; text-align: center;">
@@ -48,6 +91,11 @@ export function buildSelectionEmailTemplate({ playerName, eventTitle, eventDate,
         <a href="${declineUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #dc2626, #b91c1c);color:white;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(220, 38, 38, 0.3);margin-right: 10px;">❌ Décliner</a>
         
         <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;border:2px solid #8b5cf6;color:#8b5cf6;border-radius:8px;text-decoration:none;font-weight:500;">📋 Afficher les détails</a>
+      </div>
+      
+      <div style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+        <strong>⚠️ IMPORTANT</strong><br>
+        L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
       </div>
     </div>
   `
@@ -86,14 +134,28 @@ Es-tu dispo le ${eventDate} pour ${eventTitle} ?
 Lien direct : ${eventUrl}`
 }
 
-export function buildSelectionTextTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmUrl }) {
+export function buildCastTextMessage({ playerName, eventTitle, eventDate, eventUrl, confirmUrl, selectedPlayersByRole, players }) {
   const greeting = playerName ? `Bonjour ${playerName}` : 'Hello'
+  
+  // Trouver le joueur pour obtenir son genre
+  const player = players?.find(p => p.name === playerName)
+  const isFemale = player?.gender === 'female'
+  const isMale = player?.gender === 'male'
+  const selectedText = isFemale ? 'SÉLECTIONNÉE' : (isMale ? 'SÉLECTIONNÉ' : 'SÉLECTIONNÉ·E')
+  
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
+  const compositionText = roleLines.length > 0 ? roleLines.join('\n') : 'Composition en cours...'
+  
   return `${greeting},
 
-Tu es PRÉSÉLECTIONNÉ(E) pour ${eventTitle} le ${eventDate}!
+Tu es ${selectedText} pour ${eventTitle} le ${eventDate}!
+
+Voici la composition temporaire de l'équipe :
+${compositionText}
 
 ⚠️ IMPORTANT
-⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
+L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
 
 ✅ Confirmer ma participation : ${confirmUrl || eventUrl}
 📋 Détails : ${eventUrl}
@@ -103,26 +165,26 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 }
 
 /**
- * Template pour l'annonce globale de sélection (à copier-coller pour WhatsApp)
+ * Construit le message d'annonce globale de cast (à copier-coller pour WhatsApp)
  */
-export function buildGlobalSelectionAnnouncementTemplate({ eventTitle, eventDate, eventUrl, selectedPlayers }) {
-  const playersList = selectedPlayers.length > 0 ? selectedPlayers.join(', ') : 'les personnes sélectionnées'
+export function buildGlobalCastAnnouncementMessage({ eventTitle, eventDate, selectedPlayersByRole, players }) {
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
   
-  return `🎭 PRÉSÉLECTION À CONFIRMER pour ${eventTitle} 🎭
+  return `🎊 🎊 🎊  COMPO 🎊 🎊 🎊 
 
-📅 ${eventDate}
+📆 ${eventTitle} du ${eventDate}
 
-Équipe proposée : ${playersList}
+${roleLines.join('\n')}
 
-⚠️ L'équipe sera confirmée uniquement quand TOUS auront validé leur participation.
 
-🔗 Pour confirmer ou suivre les confirmations : ${eventUrl}`
+Un petit 👍 habituel pour confirmer que c'est OK pour vous.`
 }
 
 /**
  * Template pour l'activation des notifications
  */
-export function buildNotificationActivationTemplate({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
+export function buildNotificationActivationMessage({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
@@ -243,7 +305,7 @@ export function buildReminderEmailTemplate({
 /**
  * Template pour l'annonce de l'équipe confirmée (quand tous les joueurs ont confirmé)
  */
-export function buildConfirmedTeamEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, confirmedPlayers }) {
+export function buildConfirmedTeamEmailMessage({ playerName, eventTitle, eventDate, eventUrl, confirmedPlayers }) {
   const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
   const playersList = confirmedPlayers ? confirmedPlayers.join(', ') : ''
   return `

@@ -13,7 +13,42 @@
 
       <!-- Content scrollable -->
       <div class="px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto">
-        <!-- Message d'information supprimé pour alléger l'UI -->
+        <!-- Section Mes Dispos (si showAvailability est true) -->
+        <div v-if="showAvailability && currentUserPlayer" class="bg-gray-800/50 rounded-lg p-4 border border-white/10">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <span>📅</span>
+            <span>Mes Dispos</span>
+          </h3>
+          
+          <!-- Affichage de la disponibilité actuelle -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
+              <AvailabilityCell
+                :player-name="currentUserPlayer.name"
+                :player-id="currentUserPlayer.id"
+                :player-gender="currentUserPlayer.gender"
+                :event-id="event?.id"
+                :event-title="event?.title"
+                :event-date="event?.date"
+                :current-availability="getCurrentUserAvailability()"
+                :is-read-only="false"
+                :season-id="seasonId"
+                :chance-percent="null"
+                :is-protected="false"
+                :event-roles="eventRoles"
+                @availability-changed="handleAvailabilityChanged"
+                @show-availability-modal="openAvailabilityModal"
+              />
+            </div>
+            <button
+              @click="openAvailabilityModal"
+              class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+            >
+              Modifier
+            </button>
+          </div>
+        </div>
 
         <!-- Composant de preview partagé -->
         <MessagePreview
@@ -23,48 +58,47 @@
           :season-slug="seasonSlug"
           :players="players"
           :selected-players="selectedPlayers"
+          :selected-players-by-role="selectedPlayersByRole"
           :availability-by-player="availabilityByPlayer"
           :is-selection-confirmed-by-all-players="isSelectionConfirmedByAllPlayers"
+          :sending="computedSending"
+          @send-notifications="confirmAndSend"
         />
 
         <!-- Section Copie supprimée: bouton de copie présent dans le footer -->
       </div>
 
-      <!-- Footer sticky -->
-      <div class="sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Action principale: Confirmer et envoyer -->
-        <div class="flex items-center gap-2 w-full">
-          <button
-            @click="confirmAndSend"
-            :disabled="computedSending"
-            class="h-12 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 flex-1"
-          >
-            <span v-if="!computedSending">
-              <span class="hidden sm:inline">{{ mode === 'selection' ? '⏳ Demander confirmation' : '🔔 Notifier' }}</span>
-              <span class="sm:hidden">{{ mode === 'selection' ? '⏳ Confirmation' : '🔔 Notifier' }}</span>
-            </span>
-            <span v-else class="inline-flex items-center gap-2">
-              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-              </svg>
-              Envoi en cours...
-            </span>
-          </button>
-        </div>
-        
-        <!-- Bouton fermer -->
-        <button @click="onClose" class="h-12 px-4 bg-gray-700 text-white rounded-lg">
-          Fermer
-        </button>
-      </div>
     </div>
   </div>
+
+  <!-- Modal de disponibilité superposée -->
+  <AvailabilityModal
+    :show="showAvailabilityModal"
+    :player-name="availabilityModalData.playerName"
+    :player-id="availabilityModalData.playerId"
+    :player-gender="availabilityModalData.playerGender"
+    :event-id="availabilityModalData.eventId"
+    :event-title="availabilityModalData.eventTitle"
+    :event-date="availabilityModalData.eventDate"
+    :current-availability="availabilityModalData.availabilityData"
+    :is-read-only="availabilityModalData.isReadOnly"
+    :season-id="seasonId"
+    :chance-percent="availabilityModalData.chancePercent"
+    :is-protected="availabilityModalData.isProtected"
+    :event-roles="availabilityModalData.eventRoles"
+    @close="showAvailabilityModal = false"
+    @save="handleAvailabilitySave"
+    @not-available="handleAvailabilityNotAvailable"
+    @clear="handleAvailabilityClear"
+    @request-edit="handleAvailabilityRequestEdit"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import MessagePreview from './MessagePreview.vue'
+import AvailabilityModal from './AvailabilityModal.vue'
+import AvailabilityCell from './AvailabilityCell.vue'
 
 
 const props = defineProps({
@@ -77,18 +111,42 @@ const props = defineProps({
   mode: { type: String, default: 'event', validator: (value) => ['event', 'selection'].includes(value) },
   // Pour le mode sélection, on peut passer les joueurs sélectionnés
   selectedPlayers: { type: Array, default: () => [] },
+  // Pour le mode sélection, structure par rôles
+  selectedPlayersByRole: { type: Object, default: () => ({}) },
   // Contrôle du spinner depuis le parent pendant l'envoi
   sending: { type: Boolean, default: false },
   // Map des disponibilités pour l'événement courant: { [playerName]: true|false|undefined }
   availabilityByPlayer: { type: Object, default: () => ({}) },
   // Pour le mode sélection, indique si tous les joueurs ont confirmé
-  isSelectionConfirmedByAllPlayers: { type: Boolean, default: false }
+  isSelectionConfirmedByAllPlayers: { type: Boolean, default: false },
+  // Nouveau paramètre pour afficher la modale de disponibilité
+  showAvailability: { type: Boolean, default: false },
+  // Données pour la modale de disponibilité
+  currentUserPlayer: { type: Object, default: null },
+  // Rôles attendus pour l'événement
+  eventRoles: { type: Object, default: () => ({}) }
 })
 
-const emit = defineEmits(['close', 'notifications-sent', 'send-notifications'])
+const emit = defineEmits(['close', 'notifications-sent', 'send-notifications', 'availability-changed'])
 
 // État local - on utilise seulement l'état parent
 const computedSending = computed(() => props.sending)
+
+// État pour la modale de disponibilité
+const showAvailabilityModal = ref(false)
+const availabilityModalData = ref({
+  playerName: '',
+  playerId: '',
+  playerGender: 'non-specified',
+  eventId: '',
+  eventTitle: '',
+  eventDate: '',
+  availabilityData: { available: null, roles: [], comment: null },
+  isReadOnly: false,
+  chancePercent: null,
+  isProtected: false,
+  eventRoles: {}
+})
 
 // Onglets supprimés
 
@@ -104,7 +162,7 @@ function onClose() {
 function getModalTitle() {
   if (props.mode === 'selection') {
     // Mode sélection : titre selon l'état de confirmation
-    return props.isSelectionConfirmedByAllPlayers ? 'Annoncer l\'équipe' : 'Demander confirmation'
+    return props.isSelectionConfirmedByAllPlayers ? 'Annoncer l\'équipe' : 'Annoncer Compo'
   } else {
     // Mode événement : titre classique
     return 'Confirmer l\'événement'
@@ -116,6 +174,7 @@ function formatDateFull(dateValue) {
   const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue.toDate?.() || dateValue
   return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 }
+
 
 
 
@@ -141,6 +200,71 @@ async function confirmAndSend() {
     console.error('Erreur lors de l\'envoi des notifications:', error)
     alert('Erreur lors de l\'envoi des notifications. Veuillez réessayer.')
   }
+}
+
+// Fonctions pour la modale de disponibilité
+function getCurrentUserAvailability() {
+  if (!props.currentUserPlayer || !props.event) {
+    return { available: null, roles: [], comment: null }
+  }
+  
+  const playerName = props.currentUserPlayer.name
+  const eventId = props.event.id
+  
+  // Récupérer depuis availabilityByPlayer
+  const availability = props.availabilityByPlayer[playerName]
+  if (availability === undefined) {
+    return { available: null, roles: [], comment: null }
+  }
+  
+  return {
+    available: availability,
+    roles: [], // TODO: récupérer les rôles depuis les données
+    comment: null // TODO: récupérer le commentaire depuis les données
+  }
+}
+
+function openAvailabilityModal() {
+  if (!props.currentUserPlayer || !props.event) return
+  
+  availabilityModalData.value = {
+    playerName: props.currentUserPlayer.name,
+    playerId: props.currentUserPlayer.id,
+    playerGender: props.currentUserPlayer.gender || 'non-specified',
+    eventId: props.event.id,
+    eventTitle: props.event.title,
+    eventDate: props.event.date,
+    availabilityData: getCurrentUserAvailability(),
+    isReadOnly: false,
+    chancePercent: null,
+    isProtected: false,
+    eventRoles: props.eventRoles
+  }
+  
+  showAvailabilityModal.value = true
+}
+
+function handleAvailabilityChanged(data) {
+  emit('availability-changed', data)
+}
+
+function handleAvailabilitySave(data) {
+  emit('availability-changed', data)
+  showAvailabilityModal.value = false
+}
+
+function handleAvailabilityNotAvailable(data) {
+  emit('availability-changed', data)
+  showAvailabilityModal.value = false
+}
+
+function handleAvailabilityClear(data) {
+  emit('availability-changed', data)
+  showAvailabilityModal.value = false
+}
+
+function handleAvailabilityRequestEdit() {
+  availabilityModalData.value.isReadOnly = false
 }
 
 // Plus besoin de watcher - on utilise seulement l'état parent

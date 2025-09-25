@@ -65,10 +65,12 @@
             />
             <div class="flex-1">
               <div class="text-white font-medium">{{ player.name }}</div>
-            </div>
-            <!-- Icône de cadenas pour les participants protégés -->
-            <div v-if="isPlayerProtected(player.id)" class="text-yellow-400 text-sm">
-              🔒
+              <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                <span>{{ getPlayerStats(player) }}</span>
+                <span v-if="isPlayerProtected(player.id)" class="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-400/30 rounded" title="Joueur protégé">
+                  🔒 Protégé
+                </span>
+              </div>
             </div>
           </div>
           
@@ -130,6 +132,19 @@ export default {
     isPlayerAlreadyDisplayed: {
       type: Function,
       default: () => false
+    },
+    // Props pour les statistiques des joueurs
+    events: {
+      type: Array,
+      default: () => []
+    },
+    isAvailable: {
+      type: Function,
+      default: () => false
+    },
+    getSelectionPlayers: {
+      type: Function,
+      default: () => []
     }
   },
   emits: ['close', 'player-selected', 'all-players-selected', 'add-new-player'],
@@ -169,6 +184,30 @@ export default {
       closeModal()
     }
     
+    // Fonction pour obtenir les statistiques d'un joueur
+    const getPlayerStats = (player) => {
+      if (!props.events || props.events.length === 0) {
+        return 'Aucun événement'
+      }
+      
+      let availableCount = 0
+      let selectedCount = 0
+      
+      // Compter les événements où le joueur est disponible et sélectionné
+      props.events.forEach(event => {
+        if (props.isAvailable(player.name, event.id)) {
+          availableCount++
+        }
+        
+        const selectedPlayers = props.getSelectionPlayers(event.id)
+        if (selectedPlayers.includes(player.name)) {
+          selectedCount++
+        }
+      })
+      
+      return `${availableCount} dispos / ${selectedCount} sélections`
+    }
+    
     // Vérifier si un joueur est déjà affiché dans la grille
     const isPlayerAlreadyDisplayed = (playerId) => {
       return props.isPlayerAlreadyDisplayed(playerId)
@@ -194,7 +233,8 @@ export default {
       selectPlayer,
       selectAllPlayers,
       addNewPlayer,
-      isPlayerAlreadyDisplayed
+      isPlayerAlreadyDisplayed,
+      getPlayerStats
     }
   }
 }

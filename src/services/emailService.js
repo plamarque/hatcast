@@ -3,8 +3,8 @@
 import firestoreService from './firestoreService.js'
 import configService from './configService.js'
 import logger from './logger.js'
-import { queuePushMessage } from './pushService'
-import { buildAvailabilityEmailTemplate, buildNotificationActivationTemplate } from './emailTemplates.js'
+import { queuePushMessage } from './pushService.js'
+import { buildAvailabilityEmailTemplate, buildNotificationActivationMessage } from './emailTemplates.js'
 import { serverTimestamp } from 'firebase/firestore'
 import AuditClient from './auditClient.js'
 
@@ -281,8 +281,8 @@ export async function queuePasswordResetEmail({ toEmail, resetUrl, displayName =
   return { success: true }
 }
 
-// Fonction pour envoyer des emails de notification de sélection
-export async function queueSelectionEmail({
+// Fonction pour envoyer des emails de notification de composition
+export async function queueCastEmail({
   toEmail,
   playerName,
   eventTitle,
@@ -298,11 +298,11 @@ export async function queueSelectionEmail({
   // Respecter préférences notification
   try {
     const prefs = await firestoreService.getDocument('userPreferences', toEmail)
-    if (prefs?.notifySelection === false) {
+    if (prefs?.notifyCast === false) {
       return { success: true, skipped: true }
     }
   } catch {}
-  logger.debug('queueSelectionEmail', { forPlayer: playerName, hasCustomHtml: !!html, hasCustomSubject: !!subject })
+  logger.debug('queueCastEmail', { forPlayer: playerName, hasCustomHtml: !!html, hasCustomSubject: !!subject })
   
   // Si HTML et sujet personnalisés sont fournis, les utiliser
   // Sinon, utiliser le template par défaut
@@ -319,7 +319,7 @@ export async function queueSelectionEmail({
 
   const emailSubject = subject || `🎭 Confirme ta participation pour · ${eventTitle}`
   
-  logger.debug('queueSelectionEmail html/subject ready')
+  logger.debug('queueCastEmail html/subject ready')
 
   const docData = {
     to: toEmail,
@@ -328,7 +328,7 @@ export async function queueSelectionEmail({
       html: emailHtml
     },
     createdAt: serverTimestamp(),
-    meta: { reason: 'selection', eventTitle, eventDate, playerName }
+    meta: { reason: 'cast', eventTitle, eventDate, playerName }
   }
   
   // Configurer l'expéditeur (HatCast par défaut)
@@ -336,7 +336,7 @@ export async function queueSelectionEmail({
   docData.from = fromConfig.from
   docData.replyTo = fromConfig.replyTo
 
-  logger.debug('queueSelectionEmail firestore payload ready')
+  logger.debug('queueCastEmail firestore payload ready')
   
   try {
     const emailConfig = configService.getEmailConfig()
@@ -360,11 +360,11 @@ export async function queueSelectionEmail({
       console.log('Préférences utilisateur pour notifications push', { 
         toEmail, 
         prefs, 
-        notifySelectionPush: prefs?.notifySelectionPush,
-        shouldSendPush: prefs?.notifySelectionPush !== false 
+        notifyCastPush: prefs?.notifyCastPush,
+        shouldSendPush: prefs?.notifyCastPush !== false 
       })
-      if (prefs?.notifySelectionPush !== false) {
-        console.log('Envoi notification push de sélection', { toEmail, playerName, eventTitle })
+      if (prefs?.notifyCastPush !== false) {
+        console.log('Envoi notification push de composition', { toEmail, playerName, eventTitle })
         {
           const pushData = { url: eventUrl || window.location.origin }
           if (typeof confirmUrl !== 'undefined') pushData.confirmUrl = confirmUrl
@@ -383,15 +383,15 @@ export async function queueSelectionEmail({
             title: pushTitle,
             body: pushBody,
             data: pushData,
-            reason: 'selection'
+            reason: 'cast'
           })
         }
-        console.log('Notification push de sélection envoyée avec succès')
+        console.log('Notification push de composition envoyée avec succès')
       } else {
-        console.log('Notification push de sélection désactivée par préférences utilisateur')
+        console.log('Notification push de composition désactivée par préférences utilisateur')
       }
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de la notification push de sélection', error)
+      console.error('Erreur lors de l\'envoi de la notification push de composition', error)
     }
     logger.info('Email ajouté à la queue Firestore', { playerName })
     return { success: true }
@@ -401,8 +401,8 @@ export async function queueSelectionEmail({
   }
 }
 
-// Nouveau: email lorsqu'un joueur n'est plus sélectionné
-export async function queueDeselectionEmail({
+// Nouveau: email lorsqu'un joueur n'est plus composé
+export async function queueDecastEmail({
   toEmail,
   playerName,
   eventTitle,
@@ -413,10 +413,10 @@ export async function queueDeselectionEmail({
   subject = undefined,
   fromEmail = undefined
 }) {
-  // Respecter préférences notification (on réutilise notifySelection)
+  // Respecter préférences notification (on réutilise notifyCast)
   try {
     const prefs = await firestoreService.getDocument('userPreferences', toEmail)
-    if (prefs?.notifySelection === false) {
+    if (prefs?.notifyCast === false) {
       return { success: true, skipped: true }
     }
   } catch {}
@@ -425,18 +425,18 @@ export async function queueDeselectionEmail({
 
   const emailHtml = html || `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <h2>🎭 Sélection mise à jour</h2>
+      <h2>🎭 Composition mise à jour</h2>
       <p>Bonjour ${playerName},</p>
-      <p>La sélection pour <strong>${eventTitle}</strong> (${eventDate}) a été mise à jour et tu n'en fais plus partie 😔.</p>
-      ${playersList ? `<p>Nouvelle sélection: <strong>${playersList}</strong>.</p>` : ''}
+      <p>La composition pour <strong>${eventTitle}</strong> (${eventDate}) a été mise à jour et tu n'en fais plus partie 😔.</p>
+      ${playersList ? `<p>Nouvelle composition: <strong>${playersList}</strong>.</p>` : ''}
       <p>
         <a href="${eventUrl}" style="display:inline-block;padding:10px 16px;background:#6b7280;color:#fff;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
       </p>
-      <p style="font-size:12px;color:#6b7280;">Motif: mise à jour de sélection (relance auto ou ajustement manuel).</p>
+      <p style="font-size:12px;color:#6b7280;">Motif: mise à jour de composition (relance auto ou ajustement manuel).</p>
     </div>
   `
 
-  const emailSubject = subject || `🎭 Tu n'es plus dans la sélection · ${eventTitle}`
+  const emailSubject = subject || `🎭 Tu n'es plus dans la composition · ${eventTitle}`
 
   const docData = {
     to: toEmail,
@@ -471,7 +471,7 @@ export async function queueDeselectionEmail({
   // Mirror push notification si autorisé (on réutilise notifySelectionPush)
   try {
     const prefs = await firestoreService.getDocument('userPreferences', toEmail) || {}
-    if (prefs?.notifySelectionPush !== false) {
+    if (prefs?.notifyCastPush !== false) {
       await queuePushMessage({
         toEmail,
         title: '🎭 Sélection mise à jour',
@@ -480,19 +480,19 @@ export async function queueDeselectionEmail({
           url: eventUrl || window.location.origin,
           noUrl: eventUrl && eventUrl.includes('/event/') ? eventUrl.replace('/event/', '/magic?auto=no&event=') : undefined
         },
-        reason: 'deselection'
+        reason: 'decast'
       })
     }
   } catch {}
   return { success: true }
 }
 
-// Fonction pour envoyer des emails de notification de sélection pour un événement
-export async function sendSelectionEmailsForEvent({ eventId, eventData, selectedPlayers, seasonId, seasonSlug, players, isConfirmedTeam = false }) {
-  logger.info('sendSelectionEmailsForEvent', { eventId, seasonId, seasonSlug, playersCount: players?.length, selectedCount: selectedPlayers?.length })
+// Fonction pour envoyer des emails de notification de cast pour un événement
+export async function sendCastEmailsForEvent({ eventId, eventData, selectedPlayers, selectedPlayersByRole, seasonId, seasonSlug, players, isConfirmedTeam = false }) {
+  logger.info('sendCastEmailsForEvent', { eventId, seasonId, seasonSlug, playersCount: players?.length, selectedCount: selectedPlayers?.length })
   
   if (!eventData || !selectedPlayers || selectedPlayers.length === 0) {
-    throw new Error('Données manquantes pour l\'envoi des emails de sélection')
+    throw new Error('Données manquantes pour l\'envoi des emails de composition')
   }
 
   const { getPlayerEmail } = await import('./playerProtection.js')
@@ -521,7 +521,7 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
     ? `🎉 Équipe confirmée pour · ${eventData.title}`
     : `🎭 Confirme ta participation pour · ${eventData.title}`
 
-  logger.info(`Envoi de notifications à ${playersToNotify.length} personnes sur ${selectedPlayers.length} sélectionnées`, {
+  logger.info(`Envoi de notifications à ${playersToNotify.length} personnes sur ${selectedPlayers.length} composées`, {
     playersToNotify,
     totalSelected: selectedPlayers.length
   })
@@ -569,9 +569,9 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
       
       try {
-        const { buildSelectionEmailTemplate, buildConfirmedTeamEmailTemplate } = await import('./emailTemplates.js')
+        const { buildCastEmailMessage, buildConfirmedTeamEmailMessage } = await import('./emailTemplates.js')
         
-        logger.debug('Magic links générés pour sélection', { 
+        logger.debug('Magic links générés pour composition', { 
           playerName, 
           confirmUrl: confirmUrl.substring(0, 100) + '...', 
           declineUrl: declineUrl.substring(0, 100) + '...' 
@@ -579,7 +579,7 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
         
         // Utiliser le template approprié selon le type de notification
         if (isConfirmedTeam) {
-          html = buildConfirmedTeamEmailTemplate({
+          html = buildConfirmedTeamEmailMessage({
             playerName,
             eventTitle: eventData.title,
             eventDate: formatDateFull(eventData.date),
@@ -587,14 +587,15 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
             confirmedPlayers: selectedPlayers // Liste des joueurs confirmés
           })
         } else {
-          html = buildSelectionEmailTemplate({
+          html = buildCastEmailMessage({
             playerName,
             eventTitle: eventData.title,
             eventDate: formatDateFull(eventData.date),
             eventUrl,
             declineUrl: declineUrl, // Magic link de déclin
             confirmUrl: confirmUrl, // Magic link de confirmation
-            selectedPlayers: selectedPlayers // Liste des joueurs sélectionnés
+            selectedPlayersByRole: selectedPlayersByRole, // Structure par rôles
+            players: players // Liste des joueurs pour conversion ID -> nom
           })
         }
         logger.debug('HTML généré avec le template approprié')
@@ -638,8 +639,8 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       }
       logger.debug('HTML généré pour joueur')
       
-      // Envoyer l'email de sélection personnalisé
-      const emailPromise = queueSelectionEmail({
+      // Envoyer l'email de composition personnalisé
+      const emailPromise = queueCastEmail({
         toEmail: email,
         playerName,
         eventTitle: eventData.title,
@@ -653,9 +654,9 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
       })
       
       emailPromises.push(emailPromise)
-      logger.info('Email ajouté à la queue', { playerName })
+      logger.info('Email ajouté à la file', { playerName })
     } catch (error) {
-      logger.error('Erreur lors de l\'envoi de l\'email de sélection', { playerName, error: error.message, stack: error.stack })
+      logger.error('Erreur lors de l\'envoi de l\'email de composition', { playerName, error: error.message, stack: error.stack })
     }
   }
   
@@ -668,9 +669,9 @@ export async function sendSelectionEmailsForEvent({ eventId, eventData, selected
   return { success: true, count: emailPromises.length }
 }
 
-// Envoi des emails quand des joueurs sont retirés de la sélection
-export async function sendDeselectionEmailsForEvent({ eventId, eventData, removedPlayers, newSelectedPlayers, seasonId, seasonSlug, players }) {
-  logger.info('sendDeselectionEmailsForEvent', { eventId, seasonId, removedCount: removedPlayers?.length })
+// Envoi des emails quand des joueurs sont retirés de la composition
+export async function sendDecastEmailsForEvent({ eventId, eventData, removedPlayers, newSelectedPlayers, seasonId, seasonSlug, players }) {
+  logger.info('sendDecastEmailsForEvent', { eventId, seasonId, removedCount: removedPlayers?.length })
 
   if (!eventData || !removedPlayers || removedPlayers.length === 0) {
     return { success: true, count: 0 }
@@ -697,17 +698,17 @@ export async function sendDeselectionEmailsForEvent({ eventId, eventData, remove
 
       const html = `
         <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-          <h2>🎭 Sélection mise à jour</h2>
+          <h2>🎭 Composition mise à jour</h2>
           <p>Bonjour <strong>${playerName}</strong>,</p>
           <p>Tu n'es plus sélectionné(e) pour <strong>${eventData.title}</strong> (${formatDateFull(eventData.date)}) 😔.</p>
-          ${playersList ? `<p>Nouvelle sélection: <strong>${playersList}</strong>.</p>` : ''}
+          ${playersList ? `<p>Nouvelle composition: <strong>${playersList}</strong>.</p>` : ''}
           <p>
             <a href="${eventUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #6b7280;color:#6b7280;border-radius:8px;text-decoration:none;">Voir les détails de l'événement</a>
           </p>
         </div>
       `
 
-      emailPromises.push(queueDeselectionEmail({
+      emailPromises.push(queueDecastEmail({
         toEmail: email,
         playerName,
         eventTitle: eventData.title,
@@ -745,7 +746,7 @@ export async function queueNotificationActivationEmail({
   seasonTitle,
   fromEmail = undefined
 }) {
-  const html = buildNotificationActivationTemplate({
+  const html = buildNotificationActivationMessage({
     playerName,
     eventTitle,
     eventUrl,
@@ -784,6 +785,6 @@ export async function queueNotificationActivationEmail({
   
   // En production ou sans capture, envoyer via Firebase Trigger Email
   await firestoreService.addDocument('mail', docData)
-  logger.info('Email d\'activation des notifications ajouté à la queue', { toEmail, playerName })
+  logger.info('Email d\'activation des notifications ajouté à la file', { toEmail, playerName })
   return { success: true }
 }

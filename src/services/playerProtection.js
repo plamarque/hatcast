@@ -62,6 +62,7 @@ export function removePreferredPlayerLocal(seasonId, playerId) {
 
 export async function protectPlayer(playerId, email, password, seasonId = null) {
   try {
+    logger.warn('DEPRECATED: protectPlayer writes to playerProtection collection. Use players collection instead.')
     logger.info('Début protectPlayer', { playerId, seasonId })
     
     // Vérifier si l'email est déjà utilisé
@@ -131,6 +132,7 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
 
 // Etape 1: Démarrer la vérification email - envoie un magic link de vérification
 export async function startEmailVerificationForProtection({ playerId, email, seasonId = null, returnUrl = null }) {
+  logger.warn('DEPRECATED: startEmailVerificationForProtection writes to playerProtection collection. Use players collection instead.')
   // On n'empêche plus l'envoi si l'email existe déjà.
   // La vérification par email prouvera la possession, et l'association sera gérée après vérification.
 
@@ -175,6 +177,7 @@ export async function startEmailVerificationForProtection({ playerId, email, sea
 
 // Etape 2: Marquer l'email comme vérifié et activer la protection
 export async function markEmailVerifiedForProtection({ playerId, seasonId = null }) {
+  logger.warn('DEPRECATED: markEmailVerifiedForProtection writes to playerProtection collection. Use players collection instead.')
   let snap
   if (seasonId) {
     snap = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
@@ -239,6 +242,7 @@ export async function markEmailVerifiedForProtection({ playerId, seasonId = null
 
 // Réinitialiser la vérification d'email pour permettre de ressaisir une autre adresse
 export async function clearEmailVerificationForProtection({ playerId, seasonId = null }) {
+  logger.warn('DEPRECATED: clearEmailVerificationForProtection writes to playerProtection collection. Use players collection instead.')
   if (seasonId) {
     await firestoreService.updateDocument('seasons', seasonId, { emailVerifiedAt: null }, 'playerProtection', playerId)
   } else {
@@ -249,6 +253,7 @@ export async function clearEmailVerificationForProtection({ playerId, seasonId =
 
 export async function unprotectPlayer(playerId, seasonId = null) {
   try {
+    logger.warn('DEPRECATED: unprotectPlayer writes to playerProtection collection. Use players collection instead.')
     // Désactiver la protection et purger l'email pour confidentialité
     if (seasonId) {
       await firestoreService.setDocument('seasons', seasonId, {
@@ -294,6 +299,7 @@ export async function unprotectPlayer(playerId, seasonId = null) {
 }
 
 export async function isPlayerProtected(playerId, seasonId = null) {
+  logger.warn('DEPRECATED: isPlayerProtected reads from playerProtection collection. Use players collection instead.')
   // Vérifier que les paramètres sont valides
   if (!playerId || typeof playerId !== 'string') {
     return false
@@ -327,6 +333,7 @@ export async function isPlayerProtected(playerId, seasonId = null) {
 }
 
 export async function getPlayerProtectionData(playerId, seasonId = null) {
+  logger.warn('DEPRECATED: getPlayerProtectionData reads from playerProtection collection. Use players collection instead.')
   // Vérifier que les paramètres sont valides
   if (!playerId || typeof playerId !== 'string') {
     return null
@@ -357,6 +364,7 @@ export async function getPlayerProtectionData(playerId, seasonId = null) {
 
 // Récupérer l'email d'un joueur (même non protégé)
 export async function getPlayerEmail(playerId, seasonId = null) {
+  logger.warn('DEPRECATED: getPlayerEmail reads from playerProtection collection. Use players collection instead.')
   try {
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
     return protectionData?.email || ''
@@ -371,6 +379,7 @@ export async function getPlayerEmail(playerId, seasonId = null) {
 
 // Lister les protections (pour récupérer emails des joueurs protégés)
 export async function listProtectedPlayers(seasonId = null) {
+  logger.warn('DEPRECATED: listProtectedPlayers reads from playerProtection collection. Use players collection instead.')
   try {
     if (seasonId) {
       // Protection pour une saison spécifique
@@ -392,12 +401,12 @@ export async function listProtectedPlayers(seasonId = null) {
 
 // Lister toutes les associations (toutes saisons) pour un email donné
 export async function listAssociationsForEmail(email) {
+  logger.warn('DEPRECATED: listAssociationsForEmail reads from playerProtection collection. Use players collection instead.')
   try {
     const results = []
     
     // OPTIMISATION: Rechercher directement dans les players avec l'email
     const seasons = await firestoreService.getDocuments('seasons')
-    logger.debug(`listAssociationsForEmail: Recherche optimisée dans ${seasons.length} saisons pour ${email}`)
     
     for (const season of seasons) {
       const sid = season.id
@@ -412,8 +421,6 @@ export async function listAssociationsForEmail(email) {
           'players'
         )
         
-        logger.debug(`listAssociationsForEmail: ${players.length} joueurs trouvés avec cet email dans ${sid}`)
-        
         players.forEach((player) => {
           // Si le joueur a un email défini, c'est qu'il est protégé
           if (player?.email && player.email === email) {
@@ -425,21 +432,17 @@ export async function listAssociationsForEmail(email) {
               isProtected: player.isProtected !== false, // true par défaut si email présent
               firebaseUid: player.firebaseUid // si présent
             })
-            logger.debug(`listAssociationsForEmail: Association optimisée trouvée pour ${sid}/${player.id}`)
           }
         })
         
         // FALLBACK: Si aucun joueur trouvé dans players, chercher dans l'ancienne collection playerProtection
         if (players.length === 0) {
-          logger.debug(`listAssociationsForEmail: Fallback vers playerProtection pour ${sid}`)
           const protections = await firestoreService.queryDocuments(
             'seasons', 
             [firestoreService.where('email', '==', email)], 
             sid, 
             'playerProtection'
           )
-          
-          logger.debug(`listAssociationsForEmail: ${protections.length} protections trouvées dans ${sid} (fallback)`)
           
           protections.forEach((protection) => {
             if (protection?.isProtected) {
@@ -449,7 +452,6 @@ export async function listAssociationsForEmail(email) {
                 playerId: protection.id, 
                 ...protection 
               })
-              logger.debug(`listAssociationsForEmail: Association fallback trouvée pour ${sid}/${protection.id}`)
             }
           })
         }
@@ -462,7 +464,6 @@ export async function listAssociationsForEmail(email) {
       }
     }
     
-    logger.debug(`listAssociationsForEmail: ${results.length} associations trouvées pour ${email}`)
     return results
   } catch (error) {
     // Log silencieux pour les erreurs non critiques
@@ -475,6 +476,7 @@ export async function listAssociationsForEmail(email) {
 
 // FONCTION DE MIGRATION: Synchroniser les données de playerProtection vers les documents players
 export async function migratePlayerProtectionToPlayers(seasonId) {
+  logger.warn('DEPRECATED: migratePlayerProtectionToPlayers reads from playerProtection collection. Use players collection instead.')
   try {
     logger.info('Début migration playerProtection vers players', { seasonId })
     
@@ -517,6 +519,7 @@ export async function migratePlayerProtectionToPlayers(seasonId) {
 }
 
 export async function verifyPlayerPassword(playerId, password, seasonId = null) {
+  logger.warn('DEPRECATED: verifyPlayerPassword reads from playerProtection collection. Use players collection instead.')
   try {
     const protectionData = await getPlayerProtectionData(playerId, seasonId)
     
@@ -560,6 +563,7 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
 }
 // Finaliser l'association après vérification de l'email et créer un compte Firebase Auth
 export async function finalizeProtectionAfterVerification({ playerId, seasonId = null }) {
+  logger.warn('DEPRECATED: finalizeProtectionAfterVerification reads/writes to playerProtection collection. Use players collection instead.')
   const ref = seasonId
     ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
     : doc(db, 'playerProtection', playerId)
@@ -700,6 +704,7 @@ export function getCachedPlayerPassword(playerId) {
 }
 
 export async function sendPasswordResetEmail(playerId, seasonId = null) {
+  logger.warn('DEPRECATED: sendPasswordResetEmail reads from playerProtection collection. Use players collection instead.')
   try {
     logger.info('Début sendPasswordResetEmail', { playerId, seasonId })
     

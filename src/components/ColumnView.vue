@@ -41,15 +41,13 @@
     <template #show-more-header="{ itemWidth }">
       <div
         class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
-        @click="togglePlayerModal"
+        @click="addAllPlayersToGrid"
       >
         <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
           <span class="text-white font-bold text-sm">+</span>
         </div>
         <span class="text-white text-xs text-center leading-tight">
-          Afficher Plus
-          <br>
-          <span class="text-blue-200">{{ hiddenPlayersDisplayText }}</span>
+          voir les {{ hiddenPlayersCount }} autres
         </span>
       </div>
     </template>
@@ -117,6 +115,8 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
+import { loadPlayers, loadAvailability } from '../services/storage.js'
+import logger from '../services/logger.js'
 
 // Props
 const props = defineProps({
@@ -216,7 +216,8 @@ const emit = defineEmits([
   'toggle-availability',
   'toggle-selection-status',
   'show-availability-modal',
-  'event-click'
+  'event-click',
+  'all-players-loaded'
 ])
 
 // Computed
@@ -355,6 +356,27 @@ const openConfirmationModal = (data) => {
 
 const openEventModal = (event) => {
   emit('event-click', event)
+}
+
+// Fonction pour ajouter tous les joueurs à la grille
+async function addAllPlayersToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les joueurs de la saison...')
+    
+    // Charger tous les joueurs
+    const allPlayers = await loadPlayers(props.seasonId)
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(allPlayers, props.events, props.seasonId)
+    
+    logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
+    logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
+    
+    // Émettre l'événement pour notifier le parent
+    emit('all-players-loaded', { players: allPlayers, availability: newAvailability })
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les joueurs:', error)
+  }
 }
 </script>
 

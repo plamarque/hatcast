@@ -1,5 +1,5 @@
 // src/services/notificationsService.js
-import { queueAvailabilityEmail, sendSelectionEmailsForEvent as sendSelectionEmailsViaEmail } from './emailService.js'
+import { queueAvailabilityEmail, sendCastEmailsForEvent as sendCastEmailsViaEmail } from './emailService.js'
 import { queuePushMessage } from './pushService.js'
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
@@ -159,13 +159,28 @@ export async function sendAvailabilityNotificationsForEvent({
  * Send selection notifications using existing batch email helper (emails + push mirror handled there).
  * This function delegates to email service for now, keeping a single source of truth.
  */
-export async function sendSelectionNotificationsForEvent(args) {
+export async function sendCastNotificationsForEvent(args) {
+  // Récupérer la structure par rôles depuis le cast si pas déjà fournie
+  let selectedPlayersByRole = args.selectedPlayersByRole
+  
+  if (!selectedPlayersByRole && args.eventId && args.seasonId) {
+    try {
+      const { firestoreService } = await import('./firestoreService.js')
+      const cast = await firestoreService.getDocument('seasons', args.seasonId, 'casts', args.eventId)
+      selectedPlayersByRole = cast?.roles || {}
+    } catch (error) {
+      console.warn('Impossible de récupérer la structure par rôles:', error)
+      selectedPlayersByRole = {}
+    }
+  }
+  
   // Ajouter le paramètre isConfirmedTeam si pas déjà présent
   const argsWithConfirmedTeam = {
     ...args,
+    selectedPlayersByRole,
     isConfirmedTeam: args.isConfirmedTeam || false
   }
-  return sendSelectionEmailsViaEmail(argsWithConfirmedTeam)
+  return sendCastEmailsViaEmail(argsWithConfirmedTeam)
 }
 
 function formatDateFull(dateValue) {

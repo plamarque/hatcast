@@ -1,17 +1,5 @@
 <template>
   <div v-if="selectedEvent" class="space-y-4">
-    <!-- En-tête avec statut uniquement -->
-    <div class="flex items-center justify-end mb-4">
-      <div v-if="eventStatus" class="flex items-center gap-1">
-        <span 
-          class="px-2 py-1 rounded-full text-xs font-medium"
-          :class="getStatusBadgeClass(eventStatus.type)"
-          :title="eventStatus.message"
-        >
-          {{ eventStatus.label }}
-        </span>
-      </div>
-    </div>
 
     <!-- Affichage par rôles -->
     <div class="space-y-3">
@@ -29,7 +17,7 @@
               ({{ getAvailableCountForRole(role) }}/{{ getRequiredCountForRole(role) }})
             </span>
           </div>
-          <div class="flex items-center gap-2">
+          <div v-if="showRoleStatus" class="flex items-center gap-2">
             <!-- Indicateur de statut du rôle -->
             <div 
               class="w-3 h-3 rounded-full"
@@ -47,65 +35,100 @@
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
-            class="flex items-center gap-3 p-2 rounded-md hover:bg-gray-700/50 transition-colors"
+            :class="[
+              'p-3 rounded-lg border transition-all duration-200',
+              isPlayerSelectedForRole(player.name, role, selectedEvent.id)
+                ? [
+                    'bg-gradient-to-r',
+                    getPlayerSelectionStatus(player.name) === 'declined'
+                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
+                      : getPlayerSelectionStatus(player.name) === 'confirmed'
+                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
+                        : getPlayerSelectionStatus(player.name) === 'pending'
+                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
+                          : 'from-green-500/60 to-emerald-500/60 border-green-500/30'
+                  ]
+                : 'flex items-center gap-3 rounded-md hover:bg-gray-700/50 border-transparent'
+            ]"
           >
-            <!-- Avatar du joueur -->
-            <div class="relative flex-shrink-0">
-              <PlayerAvatar 
-                :player-id="player.id"
-                :season-id="seasonId"
-                :player-name="player.name"
-                :player-gender="player.gender || 'non-specified'"
-                size="sm"
-              />
-              <!-- Statuts superposés -->
-              <span
-                v-if="preferredPlayerIdsSet.has(player.id)"
-                class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                title="Ma personne"
-              >
-                ⭐
+            <!-- Design carte de composition pour joueurs sélectionnés -->
+            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)" class="flex items-center gap-3">
+              <!-- Avatar du joueur -->
+              <div class="flex-shrink-0">
+                <PlayerAvatar 
+                  :player-id="player.id"
+                  :season-id="seasonId"
+                  :player-name="player.name"
+                  :player-gender="player.gender || 'non-specified'"
+                  size="sm"
+                />
+              </div>
+              
+              <!-- Nom du joueur -->
+              <span class="text-white font-medium flex-1 min-w-0 truncate">
+                {{ player.name }}
               </span>
-              <span
-                v-else-if="isPlayerProtectedInGrid(player.id)"
-                class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                title="Personne protégée par mot de passe"
-              >
-                🔒
-              </span>
-            </div>
-
-            <!-- Nom du joueur -->
-            <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
-              {{ player.name }}
-            </span>
-
-            <!-- Indicateurs de statut -->
-            <div class="flex items-center gap-2 flex-shrink-0">
+              
               <!-- Pourcentage de chances -->
               <span 
-                v-if="!isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
-                class="px-2 py-1 rounded text-xs font-medium"
+                @click="showChanceDetails($event, player.name, role)"
+                class="px-2 py-1 rounded text-xs font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                 :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                :title="`Chances de sélection pour ce rôle: ${getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0}%`"
+                :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1" title="Algorithme Bruno">
+                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                </span>
               </span>
-              
-              <!-- Statut de sélection -->
-              <span 
-                v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
-                class="px-1.5 py-0.5 rounded text-xs font-medium"
-                :class="isSelectionConfirmed(selectedEvent.id) 
-                  ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
-                  : 'bg-blue-600/20 text-blue-400 border border-blue-600/30'"
-              >
-                {{ isSelectionConfirmed(selectedEvent.id) 
-                  ? (player.gender === 'female' ? 'Confirmée' : player.gender === 'male' ? 'Confirmé' : 'Confirmé·e')
-                  : (player.gender === 'female' ? 'Sélectionnée' : player.gender === 'male' ? 'Sélectionné' : 'Sélectionné·e') }}
-              </span>
-              
             </div>
+
+            <!-- Design classique pour joueurs non sélectionnés -->
+            <template v-else>
+              <!-- Avatar du joueur -->
+              <div class="relative flex-shrink-0">
+                <PlayerAvatar 
+                  :player-id="player.id"
+                  :season-id="seasonId"
+                  :player-name="player.name"
+                  :player-gender="player.gender || 'non-specified'"
+                  size="sm"
+                />
+                <!-- Statuts superposés -->
+                <span
+                  v-if="preferredPlayerIdsSet.has(player.id)"
+                  class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                  title="Ma personne"
+                >
+                  ⭐
+                </span>
+                <span
+                  v-else-if="isPlayerProtectedInGrid(player.id)"
+                  class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
+                  title="Personne protégée par mot de passe"
+                >
+                  🔒
+                </span>
+              </div>
+
+              <!-- Nom du joueur -->
+              <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
+                {{ player.name }}
+              </span>
+
+              <!-- Pourcentage de chances -->
+              <span 
+                @click="showChanceDetails($event, player.name, role)"
+                class="px-2 py-1 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                :title="`Cliquer pour voir le détail du calcul`"
+              >
+                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1" title="Algorithme Bruno">
+                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                </span>
+              </span>
+            </template>
           </div>
 
           <!-- Message si aucun joueur disponible -->
@@ -120,10 +143,53 @@
 
     </div>
   </div>
+
+  <!-- Mini-popup des explications de chances -->
+  <div v-if="showChanceExplanation && explanationData" 
+       data-explanation-popup
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 max-w-xs"
+       :style="{
+         left: `${explanationPosition.x}px`,
+         top: `${explanationPosition.y}px`,
+         transform: 'translateX(-50%)'
+       }"
+       @click.stop>
+    <div class="text-xs">
+      <div class="font-medium text-white mb-2">Explications</div>
+      <div class="space-y-2">
+        <!-- Sélections passées -->
+        <div>
+          <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span> 
+          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}</span>
+        </div>
+        
+        <!-- Places et candidats -->
+        <div>
+          <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> 
+          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }}</span> 
+          <span class="text-white">pour </span>
+          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
+          <span class="text-gray-300"> candidats</span>
+        </div>
+        
+        <!-- Probabilités -->
+        <div>
+          <span class="text-gray-300">Probabilités :</span> 
+          <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bouton de fermeture -->
+    <button @click="hideChanceExplanation" 
+            class="absolute top-1 right-1 text-gray-400 hover:text-white text-xs">
+      ×
+    </button>
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import { 
@@ -135,6 +201,8 @@ import {
   getRoleLabel 
 } from '../services/storage.js'
 import { getChanceColorClass } from '../services/chancesService.js'
+import { calculateAllRoleChances, calculateAllRoleChancesBruno } from '../services/chancesService.js'
+import configService from '../services/configService.js'
 
 const props = defineProps({
   selectedEvent: {
@@ -241,13 +309,44 @@ const props = defineProps({
   getPlayerRoleChances: {
     type: Function,
     required: true
+  },
+  countSelections: {
+    type: Function,
+    required: true
+  },
+  // Rôles filtrés (optionnel, si non fourni utilise availableRoles)
+  filteredRoles: {
+    type: Array,
+    default: null
+  },
+  // Afficher les indicateurs de statut des rôles (par défaut true)
+  showRoleStatus: {
+    type: Boolean,
+    default: true
   }
 })
 
 const emit = defineEmits(['close'])
 
+// État de la mini-popup des explications de chances
+const showChanceExplanation = ref(false)
+const explanationData = ref(null)
+const explanationPosition = ref({ x: 0, y: 0 })
+
+// Computed pour afficher l'algorithme Bruno seulement en dev/staging
+const showBrunoAlgorithm = computed(() => {
+  const environment = configService.getEnvironment()
+  return environment === 'development' || environment === 'staging'
+})
+
 // Computed properties
 const availableRoles = computed(() => {
+  // Si des rôles filtrés sont fournis, les utiliser
+  if (props.filteredRoles) {
+    return props.filteredRoles
+  }
+  
+  // Sinon, utiliser la logique par défaut
   if (!props.selectedEvent?.roles) return []
   
   return ROLE_PRIORITY_ORDER.filter(role => {
@@ -292,10 +391,58 @@ function getPlayersForRole(role) {
 }
 
 function getPlayerChanceForRole(playerName, role, eventId) {
-  // Utiliser toujours les chances par rôle pour tous les rôles
-  // Cela garantit que les pourcentages correspondent à l'algorithme de tirage
-  const roleChances = props.getPlayerRoleChances(eventId)
-  return roleChances[playerName]?.[role] ?? null
+  // Créer une fonction countSelections qui exclut l'événement en cours
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, eventId)
+  }
+  
+  // Utiliser le même calcul que dans la popup d'explication
+  // Calculer les chances pour tous les rôles (même logique que GridBoard)
+  const allRoleChances = calculateAllRoleChances(
+    props.selectedEvent, 
+    props.players, 
+    props.availability, 
+    countSelectionsExcludingCurrentEvent,
+    props.isAvailableForRole
+  )
+  
+  const roleData = allRoleChances[role]
+  if (!roleData || !roleData.candidates) {
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === playerName)
+  return candidate ? Math.round(candidate.practicalChance) : null
+}
+
+function getPlayerChanceForRoleBruno(playerName, role, eventId) {
+  // Créer une fonction countSelections qui exclut l'événement en cours
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, eventId)
+  }
+  
+  // Calculer les chances selon l'algorithme Bruno
+  const allRoleChancesBruno = calculateAllRoleChancesBruno(
+    props.selectedEvent, 
+    props.players, 
+    props.availability, 
+    countSelectionsExcludingCurrentEvent,
+    props.isAvailableForRole
+  )
+  
+  console.log('🔍 Bruno debug pour', playerName, role, ':', allRoleChancesBruno[role])
+  
+  const roleData = allRoleChancesBruno[role]
+  if (!roleData || !roleData.candidates) {
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === playerName)
+  console.log('🔍 Candidat Bruno trouvé:', candidate)
+  
+  return candidate ? Math.round(candidate.brunoChance) : null
 }
 
 function getChanceBadgeClass(chance) {
@@ -304,6 +451,109 @@ function getChanceBadgeClass(chance) {
   if (chance >= 10) return 'bg-yellow-500/20 text-yellow-300'
   return 'bg-red-500/20 text-red-300'
 }
+
+// Fonctions pour la mini-popup des explications
+function showChanceDetails(event, playerName, role) {
+  console.log('🖱️ Click on percentage:', { playerName, role, event })
+  
+  // Calculer la position de la popup
+  const rect = event.target.getBoundingClientRect()
+  explanationPosition.value = {
+    x: rect.left + rect.width / 2,
+    y: rect.top - 10
+  }
+  
+  // Récupérer les données d'explication
+  explanationData.value = getChanceExplanation(playerName, role)
+  console.log('📊 Explanation data set:', explanationData.value)
+  
+  showChanceExplanation.value = true
+  console.log('👁️ Show explanation:', showChanceExplanation.value)
+}
+
+function hideChanceExplanation() {
+  showChanceExplanation.value = false
+  explanationData.value = null
+}
+
+function getChanceExplanation(playerName, role) {
+  console.log('🔍 Debug getChanceExplanation:', { playerName, role, selectedEvent: props.selectedEvent })
+  
+  if (!props.selectedEvent) {
+    console.log('❌ Missing selectedEvent')
+    return null
+  }
+  
+  // Utiliser la même logique que dans la modale de chances
+  const event = props.selectedEvent
+  const eventId = event.id
+  
+  // Calculer les chances pour tous les rôles (même logique que GridBoard)
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    props.players, 
+    props.availability, 
+    props.countSelections || (() => 0),
+    props.isAvailableForRole
+  )
+  
+  console.log('🔍 Calculated role chances:', allRoleChances)
+  
+  const roleData = allRoleChances[role]
+  if (!roleData || !roleData.candidates) {
+    console.log('❌ No role data found for role:', role)
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === playerName)
+  console.log('🔍 Candidate found:', candidate)
+  console.log('🔍 Candidate pastSelections:', candidate?.pastSelections)
+  console.log('🔍 Candidate malus:', candidate?.malus)
+  console.log('🔍 Candidate practicalChance:', candidate?.practicalChance)
+  
+  // Debug des données de base
+  console.log('🔍 Props countSelections function:', typeof props.countSelections)
+  
+  // Tester la fonction countSelections directement
+  if (props.countSelections) {
+    const directCount = props.countSelections(playerName, role)
+    console.log('🔍 Direct countSelections call:', directCount)
+    console.log('🔍 Expected pastSelections should match directCount:', directCount)
+  }
+  
+  if (!candidate) {
+    console.log('❌ No candidate found for player:', playerName)
+    return null
+  }
+  
+  const explanation = {
+    playerName,
+    role,
+    chance: candidate.practicalChance || 0,
+    requiredCount: roleData.requiredCount || 0,
+    availableCount: roleData.availableCount || 0,
+    malus: candidate.malus || 0,
+    pastSelections: candidate.pastSelections || 0
+  }
+  
+  console.log('✅ Explanation data:', explanation)
+  return explanation
+}
+
+// Gestion des événements pour fermer la popup
+function handleClickOutside(event) {
+  if (showChanceExplanation.value && !event.target.closest('[data-explanation-popup]')) {
+    hideChanceExplanation()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 function getRoleStatusClass(role) {
   const available = getAvailableCountForRole(role)
@@ -344,16 +594,4 @@ function getRoleStatusText(role) {
   }
 }
 
-function getStatusBadgeClass(statusType) {
-  switch (statusType) {
-    case 'complete':
-      return 'bg-green-600/20 text-green-400 border border-green-600/30'
-    case 'incomplete':
-      return 'bg-yellow-600/20 text-yellow-400 border border-yellow-600/30'
-    case 'insufficient':
-      return 'bg-red-600/20 text-red-400 border border-red-600/30'
-    default:
-      return 'bg-gray-600/20 text-gray-400 border border-gray-600/30'
-  }
-}
 </script>
