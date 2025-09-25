@@ -902,7 +902,7 @@ async function loadUsersWithPlayers() {
     logger.debug('🔄 Début du groupement des joueurs par email')
     const userMap = new Map()
     let playersWithEmail = 0
-    let protectedPlayers = 0
+    let protectedPlayersCount = 0
     
     enrichedPlayers.forEach((player, index) => {
       logger.debug(`🔄 Traitement du joueur ${index + 1}/${enrichedPlayers.length}:`, {
@@ -914,7 +914,7 @@ async function loadUsersWithPlayers() {
       
       if (player.email) {
         playersWithEmail++
-        if (player.protected) protectedPlayers++
+        if (player.protected) protectedPlayersCount++
         
         logger.debug(`📧 Joueur avec email trouvé: ${player.email}, protégé: ${player.protected}`)
         
@@ -942,7 +942,7 @@ async function loadUsersWithPlayers() {
       }
     })
     
-    logger.debug(`📊 Résumé du groupement: ${playersWithEmail} joueurs avec email, ${protectedPlayers} joueurs protégés`)
+    logger.debug(`📊 Résumé du groupement: ${playersWithEmail} joueurs avec email, ${protectedPlayersCount} joueurs protégés`)
     logger.debug(`📊 Nombre d'utilisateurs uniques: ${userMap.size}`)
     
     // Filtrer pour ne garder que les utilisateurs avec des joueurs protégés
