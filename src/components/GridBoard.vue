@@ -1547,7 +1547,6 @@
     @clear="handleAvailabilityClear"
     @request-edit="handleAvailabilityRequestEdit"
   />
-
   <!-- Modal de confirmation -->
   <ConfirmationModal
     :show="showConfirmationModal"
@@ -1919,6 +1918,7 @@ import NotificationPromptModal from './NotificationPromptModal.vue'
 import NotificationSuccessModal from './NotificationSuccessModal.vue'
 import AccountCreationModal from './AccountCreationModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
+import CompositionSlot from './CompositionSlot.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import EventRoleGroupingView from './EventRoleGroupingView.vue'
 import AvailabilityModal from './AvailabilityModal.vue'
@@ -2328,7 +2328,6 @@ function addNewPlayerFromShowMore() {
   closeShowMoreModal()
   openNewPlayerForm(name)
 }
-
 // Fonction pour gérer l'affichage des disponibilités d'un joueur
 async function handleShowAvailabilityGrid(playerId) {
   try {
@@ -3112,7 +3111,6 @@ async function addAllPlayersToGrid() {
   
   showPlayerModal.value = false
 }
-
 // Fonction pour gérer l'événement all-players-loaded des composants enfants
 async function handleAllPlayersLoaded(data) {
   try {
@@ -4710,7 +4708,6 @@ async function handleCreateEvent(eventData) {
   // Créer l'événement directement après validation du PIN
   await createEventProtected(newEvent)
 }
-
 async function createEventProtected(eventData) {
   try {
     // D'abord sauvegarder l'événement
@@ -5500,7 +5497,6 @@ watch(() => route.params.eventId, (newEventId) => {
     }
   }
 }, { immediate: true })
-
 // Helpers de tri
 function toDateObject(value) {
   if (!value) return null
@@ -6291,7 +6287,6 @@ async function handlePlayerSelectionStatusToggle(playerName, eventId, newStatus,
     }, 3000)
   }
 }
-
 // Fonction helper pour afficher le texte du statut
 function getStatusDisplayText(status) {
   switch (status) {
@@ -7091,7 +7086,6 @@ function countSelectionsForRole(playerName, role) {
     return false
   }).length
 }
-
 function countAvailability(playerName) {
   const eventsMap = availability.value[playerName] || {}
   
@@ -7604,7 +7598,6 @@ async function updateSessionInfo() {
 function getSessionInfo() {
   return sessionInfo.value
 }
-
 async function executePendingOperation(operation) {
   if (!operation) return
   
@@ -8402,7 +8395,6 @@ function closeEventModal() {
     console.error('❌ Erreur lors de la fermeture de la modale:', error)
   }
 }
-
 function handleEventSelected(event) {
   console.log('🎭 handleEventSelected:', event)
   
@@ -8866,7 +8858,8 @@ function getPlayerAvatarProps(player) {
     'season-id': seasonId.value,
     'player-name': player.name,
     size: 'sm',
-    'player-gender': player.gender || 'non-specified'
+    'player-gender': player.gender || 'non-specified',
+    'show-status-icons': true
   }
 }
 
@@ -9191,7 +9184,6 @@ function getSelectionPlayers(eventId) {
   
   return []
 }
-
 // Fonction helper pour vérifier si une composition est confirmée
 function isSelectionConfirmed(eventId) {
   const selection = casts.value[eventId]
@@ -9929,7 +9921,6 @@ function handleShowLogin(data) {
   
   logger.info('Affichage du popup de connexion pour utilisateur existant', data)
 }
-
 // Fonction pour gérer le succès de la connexion
 async function handleAccountLoginSuccess(data) {
   showAccountLogin.value = false
@@ -10317,4 +10308,3 @@ async function handleAvailabilityRequestEdit() {
 
 // end of script setup
 </script>
-

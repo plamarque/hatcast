@@ -156,6 +156,7 @@
                         :player-name="player.name"
                         :season-id="seasonId"
                         :player-gender="player.gender || 'non-specified'"
+                        :show-status-icons="true"
                         size="lg"
                         class="!w-10 !h-10 border-2 border-gray-700 hover:border-blue-400 transition-all duration-200 hover:scale-110"
                         :title="getPlayerTooltip(player, event.id)"

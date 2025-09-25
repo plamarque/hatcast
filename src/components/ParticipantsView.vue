@@ -35,6 +35,7 @@
           :season-id="seasonId"
           :player-name="item.name"
           :player-gender="item.gender || 'non-specified'"
+          :show-status-icons="true"
           :size="'sm'"
           class="w-6 h-6"
         />
