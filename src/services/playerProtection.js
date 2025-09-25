@@ -23,8 +23,7 @@ export {
   sendPasswordResetEmail,
   updatePlayerPasswordInFirebaseAuth,
   isPlayerPasswordCached,
-  getCachedPlayerPassword,
-  requirePlayerPasswordForAvailability
+  finalizeProtectionAfterVerification
 } from './players.js'
 
 // FONCTION DE MIGRATION: Synchroniser les données de playerProtection vers les documents players

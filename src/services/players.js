@@ -524,15 +524,72 @@ export function isPlayerPasswordCached(playerId) {
   return playerPasswordSessionManager.isPasswordCached(playerId)
 }
 
-// Récupérer le mot de passe en cache pour un joueur
-export function getCachedPlayerPassword(playerId) {
-  return null // Indisponible par design
+
+// Finaliser l'association après vérification de l'email et créer un compte Firebase Auth
+export async function finalizeProtectionAfterVerification({ playerId, seasonId = null }) {
+  try {
+    // Lire les données du joueur
+    const playerData = await getPlayerData(playerId, seasonId)
+    if (!playerData || !playerData.email) {
+      throw new Error('Email non défini pour cette protection')
+    }
+    
+    // Si l'email est présent et vérifié, activer la protection
+    try {
+      // Créer un compte Firebase Auth pour cet email
+      const { createUserWithEmailAndPassword } = await import('firebase/auth')
+      const { auth } = await import('./firebase.js')
+      
+      // Générer un mot de passe sécurisé
+      const password = Math.random().toString(36).slice(-12) + 'A1!'
+      
+      // Créer le compte Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, playerData.email, password)
+      logger.info('Compte Firebase Auth créé après vérification d\'email', { uid: userCredential.user.uid })
+      
+      // Mettre à jour dans players avec le firebaseUid et activer la protection
+      if (seasonId) {
+        await firestoreService.updateDocument('seasons', seasonId, {
+          isProtected: true,
+          firebaseUid: userCredential.user.uid,
+          updatedAt: new Date()
+        }, 'players', playerId)
+      }
+      
+      return { 
+        success: true, 
+        email: playerData.email,
+        playerId: playerId,
+        seasonId: seasonId,
+        firebaseUid: userCredential.user.uid,
+        password: password
+      }
+    } catch (error) {
+      if (error.code === 'auth/email-already-in-use') {
+        logger.info('Email déjà utilisé, activation de la protection sans création de compte')
+        
+        // Activer la protection même si le compte existe déjà
+        if (seasonId) {
+          await firestoreService.updateDocument('seasons', seasonId, {
+            isProtected: true,
+            updatedAt: new Date()
+          }, 'players', playerId)
+        }
+        
+        return { 
+          success: true, 
+          email: playerData.email,
+          playerId: playerId,
+          seasonId: seasonId,
+          existingAccount: true
+        }
+      } else {
+        throw error
+      }
+    }
+  } catch (error) {
+    logger.error('Erreur lors de la finalisation de la protection', error)
+    throw error
+  }
 }
 
-// Fonction pour gérer la demande de mot de passe lors de la modification des disponibilités
-export async function requirePlayerPasswordForAvailability(operation) {
-  return new Promise((resolve, reject) => {
-    logger.debug('Demande de mot de passe pour disponibilité')
-    reject(new Error('Gestion de mot de passe à implémenter côté composant'))
-  })
-}
