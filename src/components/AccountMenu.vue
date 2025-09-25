@@ -270,26 +270,12 @@ function assocKey(a) {
 async function loadPlayerAssociations() {
   try {
     const raw = email.value ? await listAssociationsForEmail(email.value) : []
-    // Enrichir avec le nom réel du joueur depuis la saison
-    const enriched = []
-    
-    for (const a of raw) {
-      let playerName = a.playerId
-      let seasonName = a.seasonId || '—'
-      try {
-        if (a.seasonId) {
-          // Récupérer le nom du joueur
-          const playerData = await firestoreService.getDocument('seasons', a.seasonId, 'players', a.playerId)
-          if (playerData) playerName = playerData.name || playerName
-          
-          // Récupérer le nom de la saison
-          const seasonData = await firestoreService.getDocument('seasons', a.seasonId)
-          if (seasonData) seasonName = seasonData.name || seasonName
-        }
-      } catch {}
-      enriched.push({ ...a, playerName, seasonName })
-    }
-    associations.value = enriched
+    // Les noms sont maintenant inclus directement dans les associations (optimisation)
+    associations.value = raw.map(a => ({
+      ...a,
+      playerName: a.playerName || a.playerId, // Utiliser le nom inclus ou fallback sur l'ID
+      seasonName: a.seasonName || a.seasonId || '—'
+    }))
   } catch {
     associations.value = []
   }

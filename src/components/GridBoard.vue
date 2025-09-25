@@ -2733,28 +2733,7 @@ function evaluatePlayerTourStart() {
     // Démarrer uniquement quand on a au moins 1 player et 1 event (utiliser events pour éviter dépendance précoce)
     if (events.value.length === 0) return
     const alreadyCompleted = localStorage.getItem(`playerTourCompleted:${seasonId.value}`)
-    // Backfill préférences: si utilisateur connecté avec associations, peupler les préférés pour cette saison
-    try {
-      const userEmail = auth?.currentUser?.email || ''
-      if (userEmail) {
-        listAssociationsForEmail(userEmail).then(async (assocs) => {
-          const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
-          if (seasonal.length > 0) {
-            const key = `seasonPreferredPlayer:${seasonId.value}`
-            const raw = localStorage.getItem(key)
-            let current = []
-            if (raw) {
-              if (raw.startsWith('[')) { try { current = JSON.parse(raw) || [] } catch {} }
-              else { current = [raw] }
-            }
-            const set = new Set(current)
-            seasonal.forEach(a => set.add(a.playerId))
-            const updated = Array.from(set)
-            localStorage.setItem(key, JSON.stringify(updated))
-          }
-        }).catch(() => {})
-      }
-    } catch {}
+    // Note: Le backfill des préférences est maintenant géré par updatePreferredPlayersSet()
     const startFlag = localStorage.getItem(`startPlayerTour:${seasonId.value}`)
     if (!alreadyCompleted && startFlag) {
       // Toujours démarrer par l'étape 1 (ajout) même si un joueur existe déjà

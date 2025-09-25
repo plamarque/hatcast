@@ -153,13 +153,28 @@ export async function listProtectedPlayers(seasonId = null) {
   }
 }
 
+// Cache global pour les associations par email
+const associationsCache = new Map()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 // Lister toutes les associations (toutes saisons) pour un email donné
 export async function listAssociationsForEmail(email) {
+  if (!email) return []
+  
+  // Vérifier le cache d'abord
+  const cacheKey = `associations_${email}`
+  const cached = associationsCache.get(cacheKey)
+  if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    logger.debug('Cache hit pour listAssociationsForEmail', { email, count: cached.data.length })
+    return cached.data
+  }
+  
   try {
     const results = []
     const seasons = await firestoreService.getDocuments('seasons')
     
-    for (const season of seasons) {
+    // Optimisation: traiter les saisons en parallèle au lieu de séquentiellement
+    const seasonPromises = seasons.map(async (season) => {
       const sid = season.id
       const seasonName = season.name || sid
       
@@ -171,32 +186,57 @@ export async function listAssociationsForEmail(email) {
           'players'
         )
         
-        players.forEach((player) => {
+        return players.map((player) => {
           if (player?.email && player.email === email) {
-            results.push({ 
+            return { 
               seasonId: sid, 
               seasonName: seasonName, 
               playerId: player.id, 
               email: player.email,
               isProtected: player.isProtected !== false,
-              firebaseUid: player.firebaseUid
-            })
+              firebaseUid: player.firebaseUid,
+              playerName: player.name || player.id // Inclure le nom directement
+            }
           }
-        })
+          return null
+        }).filter(Boolean)
       } catch (seasonError) {
         if (seasonError.code !== 'not-found' && seasonError.code !== 'permission-denied') {
           logger.warn(`Erreur lors de la lecture de la saison ${sid}:`, seasonError)
         }
-        continue
+        return []
       }
-    }
+    })
     
+    const seasonResults = await Promise.all(seasonPromises)
+    seasonResults.forEach(seasonAssociations => {
+      results.push(...seasonAssociations)
+    })
+    
+    // Mettre en cache le résultat
+    associationsCache.set(cacheKey, {
+      data: results,
+      timestamp: Date.now()
+    })
+    
+    logger.debug('Associations chargées et mises en cache', { email, count: results.length })
     return results
   } catch (error) {
     if (error.code !== 'not-found' && error.code !== 'permission-denied') {
       logger.error('Erreur listAssociationsForEmail', error)
     }
     return []
+  }
+}
+
+// Fonction pour invalider le cache des associations
+export function invalidateAssociationsCache(email = null) {
+  if (email) {
+    associationsCache.delete(`associations_${email}`)
+    logger.debug('Cache invalidé pour email', email)
+  } else {
+    associationsCache.clear()
+    logger.debug('Cache des associations complètement vidé')
   }
 }
 
@@ -246,6 +286,11 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     }
     
     logger.info('Protection sauvegardée dans Firestore')
+
+    // Invalider le cache des associations pour cet email
+    if (email) {
+      invalidateAssociationsCache(email)
+    }
 
     // Sauvegarder une préférence locale
     if (seasonId) addPreferredPlayerLocal(seasonId, playerId)
@@ -366,6 +411,9 @@ export async function unprotectPlayer(playerId, seasonId = null) {
     
     // Nettoyer la préférence locale
     if (seasonId) removePreferredPlayerLocal(seasonId, playerId)
+
+    // Invalider le cache des associations (on ne connaît pas l'email ici, donc on invalide tout)
+    invalidateAssociationsCache()
 
     return { success: true, email: '' }
   } catch (error) {
