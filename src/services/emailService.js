@@ -3,7 +3,7 @@
 import firestoreService from './firestoreService.js'
 import configService from './configService.js'
 import logger from './logger.js'
-import { queuePushMessage } from './pushService'
+import { queuePushMessage } from './pushService.js'
 import { buildAvailabilityEmailTemplate, buildNotificationActivationMessage } from './emailTemplates.js'
 import { serverTimestamp } from 'firebase/firestore'
 import AuditClient from './auditClient.js'

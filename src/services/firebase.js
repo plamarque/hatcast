@@ -324,6 +324,8 @@ export async function signUpWithGoogle() {
 
 // Getters pour accéder aux services Firebase
 export function getFirebaseDb() {
+  console.warn('⚠️  ILLEGAL ACCESS: getFirebaseDb() is being called directly! All database access should go through firestoreService. Check the stack trace below:')
+  console.trace()
   return window.firebaseServices?.db || null;
 }
 

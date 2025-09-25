@@ -98,8 +98,9 @@
               :season-id="seasonId"
               :player-name="player.name"
               :player-gender="player.gender || 'non-specified'"
-              :size="'sm'"
-              class="w-6 h-6"
+            :show-status-icons="true"
+            :size="'lg'"
+            class="!w-10 !h-10"
             />
             <span class="text-white font-medium text-sm cursor-pointer hover:text-blue-400 transition-colors" @click="showPlayerDetails(player)">{{ player.name }}</span>
           </div>

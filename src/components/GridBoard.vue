@@ -777,6 +777,21 @@
               </span>
             </button>
             <button
+              v-if="hasCompositionForSelectedEvent"
+              @click="eventDetailsActiveTab = 'composition'"
+              :class="[
+                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                eventDetailsActiveTab === 'composition' 
+                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+              ]"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <span>🎭</span>
+                <span>Composition</span>
+              </span>
+            </button>
+            <button
               @click="eventDetailsActiveTab = 'team'"
               :class="[
                 'flex-1 px-4 py-3 text-sm font-medium transition-colors',
@@ -786,8 +801,8 @@
               ]"
             >
               <span class="flex items-center justify-center gap-2">
-                <span>🎭</span>
-                <span>Équipe</span>
+                <span>🧩</span>
+                <span>Disponibilités</span>
               </span>
             </button>
           </div>
@@ -803,6 +818,8 @@
                     <div class="flex-shrink-0">
                       <PlayerAvatar 
                         v-bind="getPlayerAvatarProps(currentUserPlayer)"
+                        size="lg"
+                        class="!w-10 !h-10 border-2 border-gray-700"
                       />
                     </div>
                     <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
@@ -893,10 +910,50 @@
                 </p>
               </div>
             </div>
+
+            <!-- Onglet Composition (lecture seule) -->
+            <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <template v-for="slot in compositionSlots" :key="slot.key">
+                  <CompositionSlot
+                    :player-id="slot.playerId"
+                    :player-name="slot.playerName"
+                    :role-key="slot.roleKey"
+                    :role-label="slot.roleLabel"
+                    :role-emoji="slot.roleEmoji"
+                    :selection-status="slot.selectionStatus"
+                    :available="slot.available"
+                    :unavailable="slot.unavailable"
+                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                    :season-id="seasonId"
+                  />
+                </template>
+              </div>
+
+              <!-- Bandeaux informatifs (lecture seule) -->
+              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && !isSelectionConfirmed(selectedEvent?.id) && !hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div class="flex items-center gap-2 text-blue-200 text-sm">
+                  <span>⏳</span>
+                  <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitivement confirmée lorsque tout le monde aura confirmé. Utilisez le bouton "Annoncer la compo" pour les notifier !</span>
+                </div>
+              </div>
+              <div v-if="isSelectionConfirmed(selectedEvent?.id)" class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <div class="flex items-center gap-2 text-green-200 text-sm">
+                  <span>✅</span>
+                  <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
+                </div>
+              </div>
+              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                <div class="flex items-center gap-2 text-orange-200 text-sm">
+                  <span>⚠️</span>
+                  <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
+                </div>
+              </div>
+            </div>
             
-            <!-- Onglet Équipe -->
+            <!-- Onglet Disponibilités -->
             <div v-if="eventDetailsActiveTab === 'team'">
-              <!-- Header de l'équipe -->
+              <!-- Header des disponibilités -->
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
                   <!-- Sélecteur de joueur pour l'équipe -->
@@ -2806,6 +2863,55 @@ watch(eventDetailsActiveTab, (newTab) => {
       name: currentUserPlayer.value.name 
     } : null)
   }
+})
+
+// Onglet Composition: computed helpers
+const hasCompositionForSelectedEvent = computed(() => {
+  if (!selectedEvent.value || !casts.value) return false
+  const cast = casts.value[selectedEvent.value.id]
+  if (!cast || !cast.roles) return false
+  // True if any role has at least one assigned player id
+  return Object.values(cast.roles).some(arr => Array.isArray(arr) && arr.length > 0)
+})
+
+const compositionSlots = computed(() => {
+  if (!selectedEvent.value?.roles) return []
+  const eventId = selectedEvent.value.id
+  const roles = selectedEvent.value.roles
+  const cast = casts.value[eventId] || { roles: {} }
+  const playersById = new Map((allSeasonPlayers.value || []).map(p => [p.id, p]))
+  const slots = []
+  let idx = 0
+  for (const role of ROLE_PRIORITY_ORDER) {
+    const count = roles[role] || 0
+    if (count <= 0) continue
+    const assigned = cast.roles?.[role] || []
+    for (let i = 0; i < count; i++) {
+      const playerId = assigned[i] || null
+      const player = playerId ? playersById.get(playerId) || null : null
+      const playerName = player?.name || null
+      const selectionStatus = playerName ? getPlayerSelectionStatus(playerName, eventId) : null
+      const available = playerName ? isAvailableForRole(playerName, role, eventId) : null
+      const unavailable = playerName ? (available === false) : null
+      slots.push({
+        key: `${role}-${i}`,
+        playerId,
+        playerName,
+        roleKey: role,
+        roleLabel: ROLE_LABELS_SINGULAR[role] || role,
+        roleEmoji: ROLE_EMOJIS[role] || '🎭',
+        selectionStatus,
+        available,
+        unavailable,
+        index: idx++
+      })
+    }
+  }
+  return slots
+})
+
+const hasDeclinedPlayersInComposition = computed(() => {
+  return compositionSlots.value.some(s => s.selectionStatus === 'declined')
 })
 
 // If the current user player disappears, ensure we are not stuck on the hidden tab
@@ -9346,12 +9452,13 @@ const teamPlayerDisplayText = computed(() => {
   if (selectedTeamPlayer.value) {
     return selectedTeamPlayer.value.name
   }
-  return currentUserPlayer.value ? currentUserPlayer.value.name : 'Personnes Disponibles'
+  // Par défaut, afficher toutes les disponibilités
+  return 'Personnes Disponibles'
 })
 
-// Computed pour savoir si on affiche l'avatar
+// Computed pour savoir si on affiche l'avatar (uniquement si une personne spécifique est choisie)
 const showTeamPlayerAvatar = computed(() => {
-  return selectedTeamPlayer.value || currentUserPlayer.value
+  return !!selectedTeamPlayer.value
 })
 
 // Computed pour filtrer les joueurs selon la sélection dans l'équipe
