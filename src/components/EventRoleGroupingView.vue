@@ -77,7 +77,7 @@
                 :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                <span class="text-gray-400 ml-1" title="Algorithme Bruno">
+                <span v-if="import.meta.env.DEV" class="text-gray-400 ml-1" title="Algorithme Bruno">
                   ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
                 </span>
               </span>
@@ -124,7 +124,7 @@
                 :title="`Cliquer pour voir le détail du calcul`"
               >
                 {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                <span class="text-gray-400 ml-1" title="Algorithme Bruno">
+                <span v-if="import.meta.env.DEV" class="text-gray-400 ml-1" title="Algorithme Bruno">
                   ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
                 </span>
               </span>
