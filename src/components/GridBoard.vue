@@ -934,7 +934,7 @@
               <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && !isSelectionConfirmed(selectedEvent?.id) && !hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <div class="flex items-center gap-2 text-blue-200 text-sm">
                   <span>⏳</span>
-                  <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitivement confirmée lorsque tout le monde aura confirmé. Utilisez le bouton "Annoncer la compo" pour les notifier !</span>
+                  <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
                 </div>
               </div>
               <div v-if="isSelectionConfirmed(selectedEvent?.id)" class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
