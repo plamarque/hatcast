@@ -18,7 +18,25 @@
           <span class="text-white font-medium truncate block text-left">{{ playerName }}</span>
         </div>
       </div>
-      <div class="flex-shrink-0 text-lg">{{ roleEmoji }}</div>
+      <div class="flex-shrink-0 flex flex-col items-center gap-1">
+        <button
+          v-if="rightText"
+          class="px-2 py-1 rounded text-xs font-medium"
+          :class="rightClass"
+          :title="rightTitle || ''"
+          @click.stop="$emit('right-click')"
+        >
+          {{ rightText }}
+        </button>
+        <div v-if="!rightText" class="flex flex-col items-center gap-1">
+          <span class="text-lg">{{ roleEmoji }}</span>
+          <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
+        </div>
+        <div v-else class="flex flex-col items-center gap-1">
+          <span class="text-lg">{{ roleEmoji }}</span>
+          <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Empty slot (readonly) -->
@@ -39,6 +57,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 const props = defineProps({
   playerId: { type: String, default: null },
   playerName: { type: String, default: null },
+  playerGender: { type: String, default: 'non-specified' },
   roleKey: { type: String, required: true },
   roleLabel: { type: String, required: true },
   roleEmoji: { type: String, default: '🎭' },
@@ -47,7 +66,13 @@ const props = defineProps({
   unavailable: { type: Boolean, default: null },
   isSelectionConfirmedByOrganizer: { type: Boolean, default: false },
   seasonId: { type: String, required: true },
+  // Optional right-side badge text (e.g., chance percentage)
+  rightText: { type: [String, Number], default: null },
+  rightClass: { type: String, default: '' },
+  rightTitle: { type: String, default: '' },
 })
+
+defineEmits(['right-click'])
 
 const rootClasses = computed(() => {
   if (props.playerName) {

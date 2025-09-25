@@ -539,7 +539,7 @@
 
   <!-- Popin de détails de l'événement -->
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-6rem)] md:max-h-[92vh] flex flex-col mb-6 md:mb-0" @click.stop>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl lg:max-w-4xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-6rem)] md:max-h-[92vh] flex flex-col mb-6 md:mb-0" @click.stop>
       <!-- Header -->
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
@@ -913,11 +913,12 @@
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
                     :player-name="slot.playerName"
+                    :player-gender="slot.playerGender"
                     :role-key="slot.roleKey"
                     :role-label="slot.roleLabel"
                     :role-emoji="slot.roleEmoji"
@@ -2897,8 +2898,9 @@ const compositionSlots = computed(() => {
         key: `${role}-${i}`,
         playerId,
         playerName,
+        playerGender: player?.gender || 'non-specified',
         roleKey: role,
-        roleLabel: ROLE_LABELS_SINGULAR[role] || role,
+        roleLabel: player ? getRoleLabelByGender(role, player.gender || 'non-specified', false) : (ROLE_LABELS_SINGULAR[role] || role),
         roleEmoji: ROLE_EMOJIS[role] || '🎭',
         selectionStatus,
         available,
