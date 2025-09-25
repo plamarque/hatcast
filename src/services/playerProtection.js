@@ -94,26 +94,30 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     logger.info('Compte Firebase Auth créé', { uid: userCredential.user.uid })
     
-    // Sauvegarder dans Firestore (collection playerProtection pour compatibilité)
+    // PRIORITY: Sauvegarder dans la collection players
     if (seasonId) {
+      await firestoreService.updateDocument('seasons', seasonId, {
+        email: email,
+        isProtected: true,
+        firebaseUid: userCredential.user.uid,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }, 'players', playerId)
+      
+      // FALLBACK: Sauvegarder aussi dans playerProtection pour compatibilité
       await firestoreService.setDocument('seasons', seasonId, {
         playerId,
         email,
-        firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
+        firebaseUid: userCredential.user.uid,
         isProtected: true,
         createdAt: new Date()
       }, false, 'playerProtection', playerId)
-      
-      // OPTIMISATION: Mettre à jour aussi le document player avec l'email
-      await firestoreService.updateDocument('seasons', seasonId, {
-        email: email,
-        isProtected: true
-      }, 'players', playerId)
     } else {
+      // Protection globale (racine) - fallback uniquement vers playerProtection
       await firestoreService.setDocument('playerProtection', playerId, {
         playerId,
         email,
-        firebaseUid: userCredential.user.uid, // Stocker l'UID Firebase
+        firebaseUid: userCredential.user.uid,
         isProtected: true,
         createdAt: new Date()
       })
@@ -136,9 +140,27 @@ export async function startEmailVerificationForProtection({ playerId, email, sea
   // On n'empêche plus l'envoi si l'email existe déjà.
   // La vérification par email prouvera la possession, et l'association sera gérée après vérification.
 
-  // Stocker provisoirement l'email saisi (sans activer la protection)
+  // PRIORITY: Stocker provisoirement l'email saisi dans players (sans activer la protection)
   let existing
   if (seasonId) {
+    // Vérifier si le joueur existe déjà
+    existing = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+    if (!existing) {
+      // Créer le document player avec l'email temporaire
+      await firestoreService.setDocument('seasons', seasonId, { 
+        email, 
+        isProtected: false, 
+        createdAt: new Date() 
+      }, false, 'players', playerId)
+    } else {
+      // Mettre à jour l'email temporaire
+      await firestoreService.updateDocument('seasons', seasonId, { 
+        email, 
+        updatedAt: new Date() 
+      }, 'players', playerId)
+    }
+    
+    // FALLBACK: Stocker aussi dans playerProtection pour compatibilité
     existing = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
     if (!existing) {
       await firestoreService.setDocument('seasons', seasonId, { playerId, email, isProtected: false, createdAt: new Date() }, false, 'playerProtection', playerId)
@@ -146,6 +168,7 @@ export async function startEmailVerificationForProtection({ playerId, email, sea
       await firestoreService.updateDocument('seasons', seasonId, { email, updatedAt: new Date() }, 'playerProtection', playerId)
     }
   } else {
+    // Protection globale (racine) - fallback uniquement vers playerProtection
     existing = await firestoreService.getDocument('playerProtection', playerId)
     if (!existing) {
       await firestoreService.setDocument('playerProtection', playerId, { playerId, email, isProtected: false, createdAt: new Date() })
@@ -180,10 +203,22 @@ export async function markEmailVerifiedForProtection({ playerId, seasonId = null
   logger.warn('DEPRECATED: markEmailVerifiedForProtection writes to playerProtection collection. Use players collection instead.')
   let snap
   if (seasonId) {
-    snap = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
-    if (!snap) throw new Error('Protection introuvable')
+    // PRIORITY: Lire depuis players d'abord
+    snap = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+    if (!snap) {
+      // FALLBACK: Si pas trouvé dans players, chercher dans playerProtection
+      snap = await firestoreService.getDocument('seasons', seasonId, 'playerProtection', playerId)
+      if (!snap) throw new Error('Protection introuvable')
+    }
     
-    // Activer la protection et marquer l'email comme vérifié
+    // PRIORITY: Activer la protection dans players
+    await firestoreService.updateDocument('seasons', seasonId, { 
+      emailVerifiedAt: new Date(),
+      isProtected: true,
+      updatedAt: new Date()
+    }, 'players', playerId)
+    
+    // FALLBACK: Activer aussi dans playerProtection pour compatibilité
     await firestoreService.updateDocument('seasons', seasonId, { 
       emailVerifiedAt: new Date(),
       isProtected: true,
@@ -192,10 +227,10 @@ export async function markEmailVerifiedForProtection({ playerId, seasonId = null
     
     logger.info('✅ Protection activée pour le joueur', { playerId, seasonId })
   } else {
+    // Protection globale (racine) - fallback uniquement vers playerProtection
     snap = await firestoreService.getDocument('playerProtection', playerId)
     if (!snap) throw new Error('Protection introuvable')
     
-    // Activer la protection et marquer l'email comme vérifié
     await firestoreService.updateDocument('playerProtection', playerId, { 
       emailVerifiedAt: new Date(),
       isProtected: true,
@@ -244,8 +279,16 @@ export async function markEmailVerifiedForProtection({ playerId, seasonId = null
 export async function clearEmailVerificationForProtection({ playerId, seasonId = null }) {
   logger.warn('DEPRECATED: clearEmailVerificationForProtection writes to playerProtection collection. Use players collection instead.')
   if (seasonId) {
+    // PRIORITY: Mettre à jour dans players
+    await firestoreService.updateDocument('seasons', seasonId, { 
+      emailVerifiedAt: null,
+      updatedAt: new Date()
+    }, 'players', playerId)
+    
+    // FALLBACK: Mettre à jour aussi dans playerProtection pour compatibilité
     await firestoreService.updateDocument('seasons', seasonId, { emailVerifiedAt: null }, 'playerProtection', playerId)
   } else {
+    // Protection globale (racine) - fallback uniquement vers playerProtection
     await firestoreService.updateDocument('playerProtection', playerId, { emailVerifiedAt: null })
   }
   return { success: true }
@@ -254,8 +297,16 @@ export async function clearEmailVerificationForProtection({ playerId, seasonId =
 export async function unprotectPlayer(playerId, seasonId = null) {
   try {
     logger.warn('DEPRECATED: unprotectPlayer writes to playerProtection collection. Use players collection instead.')
-    // Désactiver la protection et purger l'email pour confidentialité
+    // PRIORITY: Désactiver la protection dans players
     if (seasonId) {
+      await firestoreService.updateDocument('seasons', seasonId, {
+        email: '',
+        isProtected: false,
+        emailVerifiedAt: null,
+        updatedAt: new Date()
+      }, 'players', playerId)
+      
+      // FALLBACK: Désactiver aussi dans playerProtection pour compatibilité
       await firestoreService.setDocument('seasons', seasonId, {
         playerId,
         email: '',
@@ -263,13 +314,8 @@ export async function unprotectPlayer(playerId, seasonId = null) {
         emailVerifiedAt: null,
         updatedAt: new Date()
       }, false, 'playerProtection', playerId)
-      
-      // OPTIMISATION: Mettre à jour aussi le document player
-      await firestoreService.updateDocument('seasons', seasonId, {
-        email: '',
-        isProtected: false
-      }, 'players', playerId)
     } else {
+      // Protection globale (racine) - fallback uniquement vers playerProtection
       await firestoreService.setDocument('playerProtection', playerId, {
         playerId,
         email: '',
@@ -613,12 +659,25 @@ export async function verifyPlayerPassword(playerId, password, seasonId = null) 
 // Finaliser l'association après vérification de l'email et créer un compte Firebase Auth
 export async function finalizeProtectionAfterVerification({ playerId, seasonId = null }) {
   logger.warn('DEPRECATED: finalizeProtectionAfterVerification reads/writes to playerProtection collection. Use players collection instead.')
-  const ref = seasonId
-    ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-    : doc(db, 'playerProtection', playerId)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) throw new Error('Protection introuvable')
-  const data = snap.data()
+  
+  // PRIORITY: Lire depuis players d'abord
+  let data = null
+  if (seasonId) {
+    const playerSnap = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
+    if (playerSnap && playerSnap.email) {
+      data = playerSnap
+    }
+  }
+  
+  // FALLBACK: Si pas trouvé dans players, chercher dans playerProtection
+  if (!data) {
+    const ref = seasonId
+      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+      : doc(db, 'playerProtection', playerId)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) throw new Error('Protection introuvable')
+    data = snap.data()
+  }
   
   // Si l'email est présent et vérifié, activer la protection
   if (data?.email) {
@@ -634,19 +693,30 @@ export async function finalizeProtectionAfterVerification({ playerId, seasonId =
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, password)
       logger.info('Compte Firebase Auth créé après vérification d\'email', { uid: userCredential.user.uid })
       
-      // Mettre à jour Firestore avec le firebaseUid et activer la protection
-      logger.info('Mise à jour du document playerProtection avec firebaseUid', { 
-        ref: ref.path, 
-        firebaseUid: userCredential.user.uid,
-        playerId,
-        seasonId 
-      })
-      
-      await updateDoc(ref, { 
-        isProtected: true, 
-        firebaseUid: userCredential.user.uid,
-        updatedAt: new Date() 
-      })
+      // PRIORITY: Mettre à jour dans players avec le firebaseUid et activer la protection
+      if (seasonId) {
+        await firestoreService.updateDocument('seasons', seasonId, {
+          isProtected: true,
+          firebaseUid: userCredential.user.uid,
+          updatedAt: new Date()
+        }, 'players', playerId)
+        
+        // FALLBACK: Mettre à jour aussi dans playerProtection pour compatibilité
+        const ref = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+        await updateDoc(ref, { 
+          isProtected: true, 
+          firebaseUid: userCredential.user.uid,
+          updatedAt: new Date() 
+        })
+      } else {
+        // Protection globale (racine) - fallback uniquement vers playerProtection
+        const ref = doc(db, 'playerProtection', playerId)
+        await updateDoc(ref, { 
+          isProtected: true, 
+          firebaseUid: userCredential.user.uid,
+          updatedAt: new Date() 
+        })
+      }
       
       return { 
         success: true, 
@@ -685,8 +755,19 @@ export async function finalizeProtectionAfterVerification({ playerId, seasonId =
               await sendSignInLinkToEmail(auth, data.email, actionCodeSettings)
               logger.info('Magic link Firebase envoyé pour connexion automatique')
               
-              // Activer la protection
-              await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              // PRIORITY: Activer la protection dans players
+              if (seasonId) {
+                await firestoreService.updateDocument('seasons', seasonId, {
+                  isProtected: true,
+                  updatedAt: new Date()
+                }, 'players', playerId)
+                
+                // FALLBACK: Activer aussi dans playerProtection pour compatibilité
+                await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              } else {
+                // Protection globale (racine) - fallback uniquement vers playerProtection
+                await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              }
               
               return { 
                 success: true, 
@@ -701,8 +782,19 @@ export async function finalizeProtectionAfterVerification({ playerId, seasonId =
             } catch (magicLinkError) {
               logger.warn('Échec de l\'envoi du magic link Firebase:', magicLinkError)
               
-              // Fallback : activation de la protection sans connexion auto
-              await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              // PRIORITY: Fallback : activation de la protection dans players sans connexion auto
+              if (seasonId) {
+                await firestoreService.updateDocument('seasons', seasonId, {
+                  isProtected: true,
+                  updatedAt: new Date()
+                }, 'players', playerId)
+                
+                // FALLBACK: Activer aussi dans playerProtection pour compatibilité
+                await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              } else {
+                // Protection globale (racine) - fallback uniquement vers playerProtection
+                await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+              }
               
               return { 
                 success: true, 
@@ -721,8 +813,19 @@ export async function finalizeProtectionAfterVerification({ playerId, seasonId =
         } catch (autoLoginError) {
           logger.warn('Échec de la connexion automatique pour utilisateur existant', autoLoginError)
           
-          // Fallback : activation de la protection sans connexion auto
-          await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+          // PRIORITY: Fallback : activation de la protection dans players sans connexion auto
+          if (seasonId) {
+            await firestoreService.updateDocument('seasons', seasonId, {
+              isProtected: true,
+              updatedAt: new Date()
+            }, 'players', playerId)
+            
+            // FALLBACK: Activer aussi dans playerProtection pour compatibilité
+            await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+          } else {
+            // Protection globale (racine) - fallback uniquement vers playerProtection
+            await updateDoc(ref, { isProtected: true, updatedAt: new Date() })
+          }
           
           return { 
             success: true, 
@@ -816,13 +919,25 @@ export async function sendPasswordResetEmail(playerId, seasonId = null) {
           throw new Error('Firebase Firestore non initialisé')
         }
         
-        const protectionRef = seasonId
-          ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-          : doc(db, 'playerProtection', playerId)
-        
-        await updateDoc(protectionRef, {
-          firebaseUid: userCredential.user.uid
-        })
+        // PRIORITY: Mettre à jour firebaseUid dans players
+        if (seasonId) {
+          await firestoreService.updateDocument('seasons', seasonId, {
+            firebaseUid: userCredential.user.uid,
+            updatedAt: new Date()
+          }, 'players', playerId)
+          
+          // FALLBACK: Mettre à jour aussi dans playerProtection pour compatibilité
+          const protectionRef = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
+          await updateDoc(protectionRef, {
+            firebaseUid: userCredential.user.uid
+          })
+        } else {
+          // Protection globale (racine) - fallback uniquement vers playerProtection
+          const protectionRef = doc(db, 'playerProtection', playerId)
+          await updateDoc(protectionRef, {
+            firebaseUid: userCredential.user.uid
+          })
+        }
         
         logger.info('firebaseUid mis à jour dans Firestore')
         
