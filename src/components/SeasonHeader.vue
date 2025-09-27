@@ -212,6 +212,11 @@ function refreshSeason() {
 // Fonction de vérification Super Admin
 async function checkSuperAdminStatus() {
   console.log('🔍 SeasonHeader: Début de checkSuperAdminStatus');
+  console.log('🔍 SeasonHeader: Props reçues:', {
+    isConnected: props.isConnected,
+    seasonSlug: props.seasonSlug,
+    seasonName: props.seasonName
+  });
   isCheckingRoles.value = true;
   
   try {
@@ -263,10 +268,13 @@ async function checkSuperAdminStatus() {
 
 // Surveiller les changements d'état de connexion pour vérifier les rôles
 watch(() => props.isConnected, (newValue) => {
+  console.log('🔍 SeasonHeader: watch isConnected changé:', newValue);
   if (newValue) {
+    console.log('🔍 SeasonHeader: Utilisateur connecté, appel de checkSuperAdminStatus');
     checkSuperAdminStatus();
   } else {
     // Utilisateur déconnecté, réinitialiser
+    console.log('🔍 SeasonHeader: Utilisateur déconnecté, réinitialisation');
     isSuperAdmin.value = false;
     canManageRoles.value = false;
   }
