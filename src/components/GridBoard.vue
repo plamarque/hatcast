@@ -8244,7 +8244,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
 // Fonction pour vérifier si un joueur est compositionné pour un événement spécifique
 function isPlayerSelected(playerName, eventId) {
   const selection = casts.value[eventId]
-  if (!selection || !selection.roles) {
+  if (!selection) {
     return false
   }
   
@@ -8254,11 +8254,23 @@ function isPlayerSelected(playerName, eventId) {
     return false
   }
   
-  // Vérifier si le joueur est dans un des rôles
-  for (const [role, rolePlayers] of Object.entries(selection.roles)) {
-    if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
-      return true
+  // Vérifier si le joueur est dans un des rôles de la composition finale
+  if (selection.roles) {
+    for (const [role, rolePlayers] of Object.entries(selection.roles)) {
+      if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
+        return true
+      }
     }
+  }
+  
+  // Vérifier aussi si le joueur a un statut de sélection (même s'il a décliné)
+  if (selection.playerStatuses && selection.playerStatuses[player.id]) {
+    return true
+  }
+  
+  // Vérifier l'ancienne structure avec des noms comme clés
+  if (selection.playerStatuses && selection.playerStatuses[playerName]) {
+    return true
   }
   
   return false
