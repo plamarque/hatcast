@@ -27,7 +27,7 @@
           :title="rightTitle || ''"
           @click.stop="$emit('right-click', $event)"
         >
-          {{ rightText }}
+          {{ rightText }}%<span v-if="rightBrunoText" class="text-gray-400 ml-1">({{ rightBrunoText }}%)</span>
         </button>
         <div v-if="showRoleInfo" class="flex flex-col items-center gap-1">
           <span class="text-lg">{{ roleEmoji }}</span>
@@ -67,6 +67,8 @@ const props = defineProps({
   rightText: { type: [String, Number], default: null },
   rightClass: { type: String, default: '' },
   rightTitle: { type: String, default: '' },
+  // Bruno algorithm percentage to display in gray
+  rightBrunoText: { type: [String, Number], default: null },
   // Control whether to display role emoji and label in the right column
   showRoleInfo: { type: Boolean, default: true },
 })

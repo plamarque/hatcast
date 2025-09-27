@@ -55,7 +55,8 @@
                 :unavailable="isAvailable(player.name, selectedEvent.id) === false"
                 :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
                 :season-id="seasonId"
-                :right-text="(getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0) + '%'"
+                :right-text="getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0"
+                :right-bruno-text="showBrunoAlgorithm ? getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 : null"
                 :right-class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
                 :right-title="'Cliquer pour voir le détail du calcul'"
                 :show-role-info="false"
@@ -431,6 +432,7 @@ function getPlayerChanceForRoleBruno(playerName, role, eventId) {
   
   return candidate ? Math.round(candidate.brunoChance) : null
 }
+
 
 function getChanceBadgeClass(chance) {
   // Utiliser le même style que dans la modale des chances
