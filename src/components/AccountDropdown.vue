@@ -178,6 +178,14 @@ async function checkSuperAdminStatus() {
     return;
   }
   
+  // Fallback temporaire pour patrice.lamarque+albane@gmail.com (Admin de saison)
+  if (currentUserEmail === 'patrice.lamarque+albane@gmail.com') {
+    logger.info('🔐 Mode développement: Admin de saison Albane détecté par email');
+    isSuperAdmin.value = false;
+    canManageRoles.value = true;
+    return;
+  }
+  
   // Pour les autres utilisateurs, essayer le service normal
   try {
     const superAdminStatus = await roleService.isSuperAdmin();

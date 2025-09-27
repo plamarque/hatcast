@@ -3354,6 +3354,14 @@ async function checkEditPermissions(force = false) {
       return;
     }
     
+    // Fallback temporaire pour patrice.lamarque+albane@gmail.com (Admin de saison)
+    if (currentUserEmail === 'patrice.lamarque+albane@gmail.com') {
+      logger.info('🔐 Mode développement: Admin de saison Albane détecté par email');
+      isSuperAdmin.value = false;
+      canEditEvents.value = true;
+      return;
+    }
+    
     // Pour les autres utilisateurs, essayer le service normal
     const superAdminStatus = await roleService.isSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
@@ -3375,6 +3383,9 @@ async function checkEditPermissions(force = false) {
     const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
     if (currentUserEmail === 'patrice.lamarque@gmail.com') {
       isSuperAdmin.value = true;
+      canEditEvents.value = true;
+    } else if (currentUserEmail === 'impropick@gmail.com' || currentUserEmail === 'patrice.lamarque+albane@gmail.com') {
+      isSuperAdmin.value = false;
       canEditEvents.value = true;
     } else {
       canEditEvents.value = false;
