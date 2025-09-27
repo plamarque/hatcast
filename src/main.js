@@ -1,4 +1,5 @@
 import './assets/main.css'
+import './styles/status-colors.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'

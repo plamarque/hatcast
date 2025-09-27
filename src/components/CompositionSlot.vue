@@ -51,6 +51,7 @@
 <script setup>
 import { computed } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import { getStatusClass } from '../utils/statusUtils.js'
 
 const props = defineProps({
   playerId: { type: String, default: null },
@@ -78,23 +79,14 @@ const emit = defineEmits(['right-click', 'slot-click'])
 
 const rootClasses = computed(() => {
   if (props.playerName) {
-    // Priority: selection status > availability
-    if (props.selectionStatus === 'declined') {
-      return 'bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30'
-    }
-    if (props.selectionStatus === 'confirmed') {
-      return 'bg-gradient-to-r from-purple-500/60 to-pink-500/60 border-purple-500/30'
-    }
-    if (props.selectionStatus === 'pending') {
-      return 'bg-gradient-to-r from-orange-500/60 to-yellow-500/60 border-orange-500/30'
-    }
-    if (props.unavailable === true) {
-      return 'bg-gradient-to-r from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
-    }
-    if (props.available === false) {
-      return 'bg-gradient-to-r from-red-500/60 to-red-600/60 border-red-500/30'
-    }
-    return 'bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-green-500/30'
+    return getStatusClass({
+      isSelected: true, // Si on est dans CompositionSlot, on est forcément sélectionné
+      playerSelectionStatus: props.selectionStatus,
+      isAvailable: props.available,
+      isUnavailable: props.unavailable,
+      isLoading: false,
+      isError: false
+    })
   }
   return 'border-dashed border-white/20 bg-white/5'
 })
