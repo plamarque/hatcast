@@ -35,12 +35,17 @@
           </div>
         </div>
 
-        <!-- Commentaire de disponibilité (si disponible) -->
-        <div v-if="availabilityComment" class="mb-4 sm:mb-6">
-          <div class="text-xs sm:text-sm font-medium text-gray-300 mb-2">Note de disponibilité</div>
-          <div class="p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-300 italic text-xs sm:text-sm">
-            "{{ availabilityComment }}"
-          </div>
+        
+
+        <!-- Saisie d'une note facultative -->
+        <div class="mb-4 sm:mb-6">
+          <div class="text-xs sm:text-sm font-medium text-gray-300 mb-2">Ajouter une note (optionnel)</div>
+          <textarea
+            v-model="comment"
+            class="w-full p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            :placeholder="'Ex: j\'arrive vers 18h30, ok pour le bar'"
+          />
+          <div class="text-[11px] sm:text-xs text-gray-500 mt-1">Visible par l'organisateur·ice.</div>
         </div>
 
         <!-- Actions de confirmation -->
@@ -89,6 +94,7 @@
 </template>
 
 <script setup>
+import { ref, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, getRoleLabel } from '../services/storage.js'
 
 const props = defineProps({
@@ -132,6 +138,11 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'confirm', 'decline', 'pending'])
 
+const comment = ref(props.availabilityComment || '')
+watch(() => props.availabilityComment, (val) => {
+  comment.value = val || ''
+})
+
 function getRoleEmoji(role) {
   return ROLE_EMOJIS[role] || '🎭'
 }
@@ -154,7 +165,8 @@ function handleConfirm() {
   emit('confirm', {
     playerName: props.playerName,
     eventId: props.eventId,
-    status: 'confirmed'
+    status: 'confirmed',
+    comment: comment.value
   })
 }
 
@@ -162,7 +174,8 @@ function handleDecline() {
   emit('decline', {
     playerName: props.playerName,
     eventId: props.eventId,
-    status: 'declined'
+    status: 'declined',
+    comment: comment.value
   })
 }
 
@@ -170,7 +183,8 @@ function handlePending() {
   emit('pending', {
     playerName: props.playerName,
     eventId: props.eventId,
-    status: 'pending'
+    status: 'pending',
+    comment: comment.value
   })
 }
 </script>
