@@ -3342,14 +3342,20 @@ async function checkEditPermissions(force = false) {
     const superAdminStatus = await checkSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
     
-    // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
-    const canEdit = await roleService.canEditEvents(seasonId.value, force);
-    canEditEvents.value = canEdit;
+    // Si Super Admin, raccourci : pas besoin de vérifier les rôles de saison
+    if (superAdminStatus) {
+      canEditEvents.value = true;
+      logger.info('🔐 Raccourci Super Admin: permissions d\'édition accordées');
+    } else {
+      // Sinon, vérifier si peut éditer les événements (Admin de saison)
+      const canEdit = await roleService.isSeasonAdmin(seasonId.value, force);
+      canEditEvents.value = canEdit;
+    }
     
     logger.info('🔐 Permissions vérifiées:', {
       seasonId: seasonId.value,
       isSuperAdmin: superAdminStatus,
-      canEditEvents: canEdit,
+      canEditEvents: canEditEvents.value,
       forceRefresh: force
     });
   } catch (error) {

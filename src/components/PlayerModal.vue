@@ -521,19 +521,26 @@ async function checkPermissions() {
   try {
     if (!props.seasonId || !currentUser.value?.email) return;
     
-    // Utiliser la fonction centralisée d'authState
+    // Vérifier d'abord si l'utilisateur est Super Admin
     const superAdminStatus = await checkSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
-    // Vérifier aussi si l'utilisateur est admin de cette saison
+    // Si Super Admin, raccourci : pas besoin de vérifier les rôles de saison
+    if (superAdminStatus) {
+      canEditPlayers.value = true;
+      console.log('🔐 Raccourci Super Admin: permissions complètes accordées');
+      return;
+    }
+    
+    // Sinon, vérifier si l'utilisateur est admin de cette saison
     let isSeasonAdmin = false;
     if (currentUserEmail && props.seasonId) {
       const { seasonRoleService } = await import('../services/seasonRoleService.js');
       isSeasonAdmin = await seasonRoleService.isUserSeasonAdmin(props.seasonId, currentUserEmail);
     }
     
-    // L'utilisateur peut modifier/supprimer les joueurs s'il est Super Admin OU admin de la saison
-    canEditPlayers.value = superAdminStatus || isSeasonAdmin;
+    // L'utilisateur peut modifier/supprimer les joueurs s'il est admin de la saison
+    canEditPlayers.value = isSeasonAdmin;
     
     console.log('🔐 Permissions vérifiées:', {
       email: currentUserEmail,

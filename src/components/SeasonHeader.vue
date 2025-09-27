@@ -223,8 +223,12 @@ async function checkSuperAdminStatus() {
     if (superAdminStatus) {
       // Super Admin a toujours accès à l'administration de toutes les saisons
       canManageRoles.value = true;
-    } else if (props.seasonSlug) {
-      // Vérifier si Admin de saison pour cette saison spécifique
+      logger.info('🔐 Raccourci Super Admin: accès administration accordé');
+      return;
+    }
+    
+    // Sinon, vérifier si Admin de saison pour cette saison spécifique
+    if (props.seasonSlug) {
       const isSeasonAdmin = await roleService.isSeasonAdmin(props.seasonSlug);
       canManageRoles.value = isSeasonAdmin;
     } else {
