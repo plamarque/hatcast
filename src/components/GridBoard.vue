@@ -533,10 +533,6 @@
       </div>
     </div>
   </div>
-
-
-
-
   <!-- Popin de détails de l'événement -->
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl lg:max-w-4xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-6rem)] md:max-h-[92vh] flex flex-col mb-6 md:mb-0" @click.stop>
@@ -1180,7 +1176,6 @@
     @submit="handlePinSubmit"
     @cancel="handlePinCancel"
   />
-
   <!-- Modal de vérification du mot de passe du joueur -->
   <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1340] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
@@ -1820,7 +1815,6 @@
   content-visibility: auto;
   contain-intrinsic-size: 800px 600px; /* taille de réserve pour éviter les sauts */
 }
-
 /* Forcer des tailles encore plus grandes en très petit viewport (<= 430px) */
 @media (max-width: 430px) {
   .header-date { font-size: 18px; }
@@ -2456,7 +2450,6 @@ async function handleShowAvailabilityGrid(playerId) {
     logger.error('❌ Erreur lors de l\'affichage focalisé:', error)
   }
 }
-
 // Fonction pour revenir à la vue complète
 async function returnToFullView() {
   try {
@@ -3087,7 +3080,6 @@ async function handlePlayerSelected(player) {
     }
   }
 }
-
 async function handleAllPlayersSelected() {
   // Pour la vue chronologique : afficher tous les joueurs et recharger toutes les disponibilités
   if (validCurrentView.value === 'timeline') {
@@ -3736,7 +3728,6 @@ const enrichedPlayers = computed(() => {
     email: null // Sera chargé à la demande
   }))
 })
-
 // Computed property pour enrichir tous les joueurs de la saison (pour les modals)
 const enrichedAllSeasonPlayers = computed(() => {
   return allSeasonPlayers.value.map(player => ({
@@ -4269,7 +4260,6 @@ async function saveEdit() {
     templateType: editingSelectedRoleTemplate.value // Ajouter le type de template
   })
 }
-
 // Nouvelle fonction pour gérer l'édition via EventModal
 async function handleEditEvent(eventData) {
   if (!editingEvent.value) return
@@ -4921,7 +4911,6 @@ watch([() => events.value.length, () => players.value.length, isLoadingGrid], ()
     forceGridLayoutSync()
   })
 })
-
 // Lancer l'évaluation du mini-tutoriel joueur après la première charge de données
 watch([() => players.value.length, () => events.value.length, seasonId], () => {
   evaluatePlayerTourStart()
@@ -5412,6 +5401,11 @@ onMounted(async () => {
       // Utiliser la fonction améliorée de focus
       await focusOnEventFromUrl(eventIdFromUrl, targetEvent)
       
+      // Appliquer également le filtre d'événement comme si choisi dans le ViewHeader
+      // Cela limite la grille à cet événement pour permettre de déposer ses disponibilités directement
+      selectedEventId.value = eventIdFromUrl
+      isAllEventsView.value = false
+
               // Si modal=event_details est demandé, ouvrir automatiquement la modal
         if (route.query.modal === 'event_details') {
           showEventDetails(targetEvent)
@@ -5558,8 +5552,6 @@ watch(() => currentUser.value?.email, (newEmail) => {
     closeSelectionModal()
   }
 }, { immediate: false })
-
-
 // Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
 watch(() => route.params.eventId, (newEventId) => {
   if (newEventId) {
@@ -6204,11 +6196,6 @@ const filteredShowMorePlayers = computed(() => {
     player.name.toLowerCase().includes(query)
   )
 })
-
-
-
-
-
   // Avertissements pour l'événement compositionné
   const eventStatus = computed(() => selectedEvent.value ? getEventStatus(selectedEvent.value.id) : null)
   const hasEventWarningForSelectedEvent = computed(() => {
@@ -6851,8 +6838,6 @@ async function fillEmptyCastSlots(eventId) {
   updateAllStats()
   updateAllChances()
 }
-
-
 // Fonction helper pour calculer les chances d'un rôle avec les candidats filtrés
 function calculateRoleChancesForFill(role, candidates, eventId) {
   const event = events.value.find(e => e.id === eventId)
@@ -7502,7 +7487,6 @@ function handlePinCancel() {
   pendingOperation.value = null
   pinErrorMessage.value = ''
 }
-
 async function handlePlayerPasswordSubmit(password) {
   if (!password) return
   
@@ -8153,7 +8137,6 @@ function closeEventDetails() {
   showShareLinkCopied.value = false;
   // Cache fix: removed eventMoreActionsStyle references
 }
-
 // Fonction pour ajouter un événement à l'agenda
 async function handleAddToCalendar(type, event = null) {
   const targetEvent = event || selectedEvent.value
@@ -8693,7 +8676,6 @@ function getTotalRequiredCount(event) {
   // Fallback pour les anciens événements
   return event.playerCount || 6
 }
-
 // Fonctions pour détecter l'état des événements
 function getEventStatus(eventId) {
   // Protection contre les eventId null ou undefined
@@ -9329,7 +9311,6 @@ function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
-
 // Fonction helper pour obtenir le rôle d'un joueur dans la section déclinés
 function getPlayerDeclinedRole(playerName, eventId) {
   const cast = casts.value[eventId]
@@ -9745,6 +9726,14 @@ watch(events, (list) => {
     const modal = params.get('modal')
     const eventId = params.get('event')
     const showAvailability = params.get('showAvailability') === 'true'
+    if (eventId) {
+      const t = list.find(e => e.id === eventId)
+      if (t) {
+        // Appliquer le filtre d'événement issu de l'URL si présent
+        selectedEventId.value = eventId
+        isAllEventsView.value = false
+      }
+    }
     if (!modal || !eventId) return
     const t = list.find(e => e.id === eventId)
     if (!t) return
@@ -9951,7 +9940,6 @@ async function disableEventNotifications(event) {
     }, 3000)
   }
 }
-
 // Fonction pour gérer le succès de l'incitation aux notifications
 async function handleNotificationPromptSuccess(data) {
   showNotificationPrompt.value = false
@@ -10258,6 +10246,25 @@ async function handleAvailabilityClear(availabilityData) {
 async function handleConfirmationConfirm(data) {
   try {
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'confirmed', seasonId.value)
+
+    // Save/update availability comment alongside confirmation
+    if (typeof data.comment === 'string') {
+      const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      await saveAvailabilityWithRoles({
+        seasonId: seasonId.value,
+        playerName: data.playerName,
+        eventId: data.eventId,
+        available: true,
+        roles: availability.value?.[data.playerName]?.[data.eventId]?.roles || [],
+        comment: data.comment || null
+      })
+
+      // Update local cache
+      if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
+      const prev = availability.value[data.playerName][data.eventId] || { available: true, roles: [], comment: null }
+      availability.value[data.playerName][data.eventId] = { ...prev, available: true, comment: data.comment || null }
+    }
+
     showConfirmationModal.value = false
     
     // Afficher un message de succès
@@ -10280,6 +10287,28 @@ async function handleConfirmationConfirm(data) {
 async function handleConfirmationDecline(data) {
   try {
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'declined', seasonId.value)
+
+    // Save/update availability comment when declining
+    if (typeof data.comment === 'string') {
+      const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      await saveAvailabilityWithRoles({
+        seasonId: seasonId.value,
+        playerName: data.playerName,
+        eventId: data.eventId,
+        available: false,
+        roles: [],
+        comment: data.comment || null
+      })
+
+      // Update local cache
+      if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
+      availability.value[data.playerName][data.eventId] = {
+        available: false,
+        roles: [],
+        comment: data.comment || null
+      }
+    }
+
     showConfirmationModal.value = false
     
     // Afficher un message de succès
@@ -10302,6 +10331,29 @@ async function handleConfirmationDecline(data) {
 async function handleConfirmationPending(data) {
   try {
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'pending', seasonId.value)
+
+    // Save/update availability comment for pending (no explicit availability change, keep previous available state if any)
+    if (typeof data.comment === 'string') {
+      const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      const prev = availability.value?.[data.playerName]?.[data.eventId]
+      await saveAvailabilityWithRoles({
+        seasonId: seasonId.value,
+        playerName: data.playerName,
+        eventId: data.eventId,
+        available: prev?.available ?? true,
+        roles: prev?.roles || [],
+        comment: data.comment || null
+      })
+
+      // Update local cache
+      if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
+      availability.value[data.playerName][data.eventId] = {
+        available: prev?.available ?? true,
+        roles: prev?.roles || [],
+        comment: data.comment || null
+      }
+    }
+
     showConfirmationModal.value = false
     
     // Afficher un message de succès
