@@ -5,7 +5,6 @@
  */
 
 import logger from './logger.js'
-import { callCloudFunction } from './firebase.js'
 
 class ConfigService {
   constructor() {

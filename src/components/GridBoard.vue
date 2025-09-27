@@ -6248,8 +6248,9 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   // Vérifier si l'utilisateur est connecté
   const isUserConnected = !!currentUser.value?.email
   
-  // Si c'est le joueur de l'utilisateur connecté ET que l'utilisateur est connecté, ouvrir en mode édition
-  // Sinon, suivre la logique de protection normale
+  // Logique de protection :
+  // - Si c'est le joueur de l'utilisateur connecté ET que l'utilisateur est connecté → mode édition
+  // - Sinon → mode lecture seule (permettra la vérification par mot de passe/PIN)
   const shouldBeReadOnly = isProtected && (!isUserConnected || !isOwnedByCurrentUser)
   
   openAvailabilityModal({
@@ -10109,15 +10110,18 @@ function openEventModal(event) {
 
 async function handleAvailabilitySave(availabilityData) {
   try {
-    // Vérification de sécurité : s'assurer que l'utilisateur est connecté
-    if (!currentUser.value?.email) {
-      console.error('❌ Tentative de sauvegarde sans authentification')
-      showErrorMessage.value = true
-      errorMessage.value = 'Vous devez être connecté pour modifier une disponibilité.'
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
       setTimeout(() => {
-        showErrorMessage.value = false
-      }, 5000)
-      return
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
     }
     
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
@@ -10164,15 +10168,18 @@ async function handleAvailabilitySave(availabilityData) {
 
 async function handleAvailabilityNotAvailable(availabilityData) {
   try {
-    // Vérification de sécurité : s'assurer que l'utilisateur est connecté
-    if (!currentUser.value?.email) {
-      console.error('❌ Tentative de sauvegarde sans authentification')
-      showErrorMessage.value = true
-      errorMessage.value = 'Vous devez être connecté pour modifier une disponibilité.'
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
       setTimeout(() => {
-        showErrorMessage.value = false
-      }, 5000)
-      return
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
     }
     
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
@@ -10216,15 +10223,18 @@ async function handleAvailabilityNotAvailable(availabilityData) {
 
 async function handleAvailabilityClear(availabilityData) {
   try {
-    // Vérification de sécurité : s'assurer que l'utilisateur est connecté
-    if (!currentUser.value?.email) {
-      console.error('❌ Tentative de sauvegarde sans authentification')
-      showErrorMessage.value = true
-      errorMessage.value = 'Vous devez être connecté pour modifier une disponibilité.'
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
       setTimeout(() => {
-        showErrorMessage.value = false
-      }, 5000)
-      return
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
     }
     
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
@@ -10269,6 +10279,20 @@ async function handleAvailabilityClear(availabilityData) {
 // Handlers pour la modal de confirmation
 async function handleConfirmationConfirm(data) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = data?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de confirmation d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'confirmed', seasonId.value)
 
     // Save/update availability comment alongside confirmation
@@ -10319,6 +10343,20 @@ async function handleConfirmationConfirm(data) {
 
 async function handleConfirmationDecline(data) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = data?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de déclin d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'declined', seasonId.value)
 
     // Save/update availability comment when declining
@@ -10363,6 +10401,20 @@ async function handleConfirmationDecline(data) {
 
 async function handleConfirmationPending(data) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = data?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de mise en attente d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'pending', seasonId.value)
 
     // Save/update availability comment for pending (no explicit availability change, keep previous available state if any)
