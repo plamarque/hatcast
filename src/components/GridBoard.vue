@@ -3337,6 +3337,12 @@ async function checkEditPermissions(force = false) {
     
     logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value, force ? '(FORCE REFRESH)' : '');
     
+    // Vérifier que permissionService est initialisé
+    if (!permissionService.isInitialized) {
+      console.log('🔍 GridBoard: Initialisation de permissionService');
+      await permissionService.initialize();
+    }
+    
     // Utiliser la fonction centralisée d'authState
     const superAdminStatus = await permissionService.isSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
@@ -3347,7 +3353,9 @@ async function checkEditPermissions(force = false) {
       logger.info('🔐 Raccourci Super Admin: permissions d\'édition accordées');
     } else {
       // Sinon, vérifier si peut éditer les événements (Admin de saison)
+      console.log('🔍 GridBoard: Pas Super Admin, vérification Season Admin pour:', seasonId.value);
       const canEdit = await permissionService.isSeasonAdmin(seasonId.value, force);
+      console.log('🔍 GridBoard: Résultat isSeasonAdmin:', canEdit);
       canEditEvents.value = canEdit;
     }
     
