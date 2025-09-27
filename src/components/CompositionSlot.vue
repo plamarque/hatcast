@@ -12,6 +12,7 @@
             :player-id="playerId"
             :season-id="seasonId"
             :player-name="playerName"
+            :player-gender="playerGender"
             size="sm"
           />
         </div>
