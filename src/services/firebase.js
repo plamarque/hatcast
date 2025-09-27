@@ -8,6 +8,77 @@ import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithE
 import configService from './configService.js'
 import logger from './logger.js'
 
+/**
+ * Utilitaire unifié pour les appels aux Cloud Functions
+ * Combine le meilleur des implémentations existantes
+ */
+export async function callCloudFunction(functionName, options = {}) {
+  try {
+    const auth = getFirebaseAuth();
+    const user = auth?.currentUser;
+    
+    if (!user) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    const token = await user.getIdToken();
+    const baseUrl = getCloudFunctionsBaseUrl();
+    const url = `${baseUrl}/${functionName}`;
+    
+    const {
+      method = 'POST',
+      data = {},
+      headers = {},
+      ...fetchOptions
+    } = options;
+    
+    logger.debug(`🔐 Appel Cloud Function: ${functionName}`, { 
+      url, 
+      method, 
+      data: Object.keys(data).length > 0 ? data : undefined 
+    });
+    
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...headers
+      },
+      body: method !== 'GET' && Object.keys(data).length > 0 ? JSON.stringify(data) : undefined,
+      ...fetchOptions
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const result = await response.json();
+    logger.debug(`🔐 Réponse Cloud Function ${functionName}:`, result);
+    
+    return result;
+  } catch (error) {
+    logger.error(`❌ Erreur lors de l'appel à ${functionName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Retourne l'URL de base des Cloud Functions selon l'environnement
+ */
+function getCloudFunctionsBaseUrl() {
+  const hostname = window.location.hostname;
+  
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'https://us-central1-impro-selector.cloudfunctions.net';
+  } else if (hostname.includes('staging')) {
+    return 'https://us-central1-impro-selector.cloudfunctions.net';
+  } else {
+    return 'https://us-central1-impro-selector.cloudfunctions.net';
+  }
+}
+
 // Fonction pour configurer les listeners de connexion offline
 function setupOfflineListeners(db) {
   try {

@@ -6,11 +6,11 @@
 import { getAuth } from 'firebase/auth';
 import logger from './logger.js';
 import firestoreService from './firestoreService.js';
+import { callCloudFunction } from './firebase.js';
 
 class PermissionService {
   constructor() {
     this.auth = null;
-    this.baseUrl = this.getBaseUrl();
     this.permissionStatus = {
       seasonPermissions: new Map(), // seasonId -> { admins: [], users: [], timestamp }
       checkValidity: 5 * 60 * 1000 // 5 minutes
@@ -56,21 +56,6 @@ class PermissionService {
     }
   }
 
-  /**
-   * Détermine l'URL de base selon l'environnement
-   */
-  getBaseUrl() {
-    const hostname = window.location.hostname;
-    
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      // En développement local, utiliser les fonctions déployées
-      return 'https://us-central1-impro-selector.cloudfunctions.net';
-    } else if (hostname.includes('staging')) {
-      return 'https://us-central1-impro-selector.cloudfunctions.net';
-    } else {
-      return 'https://us-central1-impro-selector.cloudfunctions.net';
-    }
-  }
 
   /**
    * Vérifie si l'utilisateur actuel est Super Admin
@@ -97,7 +82,7 @@ class PermissionService {
       logger.info('🔐 Vérification du statut Super Admin via Cloud Functions...');
       
       // Appeler la Cloud Function pour vérifier le statut Super Admin
-      const result = await this.callFunction('checkSuperAdminStatus');
+      const result = await callCloudFunction('checkSuperAdminStatus');
       const isAdmin = result.isSuperAdmin || false;
       
       // Mettre en cache
@@ -199,43 +184,6 @@ class PermissionService {
     }
   }
 
-  /**
-   * Appel générique vers les Cloud Functions
-   */
-  async callFunction(functionName, data = {}) {
-    try {
-      if (!this.auth?.currentUser) {
-        throw new Error('Utilisateur non connecté');
-      }
-
-      const token = await this.auth.currentUser.getIdToken();
-      const url = `${this.baseUrl}/${functionName}`;
-      
-      logger.debug(`🔐 Appel Cloud Function: ${functionName}`, { url, data });
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      logger.debug(`🔐 Réponse Cloud Function ${functionName}:`, result);
-      
-      return result;
-    } catch (error) {
-      logger.error(`❌ Erreur lors de l'appel à ${functionName}:`, error);
-      throw error;
-    }
-  }
 
   // Les méthodes de gestion des rôles de saison sont maintenant dans la section Firestore ci-dessous
 
