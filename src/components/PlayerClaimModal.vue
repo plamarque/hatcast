@@ -228,11 +228,7 @@ async function associatePlayerDirectly() {
     console.log('🆔 Protection du joueur via le service players.js')
     
     // Protéger le joueur avec l'email de l'utilisateur connecté
-    await protectPlayer(props.player.id, props.seasonId, {
-      email: currentUserEmail.value,
-      emailVerifiedAt: new Date(),
-      source: 'direct_association'
-    })
+    await protectPlayer(props.player.id, currentUserEmail.value, null, props.seasonId)
     
     
     console.log('✅ Joueur protégé avec succès via le service players.js')

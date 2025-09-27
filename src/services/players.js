@@ -266,23 +266,33 @@ export async function protectPlayer(playerId, email, password, seasonId = null) 
       }
     }
     
-    // Créer un compte Firebase Auth pour ce joueur
-    logger.debug('Création du compte Firebase Auth...')
-    const { createUserWithEmailAndPassword } = await import('firebase/auth')
-    const { auth } = await import('./firebase.js')
-    
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    logger.info('Compte Firebase Auth créé', { uid: userCredential.user.uid })
+    // Créer un compte Firebase Auth pour ce joueur (seulement si un mot de passe est fourni)
+    let user = null
+    if (password) {
+      logger.debug('Création du compte Firebase Auth...')
+      const { createPlayerAccount } = await import('./firebase.js')
+      
+      user = await createPlayerAccount(email, password)
+      logger.info('Compte Firebase Auth créé', { uid: user.uid })
+    } else {
+      logger.debug('Association directe sans création de compte Firebase Auth')
+    }
     
     // Sauvegarder dans la collection players
     if (seasonId) {
-      await firestoreService.updateDocument('seasons', seasonId, {
+      const updateData = {
         email: email,
         isProtected: true,
-        firebaseUid: userCredential.user.uid,
         createdAt: new Date(),
         updatedAt: new Date()
-      }, 'players', playerId)
+      }
+      
+      // Ajouter firebaseUid seulement si un compte a été créé
+      if (user) {
+        updateData.firebaseUid = user.uid
+      }
+      
+      await firestoreService.updateDocument('seasons', seasonId, updateData, 'players', playerId)
     }
     
     logger.info('Protection sauvegardée dans Firestore')
