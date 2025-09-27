@@ -55,6 +55,7 @@ export async function callCloudFunction(functionName, options = {}) {
     }
 
     const result = await response.json();
+    console.log(`🔍 firebase.js: Réponse Cloud Function ${functionName}:`, result);
     logger.debug(`🔐 Réponse Cloud Function ${functionName}:`, result);
     
     return result;

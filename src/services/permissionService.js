@@ -63,9 +63,12 @@ class PermissionService {
    */
   async isSuperAdmin(force = false) {
     try {
+      console.log('🔍 permissionService: isSuperAdmin appelé, this.auth:', !!this.auth);
       const user = this.auth?.currentUser;
+      console.log('🔍 permissionService: user:', user?.email);
       
       if (!user?.email) {
+        console.log('🔍 permissionService: Pas d\'utilisateur connecté');
         return false;
       }
       
@@ -80,9 +83,11 @@ class PermissionService {
       }
       
       logger.info('🔐 Vérification du statut Super Admin via Cloud Functions...');
+      console.log('🔍 permissionService: Appel à callCloudFunction checkSuperAdminStatus');
       
       // Appeler la Cloud Function pour vérifier le statut Super Admin
       const result = await callCloudFunction('checkSuperAdminStatus');
+      console.log('🔍 permissionService: Résultat de la Cloud Function:', result);
       const isAdmin = result.isSuperAdmin || false;
       
       // Mettre en cache

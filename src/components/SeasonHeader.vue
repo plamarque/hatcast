@@ -211,26 +211,39 @@ function refreshSeason() {
 
 // Fonction de vérification Super Admin
 async function checkSuperAdminStatus() {
+  console.log('🔍 SeasonHeader: Début de checkSuperAdminStatus');
   isCheckingRoles.value = true;
   
   try {
+    // S'assurer que permissionService est initialisé
+    if (!permissionService.isInitialized) {
+      console.log('🔍 SeasonHeader: Initialisation de permissionService');
+      await permissionService.initialize();
+    }
+    
+    console.log('🔍 SeasonHeader: Appel à permissionService.isSuperAdmin()');
     // Utiliser la fonction centralisée d'authState
     const superAdminStatus = await permissionService.isSuperAdmin();
+    console.log('🔍 SeasonHeader: Résultat isSuperAdmin:', superAdminStatus);
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier si peut gérer les rôles (Super Admin ou Admin de saison)
     if (superAdminStatus) {
       // Super Admin a toujours accès à l'administration de toutes les saisons
       canManageRoles.value = true;
+      console.log('🔍 SeasonHeader: Super Admin détecté, canManageRoles = true');
       logger.info('🔐 Raccourci Super Admin: accès administration accordé');
       return;
     }
     
+    console.log('🔍 SeasonHeader: Pas Super Admin, vérification Season Admin pour:', props.seasonSlug);
     // Sinon, vérifier si Admin de saison pour cette saison spécifique
     if (props.seasonSlug) {
       const isSeasonAdmin = await permissionService.isSeasonAdmin(props.seasonSlug);
+      console.log('🔍 SeasonHeader: Résultat isSeasonAdmin:', isSeasonAdmin);
       canManageRoles.value = isSeasonAdmin;
     } else {
+      console.log('🔍 SeasonHeader: Pas de seasonSlug, canManageRoles = false');
       canManageRoles.value = false;
     }
     
