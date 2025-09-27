@@ -63,12 +63,9 @@ class PermissionService {
    */
   async isSuperAdmin(force = false) {
     try {
-      console.log('🔍 permissionService: isSuperAdmin appelé, this.auth:', !!this.auth);
       const user = this.auth?.currentUser;
-      console.log('🔍 permissionService: user:', user?.email);
       
       if (!user?.email) {
-        console.log('🔍 permissionService: Pas d\'utilisateur connecté');
         return false;
       }
       
