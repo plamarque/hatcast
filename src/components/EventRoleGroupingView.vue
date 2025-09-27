@@ -36,51 +36,32 @@
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
             :class="[
-              'p-3 rounded-lg border transition-all duration-200',
               isPlayerSelectedForRole(player.name, role, selectedEvent.id)
-                ? [
-                    'bg-gradient-to-r',
-                    getPlayerSelectionStatus(player.name) === 'declined'
-                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
-                      : getPlayerSelectionStatus(player.name) === 'confirmed'
-                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
-                        : getPlayerSelectionStatus(player.name) === 'pending'
-                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
-                          : 'from-green-500/60 to-emerald-500/60 border-green-500/30'
-                  ]
-                : 'flex items-center gap-3 rounded-md hover:bg-gray-700/50 border-transparent'
+                ? 'rounded-lg transition-all duration-200 p-0 bg-transparent border-transparent'
+                : 'p-3 rounded-lg border transition-all duration-200 flex items-center gap-3 rounded-md hover:bg-gray-700/50 border-transparent'
             ]"
           >
-            <!-- Design carte de composition pour joueurs sélectionnés -->
-            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)" class="flex items-center gap-3">
-              <!-- Avatar du joueur -->
-              <div class="flex-shrink-0">
-                <PlayerAvatar 
-                  :player-id="player.id"
-                  :season-id="seasonId"
-                  :player-name="player.name"
-                  :player-gender="player.gender || 'non-specified'"
-                  size="sm"
-                />
-              </div>
-              
-              <!-- Nom du joueur -->
-              <span class="text-white font-medium flex-1 min-w-0 truncate">
-                {{ player.name }}
-              </span>
-              
-              <!-- Pourcentage de chances -->
-              <span 
-                @click="showChanceDetails($event, player.name, role)"
-                class="px-2 py-1 rounded text-xs font-medium flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                :title="`Cliquer pour voir le détail du calcul`"
-              >
-                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1" title="Algorithme Bruno">
-                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
-                </span>
-              </span>
+            <!-- Use CompositionSlot for selected players for consistent rendering -->
+            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)">
+              <CompositionSlot
+                :player-id="player.id"
+                :player-name="player.name"
+                :player-gender="player.gender || 'non-specified'"
+                :role-key="role"
+                :role-label="getRoleLabel(role)"
+                :role-emoji="ROLE_EMOJIS[role]"
+                :selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                :available="isAvailable(player.name, selectedEvent.id)"
+                :unavailable="isAvailable(player.name, selectedEvent.id) === false"
+                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                :season-id="seasonId"
+                :right-text="(getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0) + '%'"
+                :right-class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                :right-title="'Cliquer pour voir le détail du calcul'"
+                :show-role-info="false"
+                @right-click="(e) => showChanceDetails(e, player.name, role)"
+                @slot-click="() => handleSlotClick(player, role)"
+              />
             </div>
 
             <!-- Design classique pour joueurs non sélectionnés -->
@@ -192,6 +173,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
+import CompositionSlot from './CompositionSlot.vue'
 import { 
   ROLES, 
   ROLE_EMOJIS, 
@@ -311,6 +293,11 @@ const props = defineProps({
     required: true
   },
   countSelections: {
+    type: Function,
+    required: true
+  },
+  // Ouvrir la modale de confirmation depuis le parent (gère protections et droits)
+  openConfirmationModal: {
     type: Function,
     required: true
   },
@@ -591,6 +578,40 @@ function getRoleStatusText(role) {
     return `Manque ${required - available}`
   } else {
     return 'Aucun'
+  }
+}
+
+// Handle slot click to open confirmation modal
+async function handleSlotClick(player, role) {
+  if (!props.selectedEvent) return
+  
+  const event = props.selectedEvent
+  const eventId = event.id
+  const playerName = player.name
+  const playerId = player.id
+
+  // Get current availability data to pass the comment
+  const availabilityData = props.getAvailabilityData(playerName, eventId)
+  
+  // Build confirmation modal data similar to AvailabilityCell
+  const data = {
+    playerName,
+    playerId,
+    playerGender: player.gender || 'non-specified',
+    eventId,
+    eventTitle: event.title,
+    eventDate: event.date,
+    assignedRole: role,
+    availabilityComment: availabilityData?.comment || null,
+    currentStatus: props.getPlayerSelectionStatus(playerName, eventId),
+    seasonId: props.seasonId
+  }
+
+  // Use the openConfirmationModal function passed from parent
+  if (typeof props.openConfirmationModal === 'function') {
+    props.openConfirmationModal(data)
+  } else {
+    console.warn('openConfirmationModal function not available')
   }
 }
 

@@ -923,6 +923,7 @@
                     :unavailable="slot.unavailable"
                     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
                     :season-id="seasonId"
+                    @slot-click="() => handleCompositionSlotClick(slot)"
                   />
                 </template>
               </div>
@@ -1090,6 +1091,7 @@
                 :is-selection-complete="isSelectionComplete"
                 :get-player-role-chances="getPlayerRoleChances"
                 :count-selections="countSelections"
+                :open-confirmation-modal="openConfirmationModal"
               />
             </div>
           </div>
@@ -10377,6 +10379,36 @@ async function handleConfirmationPending(data) {
 function openConfirmationModal(data) {
   confirmationModalData.value = { ...data }
   showConfirmationModal.value = true
+}
+
+// Handle composition slot click from composition tab
+async function handleCompositionSlotClick(slot) {
+  if (!selectedEvent.value || !slot.playerName) return
+  
+  const event = selectedEvent.value
+  const eventId = event.id
+  const playerName = slot.playerName
+  const playerId = slot.playerId
+
+  // Get current availability data to pass the comment
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  
+  // Build confirmation modal data similar to AvailabilityCell
+  const data = {
+    playerName,
+    playerId,
+    playerGender: slot.playerGender || 'non-specified',
+    eventId,
+    eventTitle: event.title,
+    eventDate: event.date,
+    assignedRole: slot.roleKey,
+    availabilityComment: availabilityData?.comment || null,
+    currentStatus: slot.selectionStatus,
+    seasonId: seasonId.value
+  }
+
+  // Use the same openConfirmationModal function
+  openConfirmationModal(data)
 }
 
 // Fonction pour gérer le bouton "Modifier" dans l'onglet "Ma Dispo"

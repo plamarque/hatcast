@@ -1,7 +1,8 @@
 <template>
   <div
     class="relative p-3 rounded-lg border text-center transition-all duration-300"
-    :class="rootClasses"
+    :class="[rootClasses, isClickable ? 'cursor-pointer' : '']"
+    @click.stop="onClick"
   >
     <!-- Filled slot -->
     <div v-if="playerName" class="flex items-center justify-between gap-2">
@@ -24,15 +25,11 @@
           class="px-2 py-1 rounded text-xs font-medium"
           :class="rightClass"
           :title="rightTitle || ''"
-          @click.stop="$emit('right-click')"
+          @click.stop="$emit('right-click', $event)"
         >
           {{ rightText }}
         </button>
-        <div v-if="!rightText" class="flex flex-col items-center gap-1">
-          <span class="text-lg">{{ roleEmoji }}</span>
-          <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
-        </div>
-        <div v-else class="flex flex-col items-center gap-1">
+        <div v-if="showRoleInfo" class="flex flex-col items-center gap-1">
           <span class="text-lg">{{ roleEmoji }}</span>
           <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
         </div>
@@ -70,9 +67,11 @@ const props = defineProps({
   rightText: { type: [String, Number], default: null },
   rightClass: { type: String, default: '' },
   rightTitle: { type: String, default: '' },
+  // Control whether to display role emoji and label in the right column
+  showRoleInfo: { type: Boolean, default: true },
 })
 
-defineEmits(['right-click'])
+const emit = defineEmits(['right-click', 'slot-click'])
 
 const rootClasses = computed(() => {
   if (props.playerName) {
@@ -111,6 +110,16 @@ const tooltip = computed(() => {
   if (props.available === false) return 'Non disponible'
   return ''
 })
+
+const isClickable = computed(() => {
+  // Clickable when a player is present and the organizer has confirmed the selection
+  return !!props.playerName && !!props.isSelectionConfirmedByOrganizer
+})
+
+function onClick() {
+  if (!isClickable.value) return
+  emit('slot-click')
+}
 </script>
 
 <style scoped>
