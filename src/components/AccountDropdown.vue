@@ -112,7 +112,7 @@ import roleService from '../services/roleService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
 import UserAvatar from './UserAvatar.vue'
-import { isSuperAdmin } from '../services/authState.js'
+import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
@@ -164,7 +164,7 @@ onMounted(() => {
 async function checkSuperAdminStatus() {
   try {
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await isSuperAdmin();
+    const superAdminStatus = await checkSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     canManageRoles.value = superAdminStatus;
   } catch (error) {

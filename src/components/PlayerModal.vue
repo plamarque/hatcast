@@ -231,7 +231,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
 import roleService from '../services/roleService.js'
-import { isSuperAdmin } from '../services/authState.js'
+import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
 
 const props = defineProps({
   show: {
@@ -522,7 +522,7 @@ async function checkPermissions() {
     if (!props.seasonId || !currentUser.value?.email) return;
     
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await isSuperAdmin();
+    const superAdminStatus = await checkSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier aussi si l'utilisateur est admin de cette saison

@@ -164,7 +164,7 @@ import AccountDropdown from './AccountDropdown.vue'
 import roleService from '../services/roleService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
-import { isSuperAdmin } from '../services/authState.js'
+import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
 
 const props = defineProps({
   seasonName: { type: String, default: '' },
@@ -216,7 +216,7 @@ async function checkSuperAdminStatus() {
   
   try {
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await isSuperAdmin();
+    const superAdminStatus = await checkSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier si peut gérer les rôles (Super Admin ou Admin de saison)

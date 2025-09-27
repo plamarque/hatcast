@@ -1947,7 +1947,7 @@ import { shouldPromptForNotifications, checkEmailExists } from '../services/noti
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import roleService from '../services/roleService.js'
-import { isSuperAdmin } from '../services/authState.js'
+import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
@@ -3339,7 +3339,7 @@ async function checkEditPermissions(force = false) {
     logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value, force ? '(FORCE REFRESH)' : '');
     
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await isSuperAdmin(force);
+    const superAdminStatus = await checkSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
