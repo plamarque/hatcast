@@ -384,8 +384,8 @@ function toggleAvailability() {
     return
   }
   
-  // Si le joueur est dans la composition validée par l'organisateur, ouvrir la modal de confirmation
-  if (props.isSelected && props.isAvailable === true && props.isSelectionConfirmedByOrganizer) {
+  // Si le joueur est sélectionné (peu importe si la sélection est confirmée par l'organisateur ou pas), ouvrir la modal de confirmation
+  if (props.isSelected && props.isAvailable === true) {
     // Ouvrir la modal de confirmation au lieu de cycler directement
     console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
     emit('show-confirmation-modal', {
@@ -397,23 +397,6 @@ function toggleAvailability() {
       assignedRole: props.availabilityData?.roles?.[0] || 'player',
       availabilityComment: props.availabilityData?.comment || null,
       currentStatus: props.playerSelectionStatus
-    })
-  } else if (props.isSelected && props.playerSelectionStatus === 'pending') {
-    // Si le joueur est sélectionné mais en attente de confirmation, ouvrir la modal de disponibilité
-    console.log('🎯 DEBUG toggleAvailability: branche pending, émission show-availability-modal')
-    console.log('  - Condition isSelected:', props.isSelected)
-    console.log('  - Condition playerSelectionStatus === "pending":', props.playerSelectionStatus === 'pending')
-    console.log('  - Condition combinée:', props.isSelected && props.playerSelectionStatus === 'pending')
-    emit('show-availability-modal', {
-      playerName: props.playerName,
-      eventId: props.eventId,
-      eventTitle: props.eventTitle,
-      eventDate: props.eventDate,
-      availabilityData: props.availabilityData,
-      isReadOnly: false,
-      chancePercent: props.chancePercent,
-      isProtected: props.isProtected,
-      eventRoles: props.eventRoles
     })
   } else {
     // Cycle classique de disponibilité

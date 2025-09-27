@@ -4880,22 +4880,8 @@ function getCurrentUserAvailabilityForEvent() {
   const playerName = currentUserPlayer.value.name
   const eventId = selectedEvent.value.id
   
-  // D'abord vérifier les données locales (plus récentes)
-  if (availability.value[playerName] && availability.value[playerName][eventId]) {
-    const localData = availability.value[playerName][eventId]
-    // Si c'est un objet avec la nouvelle structure, le retourner tel quel
-    if (typeof localData === 'object' && localData.available !== undefined) {
-      return localData
-    }
-    // Sinon, convertir l'ancien format (boolean) vers le nouveau
-    return {
-      available: localData,
-      roles: localData ? ['player'] : [],
-      comment: null
-    }
-  }
-  
-  // Sinon, récupérer depuis le service avec la fonction getAvailabilityData
+  // Toujours utiliser getAvailabilityData qui a accès aux données de sélection
+  // et peut gérer correctement les cas où on est sélectionné mais pas encore confirmé par l'organisateur
   const availabilityData = getAvailabilityData(playerName, eventId, availability.value, {
     getPlayerSelectionRole: getPlayerSelectionRole,
     getPlayerDeclinedRole: getPlayerDeclinedRole,
@@ -10252,19 +10238,28 @@ async function handleConfirmationConfirm(data) {
     // Save/update availability comment alongside confirmation
     if (typeof data.comment === 'string') {
       const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      
+      // Get the selection role for this player
+      const selectionRole = getPlayerSelectionRole(data.playerName, data.eventId)
+      
       await saveAvailabilityWithRoles({
         seasonId: seasonId.value,
         playerName: data.playerName,
         eventId: data.eventId,
         available: true,
-        roles: availability.value?.[data.playerName]?.[data.eventId]?.roles || [],
+        roles: selectionRole ? [selectionRole] : (availability.value?.[data.playerName]?.[data.eventId]?.roles || []),
         comment: data.comment || null
       })
 
-      // Update local cache
+      // Update local cache with selection role
       if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
       const prev = availability.value[data.playerName][data.eventId] || { available: true, roles: [], comment: null }
-      availability.value[data.playerName][data.eventId] = { ...prev, available: true, comment: data.comment || null }
+      availability.value[data.playerName][data.eventId] = { 
+        ...prev, 
+        available: true, 
+        roles: selectionRole ? [selectionRole] : prev.roles,
+        comment: data.comment || null 
+      }
     }
 
     showConfirmationModal.value = false
