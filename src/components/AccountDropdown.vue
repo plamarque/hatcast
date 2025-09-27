@@ -112,6 +112,7 @@ import roleService from '../services/roleService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
 import UserAvatar from './UserAvatar.vue'
+import { isSuperAdmin } from '../services/authState.js'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
@@ -161,34 +162,9 @@ onMounted(() => {
 
 // Fonction de vérification Super Admin
 async function checkSuperAdminStatus() {
-  // En développement local, utiliser uniquement le fallback par email
-  const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
-  if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-    logger.info('🔐 Mode développement: Super Admin détecté par email');
-    isSuperAdmin.value = true;
-    canManageRoles.value = true;
-    return;
-  }
-  
-  // Fallback temporaire pour impropick@gmail.com (Admin de saison)
-  if (currentUserEmail === 'impropick@gmail.com') {
-    logger.info('🔐 Mode développement: Admin de saison détecté par email');
-    isSuperAdmin.value = false;
-    canManageRoles.value = true;
-    return;
-  }
-  
-  // Fallback temporaire pour patrice.lamarque+albane@gmail.com (Admin de saison)
-  if (currentUserEmail === 'patrice.lamarque+albane@gmail.com') {
-    logger.info('🔐 Mode développement: Admin de saison Albane détecté par email');
-    isSuperAdmin.value = false;
-    canManageRoles.value = true;
-    return;
-  }
-  
-  // Pour les autres utilisateurs, essayer le service normal
   try {
-    const superAdminStatus = await roleService.isSuperAdmin();
+    // Utiliser la fonction centralisée d'authState
+    const superAdminStatus = await isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     canManageRoles.value = superAdminStatus;
   } catch (error) {

@@ -1947,6 +1947,7 @@ import { shouldPromptForNotifications, checkEmailExists } from '../services/noti
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
 import roleService from '../services/roleService.js'
+import { isSuperAdmin } from '../services/authState.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
@@ -3337,33 +3338,8 @@ async function checkEditPermissions(force = false) {
     
     logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value, force ? '(FORCE REFRESH)' : '');
     
-    // En développement local, utiliser le fallback par email
-    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
-    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-      logger.info('🔐 Mode développement: Super Admin détecté par email');
-      isSuperAdmin.value = true;
-      canEditEvents.value = true;
-      return;
-    }
-    
-    // Fallback temporaire pour impropick@gmail.com (Admin de saison)
-    if (currentUserEmail === 'impropick@gmail.com') {
-      logger.info('🔐 Mode développement: Admin de saison détecté par email');
-      isSuperAdmin.value = false;
-      canEditEvents.value = true;
-      return;
-    }
-    
-    // Fallback temporaire pour patrice.lamarque+albane@gmail.com (Admin de saison)
-    if (currentUserEmail === 'patrice.lamarque+albane@gmail.com') {
-      logger.info('🔐 Mode développement: Admin de saison Albane détecté par email');
-      isSuperAdmin.value = false;
-      canEditEvents.value = true;
-      return;
-    }
-    
-    // Pour les autres utilisateurs, essayer le service normal
-    const superAdminStatus = await roleService.isSuperAdmin(force);
+    // Utiliser la fonction centralisée d'authState
+    const superAdminStatus = await isSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
@@ -3380,17 +3356,9 @@ async function checkEditPermissions(force = false) {
     logger.warn('⚠️ Erreur lors de la vérification des permissions, utilisation du fallback:', error.message);
     
     // Fallback en cas d'erreur
-    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
-    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-      isSuperAdmin.value = true;
-      canEditEvents.value = true;
-    } else if (currentUserEmail === 'impropick@gmail.com' || currentUserEmail === 'patrice.lamarque+albane@gmail.com') {
-      isSuperAdmin.value = false;
-      canEditEvents.value = true;
-    } else {
-      canEditEvents.value = false;
-      isSuperAdmin.value = false;
-    }
+    logger.warn('⚠️ Utilisation du fallback en cas d\'erreur');
+    canEditEvents.value = false;
+    isSuperAdmin.value = false;
   }
 }
 

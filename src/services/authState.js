@@ -263,6 +263,91 @@ function autoInitialize() {
 // Démarrer l'auto-initialisation
 setTimeout(autoInitialize, 100)
 
+// Cache pour les rôles Super Admin
+const superAdminCache = ref(null)
+const superAdminCacheTimestamp = ref(null)
+const CACHE_VALIDITY = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * Vérifie si l'utilisateur actuel est Super Admin
+ * Utilise les Cloud Functions avec fallback gracieux
+ */
+async function isSuperAdmin(force = false) {
+  try {
+    const auth = getFirebaseAuth()
+    const user = auth?.currentUser
+    
+    if (!user?.email) {
+      return false
+    }
+    
+    const now = Date.now()
+    
+    // Vérifier le cache si pas de force refresh
+    if (!force && superAdminCache.value !== null && superAdminCacheTimestamp.value) {
+      if (now - superAdminCacheTimestamp.value < CACHE_VALIDITY) {
+        logger.debug('🔐 Statut Super Admin récupéré du cache')
+        return superAdminCache.value
+      }
+    }
+    
+    logger.info('🔐 Vérification du statut Super Admin via Cloud Functions...')
+    
+    // Appeler la Cloud Function pour vérifier le statut Super Admin
+    const token = await user.getIdToken()
+    const response = await fetch('https://us-central1-impro-selector.cloudfunctions.net/checkSuperAdminStatus', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+    }
+    
+    const result = await response.json()
+    const isAdmin = result.isSuperAdmin || false
+    
+    // Mettre en cache
+    superAdminCache.value = isAdmin
+    superAdminCacheTimestamp.value = now
+    
+    logger.info(`🔐 Statut Super Admin: ${isAdmin ? '✅ OUI' : '❌ NON'}`)
+    return isAdmin
+    
+  } catch (error) {
+    logger.error('❌ Erreur lors de la vérification Super Admin:', error)
+    
+    // Fallback gracieux vers impropick@gmail.com en cas d'erreur
+    const auth = getFirebaseAuth()
+    const user = auth?.currentUser
+    const isFallback = user?.email === 'impropick@gmail.com'
+    
+    if (isFallback) {
+      logger.warn('🔐 Utilisation du fallback de développement (impropick@gmail.com)')
+      superAdminCache.value = true
+      superAdminCacheTimestamp.value = Date.now()
+      return true
+    }
+    
+    // Pour tous les autres utilisateurs, retourner false en cas d'erreur
+    superAdminCache.value = false
+    superAdminCacheTimestamp.value = Date.now()
+    return false
+  }
+}
+
+/**
+ * Vide le cache des rôles Super Admin
+ */
+function clearSuperAdminCache() {
+  superAdminCache.value = null
+  superAdminCacheTimestamp.value = null
+  logger.debug('🔐 Cache Super Admin vidé')
+}
+
 export {
   currentUser,
   isConnected,
@@ -273,5 +358,7 @@ export {
   initialize,
   cleanup,
   waitForInitialization,
-  forceInitialize
+  forceInitialize,
+  isSuperAdmin,
+  clearSuperAdminCache
 }

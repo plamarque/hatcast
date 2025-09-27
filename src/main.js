@@ -15,6 +15,7 @@ import JoinSeason from './views/JoinSeason.vue'
 import SeasonAdminPage from './views/SeasonAdminPage.vue'
 import NotFoundPage from './views/NotFoundPage.vue'
 import { getFirebaseAuth } from './services/firebase.js'
+import { isSuperAdmin } from './services/authState.js'
 import roleService from './services/roleService.js'
 import logger from './services/logger.js'
 
@@ -63,16 +64,10 @@ router.beforeEach(async (to, from, next) => {
         return
       }
       
-      // Fallback temporaire pour le développement local
-      if (user.email === 'patrice.lamarque@gmail.com') {
-        logger.info('🛡️ Fallback développement: Super Admin détecté - accès autorisé')
-        next()
-        return
-      }
-      
-      // Fallback temporaire pour impropick@gmail.com (Admin de saison)
-      if (user.email === 'impropick@gmail.com') {
-        logger.info('🛡️ Fallback développement: Admin de saison détecté - accès autorisé')
+      // Vérifier les droits admin via la fonction centralisée (inclut le fallback)
+      const hasAdminRights = await isSuperAdmin()
+      if (hasAdminRights) {
+        logger.info('🛡️ Accès admin autorisé')
         next()
         return
       }
