@@ -1,7 +1,8 @@
 <template>
   <div
     class="relative p-3 rounded-lg border text-center transition-all duration-300"
-    :class="rootClasses"
+    :class="[rootClasses, isClickable ? 'cursor-pointer' : '']"
+    @click.stop="onClick"
   >
     <!-- Filled slot -->
     <div v-if="playerName" class="flex items-center justify-between gap-2">
@@ -11,6 +12,7 @@
             :player-id="playerId"
             :season-id="seasonId"
             :player-name="playerName"
+            :player-gender="playerGender"
             size="sm"
           />
         </div>
@@ -24,15 +26,11 @@
           class="px-2 py-1 rounded text-xs font-medium"
           :class="rightClass"
           :title="rightTitle || ''"
-          @click.stop="$emit('right-click')"
+          @click.stop="$emit('right-click', $event)"
         >
-          {{ rightText }}
+          {{ rightText }}%<span v-if="rightBrunoText" class="text-gray-400 ml-1">({{ rightBrunoText }}%)</span>
         </button>
-        <div v-if="!rightText" class="flex flex-col items-center gap-1">
-          <span class="text-lg">{{ roleEmoji }}</span>
-          <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
-        </div>
-        <div v-else class="flex flex-col items-center gap-1">
+        <div v-if="showRoleInfo" class="flex flex-col items-center gap-1">
           <span class="text-lg">{{ roleEmoji }}</span>
           <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
         </div>
@@ -53,6 +51,7 @@
 <script setup>
 import { computed } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import { getStatusClass } from '../utils/statusUtils.js'
 
 const props = defineProps({
   playerId: { type: String, default: null },
@@ -70,29 +69,24 @@ const props = defineProps({
   rightText: { type: [String, Number], default: null },
   rightClass: { type: String, default: '' },
   rightTitle: { type: String, default: '' },
+  // Bruno algorithm percentage to display in gray
+  rightBrunoText: { type: [String, Number], default: null },
+  // Control whether to display role emoji and label in the right column
+  showRoleInfo: { type: Boolean, default: true },
 })
 
-defineEmits(['right-click'])
+const emit = defineEmits(['right-click', 'slot-click'])
 
 const rootClasses = computed(() => {
   if (props.playerName) {
-    // Priority: selection status > availability
-    if (props.selectionStatus === 'declined') {
-      return 'bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30'
-    }
-    if (props.selectionStatus === 'confirmed') {
-      return 'bg-gradient-to-r from-purple-500/60 to-pink-500/60 border-purple-500/30'
-    }
-    if (props.selectionStatus === 'pending') {
-      return 'bg-gradient-to-r from-orange-500/60 to-yellow-500/60 border-orange-500/30'
-    }
-    if (props.unavailable === true) {
-      return 'bg-gradient-to-r from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
-    }
-    if (props.available === false) {
-      return 'bg-gradient-to-r from-red-500/60 to-red-600/60 border-red-500/30'
-    }
-    return 'bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-green-500/30'
+    return getStatusClass({
+      isSelected: true, // Si on est dans CompositionSlot, on est forcément sélectionné
+      playerSelectionStatus: props.selectionStatus,
+      isAvailable: props.available,
+      isUnavailable: props.unavailable,
+      isLoading: false,
+      isError: false
+    })
   }
   return 'border-dashed border-white/20 bg-white/5'
 })
@@ -111,6 +105,16 @@ const tooltip = computed(() => {
   if (props.available === false) return 'Non disponible'
   return ''
 })
+
+const isClickable = computed(() => {
+  // Clickable when a player is present and the organizer has confirmed the selection
+  return !!props.playerName && !!props.isSelectionConfirmedByOrganizer
+})
+
+function onClick() {
+  if (!isClickable.value) return
+  emit('slot-click')
+}
 </script>
 
 <style scoped>

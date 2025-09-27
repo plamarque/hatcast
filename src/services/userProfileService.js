@@ -163,7 +163,7 @@ async function updatePlayersWithNewPseudo(oldPseudo, newPseudo, userEmail) {
     })
 
     // Récupérer toutes les associations de cet utilisateur
-    const { listAssociationsForEmail } = await import('./playerProtection.js')
+    const { listAssociationsForEmail } = await import('./players.js')
     const associations = await listAssociationsForEmail(userEmail)
 
     // Mettre à jour chaque joueur associé qui porte l'ancien nom

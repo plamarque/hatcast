@@ -49,7 +49,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { auth } from '../services/firebase.js'
 import firestoreService from '../services/firestoreService.js'
-import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { listAssociationsForEmail } from '../services/players.js'
 import PlayerAvatar from './PlayerAvatar.vue'
 
 const props = defineProps({
@@ -71,19 +71,11 @@ async function loadData() {
   } catch {}
   try {
     const raw = email.value ? await listAssociationsForEmail(email.value) : []
-    // Enrichir avec le nom réel du joueur depuis la saison
-    const enriched = []
-    for (const a of raw) {
-      let playerName = a.playerId
-      try {
-        if (a.seasonId) {
-          const playerDoc = await firestoreService.getDocument('seasons', a.seasonId, 'players', a.playerId)
-          if (playerDoc) playerName = playerDoc.name || playerName
-        }
-      } catch {}
-      enriched.push({ ...a, playerName })
-    }
-    associations.value = enriched
+    // Les noms sont maintenant inclus directement dans les associations (optimisation)
+    associations.value = raw.map(a => ({
+      ...a,
+      playerName: a.playerName || a.playerId // Utiliser le nom inclus ou fallback sur l'ID
+    }))
   } catch {
     associations.value = []
   }

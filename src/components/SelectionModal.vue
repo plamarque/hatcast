@@ -95,19 +95,15 @@
                 slot.player
                 ? [
                     'bg-gradient-to-r',
-                    // Statuts de confirmation individuelle (priorité sur la disponibilité)
-                    getPlayerSelectionStatus(slot.player) === 'declined'
-                      ? 'from-red-500/60 to-orange-500/60 border-red-500/30'
-                      : getPlayerSelectionStatus(slot.player) === 'confirmed'
-                        ? 'from-purple-500/60 to-pink-500/60 border-purple-500/30'
-                        : getPlayerSelectionStatus(slot.player) === 'pending'
-                          ? 'from-orange-500/60 to-yellow-500/60 border-orange-500/30'
-                          // Statuts de disponibilité classique (seulement si pas de statut individuel)
-                          : isPlayerUnavailable(slot.player)
-                            ? 'from-yellow-500/60 to-orange-500/60 border-yellow-500/30'
-                            : (!isPlayerAvailable(slot.player)
-                                ? 'from-red-500/60 to-red-600/60 border-red-500/30'
-                                : 'from-green-500/60 to-emerald-500/60 border-green-500/30')
+                    // Utilisation des classes CSS centralisées pour les statuts
+                    getStatusClass({
+                      isSelected: true, // Si on est dans un slot, on est forcément sélectionné
+                      playerSelectionStatus: getPlayerSelectionStatus(slot.player),
+                      isAvailable: isPlayerAvailable(slot.player),
+                      isUnavailable: isPlayerUnavailable(slot.player),
+                      isLoading: false,
+                      isError: false
+                    })
                   ]
                   : 'border-dashed border-white/20 hover:border-white/40 bg-white/5',
                 // Animation pour le slot en cours de tirage
@@ -126,6 +122,7 @@
                       :player-id="getPlayerIdFromName(slot.player)"
                       :season-id="seasonId"
                       :player-name="slot.player"
+                      :player-gender="getPlayerGenderFromName(slot.player)"
                       size="sm"
                     />
                   </div>
@@ -217,6 +214,7 @@
                       :player-id="getPlayerIdFromName(declinedPlayer.name)"
                       :season-id="seasonId"
                       :player-name="declinedPlayer.name"
+                      :player-gender="getPlayerGenderFromName(declinedPlayer.name)"
                       size="sm"
                     />
                   </div>
@@ -336,7 +334,7 @@
             :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
           >
             <span class="flex items-center">
-              🎲 <span class="hidden sm:inline ml-1">Simuler Compo</span><span class="sm:hidden ml-1">Simuler</span>
+              🎲 <span class="hidden sm:inline ml-1">Simuler</span><span class="sm:hidden ml-1">Simuler</span>
             </span>
             <span class="text-xs">▼</span>
           </button>
@@ -416,7 +414,7 @@
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
         >
-          🔄 <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
+          🗑️ <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
         </button>
 
         <!-- Bouton Fermer (masqué s'il y a une sélection pour libérer l'espace) -->
@@ -485,6 +483,7 @@ import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
+import { getStatusClass } from '../utils/statusUtils.js'
 import { getPlayerCastStatus } from '../services/castService.js'
 import { calculateAllRoleChances, formatChancePercentage, performAlgoBruno, performDefaultDraw } from '../services/chancesService.js'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
@@ -1686,6 +1685,13 @@ function getPlayerIdFromName(playerName) {
   if (!playerName || !props.players) return null
   const player = props.players.find(p => p.name === playerName)
   return player?.id || null
+}
+
+// Fonction helper pour récupérer le genre du joueur à partir de son nom
+function getPlayerGenderFromName(playerName) {
+  if (!playerName || !props.players) return 'non-specified'
+  const player = props.players.find(p => p.name === playerName)
+  return player?.gender || 'non-specified'
 }
 
 function getPlayerNameFromId(playerId) {

@@ -73,7 +73,6 @@
             @logout="logout"
             @open-login="openLogin"
             @open-development="openDevelopment"
-            @open-administration="openAdministration"
           />
           
           <!-- Actions supplémentaires via slot -->

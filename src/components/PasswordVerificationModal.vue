@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue'
-import { verifyPlayerPassword, sendPasswordResetEmail } from '../services/playerProtection.js'
+import { verifyPlayerPassword, sendPasswordResetEmail } from '../services/players.js'
 import { getSeasonPin } from '../services/seasons.js'
 import logger from '../services/logger.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'

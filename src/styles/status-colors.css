@@ -1,0 +1,46 @@
+/* Classes CSS centralisées pour les statuts de sélection/confirmation */
+
+/* Statut : Confirmé */
+.status-confirmed {
+  @apply bg-gradient-to-r from-purple-500/60 to-pink-500/60 border-purple-500/30;
+}
+
+/* Statut : En attente (à confirmer) */
+.status-pending {
+  @apply bg-gradient-to-r from-orange-500/60 to-yellow-500/60 border-orange-500/30;
+}
+
+/* Statut : Décliné */
+.status-declined {
+  @apply bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30;
+}
+
+/* Statut : Disponible */
+.status-available {
+  @apply bg-gradient-to-r from-green-500/60 to-emerald-500/60 border-green-500/30;
+}
+
+/* Statut : Non disponible */
+.status-unavailable {
+  @apply bg-gradient-to-r from-red-500/60 to-red-600/60 border-red-500/30;
+}
+
+/* Statut : Indisponible (déjà pris) */
+.status-indisponible {
+  @apply bg-gradient-to-r from-yellow-500/60 to-orange-500/60 border-yellow-500/30;
+}
+
+/* Statut : Non renseigné */
+.status-undefined {
+  @apply bg-gray-500/40 border-gray-500/30;
+}
+
+/* Statut : Chargement */
+.status-loading {
+  @apply bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-500/30;
+}
+
+/* Statut : Erreur */
+.status-error {
+  @apply bg-gradient-to-r from-red-500/30 to-orange-500/30 border-red-500/30;
+}

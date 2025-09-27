@@ -533,10 +533,6 @@
       </div>
     </div>
   </div>
-
-
-
-
   <!-- Popin de détails de l'événement -->
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl lg:max-w-4xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-6rem)] md:max-h-[92vh] flex flex-col mb-6 md:mb-0" @click.stop>
@@ -823,7 +819,7 @@
                       />
                     </div>
                     <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
-                    <div class="w-32 h-16 flex-shrink-0">
+                    <div class="w-40 h-16 flex-shrink-0">
                       <AvailabilityCell
                       :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
                       :player-name="currentUserPlayer.name"
@@ -844,6 +840,7 @@
                       :event-roles="selectedEvent?.roles || {}"
                       @availability-changed="handleAvailabilityChanged"
                       @show-availability-modal="openAvailabilityModalFromEventDetails"
+                      @show-confirmation-modal="openConfirmationModal"
                       />
                     </div>
                   </div>
@@ -927,6 +924,7 @@
                     :unavailable="slot.unavailable"
                     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
                     :season-id="seasonId"
+                    @slot-click="() => handleCompositionSlotClick(slot)"
                   />
                 </template>
               </div>
@@ -1094,6 +1092,7 @@
                 :is-selection-complete="isSelectionComplete"
                 :get-player-role-chances="getPlayerRoleChances"
                 :count-selections="countSelections"
+                :open-confirmation-modal="openConfirmationModal"
               />
             </div>
           </div>
@@ -1180,7 +1179,6 @@
     @submit="handlePinSubmit"
     @cancel="handlePinCancel"
   />
-
   <!-- Modal de vérification du mot de passe du joueur -->
   <div v-if="showPlayerPasswordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1340] p-4">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 p-8 rounded-2xl shadow-2xl w-full max-w-md">
@@ -1820,7 +1818,6 @@
   content-visibility: auto;
   contain-intrinsic-size: 800px 600px; /* taille de réserve pour éviter les sauts */
 }
-
 /* Forcer des tailles encore plus grandes en très petit viewport (<= 430px) */
 @media (max-width: 430px) {
   .header-date { font-size: 18px; }
@@ -1923,9 +1920,9 @@ function getCurrentUserId() {
 }
 import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
-import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { listAssociationsForEmail } from '../services/players.js'
 import { signOut } from 'firebase/auth'
-import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/playerProtection.js'
+import { isPlayerProtected, isPlayerPasswordCached, listProtectedPlayers, getPlayerEmail } from '../services/players.js'
 import { 
   setEventArchived,
   loadPlayers,
@@ -1949,7 +1946,7 @@ import { addToCalendar } from '../services/calendarService.js'
 import { shouldPromptForNotifications, checkEmailExists } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
-import roleService from '../services/roleService.js'
+import permissionService from '../services/permissionService.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
@@ -2456,7 +2453,6 @@ async function handleShowAvailabilityGrid(playerId) {
     logger.error('❌ Erreur lors de l\'affichage focalisé:', error)
   }
 }
-
 // Fonction pour revenir à la vue complète
 async function returnToFullView() {
   try {
@@ -2733,28 +2729,7 @@ function evaluatePlayerTourStart() {
     // Démarrer uniquement quand on a au moins 1 player et 1 event (utiliser events pour éviter dépendance précoce)
     if (events.value.length === 0) return
     const alreadyCompleted = localStorage.getItem(`playerTourCompleted:${seasonId.value}`)
-    // Backfill préférences: si utilisateur connecté avec associations, peupler les préférés pour cette saison
-    try {
-      const userEmail = auth?.currentUser?.email || ''
-      if (userEmail) {
-        listAssociationsForEmail(userEmail).then(async (assocs) => {
-          const seasonal = assocs.filter(a => a.seasonId === seasonId.value)
-          if (seasonal.length > 0) {
-            const key = `seasonPreferredPlayer:${seasonId.value}`
-            const raw = localStorage.getItem(key)
-            let current = []
-            if (raw) {
-              if (raw.startsWith('[')) { try { current = JSON.parse(raw) || [] } catch {} }
-              else { current = [raw] }
-            }
-            const set = new Set(current)
-            seasonal.forEach(a => set.add(a.playerId))
-            const updated = Array.from(set)
-            localStorage.setItem(key, JSON.stringify(updated))
-          }
-        }).catch(() => {})
-      }
-    } catch {}
+    // Note: Le backfill des préférences est maintenant géré par updatePreferredPlayersSet()
     const startFlag = localStorage.getItem(`startPlayerTour:${seasonId.value}`)
     if (!alreadyCompleted && startFlag) {
       // Toujours démarrer par l'étape 1 (ajout) même si un joueur existe déjà
@@ -3108,7 +3083,6 @@ async function handlePlayerSelected(player) {
     }
   }
 }
-
 async function handleAllPlayersSelected() {
   // Pour la vue chronologique : afficher tous les joueurs et recharger toutes les disponibilités
   if (validCurrentView.value === 'timeline') {
@@ -3357,54 +3331,47 @@ function openAdministration() {
 }
 
 // Fonction pour vérifier les permissions d'édition
-async function checkEditPermissions() {
+async function checkEditPermissions(force = false) {
   try {
     if (!seasonId.value) return;
     
-    logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value);
+    logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value, force ? '(FORCE REFRESH)' : '');
     
-    // En développement local, utiliser le fallback par email
-    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
-    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-      logger.info('🔐 Mode développement: Super Admin détecté par email');
-      isSuperAdmin.value = true;
-      canEditEvents.value = true;
-      return;
+    // Vérifier que permissionService est initialisé
+    if (!permissionService.isInitialized) {
+      console.log('🔍 GridBoard: Initialisation de permissionService');
+      await permissionService.initialize();
     }
     
-    // Fallback temporaire pour impropick@gmail.com (Admin de saison)
-    if (currentUserEmail === 'impropick@gmail.com') {
-      logger.info('🔐 Mode développement: Admin de saison détecté par email');
-      isSuperAdmin.value = false;
-      canEditEvents.value = true;
-      return;
-    }
-    
-    // Pour les autres utilisateurs, essayer le service normal
-    const superAdminStatus = await roleService.isSuperAdmin();
+    // Utiliser la fonction centralisée d'authState
+    const superAdminStatus = await permissionService.isSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
     
-    // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
-    const canEdit = await roleService.canEditEvents(seasonId.value);
-    canEditEvents.value = canEdit;
+    // Si Super Admin, raccourci : pas besoin de vérifier les rôles de saison
+    if (superAdminStatus) {
+      canEditEvents.value = true;
+      logger.info('🔐 Raccourci Super Admin: permissions d\'édition accordées');
+    } else {
+      // Sinon, vérifier si peut éditer les événements (Admin de saison)
+      console.log('🔍 GridBoard: Pas Super Admin, vérification Season Admin pour:', seasonId.value);
+      const canEdit = await permissionService.isSeasonAdmin(seasonId.value, force);
+      console.log('🔍 GridBoard: Résultat isSeasonAdmin:', canEdit);
+      canEditEvents.value = canEdit;
+    }
     
     logger.info('🔐 Permissions vérifiées:', {
       seasonId: seasonId.value,
       isSuperAdmin: superAdminStatus,
-      canEditEvents: canEdit
+      canEditEvents: canEditEvents.value,
+      forceRefresh: force
     });
   } catch (error) {
     logger.warn('⚠️ Erreur lors de la vérification des permissions, utilisation du fallback:', error.message);
     
     // Fallback en cas d'erreur
-    const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
-    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-      isSuperAdmin.value = true;
-      canEditEvents.value = true;
-    } else {
-      canEditEvents.value = false;
-      isSuperAdmin.value = false;
-    }
+    logger.warn('⚠️ Utilisation du fallback en cas d\'erreur');
+    canEditEvents.value = false;
+    isSuperAdmin.value = false;
   }
 }
 
@@ -3757,7 +3724,6 @@ const enrichedPlayers = computed(() => {
     email: null // Sera chargé à la demande
   }))
 })
-
 // Computed property pour enrichir tous les joueurs de la saison (pour les modals)
 const enrichedAllSeasonPlayers = computed(() => {
   return allSeasonPlayers.value.map(player => ({
@@ -4290,7 +4256,6 @@ async function saveEdit() {
     templateType: editingSelectedRoleTemplate.value // Ajouter le type de template
   })
 }
-
 // Nouvelle fonction pour gérer l'édition via EventModal
 async function handleEditEvent(eventData) {
   if (!editingEvent.value) return
@@ -4909,22 +4874,8 @@ function getCurrentUserAvailabilityForEvent() {
   const playerName = currentUserPlayer.value.name
   const eventId = selectedEvent.value.id
   
-  // D'abord vérifier les données locales (plus récentes)
-  if (availability.value[playerName] && availability.value[playerName][eventId]) {
-    const localData = availability.value[playerName][eventId]
-    // Si c'est un objet avec la nouvelle structure, le retourner tel quel
-    if (typeof localData === 'object' && localData.available !== undefined) {
-      return localData
-    }
-    // Sinon, convertir l'ancien format (boolean) vers le nouveau
-    return {
-      available: localData,
-      roles: localData ? ['player'] : [],
-      comment: null
-    }
-  }
-  
-  // Sinon, récupérer depuis le service avec la fonction getAvailabilityData
+  // Toujours utiliser getAvailabilityData qui a accès aux données de sélection
+  // et peut gérer correctement les cas où on est sélectionné mais pas encore confirmé par l'organisateur
   const availabilityData = getAvailabilityData(playerName, eventId, availability.value, {
     getPlayerSelectionRole: getPlayerSelectionRole,
     getPlayerDeclinedRole: getPlayerDeclinedRole,
@@ -4942,7 +4893,6 @@ watch([() => events.value.length, () => players.value.length, isLoadingGrid], ()
     forceGridLayoutSync()
   })
 })
-
 // Lancer l'évaluation du mini-tutoriel joueur après la première charge de données
 watch([() => players.value.length, () => events.value.length, seasonId], () => {
   evaluatePlayerTourStart()
@@ -4965,8 +4915,10 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
     
     await loadProtectedPlayers()
     await updatePreferredPlayersSet()
-    // Re-vérifier les permissions d'édition
-    await checkEditPermissions()
+    
+    // FORCER le refresh des permissions d'édition (ignorer le cache)
+    logger.info('🔐 Forçage du refresh des permissions après changement d\'authentification')
+    await checkEditPermissions(true) // Force refresh
   }
 })
 
@@ -4987,9 +4939,9 @@ watch([() => currentUser.value, () => allSeasonPlayers.value], () => {
 
 // Surveiller les changements de saison pour re-vérifier les permissions
 watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
-  if (newSeasonId !== oldSeasonId && newSeasonId) {
-    logger.debug('🔄 Changement de saison, re-vérification des permissions')
-    await checkEditPermissions()
+  if (newSeasonId && newSeasonId !== oldSeasonId) {
+    logger.info('🔄 Changement de saison détecté, re-vérification des permissions')
+    await checkEditPermissions(true) // Force refresh lors du changement de saison
   }
 })
 
@@ -5433,6 +5385,11 @@ onMounted(async () => {
       // Utiliser la fonction améliorée de focus
       await focusOnEventFromUrl(eventIdFromUrl, targetEvent)
       
+      // Appliquer également le filtre d'événement comme si choisi dans le ViewHeader
+      // Cela limite la grille à cet événement pour permettre de déposer ses disponibilités directement
+      selectedEventId.value = eventIdFromUrl
+      isAllEventsView.value = false
+
               // Si modal=event_details est demandé, ouvrir automatiquement la modal
         if (route.query.modal === 'event_details') {
           showEventDetails(targetEvent)
@@ -5579,8 +5536,6 @@ watch(() => currentUser.value?.email, (newEmail) => {
     closeSelectionModal()
   }
 }, { immediate: false })
-
-
 // Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
 watch(() => route.params.eventId, (newEventId) => {
   if (newEventId) {
@@ -6087,8 +6042,8 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   
   try {
     // Vérifier directement si ce joueur est protégé par l'utilisateur connecté
-    const { getPlayerProtectionData } = await import('../services/playerProtection.js')
-    const protectionData = await getPlayerProtectionData(playerId, seasonId.value)
+    const { getPlayerData } = await import('../services/players.js')
+    const protectionData = await getPlayerData(playerId, seasonId.value)
     
     // Le joueur appartient à l'utilisateur si :
     // 1. Il est protégé
@@ -6225,11 +6180,6 @@ const filteredShowMorePlayers = computed(() => {
     player.name.toLowerCase().includes(query)
   )
 })
-
-
-
-
-
   // Avertissements pour l'événement compositionné
   const eventStatus = computed(() => selectedEvent.value ? getEventStatus(selectedEvent.value.id) : null)
   const hasEventWarningForSelectedEvent = computed(() => {
@@ -6303,9 +6253,13 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   const isProtected = isPlayerProtectedInGrid(player.id)
   const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
   
-  // Si c'est le joueur de l'utilisateur connecté, ouvrir directement en mode édition
-  // Sinon, suivre la logique de protection normale
-  const shouldBeReadOnly = isProtected && !isOwnedByCurrentUser
+  // Vérifier si l'utilisateur est connecté
+  const isUserConnected = !!currentUser.value?.email
+  
+  // Logique de protection :
+  // - Si c'est le joueur de l'utilisateur connecté ET que l'utilisateur est connecté → mode édition
+  // - Sinon → mode lecture seule (permettra la vérification par mot de passe/PIN)
+  const shouldBeReadOnly = isProtected && (!isUserConnected || !isOwnedByCurrentUser)
   
   openAvailabilityModal({
     playerName: player.name,
@@ -6872,8 +6826,6 @@ async function fillEmptyCastSlots(eventId) {
   updateAllStats()
   updateAllChances()
 }
-
-
 // Fonction helper pour calculer les chances d'un rôle avec les candidats filtrés
 function calculateRoleChancesForFill(role, candidates, eventId) {
   const event = events.value.find(e => e.id === eventId)
@@ -7523,7 +7475,6 @@ function handlePinCancel() {
   pendingOperation.value = null
   pinErrorMessage.value = ''
 }
-
 async function handlePlayerPasswordSubmit(password) {
   if (!password) return
   
@@ -8174,7 +8125,6 @@ function closeEventDetails() {
   showShareLinkCopied.value = false;
   // Cache fix: removed eventMoreActionsStyle references
 }
-
 // Fonction pour ajouter un événement à l'agenda
 async function handleAddToCalendar(type, event = null) {
   const targetEvent = event || selectedEvent.value
@@ -8293,7 +8243,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
 // Fonction pour vérifier si un joueur est compositionné pour un événement spécifique
 function isPlayerSelected(playerName, eventId) {
   const selection = casts.value[eventId]
-  if (!selection || !selection.roles) {
+  if (!selection) {
     return false
   }
   
@@ -8303,11 +8253,23 @@ function isPlayerSelected(playerName, eventId) {
     return false
   }
   
-  // Vérifier si le joueur est dans un des rôles
-  for (const [role, rolePlayers] of Object.entries(selection.roles)) {
-    if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
-      return true
+  // Vérifier si le joueur est dans un des rôles de la composition finale
+  if (selection.roles) {
+    for (const [role, rolePlayers] of Object.entries(selection.roles)) {
+      if (Array.isArray(rolePlayers) && rolePlayers.includes(player.id)) {
+        return true
+      }
     }
+  }
+  
+  // Vérifier aussi si le joueur a un statut de sélection (même s'il a décliné)
+  if (selection.playerStatuses && selection.playerStatuses[player.id]) {
+    return true
+  }
+  
+  // Vérifier l'ancienne structure avec des noms comme clés
+  if (selection.playerStatuses && selection.playerStatuses[playerName]) {
+    return true
   }
   
   return false
@@ -8714,7 +8676,6 @@ function getTotalRequiredCount(event) {
   // Fallback pour les anciens événements
   return event.playerCount || 6
 }
-
 // Fonctions pour détecter l'état des événements
 function getEventStatus(eventId) {
   // Protection contre les eventId null ou undefined
@@ -9350,7 +9311,6 @@ function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
-
 // Fonction helper pour obtenir le rôle d'un joueur dans la section déclinés
 function getPlayerDeclinedRole(playerName, eventId) {
   const cast = casts.value[eventId]
@@ -9766,6 +9726,14 @@ watch(events, (list) => {
     const modal = params.get('modal')
     const eventId = params.get('event')
     const showAvailability = params.get('showAvailability') === 'true'
+    if (eventId) {
+      const t = list.find(e => e.id === eventId)
+      if (t) {
+        // Appliquer le filtre d'événement issu de l'URL si présent
+        selectedEventId.value = eventId
+        isAllEventsView.value = false
+      }
+    }
     if (!modal || !eventId) return
     const t = list.find(e => e.id === eventId)
     if (!t) return
@@ -9972,7 +9940,6 @@ async function disableEventNotifications(event) {
     }, 3000)
   }
 }
-
 // Fonction pour gérer le succès de l'incitation aux notifications
 async function handleNotificationPromptSuccess(data) {
   showNotificationPrompt.value = false
@@ -10151,6 +10118,20 @@ function openEventModal(event) {
 
 async function handleAvailabilitySave(availabilityData) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+    
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({
       seasonId: seasonId.value,
@@ -10195,6 +10176,20 @@ async function handleAvailabilitySave(availabilityData) {
 
 async function handleAvailabilityNotAvailable(availabilityData) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+    
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({
       seasonId: seasonId.value,
@@ -10236,6 +10231,20 @@ async function handleAvailabilityNotAvailable(availabilityData) {
 
 async function handleAvailabilityClear(availabilityData) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+    
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({
       seasonId: seasonId.value,
@@ -10278,7 +10287,49 @@ async function handleAvailabilityClear(availabilityData) {
 // Handlers pour la modal de confirmation
 async function handleConfirmationConfirm(data) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = data?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de confirmation d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'confirmed', seasonId.value)
+
+    // Save/update availability comment alongside confirmation
+    if (typeof data.comment === 'string') {
+      const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      
+      // Get the selection role for this player
+      const selectionRole = getPlayerSelectionRole(data.playerName, data.eventId)
+      
+      await saveAvailabilityWithRoles({
+        seasonId: seasonId.value,
+        playerName: data.playerName,
+        eventId: data.eventId,
+        available: true,
+        roles: selectionRole ? [selectionRole] : (availability.value?.[data.playerName]?.[data.eventId]?.roles || []),
+        comment: data.comment || null
+      })
+
+      // Update local cache with selection role
+      if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
+      const prev = availability.value[data.playerName][data.eventId] || { available: true, roles: [], comment: null }
+      availability.value[data.playerName][data.eventId] = { 
+        ...prev, 
+        available: true, 
+        roles: selectionRole ? [selectionRole] : prev.roles,
+        comment: data.comment || null 
+      }
+    }
+
     showConfirmationModal.value = false
     
     // Afficher un message de succès
@@ -10300,7 +10351,43 @@ async function handleConfirmationConfirm(data) {
 
 async function handleConfirmationDecline(data) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = data?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de déclin d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'declined', seasonId.value)
+
+    // Save/update availability comment when declining
+    if (typeof data.comment === 'string') {
+      const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      await saveAvailabilityWithRoles({
+        seasonId: seasonId.value,
+        playerName: data.playerName,
+        eventId: data.eventId,
+        available: false,
+        roles: [],
+        comment: data.comment || null
+      })
+
+      // Update local cache
+      if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
+      availability.value[data.playerName][data.eventId] = {
+        available: false,
+        roles: [],
+        comment: data.comment || null
+      }
+    }
+
     showConfirmationModal.value = false
     
     // Afficher un message de succès
@@ -10322,7 +10409,44 @@ async function handleConfirmationDecline(data) {
 
 async function handleConfirmationPending(data) {
   try {
+    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    const isUserConnected = !!currentUser.value?.email;
+    const isPlayerProtected = data?.isProtected || false;
+    
+    if (!isUserConnected && isPlayerProtected) {
+      console.error('❌ Tentative de mise en attente d\'un joueur protégé sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
+    }
+
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'pending', seasonId.value)
+
+    // Save/update availability comment for pending (no explicit availability change, keep previous available state if any)
+    if (typeof data.comment === 'string') {
+      const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      const prev = availability.value?.[data.playerName]?.[data.eventId]
+      await saveAvailabilityWithRoles({
+        seasonId: seasonId.value,
+        playerName: data.playerName,
+        eventId: data.eventId,
+        available: prev?.available ?? true,
+        roles: prev?.roles || [],
+        comment: data.comment || null
+      })
+
+      // Update local cache
+      if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
+      availability.value[data.playerName][data.eventId] = {
+        available: prev?.available ?? true,
+        roles: prev?.roles || [],
+        comment: data.comment || null
+      }
+    }
+
     showConfirmationModal.value = false
     
     // Afficher un message de succès
@@ -10346,6 +10470,36 @@ async function handleConfirmationPending(data) {
 function openConfirmationModal(data) {
   confirmationModalData.value = { ...data }
   showConfirmationModal.value = true
+}
+
+// Handle composition slot click from composition tab
+async function handleCompositionSlotClick(slot) {
+  if (!selectedEvent.value || !slot.playerName) return
+  
+  const event = selectedEvent.value
+  const eventId = event.id
+  const playerName = slot.playerName
+  const playerId = slot.playerId
+
+  // Get current availability data to pass the comment
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  
+  // Build confirmation modal data similar to AvailabilityCell
+  const data = {
+    playerName,
+    playerId,
+    playerGender: slot.playerGender || 'non-specified',
+    eventId,
+    eventTitle: event.title,
+    eventDate: event.date,
+    assignedRole: slot.roleKey,
+    availabilityComment: availabilityData?.comment || null,
+    currentStatus: slot.selectionStatus,
+    seasonId: seasonId.value
+  }
+
+  // Use the same openConfirmationModal function
+  openConfirmationModal(data)
 }
 
 // Fonction pour gérer le bouton "Modifier" dans l'onglet "Ma Dispo"

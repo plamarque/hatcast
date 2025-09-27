@@ -75,16 +75,7 @@
           <span class="truncate">Installer l'app</span>
         </button>
         
-        <!-- Item Administration (Admin de saison ou Super Admin) -->
-        <button 
-          v-if="canManageRoles"
-          @click="openAdministration"
-          class="w-full text-left px-4 py-2 text-sm text-orange-300 hover:bg-orange-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
-          role="menuitem"
-        >
-          <span class="text-base md:text-lg flex-shrink-0">🛡️</span>
-          <span class="truncate">Administration</span>
-        </button>
+        <!-- Item Administration supprimé - déplacé vers un bouton séparé dans SeasonHeader -->
         
         
         <!-- Item Développement (Super Admin ou développement local) -->
@@ -117,7 +108,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
-import roleService from '../services/roleService.js'
+import permissionService from '../services/permissionService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
 import UserAvatar from './UserAvatar.vue'
@@ -170,26 +161,9 @@ onMounted(() => {
 
 // Fonction de vérification Super Admin
 async function checkSuperAdminStatus() {
-  // En développement local, utiliser uniquement le fallback par email
-  const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
-  if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-    logger.info('🔐 Mode développement: Super Admin détecté par email');
-    isSuperAdmin.value = true;
-    canManageRoles.value = true;
-    return;
-  }
-  
-  // Fallback temporaire pour impropick@gmail.com (Admin de saison)
-  if (currentUserEmail === 'impropick@gmail.com') {
-    logger.info('🔐 Mode développement: Admin de saison détecté par email');
-    isSuperAdmin.value = false;
-    canManageRoles.value = true;
-    return;
-  }
-  
-  // Pour les autres utilisateurs, essayer le service normal
   try {
-    const superAdminStatus = await roleService.isSuperAdmin();
+    // Utiliser la fonction centralisée d'authState
+    const superAdminStatus = await permissionService.isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     canManageRoles.value = superAdminStatus;
   } catch (error) {
@@ -247,13 +221,7 @@ function openDevelopment() {
   emit('open-development')
 }
 
-function openAdministration() {
-  logger.info('🛡️ openAdministration() appelée dans AccountDropdown');
-  logger.info('🛡️ canManageRoles:', canManageRoles.value);
-  logger.info('🛡️ isSuperAdmin:', isSuperAdmin.value);
-  isOpen.value = false
-  emit('open-administration')
-}
+// Fonction openAdministration supprimée - déplacée vers SeasonHeader
 
 function installApp() {
   isOpen.value = false

@@ -1,4 +1,5 @@
 import './assets/main.css'
+import './styles/status-colors.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -14,7 +15,7 @@ import JoinSeason from './views/JoinSeason.vue'
 import SeasonAdminPage from './views/SeasonAdminPage.vue'
 import NotFoundPage from './views/NotFoundPage.vue'
 import { getFirebaseAuth } from './services/firebase.js'
-import roleService from './services/roleService.js'
+import permissionService from './services/permissionService.js'
 import logger from './services/logger.js'
 
 // Réduire le bruit de logs en production (garder warnings/erreurs)
@@ -62,16 +63,10 @@ router.beforeEach(async (to, from, next) => {
         return
       }
       
-      // Fallback temporaire pour le développement local
-      if (user.email === 'patrice.lamarque@gmail.com') {
-        logger.info('🛡️ Fallback développement: Super Admin détecté - accès autorisé')
-        next()
-        return
-      }
-      
-      // Fallback temporaire pour impropick@gmail.com (Admin de saison)
-      if (user.email === 'impropick@gmail.com') {
-        logger.info('🛡️ Fallback développement: Admin de saison détecté - accès autorisé')
+      // Vérifier les droits admin via la fonction centralisée (inclut le fallback)
+      const hasAdminRights = await permissionService.isSuperAdmin()
+      if (hasAdminRights) {
+        logger.info('🛡️ Accès admin autorisé')
         next()
         return
       }
@@ -85,8 +80,8 @@ router.beforeEach(async (to, from, next) => {
       }
       
       // Vérifier les permissions
-      const isSuperAdmin = await roleService.isSuperAdmin()
-      const isSeasonAdmin = await roleService.isSeasonAdmin(seasonSlug)
+      const isSuperAdmin = await permissionService.isSuperAdmin()
+      const isSeasonAdmin = await permissionService.isSeasonAdmin(seasonSlug)
       
       if (isSuperAdmin || isSeasonAdmin) {
         logger.info('🛡️ Accès autorisé à l\'administration de la saison', seasonSlug)

@@ -1,9 +1,7 @@
 // Service pour gérer les avatars des joueurs
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
-import { getPlayerProtectionData } from './playerProtection.js'
-import { getFirebaseDb } from './firebase.js'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { getPlayerData } from './players.js'
 
 // Cache pour éviter les requêtes répétées
 const avatarCache = new Map()
@@ -29,15 +27,15 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
       throw new Error('Firestore not initialized')
     }
     
-    // 1. Essayer d'abord de récupérer depuis la collection playerProtection
-    const protectionData = await getPlayerProtectionData(playerId, seasonId)
+    // 1. Essayer d'abord de récupérer depuis la collection players
+    const protectionData = await getPlayerData(playerId, seasonId)
     
     if (protectionData && protectionData.photoURL) {
       const result = {
         photoURL: protectionData.photoURL,
         email: protectionData.email || null,
         isAssociated: !!protectionData.email,
-        source: 'playerProtection'
+        source: 'players'
       }
       
       // Mettre en cache le résultat
@@ -131,49 +129,13 @@ async function getPlayerAssociation(playerId, seasonId) {
   }
   
   try {
-    const db = getFirebaseDb()
+    // Utiliser le nouveau service players.js
+    const playerData = await getPlayerData(playerId, seasonId)
     
-    // OPTIMISATION: Essayer d'abord dans le document player (plus efficace)
-    if (seasonId) {
-      const playerRef = doc(db, 'seasons', seasonId, 'players', playerId)
-      const playerSnap = await getDoc(playerRef)
-      
-      if (playerSnap.exists()) {
-        const data = playerSnap.data()
-        if (data.email) {
-          const association = { email: data.email, source: 'player' }
-          associationCache.set(cacheKey, association)
-          return association
-        }
-      }
-    }
-    
-    // Fallback vers l'ancienne collection playerProtection pour compatibilité
-    if (seasonId) {
-      const seasonProtectionRef = doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      const seasonSnap = await getDoc(seasonProtectionRef)
-      
-      if (seasonSnap.exists()) {
-        const data = seasonSnap.data()
-        if (data.email && data.isProtected) {
-          const association = { email: data.email, source: 'season' }
-          associationCache.set(cacheKey, association)
-          return association
-        }
-      }
-    }
-    
-    // Fallback vers la collection globale
-    const globalProtectionRef = doc(db, 'playerProtection', playerId)
-    const globalSnap = await getDoc(globalProtectionRef)
-    
-    if (globalSnap.exists()) {
-      const data = globalSnap.data()
-      if (data.email && data.isProtected) {
-        const association = { email: data.email, source: 'global' }
-        associationCache.set(cacheKey, association)
-        return association
-      }
+    if (playerData && playerData.email) {
+      const association = { email: playerData.email, source: 'player' }
+      associationCache.set(cacheKey, association)
+      return association
     }
     
     // Aucune association trouvée
@@ -275,7 +237,7 @@ export async function preloadPlayersAvatars(playerIds, seasonId = null) {
 }
 
 /**
- * Sauvegarde l'avatar d'un joueur dans la collection playerProtection
+ * Sauvegarde l'avatar d'un joueur dans la collection players
  * @param {string} playerId - ID du joueur
  * @param {string} photoURL - URL de l'avatar
  * @param {string} email - Email de l'utilisateur associé (optionnel)
@@ -284,11 +246,6 @@ export async function preloadPlayersAvatars(playerIds, seasonId = null) {
  */
 export async function savePlayerAvatar(playerId, photoURL, email = null, seasonId = null) {
   try {
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore not initialized')
-    }
-    
     if (!playerId || !photoURL) {
       throw new Error('playerId and photoURL are required')
     }
@@ -299,18 +256,13 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
       sanitizedPhotoURL = sanitizedPhotoURL.replace(/=s\d+-c$/, '=s96')
     }
     
-    // Mettre à jour le document playerProtection existant
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
-    const updateData = {
-      photoURL: sanitizedPhotoURL,
-      updatedAt: new Date().toISOString(),
-      updatedBy: email || 'anonymous'
+    // Mettre à jour le document players
+    if (seasonId) {
+      await firestoreService.updateDocument('seasons', seasonId, {
+        photoURL: sanitizedPhotoURL,
+        updatedAt: new Date()
+      }, 'players', playerId)
     }
-    
-    await setDoc(protectionRef, updateData, { merge: true })
     
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
@@ -319,7 +271,7 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
     const associationCacheKey = `${playerId}_${seasonId || 'global'}`
     associationCache.delete(associationCacheKey)
     
-    logger.debug('PlayerAvatar service: Saved player avatar in playerProtection', {
+    logger.debug('PlayerAvatar service: Saved player avatar in players', {
       playerId,
       seasonId,
       hasPhotoURL: !!sanitizedPhotoURL,
@@ -335,33 +287,24 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
 }
 
 /**
- * Supprime l'avatar d'un joueur de la collection playerProtection
+ * Supprime l'avatar d'un joueur de la collection players
  * @param {string} playerId - ID du joueur
  * @param {string} seasonId - ID de la saison (optionnel)
  * @returns {Promise<boolean>} - true si supprimé avec succès
  */
 export async function deletePlayerAvatar(playerId, seasonId = null) {
   try {
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore not initialized')
-    }
-    
     if (!playerId) {
       throw new Error('playerId is required')
     }
     
-    // Mettre à jour le document playerProtection pour supprimer l'avatar
-    const protectionRef = seasonId
-      ? doc(db, 'seasons', seasonId, 'playerProtection', playerId)
-      : doc(db, 'playerProtection', playerId)
-    
-    const updateData = {
-      photoURL: null,
-      updatedAt: new Date().toISOString()
+    // Mettre à jour le document players pour supprimer l'avatar
+    if (seasonId) {
+      await firestoreService.updateDocument('seasons', seasonId, {
+        photoURL: null,
+        updatedAt: new Date()
+      }, 'players', playerId)
     }
-    
-    await setDoc(protectionRef, updateData, { merge: true })
     
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
@@ -370,7 +313,7 @@ export async function deletePlayerAvatar(playerId, seasonId = null) {
     const associationCacheKey = `${playerId}_${seasonId || 'global'}`
     associationCache.delete(associationCacheKey)
     
-    logger.debug('PlayerAvatar service: Deleted player avatar from playerProtection', { playerId, seasonId })
+    logger.debug('PlayerAvatar service: Deleted player avatar from players', { playerId, seasonId })
     
     return true
     

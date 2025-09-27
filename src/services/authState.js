@@ -263,6 +263,7 @@ function autoInitialize() {
 // Démarrer l'auto-initialisation
 setTimeout(autoInitialize, 100)
 
+
 export {
   currentUser,
   isConnected,

@@ -151,11 +151,12 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { getFirebaseAuth, getFirebaseDb, resetPlayerPassword } from '../services/firebase.js'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { getFirebaseAuth, resetPlayerPassword } from '../services/firebase.js'
+import { updateDoc } from 'firebase/firestore'
+import firestoreService from '../services/firestoreService.js'
 import { createAccountEmailUpdateLink } from '../services/magicLinks.js'
 import { queueVerificationEmail } from '../services/emailService.js'
-import { listAssociationsForEmail } from '../services/playerProtection.js'
+import { listAssociationsForEmail } from '../services/players.js'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({
@@ -269,32 +270,12 @@ function assocKey(a) {
 async function loadPlayerAssociations() {
   try {
     const raw = email.value ? await listAssociationsForEmail(email.value) : []
-    // Enrichir avec le nom réel du joueur depuis la saison
-    const enriched = []
-    const db = getFirebaseDb()
-    if (!db) {
-      associations.value = []
-      return
-    }
-    
-    for (const a of raw) {
-      let playerName = a.playerId
-      let seasonName = a.seasonId || '—'
-      try {
-        if (a.seasonId) {
-          const playerRef = doc(db, 'seasons', a.seasonId, 'players', a.playerId)
-          const snap = await getDoc(playerRef)
-          if (snap.exists()) playerName = snap.data().name || playerName
-          
-          // Récupérer le nom de la saison
-          const seasonRef = doc(db, 'seasons', a.seasonId)
-          const seasonSnap = await getDoc(seasonRef)
-          if (seasonSnap.exists()) seasonName = seasonSnap.data().name || seasonName
-        }
-      } catch {}
-      enriched.push({ ...a, playerName, seasonName })
-    }
-    associations.value = enriched
+    // Les noms sont maintenant inclus directement dans les associations (optimisation)
+    associations.value = raw.map(a => ({
+      ...a,
+      playerName: a.playerName || a.playerId, // Utiliser le nom inclus ou fallback sur l'ID
+      seasonName: a.seasonName || a.seasonId || '—'
+    }))
   } catch {
     associations.value = []
   }
@@ -306,39 +287,9 @@ async function dissociatePlayer(assoc) {
   }
   
   try {
-    // Supprimer l'association depuis Firestore
-    const { deleteDoc } = await import('firebase/firestore')
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firebase n\'est pas encore initialisé')
-    }
-    
-    if (assoc.seasonId) {
-      // Association spécifique à une saison
-      const protectionRef = doc(db, 'seasons', assoc.seasonId, 'playerProtection', assoc.playerId)
-      await deleteDoc(protectionRef)
-    } else {
-      // Association globale
-      const protectionRef = doc(db, 'playerProtection', assoc.playerId)
-      await deleteDoc(protectionRef)
-    }
-    
-    // Supprimer aussi la préférence locale si elle existe
-    try {
-      if (assoc.seasonId) {
-        const key = `seasonPreferredPlayer:${assoc.seasonId}`
-        const raw = localStorage.getItem(key)
-        if (raw) {
-          if (raw.startsWith('[')) {
-            const current = JSON.parse(raw) || []
-            const updated = current.filter(id => id !== assoc.playerId)
-            localStorage.setItem(key, JSON.stringify(updated))
-          } else if (raw === assoc.playerId) {
-            localStorage.removeItem(key)
-          }
-        }
-      }
-    } catch {}
+    // Utiliser le service players.js pour désactiver la protection
+    const { unprotectPlayer } = await import('../services/players.js')
+    await unprotectPlayer(assoc.playerId, assoc.seasonId)
     
     // Recharger la liste des associations
     await loadPlayerAssociations()

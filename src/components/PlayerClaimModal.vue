@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { unprotectPlayer, isPlayerProtected, getPlayerProtectionData } from '../services/playerProtection.js'
+import { unprotectPlayer, isPlayerProtected, getPlayerData } from '../services/players.js'
 import { useRoute } from 'vue-router'
 import { currentUser } from '../services/authState.js'
 import logger from '../services/logger.js'
@@ -222,36 +222,16 @@ async function associatePlayerDirectly() {
   try {
     console.log('🔒 Association directe du joueur à l\'utilisateur connecté')
     
-    // Créer l'association dans la collection playerProtection (pas playerAssociations)
-    const { doc, setDoc } = await import('firebase/firestore')
-    const { getFirebaseDb } = await import('../services/firebase.js')
+    // Utiliser le service players.js pour protéger le joueur
+    const { protectPlayer } = await import('../services/players.js')
     
-    console.log('🆔 Création de l\'association dans playerProtection')
+    console.log('🆔 Protection du joueur via le service players.js')
     
-    const associationData = {
-      playerId: props.player.id,
-      email: currentUserEmail.value,
-      isProtected: true,
-      associatedAt: new Date(),
-      source: 'direct_association'
-    }
-    console.log('📝 Données d\'association:', associationData)
+    // Protéger le joueur avec l'email de l'utilisateur connecté
+    await protectPlayer(props.player.id, currentUserEmail.value, null, props.seasonId)
     
-    // Obtenir l'instance Firestore via le getter
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore n\'est pas encore initialisé')
-    }
     
-    // Créer dans la collection playerProtection de la saison
-    await setDoc(doc(db, 'seasons', props.seasonId, 'playerProtection', props.player.id), associationData)
-    
-    console.log('✅ Association créée avec succès dans Firestore')
-    
-    // Marquer l'email comme vérifié et sauvegarder l'avatar
-    const { markEmailVerifiedForProtection } = await import('../services/playerProtection.js')
-    await markEmailVerifiedForProtection({ playerId: props.player.id, seasonId: props.seasonId })
-    console.log('✅ Email marqué comme vérifié et avatar sauvegardé')
+    console.log('✅ Joueur protégé avec succès via le service players.js')
     
     // Afficher le message de succès
     success.value = `${props.player.name} est maintenant associé à ton compte !`
@@ -310,7 +290,7 @@ async function sendVerificationEmail() {
 
 async function restartEmailStep() {
   try {
-    const { clearEmailVerificationForProtection } = await import('../services/playerProtection.js')
+    const { clearEmailVerificationForProtection } = await import('../services/players.js')
     await clearEmailVerificationForProtection({ playerId: props.player.id, seasonId: props.seasonId })
   } catch {}
   step.value = 1

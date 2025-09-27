@@ -100,8 +100,11 @@ export function getAvailabilityData(playerName, eventId, playerAvailability, opt
   // Vérifier aussi si le joueur est dans la section déclinés
   const declinedRole = getPlayerDeclinedRole(playerName, eventId)
   
-  if ((selectionRole && isSelectionValidated) || declinedRole) {
-    const selectionStatus = getPlayerSelectionStatus(playerName, eventId)
+  // Vérifier le statut de sélection
+  const selectionStatus = getPlayerSelectionStatus(playerName, eventId)
+  
+  // Si on est sélectionné (avec ou sans validation par l'organisateur) OU si on est dans les déclinés
+  if ((selectionRole && isSelectionValidated) || declinedRole || (selectionRole && selectionStatus)) {
     return {
       available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
       roles: [selectionRole || declinedRole],

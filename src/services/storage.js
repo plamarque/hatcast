@@ -810,8 +810,8 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
                 continue
               }
               
-              // Récupérer l'email du joueur depuis playerProtection
-              const { getPlayerEmail } = await import('./playerProtection.js')
+              // Récupérer l'email du joueur depuis players
+              const { getPlayerEmail } = await import('./players.js')
               const playerEmail = await getPlayerEmail(playerName, seasonId)
               if (playerEmail) {
                 await removeRemindersForPlayer({
@@ -838,8 +838,8 @@ export async function saveCast(eventId, roles, seasonId, options = {}) {
                 continue
               }
               
-              // Récupérer l'email du joueur depuis playerProtection
-              const { getPlayerEmail } = await import('./playerProtection.js')
+              // Récupérer l'email du joueur depuis players
+              const { getPlayerEmail } = await import('./players.js')
               const playerEmail = await getPlayerEmail(playerName, seasonId)
               
               if (playerEmail) {

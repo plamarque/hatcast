@@ -4,16 +4,15 @@
     :class="[
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
-      // Couleurs de fond appliquées directement à la cellule - plus lumineuses et attrayantes
-      isSelected && isAvailable === true && playerSelectionStatus === 'confirmed' ? 'bg-gradient-to-br from-purple-500/60 to-pink-500/60' : '',
-      isSelected && isAvailable === true && playerSelectionStatus === 'pending' ? 'bg-gradient-to-br from-orange-500/60 to-yellow-500/60' : '',
-      isSelected && isAvailable === true && playerSelectionStatus === 'declined' ? 'bg-gradient-to-br from-red-500/60 to-orange-500/60' : '',
-      !isSelected && isAvailable === true ? 'bg-green-500/60' : '',
-      isAvailable === false ? 'bg-red-500/60' : '',
-      isAvailable === null || isAvailable === undefined ? 'bg-gray-500/40' : '',
-      // États de chargement
-      isLoading ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30' : '',
-      isError ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30' : ''
+      // Utilisation des classes CSS centralisées pour les statuts
+      getStatusClass({
+        isSelected,
+        playerSelectionStatus,
+        isAvailable,
+        isUnavailable: false, // TODO: ajouter cette prop si nécessaire
+        isLoading,
+        isError
+      })
     ]"
     @click.stop="toggleAvailability"
     @mouseenter="hover = true"
@@ -35,7 +34,7 @@
       <!-- Contenu normal -->
       <template v-else>
         <!-- Affichage avec confirmation (2 lignes) -->
-        <template v-if="isSelected && isAvailable === true && isSelectionConfirmedByOrganizer">
+        <template v-if="isSelected && playerSelectionStatus">
           <!-- Ligne 1: Icône rôle + nom du rôle ou "Décliné" -->
           <div class="flex items-center gap-1 text-center">
             <span class="text-lg">
@@ -71,7 +70,7 @@
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
       <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation) -->
-      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && isSelectionConfirmedByOrganizer)">
+      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus)">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
@@ -107,7 +106,7 @@
       </template>
       
       <!-- Icône commentaire seule (quand pas de rôles spécifiques) -->
-      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && isSelectionConfirmedByOrganizer)">
+      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus)">
         <div class="flex items-center justify-center mt-1">
           <span 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"
@@ -169,6 +168,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
+import { getStatusClass } from '../utils/statusUtils.js'
 
 const props = defineProps({
   playerName: {
@@ -341,24 +341,17 @@ const tooltipText = computed(() => {
   if (props.disabled) {
     return 'Événement inactif — activez pour modifier'
   }
-  if (props.isSelected && props.isAvailable === true) {
-    if (props.isSelectionConfirmedByOrganizer) {
-      // Statut individuel du joueur
-      switch (props.playerSelectionStatus) {
-        case 'pending':
-          return `${props.playerName} est composé et doit confirmer sa participation • Cliquer pour changer le statut`
-        case 'confirmed':
-          return `${props.playerName} a confirmé sa participation • Cliquer pour changer le statut`
-        case 'declined':
-          return `${props.playerName} a décliné sa participation • Cliquer pour changer le statut`
-        default:
-          return `${props.playerName} est composé • Cliquer pour changer le statut`
-      }
-    } else {
-      if (shouldShowChance.value) {
-        return `${props.playerName} est composé et doit confirmer • avait ~${props.chancePercent}% de chances`
-      }
-      return `${props.playerName} est composé et doit confirmer`
+  if (props.isSelected && props.playerSelectionStatus) {
+    // Statut individuel du joueur
+    switch (props.playerSelectionStatus) {
+      case 'pending':
+        return `${props.playerName} est composé et doit confirmer sa participation • Cliquer pour changer le statut`
+      case 'confirmed':
+        return `${props.playerName} a confirmé sa participation • Cliquer pour changer le statut`
+      case 'declined':
+        return `${props.playerName} a décliné sa participation • Cliquer pour changer le statut`
+      default:
+        return `${props.playerName} est composé • Cliquer pour changer le statut`
     }
   } else if (props.isAvailable === true) {
     return props.chancePercent != null
@@ -384,8 +377,8 @@ function toggleAvailability() {
     return
   }
   
-  // Si le joueur est dans la composition validée par l'organisateur, ouvrir la modal de confirmation
-  if (props.isSelected && props.isAvailable === true && props.isSelectionConfirmedByOrganizer) {
+  // Si le joueur est sélectionné (peu importe si la sélection est confirmée par l'organisateur ou pas), ouvrir la modal de confirmation
+  if (props.isSelected) {
     // Ouvrir la modal de confirmation au lieu de cycler directement
     console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
     emit('show-confirmation-modal', {
@@ -398,12 +391,9 @@ function toggleAvailability() {
       availabilityComment: props.availabilityData?.comment || null,
       currentStatus: props.playerSelectionStatus
     })
-  } else if (props.isSelected && props.playerSelectionStatus === 'pending') {
-    // Si le joueur est sélectionné mais en attente de confirmation, ouvrir la modal de disponibilité
-    console.log('🎯 DEBUG toggleAvailability: branche pending, émission show-availability-modal')
-    console.log('  - Condition isSelected:', props.isSelected)
-    console.log('  - Condition playerSelectionStatus === "pending":', props.playerSelectionStatus === 'pending')
-    console.log('  - Condition combinée:', props.isSelected && props.playerSelectionStatus === 'pending')
+  } else {
+    // Si pas sélectionné, ouvrir la modal de disponibilité
+    console.log('🎯 DEBUG toggleAvailability: branche disponibilité, émission show-availability-modal')
     emit('show-availability-modal', {
       playerName: props.playerName,
       eventId: props.eventId,
@@ -415,10 +405,6 @@ function toggleAvailability() {
       isProtected: props.isProtected,
       eventRoles: props.eventRoles
     })
-  } else {
-    // Cycle classique de disponibilité
-    console.log('🔄 DEBUG toggleAvailability: branche par défaut, émission toggle')
-    emit('toggle', props.playerName, props.eventId)
   }
 }
 

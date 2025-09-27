@@ -322,7 +322,7 @@ async function loadRecipientsEmails() {
   for (const player of targetPlayers) {
     try {
       // Importer la fonction depuis le service
-      const { getPlayerEmail } = await import('../services/playerProtection.js')
+      const { getPlayerEmail } = await import('../services/players.js')
       const email = await getPlayerEmail(player.id, props.seasonId)
       if (email) {
         playersWithEmail.push({

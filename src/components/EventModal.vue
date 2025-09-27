@@ -295,6 +295,14 @@ const props = defineProps({
   eventData: {
     type: Object,
     default: null
+  },
+  canEditEvents: {
+    type: Boolean,
+    default: false
+  },
+  isSuperAdmin: {
+    type: Boolean,
+    default: false
   }
 })
 

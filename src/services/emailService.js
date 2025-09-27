@@ -495,7 +495,7 @@ export async function sendCastEmailsForEvent({ eventId, eventData, selectedPlaye
     throw new Error('Données manquantes pour l\'envoi des emails de composition')
   }
 
-  const { getPlayerEmail } = await import('./playerProtection.js')
+  const { getPlayerEmail } = await import('./players.js')
   const { createMagicLink } = await import('./magicLinks.js')
   const { getPlayerCastStatus } = await import('./castService.js')
   const eventUrl = `${window.location.origin}/season/${seasonSlug}/event/${eventId}`
@@ -677,7 +677,7 @@ export async function sendDecastEmailsForEvent({ eventId, eventData, removedPlay
     return { success: true, count: 0 }
   }
 
-  const { getPlayerEmail } = await import('./playerProtection.js')
+  const { getPlayerEmail } = await import('./players.js')
   const eventUrl = `${window.location.origin}/season/${seasonSlug}/event/${eventId}`
 
   const emailPromises = []

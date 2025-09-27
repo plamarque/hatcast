@@ -677,29 +677,31 @@ update_changelog_json() {
     if [ -f "public/changelog.json" ] && [ -s "public/changelog.json" ]; then
         echo "   └─ Existing changelog.json found, adding new version..."
         
-        # Check if version already exists
-        if grep -q "\"version\": \"$version\"" "public/changelog.json"; then
-            echo "   └─ Version $version already exists, replacing..."
-            # Remove existing version and add new one
-            # This is complex, so let's regenerate from scratch
-            echo "   └─ Regenerating entire JSON..."
-            echo "[$new_version_json]" > "public/changelog.json"
+        # Use jq for safe JSON manipulation
+        if jq --argjson new_version "$new_version_json" \
+           'if any(.[]; .version == $new_version.version) then 
+              map(if .version == $new_version.version then $new_version else . end)
+            else 
+              [$new_version] + .
+            end' "public/changelog.json" > "public/changelog.json.tmp"; then
+            mv "public/changelog.json.tmp" "public/changelog.json"
+            echo "   └─ ✅ Version $version added/updated successfully"
         else
-            echo "   └─ Adding new version $version at the beginning..."
-            # Add new version at the beginning of existing JSON array
-            local existing_content=$(sed '1d' "public/changelog.json" | sed '$d')
-            echo "[" > "public/changelog.json"
-            echo "$new_version_json" >> "public/changelog.json"
-            echo "," >> "public/changelog.json"
-            echo "$existing_content" >> "public/changelog.json"
-            echo "]" >> "public/changelog.json"
+            echo "   └─ ❌ jq manipulation failed, falling back to regeneration"
+            echo "[$new_version_json]" > "public/changelog.json"
         fi
     else
         echo "   └─ No existing changelog.json, creating new one..."
         echo "[$new_version_json]" > "public/changelog.json"
     fi
     
-    echo "✅ Changelog.json updated successfully"
+    # Validate the final JSON
+    if jq empty "public/changelog.json" 2>/dev/null; then
+        echo "   └─ ✅ Changelog.json is valid"
+    else
+        echo "   └─ ❌ Changelog.json is invalid!"
+        exit 1
+    fi
 }
 
 # Verify we're on staging branch

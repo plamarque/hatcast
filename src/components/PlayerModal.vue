@@ -228,9 +228,9 @@ import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import { isPlayerProtected, isPlayerPasswordCached } from '../services/playerProtection.js'
+import { isPlayerProtected, isPlayerPasswordCached } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
-import roleService from '../services/roleService.js'
+import permissionService from '../services/permissionService.js'
 
 const props = defineProps({
   show: {
@@ -446,7 +446,7 @@ async function handleProtectionUpdate() {
   if (props.player?.id) {
     try {
       console.log('🔄 Rechargement de l\'état de protection depuis le backend...')
-      const { isPlayerProtected } = await import('../services/playerProtection.js')
+      const { isPlayerProtected } = await import('../services/players.js')
       isProtectedForPlayer.value = await isPlayerProtected(props.player.id, props.seasonId)
       console.log('✅ État de protection rechargé:', isProtectedForPlayer.value)
     } catch (error) {
@@ -490,7 +490,7 @@ watch(() => props.show, (newValue) => {
   }
   if (newValue && props.player?.id) {
     isPlayerProtected(props.player.id, props.seasonId).then(v => { isProtectedForPlayer.value = !!v })
-    import('../services/playerProtection.js').then(mod => {
+    import('../services/players.js').then(mod => {
       try { 
         // Seulement considérer comme owner si l'utilisateur est connecté ET a un cache
         const isConnected = !!currentUser.value?.email
@@ -520,33 +520,25 @@ async function checkPermissions() {
   try {
     if (!props.seasonId || !currentUser.value?.email) return;
     
-    // Fallback temporaire pour le développement local
-    const currentUserEmail = currentUser.value?.email;
-    if (currentUserEmail === 'patrice.lamarque@gmail.com') {
-      isSuperAdmin.value = true;
-      canEditPlayers.value = true;
-      return;
-    }
-    
-    if (currentUserEmail === 'impropick@gmail.com') {
-      isSuperAdmin.value = false;
-      canEditPlayers.value = true;
-      return;
-    }
-    
-    // Vérifier les permissions via les Cloud Functions
-    const superAdminStatus = await roleService.isSuperAdmin();
+    // Vérifier d'abord si l'utilisateur est Super Admin
+    const superAdminStatus = await permissionService.isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
-    // Vérifier aussi si l'utilisateur est admin de cette saison
-    let isSeasonAdmin = false;
-    if (currentUserEmail && props.seasonId) {
-      const { seasonRoleService } = await import('../services/seasonRoleService.js');
-      isSeasonAdmin = await seasonRoleService.isUserSeasonAdmin(props.seasonId, currentUserEmail);
+    // Si Super Admin, raccourci : pas besoin de vérifier les rôles de saison
+    if (superAdminStatus) {
+      canEditPlayers.value = true;
+      console.log('🔐 Raccourci Super Admin: permissions complètes accordées');
+      return;
     }
     
-    // L'utilisateur peut modifier/supprimer les joueurs s'il est Super Admin OU admin de la saison
-    canEditPlayers.value = superAdminStatus || isSeasonAdmin;
+    // Sinon, vérifier si l'utilisateur est admin de cette saison
+    let isSeasonAdmin = false;
+    if (currentUserEmail && props.seasonId) {
+      isSeasonAdmin = await permissionService.isUserSeasonAdmin(props.seasonId, currentUserEmail);
+    }
+    
+    // L'utilisateur peut modifier/supprimer les joueurs s'il est admin de la saison
+    canEditPlayers.value = isSeasonAdmin;
     
     console.log('🔐 Permissions vérifiées:', {
       email: currentUserEmail,

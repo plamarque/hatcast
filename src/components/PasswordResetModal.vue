@@ -73,7 +73,7 @@ import { ref, computed } from 'vue'
 import { updatePassword } from 'firebase/auth'
 import { auth } from '../services/firebase.js'
 import logger from '../services/logger.js'
-import { updatePlayerPasswordInFirebaseAuth } from '../services/playerProtection.js'
+import { updatePlayerPasswordInFirebaseAuth } from '../services/players.js'
 
 const props = defineProps({
   show: {

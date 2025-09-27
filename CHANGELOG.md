@@ -1,68 +1,65 @@
-## [0.19.0] - 2025-09-26
+## [0.20.0] - 2025-09-27
 
 ### ✨ New Features
 
-- feat: improve composition slot display and widen event modal
-- feat: add deprecation warnings for playerProtection collection access
-- feat: add 'voir les X autres' button for events in timeline view
-- feat: restore footer on season page (desktop only)
-- feat: show Bruno algorithm percentage only in development mode
-- feat: add Bruno algorithm comparison in development mode
-- feat: implement exact probability calculation and simplify explanation popup
-- feat: redesign selected players in team tab with composition-style cards
-- feat: add player selector to team tab with smart filtering
-- feat: improve mobile modal spacing with safe areas
-- feat: improve security and UX for missing player profiles
-- feat: improve navigation dropdown and fix dropdown actions
-- feat: add Google Maps dropdown in event modal location section
-- feat: change modify button in Ma Dispo tab to open confirmation modal
-- feat: move event notifications to dropdown menu and add disable option
-- feat: display availability notes in event details modal
-- feat: add availability section to event details modal
-- feat: restore notifications button for event announcement modal
-- feat: rename announcement button and improve tooltip accuracy
-- feat: improve message editing interface and optimize layout
-- feat: improve UI layout and add email obfuscation
-- feat: add WhatsApp sharing button and improve modal title
-- feat: rename email template functions to use 'Message' terminology
-- feat: refactor email templates and improve gender agreement
-- feat: improve email templates with dynamic roles and better UX
-- feat: improve WhatsApp message format with dynamic roles
-- feat: improve simulation UX and fix AlgoBruno algorithm
+- feat: add permission props to EventModal and clean debug logs
+- feat: centralize status color system for consistency across components
+- feat: increase availability tab grid from 2 to 3 columns on desktop
+- feat: add Bruno algorithm percentage in gray parentheses for composition slots
+- feat: make composition slots clickable to open confirmation modal
+- feat: add note field to confirmation modal
+- feat: create new players.js service with simplified functions
+- feat: enhance migration to include avatar and verification data
 
 ### 🐛 Bug Fixes
 
-- fix: simplify composition message text
-- fix: restore direct Firebase access for player avatars
-- fix: respect event filters in timeline view when selecting 'All Events'
-- fix: resolve event display issues in timeline view
-- fix: synchronize dropdowns with 'voir les X autres' buttons
-- fix: use configService.getEnvironment() for Bruno algorithm display
-- fix: correct function name in Modify button logic
-- fix: increase AvailabilityCell width in Ma Dispo tab
-- fix: exclude current event from selection count in percentage calculations
-- fix: round percentage values for clean display
-- fix: use interval width for probability calculation and pass countSelections prop
-- fix: improve readability of chance explanation popup text
-- fix: improve avatar display and remove duplicate status badge
-- fix: remove polluting debug log from ChancesService
-- fix: resolve z-index and URL redirection issues for availability modal
+- fix: improve changelog.json generation with jq and validation
+- fix: implement proper security for protected player modifications
+- fix: resolve naming conflicts with isSuperAdmin function
+- fix: remove hardcoded fallback from main.js route guard
+- fix: add fallback for patrice.lamarque+albane@gmail.com in development mode
+- fix: resolve admin role caching issues and improve admin UI
+- fix: correct declined status display in Ma Dispo tab
+- fix: open availability modal when clicking non-selected availability cell
+- fix: implement correct modal logic for Ma Dispo tab clicks
+- fix: correct role display and click behavior in Ma Dispo tab
+- fix: add missing player-gender prop to PlayerAvatar in CompositionSlot
+- fix: correct getPlayerProtectionData to getPlayerData in GridBoard.vue
+- fix: resolve playersData variable name conflict in loadUsersWithPlayers
+- fix: add missing updateDoc import in PlayerClaimModal
+- fix: resolve variable name conflict in SeasonAdminPage loadUsersWithPlayers
+- fix: resolve variable name conflict in SeasonAdminPage
+
+### 🔧 Improvements
+
+- refactor: create unified Cloud Functions utility in firebase.js
+- refactor: use callFunction utility for Super Admin check
+- perf: optimize Super Admin permission checks with early returns
+- perf: optimize player associations loading with caching and parallel queries
+- refactor: delete playerProtection.js and move migration function to players.js
+- refactor: fix associatePlayerDirectly to use players.js service
+- refactor: remove all remaining playerProtection collection references
+- refactor: remove dead code and add missing finalizeProtectionAfterVerification
+- refactor: simplify playerProtection.js to wrapper with migration function
+- refactor: update remaining imports to use players.js service
+- refactor: simplify getPlayerAssociation to use players.js service
+- refactor: update all imports to use new players.js service
+- refactor: prioritize players collection for all write operations
+- refactor: prioritize players collection over playerProtection for all reads
 
 ### 📝 Other Changes
 
-- feat(ui): improve avatar display consistency and quality
-- feat(event details): add Composition tab with read-only slots and improve UX
-- fix(ui): force-hide protection locks on TimelineView via prop
-- feat(ui): enlarge participant header avatars and show locks
-- feat(ui): show protection locks on Participants and Timeline
-- fix(event details): hide 'Ma Dispo' when no current player; remove chances and team size badges
-- display archived and inactive events diffrently
-- Affichet Plus > Afficher Tous
-- release: version 0.18.0
+- debug: add detailed logging for SeasonHeader props and connection state
+- debug: add permissionService initialization check in GridBoard.vue
+- debug: add comprehensive logging for Super Admin verification
+- improve admins handling
+- feat(grid): deep link filters and focuses event
+- release: version 0.19.0
 
 
 # Changelog
 
+## [0.20.0] - 2025-09-27
 ## [0.19.0] - 2025-09-26
 ## [0.18.0] - 2025-09-24
 ## [0.17.0] - 2025-09-19
