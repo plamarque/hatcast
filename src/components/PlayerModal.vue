@@ -230,8 +230,7 @@ import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
-import roleService from '../services/roleService.js'
-import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
+import permissionService from '../services/permissionService.js'
 
 const props = defineProps({
   show: {
@@ -522,7 +521,7 @@ async function checkPermissions() {
     if (!props.seasonId || !currentUser.value?.email) return;
     
     // Vérifier d'abord si l'utilisateur est Super Admin
-    const superAdminStatus = await checkSuperAdmin();
+    const superAdminStatus = await permissionService.isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
     // Si Super Admin, raccourci : pas besoin de vérifier les rôles de saison
@@ -535,8 +534,7 @@ async function checkPermissions() {
     // Sinon, vérifier si l'utilisateur est admin de cette saison
     let isSeasonAdmin = false;
     if (currentUserEmail && props.seasonId) {
-      const { seasonRoleService } = await import('../services/seasonRoleService.js');
-      isSeasonAdmin = await seasonRoleService.isUserSeasonAdmin(props.seasonId, currentUserEmail);
+      isSeasonAdmin = await permissionService.isUserSeasonAdmin(props.seasonId, currentUserEmail);
     }
     
     // L'utilisateur peut modifier/supprimer les joueurs s'il est admin de la saison

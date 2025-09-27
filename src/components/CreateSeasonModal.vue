@@ -77,7 +77,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { addSeason } from '../services/seasons.js'
-import seasonRoleService from '../services/seasonRoleService.js'
+import permissionService from '../services/permissionService.js'
 import { currentUser } from '../services/authState.js'
 import logger from '../services/logger.js'
 
@@ -162,7 +162,7 @@ async function handleCreate() {
     
     // Initialiser les rôles avec le créateur comme admin
     if (currentUser.value?.email && seasonId) {
-      await seasonRoleService.initializeSeasonRoles(seasonId, currentUser.value.email)
+      await permissionService.initializeSeasonRoles(seasonId, currentUser.value.email)
       logger.info('Rôles initialisés avec le créateur comme admin', {
         seasonId,
         creatorEmail: currentUser.value.email

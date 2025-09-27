@@ -108,11 +108,10 @@
 import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import { getFirebaseAuth } from '../services/firebase.js'
 import AuditClient from '../services/auditClient.js'
-import roleService from '../services/roleService.js'
+import permissionService from '../services/permissionService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
 import UserAvatar from './UserAvatar.vue'
-import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
 
 const props = defineProps({
   isConnected: { type: Boolean, default: false },
@@ -164,7 +163,7 @@ onMounted(() => {
 async function checkSuperAdminStatus() {
   try {
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await checkSuperAdmin();
+    const superAdminStatus = await permissionService.isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     canManageRoles.value = superAdminStatus;
   } catch (error) {

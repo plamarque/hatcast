@@ -161,10 +161,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { getFirebaseAuth } from '../services/firebase.js'
 import AccountDropdown from './AccountDropdown.vue'
-import roleService from '../services/roleService.js'
+import permissionService from '../services/permissionService.js'
 import configService from '../services/configService.js'
 import logger from '../services/logger.js'
-import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
 
 const props = defineProps({
   seasonName: { type: String, default: '' },
@@ -216,7 +215,7 @@ async function checkSuperAdminStatus() {
   
   try {
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await checkSuperAdmin();
+    const superAdminStatus = await permissionService.isSuperAdmin();
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier si peut gérer les rôles (Super Admin ou Admin de saison)
@@ -229,7 +228,7 @@ async function checkSuperAdminStatus() {
     
     // Sinon, vérifier si Admin de saison pour cette saison spécifique
     if (props.seasonSlug) {
-      const isSeasonAdmin = await roleService.isSeasonAdmin(props.seasonSlug);
+      const isSeasonAdmin = await permissionService.isSeasonAdmin(props.seasonSlug);
       canManageRoles.value = isSeasonAdmin;
     } else {
       canManageRoles.value = false;

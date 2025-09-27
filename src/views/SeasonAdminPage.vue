@@ -581,8 +581,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
 import { signOut } from 'firebase/auth'
-import roleService from '../services/roleService.js'
-import seasonRoleService from '../services/seasonRoleService.js'
+import permissionService from '../services/permissionService.js'
+// seasonRoleService fusionné dans permissionService
 import logger from '../services/logger.js'
 import SeasonHeader from '../components/SeasonHeader.vue'
 import ModalManager from '../components/ModalManager.vue'
@@ -1037,7 +1037,7 @@ function handlePostLoginNavigation() {
 async function loadSeasonRoles() {
   try {
     isLoading.value = true
-    const roles = await seasonRoleService.listSeasonRoles(seasonId.value)
+    const roles = await permissionService.listSeasonRoles(seasonId.value)
     seasonAdmins.value = roles.admins
     seasonUsers.value = roles.users
   } catch (error) {
@@ -1054,7 +1054,7 @@ async function addAdmin() {
     isLoading.value = true
     errorMessage.value = '' // Effacer les erreurs précédentes
     
-    await seasonRoleService.addSeasonAdmin(seasonId.value, newAdminEmail.value.trim(), currentUser.value?.email || 'system')
+    await permissionService.addSeasonAdmin(seasonId.value, newAdminEmail.value.trim(), currentUser.value?.email || 'system')
     await loadSeasonRoles()
     
     const email = newAdminEmail.value.trim()
@@ -1083,7 +1083,7 @@ async function removeAdmin(adminEmail) {
   
   try {
     isLoading.value = true
-    await seasonRoleService.removeSeasonAdmin(seasonId.value, adminEmail, currentUser.value?.email || 'system')
+    await permissionService.removeSeasonAdmin(seasonId.value, adminEmail, currentUser.value?.email || 'system')
     await loadSeasonRoles()
     logger.info(`Admin ${adminEmail} retiré avec succès`)
   } catch (error) {
@@ -1098,7 +1098,7 @@ async function addUser() {
   
   try {
     isLoading.value = true
-    await seasonRoleService.addSeasonUser(seasonId.value, newUserEmail.value.trim(), currentUser.value?.email || 'system')
+    await permissionService.addSeasonUser(seasonId.value, newUserEmail.value.trim(), currentUser.value?.email || 'system')
     await loadSeasonRoles()
     newUserEmail.value = ''
     showAddUserModal.value = false
@@ -1115,7 +1115,7 @@ async function removeUser(userEmail) {
   
   try {
     isLoading.value = true
-    await seasonRoleService.removeSeasonUser(seasonId.value, userEmail, currentUser.value?.email || 'system')
+    await permissionService.removeSeasonUser(seasonId.value, userEmail, currentUser.value?.email || 'system')
     await loadSeasonRoles()
     logger.info(`Utilisateur ${userEmail} retiré avec succès`)
   } catch (error) {
@@ -1330,11 +1330,11 @@ async function toggleAdminRole(userEmail) {
     
     if (user.isAdmin) {
       // Retirer le rôle admin
-      await seasonRoleService.removeSeasonAdmin(seasonId.value, userEmail, performedBy)
+      await permissionService.removeSeasonAdmin(seasonId.value, userEmail, performedBy)
       logger.info(`Rôle admin retiré pour ${userEmail}`)
     } else {
       // Accorder le rôle admin
-      await seasonRoleService.addSeasonAdmin(seasonId.value, userEmail, performedBy)
+      await permissionService.addSeasonAdmin(seasonId.value, userEmail, performedBy)
       logger.info(`Rôle admin accordé à ${userEmail}`)
     }
     
@@ -1350,8 +1350,8 @@ async function toggleAdminRole(userEmail) {
     if (userEmail === currentUser.value?.email) {
       try {
         // Importer le service de rôles et forcer le refresh
-        const { default: roleService } = await import('../services/roleService.js')
-        await roleService.refreshAllRoles()
+        const { default: roleService } = await import('../services/permissionService.js')
+        await permissionService.refreshAllRoles()
         logger.info('🔐 Permissions de l\'utilisateur actuel rafraîchies')
       } catch (roleError) {
         logger.warn('⚠️ Erreur lors du refresh des permissions:', roleError)

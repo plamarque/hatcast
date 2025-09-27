@@ -1946,8 +1946,7 @@ import { addToCalendar } from '../services/calendarService.js'
 import { shouldPromptForNotifications, checkEmailExists } from '../services/notificationActivation.js'
 import { verifySeasonPin, getSeasonPin } from '../services/seasons.js'
 import pinSessionManager from '../services/pinSession.js'
-import roleService from '../services/roleService.js'
-import { isSuperAdmin as checkSuperAdmin } from '../services/authState.js'
+import permissionService from '../services/permissionService.js'
 import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
@@ -3339,7 +3338,7 @@ async function checkEditPermissions(force = false) {
     logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value, force ? '(FORCE REFRESH)' : '');
     
     // Utiliser la fonction centralisée d'authState
-    const superAdminStatus = await checkSuperAdmin(force);
+    const superAdminStatus = await permissionService.isSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
     
     // Si Super Admin, raccourci : pas besoin de vérifier les rôles de saison
@@ -3348,7 +3347,7 @@ async function checkEditPermissions(force = false) {
       logger.info('🔐 Raccourci Super Admin: permissions d\'édition accordées');
     } else {
       // Sinon, vérifier si peut éditer les événements (Admin de saison)
-      const canEdit = await roleService.isSeasonAdmin(seasonId.value, force);
+      const canEdit = await permissionService.isSeasonAdmin(seasonId.value, force);
       canEditEvents.value = canEdit;
     }
     
@@ -6246,9 +6245,12 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   const isProtected = isPlayerProtectedInGrid(player.id)
   const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
   
-  // Si c'est le joueur de l'utilisateur connecté, ouvrir directement en mode édition
+  // Vérifier si l'utilisateur est connecté
+  const isUserConnected = !!currentUser.value?.email
+  
+  // Si c'est le joueur de l'utilisateur connecté ET que l'utilisateur est connecté, ouvrir en mode édition
   // Sinon, suivre la logique de protection normale
-  const shouldBeReadOnly = isProtected && !isOwnedByCurrentUser
+  const shouldBeReadOnly = isProtected && (!isUserConnected || !isOwnedByCurrentUser)
   
   openAvailabilityModal({
     playerName: player.name,
@@ -10107,6 +10109,17 @@ function openEventModal(event) {
 
 async function handleAvailabilitySave(availabilityData) {
   try {
+    // Vérification de sécurité : s'assurer que l'utilisateur est connecté
+    if (!currentUser.value?.email) {
+      console.error('❌ Tentative de sauvegarde sans authentification')
+      showErrorMessage.value = true
+      errorMessage.value = 'Vous devez être connecté pour modifier une disponibilité.'
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
+    }
+    
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({
       seasonId: seasonId.value,
@@ -10151,6 +10164,17 @@ async function handleAvailabilitySave(availabilityData) {
 
 async function handleAvailabilityNotAvailable(availabilityData) {
   try {
+    // Vérification de sécurité : s'assurer que l'utilisateur est connecté
+    if (!currentUser.value?.email) {
+      console.error('❌ Tentative de sauvegarde sans authentification')
+      showErrorMessage.value = true
+      errorMessage.value = 'Vous devez être connecté pour modifier une disponibilité.'
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
+    }
+    
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({
       seasonId: seasonId.value,
@@ -10192,6 +10216,17 @@ async function handleAvailabilityNotAvailable(availabilityData) {
 
 async function handleAvailabilityClear(availabilityData) {
   try {
+    // Vérification de sécurité : s'assurer que l'utilisateur est connecté
+    if (!currentUser.value?.email) {
+      console.error('❌ Tentative de sauvegarde sans authentification')
+      showErrorMessage.value = true
+      errorMessage.value = 'Vous devez être connecté pour modifier une disponibilité.'
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
+    }
+    
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({
       seasonId: seasonId.value,
