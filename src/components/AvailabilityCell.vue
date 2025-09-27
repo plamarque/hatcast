@@ -399,9 +399,19 @@ function toggleAvailability() {
       currentStatus: props.playerSelectionStatus
     })
   } else {
-    // Cycle classique de disponibilité
-    console.log('🔄 DEBUG toggleAvailability: branche par défaut, émission toggle')
-    emit('toggle', props.playerName, props.eventId)
+    // Si pas sélectionné, ouvrir la modal de disponibilité
+    console.log('🎯 DEBUG toggleAvailability: branche disponibilité, émission show-availability-modal')
+    emit('show-availability-modal', {
+      playerName: props.playerName,
+      eventId: props.eventId,
+      eventTitle: props.eventTitle,
+      eventDate: props.eventDate,
+      availabilityData: props.availabilityData,
+      isReadOnly: false,
+      chancePercent: props.chancePercent,
+      isProtected: props.isProtected,
+      eventRoles: props.eventRoles
+    })
   }
 }
 

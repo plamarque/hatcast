@@ -126,6 +126,7 @@
                       :player-id="getPlayerIdFromName(slot.player)"
                       :season-id="seasonId"
                       :player-name="slot.player"
+                      :player-gender="getPlayerGenderFromName(slot.player)"
                       size="sm"
                     />
                   </div>
@@ -217,6 +218,7 @@
                       :player-id="getPlayerIdFromName(declinedPlayer.name)"
                       :season-id="seasonId"
                       :player-name="declinedPlayer.name"
+                      :player-gender="getPlayerGenderFromName(declinedPlayer.name)"
                       size="sm"
                     />
                   </div>
@@ -336,7 +338,7 @@
             :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
           >
             <span class="flex items-center">
-              🎲 <span class="hidden sm:inline ml-1">Simuler Compo</span><span class="sm:hidden ml-1">Simuler</span>
+              🎲 <span class="hidden sm:inline ml-1">Simuler</span><span class="sm:hidden ml-1">Simuler</span>
             </span>
             <span class="text-xs">▼</span>
           </button>
@@ -416,7 +418,7 @@
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
         >
-          🔄 <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
+          🗑️ <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
         </button>
 
         <!-- Bouton Fermer (masqué s'il y a une sélection pour libérer l'espace) -->
@@ -1686,6 +1688,13 @@ function getPlayerIdFromName(playerName) {
   if (!playerName || !props.players) return null
   const player = props.players.find(p => p.name === playerName)
   return player?.id || null
+}
+
+// Fonction helper pour récupérer le genre du joueur à partir de son nom
+function getPlayerGenderFromName(playerName) {
+  if (!playerName || !props.players) return 'non-specified'
+  const player = props.players.find(p => p.name === playerName)
+  return player?.gender || 'non-specified'
 }
 
 function getPlayerNameFromId(playerId) {
