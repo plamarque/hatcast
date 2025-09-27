@@ -385,7 +385,7 @@ function toggleAvailability() {
   }
   
   // Si le joueur est sélectionné (peu importe si la sélection est confirmée par l'organisateur ou pas), ouvrir la modal de confirmation
-  if (props.isSelected && props.isAvailable === true) {
+  if (props.isSelected) {
     // Ouvrir la modal de confirmation au lieu de cycler directement
     console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
     emit('show-confirmation-modal', {

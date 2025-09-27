@@ -840,6 +840,7 @@
                       :event-roles="selectedEvent?.roles || {}"
                       @availability-changed="handleAvailabilityChanged"
                       @show-availability-modal="openAvailabilityModalFromEventDetails"
+                      @show-confirmation-modal="openConfirmationModal"
                       />
                     </div>
                   </div>
