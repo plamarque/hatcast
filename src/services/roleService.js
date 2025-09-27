@@ -181,10 +181,15 @@ class RoleService {
    */
   async refreshAllRoles() {
     try {
-      await this.isSuperAdmin(true);
-      // Nettoyer le cache des admins de saison pour forcer la vérification
+      // Nettoyer complètement le cache
+      this.roleStatus.isSuperAdmin = null;
       this.roleStatus.seasonAdmins.clear();
-      logger.info('🔐 Cache des rôles vidé - prochaines vérifications seront forcées');
+      this.roleStatus.lastCheck = null;
+      
+      // Forcer la vérification immédiate
+      await this.isSuperAdmin(true);
+      
+      logger.info('🔐 Cache des rôles complètement vidé et rafraîchi');
     } catch (error) {
       logger.error('❌ Erreur lors du rafraîchissement des rôles:', error);
     }

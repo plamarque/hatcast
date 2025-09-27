@@ -75,16 +75,7 @@
           <span class="truncate">Installer l'app</span>
         </button>
         
-        <!-- Item Administration (Admin de saison ou Super Admin) -->
-        <button 
-          v-if="canManageRoles"
-          @click="openAdministration"
-          class="w-full text-left px-4 py-2 text-sm text-orange-300 hover:bg-orange-500/10 flex items-center gap-2 md:gap-3 transition-colors duration-150" 
-          role="menuitem"
-        >
-          <span class="text-base md:text-lg flex-shrink-0">🛡️</span>
-          <span class="truncate">Administration</span>
-        </button>
+        <!-- Item Administration supprimé - déplacé vers un bouton séparé dans SeasonHeader -->
         
         
         <!-- Item Développement (Super Admin ou développement local) -->
@@ -247,13 +238,7 @@ function openDevelopment() {
   emit('open-development')
 }
 
-function openAdministration() {
-  logger.info('🛡️ openAdministration() appelée dans AccountDropdown');
-  logger.info('🛡️ canManageRoles:', canManageRoles.value);
-  logger.info('🛡️ isSuperAdmin:', isSuperAdmin.value);
-  isOpen.value = false
-  emit('open-administration')
-}
+// Fonction openAdministration supprimée - déplacée vers SeasonHeader
 
 function installApp() {
   isOpen.value = false

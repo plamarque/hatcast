@@ -366,15 +366,53 @@
                       <div class="flex-1">
                         <div class="flex items-center gap-3 mb-3">
                           <span class="text-2xl">{{ user.isAdmin ? '👑' : '👤' }}</span>
-                          <div>
+                          <div class="flex-1">
                             <p class="text-white font-medium">{{ user.email }}</p>
-                            <div class="flex items-center gap-2 mt-1">
-                              <span 
-                                :class="user.isAdmin ? 'bg-purple-600' : 'bg-gray-600'"
-                                class="px-2 py-1 text-xs rounded-full text-white"
-                              >
-                                {{ user.isAdmin ? 'Admin' : 'Utilisateur' }}
-                              </span>
+                            
+                            <!-- Switcher Admin direct -->
+                            <div class="flex items-center gap-3 mt-2">
+                              <label class="flex items-center gap-2 cursor-pointer">
+                                <span class="text-sm text-gray-300">Admin</span>
+                                <div class="relative">
+                                  <input
+                                    type="checkbox"
+                                    :checked="user.isAdmin"
+                                    @change="toggleAdminRole(user.email)"
+                                    :disabled="isLoading"
+                                    class="sr-only"
+                                  >
+                                  <div 
+                                    class="w-11 h-6 rounded-full transition-colors duration-200 ease-in-out"
+                                    :class="user.isAdmin ? 'bg-purple-600' : 'bg-gray-600'"
+                                  >
+                                    <div 
+                                      class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out"
+                                      :class="user.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'"
+                                    ></div>
+                                  </div>
+                                </div>
+                                <span 
+                                  class="text-xs px-2 py-1 rounded-full transition-colors duration-200"
+                                  :class="user.isAdmin ? 'bg-purple-600/20 text-purple-300' : 'bg-gray-600/20 text-gray-400'"
+                                >
+                                  <span v-if="isLoading" class="flex items-center gap-1">
+                                    <svg class="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Changement...
+                                  </span>
+                                  <span v-else-if="roleChangeSuccess === user.email" class="flex items-center gap-1 text-green-300">
+                                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Mis à jour !
+                                  </span>
+                                  <span v-else>
+                                    {{ user.isAdmin ? 'Activé' : 'Désactivé' }}
+                                  </span>
+                                </span>
+                              </label>
                             </div>
                           </div>
                         </div>
@@ -390,35 +428,6 @@
                             >
                               {{ player.name }}
                             </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Menu d'actions -->
-                      <div class="relative">
-                        <button
-                          @click="toggleUserActionsDropdown(user.email)"
-                          class="p-2 text-gray-400 hover:text-white hover:bg-gray-600/50 rounded-lg transition-all duration-200"
-                          :class="{ 'bg-gray-600/50': showUserActionsDropdown === user.email }"
-                        >
-                          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                          </svg>
-                        </button>
-                        
-                        <!-- Dropdown d'actions -->
-                        <div
-                          v-if="showUserActionsDropdown === user.email"
-                          class="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-10"
-                        >
-                          <div class="py-1">
-                            <button
-                              @click="toggleAdminRole(user.email)"
-                              :class="user.isAdmin ? 'text-red-400 hover:bg-red-500/10' : 'text-green-400 hover:bg-green-500/10'"
-                              class="w-full px-4 py-2 text-sm text-left transition-colors duration-200"
-                            >
-                              {{ user.isAdmin ? '🗑️ Retirer le rôle admin' : '👑 Accorder le rôle admin' }}
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -622,7 +631,7 @@ const editingEvent = ref(null)
 
 // Gestion des utilisateurs
 const usersWithPlayers = ref([])
-const showUserActionsDropdown = ref(null)
+// showUserActionsDropdown supprimé - plus utilisé avec le nouveau switcher
 const showAddAdminModal = ref(false)
 const showAddUserModal = ref(false)
 const newAdminEmail = ref('')
@@ -638,6 +647,9 @@ const totalEventsCount = ref(0)
 const showInactiveEvents = ref(false)
 const showPastEvents = ref(false)
 const showFiltersDropdown = ref(false)
+
+// Variables pour le feedback des changements de rôles
+const roleChangeSuccess = ref(null)
 const searchTerm = ref('')
 
 // Gestion de l'édition de saison
@@ -1287,13 +1299,7 @@ function triggerLogoFileInput() {
 }
 
 // Actions sur les utilisateurs
-function toggleUserActionsDropdown(userEmail) {
-  showUserActionsDropdown.value = showUserActionsDropdown.value === userEmail ? null : userEmail
-}
-
-function closeUserActionsDropdown() {
-  showUserActionsDropdown.value = null
-}
+// Fonctions dropdown supprimées - plus utilisées avec le nouveau switcher
 
 // Fonctions pour les filtres d'événements
 function toggleFiltersDropdown() {
@@ -1336,8 +1342,29 @@ async function toggleAdminRole(userEmail) {
     await loadSeasonRoles()
     await loadUsersWithPlayers() // Rechargement forcé après modification
     
-    showUserActionsDropdown.value = null
+    // FORCER le refresh des permissions pour tous les utilisateurs connectés
+    // Cela va invalider le cache des rôles et forcer une nouvelle vérification
+    logger.info('🔐 Forçage du refresh des permissions après modification de rôle')
+    
+    // Si l'utilisateur modifié est l'utilisateur actuel, forcer le refresh immédiatement
+    if (userEmail === currentUser.value?.email) {
+      try {
+        // Importer le service de rôles et forcer le refresh
+        const { default: roleService } = await import('../services/roleService.js')
+        await roleService.refreshAllRoles()
+        logger.info('🔐 Permissions de l\'utilisateur actuel rafraîchies')
+      } catch (roleError) {
+        logger.warn('⚠️ Erreur lors du refresh des permissions:', roleError)
+      }
+    }
+    
     errorMessage.value = ''
+    
+    // Afficher un feedback de succès
+    roleChangeSuccess.value = userEmail
+    setTimeout(() => {
+      roleChangeSuccess.value = null
+    }, 2000)
   } catch (error) {
     logger.error('Erreur lors de la modification du rôle admin:', error)
     errorMessage.value = 'Erreur lors de la modification du rôle admin'

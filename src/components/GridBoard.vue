@@ -3331,11 +3331,11 @@ function openAdministration() {
 }
 
 // Fonction pour vérifier les permissions d'édition
-async function checkEditPermissions() {
+async function checkEditPermissions(force = false) {
   try {
     if (!seasonId.value) return;
     
-    logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value);
+    logger.info('🔐 Vérification des permissions d\'édition pour la saison', seasonId.value, force ? '(FORCE REFRESH)' : '');
     
     // En développement local, utiliser le fallback par email
     const currentUserEmail = getFirebaseAuth()?.currentUser?.email;
@@ -3355,17 +3355,18 @@ async function checkEditPermissions() {
     }
     
     // Pour les autres utilisateurs, essayer le service normal
-    const superAdminStatus = await roleService.isSuperAdmin();
+    const superAdminStatus = await roleService.isSuperAdmin(force);
     isSuperAdmin.value = superAdminStatus;
     
     // Vérifier si peut éditer les événements (Super Admin ou Admin de saison)
-    const canEdit = await roleService.canEditEvents(seasonId.value);
+    const canEdit = await roleService.canEditEvents(seasonId.value, force);
     canEditEvents.value = canEdit;
     
     logger.info('🔐 Permissions vérifiées:', {
       seasonId: seasonId.value,
       isSuperAdmin: superAdminStatus,
-      canEditEvents: canEdit
+      canEditEvents: canEdit,
+      forceRefresh: force
     });
   } catch (error) {
     logger.warn('⚠️ Erreur lors de la vérification des permissions, utilisation du fallback:', error.message);
@@ -4922,8 +4923,10 @@ watch(() => getFirebaseAuth()?.currentUser?.email, async (newEmail, oldEmail) =>
     
     await loadProtectedPlayers()
     await updatePreferredPlayersSet()
-    // Re-vérifier les permissions d'édition
-    await checkEditPermissions()
+    
+    // FORCER le refresh des permissions d'édition (ignorer le cache)
+    logger.info('🔐 Forçage du refresh des permissions après changement d\'authentification')
+    await checkEditPermissions(true) // Force refresh
   }
 })
 
@@ -4944,9 +4947,9 @@ watch([() => currentUser.value, () => allSeasonPlayers.value], () => {
 
 // Surveiller les changements de saison pour re-vérifier les permissions
 watch(() => seasonId.value, async (newSeasonId, oldSeasonId) => {
-  if (newSeasonId !== oldSeasonId && newSeasonId) {
-    logger.debug('🔄 Changement de saison, re-vérification des permissions')
-    await checkEditPermissions()
+  if (newSeasonId && newSeasonId !== oldSeasonId) {
+    logger.info('🔄 Changement de saison détecté, re-vérification des permissions')
+    await checkEditPermissions(true) // Force refresh lors du changement de saison
   }
 })
 

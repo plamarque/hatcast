@@ -124,6 +124,9 @@ class SeasonRoleService {
         // Invalider le cache
         this.rolesCache.delete(seasonId);
         
+        // Aussi invalider le cache du service de rôles principal
+        this.invalidateMainRoleCache();
+        
         // Log d'audit
         await this.logRoleChange(seasonId, userEmail, 'admin', 'granted', grantedBy);
         
@@ -162,6 +165,9 @@ class SeasonRoleService {
         
         // Invalider le cache
         this.rolesCache.delete(seasonId);
+        
+        // Aussi invalider le cache du service de rôles principal
+        this.invalidateMainRoleCache();
         
         // Log d'audit
         await this.logRoleChange(seasonId, userEmail, 'admin', 'revoked', revokedBy);
@@ -284,6 +290,20 @@ class SeasonRoleService {
     } else {
       this.rolesCache.clear();
       logger.debug('🔐 Cache de tous les rôles vidé');
+    }
+  }
+
+  /**
+   * Invalide le cache du service de rôles principal
+   */
+  async invalidateMainRoleCache() {
+    try {
+      // Importer dynamiquement le service de rôles principal
+      const { default: roleService } = await import('./roleService.js');
+      await roleService.refreshAllRoles();
+      logger.debug('🔐 Cache du service de rôles principal invalidé');
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors de l\'invalidation du cache principal:', error);
     }
   }
 
