@@ -169,6 +169,7 @@ const props = defineProps({
   seasonName: { type: String, default: '' },
   isScrolled: { type: Boolean, default: false },
   seasonSlug: { type: String, default: '' },
+  seasonId: { type: String, default: '' },
   isConnected: { type: Boolean, default: false },
   showViewToggle: { type: Boolean, default: false },
   currentViewMode: { type: String, default: 'grid' },
@@ -212,12 +213,17 @@ function refreshSeason() {
 // Fonction de vérification Super Admin
 async function checkSuperAdminStatus() {
   console.log('🔍 SeasonHeader: Début de checkSuperAdminStatus');
-  console.log('🔍 SeasonHeader: Props reçues:', {
-    isConnected: props.isConnected,
-    seasonSlug: props.seasonSlug,
-    seasonName: props.seasonName
-  });
+    console.log('🔍 SeasonHeader: Props reçues:', {
+      isConnected: props.isConnected,
+      seasonSlug: props.seasonSlug,
+      seasonId: props.seasonId,
+      seasonName: props.seasonName
+    });
   isCheckingRoles.value = true;
+  
+  // DEBUG: Forcer le nettoyage du cache pour troubleshooting
+  console.log('🔍 SeasonHeader: Nettoyage forcé du cache permissionService');
+  permissionService.invalidateAllCache();
   
   try {
     // S'assurer que permissionService est initialisé
@@ -228,6 +234,7 @@ async function checkSuperAdminStatus() {
     
     console.log('🔍 SeasonHeader: Appel à permissionService.isSuperAdmin()');
     // Utiliser la fonction centralisée d'authState
+    console.log('🔍 SeasonHeader: Appel permissionService.isSuperAdmin()...');
     const superAdminStatus = await permissionService.isSuperAdmin();
     console.log('🔍 SeasonHeader: Résultat isSuperAdmin:', superAdminStatus);
     isSuperAdmin.value = superAdminStatus;
@@ -241,21 +248,24 @@ async function checkSuperAdminStatus() {
       return;
     }
     
-    console.log('🔍 SeasonHeader: Pas Super Admin, vérification Season Admin pour:', props.seasonSlug);
+    console.log('🔍 SeasonHeader: Pas Super Admin, vérification Season Admin pour:', props.seasonId);
     // Sinon, vérifier si Admin de saison pour cette saison spécifique
-    if (props.seasonSlug) {
-      const isSeasonAdmin = await permissionService.isSeasonAdmin(props.seasonSlug);
+    if (props.seasonId) {
+      console.log('🔍 SeasonHeader: Appel permissionService.isSeasonAdmin()...');
+      const isSeasonAdmin = await permissionService.isSeasonAdmin(props.seasonId);
       console.log('🔍 SeasonHeader: Résultat isSeasonAdmin:', isSeasonAdmin);
       canManageRoles.value = isSeasonAdmin;
     } else {
-      console.log('🔍 SeasonHeader: Pas de seasonSlug, canManageRoles = false');
+      console.log('🔍 SeasonHeader: Pas de seasonId, canManageRoles = false');
       canManageRoles.value = false;
     }
     
+    console.log('🔍 SeasonHeader: FINAL - canManageRoles =', canManageRoles.value);
     logger.info('🔐 Statut des rôles vérifié dans SeasonHeader:', {
       isSuperAdmin: isSuperAdmin.value,
       canManageRoles: canManageRoles.value,
-      seasonSlug: props.seasonSlug
+      seasonSlug: props.seasonSlug,
+      seasonId: props.seasonId
     });
   } catch (error) {
     logger.warn('⚠️ Erreur lors de la vérification des rôles dans SeasonHeader:', error);
@@ -281,7 +291,7 @@ watch(() => props.isConnected, (newValue) => {
 }, { immediate: true })
 
 // Surveiller les changements de saison pour re-vérifier les rôles
-watch(() => props.seasonSlug, () => {
+watch(() => props.seasonId, () => {
   if (props.isConnected) {
     checkSuperAdminStatus();
   }
