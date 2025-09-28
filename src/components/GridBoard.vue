@@ -6,7 +6,8 @@
     <SeasonHeader 
       :season-name="seasonName"
       :is-scrolled="isScrolled"
-      :season-slug="seasonId"
+      :season-slug="props.slug"
+      :season-id="seasonId"
       :is-connected="!!currentUser?.email"
       :show-view-toggle="showViewToggle"
       :current-view-mode="validCurrentView"

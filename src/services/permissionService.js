@@ -242,6 +242,7 @@ class PermissionService {
         isInitialized: firestoreService.isInitialized
       });
       
+      // Le seasonId passé est l'ID réel du document Firestore, pas le slug
       const seasonDoc = await firestoreService.getDocument('seasons', seasonId);
       console.log('🔍 DEBUG getSeasonRoles: seasonDoc reçu:', seasonDoc);
       console.log('🔍 DEBUG getSeasonRoles: seasonDoc.roles:', seasonDoc?.roles);
