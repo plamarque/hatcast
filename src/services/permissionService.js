@@ -234,6 +234,14 @@ class PermissionService {
 
       logger.info(`🔐 Récupération des permissions de saison ${seasonId} depuis Firestore`);
       
+      // DEBUG: Vérifier quelle base de données est utilisée
+      console.log('🔍 DEBUG getSeasonRoles: Environnement firestoreService:', {
+        environment: firestoreService.environment,
+        database: firestoreService.database,
+        region: firestoreService.region,
+        isInitialized: firestoreService.isInitialized
+      });
+      
       const seasonDoc = await firestoreService.getDocument('seasons', seasonId);
       console.log('🔍 DEBUG getSeasonRoles: seasonDoc reçu:', seasonDoc);
       console.log('🔍 DEBUG getSeasonRoles: seasonDoc.roles:', seasonDoc?.roles);
@@ -539,7 +547,33 @@ window.debugPermissionService = {
     isInitialized: permissionService.isInitialized,
     seasonPermissions: Object.fromEntries(permissionService.permissionStatus.seasonPermissions),
     superAdminCache: permissionService.superAdminCache
-  })
+  }),
+  checkDatabase: async () => {
+    console.log('🔧 DEBUG: Vérification de la base de données utilisée');
+    console.log('🔧 DEBUG: firestoreService:', {
+      environment: firestoreService.environment,
+      database: firestoreService.database,
+      region: firestoreService.region,
+      isInitialized: firestoreService.isInitialized
+    });
+    console.log('🔧 DEBUG: configService:', {
+      environment: configService.getEnvironment(),
+      database: configService.getFirestoreDatabase(),
+      region: configService.getFirestoreRegion()
+    });
+    console.log('🔧 DEBUG: window.firebaseServices:', {
+      db: !!window.firebaseServices?.db,
+      databaseId: window.firebaseServices?.db?._databaseId?.database || window.firebaseServices?.db?._delegate?._databaseId?.database
+    });
+    
+    // Tester une requête directe
+    try {
+      const testDoc = await firestoreService.getDocument('seasons', 'bac-a-sable');
+      console.log('🔧 DEBUG: Test requête seasons/bac-a-sable:', testDoc);
+    } catch (error) {
+      console.error('🔧 DEBUG: Erreur lors du test de requête:', error);
+    }
+  }
 };
 
 export default permissionService;
