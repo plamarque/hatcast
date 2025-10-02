@@ -127,32 +127,6 @@
                 </div>
               </div>
 
-              <!-- Outils d'administration -->
-              <div>
-                <h2 class="text-2xl font-bold text-white mb-4">🔧 Outils d'administration</h2>
-                <div class="bg-gray-700/50 rounded-lg p-4 mb-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="text-lg font-semibold text-white mb-2">Migration des données de protection</h3>
-                      <p class="text-gray-300 text-sm mb-3">
-                        Synchronise les données de protection des joueurs vers les documents players pour améliorer les performances.
-                      </p>
-                      <div v-if="migrationStatus" class="text-sm" :class="migrationStatus.success ? 'text-green-400' : 'text-red-400'">
-                        {{ migrationStatus.message }}
-                      </div>
-                    </div>
-                    <button
-                      @click="runMigration"
-                      :disabled="isMigrationRunning"
-                      class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-500 disabled:to-gray-600 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 disabled:scale-100"
-                    >
-                      <span v-if="isMigrationRunning">⏳</span>
-                      <span v-else>🚀</span>
-                      {{ isMigrationRunning ? 'Migration...' : 'Migrer' }}
-                    </button>
-                  </div>
-                </div>
-              </div>
 
               <!-- Statistiques de la saison -->
               <div>
@@ -785,7 +759,6 @@ import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, 
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
-import { migratePlayerProtectionToPlayers } from '../services/players.js'
 import { 
   listUsersWithInviteStatus, 
   resendInvite, 
@@ -866,9 +839,6 @@ const showSeasonEditModal = ref(false)
 const showDeleteConfirmationModal = ref(false)
 const seasonToDelete = ref(null)
 
-// Gestion de la migration
-const isMigrationRunning = ref(false)
-const migrationStatus = ref(null)
 
 // Événements filtrés selon les critères
 const filteredEvents = computed(() => {
@@ -2055,44 +2025,6 @@ onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
 })
 
-// Fonction pour exécuter la migration des données de protection
-async function runMigration() {
-  if (!seasonId.value) {
-    migrationStatus.value = { success: false, message: 'Aucune saison sélectionnée' }
-    return
-  }
-  
-  try {
-    isMigrationRunning.value = true
-    migrationStatus.value = null
-    
-    logger.info('Début de la migration des données de protection', { seasonId: seasonId.value })
-    
-    const result = await migratePlayerProtectionToPlayers(seasonId.value)
-    
-    if (result.errors === 0) {
-      migrationStatus.value = { 
-        success: true, 
-        message: `Migration réussie : ${result.migrated} joueurs migrés sur ${result.total}` 
-      }
-      logger.info('Migration terminée avec succès', result)
-    } else {
-      migrationStatus.value = { 
-        success: false, 
-        message: `Migration partielle : ${result.migrated} joueurs migrés, ${result.errors} erreurs` 
-      }
-      logger.warn('Migration terminée avec des erreurs', result)
-    }
-  } catch (error) {
-    migrationStatus.value = { 
-      success: false, 
-      message: `Erreur lors de la migration : ${error.message}` 
-    }
-    logger.error('Erreur lors de la migration', error)
-  } finally {
-    isMigrationRunning.value = false
-  }
-}
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
