@@ -234,8 +234,20 @@ class PermissionService {
 
       logger.info(`🔐 Récupération des permissions de saison ${seasonId} depuis Firestore`);
       
+      // DEBUG: Vérifier quelle base de données est utilisée
+      console.log('🔍 DEBUG getSeasonRoles: Environnement firestoreService:', {
+        environment: firestoreService.environment,
+        database: firestoreService.database,
+        region: firestoreService.region,
+        isInitialized: firestoreService.isInitialized
+      });
+      
+      // Le seasonId passé est l'ID réel du document Firestore, pas le slug
       const seasonDoc = await firestoreService.getDocument('seasons', seasonId);
+      console.log('🔍 DEBUG getSeasonRoles: seasonDoc reçu:', seasonDoc);
+      console.log('🔍 DEBUG getSeasonRoles: seasonDoc.roles:', seasonDoc?.roles);
       const roles = seasonDoc?.roles || { admins: [], users: [] };
+      console.log('🔍 DEBUG getSeasonRoles: roles final:', roles);
       
       // Ajouter timestamp pour le cache
       const rolesWithTimestamp = {
@@ -454,6 +466,33 @@ class PermissionService {
   }
 
   /**
+   * DEBUG: Fonction temporaire pour créer le document seasons manquant
+   */
+  async debugCreateSeasonDocument(seasonId, adminEmail) {
+    try {
+      console.log(`🔧 DEBUG: Création du document seasons/${seasonId} avec ${adminEmail} comme admin`);
+      
+      const seasonDoc = {
+        roles: {
+          admins: [adminEmail],
+          users: []
+        }
+      };
+      
+      await firestoreService.setDocument('seasons', seasonId, seasonDoc);
+      console.log(`✅ DEBUG: Document seasons/${seasonId} créé avec succès`);
+      
+      // Invalider le cache pour forcer le rechargement
+      this.invalidateSeasonCache(seasonId);
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ DEBUG: Erreur lors de la création du document seasons/${seasonId}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Initialise les rôles d'une nouvelle saison avec le créateur comme admin
    */
   async initializeSeasonRoles(seasonId, creatorEmail) {
@@ -500,5 +539,42 @@ class PermissionService {
 
 // Instance singleton
 const permissionService = new PermissionService();
+
+// DEBUG: Exposer la fonction de debug globalement
+window.debugPermissionService = {
+  createSeasonDocument: (seasonId, adminEmail) => permissionService.debugCreateSeasonDocument(seasonId, adminEmail),
+  clearCache: () => permissionService.invalidateAllCache(),
+  getStatus: () => ({
+    isInitialized: permissionService.isInitialized,
+    seasonPermissions: Object.fromEntries(permissionService.permissionStatus.seasonPermissions),
+    superAdminCache: permissionService.superAdminCache
+  }),
+  checkDatabase: async () => {
+    console.log('🔧 DEBUG: Vérification de la base de données utilisée');
+    console.log('🔧 DEBUG: firestoreService:', {
+      environment: firestoreService.environment,
+      database: firestoreService.database,
+      region: firestoreService.region,
+      isInitialized: firestoreService.isInitialized
+    });
+    console.log('🔧 DEBUG: configService:', {
+      environment: configService.getEnvironment(),
+      database: configService.getFirestoreDatabase(),
+      region: configService.getFirestoreRegion()
+    });
+    console.log('🔧 DEBUG: window.firebaseServices:', {
+      db: !!window.firebaseServices?.db,
+      databaseId: window.firebaseServices?.db?._databaseId?.database || window.firebaseServices?.db?._delegate?._databaseId?.database
+    });
+    
+    // Tester une requête directe
+    try {
+      const testDoc = await firestoreService.getDocument('seasons', 'bac-a-sable');
+      console.log('🔧 DEBUG: Test requête seasons/bac-a-sable:', testDoc);
+    } catch (error) {
+      console.error('🔧 DEBUG: Erreur lors du test de requête:', error);
+    }
+  }
+};
 
 export default permissionService;

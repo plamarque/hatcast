@@ -16,6 +16,7 @@ import SeasonAdminPage from './views/SeasonAdminPage.vue'
 import NotFoundPage from './views/NotFoundPage.vue'
 import { getFirebaseAuth } from './services/firebase.js'
 import permissionService from './services/permissionService.js'
+import firestoreService from './services/firestoreService.js'
 import logger from './services/logger.js'
 
 // Réduire le bruit de logs en production (garder warnings/erreurs)
@@ -79,9 +80,28 @@ router.beforeEach(async (to, from, next) => {
         return
       }
       
+      // Récupérer l'ID réel de la saison depuis le slug
+      let seasonId = null
+      try {
+        const seasons = await firestoreService.getDocuments('seasons')
+        const seasonDoc = seasons.find(s => s.slug === seasonSlug)
+        if (seasonDoc) {
+          seasonId = seasonDoc.id
+          logger.debug('🛡️ ID de saison trouvé:', seasonId, 'pour le slug:', seasonSlug)
+        } else {
+          logger.warn('🛡️ Saison non trouvée pour le slug:', seasonSlug)
+          next('/404')
+          return
+        }
+      } catch (error) {
+        logger.error('🛡️ Erreur lors de la récupération de l\'ID de saison:', error)
+        next('/404')
+        return
+      }
+      
       // Vérifier les permissions
       const isSuperAdmin = await permissionService.isSuperAdmin()
-      const isSeasonAdmin = await permissionService.isSeasonAdmin(seasonSlug)
+      const isSeasonAdmin = await permissionService.isSeasonAdmin(seasonId)
       
       if (isSuperAdmin || isSeasonAdmin) {
         logger.info('🛡️ Accès autorisé à l\'administration de la saison', seasonSlug)

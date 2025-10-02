@@ -30,9 +30,21 @@ async function generateUserFocusedChangelog(technicalJson, version) {
     const prompt = `Traduis ces changements techniques en français utilisateur, style décontracté et direct (utilise "tu", "on"). 
 
 RÈGLES IMPORTANTES :
-- REGROUPE les changements similaires en grandes catégories (max 8-12 points au total)
-- ÉVITE les détails techniques de mise en page, CSS, props, etc.
-- CONCENTRE-TOI sur les vraies nouveautés et améliorations visibles par l'utilisateur
+- FILTRE et EXCLUT automatiquement :
+  * Les ajouts de logs de débogage (debug logs, console.log, logger.debug, etc.)
+  * Les corrections de logs ou suppression de logs
+  * Les modifications de props, CSS, styles, padding, margins
+  * Les corrections de types TypeScript
+  * Les ajustements de z-index, positioning
+  * Les nettoyages de code (cleanup, refactor sans impact utilisateur)
+  * Les corrections de warnings de compilation
+  * Les améliorations de performance internes non visibles
+- INCLUS SEULEMENT :
+  * Les nouvelles fonctionnalités visibles par l'utilisateur
+  * Les corrections de bugs qui affectent l'expérience utilisateur
+  * Les améliorations substantielles de l'interface
+  * Les nouvelles options, boutons, fenêtres
+- REGROUPE les changements similaires en grandes catégories (max 6-8 points au total)
 - REMPLACE "modal/modale" par "fenêtre" pour plus de clarté utilisateur
 - REMPLACE les noms techniques de composants par des descriptions user-friendly :
   * "PlayerModal" → "fenêtre de détail de joueur"
@@ -42,15 +54,14 @@ RÈGLES IMPORTANTES :
   * "ViewHeader" → "en-tête de vue"
   * "AvailabilityCell" → "cellule de disponibilité"
 - Garde les termes techniques comme "MC", "DJ", "compo", "Long Form", etc.
-- Utilise les emojis appropriés : ✨ pour les nouvelles fonctionnalités, 🐛 pour les corrections, 🔧 pour les améliorations, 📝 pour les autres
+- Utilise les emojis appropriés : ✨ pour les nouvelles fonctionnalités, 🐛 pour les corrections, 🔧 pour les améliorations
 - Réponds UNIQUEMENT avec le JSON suivant, sans texte avant ou après
 - Chaque changement doit être une chaîne de caractères valide JSON (échapper les guillemets)
 - Ne mets PAS de guillemets autour du JSON entier
 
-EXEMPLES DE REGROUPEMENT :
-- Au lieu de "Correction du padding mobile" + "Amélioration de l'espacement" → "🔧 Amélioration de l'affichage mobile"
-- Au lieu de "Ajout de props manquantes" + "Correction des types" → "🐛 Corrections techniques diverses"
-- Au lieu de 20 corrections CSS → "🔧 Améliorations de l'interface utilisateur"
+EXEMPLES DE FILTRAGE :
+- EXCLURE : "Add debug logs", "Remove console.log", "Fix TypeScript types", "Adjust padding", "Cleanup unused code"
+- INCLURE : "Add new button", "Fix login issue", "Improve mobile layout", "Add new feature"
 
 Changements à traduire :
 ${changesText}

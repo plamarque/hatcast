@@ -177,7 +177,8 @@
             <!-- Onglet Événements -->
             <div v-if="activeTab === 'events'" class="space-y-6">
               <!-- Section Gestion des événements -->
-            <div class="flex items-center justify-between mb-6">
+            <div class="space-y-4 mb-6">
+              <!-- Titre et statistiques -->
               <div>
                 <h2 class="text-2xl font-bold text-white mb-2">📅 Gestion des événements</h2>
                 <!-- Nombre total d'événements -->
@@ -192,9 +193,11 @@
                   </span>
                 </div>
               </div>
-              <div class="flex items-center gap-3">
+              
+              <!-- Contrôles - responsive -->
+              <div class="flex flex-col sm:flex-row sm:items-center gap-3">
                 <!-- Champ de recherche rapide -->
-                <div class="relative">
+                <div class="relative flex-1">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -204,7 +207,7 @@
                     v-model="searchTerm"
                     type="text"
                     placeholder="Rechercher un événement..."
-                    class="pl-10 pr-4 py-2 w-64 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    class="pl-10 pr-4 py-2 w-full sm:w-64 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                   />
                   <!-- Bouton de réinitialisation -->
                   <button
@@ -219,66 +222,69 @@
                   </button>
                 </div>
                 
-                <!-- Bouton de filtres -->
-                <div class="relative">
-                  <button
-                    @click="toggleFiltersDropdown"
-                    class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 relative"
-                    :class="{ 'bg-white/20': showFiltersDropdown }"
-                    title="Filtres d'affichage"
-                    aria-label="Filtres d'affichage"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
-                    </svg>
+                <!-- Boutons d'action -->
+                <div class="flex items-center gap-3">
+                  <!-- Bouton de filtres -->
+                  <div class="relative">
+                    <button
+                      @click="toggleFiltersDropdown"
+                      class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 relative"
+                      :class="{ 'bg-white/20': showFiltersDropdown }"
+                      title="Filtres d'affichage"
+                      aria-label="Filtres d'affichage"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+                      </svg>
+                      
+                      <!-- Indicateur de filtres actifs -->
+                      <div
+                        v-if="showInactiveEvents || showPastEvents"
+                        class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border border-gray-900"
+                      ></div>
+                    </button>
                     
-                    <!-- Indicateur de filtres actifs -->
+                    <!-- Dropdown des filtres -->
                     <div
-                      v-if="showInactiveEvents || showPastEvents"
-                      class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border border-gray-900"
-                    ></div>
-                  </button>
-                  
-                  <!-- Dropdown des filtres -->
-                  <div
-                    v-if="showFiltersDropdown"
-                    class="absolute right-0 top-full mt-2 w-56 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
-                  >
-                    <div class="p-3 border-b border-white/10">
-                      <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
-                      <p class="text-xs text-gray-400">Futurs actifs affichés par défaut</p>
+                      v-if="showFiltersDropdown"
+                      class="absolute right-0 top-full mt-2 w-56 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
+                    >
+                      <div class="p-3 border-b border-white/10">
+                        <h3 class="text-sm font-medium text-white mb-2">Filtres d'affichage</h3>
+                        <p class="text-xs text-gray-400">Futurs actifs affichés par défaut</p>
+                      </div>
+                      
+                      <!-- Option Inactifs -->
+                      <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
+                        <input
+                          v-model="showInactiveEvents"
+                          type="checkbox"
+                          class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                        >
+                        <span class="ml-3 text-sm text-white">Inactifs</span>
+                        <span class="ml-auto text-xs text-gray-400">📁</span>
+                      </label>
+                      
+                      <!-- Option Passés -->
+                      <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
+                        <input
+                          v-model="showPastEvents"
+                          type="checkbox"
+                          class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                        >
+                        <span class="ml-3 text-sm text-white">Passés</span>
+                        <span class="ml-auto text-xs text-gray-400">📅</span>
+                      </label>
                     </div>
-                    
-                    <!-- Option Inactifs -->
-                    <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-                      <input
-                        v-model="showInactiveEvents"
-                        type="checkbox"
-                        class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                      >
-                      <span class="ml-3 text-sm text-white">Inactifs</span>
-                      <span class="ml-auto text-xs text-gray-400">📁</span>
-                    </label>
-                    
-                    <!-- Option Passés -->
-                    <label class="flex items-center px-3 py-2 hover:bg-white/10 cursor-pointer transition-colors duration-150">
-                      <input
-                        v-model="showPastEvents"
-                        type="checkbox"
-                        class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
-                      >
-                      <span class="ml-3 text-sm text-white">Passés</span>
-                      <span class="ml-auto text-xs text-gray-400">📅</span>
-                    </label>
                   </div>
+                  
+                  <button
+                    @click="showAddEventModal = true"
+                    class="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap"
+                  >
+                    ➕ Ajouter un événement
+                  </button>
                 </div>
-                
-                <button
-                  @click="showAddEventModal = true"
-                  class="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-                >
-                  ➕ Ajouter un événement
-                </button>
               </div>
             </div>
 

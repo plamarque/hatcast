@@ -1,64 +1,28 @@
-## [0.20.0] - 2025-09-27
+## [0.20.1] - 2025-10-02
 
 ### ✨ New Features
 
-- feat: add permission props to EventModal and clean debug logs
-- feat: centralize status color system for consistency across components
-- feat: increase availability tab grid from 2 to 3 columns on desktop
-- feat: add Bruno algorithm percentage in gray parentheses for composition slots
-- feat: make composition slots clickable to open confirmation modal
-- feat: add note field to confirmation modal
-- feat: create new players.js service with simplified functions
-- feat: enhance migration to include avatar and verification data
+- feat: complete season admin permission system with proper ID handling
+- feat: add season-id prop to SeasonHeader for permission checks
+- feat: improve OpenAI changelog prompt to filter out debug logs and technical changes
 
 ### 🐛 Bug Fixes
 
-- fix: improve changelog.json generation with jq and validation
-- fix: implement proper security for protected player modifications
-- fix: resolve naming conflicts with isSuperAdmin function
-- fix: remove hardcoded fallback from main.js route guard
-- fix: add fallback for patrice.lamarque+albane@gmail.com in development mode
-- fix: resolve admin role caching issues and improve admin UI
-- fix: correct declined status display in Ma Dispo tab
-- fix: open availability modal when clicking non-selected availability cell
-- fix: implement correct modal logic for Ma Dispo tab clicks
-- fix: correct role display and click behavior in Ma Dispo tab
-- fix: add missing player-gender prop to PlayerAvatar in CompositionSlot
-- fix: correct getPlayerProtectionData to getPlayerData in GridBoard.vue
-- fix: resolve playersData variable name conflict in loadUsersWithPlayers
-- fix: add missing updateDoc import in PlayerClaimModal
-- fix: resolve variable name conflict in SeasonAdminPage loadUsersWithPlayers
-- fix: resolve variable name conflict in SeasonAdminPage
-
-### 🔧 Improvements
-
-- refactor: create unified Cloud Functions utility in firebase.js
-- refactor: use callFunction utility for Super Admin check
-- perf: optimize Super Admin permission checks with early returns
-- perf: optimize player associations loading with caching and parallel queries
-- refactor: delete playerProtection.js and move migration function to players.js
-- refactor: fix associatePlayerDirectly to use players.js service
-- refactor: remove all remaining playerProtection collection references
-- refactor: remove dead code and add missing finalizeProtectionAfterVerification
-- refactor: simplify playerProtection.js to wrapper with migration function
-- refactor: update remaining imports to use players.js service
-- refactor: simplify getPlayerAssociation to use players.js service
-- refactor: update all imports to use new players.js service
-- refactor: prioritize players collection for all write operations
-- refactor: prioritize players collection over playerProtection for all reads
+- fix: availability 'Non renseigné' status not persisting in PWA
+- fix: make events admin screen mobile responsive
+- fix: update admin route guard to use real season ID
+- fix: pass real season ID instead of slug to SeasonHeader
 
 ### 📝 Other Changes
 
-- debug: add detailed logging for SeasonHeader props and connection state
-- debug: add permissionService initialization check in GridBoard.vue
-- debug: add comprehensive logging for Super Admin verification
-- improve admins handling
-- feat(grid): deep link filters and focuses event
-- release: version 0.19.0
+- debug: add comprehensive database debugging function
+- debug: add function to create missing season document
+- release: version 0.20.0
 
 
 # Changelog
 
+## [0.20.1] - 2025-10-02
 ## [0.20.0] - 2025-09-27
 ## [0.19.0] - 2025-09-26
 ## [0.18.0] - 2025-09-24
