@@ -19,10 +19,10 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
-    // Collection auditLogs : lecture pour admins, écriture pour utilisateurs connectés
+    // Collection auditLogs : lecture pour admins, écriture pour utilisateurs connectés ou anonymes
     match /auditLogs/{logId} {
       allow read: if request.auth != null;  // Lecture pour utilisateurs connectés
-      allow write: if request.auth != null;  // Écriture pour utilisateurs connectés
+      allow write: if true;  // Écriture autorisée pour tous (audit)
     }
     
     // Collection mail : écriture pour utilisateurs connectés uniquement
@@ -75,6 +75,11 @@ service cloud.firestore {
     
     // Collection playerProtection : lecture/écriture pour utilisateurs connectés
     match /playerProtection/{protectionId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Collection invitations : lecture/écriture pour utilisateurs connectés
+    match /invitations/{invitationId} {
       allow read, write: if request.auth != null;
     }
     

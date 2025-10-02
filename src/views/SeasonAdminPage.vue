@@ -347,95 +347,187 @@
 
             <!-- Onglet Utilisateurs -->
             <div v-if="activeTab === 'users'" class="space-y-6">
-              <!-- Section Utilisateurs avec joueurs protégés -->
+              <!-- Section Utilisateurs et Invitations -->
               <div>
                 <div class="mb-6">
-                  <h2 class="text-2xl font-bold text-white mb-2">👥 Utilisateurs de la saison</h2>
-                  <p class="text-gray-300">
-                    Gestion des utilisateurs ayant des joueurs protégés dans cette saison
-                  </p>
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h2 class="text-2xl font-bold text-white mb-2">👥 Utilisateurs de la saison</h2>
+                      <p class="text-gray-300">
+                        Gestion des utilisateurs actifs et des invitations en cours
+                      </p>
+                    </div>
+                    <button
+                      @click="showCreateInviteModal = true"
+                      class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                      </svg>
+                      Créer & Inviter
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Liste des utilisateurs -->
-                <div v-if="usersWithPlayers.length === 0" class="text-center py-8 text-gray-400">
+                <!-- Liste unifiée des utilisateurs et invitations -->
+                <div v-if="unifiedUsersList.length === 0" class="text-center py-8 text-gray-400">
                   <span class="text-4xl mb-3 block">👥</span>
-                  <p>Aucun utilisateur avec des joueurs protégés dans cette saison</p>
+                  <p>Aucun utilisateur ou invitation dans cette saison</p>
+                  <p class="text-sm mt-2">Utilise le bouton "Créer & Inviter" pour commencer</p>
                 </div>
 
                 <div v-else class="space-y-3">
                   <div
-                    v-for="user in usersWithPlayers"
-                    :key="user.email"
+                    v-for="item in unifiedUsersList"
+                    :key="item.id"
                     class="bg-gray-700/50 rounded-lg p-4"
                   >
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <div class="flex items-center gap-3 mb-3">
-                          <span class="text-2xl">{{ user.isAdmin ? '👑' : '👤' }}</span>
+                          <!-- Icône selon le type et statut -->
+                          <span class="text-2xl">
+                            <span v-if="item.type === 'user'">
+                              {{ item.isAdmin ? '👑' : '👤' }}
+                            </span>
+                            <span v-else-if="item.type === 'invitation'">
+                              {{ getInvitationIcon(item.status) }}
+                            </span>
+                          </span>
+                          
                           <div class="flex-1">
-                            <p class="text-white font-medium">{{ user.email }}</p>
+                            <!-- Nom complet ou email -->
+                            <div class="flex items-center gap-2">
+                              <p class="text-white font-medium">
+                                {{ item.type === 'user' ? item.email : `${item.firstName} ${item.lastName}` }}
+                              </p>
+                              <span 
+                                class="text-xs px-2 py-1 rounded-full"
+                                :class="getStatusClass(item)"
+                              >
+                                {{ getStatusText(item) }}
+                              </span>
+                            </div>
                             
-                            <!-- Switcher Admin direct -->
-                            <div class="flex items-center gap-3 mt-2">
+                            <!-- Email pour les invitations -->
+                            <p v-if="item.type === 'invitation'" class="text-sm text-gray-400">
+                              {{ item.email }}
+                            </p>
+                            
+                            <!-- Switcher Admin pour les utilisateurs actifs -->
+                            <div v-if="item.type === 'user'" class="flex items-center gap-3 mt-2">
                               <label class="flex items-center gap-2 cursor-pointer">
                                 <span class="text-sm text-gray-300">Admin</span>
                                 <div class="relative">
                                   <input
                                     type="checkbox"
-                                    :checked="user.isAdmin"
-                                    @change="toggleAdminRole(user.email)"
+                                    :checked="item.isAdmin"
+                                    @change="toggleAdminRole(item.email)"
                                     :disabled="isLoading"
                                     class="sr-only"
                                   >
                                   <div 
                                     class="w-11 h-6 rounded-full transition-colors duration-200 ease-in-out"
-                                    :class="user.isAdmin ? 'bg-purple-600' : 'bg-gray-600'"
+                                    :class="item.isAdmin ? 'bg-purple-600' : 'bg-gray-600'"
                                   >
                                     <div 
                                       class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out"
-                                      :class="user.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'"
+                                      :class="item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'"
                                     ></div>
                                   </div>
                                 </div>
                                 <span 
                                   class="text-xs px-2 py-1 rounded-full transition-colors duration-200"
-                                  :class="user.isAdmin ? 'bg-purple-600/20 text-purple-300' : 'bg-gray-600/20 text-gray-400'"
+                                  :class="item.isAdmin ? 'bg-purple-600/20 text-purple-300' : 'bg-gray-600/20 text-gray-400'"
                                 >
-                                  <span v-if="isLoading" class="flex items-center gap-1">
-                                    <svg class="animate-spin h-3 w-3" viewBox="0 0 24 24">
-                                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
-                                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Changement...
-                                  </span>
-                                  <span v-else-if="roleChangeSuccess === user.email" class="flex items-center gap-1 text-green-300">
-                                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Mis à jour !
-                                  </span>
-                                  <span v-else>
-                                    {{ user.isAdmin ? 'Activé' : 'Désactivé' }}
-                                  </span>
+                                  {{ item.isAdmin ? 'Activé' : 'Désactivé' }}
                                 </span>
                               </label>
                             </div>
                           </div>
                         </div>
                         
-                        <!-- Joueurs protégés -->
+                        <!-- Joueurs associés -->
                         <div class="ml-11">
-                          <p class="text-sm text-gray-400 mb-2">Joueurs protégés :</p>
+                          <p class="text-sm text-gray-400 mb-2">
+                            {{ item.type === 'user' ? 'Joueurs protégés' : 'Joueur associé' }} :
+                          </p>
                           <div class="flex flex-wrap gap-2">
                             <span
-                              v-for="player in user.players.filter(p => p.protected)"
+                              v-if="item.type === 'user' && item.players && item.players.length > 0"
+                              v-for="player in item.players.filter(p => p.protected)"
                               :key="player.id"
                               class="px-3 py-1 bg-blue-600/20 text-blue-300 text-sm rounded-full border border-blue-500/30"
                             >
                               {{ player.name }}
                             </span>
+                            <span
+                              v-else-if="item.type === 'invitation' && item.players && item.players.length > 0"
+                              v-for="player in item.players"
+                              :key="player.id"
+                              class="px-3 py-1 bg-purple-600/20 text-purple-300 text-sm rounded-full border border-purple-500/30"
+                            >
+                              {{ getPlayerName(player.id) }}
+                            </span>
+                            <span v-else class="text-gray-500 text-sm italic">
+                              {{ item.type === 'user' ? 'Aucun joueur protégé' : 'Joueur sera créé automatiquement' }}
+                            </span>
                           </div>
                         </div>
+                      </div>
+                      
+                      <!-- Actions selon le type et statut -->
+                      <div class="flex items-center gap-2 ml-4">
+                        <!-- Actions pour les invitations -->
+                        <template v-if="item.type === 'invitation'">
+                          <!-- Copier le lien -->
+                          <button
+                            @click="copyInviteLink(item.id)"
+                            class="p-2 text-gray-400 hover:text-white transition-colors"
+                            :title="'Copier le lien d\'invitation'"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                          </button>
+                          
+                          <!-- Renvoyer (si pending ou expired) -->
+                          <button
+                            v-if="item.status === 'pending' || item.status === 'expired'"
+                            @click="handleResendInvite(item.id)"
+                            class="p-2 text-blue-400 hover:text-blue-300 transition-colors"
+                            :title="'Renvoyer l\'invitation'"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                          </button>
+                          
+                          <!-- Révoquer (si pending ou expired) -->
+                          <button
+                            v-if="item.status === 'pending' || item.status === 'expired'"
+                            @click="handleRevokeInvite(item.id)"
+                            class="p-2 text-red-400 hover:text-red-300 transition-colors"
+                            :title="'Révoquer l\'invitation'"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                          </button>
+                        </template>
+                        
+                        <!-- Actions pour les utilisateurs actifs -->
+                        <template v-else-if="item.type === 'user'">
+                          <!-- Éditer (placeholder) -->
+                          <button
+                            class="p-2 text-gray-400 hover:text-white transition-colors"
+                            :title="'Éditer l\'utilisateur'"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                          </button>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -466,6 +558,16 @@
       @close-preferences="showPreferences = false"
       @close-players="showPlayers = false"
       @close-development-modal="showDevelopmentModal = false"
+    />
+
+    <!-- Modal de création d'invitation -->
+    <CreateInviteModal
+      :show="showCreateInviteModal"
+      :season-id="seasonId"
+      :season-name="seasonName"
+      :created-by="currentUser?.email || 'system'"
+      @close="showCreateInviteModal = false"
+      @invitation-created="handleInvitationCreated"
     />
 
     <!-- Modal d'ajout d'admin -->
@@ -596,11 +698,19 @@ import EventModal from '../components/EventModal.vue'
 import SeasonCard from '../components/SeasonCard.vue'
 import SeasonDeleteConfirmationModal from '../components/SeasonDeleteConfirmationModal.vue'
 import SeasonEditModal from '../components/SeasonEditModal.vue'
+import CreateInviteModal from '../components/CreateInviteModal.vue'
 import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities } from '../services/storage.js'
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
 import { migratePlayerProtectionToPlayers } from '../services/players.js'
+import { 
+  listUsersWithInviteStatus, 
+  resendInvite, 
+  revokeInvite, 
+  getShareableInviteLink,
+  linkExistingUserToSeasonAndPlayers 
+} from '../services/users.js'
 
 // Props et route
 const router = useRouter()
@@ -635,11 +745,13 @@ const events = ref([])
 const showAddEventModal = ref(false)
 const editingEvent = ref(null)
 
-// Gestion des utilisateurs
+// Gestion des utilisateurs et invitations
 const usersWithPlayers = ref([])
+const unifiedUsersList = ref([])
 // showUserActionsDropdown supprimé - plus utilisé avec le nouveau switcher
 const showAddAdminModal = ref(false)
 const showAddUserModal = ref(false)
+const showCreateInviteModal = ref(false)
 const newAdminEmail = ref('')
 const newUserEmail = ref('')
 const usersLoaded = ref(false)
@@ -993,6 +1105,138 @@ async function loadUsersWithPlayers() {
       usersWithPlayersLength: usersWithPlayers.value?.length
     })
     errorMessage.value = 'Erreur lors du chargement des utilisateurs'
+  }
+}
+
+// ===== FONCTIONS DE GESTION DES INVITATIONS =====
+
+/**
+ * Charger la liste unifiée des utilisateurs et invitations
+ */
+async function loadUnifiedUsersList() {
+  try {
+    logger.debug('Chargement de la liste unifiée des utilisateurs et invitations')
+    unifiedUsersList.value = await listUsersWithInviteStatus(seasonId.value)
+    logger.info(`Liste unifiée chargée: ${unifiedUsersList.value.length} éléments`)
+  } catch (error) {
+    logger.error('Erreur lors du chargement de la liste unifiée', error)
+    errorMessage.value = 'Erreur lors du chargement des utilisateurs et invitations'
+  }
+}
+
+/**
+ * Gérer la création d'une invitation
+ */
+async function handleInvitationCreated() {
+  await loadUnifiedUsersList()
+  logger.info('Liste unifiée mise à jour après création d\'invitation')
+}
+
+/**
+ * Obtenir l'icône pour une invitation selon son statut
+ */
+function getInvitationIcon(status) {
+  switch (status) {
+    case 'pending': return '📧'
+    case 'accepted': return '✅'
+    case 'expired': return '⏰'
+    case 'revoked': return '❌'
+    default: return '📧'
+  }
+}
+
+/**
+ * Obtenir la classe CSS pour le statut
+ */
+function getStatusClass(item) {
+  if (item.type === 'user') {
+    return 'bg-green-600/20 text-green-300'
+  }
+  
+  switch (item.status) {
+    case 'pending': return 'bg-blue-600/20 text-blue-300'
+    case 'accepted': return 'bg-green-600/20 text-green-300'
+    case 'expired': return 'bg-orange-600/20 text-orange-300'
+    case 'revoked': return 'bg-red-600/20 text-red-300'
+    default: return 'bg-gray-600/20 text-gray-400'
+  }
+}
+
+/**
+ * Obtenir le texte du statut
+ */
+function getStatusText(item) {
+  if (item.type === 'user') {
+    return 'Actif'
+  }
+  
+  switch (item.status) {
+    case 'pending': return 'Invité'
+    case 'accepted': return 'Accepté'
+    case 'expired': return 'Expiré'
+    case 'revoked': return 'Révoqué'
+    default: return 'Inconnu'
+  }
+}
+
+/**
+ * Obtenir le nom d'un joueur par son ID
+ */
+function getPlayerName(playerId) {
+  const player = players.value.find(p => p.id === playerId)
+  return player ? player.name : `Joueur ${playerId}`
+}
+
+/**
+ * Copier le lien d'invitation
+ */
+async function copyInviteLink(invitationId) {
+  try {
+    const link = await getShareableInviteLink(invitationId)
+    await navigator.clipboard.writeText(link)
+    logger.info('Lien d\'invitation copié dans le presse-papiers')
+    // TODO: Afficher un message de succès
+  } catch (error) {
+    logger.error('Erreur lors de la copie du lien', error)
+    errorMessage.value = 'Erreur lors de la copie du lien'
+  }
+}
+
+/**
+ * Renvoyer une invitation
+ */
+async function handleResendInvite(invitationId) {
+  try {
+    isLoading.value = true
+    await resendInvite(invitationId)
+    await loadUnifiedUsersList()
+    logger.info('Invitation renvoyée avec succès')
+    errorMessage.value = ''
+  } catch (error) {
+    logger.error('Erreur lors du renvoi de l\'invitation', error)
+    errorMessage.value = 'Erreur lors du renvoi de l\'invitation'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/**
+ * Révoquer une invitation
+ */
+async function handleRevokeInvite(invitationId) {
+  if (!confirm('Êtes-vous sûr de vouloir révoquer cette invitation ?')) return
+  
+  try {
+    isLoading.value = true
+    await revokeInvite(invitationId)
+    await loadUnifiedUsersList()
+    logger.info('Invitation révoquée avec succès')
+    errorMessage.value = ''
+  } catch (error) {
+    logger.error('Erreur lors de la révocation de l\'invitation', error)
+    errorMessage.value = 'Erreur lors de la révocation de l\'invitation'
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -1412,12 +1656,8 @@ async function deleteEvent(event) {
   }
 }
 
-// Gestionnaire pour fermer le dropdown au clic extérieur
+// Gestionnaire pour fermer les dropdowns au clic extérieur
 function handleClickOutside(event) {
-  if (!event.target.closest('.relative')) {
-    closeUserActionsDropdown()
-  }
-  
   // Fermer le dropdown des filtres si on clique ailleurs
   if (!event.target.closest('.relative')) {
     closeFiltersDropdown()
@@ -1439,6 +1679,9 @@ onMounted(async () => {
   
   // Charger les rôles (les permissions sont déjà vérifiées par le routeur)
   await loadSeasonRoles()
+  
+  // Charger la liste unifiée des utilisateurs et invitations
+  await loadUnifiedUsersList()
   
   // Ajouter l'écouteur pour fermer les dropdowns au clic extérieur
   document.addEventListener('click', handleClickOutside)

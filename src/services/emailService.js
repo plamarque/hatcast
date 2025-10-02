@@ -788,3 +788,114 @@ export async function queueNotificationActivationEmail({
   logger.info('Email d\'activation des notifications ajouté à la file', { toEmail, playerName })
   return { success: true }
 }
+
+// ===== EMAILS D'INVITATION =====
+
+/**
+ * Envoyer un email d'invitation à rejoindre une saison
+ */
+export async function queueInvitationEmail({
+  toEmail,
+  firstName,
+  lastName,
+  seasonName,
+  inviteUrl,
+  fromEmail = undefined
+}) {
+  const greeting = firstName && lastName ? `Bonjour ${firstName},` : 'Bonjour,'
+  const subject = `Bienvenue sur HATCAST – Invitation pour ${seasonName}`
+  
+  const html = `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting}</p>
+      <p>Vous êtes invité(e) à rejoindre la saison "${seasonName}" sur HATCAST pour indiquer vos disponibilités et participer aux sélections.</p>
+      <p>
+        <a href="${inviteUrl}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);">Rejoindre la saison</a>
+      </p>
+      <p style="font-size:12px;color:#6b7280;">Ce lien expirera dans ${configService.getMagicLinkExpirationDays()} jour${configService.getMagicLinkExpirationDays() > 1 ? 's' : ''}.</p>
+      <p style="font-size:12px;color:#6b7280;">À très vite,<br>L'équipe HATCAST</p>
+    </div>
+  `
+  
+  const docData = {
+    to: toEmail,
+    message: { subject, html },
+    createdAt: serverTimestamp(),
+    meta: { reason: 'invitation', seasonName, firstName, lastName }
+  }
+  
+  // Configurer l'expéditeur
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
+
+  const emailConfig = configService.getEmailConfig()
+  
+  // En développement/staging avec capture, simuler l'envoi
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    logger.info('📧 Email d\'invitation capturé en mode développement:', {
+      to: toEmail,
+      subject: docData.message.subject,
+      reason: docData.meta.reason
+    })
+    return { success: true, captured: true }
+  }
+  
+  // En production ou sans capture, envoyer via Firebase Trigger Email
+  await firestoreService.addDocument('mail', docData)
+  logger.info('Email d\'invitation ajouté à la file', { toEmail, seasonName })
+  return { success: true }
+}
+
+/**
+ * Envoyer un email de notification quand un utilisateur existant est ajouté à une saison
+ */
+export async function queueUserAddedToSeasonEmail({
+  toEmail,
+  seasonName,
+  seasonSlug,
+  fromEmail = undefined
+}) {
+  const subject = `Ajouté(e) à la saison "${seasonName}" sur HATCAST`
+  
+  const html = `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>Bonjour,</p>
+      <p>Vous avez été ajouté(e) à la saison "<strong>${seasonName}</strong>" sur HATCAST.</p>
+      <p>
+        <a href="${window.location.origin}/season/${seasonSlug}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg, #3b82f6, #1d4ed8);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 4px 12px rgba(59, 130, 246, 0.3);">Accéder à la saison</a>
+      </p>
+      <p style="font-size:12px;color:#6b7280;">Vous pouvez maintenant indiquer vos disponibilités et participer aux sélections.</p>
+      <p style="font-size:12px;color:#6b7280;">À très vite,<br>L'équipe HATCAST</p>
+    </div>
+  `
+  
+  const docData = {
+    to: toEmail,
+    message: { subject, html },
+    createdAt: serverTimestamp(),
+    meta: { reason: 'user_added_to_season', seasonName, seasonSlug }
+  }
+  
+  // Configurer l'expéditeur
+  const fromConfig = getFromEmailConfig(fromEmail)
+  docData.from = fromConfig.from
+  docData.replyTo = fromConfig.replyTo
+
+  const emailConfig = configService.getEmailConfig()
+  
+  // En développement/staging avec capture, simuler l'envoi
+  if (emailConfig.service === 'ethereal' && emailConfig.capture) {
+    logger.info('📧 Email d\'ajout à la saison capturé en mode développement:', {
+      to: toEmail,
+      subject: docData.message.subject,
+      reason: docData.meta.reason
+    })
+    return { success: true, captured: true }
+  }
+  
+  // En production ou sans capture, envoyer via Firebase Trigger Email
+  await firestoreService.addDocument('mail', docData)
+  logger.info('Email d\'ajout à la saison ajouté à la file', { toEmail, seasonName })
+  return { success: true }
+}

@@ -144,7 +144,7 @@ class ConfigService {
     const baseConfigs = {
       development: {
         firestore: {
-          database: 'development',
+          database: '(default)',
           region: 'europe-west3'
         },
         storage: {
