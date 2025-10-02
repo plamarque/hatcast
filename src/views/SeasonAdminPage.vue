@@ -369,6 +369,7 @@
                   </div>
                 </div>
 
+
                 <!-- Liste unifiée des utilisateurs et invitations -->
                 <div v-if="unifiedUsersList.length === 0" class="text-center py-8 text-gray-400">
                   <span class="text-4xl mb-3 block">👥</span>
@@ -461,14 +462,15 @@
                             >
                               {{ player.name }}
                             </span>
-                            <span
-                              v-else-if="item.type === 'invitation' && item.players && item.players.length > 0"
-                              v-for="player in item.players"
-                              :key="player.id"
-                              class="px-3 py-1 bg-purple-600/20 text-purple-300 text-sm rounded-full border border-purple-500/30"
-                            >
-                              {{ getPlayerName(player.id) }}
-                            </span>
+                            <template v-else-if="item.type === 'invitation' && item.players && item.players.length > 0">
+                              <span
+                                v-for="player in item.players"
+                                :key="player.id"
+                                class="px-3 py-1 bg-purple-600/20 text-purple-300 text-sm rounded-full border border-purple-500/30"
+                              >
+                                {{ getPlayerName(player.id) }}
+                              </span>
+                            </template>
                             <span v-else class="text-gray-500 text-sm italic">
                               {{ item.type === 'user' ? 'Aucun joueur protégé' : 'Joueur sera créé automatiquement' }}
                             </span>
@@ -512,6 +514,17 @@
                           >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                          </button>
+                          
+                          <!-- Supprimer définitivement -->
+                          <button
+                            @click="handleDeleteInvitation(item.id)"
+                            class="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                            :title="'Supprimer définitivement l\'invitation'"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                           </button>
                         </template>
@@ -709,7 +722,7 @@ import {
   resendInvite, 
   revokeInvite, 
   getShareableInviteLink,
-  linkExistingUserToSeasonAndPlayers 
+  linkExistingUserToSeasonAndPlayers
 } from '../services/users.js'
 
 // Props et route
@@ -755,6 +768,7 @@ const showCreateInviteModal = ref(false)
 const newAdminEmail = ref('')
 const newUserEmail = ref('')
 const usersLoaded = ref(false)
+
 
 // Statistiques
 const players = ref([])
@@ -1187,6 +1201,7 @@ function getPlayerName(playerId) {
   return player ? player.name : `Joueur ${playerId}`
 }
 
+
 /**
  * Copier le lien d'invitation
  */
@@ -1235,6 +1250,28 @@ async function handleRevokeInvite(invitationId) {
   } catch (error) {
     logger.error('Erreur lors de la révocation de l\'invitation', error)
     errorMessage.value = 'Erreur lors de la révocation de l\'invitation'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/**
+ * Supprimer définitivement une invitation
+ */
+async function handleDeleteInvitation(invitationId) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement cette invitation ?')) {
+    return
+  }
+  
+  try {
+    isLoading.value = true
+    await firestoreService.deleteDocument('invitations', invitationId)
+    await loadUnifiedUsersList()
+    logger.info('Invitation supprimée avec succès')
+    errorMessage.value = ''
+  } catch (error) {
+    logger.error('Erreur lors de la suppression de l\'invitation', error)
+    errorMessage.value = 'Erreur lors de la suppression de l\'invitation'
   } finally {
     isLoading.value = false
   }

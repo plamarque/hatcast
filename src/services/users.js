@@ -399,6 +399,7 @@ export async function acceptInvitation({
   }
 }
 
+
 // ===== FONCTIONS UTILITAIRES =====
 
 /**
