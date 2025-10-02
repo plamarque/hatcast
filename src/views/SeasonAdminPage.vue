@@ -498,6 +498,14 @@
                                   </div>
                                 </label>
                               </div>
+                              
+                              <!-- Actions pour les joueurs non associés -->
+                              <div v-else-if="item.type === 'player'" class="flex items-center gap-3 ml-auto">
+                                <!-- Statut du joueur -->
+                                <span class="text-sm text-gray-500">
+                                  Joueur sans compte
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1274,6 +1282,9 @@ function getPlayerName(item) {
     // Pour un utilisateur actif, chercher le nom du joueur associé
     const player = players.value.find(p => p.id === item.playerId)
     return player ? player.name : `${item.firstName} ${item.lastName}`
+  } else if (item.type === 'player') {
+    // Pour un joueur non associé à un utilisateur, utiliser le nom du joueur
+    return item.playerName || `${item.firstName} ${item.lastName}`
   } else {
     // Pour une invitation, utiliser les informations de l'invitation
     return `${item.firstName} ${item.lastName}`
@@ -1313,6 +1324,8 @@ function getPlayerId(item) {
 function getPlayerEmail(item) {
   if (item.type === 'user') {
     return item.email
+  } else if (item.type === 'player') {
+    return 'Pas de compte'
   } else {
     return item.email
   }
@@ -1322,7 +1335,9 @@ function getPlayerEmail(item) {
  * Obtenir le texte de dernière connexion
  */
 function getLastConnectionText(item) {
-  if (item.type !== 'user') {
+  if (item.type === 'player') {
+    return 'Pas de compte'
+  } else if (item.type !== 'user') {
     return ''
   }
   

@@ -198,29 +198,48 @@ export async function listUsersWithInviteStatus(seasonId) {
     // Récupérer les invitations
     const invitations = await getInvitationsForSeason(seasonId)
     
-    // Récupérer les utilisateurs avec leurs joueurs protégés
-    const players = await firestoreService.getDocuments('seasons', seasonId, 'players')
-    const usersWithPlayers = await buildUsersWithPlayers(players, seasonUsers, seasonAdmins)
+    // Récupérer TOUS les joueurs de la saison
+    const allPlayers = await firestoreService.getDocuments('seasons', seasonId, 'players')
     
     // Combiner utilisateurs et invitations
     const unifiedList = []
     
-    // Ajouter les utilisateurs actifs
-    usersWithPlayers.forEach(user => {
-      unifiedList.push({
-        type: 'user',
-        id: user.email,
-        email: user.email,
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        gender: user.gender || 'unknown',
-        status: 'active',
-        isAdmin: user.isAdmin,
-        playerId: user.playerId,
-        players: user.players,
-        createdAt: user.createdAt,
-        lastActiveAt: user.lastActiveAt
-      })
+    // Ajouter TOUS les joueurs (associés à un utilisateur ou non)
+    allPlayers.forEach(player => {
+      if (player.email) {
+        // Joueur associé à un utilisateur
+        const isAdmin = seasonAdmins.includes(player.email)
+        unifiedList.push({
+          type: 'user',
+          id: player.email,
+          email: player.email,
+          firstName: player.firstName || '',
+          lastName: player.lastName || '',
+          gender: player.gender || 'unknown',
+          status: 'active',
+          isAdmin: isAdmin,
+          playerId: player.id,
+          playerName: player.name,
+          createdAt: player.createdAt,
+          lastActiveAt: player.lastActiveAt
+        })
+      } else {
+        // Joueur non associé à un utilisateur
+        unifiedList.push({
+          type: 'player',
+          id: player.id,
+          email: null,
+          firstName: player.firstName || '',
+          lastName: player.lastName || '',
+          gender: player.gender || 'unknown',
+          status: 'active',
+          isAdmin: false,
+          playerId: player.id,
+          playerName: player.name,
+          createdAt: player.createdAt,
+          lastActiveAt: null
+        })
+      }
     })
     
     // Ajouter les invitations
