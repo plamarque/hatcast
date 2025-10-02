@@ -1,1 +1,62 @@
-[{  "version": "0.20.0",  "date": "2025-09-27",  "changes": [    "✨ Ajout de nouvelles permissions pour la fenêtre de détail d'événement et nettoyage des logs de débogage.",    "✨ Centralisation du système de couleurs pour les statuts, histoire d'avoir plus de cohérence.",    "✨ Augmentation du nombre de colonnes de l'onglet de disponibilité de 2 à 3 sur desktop.",    "✨ Ajout du pourcentage de l'algorithme de Bruno entre parenthèses grises pour les slots de composition.",    "✨ Les slots de composition sont maintenant cliquables pour ouvrir une fenêtre de confirmation.",    "✨ Ajout d'un champ de note dans la fenêtre de confirmation.",    "✨ Création d'un nouveau service players.js avec des fonctions simplifiées.",    "✨ Amélioration de la migration pour inclure les données d'avatar et de vérification.",    "🐛 Amélioration de la génération de changelog.json avec validation.",    "🐛 Mise en place d'une sécurité appropriée pour les modifications de joueurs protégés.",    "🐛 Résolution des conflits de noms avec la fonction isSuperAdmin.",    "🐛 Suppression d'un fallback codé en dur dans le garde de route main.js.",    "🐛 Ajout d'un fallback pour patrice.lamarque+albane@gmail.com en mode développement.",    "🐛 Résolution des problèmes de mise en cache du rôle admin et amélioration de l'interface admin.",    "🐛 Correction de l'affichage du statut refusé dans l'onglet Ma Dispo.",    "🐛 Ouverture de la fenêtre de disponibilité en cliquant sur une cellule de disponibilité non sélectionnée.",    "🐛 Mise en œuvre de la logique correcte pour les clics dans l'onglet Ma Dispo.",    "🐛 Correction de l'affichage des rôles et du comportement au clic dans l'onglet Ma Dispo.",    "🐛 Ajout de la propriété manquante de genre de joueur dans l'avatar de joueur dans le slot de composition.",    "🐛 Correction de getPlayerProtectionData pour obtenir les données du joueur dans GridBoard.vue.",    "🐛 Résolution des conflits de noms de variable dans loadUsersWithPlayers.",    "🐛 Ajout de l'import manquant de updateDoc dans la fenêtre de détail de joueur.",    "🐛 Résolution des conflits de noms de variable dans la page SeasonAdminPage.",    "🔧 Refactorisation pour créer une utilitaire Cloud Functions unifiée dans firebase.js.",    "🔧 Utilisation de l'utilitaire callFunction pour vérifier les Super Admin.",    "🔧 Optimisation des vérifications de permissions pour les Super Admin avec des retours anticipés.",    "🔧 Optimisation du chargement des associations de joueurs avec mise en cache et requêtes parallèles.",    "🔧 Suppression de playerProtection.js et déplacement de la fonction de migration vers players.js.",    "🔧 Correction de associatePlayerDirectly pour utiliser le service players.js.",    "🔧 Suppression des références restantes à la collection playerProtection.",    "🔧 Suppression du code mort et ajout de finalizeProtectionAfterVerification manquant.",    "🔧 Simplification de playerProtection.js en wrapper avec la fonction de migration.",    "🔧 Mise à jour des imports restants pour utiliser le service players.js.",    "🔧 Simplification de getPlayerAssociation pour utiliser le service players.js.",    "🔧 Priorisation de la collection players pour toutes les opérations d'écriture.",    "🔧 Priorisation de la collection players sur playerProtection pour toutes les lectures.",    "📝 Ajout de journaux détaillés pour les props de SeasonHeader et l'état de connexion.",    "📝 Ajout d'un contrôle d'initialisation du service de permissions dans GridBoard.vue.",    "📝 Ajout de journaux complets pour la vérification des Super Admin.",    "📝 Amélioration de la gestion des admins.",    "📝 Ajout de liens profonds pour les filtres et mise au point d'événements.",    "📝 Version 0.19.0 publiée."  ]}]
+[
+  {
+    "version": "0.20.1",
+    "date": "2025-10-02",
+    "changes": [
+      "✨ Système de permissions pour l'administration de saison complété avec une gestion appropriée des ID.",
+      "✨ Ajout de l'ID de saison dans l'en-tête de saison pour vérifier les permissions.",
+      "🐛 Correction du statut 'Non renseigné' de disponibilité qui ne persistait pas dans la PWA.",
+      "🐛 Écran d'administration des événements maintenant responsive sur mobile.",
+      "🐛 Mise à jour de la protection de route admin pour utiliser le véritable ID de saison.",
+      "🐛 Passage du véritable ID de saison au lieu du slug dans l'en-tête de saison."
+    ]
+  },
+  {
+    "version": "0.20.0",
+    "date": "2025-09-27",
+    "changes": [
+      "✨ Ajout de nouvelles permissions pour la fenêtre de détail d'événement et nettoyage des logs de débogage.",
+      "✨ Centralisation du système de couleurs pour les statuts, histoire d'avoir plus de cohérence.",
+      "✨ Augmentation du nombre de colonnes de l'onglet de disponibilité de 2 à 3 sur desktop.",
+      "✨ Ajout du pourcentage de l'algorithme de Bruno entre parenthèses grises pour les slots de composition.",
+      "✨ Les slots de composition sont maintenant cliquables pour ouvrir une fenêtre de confirmation.",
+      "✨ Ajout d'un champ de note dans la fenêtre de confirmation.",
+      "✨ Création d'un nouveau service players.js avec des fonctions simplifiées.",
+      "✨ Amélioration de la migration pour inclure les données d'avatar et de vérification.",
+      "🐛 Amélioration de la génération de changelog.json avec validation.",
+      "🐛 Mise en place d'une sécurité appropriée pour les modifications de joueurs protégés.",
+      "🐛 Résolution des conflits de noms avec la fonction isSuperAdmin.",
+      "🐛 Suppression d'un fallback codé en dur dans le garde de route main.js.",
+      "🐛 Ajout d'un fallback pour patrice.lamarque+albane@gmail.com en mode développement.",
+      "🐛 Résolution des problèmes de mise en cache du rôle admin et amélioration de l'interface admin.",
+      "🐛 Correction de l'affichage du statut refusé dans l'onglet Ma Dispo.",
+      "🐛 Ouverture de la fenêtre de disponibilité en cliquant sur une cellule de disponibilité non sélectionnée.",
+      "🐛 Mise en œuvre de la logique correcte pour les clics dans l'onglet Ma Dispo.",
+      "🐛 Correction de l'affichage des rôles et du comportement au clic dans l'onglet Ma Dispo.",
+      "🐛 Ajout de la propriété manquante de genre de joueur dans l'avatar de joueur dans le slot de composition.",
+      "🐛 Correction de getPlayerProtectionData pour obtenir les données du joueur dans GridBoard.vue.",
+      "🐛 Résolution des conflits de noms de variable dans loadUsersWithPlayers.",
+      "🐛 Ajout de l'import manquant de updateDoc dans la fenêtre de détail de joueur.",
+      "🐛 Résolution des conflits de noms de variable dans la page SeasonAdminPage.",
+      "🔧 Refactorisation pour créer une utilitaire Cloud Functions unifiée dans firebase.js.",
+      "🔧 Utilisation de l'utilitaire callFunction pour vérifier les Super Admin.",
+      "🔧 Optimisation des vérifications de permissions pour les Super Admin avec des retours anticipés.",
+      "🔧 Optimisation du chargement des associations de joueurs avec mise en cache et requêtes parallèles.",
+      "🔧 Suppression de playerProtection.js et déplacement de la fonction de migration vers players.js.",
+      "🔧 Correction de associatePlayerDirectly pour utiliser le service players.js.",
+      "🔧 Suppression des références restantes à la collection playerProtection.",
+      "🔧 Suppression du code mort et ajout de finalizeProtectionAfterVerification manquant.",
+      "🔧 Simplification de playerProtection.js en wrapper avec la fonction de migration.",
+      "🔧 Mise à jour des imports restants pour utiliser le service players.js.",
+      "🔧 Simplification de getPlayerAssociation pour utiliser le service players.js.",
+      "🔧 Priorisation de la collection players pour toutes les opérations d'écriture.",
+      "🔧 Priorisation de la collection players sur playerProtection pour toutes les lectures.",
+      "📝 Ajout de journaux détaillés pour les props de SeasonHeader et l'état de connexion.",
+      "📝 Ajout d'un contrôle d'initialisation du service de permissions dans GridBoard.vue.",
+      "📝 Ajout de journaux complets pour la vérification des Super Admin.",
+      "📝 Amélioration de la gestion des admins.",
+      "📝 Ajout de liens profonds pour les filtres et mise au point d'événements.",
+      "📝 Version 0.19.0 publiée."
+    ]
+  }
+]
