@@ -7,7 +7,9 @@
     <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-white">Créer & Inviter un utilisateur</h2>
+        <h2 class="text-xl font-bold text-white">
+          {{ mode === 'invite' ? 'Inviter un utilisateur' : 'Créer un Participant' }}
+        </h2>
         <button
           @click="$emit('close')"
           class="text-gray-400 hover:text-white transition-colors"
@@ -18,12 +20,30 @@
         </button>
       </div>
 
+      <!-- Toggle Mode -->
+      <div class="flex bg-gray-700 rounded-lg p-1 mb-6">
+        <button
+          @click="mode = 'create'"
+          :class="mode === 'create' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:text-white'"
+          class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+        >
+          Créer un Participant
+        </button>
+        <button
+          @click="mode = 'invite'"
+          :class="mode === 'invite' ? 'bg-purple-600 text-white' : 'text-gray-300 hover:text-white'"
+          class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+        >
+          Inviter un utilisateur
+        </button>
+      </div>
+
       <!-- Formulaire -->
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <!-- Prénom -->
+        <!-- Prénom (mode invite) / Nom (mode create) -->
         <div>
           <label for="firstName" class="block text-sm font-medium text-gray-300 mb-2">
-            Prénom <span class="text-red-400">*</span>
+            {{ mode === 'invite' ? 'Prénom' : 'Nom' }} <span class="text-red-400">*</span>
           </label>
           <input
             id="firstName"
@@ -31,13 +51,13 @@
             type="text"
             required
             class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            placeholder="Prénom"
+            :placeholder="mode === 'invite' ? 'Prénom' : 'Nom du participant'"
             :disabled="isLoading"
           />
         </div>
 
-        <!-- Nom -->
-        <div>
+        <!-- Nom (uniquement en mode invite) -->
+        <div v-if="mode === 'invite'">
           <label for="lastName" class="block text-sm font-medium text-gray-300 mb-2">
             Nom <span class="text-red-400">*</span>
           </label>
@@ -52,8 +72,8 @@
           />
         </div>
 
-        <!-- Email -->
-        <div>
+        <!-- Email (uniquement en mode invite) -->
+        <div v-if="mode === 'invite'">
           <label for="email" class="block text-sm font-medium text-gray-300 mb-2">
             Email <span class="text-red-400">*</span>
           </label>
@@ -86,8 +106,8 @@
           </select>
         </div>
 
-        <!-- Joueur associé -->
-        <div>
+        <!-- Joueur associé (uniquement en mode invite) -->
+        <div v-if="mode === 'invite'">
           <label for="linkedPlayerId" class="block text-sm font-medium text-gray-300 mb-2">
             Joueur associé (optionnel)
           </label>
@@ -111,8 +131,8 @@
           </p>
         </div>
 
-        <!-- Option envoi email -->
-        <div class="flex items-center space-x-3">
+        <!-- Option envoi email (uniquement en mode invite) -->
+        <div v-if="mode === 'invite'" class="flex items-center space-x-3">
           <input
             id="sendEmail"
             v-model="form.sendEmail"
@@ -158,13 +178,13 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {{ isLoading ? 'Création...' : 'Créer & Inviter' }}
+            {{ isLoading ? 'Création...' : (mode === 'invite' ? 'Créer & Inviter' : 'Créer le participant') }}
           </button>
         </div>
       </form>
 
-      <!-- Lien partageable après création -->
-      <div v-if="shareableLink" class="mt-6 p-4 bg-blue-900/30 border border-blue-500/50 rounded-lg">
+      <!-- Lien partageable après création (uniquement en mode invite) -->
+      <div v-if="shareableLink && mode === 'invite'" class="mt-6 p-4 bg-blue-900/30 border border-blue-500/50 rounded-lg">
         <h3 class="text-sm font-medium text-blue-300 mb-2">Lien d'invitation créé !</h3>
         <div class="flex space-x-2">
           <input
@@ -204,6 +224,9 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['close', 'invitation-created'])
 
+// Mode de la modale
+const mode = ref('create') // 'create' ou 'invite'
+
 // État du formulaire
 const form = ref({
   firstName: '',
@@ -225,10 +248,16 @@ const availablePlayers = ref([])
 
 // Validation du formulaire
 const isFormValid = computed(() => {
-  return form.value.firstName.trim() && 
-         form.value.lastName.trim() && 
-         form.value.email.trim() &&
-         !emailError.value
+  if (mode.value === 'invite') {
+    // Mode invite : prénom, nom et email requis
+    return form.value.firstName.trim() && 
+           form.value.lastName.trim() && 
+           form.value.email.trim() &&
+           !emailError.value
+  } else {
+    // Mode create : seul le nom du participant est requis
+    return form.value.firstName.trim()
+  }
 })
 
 // Charger les joueurs disponibles
@@ -262,6 +291,25 @@ watch(() => form.value.email, (newEmail) => {
   validateEmail(newEmail)
 })
 
+// Watcher pour réinitialiser le formulaire quand on change de mode
+watch(mode, (newMode) => {
+  // Réinitialiser les erreurs
+  errorMessage.value = ''
+  successMessage.value = ''
+  emailError.value = ''
+  shareableLink.value = ''
+  
+  // Réinitialiser le formulaire
+  form.value = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    gender: 'unknown',
+    linkedPlayerId: '',
+    sendEmail: true
+  }
+})
+
 // Gestion de la soumission
 async function handleSubmit() {
   if (!isFormValid.value) return
@@ -271,73 +319,105 @@ async function handleSubmit() {
     errorMessage.value = ''
     successMessage.value = ''
 
-    const result = await createInvite({
-      seasonId: props.seasonId,
-      firstName: form.value.firstName.trim(),
-      lastName: form.value.lastName.trim(),
-      email: form.value.email.trim().toLowerCase(),
-      gender: form.value.gender,
-      linkedPlayerId: form.value.linkedPlayerId || null,
-      sendEmail: form.value.sendEmail,
-      createdBy: props.createdBy
-    })
-
-    if (!result.success) {
-      if (result.error === 'EMAIL_EXISTS') {
-        // Proposer de lier au compte existant
-        const linkExisting = confirm(
-          `L'email ${form.value.email} correspond déjà à un compte existant. ` +
-          'Voulez-vous lier ce compte à la saison ?'
-        )
-        
-        if (linkExisting) {
-          await linkExistingUserToSeasonAndPlayers({
-            seasonId: props.seasonId,
-            email: form.value.email.trim().toLowerCase(),
-            linkedPlayerId: form.value.linkedPlayerId || null,
-            performedBy: props.createdBy
-          })
-          
-          successMessage.value = 'Utilisateur existant lié à la saison avec succès !'
-          emit('invitation-created')
-          
-          // Fermer après un délai
-          setTimeout(() => {
-            resetForm()
-            emit('close')
-          }, 2000)
-        }
-        return
-      } else if (result.error === 'INVITATION_EXISTS') {
-        errorMessage.value = 'Une invitation existe déjà pour cet email.'
-        return
-      } else {
-        errorMessage.value = 'Erreur lors de la création de l\'invitation.'
-        return
-      }
-    }
-
-    // Succès
-    shareableLink.value = result.shareableLink
-    successMessage.value = form.value.sendEmail 
-      ? 'Invitation créée et email envoyé !'
-      : 'Invitation créée !'
-
-    emit('invitation-created')
-
-    // Fermer après un délai si pas de lien à copier
-    if (!shareableLink.value) {
-      setTimeout(() => {
-        resetForm()
-        emit('close')
-      }, 2000)
+    if (mode.value === 'create') {
+      // Mode "Créer un joueur" : créer directement un joueur sans invitation
+      await createPlayerDirectly()
+    } else {
+      // Mode "Inviter un utilisateur" : créer une invitation
+      await createUserInvitation()
     }
 
   } catch (error) {
-    logger.error('Erreur lors de la création de l\'invitation', error)
-    errorMessage.value = 'Erreur lors de la création de l\'invitation. Veuillez réessayer.'
+    logger.error('Erreur lors de la création', error)
+    errorMessage.value = 'Erreur lors de la création. Veuillez réessayer.'
   } finally {
     isLoading.value = false
+  }
+}
+
+// Créer un joueur directement (sans invitation)
+async function createPlayerDirectly() {
+  const { addPlayer } = await import('../services/storage.js')
+  
+  // Créer le joueur avec les données minimales
+  // En mode create, firstName contient le nom complet du participant
+  const playerName = form.value.firstName.trim()
+  const playerGender = form.value.gender
+
+  const newPlayer = await addPlayer(playerName, props.seasonId, playerGender)
+  
+  successMessage.value = 'Participant créé avec succès !'
+  emit('invitation-created')
+  
+  // Fermer après un délai
+  setTimeout(() => {
+    resetForm()
+    emit('close')
+  }, 2000)
+}
+
+// Créer une invitation utilisateur
+async function createUserInvitation() {
+  const result = await createInvite({
+    seasonId: props.seasonId,
+    firstName: form.value.firstName.trim(),
+    lastName: form.value.lastName.trim(),
+    email: form.value.email.trim().toLowerCase(),
+    gender: form.value.gender,
+    linkedPlayerId: form.value.linkedPlayerId || null,
+    sendEmail: form.value.sendEmail,
+    createdBy: props.createdBy
+  })
+
+  if (!result.success) {
+    if (result.error === 'EMAIL_EXISTS') {
+      // Proposer de lier au compte existant
+      const linkExisting = confirm(
+        `L'email ${form.value.email} correspond déjà à un compte existant. ` +
+        'Voulez-vous lier ce compte à la saison ?'
+      )
+      
+      if (linkExisting) {
+        await linkExistingUserToSeasonAndPlayers({
+          seasonId: props.seasonId,
+          email: form.value.email.trim().toLowerCase(),
+          linkedPlayerId: form.value.linkedPlayerId || null,
+          performedBy: props.createdBy
+        })
+        
+        successMessage.value = 'Utilisateur existant lié à la saison avec succès !'
+        emit('invitation-created')
+        
+        // Fermer après un délai
+        setTimeout(() => {
+          resetForm()
+          emit('close')
+        }, 2000)
+      }
+      return
+    } else if (result.error === 'INVITATION_EXISTS') {
+      errorMessage.value = 'Une invitation existe déjà pour cet email.'
+      return
+    } else {
+      errorMessage.value = 'Erreur lors de la création de l\'invitation.'
+      return
+    }
+  }
+
+  // Succès
+  shareableLink.value = result.shareableLink
+  successMessage.value = form.value.sendEmail 
+    ? 'Invitation créée et email envoyé !'
+    : 'Invitation créée !'
+
+  emit('invitation-created')
+
+  // Fermer après un délai si pas de lien à copier
+  if (!shareableLink.value) {
+    setTimeout(() => {
+      resetForm()
+      emit('close')
+    }, 2000)
   }
 }
 
