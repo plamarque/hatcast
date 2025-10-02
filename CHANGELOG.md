@@ -1,27 +1,25 @@
-## [0.20.1] - 2025-10-02
+## [0.21.0] - 2025-10-02
 
 ### ✨ New Features
 
-- feat: complete season admin permission system with proper ID handling
-- feat: add season-id prop to SeasonHeader for permission checks
-- feat: improve OpenAI changelog prompt to filter out debug logs and technical changes
-
-### 🐛 Bug Fixes
-
-- fix: availability 'Non renseigné' status not persisting in PWA
-- fix: make events admin screen mobile responsive
-- fix: update admin route guard to use real season ID
-- fix: pass real season ID instead of slug to SeasonHeader
+- feat: Suppression de participants avec double confirmation et PIN
+- feat: Modale création participant simplifiée avec toggle modes
+- feat: Liste participants complète avec tous les joueurs de la saison
+- feat: Navigation cliquable vers détails joueur depuis liste participants
+- feat: Amélioration interface participants avec nom joueur et date connexion
+- feat: Ajout suppression individuelle d'invitations
+- feat: Système d'invitation utilisateurs complet
 
 ### 📝 Other Changes
 
-- debug: add comprehensive database debugging function
-- debug: add function to create missing season document
-- release: version 0.20.0
+- revert: Annuler la navigation cliquable sur le nom des participants
+- fix db for dev
+- release: version 0.20.1
 
 
 # Changelog
 
+## [0.21.0] - 2025-10-02
 ## [0.20.1] - 2025-10-02
 ## [0.20.0] - 2025-09-27
 ## [0.19.0] - 2025-09-26
