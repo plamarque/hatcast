@@ -216,6 +216,7 @@ export async function listUsersWithInviteStatus(seasonId) {
         gender: user.gender || 'unknown',
         status: 'active',
         isAdmin: user.isAdmin,
+        playerId: user.playerId,
         players: user.players,
         createdAt: user.createdAt,
         lastActiveAt: user.lastActiveAt
@@ -519,6 +520,11 @@ async function buildUsersWithPlayers(players, seasonUsers, seasonAdmins) {
         name: player.name,
         protected: player.isProtected || false
       })
+      
+      // Définir le playerId principal (le premier joueur trouvé)
+      if (!user.playerId) {
+        user.playerId = player.id
+      }
     }
   })
   

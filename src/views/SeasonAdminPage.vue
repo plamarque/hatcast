@@ -62,7 +62,7 @@
               :class="activeTab === 'users' ? 'bg-gray-700 text-white border-b-2 border-purple-400' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
               class="flex-1 px-6 py-4 text-center font-medium transition-all duration-200"
             >
-              👥 Utilisateurs
+              🏃‍♂️ Participants
             </button>
           </div>
 
@@ -345,16 +345,16 @@
             </div>
             </div>
 
-            <!-- Onglet Utilisateurs -->
+            <!-- Onglet Participants -->
             <div v-if="activeTab === 'users'" class="space-y-6">
-              <!-- Section Utilisateurs et Invitations -->
+              <!-- Section Participants et Invitations -->
               <div>
                 <div class="mb-6">
                   <div class="flex items-center justify-between">
                     <div>
-                      <h2 class="text-2xl font-bold text-white mb-2">👥 Utilisateurs de la saison</h2>
+                      <h2 class="text-2xl font-bold text-white mb-2">🏃‍♂️ Participants de la saison</h2>
                       <p class="text-gray-300">
-                        Gestion des utilisateurs actifs et des invitations en cours
+                        Gestion des participants actifs et des invitations en cours
                       </p>
                     </div>
                     <button
@@ -370,110 +370,131 @@
                 </div>
 
 
+                <!-- Filtre de recherche -->
+                <div class="mb-6 space-y-4">
+                  <!-- Barre de recherche -->
+                  <div class="relative">
+                    <input
+                      v-model="searchFilter"
+                      type="text"
+                      placeholder="Rechercher par nom ou email..."
+                      class="w-full px-4 py-2 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                  </div>
+                  
+                  <!-- Filtres par type -->
+                  <div class="flex gap-2">
+                    <button
+                      @click="filterType = 'all'"
+                      :class="filterType === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                      class="px-3 py-1 rounded-full text-sm transition-colors"
+                    >
+                      Tous
+                    </button>
+                    <button
+                      @click="filterType = 'users'"
+                      :class="filterType === 'users' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                      class="px-3 py-1 rounded-full text-sm transition-colors"
+                    >
+                      Participants
+                    </button>
+                    <button
+                      @click="filterType = 'invitations'"
+                      :class="filterType === 'invitations' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                      class="px-3 py-1 rounded-full text-sm transition-colors"
+                    >
+                      Invitations
+                    </button>
+                    <button
+                      @click="filterType = 'admins'"
+                      :class="filterType === 'admins' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                      class="px-3 py-1 rounded-full text-sm transition-colors"
+                    >
+                      Admins
+                    </button>
+                  </div>
+                </div>
+
                 <!-- Liste unifiée des utilisateurs et invitations -->
-                <div v-if="unifiedUsersList.length === 0" class="text-center py-8 text-gray-400">
-                  <span class="text-4xl mb-3 block">👥</span>
-                  <p>Aucun utilisateur ou invitation dans cette saison</p>
-                  <p class="text-sm mt-2">Utilise le bouton "Créer & Inviter" pour commencer</p>
+                <div v-if="filteredUsersList.length === 0" class="text-center py-8 text-gray-400">
+                  <span class="text-4xl mb-3 block">🔍</span>
+                  <p v-if="searchFilter || filterType !== 'all'">Aucun résultat trouvé</p>
+                  <p v-else>Aucun participant ou invitation dans cette saison</p>
+                  <p class="text-sm mt-2" v-if="!searchFilter && filterType === 'all'">Utilise le bouton "Créer & Inviter" pour commencer</p>
                 </div>
 
                 <div v-else class="space-y-3">
                   <div
-                    v-for="item in unifiedUsersList"
+                    v-for="item in filteredUsersList"
                     :key="item.id"
                     class="bg-gray-700/50 rounded-lg p-4"
                   >
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <div class="flex items-center gap-3 mb-3">
-                          <!-- Icône selon le type et statut -->
-                          <span class="text-2xl">
-                            <span v-if="item.type === 'user'">
-                              {{ item.isAdmin ? '👑' : '👤' }}
-                            </span>
-                            <span v-else-if="item.type === 'invitation'">
-                              {{ getInvitationIcon(item.status) }}
-                            </span>
+                          <!-- Icône pour les invitations seulement (les utilisateurs ont PlayerAvatar) -->
+                          <span v-if="item.type === 'invitation'" class="text-2xl">
+                            {{ getInvitationIcon(item.status) }}
                           </span>
                           
                           <div class="flex-1">
-                            <!-- Nom complet ou email -->
-                            <div class="flex items-center gap-2">
-                              <p class="text-white font-medium">
-                                {{ item.type === 'user' ? item.email : `${item.firstName} ${item.lastName}` }}
-                              </p>
-                              <span 
-                                class="text-xs px-2 py-1 rounded-full"
-                                :class="getStatusClass(item)"
-                              >
-                                {{ getStatusText(item) }}
-                              </span>
-                            </div>
-                            
-                            <!-- Email pour les invitations -->
-                            <p v-if="item.type === 'invitation'" class="text-sm text-gray-400">
-                              {{ item.email }}
-                            </p>
-                            
-                            <!-- Switcher Admin pour les utilisateurs actifs -->
-                            <div v-if="item.type === 'user'" class="flex items-center gap-3 mt-2">
-                              <label class="flex items-center gap-2 cursor-pointer">
-                                <span class="text-sm text-gray-300">Admin</span>
-                                <div class="relative">
-                                  <input
-                                    type="checkbox"
-                                    :checked="item.isAdmin"
-                                    @change="toggleAdminRole(item.email)"
-                                    :disabled="isLoading"
-                                    class="sr-only"
-                                  >
-                                  <div 
-                                    class="w-11 h-6 rounded-full transition-colors duration-200 ease-in-out"
-                                    :class="item.isAdmin ? 'bg-purple-600' : 'bg-gray-600'"
-                                  >
-                                    <div 
-                                      class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out"
-                                      :class="item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'"
-                                    ></div>
-                                  </div>
-                                </div>
-                                <span 
-                                  class="text-xs px-2 py-1 rounded-full transition-colors duration-200"
-                                  :class="item.isAdmin ? 'bg-purple-600/20 text-purple-300' : 'bg-gray-600/20 text-gray-400'"
-                                >
-                                  {{ item.isAdmin ? 'Activé' : 'Désactivé' }}
+                            <!-- Nom du participant (joueur) avec avatar -->
+                            <div class="flex items-center gap-3">
+                              <!-- Avatar du joueur -->
+                              <PlayerAvatar
+                                :player-id="getPlayerId(item)"
+                                :season-id="seasonId"
+                                :player-name="getPlayerName(item)"
+                                :player-gender="getPlayerGender(item)"
+                                size="sm"
+                                rounded="full"
+                              />
+                              
+                              <!-- Nom du joueur à côté de l'avatar -->
+                              <div class="text-white font-medium">
+                                {{ getPlayerName(item) }}
+                              </div>
+                              
+                              <!-- Actions pour les utilisateurs actifs -->
+                              <div v-if="item.type === 'user'" class="flex items-center gap-3 ml-auto">
+                                <!-- Email de l'utilisateur -->
+                                <span class="text-sm text-gray-400">
+                                  {{ getPlayerEmail(item) }}
                                 </span>
-                              </label>
+                                <!-- Date de dernière connexion -->
+                                <span class="text-xs text-gray-500">
+                                  {{ getLastConnectionText(item) }}
+                                </span>
+                                <!-- Switch Admin -->
+                                <label class="flex items-center gap-2">
+                                  <span class="text-sm text-gray-300">Admin</span>
+                                  <div class="relative">
+                                    <input
+                                      type="checkbox"
+                                      :checked="item.isAdmin"
+                                      @change="handleMakeAdmin(item.email, $event.target.checked)"
+                                      class="sr-only"
+                                    />
+                                    <div 
+                                      :class="[
+                                        'w-11 h-6 rounded-full transition-colors duration-200 ease-in-out',
+                                        item.isAdmin ? 'bg-blue-600' : 'bg-gray-600'
+                                      ]"
+                                    >
+                                      <div 
+                                        :class="[
+                                          'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out',
+                                          item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'
+                                        ]"
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </label>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        
-                        <!-- Joueurs associés -->
-                        <div class="ml-11">
-                          <p class="text-sm text-gray-400 mb-2">
-                            {{ item.type === 'user' ? 'Joueurs protégés' : 'Joueur associé' }} :
-                          </p>
-                          <div class="flex flex-wrap gap-2">
-                            <span
-                              v-if="item.type === 'user' && item.players && item.players.length > 0"
-                              v-for="player in item.players.filter(p => p.protected)"
-                              :key="player.id"
-                              class="px-3 py-1 bg-blue-600/20 text-blue-300 text-sm rounded-full border border-blue-500/30"
-                            >
-                              {{ player.name }}
-                            </span>
-                            <template v-else-if="item.type === 'invitation' && item.players && item.players.length > 0">
-                              <span
-                                v-for="player in item.players"
-                                :key="player.id"
-                                class="px-3 py-1 bg-purple-600/20 text-purple-300 text-sm rounded-full border border-purple-500/30"
-                              >
-                                {{ getPlayerName(player.id) }}
-                              </span>
-                            </template>
-                            <span v-else class="text-gray-500 text-sm italic">
-                              {{ item.type === 'user' ? 'Aucun joueur protégé' : 'Joueur sera créé automatiquement' }}
-                            </span>
                           </div>
                         </div>
                       </div>
@@ -531,15 +552,7 @@
                         
                         <!-- Actions pour les utilisateurs actifs -->
                         <template v-else-if="item.type === 'user'">
-                          <!-- Éditer (placeholder) -->
-                          <button
-                            class="p-2 text-gray-400 hover:text-white transition-colors"
-                            :title="'Éditer l\'utilisateur'"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                          </button>
+                          <!-- Pas d'actions pour l'instant, juste le switcher admin -->
                         </template>
                       </div>
                     </div>
@@ -712,6 +725,7 @@ import SeasonCard from '../components/SeasonCard.vue'
 import SeasonDeleteConfirmationModal from '../components/SeasonDeleteConfirmationModal.vue'
 import SeasonEditModal from '../components/SeasonEditModal.vue'
 import CreateInviteModal from '../components/CreateInviteModal.vue'
+import PlayerAvatar from '../components/PlayerAvatar.vue'
 import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities } from '../services/storage.js'
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
@@ -784,6 +798,10 @@ const showFiltersDropdown = ref(false)
 const roleChangeSuccess = ref(null)
 const searchTerm = ref('')
 
+// Variables pour le filtre des participants
+const searchFilter = ref('')
+const filterType = ref('all') // 'all', 'users', 'invitations'
+
 // Gestion de l'édition de saison
 const showSeasonEditModal = ref(false)
 const showDeleteConfirmationModal = ref(false)
@@ -843,6 +861,37 @@ const seasonCardData = computed(() => ({
   playersCount: playersCount.value,
   availabilitiesCount: availabilitiesCount.value
 }))
+
+// Liste filtrée des participants
+const filteredUsersList = computed(() => {
+  let filtered = unifiedUsersList.value
+
+  // Filtre par type
+  if (filterType.value !== 'all') {
+    if (filterType.value === 'users') {
+      // Filtrer pour les utilisateurs actifs
+      filtered = filtered.filter(item => item.type === 'user')
+    } else if (filterType.value === 'invitations') {
+      // Filtrer pour les invitations
+      filtered = filtered.filter(item => item.type === 'invitation')
+    } else if (filterType.value === 'admins') {
+      // Filtrer pour les admins (utilisateurs avec rôle admin)
+      filtered = filtered.filter(item => item.type === 'user' && item.isAdmin)
+    }
+  }
+
+  // Filtre par recherche
+  if (searchFilter.value.trim()) {
+    const search = searchFilter.value.toLowerCase().trim()
+    filtered = filtered.filter(item => {
+      const name = getPlayerName(item).toLowerCase()
+      const email = getPlayerEmail(item).toLowerCase()
+      return name.includes(search) || email.includes(search)
+    })
+  }
+
+  return filtered
+})
 
 // Fonctions de navigation
 function goBack() {
@@ -958,7 +1007,7 @@ async function ensureUsersLoaded() {
     return
   }
   
-  await loadUsersWithPlayers()
+  await loadUnifiedUsersList()
   usersLoaded.value = true
 }
 
@@ -1196,9 +1245,106 @@ function getStatusText(item) {
 /**
  * Obtenir le nom d'un joueur par son ID
  */
-function getPlayerName(playerId) {
+function getPlayerNameById(playerId) {
   const player = players.value.find(p => p.id === playerId)
   return player ? player.name : `Joueur ${playerId}`
+}
+
+/**
+ * Obtenir le nom du participant (joueur) pour l'affichage
+ */
+function getPlayerName(item) {
+  if (item.type === 'user') {
+    // Pour un utilisateur actif, chercher le nom du joueur associé
+    const player = players.value.find(p => p.id === item.playerId)
+    return player ? player.name : `${item.firstName} ${item.lastName}`
+  } else {
+    // Pour une invitation, utiliser les informations de l'invitation
+    return `${item.firstName} ${item.lastName}`
+  }
+}
+
+/**
+ * Obtenir le nom d'affichage principal (pour le titre)
+ */
+function getPlayerDisplayName(item) {
+  if (item.type === 'user') {
+    // Pour un utilisateur actif, chercher le nom du joueur associé
+    const player = players.value.find(p => p.id === item.playerId)
+    return player ? player.name : `${item.firstName} ${item.lastName}`
+  } else {
+    // Pour une invitation, utiliser les informations de l'invitation
+    return `${item.firstName} ${item.lastName}`
+  }
+}
+
+/**
+ * Obtenir l'ID du joueur
+ */
+function getPlayerId(item) {
+  if (item.type === 'user') {
+    // Pour un utilisateur actif, retourner l'ID du joueur associé
+    return item.playerId || null
+  } else {
+    // Pour une invitation, on n'a pas encore d'ID de joueur
+    return null
+  }
+}
+
+/**
+ * Obtenir l'email du participant
+ */
+function getPlayerEmail(item) {
+  if (item.type === 'user') {
+    return item.email
+  } else {
+    return item.email
+  }
+}
+
+/**
+ * Obtenir le texte de dernière connexion
+ */
+function getLastConnectionText(item) {
+  if (item.type !== 'user') {
+    return ''
+  }
+  
+  // Pour l'instant, on affiche une valeur par défaut
+  // TODO: Récupérer la vraie date de dernière connexion depuis Firebase Auth
+  if (item.lastActiveAt) {
+    const date = new Date(item.lastActiveAt)
+    const now = new Date()
+    const diffMs = now - date
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) {
+      return 'Aujourd\'hui'
+    } else if (diffDays === 1) {
+      return 'Hier'
+    } else if (diffDays < 7) {
+      return `Il y a ${diffDays} jours`
+    } else {
+      return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+    }
+  }
+  
+  return 'Jamais connecté'
+}
+
+
+/**
+ * Obtenir le genre du joueur pour PlayerAvatar
+ */
+function getPlayerGender(item) {
+  if (item.type === 'user') {
+    // Pour un utilisateur actif, chercher le genre du joueur associé
+    const player = players.value.find(p => p.id === item.playerId)
+    return player?.gender || 'non-specified'
+  } else {
+    // Pour une invitation, utiliser le genre de l'invitation
+    return item.gender || 'non-specified'
+  }
 }
 
 
@@ -1272,6 +1418,40 @@ async function handleDeleteInvitation(invitationId) {
   } catch (error) {
     logger.error('Erreur lors de la suppression de l\'invitation', error)
     errorMessage.value = 'Erreur lors de la suppression de l\'invitation'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/**
+ * Gérer l'attribution/révocation du rôle admin
+ */
+async function handleMakeAdmin(userEmail, makeAdmin) {
+  if (!confirm(makeAdmin ? 
+    `Êtes-vous sûr de vouloir donner le rôle admin à ${userEmail} ?` :
+    `Êtes-vous sûr de vouloir retirer le rôle admin à ${userEmail} ?`)) {
+    return
+  }
+  
+  try {
+    isLoading.value = true
+    
+    if (makeAdmin) {
+      await permissionService.addSeasonAdmin(seasonId.value, userEmail, currentUser.value.email)
+      logger.info(`Rôle admin accordé à ${userEmail}`)
+    } else {
+      await permissionService.removeSeasonAdmin(seasonId.value, userEmail, currentUser.value.email)
+      logger.info(`Rôle admin retiré à ${userEmail}`)
+    }
+    
+    // Recharger les données
+    await loadSeasonRoles()
+    await loadUnifiedUsersList()
+    
+    logger.info('🔐 Rôles mis à jour avec succès')
+  } catch (error) {
+    logger.error('Erreur lors de la modification du rôle admin:', error)
+    alert('Erreur lors de la modification du rôle admin')
   } finally {
     isLoading.value = false
   }
@@ -1627,7 +1807,7 @@ async function toggleAdminRole(userEmail) {
     
     // Recharger les données
     await loadSeasonRoles()
-    await loadUsersWithPlayers() // Rechargement forcé après modification
+    await loadUnifiedUsersList() // Rechargement forcé après modification
     
     // FORCER le refresh des permissions pour tous les utilisateurs connectés
     // Cela va invalider le cache des rôles et forcer une nouvelle vérification
