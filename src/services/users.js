@@ -260,11 +260,30 @@ export async function listUsersWithInviteStatus(seasonId) {
       })
     })
     
-    // Trier par nom
+    // Trier par nom alphabétique
     unifiedList.sort((a, b) => {
-      const nameA = `${a.firstName} ${a.lastName}`.toLowerCase()
-      const nameB = `${b.firstName} ${b.lastName}`.toLowerCase()
-      return nameA.localeCompare(nameB)
+      let nameA, nameB
+      
+      if (a.type === 'player') {
+        // Pour les joueurs non associés, utiliser playerName
+        nameA = a.playerName || `${a.firstName} ${a.lastName}`.trim()
+      } else if (a.type === 'user') {
+        // Pour les utilisateurs, utiliser playerName ou construire le nom
+        nameA = a.playerName || `${a.firstName} ${a.lastName}`.trim()
+      } else {
+        // Pour les invitations, construire le nom
+        nameA = `${a.firstName} ${a.lastName}`.trim()
+      }
+      
+      if (b.type === 'player') {
+        nameB = b.playerName || `${b.firstName} ${b.lastName}`.trim()
+      } else if (b.type === 'user') {
+        nameB = b.playerName || `${b.firstName} ${b.lastName}`.trim()
+      } else {
+        nameB = `${b.firstName} ${b.lastName}`.trim()
+      }
+      
+      return nameA.toLowerCase().localeCompare(nameB.toLowerCase())
     })
     
     return unifiedList

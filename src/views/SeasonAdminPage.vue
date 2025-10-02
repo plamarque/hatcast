@@ -39,6 +39,23 @@
           </div>
         </div>
 
+        <!-- Message de succès -->
+        <div v-if="successMessage" class="bg-green-900/20 border border-green-500/30 rounded-lg p-4 mb-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">✅</span>
+              <p class="text-green-200">{{ successMessage }}</p>
+            </div>
+            <button 
+              @click="successMessage = ''"
+              class="text-green-400 hover:text-green-300 text-lg"
+              title="Fermer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
         <!-- Système d'onglets -->
         <div class="bg-gray-800/50 rounded-lg overflow-hidden">
           <!-- Navigation des onglets -->
@@ -497,6 +514,16 @@
                                     </div>
                                   </div>
                                 </label>
+                                <!-- Bouton suppression -->
+                                <button
+                                  @click="handleDeleteParticipant(item)"
+                                  class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                                  title="Supprimer ce participant"
+                                >
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                  </svg>
+                                </button>
                               </div>
                               
                               <!-- Actions pour les joueurs non associés -->
@@ -505,6 +532,16 @@
                                 <span class="text-sm text-gray-500">
                                   Joueur sans compte
                                 </span>
+                                <!-- Bouton suppression -->
+                                <button
+                                  @click="handleDeleteParticipant(item)"
+                                  class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                                  title="Supprimer ce participant"
+                                >
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                  </svg>
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -606,6 +643,15 @@
       :created-by="currentUser?.email || 'system'"
       @close="showCreateInviteModal = false"
       @invitation-created="handleInvitationCreated"
+    />
+
+    <!-- Modal de suppression de participant -->
+    <PinModal
+      :show="showDeletePinModal"
+      :message="deleteMessage"
+      :season-slug="seasonSlug"
+      @submit="handleDeleteConfirm"
+      @cancel="showDeletePinModal = false"
     />
 
     <!-- Modal d'ajout d'admin -->
@@ -737,8 +783,9 @@ import SeasonCard from '../components/SeasonCard.vue'
 import SeasonDeleteConfirmationModal from '../components/SeasonDeleteConfirmationModal.vue'
 import SeasonEditModal from '../components/SeasonEditModal.vue'
 import CreateInviteModal from '../components/CreateInviteModal.vue'
+import PinModal from '../components/PinModal.vue'
 import PlayerAvatar from '../components/PlayerAvatar.vue'
-import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities } from '../services/storage.js'
+import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities, deletePlayer } from '../services/storage.js'
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
@@ -775,6 +822,7 @@ const seasonAdmins = ref([])
 const seasonUsers = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 
 // Gestion des onglets
 const activeTab = ref('info')
@@ -791,6 +839,9 @@ const unifiedUsersList = ref([])
 const showAddAdminModal = ref(false)
 const showAddUserModal = ref(false)
 const showCreateInviteModal = ref(false)
+const showDeletePinModal = ref(false)
+const deleteMessage = ref('')
+const participantToDelete = ref(null)
 const newAdminEmail = ref('')
 const newUserEmail = ref('')
 const usersLoaded = ref(false)
@@ -1452,6 +1503,90 @@ async function handleDeleteInvitation(invitationId) {
   } finally {
     isLoading.value = false
   }
+}
+
+/**
+ * Gérer la suppression d'un participant
+ */
+function handleDeleteParticipant(item) {
+  // Première confirmation
+  const participantName = getPlayerName(item)
+  const confirmMessage = `Êtes-vous sûr de vouloir supprimer définitivement "${participantName}" de cette saison ?\n\nCette action supprimera :\n- Le participant et ses informations\n- Toutes ses disponibilités\n- Toutes ses sélections\n\nCette action est irréversible.`
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
+  // Stocker le participant à supprimer
+  participantToDelete.value = item
+  
+  // Message pour le PIN
+  deleteMessage.value = `Suppression de "${participantName}"\n\nPour confirmer cette action irréversible, saisissez le code PIN de la saison.`
+  
+  // Ouvrir la modal de PIN
+  showDeletePinModal.value = true
+}
+
+/**
+ * Confirmer la suppression après vérification du PIN
+ */
+async function handleDeleteConfirm(pinCode) {
+  if (!participantToDelete.value) {
+    showDeletePinModal.value = false
+    return
+  }
+  
+  try {
+    isLoading.value = true
+    showDeletePinModal.value = false
+    
+    // Vérifier le PIN (logique à implémenter selon le système existant)
+    const isValidPin = await verifySeasonPin(pinCode)
+    
+    if (!isValidPin) {
+      errorMessage.value = 'Code PIN incorrect. Suppression annulée.'
+      return
+    }
+    
+    // Supprimer le participant selon son type
+    if (participantToDelete.value.type === 'user' || participantToDelete.value.type === 'player') {
+      // Supprimer le joueur
+      await deletePlayer(participantToDelete.value.playerId, seasonId.value)
+      logger.info(`Joueur supprimé: ${getPlayerName(participantToDelete.value)}`)
+    } else if (participantToDelete.value.type === 'invitation') {
+      // Supprimer l'invitation
+      await firestoreService.deleteDocument('invitations', participantToDelete.value.id)
+      logger.info(`Invitation supprimée: ${getPlayerName(participantToDelete.value)}`)
+    }
+    
+    // Recharger la liste
+    await loadUnifiedUsersList()
+    
+    successMessage.value = `"${getPlayerName(participantToDelete.value)}" supprimé avec succès.`
+    
+    // Auto-effacer le message après 5 secondes
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 5000)
+    
+    // Nettoyer
+    participantToDelete.value = null
+    
+  } catch (error) {
+    logger.error('Erreur lors de la suppression du participant', error)
+    errorMessage.value = 'Erreur lors de la suppression du participant'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/**
+ * Vérifier le PIN de la saison (à implémenter selon le système existant)
+ */
+async function verifySeasonPin(pinCode) {
+  // TODO: Implémenter la vérification du PIN selon le système existant
+  // Pour l'instant, on accepte tout PIN de 4 chiffres
+  return pinCode && pinCode.length === 4 && /^\d{4}$/.test(pinCode)
 }
 
 /**
