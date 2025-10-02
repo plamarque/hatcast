@@ -632,8 +632,8 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
       throw new Error(`Joueur non trouvé: ${playerName}`)
     }
     
-    if (available === undefined) {
-      // Supprimer la disponibilité
+    if (available === undefined || available === null) {
+      // Supprimer la disponibilité (Non renseigné)
       await firestoreService.deleteDocument('seasons', seasonId, 'players', playerId, 'availability', eventId)
     } else {
       // Sauvegarder la disponibilité
