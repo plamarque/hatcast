@@ -454,7 +454,11 @@
                               />
                               
                               <!-- Nom du joueur à côté de l'avatar -->
-                              <div class="text-white font-medium">
+                              <div 
+                                @click="goToPlayerDetails(item)"
+                                class="text-white font-medium cursor-pointer hover:text-blue-400 transition-colors"
+                                :title="`Voir les disponibilités de ${getPlayerName(item)}`"
+                              >
                                 {{ getPlayerName(item) }}
                               </div>
                               
@@ -896,6 +900,18 @@ const filteredUsersList = computed(() => {
 // Fonctions de navigation
 function goBack() {
   router.push(`/season/${seasonSlug.value}`)
+}
+
+// Naviguer vers les détails d'un joueur
+function goToPlayerDetails(item) {
+  if (item.type !== 'user' || !item.playerId) {
+    return
+  }
+  
+  // Construire l'URL avec le joueur et la modale
+  const seasonUrl = `/season/${seasonSlug.value}?player=${encodeURIComponent(item.playerId)}&modal=player_details`
+  logger.info(`Navigation vers les détails du joueur: ${seasonUrl}`)
+  router.push(seasonUrl)
 }
 
 // Changer vers l'onglet utilisateurs et charger les données si nécessaire
