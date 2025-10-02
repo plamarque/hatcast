@@ -11,6 +11,7 @@ import HelpPage from './views/HelpPage.vue'
 import GridBoard from './components/GridBoard.vue'
 import PasswordReset from './views/PasswordReset.vue'
 import MagicLink from './views/MagicLink.vue'
+import AcceptInvitation from './views/AcceptInvitation.vue'
 import JoinSeason from './views/JoinSeason.vue'
 import SeasonAdminPage from './views/SeasonAdminPage.vue'
 import NotFoundPage from './views/NotFoundPage.vue'
@@ -41,6 +42,7 @@ const routes = [
   { path: '/season/:slug/admin', component: SeasonAdminPage, props: true },
   { path: '/reset-password', component: PasswordReset },
   { path: '/magic', component: MagicLink },
+  { path: '/accept-invitation', component: AcceptInvitation },
   { path: '/404', component: NotFoundPage },
   { path: '/:pathMatch(.*)*', component: NotFoundPage }
 ]

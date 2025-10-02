@@ -367,6 +367,23 @@ onMounted(async () => {
       return
     }
 
+    if (action === 'accept_invitation') {
+      // Redirection vers la page d'acceptation d'invitation
+      const email = String(route.query.email || '')
+      const seasonId = String(route.query.season || '')
+      
+      if (!email || !seasonId || !token) {
+        status.value = 'error'
+        title.value = 'Lien invalide'
+        message.value = 'Paramètres d\'invitation manquants.'
+        return
+      }
+      
+      // Rediriger vers la page d'acceptation d'invitation
+      router.push(`/accept-invitation?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}&season=${encodeURIComponent(seasonId)}`)
+      return
+    }
+
     // Récupérer le nom du joueur pour écrire dans la collection availability (clé = name)
     const playerDoc = await firestoreService.getDocument('seasons', seasonId, 'players', playerId)
     const playerName = playerDoc ? (playerDoc.name || '') : ''

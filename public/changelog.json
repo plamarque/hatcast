@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.21.0",
+    "date": "2025-10-02",
+    "changes": [
+      "✨ Tu peux maintenant supprimer des participants avec une double confirmation et un code PIN.",
+      "✨ La création de participants est simplifiée avec des modes à basculer.",
+      "✨ La liste des participants affiche tous les joueurs de la saison.",
+      "✨ Tu peux naviguer facilement vers les détails d'un joueur depuis la liste des participants.",
+      "🔧 L'interface des participants a été améliorée avec le nom du joueur et la date de connexion.",
+      "✨ Tu peux maintenant supprimer individuellement des invitations.",
+      "✨ Un système d'invitation complet pour les utilisateurs a été ajouté."
+    ]
+  },
+  {
     "version": "0.20.1",
     "date": "2025-10-02",
     "changes": [
