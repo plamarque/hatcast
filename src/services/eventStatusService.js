@@ -165,6 +165,22 @@ export function getStatusLabel(status) {
 }
 
 /**
+ * Obtient le label court du statut simplifié pour les espaces restreints
+ * @param {string} status - Le statut de l'événement (ancien ou nouveau)
+ * @returns {string} Le label court à afficher
+ */
+export function getShortStatusLabel(status) {
+  const simplifiedStatus = mapToSimplifiedStatus(status)
+  
+  switch (simplifiedStatus) {
+    case 'collecting': return 'Collecte'
+    case 'preparing': return 'Préparation'
+    case 'confirmed': return 'Confirmé'
+    default: return 'Collecte'
+  }
+}
+
+/**
  * Obtient la couleur du statut simplifié pour l'affichage
  * @param {string} status - Le statut de l'événement (ancien ou nouveau)
  * @returns {string} Les classes CSS pour la couleur

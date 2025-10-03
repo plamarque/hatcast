@@ -865,7 +865,7 @@
                   </h4>
                   <div class="space-y-1">
                     <div 
-                      v-for="role in Object.keys(selectedEvent.roles).filter(role => selectedEvent.roles[role] > 0)" 
+                      v-for="role in getSortedEventRoles()" 
                       :key="role"
                       class="flex items-center gap-3 p-2 rounded bg-gray-700/20"
                     >
@@ -874,7 +874,7 @@
                         type="checkbox"
                         :id="`availability-${role}-${selectedEvent?.id}`"
                         :checked="selectedRoles.includes(role)"
-                        :disabled="role === 'benevole'"
+                        :disabled="!canDisableRole(role)"
                         @change="toggleRoleSelection(role)"
                         class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
@@ -884,17 +884,15 @@
                         <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
                         <span class="text-sm font-medium text-gray-200">{{ getRoleLabelByGender(role, currentUserPlayer?.gender, false) || role }}</span>
                         <span class="text-xs text-gray-400">({{ selectedEvent.roles[role] }} place{{ selectedEvent.roles[role] > 1 ? 's' : '' }})</span>
-                        <span v-if="role === 'benevole'" class="text-xs text-yellow-400">(obligatoire)</span>
+                        <span v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)" class="text-xs text-yellow-400">(obligatoire)</span>
                       </div>
                       
-                      <!-- Pourcentage de chances -->
+                      <!-- Pourcentage de chances (toujours les vraies chances du joueur) -->
                       <span 
                         class="text-sm font-medium px-2 py-1 rounded-full"
-                        :class="selectedRoles.includes(role)
-                          ? getChanceColorClass(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role))
-                          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'"
+                        :class="getChanceColorClass(getPlayerTheoreticalChances(currentUserPlayer.name, selectedEvent?.id, role))"
                       >
-                        {{ formatChancePercentage(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role)) }}
+                        {{ formatChancePercentage(getPlayerTheoreticalChances(currentUserPlayer.name, selectedEvent?.id, role)) }}
                       </span>
                     </div>
                   </div>
@@ -1935,6 +1933,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
+import { canDisableRole } from '../services/rolePreferencesService.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
@@ -2170,15 +2169,21 @@ function initializeAvailabilityData() {
   commentText.value = availability?.comment || ''
   
   // S'assurer que le rôle bénévole est toujours inclus s'il existe dans l'événement
-  if (selectedEvent.value.roles && selectedEvent.value.roles.benevole > 0 && !selectedRoles.value.includes('benevole')) {
-    selectedRoles.value.push('benevole')
+  // ET que le joueur est disponible (available: true)
+  if (selectedEvent.value.roles && 
+      selectedEvent.value.roles[ROLES.VOLUNTEER] > 0 && 
+      availability?.available === true) {
+    // Forcer l'ajout du rôle bénévole s'il n'est pas déjà présent
+    if (!selectedRoles.value.includes(ROLES.VOLUNTEER)) {
+      selectedRoles.value.push(ROLES.VOLUNTEER)
+    }
   }
 }
 
 // Fonction pour basculer la sélection d'un rôle
 function toggleRoleSelection(role) {
   // Le rôle bénévole ne peut pas être décoché
-  if (role === 'benevole') {
+  if (role === ROLES.VOLUNTEER) {
     return
   }
   
@@ -2187,6 +2192,14 @@ function toggleRoleSelection(role) {
     selectedRoles.value.splice(index, 1)
   } else {
     selectedRoles.value.push(role)
+  }
+  
+  // Si on a au moins un rôle coché et qu'il y a un rôle bénévole dans l'événement,
+  // l'ajouter automatiquement (obligatoire dès qu'on est disponible)
+  if (selectedRoles.value.length > 0 && 
+      selectedEvent.value?.roles?.[ROLES.VOLUNTEER] > 0 && 
+      !selectedRoles.value.includes(ROLES.VOLUNTEER)) {
+    selectedRoles.value.push(ROLES.VOLUNTEER)
   }
 }
 
@@ -9570,6 +9583,87 @@ function getPlayerRoleChance(playerName, eventId, role) {
   const chance = playerChances[role] || 0
   
   return chance
+}
+
+// Fonction pour obtenir les rôles de l'événement triés par ordre de priorité
+function getSortedEventRoles() {
+  if (!selectedEvent.value?.roles) return []
+  
+  const eventRoles = Object.keys(selectedEvent.value.roles).filter(role => selectedEvent.value.roles[role] > 0)
+  
+  // Trier selon l'ordre de priorité défini dans ROLE_PRIORITY_ORDER
+  return eventRoles.sort((a, b) => {
+    const indexA = ROLE_PRIORITY_ORDER.indexOf(a)
+    const indexB = ROLE_PRIORITY_ORDER.indexOf(b)
+    
+    // Si un rôle n'est pas dans la liste de priorité, le mettre à la fin
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b)
+    if (indexA === -1) return 1
+    if (indexB === -1) return -1
+    
+    return indexA - indexB
+  })
+}
+
+// Fonction pour calculer les chances théoriques d'un joueur pour tous les rôles
+// (indépendamment de sa disponibilité actuelle)
+function getPlayerTheoreticalChances(playerName, eventId, role) {
+  if (!selectedEvent.value || !allSeasonPlayers.value) return 0
+  
+  const event = selectedEvent.value
+  
+  // Créer une copie des disponibilités en forçant le joueur à être disponible pour ce rôle
+  const theoreticalAvailability = JSON.parse(JSON.stringify(availability.value))
+  if (!theoreticalAvailability[playerName]) {
+    theoreticalAvailability[playerName] = {}
+  }
+  if (!theoreticalAvailability[playerName][eventId]) {
+    theoreticalAvailability[playerName][eventId] = {}
+  }
+  
+  // Forcer la disponibilité pour ce rôle spécifique
+  theoreticalAvailability[playerName][eventId] = {
+    available: true,
+    roles: [role],
+    comment: null
+  }
+  
+  // Créer une fonction isAvailableForRole théorique qui considère le joueur comme disponible pour ce rôle
+  const theoreticalIsAvailableForRole = (name, roleName, eventId) => {
+    if (name === playerName && roleName === role) {
+      return true // Le joueur est forcé disponible pour ce rôle
+    }
+    // Pour les autres cas, utiliser la logique normale
+    return isAvailableForRole(name, roleName, eventId)
+  }
+  
+  // Calculer les chances avec cette disponibilité théorique
+  const allRoleChances = calculateAllRoleChances(
+    event, 
+    allSeasonPlayers.value, 
+    theoreticalAvailability, 
+    countSelections,
+    theoreticalIsAvailableForRole
+  )
+  
+  const roleChances = allRoleChances[role]
+  if (roleChances && roleChances.candidates) {
+    const playerChance = roleChances.candidates.find(candidate => candidate.name === playerName)
+    const chance = playerChance ? Math.round(playerChance.practicalChance || 0) : 0
+    
+    // Debug temporaire
+    console.log('🔍 DEBUG getPlayerTheoreticalChances:', {
+      playerName,
+      role,
+      roleChances: roleChances.candidates.length,
+      playerChance,
+      chance
+    })
+    
+    return chance
+  }
+  
+  return 0
 }
 
 // Fonction pour basculer la disponibilité d'un rôle spécifique

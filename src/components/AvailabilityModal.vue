@@ -117,16 +117,16 @@
                   class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 flex-shrink-0"
                 >
                 <span class="text-base md:text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
-                <span class="text-xs md:text-sm text-white flex-1 min-w-0">{{ getRoleLabel(role, props.playerGender, false) }}</span>
-                
-                <!-- Indicateur pour le rôle bénévole non modifiable -->
-                <span 
-                  v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200"
-                  title="Rôle bénévole toujours sélectionné"
-                >
-                  Fixe
-                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs md:text-sm text-white">{{ getRoleLabel(role, props.playerGender, false) }}</div>
+                  <!-- Indicateur pour le rôle bénévole non modifiable -->
+                  <div 
+                    v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
+                    class="text-xs text-yellow-400"
+                  >
+                    (obligatoire)
+                  </div>
+                </div>
                 
               </label>
             </div>
@@ -184,7 +184,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, getRoleLabel } from '../services/storage.js'
 import { getUserRolePreferences, getPreferredRolesForEvent, canDisableRole } from '../services/rolePreferencesService.js'
 import { listAssociationsForEmail } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
@@ -259,10 +259,18 @@ const favoritePlayerIds = ref(new Set())
 // Computed property pour gérer l'affichage des rôles
 const availableRoles = computed(() => {
   // Filtrer les rôles pour ne garder que ceux attendus (nombre > 0)
-  return ROLE_DISPLAY_ORDER.filter(role => {
+  // et les trier par ordre de priorité du tirage
+  const rolesWithSlots = ROLE_PRIORITY_ORDER.filter(role => {
     const count = props.eventRoles[role] || 0
     return count > 0
   })
+  
+  // Ajouter les rôles non définis dans ROLE_PRIORITY_ORDER à la fin (tri alphabétique)
+  const undefinedRoles = Object.keys(props.eventRoles)
+    .filter(role => props.eventRoles[role] > 0 && !ROLE_PRIORITY_ORDER.includes(role))
+    .sort()
+  
+  return [...rolesWithSlots, ...undefinedRoles]
 })
 
 // Computed properties pour l'état actuel
