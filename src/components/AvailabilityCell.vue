@@ -33,23 +33,17 @@
       
       <!-- Contenu normal -->
       <template v-else>
-        <!-- Affichage avec confirmation (2 lignes) -->
+        <!-- Affichage avec confirmation (1 ligne) -->
         <template v-if="isSelected && playerSelectionStatus">
-          <!-- Ligne 1: Icône rôle + nom du rôle ou "Décliné" -->
+          <!-- Ligne unique: nom du rôle + emoji -->
           <div class="flex items-center gap-1 text-center">
-            <span class="text-lg">
-              {{ playerSelectionStatus === 'pending' ? '❓' : getRoleEmoji() }}
-            </span>
             <span class="text-sm font-medium">
               {{ playerSelectionStatus === 'declined' ? 'Décliné' : getConfirmedRoleLabel() }}
             </span>
+            <span class="text-lg">
+              {{ playerSelectionStatus === 'pending' ? '⏳' : getRoleEmoji() }}
+            </span>
           </div>
-          
-          <!-- Ligne 2: Statut de confirmation (seulement pour à confirmer) -->
-          <div v-if="playerSelectionStatus === 'pending'" class="text-xs text-center mt-1">
-            [à confirmer]
-          </div>
-          <!-- Pas de ligne 2 pour confirmé et décliné -->
         </template>
         
         <!-- Affichage classique sans confirmation -->

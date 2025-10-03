@@ -801,104 +801,110 @@
           <div class="p-4">
             <!-- Onglet Mes Dispos -->
             <div v-if="eventDetailsActiveTab === 'availability' && currentUserPlayer">
-              <div>
-                <!-- Ligne principale : Avatar, nom, AvailabilityCell et bouton -->
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center gap-3">
+              <div class="space-y-4">
+                <!-- Section principale avec plus d'espace -->
+                <div class="bg-gray-700/30 rounded-lg p-4">
+                  <!-- Header avec avatar et nom -->
+                  <div class="flex items-center gap-3 mb-4">
                     <div class="flex-shrink-0">
                       <PlayerAvatar 
                         v-bind="getPlayerAvatarProps(currentUserPlayer)"
                         size="lg"
-                        class="!w-10 !h-10 border-2 border-gray-700"
+                        class="!w-12 !h-12 border-2 border-gray-600"
                       />
                     </div>
-                    <span class="text-sm text-gray-300">{{ currentUserPlayer.name }}</span>
-                    <div class="w-40 h-16 flex-shrink-0">
+                    <div class="flex-1">
+                      <h3 class="text-lg font-semibold text-white">{{ currentUserPlayer.name }}</h3>
+                      <p class="text-sm text-gray-400">Ma disponibilité pour cet événement</p>
+                    </div>
+                  </div>
+                  
+                  <!-- AvailabilityCell centrée comme action primaire -->
+                  <div class="flex justify-center">
+                    <div class="w-48 h-20">
                       <AvailabilityCell
-                      :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
-                      :player-name="currentUserPlayer.name"
-                      :player-id="currentUserPlayer.id"
-                      :player-gender="currentUserPlayer.gender"
-                      :event-id="selectedEvent?.id"
-                      :event-title="selectedEvent?.title"
-                      :event-date="selectedEvent?.date"
-                      :availability-data="getCurrentUserAvailabilityForEvent()"
-                      :is-available="getCurrentUserAvailabilityForEvent()?.available"
-                      :is-selected="isPlayerSelected(currentUserPlayer.name, selectedEvent?.id)"
-                      :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
-                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                      :player-selection-status="getPlayerSelectionStatus(currentUserPlayer.name, selectedEvent?.id)"
-                      :season-id="seasonId"
-                      :chance-percent="null"
-                      :is-protected="false"
-                      :event-roles="selectedEvent?.roles || {}"
-                      @availability-changed="handleAvailabilityChanged"
-                      @show-availability-modal="openAvailabilityModalFromEventDetails"
-                      @show-confirmation-modal="openConfirmationModal"
+                        :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
+                        :player-name="currentUserPlayer.name"
+                        :player-id="currentUserPlayer.id"
+                        :player-gender="currentUserPlayer.gender"
+                        :event-id="selectedEvent?.id"
+                        :event-title="selectedEvent?.title"
+                        :event-date="selectedEvent?.date"
+                        :availability-data="getCurrentUserAvailabilityForEvent()"
+                        :is-available="getCurrentUserAvailabilityForEvent()?.available"
+                        :is-selected="isPlayerSelected(currentUserPlayer.name, selectedEvent?.id)"
+                        :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
+                        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                        :player-selection-status="getPlayerSelectionStatus(currentUserPlayer.name, selectedEvent?.id)"
+                        :season-id="seasonId"
+                        :chance-percent="null"
+                        :is-protected="false"
+                        :event-roles="selectedEvent?.roles || {}"
+                        @availability-changed="handleAvailabilityChanged"
+                        @show-availability-modal="openAvailabilityModalFromEventDetails"
+                        @show-confirmation-modal="openConfirmationModal"
                       />
                     </div>
                   </div>
-                  <button
-                    @click="handleModifyAvailabilityFromEventDetails"
-                    class="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-                  >
-                    Modifier
-                  </button>
                 </div>
                 
-                <!-- Ligne de la note : pleine largeur -->
-                <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="w-full mb-4">
-                  <div class="bg-gray-700/50 rounded-lg p-3 border border-gray-600/50">
-                    <div class="text-xs text-gray-400 mb-2 flex items-center gap-1">
-                      <span>📝</span>
-                      <span>Note</span>
-                    </div>
-                    <div class="text-sm text-gray-200 break-words leading-relaxed">
-                      {{ getCurrentUserAvailabilityForEvent()?.comment }}
+                <!-- Section note (si présente) -->
+                <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="bg-gray-700/30 rounded-lg p-4">
+                  <h4 class="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                    <span>📝</span>
+                    <span>Ma note</span>
+                  </h4>
+                  <div class="text-sm text-gray-200 break-words leading-relaxed">
+                    {{ getCurrentUserAvailabilityForEvent()?.comment }}
+                  </div>
+                </div>
+                
+                <!-- Section chances pour les rôles choisis -->
+                <div v-if="getCurrentUserAvailabilityForEvent()?.roles?.length > 0" class="bg-gray-700/30 rounded-lg p-4">
+                  <h4 class="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                    <span>📊</span>
+                    <span>Mes chances pour les rôles choisis</span>
+                  </h4>
+                  <div class="space-y-3">
+                    <div 
+                      v-for="role in getCurrentUserAvailabilityForEvent()?.roles" 
+                      :key="role"
+                      class="flex items-center justify-between p-3 bg-gray-600/30 rounded-lg"
+                    >
+                      <div class="flex items-center gap-3">
+                        <span class="text-xl">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
+                        <span class="text-sm font-medium text-gray-200">{{ getRoleLabelByGender(role, currentUserPlayer?.gender, false) || role }}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span 
+                          class="text-sm font-medium px-3 py-1 rounded-full"
+                          :class="getChanceColorClass(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role))"
+                        >
+                          {{ formatChancePercentage(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role)) }}
+                        </span>
+                        <span 
+                          v-if="isPlayerSelectedForRole(currentUserPlayer.name, selectedEvent?.id, role)"
+                          class="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-400/30"
+                        >
+                          Sélectionné
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Affichage des chances pour les rôles choisis -->
-              <div v-if="getCurrentUserAvailabilityForEvent()?.roles?.length > 0" class="bg-gray-700/30 rounded-lg p-3">
-                <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                  <span>📊</span>
-                  <span>Mes chances pour les rôles choisis</span>
-                </h4>
-                <div class="space-y-2">
-                  <div 
-                    v-for="role in getCurrentUserAvailabilityForEvent()?.roles" 
-                    :key="role"
-                    class="flex items-center justify-between"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
-                      <span class="text-sm text-gray-300">{{ getRoleLabelByGender(role, currentUserPlayer?.gender, false) || role }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span 
-                        class="text-sm font-medium px-2 py-1 rounded"
-                        :class="getChanceColorClass(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role))"
-                      >
-                        {{ formatChancePercentage(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role)) }}
-                      </span>
-                      <span 
-                        v-if="isPlayerSelectedForRole(currentUserPlayer.name, selectedEvent?.id, role)"
-                        class="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300 border border-green-400/30"
-                      >
-                        Sélectionné
-                      </span>
-                    </div>
+                
+                <!-- Message si aucun rôle choisi -->
+                <div v-else-if="getCurrentUserAvailabilityForEvent()?.available === true" class="bg-gray-700/30 rounded-lg p-4">
+                  <div class="text-center">
+                    <div class="text-2xl mb-2">🎯</div>
+                    <p class="text-sm text-gray-300">
+                      Aucun rôle spécifique choisi
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Vous serez assigné selon les besoins de l'équipe
+                    </p>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Message si aucun rôle choisi -->
-              <div v-else-if="getCurrentUserAvailabilityForEvent()?.available === true" class="bg-gray-700/30 rounded-lg p-3">
-                <p class="text-sm text-gray-400 text-center">
-                  Aucun rôle spécifique choisi - vous serez assigné selon les besoins
-                </p>
               </div>
             </div>
 
@@ -949,6 +955,17 @@
               <!-- Header des disponibilités -->
               <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
+                  <!-- Bouton d'accès rapide vers Ma Dispo -->
+                  <button
+                    v-if="currentUserPlayer"
+                    @click="eventDetailsActiveTab = 'availability'"
+                    class="flex items-center gap-2 px-3 py-2 bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-600/30 hover:text-purple-200 transition-colors text-sm font-medium"
+                    title="Aller à mes disponibilités"
+                  >
+                    <span>📅</span>
+                    <span>Ma Dispo</span>
+                  </button>
+                  
                   <!-- Sélecteur de joueur pour l'équipe -->
                   <div class="relative flex-shrink-0">
                     <button
