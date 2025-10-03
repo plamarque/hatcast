@@ -19,7 +19,7 @@
           <div
           v-for="event in monthData.events"
             :key="event.id"
-          class="event-item flex items-center gap-3 md:gap-6 p-3 md:p-4 rounded-xl transition-all duration-200 cursor-pointer relative w-full min-w-0"
+          class="event-item flex items-center gap-2 md:gap-6 p-2 md:p-4 rounded-xl transition-all duration-200 cursor-pointer relative w-full min-w-0"
           :class="[
             event._isArchived 
               ? 'bg-gray-600/30 hover:bg-gray-500/40 border border-gray-500/30' 
@@ -44,13 +44,13 @@
           
           <!-- Contenu de l'événement -->
           <div class="event-content flex-1 flex items-center gap-2 md:gap-4 min-w-0">
-            <!-- Icône du type d'événement centrée verticalement dans toute la zone -->
-            <div class="event-icon flex-shrink-0 text-xl flex items-center h-16">
+            <!-- Icône du type d'événement centrée verticalement dans toute la zone (masquée sur mobile) -->
+            <div class="event-icon flex-shrink-0 text-xl flex items-center h-16 hidden md:flex">
               {{ getEventTypeIcon(event) }}
             </div>
             
             <!-- Titre de l'événement -->
-            <div class="event-title flex-1 min-w-0 mr-6">
+            <div class="event-title flex-1 min-w-0 mr-2 md:mr-6">
               <div 
                 class="font-medium text-base line-clamp-2 leading-tight"
                 :class="[
