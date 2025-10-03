@@ -798,30 +798,28 @@
           </div>
           
           <!-- Contenu des onglets -->
-          <div class="p-4">
+          <div class="p-3">
             <!-- Onglet Mes Dispos -->
             <div v-if="eventDetailsActiveTab === 'availability' && currentUserPlayer">
-              <div class="space-y-4">
-                <!-- Section principale avec plus d'espace -->
-                <div class="bg-gray-700/30 rounded-lg p-4">
-                  <!-- Header avec avatar et nom -->
-                  <div class="flex items-center gap-3 mb-4">
-                    <div class="flex-shrink-0">
-                      <PlayerAvatar 
-                        v-bind="getPlayerAvatarProps(currentUserPlayer)"
-                        size="lg"
-                        class="!w-12 !h-12 border-2 border-gray-600"
-                      />
-                    </div>
+              <div class="space-y-3">
+                <!-- Section principale simplifiée -->
+                <div class="bg-gray-700/20 rounded p-3">
+                  <!-- Header compact -->
+                  <div class="flex items-center gap-2 mb-3">
+                    <PlayerAvatar 
+                      v-bind="getPlayerAvatarProps(currentUserPlayer)"
+                      size="md"
+                      class="!w-8 !h-8"
+                    />
                     <div class="flex-1">
-                      <h3 class="text-lg font-semibold text-white">{{ currentUserPlayer.name }}</h3>
-                      <p class="text-sm text-gray-400">Ma disponibilité pour cet événement</p>
+                      <h3 class="text-base font-semibold text-white">{{ currentUserPlayer.name }}</h3>
+                      <p class="text-xs text-gray-400">Ma disponibilité</p>
                     </div>
                   </div>
                   
-                  <!-- AvailabilityCell centrée comme action primaire -->
+                  <!-- AvailabilityCell centrée -->
                   <div class="flex justify-center">
-                    <div class="w-48 h-20">
+                    <div class="w-40 h-16">
                       <AvailabilityCell
                         :key="`availability-${currentUserPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
                         :player-name="currentUserPlayer.name"
@@ -849,56 +847,91 @@
                 </div>
                 
                 <!-- Section note (si présente) -->
-                <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="bg-gray-700/30 rounded-lg p-4">
-                  <h4 class="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                <div v-if="getCurrentUserAvailabilityForEvent()?.comment" class="bg-gray-700/20 rounded p-2">
+                  <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
                     <span>📝</span>
-                    <span>Ma note</span>
-                  </h4>
-                  <div class="text-sm text-gray-200 break-words leading-relaxed">
+                    <span>Note</span>
+                  </div>
+                  <div class="text-sm text-gray-200 break-words">
                     {{ getCurrentUserAvailabilityForEvent()?.comment }}
                   </div>
                 </div>
                 
-                <!-- Section chances pour les rôles choisis -->
-                <div v-if="getCurrentUserAvailabilityForEvent()?.roles?.length > 0" class="bg-gray-700/30 rounded-lg p-4">
-                  <h4 class="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                <!-- Section chances pour tous les rôles de l'événement -->
+                <div v-if="selectedEvent?.roles && Object.keys(selectedEvent.roles).length > 0" class="space-y-2">
+                  <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
                     <span>📊</span>
-                    <span>Mes chances pour les rôles choisis</span>
+                    <span>Mes chances pour tous les rôles</span>
                   </h4>
-                  <div class="space-y-3">
+                  <div class="space-y-1">
                     <div 
-                      v-for="role in getCurrentUserAvailabilityForEvent()?.roles" 
+                      v-for="role in Object.keys(selectedEvent.roles).filter(role => selectedEvent.roles[role] > 0)" 
                       :key="role"
-                      class="flex items-center justify-between p-3 bg-gray-600/30 rounded-lg"
+                      class="flex items-center gap-3 p-2 rounded bg-gray-700/20"
                     >
-                      <div class="flex items-center gap-3">
-                        <span class="text-xl">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
+                      <!-- Case à cocher devant le rôle -->
+                      <input
+                        type="checkbox"
+                        :id="`availability-${role}-${selectedEvent?.id}`"
+                        :checked="selectedRoles.includes(role)"
+                        :disabled="role === 'benevole'"
+                        @change="toggleRoleSelection(role)"
+                        class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      
+                      <!-- Rôle avec emoji et nom -->
+                      <div class="flex items-center gap-2 flex-1">
+                        <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
                         <span class="text-sm font-medium text-gray-200">{{ getRoleLabelByGender(role, currentUserPlayer?.gender, false) || role }}</span>
+                        <span class="text-xs text-gray-400">({{ selectedEvent.roles[role] }} place{{ selectedEvent.roles[role] > 1 ? 's' : '' }})</span>
+                        <span v-if="role === 'benevole'" class="text-xs text-yellow-400">(obligatoire)</span>
                       </div>
-                      <div class="flex items-center gap-2">
-                        <span 
-                          class="text-sm font-medium px-3 py-1 rounded-full"
-                          :class="getChanceColorClass(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role))"
-                        >
-                          {{ formatChancePercentage(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role)) }}
-                        </span>
-                        <span 
-                          v-if="isPlayerSelectedForRole(currentUserPlayer.name, selectedEvent?.id, role)"
-                          class="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-300 border border-green-400/30"
-                        >
-                          Sélectionné
-                        </span>
-                      </div>
+                      
+                      <!-- Pourcentage de chances -->
+                      <span 
+                        class="text-sm font-medium px-2 py-1 rounded-full"
+                        :class="selectedRoles.includes(role)
+                          ? getChanceColorClass(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role))
+                          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'"
+                      >
+                        {{ formatChancePercentage(getPlayerRoleChance(currentUserPlayer.name, selectedEvent?.id, role)) }}
+                      </span>
                     </div>
                   </div>
                 </div>
                 
-                <!-- Message si aucun rôle choisi -->
-                <div v-else-if="getCurrentUserAvailabilityForEvent()?.available === true" class="bg-gray-700/30 rounded-lg p-4">
+                <!-- Champ commentaire -->
+                <div class="bg-gray-700/20 rounded p-3">
+                  <label for="comment-field" class="text-sm font-medium text-white mb-2 block">
+                    📝 Commentaire (optionnel)
+                  </label>
+                  <textarea
+                    id="comment-field"
+                    v-model="commentText"
+                    placeholder="Ajoutez un commentaire sur votre disponibilité..."
+                    class="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    rows="3"
+                  ></textarea>
+                </div>
+                
+                <!-- Bouton de sauvegarde -->
+                <div class="flex justify-center">
+                  <button
+                    @click="saveAllAvailability"
+                    :disabled="isSaving"
+                    class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  >
+                    <span v-if="isSaving">💾 Enregistrement...</span>
+                    <span v-else>💾 Enregistrer mes dispos</span>
+                  </button>
+                </div>
+                
+                <!-- Message si aucun rôle dans l'événement -->
+                <div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4">
                   <div class="text-center">
                     <div class="text-2xl mb-2">🎯</div>
                     <p class="text-sm text-gray-300">
-                      Aucun rôle spécifique choisi
+                      Événement sans rôles spécifiques
                     </p>
                     <p class="text-xs text-gray-400 mt-1">
                       Vous serez assigné selon les besoins de l'équipe
@@ -2122,6 +2155,89 @@ async function updateEventMonitoredState() {
 
 const seasonSlug = props.slug
 const seasonName = ref('')
+
+// Variables pour la gestion des disponibilités dans l'onglet Ma Dispo
+const selectedRoles = ref([])
+const commentText = ref('')
+const isSaving = ref(false)
+
+// Fonction pour initialiser les données de disponibilité
+function initializeAvailabilityData() {
+  if (!currentUserPlayer.value || !selectedEvent.value) return
+  
+  const availability = getCurrentUserAvailabilityForEvent()
+  selectedRoles.value = [...(availability?.roles || [])]
+  commentText.value = availability?.comment || ''
+  
+  // S'assurer que le rôle bénévole est toujours inclus s'il existe dans l'événement
+  if (selectedEvent.value.roles && selectedEvent.value.roles.benevole > 0 && !selectedRoles.value.includes('benevole')) {
+    selectedRoles.value.push('benevole')
+  }
+}
+
+// Fonction pour basculer la sélection d'un rôle
+function toggleRoleSelection(role) {
+  // Le rôle bénévole ne peut pas être décoché
+  if (role === 'benevole') {
+    return
+  }
+  
+  const index = selectedRoles.value.indexOf(role)
+  if (index > -1) {
+    selectedRoles.value.splice(index, 1)
+  } else {
+    selectedRoles.value.push(role)
+  }
+}
+
+// Fonction pour sauvegarder toutes les disponibilités
+async function saveAllAvailability() {
+  if (!currentUserPlayer.value || !selectedEvent.value || isSaving.value) return
+  
+  isSaving.value = true
+  
+  try {
+    const playerName = currentUserPlayer.value.name
+    const eventId = selectedEvent.value.id
+    
+    const newAvailabilityData = {
+      available: selectedRoles.value.length > 0,
+      roles: selectedRoles.value,
+      comment: commentText.value.trim() || null
+    }
+    
+    // Sauvegarder via le service de disponibilité (même logique que la modale)
+    const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+    await saveAvailabilityWithRoles({
+      seasonId: seasonId.value,
+      playerName: playerName,
+      eventId: eventId,
+      available: newAvailabilityData.available,
+      roles: newAvailabilityData.roles,
+      comment: newAvailabilityData.comment
+    })
+    
+    // Mettre à jour les données locales (même logique que la modale)
+    if (!availability.value[playerName]) {
+      availability.value[playerName] = {}
+    }
+    availability.value[playerName][eventId] = newAvailabilityData
+    
+    // Forcer le rechargement des disponibilités pour synchroniser avec le service
+    const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Forcer le re-render de AvailabilityCell
+    availabilityCellRefreshKey.value++
+    
+    console.log('✅ Disponibilités sauvegardées:', newAvailabilityData)
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde:', error)
+  } finally {
+    isSaving.value = false
+  }
+}
+
 const seasonId = ref('')
 const seasonMeta = ref({})
 
@@ -2797,6 +2913,15 @@ const availabilityCellRefreshKey = ref(0)
 
 // Onglet actif dans la modale de détails d'événement
 const eventDetailsActiveTab = ref('availability')
+
+// Watcher pour initialiser les données quand l'onglet Ma Dispo est ouvert
+watch([eventDetailsActiveTab, selectedEvent], () => {
+  if (eventDetailsActiveTab.value === 'availability' && selectedEvent.value) {
+    nextTick(() => {
+      initializeAvailabilityData()
+    })
+  }
+})
 
 // Watcher pour forcer la mise à jour de currentUserPlayer quand on va sur l'onglet availability
 watch(eventDetailsActiveTab, (newTab) => {
@@ -9442,7 +9567,51 @@ function getPlayerSelectedRoleChances(playerName, eventId) {
 function getPlayerRoleChance(playerName, eventId, role) {
   const allRoleChances = getPlayerRoleChances(eventId)
   const playerChances = allRoleChances[playerName] || {}
-  return playerChances[role] || 0
+  const chance = playerChances[role] || 0
+  
+  return chance
+}
+
+// Fonction pour basculer la disponibilité d'un rôle spécifique
+async function toggleRoleAvailability(role) {
+  if (!currentUserPlayer.value || !selectedEvent.value) return
+  
+  const playerName = currentUserPlayer.value.name
+  const eventId = selectedEvent.value.id
+  
+  // Récupérer les disponibilités actuelles
+  const currentAvailability = getCurrentUserAvailabilityForEvent()
+  const currentRoles = currentAvailability?.roles || []
+  
+  // Basculer le rôle
+  let newRoles
+  if (currentRoles.includes(role)) {
+    // Retirer le rôle
+    newRoles = currentRoles.filter(r => r !== role)
+  } else {
+    // Ajouter le rôle
+    newRoles = [...currentRoles, role]
+  }
+  
+  // Mettre à jour la disponibilité
+  const newAvailabilityData = {
+    available: newRoles.length > 0,
+    roles: newRoles,
+    comment: currentAvailability?.comment || null
+  }
+  
+  try {
+    // Sauvegarder via le service de disponibilité
+    const { savePlayerAvailability } = await import('../services/storage.js')
+    await savePlayerAvailability(playerName, eventId, newAvailabilityData)
+    
+    // Rafraîchir les données
+    await loadAvailabilityData()
+    
+    console.log('✅ Disponibilité mise à jour pour le rôle:', role, newAvailabilityData)
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour de la disponibilité:', error)
+  }
 }
 
 // Fonction pour obtenir le label d'un rôle selon le genre du joueur
