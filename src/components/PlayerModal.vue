@@ -141,13 +141,13 @@
               <div class="font-medium">{{ hoveredActivity.eventTitle }}</div>
               <div class="text-gray-300">{{ hoveredActivity.eventDate ? hoveredActivity.eventDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : 'N/A' }}</div>
               <div v-if="hoveredActivity.type === 'selection'">
-                {{ ROLE_LABELS_SINGULAR[hoveredActivity.role] || hoveredActivity.role }}
-                <span v-if="hoveredActivity.status === 'confirmed'">✅</span>
-                <span v-else-if="hoveredActivity.status === 'pending'">⏳</span>
-                <span v-else-if="hoveredActivity.status === 'declined'">❌</span>
+                {{ getRoleLabelByGender(hoveredActivity.role) }}
+                <span v-if="hoveredActivity.status === 'confirmed'"> - Confirmé</span>
+                <span v-else-if="hoveredActivity.status === 'pending'"> - En attente</span>
+                <span v-else-if="hoveredActivity.status === 'declined'"> - Décliné</span>
               </div>
               <div v-else-if="hoveredActivity.type === 'availability'">
-                {{ hoveredActivity.status === 'available' ? 'Disponible ✅' : 'Indisponible ❌' }}
+                {{ hoveredActivity.status === 'available' ? 'Disponible' : 'Indisponible' }}
               </div>
             </div>
             
