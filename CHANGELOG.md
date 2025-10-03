@@ -1,20 +1,25 @@
-## [0.22.0] - 2025-10-03
+## [0.23.0] - 2025-10-03
 
-### ✨ New Features
+### 🐛 Bug Fixes
 
-- feat: enhance player statistics with monthly activity chart and role-based display
+- fix: use gender-accorded role labels in tooltip
+- fix: resolve tooltip z-index issue with global positioning approach
+- fix: correct decline detection and standardize chart colors
 
 ### 🔧 Improvements
 
-- refactor: remove migration code for player protection data
+- improve: rename timeline view from 'Chronologique' to 'Agenda'
+- improve: rename protection button to 'Déprotéger' for consistency
+- improve: rename availability button to 'Planning' with calendar icon
 
 ### 📝 Other Changes
 
-- release: version 0.21.0
+- release: version 0.22.0
 
 
 # Changelog
 
+## [0.23.0] - 2025-10-03
 ## [0.22.0] - 2025-10-03
 ## [0.21.0] - 2025-10-02
 ## [0.20.1] - 2025-10-02

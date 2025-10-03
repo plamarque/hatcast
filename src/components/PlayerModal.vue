@@ -96,7 +96,7 @@
         <!-- Historique des sélections -->
         <div v-if="props.stats.monthlyActivityWithDetails && hasAnyActivity" class="mt-6">
           <h3 class="text-sm font-medium text-gray-300 mb-3">Ma saison en un clin d'œil</h3>
-        <div class="bg-gray-800/50 rounded-lg p-4">
+        <div class="bg-gray-800/50 rounded-lg p-4 relative">
           <div class="grid grid-cols-12 gap-2 items-end relative" :style="{ height: `${Math.max(128, maxActivityInMonth * 32 + 16)}px` }">
             <!-- Cases d'activité -->
             <div 
@@ -115,6 +115,8 @@
                     left: '50%',
                     transform: 'translateX(-50%)'
                   }"
+                  @mouseenter="hoveredActivity = activity"
+                  @mouseleave="hoveredActivity = null"
                 >
                   <!-- Case colorée selon le statut -->
                   <div 
@@ -126,22 +128,26 @@
                       {{ ROLE_EMOJIS[activity.role] || '🎭' }}
                     </span>
                   </div>
-                  
-                <!-- Tooltip au survol -->
-                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                  <div class="font-medium">{{ activity.eventTitle }}</div>
-                  <div class="text-gray-300">{{ activity.eventDate ? activity.eventDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : 'N/A' }}</div>
-                  <div v-if="activity.type === 'selection'">
-                    {{ ROLE_LABELS_SINGULAR[activity.role] || activity.role }}
-                    <span v-if="activity.status === 'confirmed'">✅</span>
-                    <span v-else-if="activity.status === 'pending'">⏳</span>
-                    <span v-else-if="activity.status === 'declined'">❌</span>
-                  </div>
-                  <div v-else-if="activity.type === 'availability'">
-                    {{ activity.status === 'available' ? 'Disponible ✅' : 'Indisponible ❌' }}
-                  </div>
                 </div>
-                </div>
+              </div>
+            </div>
+            
+            <!-- Tooltip global au survol -->
+            <div 
+              v-if="hoveredActivity" 
+              class="absolute bg-gray-900 text-white text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap z-[9999]"
+              :style="getTooltipPosition(hoveredActivity)"
+            >
+              <div class="font-medium">{{ hoveredActivity.eventTitle }}</div>
+              <div class="text-gray-300">{{ hoveredActivity.eventDate ? hoveredActivity.eventDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : 'N/A' }}</div>
+              <div v-if="hoveredActivity.type === 'selection'">
+                {{ getRoleLabelByGender(hoveredActivity.role) }}
+                <span v-if="hoveredActivity.status === 'confirmed'"> - Confirmé</span>
+                <span v-else-if="hoveredActivity.status === 'pending'"> - En attente</span>
+                <span v-else-if="hoveredActivity.status === 'declined'"> - Décliné</span>
+              </div>
+              <div v-else-if="hoveredActivity.type === 'availability'">
+                {{ hoveredActivity.status === 'available' ? 'Disponible' : 'Indisponible' }}
               </div>
             </div>
             
@@ -182,14 +188,14 @@
           <button @click="showProtectionModal = true" data-testid="protect-button" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
             <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
             <span>
-              {{ isProtectedForPlayer ? 'Désactiver la protection' : 'Protéger' }}
+              {{ isProtectedForPlayer ? 'Déprotéger' : 'Protéger' }}
             </span>
           </button>
           
-          <!-- Bouton Voir disponibilités -->
+          <!-- Bouton Planning -->
           <button @click="showAvailabilityGrid" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
-            <span>📊</span>
-            <span>Voir disponibilités</span>
+            <span>📅</span>
+            <span>Planning</span>
           </button>
           
           <!-- Bouton Fermer -->
@@ -208,7 +214,7 @@
           {{ isProtectedForPlayer ? '🔓' : '🔒' }}
         </button>
         <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1">
-          📊
+          📅
         </button>
         <button @click="closeModal" class="h-12 px-3 bg-gray-700 text-white rounded-lg flex-1">
           Fermer
@@ -508,23 +514,53 @@ const getMonthAbbrFromIndex = (displayIndex) => {
 const selectedSelection = ref(null)
 const showSelectionDetailsModal = ref(false)
 
+// Variable pour le tooltip au survol
+const hoveredActivity = ref(null)
+
+// Fonction pour calculer la position du tooltip
+const getTooltipPosition = (activity) => {
+  if (!activity) return {}
+  
+  // Trouver l'index du mois dans reorderedMonthlyData
+  const monthIndex = reorderedMonthlyData.value.findIndex(monthActivity => 
+    monthActivity.some(a => a === activity)
+  )
+  
+  if (monthIndex === -1) return {}
+  
+  // Calculer la position X (centre de la colonne)
+  const columnWidth = 100 / 12 // 12 colonnes
+  const leftPercent = (monthIndex * columnWidth) + (columnWidth / 2)
+  
+  // Calculer la position Y (au-dessus de la case)
+  const activityIndex = reorderedMonthlyData.value[monthIndex].findIndex(a => a === activity)
+  const bottomPx = activityIndex * 32 + 16 // 16px de marge + 32px par case
+  const topPx = Math.max(128, maxActivityInMonth.value * 32 + 16) - bottomPx + 8 // 8px de marge au-dessus
+  
+  return {
+    left: `${leftPercent}%`,
+    top: `${topPx}px`,
+    transform: 'translateX(-50%)'
+  }
+}
+
 // Fonction pour obtenir la couleur selon le type et statut
 const getStatusColor = (type, status) => {
   if (type === 'selection') {
     switch (status) {
-      case 'confirmed': return 'bg-gradient-to-br from-purple-500 to-purple-600'
-      case 'pending': return 'bg-gradient-to-br from-orange-500 to-orange-600'
-      case 'declined': return 'bg-gradient-to-br from-red-500 to-red-600'
-      default: return 'bg-gray-500'
+      case 'confirmed': return 'status-confirmed'
+      case 'pending': return 'status-pending'
+      case 'declined': return 'status-declined'
+      default: return 'status-undefined'
     }
   } else if (type === 'availability') {
     switch (status) {
-      case 'available': return 'bg-gradient-to-br from-green-500 to-emerald-600'
-      case 'unavailable': return 'bg-gradient-to-br from-red-500 to-red-600'
-      default: return 'bg-gray-400'
+      case 'available': return 'status-available'
+      case 'unavailable': return 'status-unavailable'
+      default: return 'status-undefined'
     }
   }
-  return 'bg-gray-500'
+  return 'status-undefined'
 }
 
 // Fonction pour obtenir le label de rôle accordé au genre du joueur
@@ -535,9 +571,9 @@ const getRoleLabelByGender = (role) => {
 
 // Fonction pour obtenir la couleur de disponibilité
 const getAvailabilityColor = (status) => {
-  if (status === 'available') return 'bg-gradient-to-br from-green-500 to-emerald-600'
-  if (status === 'unavailable') return 'bg-gradient-to-br from-red-500 to-red-600'
-  return 'bg-gradient-to-br from-gray-500 to-gray-600'
+  if (status === 'available') return 'status-available'
+  if (status === 'unavailable') return 'status-unavailable'
+  return 'status-undefined'
 }
 
 // Fonction pour afficher les détails d'une activité

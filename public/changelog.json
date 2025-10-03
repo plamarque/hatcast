@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.23.0",
+    "date": "2025-10-03",
+    "changes": [
+      "🐛 Correction des étiquettes de rôle dans les infobulles pour qu'elles soient accordées au genre.",
+      "🐛 Résolution du problème de z-index des infobulles avec l'approche de positionnement global.",
+      "🐛 Correction de la détection de refus et standardisation des couleurs des graphiques.",
+      "🔧 Changement du nom de la vue chronologique en 'Agenda'.",
+      "🔧 Changement du nom du bouton de protection en 'Déprotéger' pour plus de cohérence.",
+      "🔧 Changement du nom du bouton de disponibilité en 'Planning' avec une icône de calendrier."
+    ]
+  },
+  {
     "version": "0.22.0",
     "date": "2025-10-03",
     "changes": [
