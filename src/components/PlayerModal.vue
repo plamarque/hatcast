@@ -512,19 +512,19 @@ const showSelectionDetailsModal = ref(false)
 const getStatusColor = (type, status) => {
   if (type === 'selection') {
     switch (status) {
-      case 'confirmed': return 'bg-gradient-to-br from-purple-500 to-purple-600'
-      case 'pending': return 'bg-gradient-to-br from-orange-500 to-orange-600'
-      case 'declined': return 'bg-gradient-to-br from-red-500 to-red-600'
-      default: return 'bg-gray-500'
+      case 'confirmed': return 'status-confirmed'
+      case 'pending': return 'status-pending'
+      case 'declined': return 'status-declined'
+      default: return 'status-undefined'
     }
   } else if (type === 'availability') {
     switch (status) {
-      case 'available': return 'bg-gradient-to-br from-green-500 to-emerald-600'
-      case 'unavailable': return 'bg-gradient-to-br from-red-500 to-red-600'
-      default: return 'bg-gray-400'
+      case 'available': return 'status-available'
+      case 'unavailable': return 'status-unavailable'
+      default: return 'status-undefined'
     }
   }
-  return 'bg-gray-500'
+  return 'status-undefined'
 }
 
 // Fonction pour obtenir le label de rôle accordé au genre du joueur
@@ -535,9 +535,9 @@ const getRoleLabelByGender = (role) => {
 
 // Fonction pour obtenir la couleur de disponibilité
 const getAvailabilityColor = (status) => {
-  if (status === 'available') return 'bg-gradient-to-br from-green-500 to-emerald-600'
-  if (status === 'unavailable') return 'bg-gradient-to-br from-red-500 to-red-600'
-  return 'bg-gradient-to-br from-gray-500 to-gray-600'
+  if (status === 'available') return 'status-available'
+  if (status === 'unavailable') return 'status-unavailable'
+  return 'status-undefined'
 }
 
 // Fonction pour afficher les détails d'une activité

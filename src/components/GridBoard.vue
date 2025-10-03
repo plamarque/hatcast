@@ -8674,13 +8674,27 @@ function getMonthlyActivityWithDetails(playerName) {
     let role = null
     
     if (cast) {
-      // D'abord vérifier s'il y a des déclins dans l'ancienne structure
-      if (cast.declined && Array.isArray(cast.declined) && cast.declined.includes(player.id)) {
+      // D'abord vérifier s'il y a des déclins dans la nouvelle structure declined
+      let hasDeclined = false
+      if (cast.declined) {
+        Object.entries(cast.declined).forEach(([roleKey, playerIds]) => {
+          if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+            hasDeclined = true
+            selectionStatus = 'declined'
+            role = roleKey
+          }
+        })
+      }
+      
+      // Fallback sur l'ancienne structure playerStatuses
+      if (!hasDeclined && cast.playerStatuses && cast.playerStatuses[player.id] === 'declined') {
+        hasDeclined = true
         selectionStatus = 'declined'
         role = 'player' // Rôle par défaut pour les déclins
       }
+      
       // Sinon vérifier dans la nouvelle structure multi-rôles
-      else if (cast.roles) {
+      if (!hasDeclined && cast.roles) {
         Object.entries(cast.roles).forEach(([roleKey, playerIds]) => {
           if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
             role = roleKey
