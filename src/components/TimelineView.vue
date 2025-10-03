@@ -44,8 +44,8 @@
           
           <!-- Contenu de l'événement -->
           <div class="event-content flex-1 flex items-center gap-2 md:gap-4 min-w-0">
-            <!-- Icône du type d'événement centrée verticalement dans toute la zone (masquée sur mobile) -->
-            <div class="event-icon flex-shrink-0 text-xl flex items-center h-16 hidden md:flex">
+            <!-- Icône du type d'événement centrée verticalement dans toute la zone -->
+            <div class="event-icon flex-shrink-0 text-xl flex items-center h-16">
               {{ getEventTypeIcon(event) }}
             </div>
             
@@ -68,7 +68,7 @@
               </div>
               <div 
                 v-if="event.location" 
-                class="text-xs truncate mt-1"
+                class="text-xs truncate mt-1 hidden md:block"
                 :class="[
                   event._isArchived 
                     ? 'text-gray-500' 
