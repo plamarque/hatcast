@@ -29,12 +29,12 @@
 
     <!-- Header sticky avec dropdown de vue et sélecteurs -->
     <ViewHeader
-      v-if="validCurrentView === 'events' || validCurrentView === 'participants'"
+      v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline'"
       :current-view="validCurrentView"
-      :show-player-selector="true"
-      :selected-player="selectedPlayer"
+      :show-player-selector="validCurrentView === 'timeline' ? true : true"
+      :selected-player="validCurrentView === 'timeline' ? selectedPlayerForTimeline : selectedPlayer"
       :season-id="seasonId"
-      :show-event-selector="true"
+      :show-event-selector="validCurrentView === 'timeline' ? false : true"
       :selected-event="selectedEventForFilter"
       :events="events"
       :is-sticky="true"
@@ -172,19 +172,6 @@
                 </div>
                 
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
-      <!-- Header sticky pour la vue chronologique -->
-      <ViewHeader
-        :current-view="validCurrentView"
-        :show-player-selector="true"
-        :selected-player="selectedPlayer"
-        :season-id="seasonId"
-        :show-event-selector="true"
-        :selected-event="selectedEventForFilter"
-        :events="events"
-        @view-change="selectView"
-        @player-modal-toggle="togglePlayerModal"
-        @event-modal-toggle="toggleEventModal"
-      />
       
       <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
@@ -194,7 +181,7 @@
         :availability="availability"
         :casts="casts"
         :season-id="seasonId"
-        :selected-player-id="selectedPlayerId"
+        :selected-player-id="selectedPlayerForTimeline?.id || selectedPlayerId"
         :selected-event-id="selectedEventId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-available="isAvailable"
@@ -2156,6 +2143,7 @@ const validCurrentView = computed(() => {
 
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
+const selectedPlayerForTimeline = ref(null)
 
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
@@ -2395,71 +2383,31 @@ function addNewPlayerFromShowMore() {
 // Fonction pour gérer l'affichage des disponibilités d'un joueur
 async function handleShowAvailabilityGrid(playerId) {
   try {
-    logger.debug('🔄 Affichage focalisé du joueur:', playerId)
-    
-    // Sauvegarder les joueurs originaux si ce n'est pas déjà fait
-    if (!isFocusedView.value) {
-      originalPlayers.value = [...players.value]
-    }
+    logger.debug('🔄 Affichage de l\'agenda du joueur:', playerId)
     
     // Trouver le joueur sélectionné
-    const selectedPlayer = players.value.find(p => p.id === playerId)
+    const selectedPlayer = allSeasonPlayers.value.find(p => p.id === playerId)
     if (!selectedPlayer) {
       logger.error('Joueur non trouvé:', playerId)
       return
     }
     
-    // Créer une liste focalisée : favoris + joueur sélectionné
-    const focusedPlayers = []
+    // Changer vers la vue Agenda (timeline)
+    selectView('timeline')
     
-    // Ajouter les favoris
-    if (currentUser.value?.email && preferredPlayerIdsSet.value.size > 0) {
-      const favorites = originalPlayers.value.filter(p => preferredPlayerIdsSet.value.has(p.id))
-      focusedPlayers.push(...favorites)
-    }
-    
-    // Ajouter le joueur sélectionné s'il n'est pas déjà dans les favoris
-    if (!preferredPlayerIdsSet.value.has(playerId)) {
-      focusedPlayers.push(selectedPlayer)
-    }
-    
-    // Mettre à jour la liste des joueurs affichés
-    players.value = focusedPlayers
-    
-    // Recharger les disponibilités pour les joueurs focalisés
-    const newAvailability = await loadAvailability(focusedPlayers, events.value, seasonId.value)
-    availability.value = newAvailability
-    
-    // Mettre à jour les états de chargement
-    focusedPlayers.forEach(player => {
-      playerLoadingStates.value.set(player.id, 'loaded')
-    })
-    
-    // Marquer le joueur sélectionné comme mis en avant
-    highlightedPlayer.value = playerId
-    
-    // Activer le mode vue focalisée
-    isFocusedView.value = true
+    // Définir le joueur sélectionné pour la vue Agenda
+    selectedPlayerForTimeline.value = selectedPlayer
     
     // Fermer la modale de joueur
     closePlayerDetailsModal()
     
-    // Faire défiler vers le joueur mis en avant
-    nextTick(() => {
-      const playerElement = document.querySelector(`[data-player-id="${playerId}"]`)
-      if (playerElement) {
-        playerElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    })
-    
-    logger.debug('✅ Affichage focalisé activé:', {
-      joueur: selectedPlayer?.name || 'Tous',
-      totalJoueurs: focusedPlayers.length,
-      favoris: focusedPlayers.filter(p => preferredPlayerIdsSet.value.has(p.id)).length
+    logger.debug('✅ Vue Agenda activée pour le joueur:', {
+      joueur: selectedPlayer?.name,
+      joueurId: playerId
     })
     
   } catch (error) {
-    logger.error('❌ Erreur lors de l\'affichage focalisé:', error)
+    logger.error('❌ Erreur lors de l\'affichage de l\'agenda:', error)
   }
 }
 // Fonction pour revenir à la vue complète
@@ -3009,6 +2957,11 @@ function selectView(view) {
   
   currentView.value = validView
   
+  // Réinitialiser le joueur sélectionné pour la timeline si on change de vue
+  if (validView !== 'timeline') {
+    selectedPlayerForTimeline.value = null
+  }
+  
   // Sauvegarder la préférence dans le localStorage
   localStorage.setItem('hatcast-view-preference', validView)
   
@@ -3050,10 +3003,11 @@ async function handlePlayerSelected(player) {
   // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
+    selectedPlayerForTimeline.value = player
     showPlayerModal.value = false
     
     console.log('🎯 After: selectedPlayerId =', selectedPlayerId.value)
-    console.log('🎯 selectedPlayer computed should be:', selectedPlayer.value ? { id: selectedPlayer.value.id, name: selectedPlayer.value.name } : null)
+    console.log('🎯 selectedPlayerForTimeline =', selectedPlayerForTimeline.value ? { id: selectedPlayerForTimeline.value.id, name: selectedPlayerForTimeline.value.name } : null)
     
     // Charger les disponibilités pour ce joueur spécifique
     try {
