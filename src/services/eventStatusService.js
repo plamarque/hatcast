@@ -117,53 +117,89 @@ export function getEventStatusWithSelection(event, options = {}) {
 }
 
 /**
- * Obtient le label du statut pour l'affichage
+ * Mappe les anciens statuts vers les 3 nouveaux statuts simplifiés
  * @param {string} status - Le statut de l'événement
+ * @returns {string} Le nouveau statut simplifié
+ */
+export function mapToSimplifiedStatus(status) {
+  // 1. Collecte des dispos (Cyan) - Phase de récolte des disponibilités
+  // Inclut tous les cas où il n'y a pas encore de composition définie
+  if (['ready', 'Tous disponibles', 'Aucune disponibilité', 'Non renseigné', 'missing', 'insufficient'].includes(status)) {
+    return 'collecting'
+  }
+  
+  // Si c'est un format "X dispo", c'est aussi de la collecte
+  if (typeof status === 'string' && status.includes('dispo')) {
+    return 'collecting'
+  }
+  
+  // 2. Équipe en préparation (Orange/Jaune) - Phase de composition instable
+  // Quand on a commencé à composer mais que ce n'est pas verrouillé
+  if (['incomplete', 'complete', 'pending_confirmation'].includes(status)) {
+    return 'preparing'
+  }
+  
+  // 3. Équipe confirmée (Vert) - Phase finale verrouillée
+  if (status === 'confirmed') {
+    return 'confirmed'
+  }
+  
+  // Par défaut, considérer comme collecte
+  return 'collecting'
+}
+
+/**
+ * Obtient le label du statut simplifié pour l'affichage
+ * @param {string} status - Le statut de l'événement (ancien ou nouveau)
  * @returns {string} Le label à afficher
  */
 export function getStatusLabel(status) {
-  switch (status) {
-    case 'confirmed': return 'Confirmé'
-    case 'pending_confirmation': return 'À confirmer'
-    case 'complete': return 'Complet'
-    case 'incomplete': return 'Incomplet'
-    case 'insufficient': return 'Pas assez de joueurs'
-    case 'missing': return 'Manquants'
-    case 'ready': return 'Prêt'
-    case 'Non renseigné': return 'Non renseigné'
-    case 'Aucune disponibilité': return 'Aucune disponibilité'
-    case 'Tous disponibles': return 'Tous disponibles'
-    default: 
-      // Si c'est un format "X dispo", le retourner tel quel
-      if (typeof status === 'string' && status.includes('dispo')) {
-        return status
-      }
-      return 'Prêt'
+  const simplifiedStatus = mapToSimplifiedStatus(status)
+  
+  switch (simplifiedStatus) {
+    case 'collecting': return 'Collecte des dispos'
+    case 'preparing': return 'Équipe en préparation'
+    case 'confirmed': return 'Équipe confirmée'
+    default: return 'Collecte des dispos'
   }
 }
 
 /**
- * Obtient la couleur du statut pour l'affichage
- * @param {string} status - Le statut de l'événement
+ * Obtient le label court du statut simplifié pour les espaces restreints
+ * @param {string} status - Le statut de l'événement (ancien ou nouveau)
+ * @returns {string} Le label court à afficher
+ */
+export function getShortStatusLabel(status) {
+  const simplifiedStatus = mapToSimplifiedStatus(status)
+  
+  switch (simplifiedStatus) {
+    case 'collecting': return 'Collecte'
+    case 'preparing': return 'Préparation'
+    case 'confirmed': return 'Confirmé'
+    default: return 'Collecte'
+  }
+}
+
+/**
+ * Obtient la couleur du statut simplifié pour l'affichage
+ * @param {string} status - Le statut de l'événement (ancien ou nouveau)
  * @returns {string} Les classes CSS pour la couleur
  */
 export function getStatusColor(status) {
-  switch (status) {
-    case 'confirmed': return 'text-green-400 bg-green-900/30'
-    case 'pending_confirmation': return 'text-yellow-400 bg-yellow-900/30'
-    case 'complete': return 'text-blue-400 bg-blue-900/30'
-    case 'incomplete': return 'text-orange-400 bg-orange-900/30'
-    case 'insufficient': return 'text-red-400 bg-red-900/30'
-    case 'missing': return 'text-orange-400 bg-orange-900/30'
-    case 'ready': return 'text-cyan-400 bg-cyan-900/30'
-    case 'Non renseigné': return 'text-gray-400 bg-gray-900/30'
-    case 'Aucune disponibilité': return 'text-red-400 bg-red-900/30'
-    case 'Tous disponibles': return 'text-green-400 bg-green-900/30'
+  const simplifiedStatus = mapToSimplifiedStatus(status)
+  
+  switch (simplifiedStatus) {
+    case 'collecting': 
+      // Cyan clair - Collecte des dispos
+      return 'text-cyan-300 bg-cyan-900/30'
+    case 'preparing': 
+      // Orange/Jaune - Équipe en préparation
+      return 'text-orange-300 bg-orange-900/30'
+    case 'confirmed': 
+      // Vert - Équipe confirmée
+      return 'text-green-300 bg-green-900/30'
     default: 
-      // Si c'est un format "X dispo", utiliser la couleur verte
-      if (typeof status === 'string' && status.includes('dispo')) {
-        return 'text-green-400 bg-green-900/30'
-      }
-      return 'text-gray-400 bg-gray-900/30'
+      // Par défaut, cyan pour la collecte
+      return 'text-cyan-300 bg-cyan-900/30'
   }
 }

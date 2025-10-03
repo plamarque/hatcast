@@ -40,7 +40,7 @@
         <div class="flex flex-col items-center space-y-1 w-full">
           <!-- Emoji et titre empilés -->
           <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
-            <span class="text-lg">{{ getEventIcon(item) }}</span>
+            <span class="text-sm">{{ getEventIcon(item) }}</span>
             <span 
               class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
               :class="[
@@ -100,7 +100,9 @@
               :player-gender="player.gender || 'non-specified'"
               :show-status-icons="true"
               :size="'lg'"
+              :clickable="true"
               class="!w-10 !h-10"
+              @click="showPlayerDetails(player)"
             />
             <span class="text-white font-medium text-sm cursor-pointer hover:text-blue-400 transition-colors" @click="showPlayerDetails(player)">{{ player.name }}</span>
           </div>

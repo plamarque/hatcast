@@ -105,12 +105,18 @@ export function getAvailabilityData(playerName, eventId, playerAvailability, opt
   
   // Si on est sélectionné (avec ou sans validation par l'organisateur) OU si on est dans les déclinés
   if ((selectionRole && isSelectionValidated) || declinedRole || (selectionRole && selectionStatus)) {
+    // Préserver les rôles de disponibilité originaux + ajouter le rôle sélectionné
+    const originalRoles = availabilityData?.roles || []
+    const selectedRole = selectionRole || declinedRole
+    const allRoles = [...new Set([...originalRoles, selectedRole])] // Éviter les doublons
+    
     return {
       available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
-      roles: [selectionRole || declinedRole],
+      roles: allRoles,
       comment: availabilityData?.comment || null,
       isSelectionDisplay: true,
-      selectionStatus: selectionStatus
+      selectionStatus: selectionStatus,
+      selectedRole: selectedRole // Garder une référence au rôle sélectionné
     }
   }
   

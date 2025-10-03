@@ -1,24 +1,27 @@
-## [0.23.0] - 2025-10-03
+## [0.24.0] - 2025-10-03
 
-### 🐛 Bug Fixes
+### ✨ New Features
 
-- fix: use gender-accorded role labels in tooltip
-- fix: resolve tooltip z-index issue with global positioning approach
-- fix: correct decline detection and standardize chart colors
-
-### 🔧 Improvements
-
-- improve: rename timeline view from 'Chronologique' to 'Agenda'
-- improve: rename protection button to 'Déprotéger' for consistency
-- improve: rename availability button to 'Planning' with calendar icon
+- feat: improve role management and UI consistency
+- feat: add comprehensive availability management in Ma Dispo tab
+- feat: improve Ma Dispo tab layout and add quick access
+- feat: hide location on mobile and reintroduce event type emoji
+- feat: optimize mobile spacing in timeline view
+- feat: improve text alignment and badge centering in participant views
+- feat: simplify event status system to 3 clear categories
+- feat: add contextual instructions in timeline view
+- feat: bouton Planning redirige vers Agenda avec filtrage par participant
+- feat: add dropdown menu to player modal
+- feat: invert protection display logic and add custom tooltips
 
 ### 📝 Other Changes
 
-- release: version 0.22.0
+- release: version 0.23.0
 
 
 # Changelog
 
+## [0.24.0] - 2025-10-03
 ## [0.23.0] - 2025-10-03
 ## [0.22.0] - 2025-10-03
 ## [0.21.0] - 2025-10-02

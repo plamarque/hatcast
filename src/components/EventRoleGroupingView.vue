@@ -84,13 +84,17 @@
                 >
                   ⭐
                 </span>
-                <span
-                  v-else-if="isPlayerProtectedInGrid(player.id)"
-                  class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                  title="Personne protégée par mot de passe"
-                >
-                  🔒
-                </span>
+                <div class="absolute -top-1 -right-1">
+                  <CustomTooltip
+                    v-if="!isPlayerProtectedInGrid(player.id)"
+                    :content="getUnprotectedPlayerTooltip(player)"
+                    position="bottom"
+                  >
+                    <span class="text-orange-400 text-xs">
+                      ⚠️
+                    </span>
+                  </CustomTooltip>
+                </div>
               </div>
 
               <!-- Nom du joueur -->
@@ -175,6 +179,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import CompositionSlot from './CompositionSlot.vue'
+import CustomTooltip from './CustomTooltip.vue'
 import { 
   ROLES, 
   ROLE_EMOJIS, 
@@ -615,6 +620,12 @@ async function handleSlotClick(player, role) {
   } else {
     console.warn('openConfirmationModal function not available')
   }
+}
+
+// Fonction pour générer le tooltip d'avertissement pour les joueurs non-protégés
+function getUnprotectedPlayerTooltip(player) {
+  return `⚠️ ${player.name} non protégé
+Disponibilités modifiables par tous`
 }
 
 </script>

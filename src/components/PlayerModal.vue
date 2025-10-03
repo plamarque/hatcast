@@ -25,25 +25,57 @@
             <div class="flex items-center gap-3 mb-2">
               <h2 class="text-xl md:text-2xl font-bold text-white leading-tight">{{ player?.name }}</h2>
               
-              <!-- Icône Modifier (visible seulement pour les admins) -->
-              <button
-                v-if="canEditPlayers"
-                @click="startEditing"
-                class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
-                title="Modifier cette personne"
-              >
-                <span class="text-lg">✏️</span>
-              </button>
-              
-              <!-- Icône Supprimer (visible seulement pour les admins) -->
-              <button
-                v-if="canEditPlayers"
-                @click="handleDelete"
-                class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
-                title="Supprimer cette personne"
-              >
-                <span class="text-lg">🗑️</span>
-              </button>
+              <!-- Dropdown des actions -->
+              <div v-if="canEditPlayers" class="relative">
+                <button
+                  @click="showPlayerActionsDropdown = !showPlayerActionsDropdown"
+                  class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
+                  title="Actions du joueur"
+                >
+                  <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showPlayerActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                
+                <!-- Menu dropdown -->
+                <div v-if="showPlayerActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                  
+                  <!-- Actions admin -->
+                  <!-- En-tête admin -->
+                  <div class="px-3 py-1 text-xs text-gray-400 font-medium">
+                    Actions administrateur
+                  </div>
+                  
+                  <!-- Action Modifier -->
+                  <button
+                    @click="startEditing(); showPlayerActionsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>✏️</span>
+                    <span>Modifier</span>
+                  </button>
+                  
+                  <!-- Action Protéger/Déprotéger -->
+                  <button
+                    @click="showProtectionModal = true; showPlayerActionsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
+                    :class="isProtectedForPlayer ? 'text-green-400' : 'text-yellow-400'"
+                    :title="`État: ${isProtectedForPlayer ? 'protégé' : 'non protégé'}`"
+                  >
+                    <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
+                    <span>{{ isProtectedForPlayer ? 'Déprotéger' : 'Protéger' }}</span>
+                  </button>
+                  
+                  <!-- Action Supprimer -->
+                  <button
+                    @click="handleDelete(); showPlayerActionsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
+                  >
+                    <span>🗑️</span>
+                    <span>Supprimer</span>
+                  </button>
+                </div>
+              </div>
             </div>
             
             <!-- Indicateurs de statut - déplacés sous le nom -->
@@ -184,14 +216,6 @@
 
         <!-- Actions desktop -->
         <div class="hidden md:flex justify-center flex-wrap gap-3 mt-6">
-          <!-- Boutons principaux -->
-          <button @click="showProtectionModal = true" data-testid="protect-button" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
-            <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
-            <span>
-              {{ isProtectedForPlayer ? 'Déprotéger' : 'Protéger' }}
-            </span>
-          </button>
-          
           <!-- Bouton Planning -->
           <button @click="showAvailabilityGrid" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
             <span>📅</span>
@@ -210,9 +234,6 @@
 
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="showProtectionModal = true" data-testid="protect-button" class="h-12 px-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-1">
-          {{ isProtectedForPlayer ? '🔓' : '🔒' }}
-        </button>
         <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1">
           📅
         </button>
@@ -409,7 +430,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch, onMounted } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
@@ -609,6 +630,7 @@ const showProtectionModal = ref(false)
 const showPasswordVerification = ref(false)
 const pendingAction = ref(null) // 'update' ou 'delete'
 const showMoreActions = ref(false)
+const showPlayerActionsDropdown = ref(false)
 const editNameError = ref('')
 const isEditSessionVerified = ref(false) // Mémorise si la vérification a été faite pour cette session d'édition
 const isProtectedForPlayer = ref(false)
@@ -624,6 +646,13 @@ const protectionCoachmark = ref({ position: null })
 // Fonctions de gestion
 function closeModal() {
   emit('close')
+}
+
+// Fermer le dropdown des actions quand on clique en dehors
+function handleClickOutside(event) {
+  if (showPlayerActionsDropdown.value && !event.target.closest('.relative')) {
+    showPlayerActionsDropdown.value = false
+  }
 }
 
 function showAvailabilityGrid() {
@@ -811,6 +840,7 @@ watch(() => props.show, (newValue) => {
     editingName.value = ''
     pendingAction.value = null
     isEditSessionVerified.value = false
+    showPlayerActionsDropdown.value = false
     // Sécurité: s'assurer que le sous-modal protection est bien fermé
     showProtectionModal.value = false
   }
@@ -882,6 +912,13 @@ async function checkPermissions() {
 // Initialisation
 onMounted(() => {
   checkPermissions();
+  // Ajouter l'écouteur pour fermer le dropdown en cliquant en dehors
+  document.addEventListener('click', handleClickOutside);
+});
+
+// Nettoyage
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 
 // Re-vérifier les permissions à chaque ouverture du modal
