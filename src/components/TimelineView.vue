@@ -223,6 +223,13 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- Instruction contextuelle (affichée dans tous les cas) -->
+              <div class="mt-1 text-center">
+                <div class="text-xs text-gray-400 px-1">
+                  {{ getPlayerInstruction(selectedPlayer?.name, event.id) }}
+                </div>
+              </div>
               </div>
           </div>
         </div>
@@ -742,6 +749,90 @@ export default {
       return selectionPlayers && selectionPlayers.length > 0
     }
     
+    // Fonction pour obtenir l'instruction contextuelle du joueur
+    const getPlayerInstruction = (playerName, eventId) => {
+      if (!eventId) return ''
+      
+      // Si aucun joueur n'est sélectionné, afficher une instruction générale
+      if (!playerName) {
+        const eventStatus = getEventStatus(eventId)
+        switch (eventStatus) {
+          case 'confirmed':
+            return 'Composition confirmée'
+          case 'pending_confirmation':
+            return 'En attente de confirmation'
+          case 'complete':
+            return 'Composition complète'
+          case 'incomplete':
+            return 'Composition incomplète'
+          case 'insufficient':
+            return 'Pas assez de joueurs'
+          case 'missing':
+            return 'Joueurs manquants'
+          case 'ready':
+            return 'Prêt pour sélection'
+          default:
+            return 'Sélection en cours'
+        }
+      }
+      
+      const isSelected = props.isPlayerSelected(playerName, eventId)
+      const isSelectionConfirmed = props.isSelectionConfirmed(eventId)
+      const isSelectionConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer(eventId)
+      const playerSelectionStatus = props.getPlayerSelectionStatus(playerName, eventId)
+      const eventStatus = getEventStatus(eventId)
+      
+      // Si la composition est confirmée et le joueur est dedans
+      if (isSelectionConfirmed && isSelected) {
+        // Récupérer le rôle du joueur dans la composition
+        const cast = props.casts?.[eventId]
+        if (cast && cast.teamSlots) {
+          const playerSlot = cast.teamSlots.find(slot => slot.player === playerName)
+          if (playerSlot && playerSlot.role) {
+            const roleEmoji = getRoleEmoji(playerSlot.role)
+            return `Tu seras ${roleEmoji} ${getRoleLabel(playerSlot.role)}`
+          }
+        }
+        return 'Tu participes'
+      }
+      
+      // Si la composition est confirmée et le joueur n'est pas dedans
+      if (isSelectionConfirmed && !isSelected) {
+        return 'Tu ne participes pas'
+      }
+      
+      // Si le joueur a été sélectionné mais pas encore confirmé
+      if (isSelected && !isSelectionConfirmed) {
+        return 'Confirme ta participation'
+      }
+      
+      // Si le joueur n'est pas sélectionné et qu'on a besoin de sa disponibilité
+      if (!isSelected && (eventStatus === 'ready' || eventStatus === 'missing' || eventStatus === 'insufficient')) {
+        return 'Indique ta dispo'
+      }
+      
+      // Si le joueur n'est pas sélectionné
+      if (!isSelected) {
+        return 'Tu n\'es pas sélectionné'
+      }
+      
+      return ''
+    }
+    
+    // Fonction pour obtenir l'emoji d'un rôle
+    const getRoleEmoji = (roleName) => {
+      const roleEmojis = {
+        'player': '⚽',
+        'goalkeeper': '🥅',
+        'defender': '🛡️',
+        'midfielder': '⚡',
+        'forward': '🎯',
+        'captain': '👑',
+        'substitute': '🔄'
+      }
+      return roleEmojis[roleName] || '⚽'
+    }
+
     // Handler pour le clic sur les avatars
     const handleAvatarClick = (event, clickEvent) => {
       // Empêcher la propagation vers le clic de l'événement parent
@@ -774,6 +865,7 @@ export default {
       getPlayerTooltip,
       getRoleLabel,
       isPlayerInEventTeam,
+      getPlayerInstruction,
       
       // Fonctions pour la disponibilité
       isAvailable,
