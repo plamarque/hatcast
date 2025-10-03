@@ -67,9 +67,15 @@
               <div class="text-white font-medium">{{ player.name }}</div>
               <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
                 <span>{{ getPlayerStats(player) }}</span>
-                <span v-if="isPlayerProtected(player.id)" class="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-400/30 rounded" title="Joueur protégé">
-                  🔒 Protégé
-                </span>
+                <CustomTooltip
+                  v-if="!isPlayerProtected(player.id)"
+                  :content="getUnprotectedPlayerTooltip(player)"
+                  position="top"
+                >
+                  <span class="text-xs px-1.5 py-0.5 bg-orange-500/20 text-orange-300 border border-orange-400/30 rounded cursor-help">
+                    ⚠️ Non protégé
+                  </span>
+                </CustomTooltip>
               </div>
             </div>
           </div>
@@ -98,11 +104,13 @@
 <script>
 import { ref, computed, nextTick, watch } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+import CustomTooltip from './CustomTooltip.vue'
 
 export default {
   name: 'PlayerSelectorModal',
   components: {
-    PlayerAvatar
+    PlayerAvatar,
+    CustomTooltip
   },
   props: {
     show: {
@@ -225,6 +233,12 @@ export default {
       }
     })
 
+    // Fonction pour générer le tooltip d'avertissement pour les joueurs non-protégés
+    const getUnprotectedPlayerTooltip = (player) => {
+      return `⚠️ ${player.name} non protégé
+Disponibilités modifiables par tous`
+    }
+
     return {
       searchQuery,
       searchInput,
@@ -234,7 +248,8 @@ export default {
       selectAllPlayers,
       addNewPlayer,
       isPlayerAlreadyDisplayed,
-      getPlayerStats
+      getPlayerStats,
+      getUnprotectedPlayerTooltip
     }
   }
 }

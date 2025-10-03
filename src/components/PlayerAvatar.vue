@@ -1,7 +1,8 @@
 <template>
   <div 
-    :class="containerClass"
+    :class="[containerClass, { 'cursor-pointer hover:opacity-80 transition-opacity': clickable }]"
     class="relative overflow-visible flex items-center justify-center"
+    @click="handleClick"
   >
     <!-- User Avatar (if player is associated) -->
     <img 
@@ -54,14 +55,18 @@
         ⭐
       </span>
       
-      <!-- Indicateur de protection -->
-      <span 
-        v-else-if="isProtectedEffective"
-        class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
-        title="Personne protégée par mot de passe"
-      >
-        🔒
-      </span>
+      <!-- Indicateur de joueur non-protégé avec tooltip personnalisé -->
+      <div class="absolute -top-1 -right-1">
+        <CustomTooltip
+          v-if="!isProtectedEffective"
+          :content="warningTooltip"
+          position="bottom"
+        >
+          <span class="text-orange-400 text-sm">
+            ⚠️
+          </span>
+        </CustomTooltip>
+      </div>
     </template>
   </div>
 </template>
@@ -71,8 +76,9 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 import { isPlayerProtected } from '../services/players.js'
 import logger from '../services/logger.js'
+import CustomTooltip from './CustomTooltip.vue'
 
-const emit = defineEmits(['avatar-loaded', 'avatar-error'])
+const emit = defineEmits(['avatar-loaded', 'avatar-error', 'click'])
 
 const props = defineProps({
   playerId: {
@@ -111,6 +117,10 @@ const props = defineProps({
     default: false
   },
   isProtected: {
+    type: Boolean,
+    default: false
+  },
+  clickable: {
     type: Boolean,
     default: false
   }
@@ -337,6 +347,19 @@ onUnmounted(() => {
 const isProtectedEffective = computed(() => {
   return props.isProtected || isProtectedInternal.value
 })
+
+// Tooltip d'avertissement pour les joueurs non-protégés
+const warningTooltip = computed(() => {
+  return `⚠️ Participant non protégé
+Disponibilités modifiables par tous`
+})
+
+// Gestion du clic sur l'avatar
+function handleClick(event) {
+  if (props.clickable) {
+    emit('click', event)
+  }
+}
 </script>
 
 <style scoped>

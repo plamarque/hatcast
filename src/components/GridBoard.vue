@@ -372,10 +372,16 @@
                      <span v-if="preferredPlayerIdsSet.has(player.id)" class="text-yellow-400 text-lg" title="Favori">
                        ⭐
                      </span>
-                     <!-- Icône cadenas (joueur protégé) -->
-                     <span v-else-if="isPlayerProtectedInGrid(player.id)" class="text-yellow-400 text-lg" title="Protégé">
-                       🔒
-                     </span>
+                     <!-- Icône d'avertissement (joueur non-protégé) avec tooltip personnalisé -->
+                     <CustomTooltip
+                       v-else-if="!isPlayerProtectedInGrid(player.id)"
+                       :content="getUnprotectedPlayerTooltip(player)"
+                       position="bottom"
+                     >
+                       <span class="text-orange-400 text-lg cursor-help">
+                         ⚠️
+                       </span>
+                     </CustomTooltip>
                    </div>
                  </div>
           
@@ -1890,6 +1896,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
@@ -10827,6 +10834,12 @@ async function handleAvailabilityRequestEdit() {
     // Joueur non protégé, basculer directement en mode édition
     availabilityModalData.value.isReadOnly = false
   }
+}
+
+// Fonction pour générer le tooltip d'avertissement pour les joueurs non-protégés
+function getUnprotectedPlayerTooltip(player) {
+  return `⚠️ ${player.name} non protégé
+Disponibilités modifiables par tous`
 }
 
 // end of script setup

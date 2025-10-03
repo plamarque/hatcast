@@ -100,7 +100,9 @@
               :player-gender="player.gender || 'non-specified'"
               :show-status-icons="true"
               :size="'lg'"
+              :clickable="true"
               class="!w-10 !h-10"
+              @click="showPlayerDetails(player)"
             />
             <span class="text-white font-medium text-sm cursor-pointer hover:text-blue-400 transition-colors" @click="showPlayerDetails(player)">{{ player.name }}</span>
           </div>
