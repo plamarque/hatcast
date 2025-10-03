@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.22.0",
+    "date": "2025-10-03",
+    "changes": [
+      "✨ Amélioration des statistiques des joueurs avec un graphique d'activité mensuel et un affichage basé sur les rôles"
+    ]
+  },
+  {
     "version": "0.21.0",
     "date": "2025-10-02",
     "changes": [

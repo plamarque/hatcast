@@ -66,13 +66,10 @@
 
       <!-- Content (scrollable) -->
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <!-- Stats condensées en 3 colonnes -->
+        <!-- Stats condensées en 2x2 -->
         <div>
-          <div class="grid grid-cols-3 gap-3 md:gap-4">
-           <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
-             <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal">({{ props.stats.availability }}%)</span></div>
-             <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
-           </div>
+          <div class="grid grid-cols-2 gap-3 md:gap-4">
+            <!-- Ligne du haut : Participations et Taux de sélection -->
             <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
               <div class="text-xs md:text-sm text-gray-300">Participations</div>
@@ -80,6 +77,101 @@
             <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center">
               <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}%</div>
               <div class="text-xs md:text-sm text-gray-300">Taux de sélection</div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4">
+            <!-- Ligne du bas : Disponibilités et Désistements -->
+            <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal">({{ props.stats.availability }}%)</span></div>
+              <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
+            </div>
+            <div class="bg-gradient-to-r from-red-500/20 to-orange-500/20 p-3 md:p-4 rounded-lg border border-red-500/30 text-center">
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.declines }} <span class="font-normal">({{ props.stats.declineRate }}%)</span></div>
+              <div class="text-xs md:text-sm text-gray-300">Désistements</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historique des sélections -->
+        <div v-if="props.stats.monthlyActivityWithDetails && hasAnyActivity" class="mt-6">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Ma saison en un clin d'œil</h3>
+        <div class="bg-gray-800/50 rounded-lg p-4">
+          <div class="grid grid-cols-12 gap-2 items-end relative" :style="{ height: `${Math.max(128, maxActivityInMonth * 32 + 16)}px` }">
+            <!-- Cases d'activité -->
+            <div 
+              v-for="(monthActivity, displayIndex) in reorderedMonthlyData" 
+              :key="displayIndex"
+              class="flex flex-col items-center relative"
+            >
+                
+                <!-- Cases pour chaque activité du mois -->
+                <div 
+                  v-for="(activity, activityIndex) in monthActivity" 
+                  :key="activityIndex"
+                  class="absolute group cursor-pointer"
+                  :style="{ 
+                    bottom: `${activityIndex * 32}px`,
+                    left: '50%',
+                    transform: 'translateX(-50%)'
+                  }"
+                >
+                  <!-- Case colorée selon le statut -->
+                  <div 
+                    class="w-6 h-6 rounded shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 flex items-center justify-center text-sm"
+                    :class="getStatusColor(activity.type, activity.status)"
+                    @click="showSelectionDetails(activity)"
+                  >
+                    <span v-if="activity.type === 'selection' && activity.role">
+                      {{ ROLE_EMOJIS[activity.role] || '🎭' }}
+                    </span>
+                  </div>
+                  
+                <!-- Tooltip au survol -->
+                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                  <div class="font-medium">{{ activity.eventTitle }}</div>
+                  <div class="text-gray-300">{{ activity.eventDate ? activity.eventDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : 'N/A' }}</div>
+                  <div v-if="activity.type === 'selection'">
+                    {{ ROLE_LABELS_SINGULAR[activity.role] || activity.role }}
+                    <span v-if="activity.status === 'confirmed'">✅</span>
+                    <span v-else-if="activity.status === 'pending'">⏳</span>
+                    <span v-else-if="activity.status === 'declined'">❌</span>
+                  </div>
+                  <div v-else-if="activity.type === 'availability'">
+                    {{ activity.status === 'available' ? 'Disponible ✅' : 'Indisponible ❌' }}
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Labels des mois -->
+            <div class="grid grid-cols-12 gap-2 mt-2">
+              <div 
+                v-for="(monthData, displayIndex) in reorderedMonthlyData" 
+                :key="displayIndex"
+                class="text-center"
+              >
+                <div class="text-xs text-gray-400">
+                  {{ getMonthAbbrFromIndex(displayIndex) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rôles favoris -->
+        <div v-if="props.stats.favoriteRoles && props.stats.favoriteRoles.length > 0" class="mt-6">
+          <h3 class="text-sm font-medium text-gray-300 mb-3">Rôles favoris</h3>
+          <div class="flex flex-wrap gap-2">
+            <div 
+              v-for="favoriteRole in props.stats.favoriteRoles" 
+              :key="favoriteRole.role"
+              class="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 px-3 py-2 rounded-lg border border-indigo-500/30 flex items-center gap-2"
+            >
+              <span class="text-lg">{{ ROLE_EMOJIS[favoriteRole.role] || '🎭' }}</span>
+              <span class="text-sm text-white font-medium">{{ getRoleLabelByGender(favoriteRole.role) }}</span>
+              <span class="text-xs text-gray-400">({{ favoriteRole.count }})</span>
             </div>
           </div>
         </div>
@@ -221,6 +313,93 @@
     @close="showPasswordVerification = false"
     @verified="handlePasswordVerified"
   />
+
+    <!-- Modal des détails de sélection -->
+    <div v-if="showSelectionDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" @click="showSelectionDetailsModal = false">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+      <!-- Header -->
+      <div class="relative p-4 md:p-6 border-b border-white/10">
+        <button @click="showSelectionDetailsModal = false" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+        <h3 class="text-lg font-bold text-white">Détails de la sélection</h3>
+      </div>
+      
+      <!-- Content -->
+      <div v-if="selectedSelection" class="px-4 md:px-6 py-4 md:py-6">
+        <div class="space-y-4">
+          <!-- Rôle et Statut de confirmation -->
+          <div v-if="selectedSelection.type === 'selection'" class="flex items-center gap-3">
+            <div 
+              class="w-12 h-12 rounded-lg flex items-center justify-center text-xl"
+              :class="getStatusColor(selectedSelection.type, selectedSelection.status)"
+            >
+              <span>{{ ROLE_EMOJIS[selectedSelection.role] || '🎭' }}</span>
+            </div>
+            <div>
+              <div class="text-sm text-gray-400">Rôle</div>
+              <div class="text-white font-medium text-lg">
+                {{ getRoleLabelByGender(selectedSelection.role) }}
+              </div>
+              <div class="text-sm text-gray-300">
+                <span v-if="selectedSelection.status === 'confirmed'" class="text-green-400">✅ Confirmé</span>
+                <span v-else-if="selectedSelection.status === 'pending'" class="text-orange-400">⏳ En attente</span>
+                <span v-else-if="selectedSelection.status === 'declined'" class="text-red-400">❌ Décliné</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Disponibilité (seulement si pas de sélection) -->
+          <div v-if="selectedSelection.type !== 'selection'" class="flex items-center gap-3">
+            <div 
+              class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+              :class="getAvailabilityColor(selectedSelection.availabilityStatus)"
+            >
+              <span>{{ selectedSelection.availabilityStatus === 'available' ? '✅' : '❌' }}</span>
+            </div>
+            <div>
+              <div class="text-sm text-gray-400">Disponibilité</div>
+              <div class="text-white font-medium">
+                <span v-if="selectedSelection.availabilityStatus === 'available'" class="text-green-400">Disponible</span>
+                <span v-else-if="selectedSelection.availabilityStatus === 'unavailable'" class="text-red-400">Indisponible</span>
+                <span v-else class="text-gray-400">Non renseignée</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Événement -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center text-lg">
+              {{ EVENT_TYPE_ICONS[selectedSelection.eventType] || '❓' }}
+            </div>
+            <div>
+              <div class="text-sm text-gray-400">Événement</div>
+              <div class="text-white font-medium">{{ selectedSelection.eventTitle }}</div>
+            </div>
+          </div>
+          
+          <!-- Date -->
+          <div>
+            <div class="text-sm text-gray-400">Date</div>
+            <div class="text-white font-medium">{{ selectedSelection.eventDate ? selectedSelection.eventDate.toLocaleDateString('fr-FR', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }) : 'Date non disponible' }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="px-4 md:px-6 py-4 border-t border-white/10">
+        <button 
+          @click="showSelectionDetailsModal = false"
+          class="w-full px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300"
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -231,6 +410,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import { isPlayerProtected, isPlayerPasswordCached } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
 import permissionService from '../services/permissionService.js'
+import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER, EVENT_TYPE_ICONS } from '../services/storage.js'
 
 const props = defineProps({
   show: {
@@ -243,7 +423,11 @@ const props = defineProps({
   },
   stats: {
     type: Object,
-    default: () => ({ availability: 0, selection: 0, ratio: 0 })
+    default: () => ({ availability: 0, selection: 0, ratio: 0, declines: 0, declineRate: 0, favoriteRoles: [], monthlyActivityWithDetails: Array(12).fill(null).map(() => []) })
+  },
+  availability: {
+    type: Object,
+    default: () => ({})
   },
   seasonId: {
     type: String,
@@ -269,7 +453,113 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated', 'show-availability-grid'])
 
+// Fonctions helper pour le graphique mensuel
+const getBarHeight = (count) => {
+  const maxCount = Math.max(...reorderedMonthlyData.value)
+  if (maxCount === 0) return '0px'
+  // S'assurer qu'il y a toujours une hauteur minimale visible pour les barres non nulles
+  const percentage = (count / maxCount) * 100
+  return `${Math.max(percentage, count > 0 ? 8 : 0)}%`
+}
 
+
+// Réorganiser les données mensuelles dans l'ordre septembre-août
+const reorderedMonthlyData = computed(() => {
+  if (!props.stats.monthlyActivityWithDetails) return []
+  
+  // Les données originales sont dans l'ordre janvier-décembre (0-11)
+  // On les réorganise pour septembre-août (8,9,10,11,0,1,2,3,4,5,6,7)
+  const originalData = props.stats.monthlyActivityWithDetails
+  const reordered = [
+    originalData[8],  // Septembre
+    originalData[9],  // Octobre
+    originalData[10], // Novembre
+    originalData[11], // Décembre
+    originalData[0],  // Janvier
+    originalData[1],  // Février
+    originalData[2],  // Mars
+    originalData[3],  // Avril
+    originalData[4],  // Mai
+    originalData[5],  // Juin
+    originalData[6],  // Juillet
+    originalData[7]   // Août
+  ]
+  
+  return reordered
+})
+
+// Vérifier s'il y a de l'activité
+const hasAnyActivity = computed(() => {
+  return reorderedMonthlyData.value.some(monthActivity => monthActivity.length > 0)
+})
+
+// Calculer le maximum d'activité dans un mois
+const maxActivityInMonth = computed(() => {
+  return Math.max(...reorderedMonthlyData.value.map(monthActivity => monthActivity.length))
+})
+
+// Fonction pour obtenir l'abréviation du mois selon l'index d'affichage (septembre-août)
+const getMonthAbbrFromIndex = (displayIndex) => {
+  const monthAbbrs = ['SEP', 'OCT', 'NOV', 'DÉC', 'JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOÛ']
+  return monthAbbrs[displayIndex]
+}
+
+// Variables pour les détails de sélection
+const selectedSelection = ref(null)
+const showSelectionDetailsModal = ref(false)
+
+// Fonction pour obtenir la couleur selon le type et statut
+const getStatusColor = (type, status) => {
+  if (type === 'selection') {
+    switch (status) {
+      case 'confirmed': return 'bg-gradient-to-br from-purple-500 to-purple-600'
+      case 'pending': return 'bg-gradient-to-br from-orange-500 to-orange-600'
+      case 'declined': return 'bg-gradient-to-br from-red-500 to-red-600'
+      default: return 'bg-gray-500'
+    }
+  } else if (type === 'availability') {
+    switch (status) {
+      case 'available': return 'bg-gradient-to-br from-green-500 to-emerald-600'
+      case 'unavailable': return 'bg-gradient-to-br from-red-500 to-red-600'
+      default: return 'bg-gray-400'
+    }
+  }
+  return 'bg-gray-500'
+}
+
+// Fonction pour obtenir le label de rôle accordé au genre du joueur
+const getRoleLabelByGender = (role) => {
+  const playerGender = props.player?.gender || 'non-specified'
+  return ROLE_LABELS_BY_GENDER[playerGender]?.[role] || ROLE_LABELS_SINGULAR[role] || role
+}
+
+// Fonction pour obtenir la couleur de disponibilité
+const getAvailabilityColor = (status) => {
+  if (status === 'available') return 'bg-gradient-to-br from-green-500 to-emerald-600'
+  if (status === 'unavailable') return 'bg-gradient-to-br from-red-500 to-red-600'
+  return 'bg-gradient-to-br from-gray-500 to-gray-600'
+}
+
+// Fonction pour afficher les détails d'une activité
+const showSelectionDetails = (activity) => {
+  // Enrichir les données avec les informations de disponibilité
+  const enrichedActivity = { ...activity }
+  
+  // Récupérer la disponibilité pour cet événement
+  if (props.player?.name) {
+    const playerAvailability = props.availability[props.player.name]?.[activity.eventId]
+    if (playerAvailability !== undefined) {
+      if (typeof playerAvailability === 'boolean') {
+        enrichedActivity.availabilityStatus = playerAvailability ? 'available' : 'unavailable'
+      } else if (typeof playerAvailability === 'object' && playerAvailability.available !== undefined) {
+        enrichedActivity.availabilityStatus = playerAvailability.available ? 'available' : 'unavailable'
+      }
+    }
+  }
+  
+  selectedSelection.value = enrichedActivity
+  showSelectionDetailsModal.value = true
+}
 
 const editing = ref(false)
 const editingName = ref('')

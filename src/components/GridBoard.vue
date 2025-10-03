@@ -1416,6 +1416,7 @@
     :show="showPlayerDetailsModal"
     :player="selectedPlayerForDetails"
     :stats="getPlayerStats(selectedPlayerForDetails)"
+    :availability="availability"
     :season-id="seasonId"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
@@ -8638,11 +8639,239 @@ async function handleAvatarUpdated({ playerId, seasonId: eventSeasonId }) {
   }
 }
 
-function getPlayerStats(player) {
-  if (!player) return { availability: 0, selection: 0, ratio: 0 };
+// Fonction pour calculer la répartition mensuelle des sélections et disponibilités d'un joueur
+function getMonthlyActivityWithDetails(playerName) {
+  // Trouver l'ID du joueur à partir de son nom
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  if (!player) {
+    return Array(12).fill(null).map(() => []);
+  }
   
-  // Nombre total d'événements (actifs, passés et futurs sauf inactifs)
-  const totalEvents = events.value.length;
+  const monthlyData = Array(12).fill(null).map(() => []);
+  
+  // Parcourir tous les événements pour collecter l'activité par mois
+  allEvents.value.forEach(event => {
+    if (!event.date) return
+    
+    const eventDate = event.date.toDate ? event.date.toDate() : new Date(event.date)
+    const month = eventDate.getMonth() // 0-11
+    
+    // Vérifier la disponibilité du joueur
+    const playerAvailability = availability.value[playerName]?.[event.id]
+    let availabilityStatus = null
+    
+    if (playerAvailability) {
+      if (typeof playerAvailability === 'boolean') {
+        availabilityStatus = playerAvailability ? 'available' : 'unavailable'
+      } else if (typeof playerAvailability === 'object' && playerAvailability.available !== undefined) {
+        availabilityStatus = playerAvailability.available ? 'available' : 'unavailable'
+      }
+    }
+    
+    // Vérifier si le joueur est sélectionné et son statut de confirmation
+    const cast = casts.value[event.id]
+    let selectionStatus = null
+    let role = null
+    
+    if (cast) {
+      // D'abord vérifier s'il y a des déclins dans l'ancienne structure
+      if (cast.declined && Array.isArray(cast.declined) && cast.declined.includes(player.id)) {
+        selectionStatus = 'declined'
+        role = 'player' // Rôle par défaut pour les déclins
+      }
+      // Sinon vérifier dans la nouvelle structure multi-rôles
+      else if (cast.roles) {
+        Object.entries(cast.roles).forEach(([roleKey, playerIds]) => {
+          if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+            role = roleKey
+            // Vérifier le statut de confirmation
+            const playerStatus = cast.playerStatuses?.[player.id]
+            if (playerStatus === 'confirmed') {
+              selectionStatus = 'confirmed'
+            } else if (playerStatus === 'declined') {
+              selectionStatus = 'declined'
+            } else {
+              selectionStatus = 'pending'
+            }
+          }
+        })
+      }
+      // Fallback sur l'ancienne structure
+      else if (Array.isArray(cast) && cast.includes(player.id)) {
+        role = 'player'
+        const playerStatus = cast.playerStatuses?.[player.id]
+        if (playerStatus === 'confirmed') {
+          selectionStatus = 'confirmed'
+        } else if (playerStatus === 'declined') {
+          selectionStatus = 'declined'
+        } else {
+          selectionStatus = 'pending'
+        }
+      }
+    }
+    
+    // Priorité aux sélections : si le joueur est sélectionné, on affiche la sélection
+    if (selectionStatus) {
+      monthlyData[month].push({
+        type: 'selection',
+        status: selectionStatus,
+        role: role,
+        eventTitle: event.title,
+        eventDate: eventDate,
+        eventId: event.id,
+        eventType: event.templateType || 'custom'
+      })
+    } else if (availabilityStatus) {
+      // Sinon, on affiche la disponibilité si renseignée
+      monthlyData[month].push({
+        type: 'availability',
+        status: availabilityStatus,
+        role: null, // Pas de rôle pour les disponibilités
+        eventTitle: event.title,
+        eventDate: eventDate,
+        eventId: event.id,
+        eventType: event.templateType || 'custom'
+      })
+    }
+  })
+  
+  // Trier par date dans chaque mois
+  monthlyData.forEach(monthActivity => {
+    monthActivity.sort((a, b) => a.eventDate - b.eventDate)
+  })
+  
+  // Debug: Afficher les données pour octobre (index 9)
+  console.log('Debug getMonthlyActivityWithDetails pour', playerName)
+  console.log('Octobre (index 9):', monthlyData[9])
+  console.log('Toutes les données mensuelles:', monthlyData)
+  
+  return monthlyData;
+}
+
+// Fonction pour calculer les rôles favoris d'un joueur
+function getFavoriteRoles(playerName) {
+  // Trouver l'ID du joueur à partir de son nom
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  if (!player) {
+    return [];
+  }
+  
+  const roleCounts = {};
+  
+  // Parcourir tous les casts pour compter les rôles
+  Object.keys(casts.value).forEach(eventId => {
+    const cast = casts.value[eventId]
+    if (!cast) return
+    
+    // Vérifier que l'événement existe encore
+    const event = events.value.find(e => e.id === eventId)
+    if (!event) return
+    
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) return
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    if (!cast.confirmed) return
+    
+    // Règle 3: Le joueur ne doit pas avoir décliné
+    const declinedPlayers = getDeclinedPlayers(eventId)
+    if (declinedPlayers.includes(playerName)) return
+    
+    // Compter les rôles dans la nouvelle structure multi-rôles
+    if (cast.roles) {
+      Object.entries(cast.roles).forEach(([role, playerIds]) => {
+        if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+          roleCounts[role] = (roleCounts[role] || 0) + 1
+        }
+      })
+    }
+    
+    // Fallback sur l'ancienne structure (tous considérés comme "player")
+    if (Array.isArray(cast) && cast.includes(player.id)) {
+      roleCounts['player'] = (roleCounts['player'] || 0) + 1
+    }
+  })
+  
+  // Trier par fréquence et prendre les 2 premiers
+  return Object.entries(roleCounts)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 2)
+    .map(([role, count]) => ({ role, count }))
+}
+
+// Fonction pour compter les désistements d'un joueur
+function countDeclines(playerName) {
+  // Trouver l'ID du joueur à partir de son nom
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  if (!player) {
+    return 0;
+  }
+  
+  let declineCount = 0;
+  
+  // Debug pour Rachid
+  if (playerName === 'Rachid') {
+    console.log('🔍 DEBUG RACHID - Recherche des désistements pour:', playerName, 'ID:', player.id)
+  }
+  
+  // Parcourir tous les casts pour compter les désistements
+  Object.keys(casts.value).forEach(eventId => {
+    const cast = casts.value[eventId]
+    if (!cast) return
+    
+    // Vérifier que l'événement existe encore
+    const event = events.value.find(e => e.id === eventId)
+    if (!event) return
+    
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) return
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    if (!cast.confirmed) return
+    
+    // Vérifier si le joueur a décliné (dans declined OU dans playerStatuses)
+    let hasDeclined = false
+    
+    // Vérifier dans la nouvelle structure declined
+    if (cast.declined) {
+      Object.values(cast.declined).forEach(playerIds => {
+        if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
+          hasDeclined = true
+          if (playerName === 'Rachid') {
+            console.log('🔍 DEBUG RACHID - Trouvé dans declined pour event:', eventId, 'rôle:', Object.keys(cast.declined).find(role => cast.declined[role].includes(player.id)))
+          }
+        }
+      })
+    }
+    
+    // Fallback sur l'ancienne structure playerStatuses
+    if (!hasDeclined && cast.playerStatuses && cast.playerStatuses[player.id] === 'declined') {
+      hasDeclined = true
+      if (playerName === 'Rachid') {
+        console.log('🔍 DEBUG RACHID - Trouvé dans playerStatuses pour event:', eventId)
+      }
+    }
+    
+    if (hasDeclined) {
+      declineCount++
+      if (playerName === 'Rachid') {
+        console.log('🔍 DEBUG RACHID - Désistement compté pour event:', eventId, 'Total:', declineCount)
+      }
+    }
+  })
+  
+  if (playerName === 'Rachid') {
+    console.log('🔍 DEBUG RACHID - Total desistements:', declineCount)
+  }
+  
+  return declineCount;
+}
+
+function getPlayerStats(player) {
+  if (!player) return { availability: 0, selection: 0, ratio: 0, declines: 0, declineRate: 0, favoriteRoles: [], monthlySelections: Array(12).fill(0) };
+  
+  // Nombre total d'événements non archivés
+  const totalNonArchivedEvents = events.value.filter(event => event.archived !== true).length;
   
   // Nombre de fois marqué "Dispo"
   const timesAvailable = countAvailability(player.name);
@@ -8650,19 +8879,35 @@ function getPlayerStats(player) {
   // Nombre de fois retenu (participations)
   const participations = countSelections(player.name);
   
-  // Taux de disponibilité : (fois dispo / total événements) × 100
-  const availabilityRate = totalEvents === 0 ? 0 : Math.round((timesAvailable / totalEvents) * 100);
+  // Nombre de désistements
+  const declines = countDeclines(player.name);
+  
+  // Rôles favoris
+  const favoriteRoles = getFavoriteRoles(player.name);
+  
+  // Répartition mensuelle avec détails (sélections + disponibilités)
+  const monthlyActivityWithDetails = getMonthlyActivityWithDetails(player.name);
+  
+  // Taux de disponibilité : (fois dispo / total événements non archivés) × 100
+  const availabilityRate = totalNonArchivedEvents === 0 ? 0 : Math.round((timesAvailable / totalNonArchivedEvents) * 100);
   
   // Taux de sélection : (fois retenu / fois dispo) × 100
   const selectionRate = timesAvailable === 0 ? 0 : Math.round((participations / timesAvailable) * 100);
   
+  // Taux de désistement : (désistements / (participations + désistements)) × 100
+  const totalSelections = participations + declines;
+  const declineRate = totalSelections === 0 ? 0 : Math.round((declines / totalSelections) * 100);
   
-         return { 
-           availability: availabilityRate, 
-           timesAvailable: timesAvailable,
-           selection: participations, 
-           ratio: selectionRate 
-         };
+  return { 
+    availability: availabilityRate, 
+    timesAvailable: timesAvailable,
+    selection: participations, 
+    ratio: selectionRate,
+    declines: declines,
+    declineRate: declineRate,
+    favoriteRoles: favoriteRoles,
+    monthlyActivityWithDetails: monthlyActivityWithDetails
+  };
 }
 
 // Fonction helper pour calculer le nombre total requis d'un événement
