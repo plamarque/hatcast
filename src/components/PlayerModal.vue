@@ -192,10 +192,10 @@
             </span>
           </button>
           
-          <!-- Bouton Voir disponibilités -->
+          <!-- Bouton Planning -->
           <button @click="showAvailabilityGrid" class="px-5 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex items-center gap-2">
-            <span>📊</span>
-            <span>Voir disponibilités</span>
+            <span>📅</span>
+            <span>Planning</span>
           </button>
           
           <!-- Bouton Fermer -->
@@ -214,7 +214,7 @@
           {{ isProtectedForPlayer ? '🔓' : '🔒' }}
         </button>
         <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1">
-          📊
+          📅
         </button>
         <button @click="closeModal" class="h-12 px-3 bg-gray-700 text-white rounded-lg flex-1">
           Fermer
