@@ -1,5 +1,22 @@
 [
   {
+    "version": "0.24.0",
+    "date": "2025-10-03",
+    "changes": [
+      "✨ Amélioration de la gestion des rôles et de la cohérence de l'interface",
+      "✨ Ajout d'une gestion complète de la disponibilité dans l'onglet Ma Dispo",
+      "✨ Amélioration de la mise en page de l'onglet Ma Dispo et ajout d'un accès rapide",
+      "✨ Masquage de la localisation sur mobile et réintroduction de l'emoji de type d'événement",
+      "✨ Optimisation de l'espacement mobile dans la vue chronologique",
+      "✨ Amélioration de l'alignement du texte et du centrage des badges dans les vues des participants",
+      "✨ Simplification du système de statut d'événement en 3 catégories claires",
+      "✨ Ajout d'instructions contextuelles dans la vue chronologique",
+      "✨ Le bouton Planning redirige vers Agenda avec filtrage par participant",
+      "✨ Ajout d'un menu déroulant dans la fenêtre de détail de joueur",
+      "✨ Inversion de la logique d'affichage de protection et ajout d'info-bulles personnalisées"
+    ]
+  },
+  {
     "version": "0.23.0",
     "date": "2025-10-03",
     "changes": [
