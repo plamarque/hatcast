@@ -1,12 +1,12 @@
 <template>
-  <span :class="statusColorClass" class="text-xs px-2 py-1 rounded-full font-normal">
+  <span :class="statusColorClass" class="text-xs px-2 py-1 rounded-full font-normal flex items-center justify-center text-center leading-tight">
     {{ statusLabel }}
   </span>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { getStatusColor, getStatusLabel } from '../services/eventStatusService.js'
+import { getStatusColor, getStatusLabel, getShortStatusLabel } from '../services/eventStatusService.js'
 
 const props = defineProps({
   eventId: {
@@ -16,6 +16,10 @@ const props = defineProps({
   eventStatus: {
     type: String,
     required: true
+  },
+  short: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -24,6 +28,6 @@ const statusColorClass = computed(() => {
 })
 
 const statusLabel = computed(() => {
-  return getStatusLabel(props.eventStatus)
+  return props.short ? getShortStatusLabel(props.eventStatus) : getStatusLabel(props.eventStatus)
 })
 </script>

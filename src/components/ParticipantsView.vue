@@ -78,8 +78,9 @@
           }"
         >
           <div class="flex flex-col">
+            <!-- Emoji et titre sur la même ligne -->
             <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
-              <span class="text-lg">{{ getEventIcon(event) }}</span>
+              <span class="text-sm">{{ getEventIcon(event) }}</span>
               <span 
                 class="font-medium text-sm line-clamp-2 overflow-hidden" 
                 :class="[
@@ -96,7 +97,8 @@
                 <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
               </span>
             </div>
-            <div class="flex items-center justify-between">
+            <!-- Date et badge avec retrait pour aligner avec le texte du titre -->
+            <div class="flex flex-col items-start space-y-1 ml-5">
               <span 
                 class="text-xs"
                 :class="[
