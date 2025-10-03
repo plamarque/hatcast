@@ -264,7 +264,7 @@
 <script>
 import { computed, ref } from 'vue'
 import { EVENT_TYPE_ICONS } from '../services/storage.js'
-import { getEventStatusWithSelection } from '../services/eventStatusService.js'
+import { getEventStatusWithSelection, mapToSimplifiedStatus } from '../services/eventStatusService.js'
 import AvailabilityCell from './AvailabilityCell.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import StatusBadge from './StatusBadge.vue'
@@ -756,23 +756,17 @@ export default {
       // Si aucun joueur n'est sélectionné, afficher une instruction générale
       if (!playerName) {
         const eventStatus = getEventStatus(eventId)
-        switch (eventStatus) {
+        const simplifiedStatus = mapToSimplifiedStatus(eventStatus)
+        
+        switch (simplifiedStatus) {
+          case 'collecting':
+            return 'Collecte des dispos'
+          case 'preparing':
+            return 'Équipe en préparation'
           case 'confirmed':
-            return 'Composition confirmée'
-          case 'pending_confirmation':
-            return 'En attente de confirmation'
-          case 'complete':
-            return 'Composition complète'
-          case 'incomplete':
-            return 'Composition incomplète'
-          case 'insufficient':
-            return 'Pas assez de joueurs'
-          case 'missing':
-            return 'Joueurs manquants'
-          case 'ready':
-            return 'Prêt pour sélection'
+            return 'Équipe confirmée'
           default:
-            return 'Sélection en cours'
+            return 'Collecte des dispos'
         }
       }
       
@@ -866,6 +860,7 @@ export default {
       getRoleLabel,
       isPlayerInEventTeam,
       getPlayerInstruction,
+      mapToSimplifiedStatus,
       
       // Fonctions pour la disponibilité
       isAvailable,
