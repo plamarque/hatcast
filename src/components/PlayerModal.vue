@@ -188,7 +188,7 @@
           <button @click="showProtectionModal = true" data-testid="protect-button" class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2">
             <span>{{ isProtectedForPlayer ? '🔓' : '🔒' }}</span>
             <span>
-              {{ isProtectedForPlayer ? 'Désactiver la protection' : 'Protéger' }}
+              {{ isProtectedForPlayer ? 'Déprotéger' : 'Protéger' }}
             </span>
           </button>
           
