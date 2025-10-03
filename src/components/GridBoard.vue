@@ -3013,7 +3013,7 @@ function getViewLabel(view) {
   switch (view) {
     case 'events': return 'Spectacles'
     case 'participants': return 'Participants'
-    case 'timeline': return 'Chronologique'
+    case 'timeline': return 'Agenda'
     default: return 'Lignes'
   }
 }
