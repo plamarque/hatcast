@@ -1,24 +1,21 @@
-## [0.21.0] - 2025-10-02
+## [0.22.0] - 2025-10-03
 
 ### ✨ New Features
 
-- feat: Suppression de participants avec double confirmation et PIN
-- feat: Modale création participant simplifiée avec toggle modes
-- feat: Liste participants complète avec tous les joueurs de la saison
-- feat: Navigation cliquable vers détails joueur depuis liste participants
-- feat: Amélioration interface participants avec nom joueur et date connexion
-- feat: Ajout suppression individuelle d'invitations
-- feat: Système d'invitation utilisateurs complet
+- feat: enhance player statistics with monthly activity chart and role-based display
+
+### 🔧 Improvements
+
+- refactor: remove migration code for player protection data
 
 ### 📝 Other Changes
 
-- revert: Annuler la navigation cliquable sur le nom des participants
-- fix db for dev
-- release: version 0.20.1
+- release: version 0.21.0
 
 
 # Changelog
 
+## [0.22.0] - 2025-10-03
 ## [0.21.0] - 2025-10-02
 ## [0.20.1] - 2025-10-02
 ## [0.20.0] - 2025-09-27
