@@ -1,18 +1,53 @@
-const admin = require('firebase-admin')
-const db = admin.firestore()
+// Import conditionnel de Firebase Admin
+let admin = null
+let db = null
 
-// Import dynamique de la détection d'environnement centralisée
+try {
+  admin = require('firebase-admin')
+  db = admin.firestore()
+} catch (error) {
+  console.warn('⚠️ Firebase Admin non disponible, utilisation du mode mock')
+}
+
+// Variables de classe pour l'initialisation
 let EnvironmentDetector = null
 let FirestoreService = null
+let _environment = null
 
 class AuditService {
   /**
+   * Initialise le service d'audit
+   * @returns {Promise<void>}
+   */
+  static async initialize() {
+    if (EnvironmentDetector && FirestoreService && _environment) {
+      return // Déjà initialisé
+    }
+
+    try {
+      // Importer EnvironmentDetector
+      const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
+      EnvironmentDetector = ED
+      _environment = ED.detectEnvironment()
+      
+      // Importer FirestoreService
+      const { default: FS } = await import('../src/services/firestoreService.js')
+      FirestoreService = FS
+      
+      console.log(`🔧 AuditService initialisé - Environnement: ${_environment}`)
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'initialisation d\'AuditService:', error)
+      throw new Error(`Impossible d'initialiser AuditService: ${error.message}`)
+    }
+  }
+
+  /**
    * Détermine si on doit logger selon l'environnement
-   * @param {string} environment - Environnement détecté
    * @param {Object} eventData - Données de l'événement
    * @returns {boolean} True si on doit logger
    */
-  static shouldLog(environment, eventData) {
+  static shouldLog(eventData) {
     // Vérifier si l'audit est explicitement configuré
     const isAuditExplicitlyEnabled = process.env.AUDIT_ENABLED === 'true'
     const isAuditExplicitlyDisabled = process.env.AUDIT_ENABLED === 'false'
@@ -26,11 +61,11 @@ class AuditService {
     }
     
     // Sinon, utiliser la logique par défaut selon l'environnement
-    if (environment === 'test') {
+    if (_environment === 'test') {
       return false
     }
     
-    if (environment === 'development') {
+    if (_environment === 'development') {
       // Log de debug pour indiquer que l'audit est désactivé par défaut
       if (eventData.severity === 'error' || eventData.severity === 'critical') {
         console.log('🔇 AUDIT DISABLED (dev mode):', eventData.eventType, eventData.data)
@@ -43,78 +78,24 @@ class AuditService {
   }
 
   /**
-   * Obfusque partiellement une adresse email
-   * @param {string} email - L'adresse email à obfusquer
-   * @returns {string} L'email obfusqué
-   */
-  static obfuscateEmail(email) {
-    if (!email || typeof email !== 'string') return null
-    
-    const parts = email.split('@')
-    if (parts.length !== 2) return email
-    
-    const [localPart, domain] = parts
-    
-    // Obfusquer la partie locale (avant @)
-    let obfuscatedLocal = localPart
-    if (localPart.length <= 3) {
-      obfuscatedLocal = localPart.charAt(0) + '••'
-    } else {
-      obfuscatedLocal = localPart.substring(0, 3) + '••'
-    }
-    
-    // Obfusquer le domaine
-    const domainParts = domain.split('.')
-    let obfuscatedDomain = domain
-    if (domainParts.length >= 2) {
-      const mainDomain = domainParts[0]
-      const extension = domainParts.slice(1).join('.')
-      
-      if (mainDomain.length <= 2) {
-        obfuscatedDomain = '••' + '.' + extension
-      } else {
-        obfuscatedDomain = mainDomain.substring(0, 2) + '••' + '.' + extension
-      }
-    }
-    
-    return `${obfuscatedLocal}@${obfuscatedDomain}`
-  }
-  /**
    * Log un événement d'audit
    * @param {Object} eventData - Données de l'événement
    * @returns {string} ID de l'événement généré
    */
   static async logEvent(eventData) {
-    // Initialiser EnvironmentDetector si nécessaire
-    if (!EnvironmentDetector) {
-      try {
-        const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
-        EnvironmentDetector = ED
-      } catch (error) {
-        console.warn('⚠️ Impossible d\'importer EnvironmentDetector, utilisation de la logique de fallback')
-        // Fallback simple
-        EnvironmentDetector = {
-          detectEnvironment: () => process.env.NODE_ENV || 'production'
-        }
-      }
-    }
+    console.log('🔍 logEvent() appelé avec:', {
+      eventType: eventData.eventType,
+      severity: eventData.severity,
+      environment: _environment,
+      auditEnabled: process.env.AUDIT_ENABLED
+    })
     
-    // Initialiser FirestoreService si nécessaire
-    if (!FirestoreService) {
-      try {
-        const { default: FS } = await import('../src/services/firestoreService.js')
-        FirestoreService = FS
-      } catch (error) {
-        console.warn('⚠️ Impossible d\'importer FirestoreService, utilisation de l\'accès direct')
-        FirestoreService = null
-      }
-    }
+    // Décider si on logue ou pas
+    const shouldLogResult = this.shouldLog(eventData)
+    console.log('🔍 shouldLog() retourne:', shouldLogResult)
     
-    // Utiliser la détection d'environnement centralisée
-    const environment = EnvironmentDetector.detectEnvironment()
-    
-    // Décider si on logue ou pas selon l'environnement
-    if (!this.shouldLog(environment, eventData)) {
+    if (!shouldLogResult) {
+      console.log('🔇 Audit désactivé, pas de logging')
       return null
     }
     
@@ -122,15 +103,16 @@ class AuditService {
       const auditDoc = {
         ...eventData,
         eventId: this.generateEventId(),
-        createdAt: new Date().toISOString() // Utiliser timestamp ISO pour compatibilité
+        createdAt: new Date().toISOString()
       }
       
+      // Stockage du document d'audit via firestoreService
       let docId = null
-      
-      // Utiliser firestoreService si disponible, sinon fallback vers accès direct
       if (FirestoreService) {
+        console.log('📝 Utilisation de FirestoreService pour stocker l\'audit')
         docId = await FirestoreService.addDocument('auditLogs', auditDoc)
-      } else {
+      } else if (db) {
+        console.log('📝 Utilisation de l\'accès direct Firestore pour stocker l\'audit')
         // Fallback vers accès direct (pour compatibilité avec Cloud Functions)
         const docRef = await db.collection('auditLogs').add({
           ...auditDoc,
@@ -138,7 +120,13 @@ class AuditService {
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         })
         docId = docRef.id
+      } else {
+        // Mode mock pour les tests
+        console.log('📝 Mock: Document d\'audit créé:', auditDoc)
+        docId = `mock_doc_${Date.now()}`
       }
+      
+      console.log('✅ Document d\'audit créé avec ID:', docId)
       
       // Log critique vers console pour monitoring
       if (eventData.severity === 'error' || eventData.severity === 'critical') {
@@ -154,269 +142,273 @@ class AuditService {
   }
 
   /**
+   * Obfusque partiellement une adresse email
+   * @param {string} email - L'adresse email à obfusquer
+   * @returns {string} L'email obfusqué
+   */
+  static obfuscateEmail(email) {
+    if (!email || typeof email !== 'string') {
+      return 'invalid-email'
+    }
+    
+    const [localPart, domain] = email.split('@')
+    if (!localPart || !domain) {
+      return 'invalid-email'
+    }
+    
+    // Obfusquer la partie locale (garder les 2 premiers caractères)
+    const obfuscatedLocal = localPart.length > 2 
+      ? localPart.substring(0, 2) + '*'.repeat(localPart.length - 2)
+      : localPart
+    
+    // Obfusquer le domaine (garder l'extension)
+    const domainParts = domain.split('.')
+    const obfuscatedDomain = domainParts.length > 1
+      ? '*'.repeat(domainParts[0].length) + '.' + domainParts.slice(1).join('.')
+      : domain
+    
+    return `${obfuscatedLocal}@${obfuscatedDomain}`
+  }
+
+  /**
+   * Génère un ID unique pour un événement d'audit
+   * @returns {string} ID unique
+   */
+  static generateEventId() {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    return `audit_${timestamp}_${random}`
+  }
+
+  /**
    * Log un changement de disponibilité
    * @param {Object} params - Paramètres du changement
    */
   static async logAvailabilityChange(params) {
-    const {
+    const { userId, seasonId, availability, previousAvailability, timestamp } = params
+    
+    return await this.logEvent({
+      eventType: 'availability_change',
+      userId: this.obfuscateEmail(userId),
       seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      playerName,
-      playerEmail,
-      oldValue,
-      newValue,
-      userId,
-      userEmail,
-      isAnonymous = false
-    } = params
-
-    await this.logEvent({
-      eventType: 'availability_changed',
-      eventCategory: 'user_action',
-      severity: 'info',
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      playerName,
-      playerEmail: this.obfuscateEmail(playerEmail),
-      userId: userId || 'anonymous',
-      userEmail: this.obfuscateEmail(userEmail),
-      isAnonymous,
       data: {
-        oldValue,
-        newValue,
-        change: `${oldValue} → ${newValue}`
+        availability,
+        previousAvailability,
+        timestamp: timestamp || new Date().toISOString()
       },
-      success: true,
-      tags: ['availability', `season_${seasonSlug}`, `event_${eventId}`, `player_${playerName}`]
+      severity: 'info',
+      tags: ['availability', 'schedule']
     })
   }
 
   /**
-   * Log un ajout/suppression d'événement
-   * @param {Object} params - Paramètres de l'événement
+   * Log une connexion utilisateur
+   * @param {Object} params - Paramètres de connexion
    */
-  static async logEventChange(params) {
-    const {
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      action, // 'created', 'updated', 'deleted'
-      userId,
-      userEmail,
-      isAnonymous = false,
-      eventData = null
-    } = params
-
-    await this.logEvent({
-      eventType: `event_${action}`,
-      eventCategory: 'user_action',
-      severity: 'info',
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      userId: userId || 'anonymous',
-      userEmail: this.obfuscateEmail(userEmail),
-      isAnonymous,
-      data: eventData,
-      success: true,
-      tags: ['event', action, `season_${seasonSlug}`, `event_${eventId}`]
-    })
-  }
-
-  /**
-   * Log un ajout/suppression de joueur
-   * @param {Object} params - Paramètres du joueur
-   */
-  static async logPlayerChange(params) {
-    const {
-      seasonId,
-      seasonSlug,
-      playerName,
-      playerEmail,
-      action, // 'added', 'removed', 'updated'
-      userId,
-      userEmail,
-      isAnonymous = false,
-      playerData = null
-    } = params
-
-    await this.logEvent({
-      eventType: `player_${action}`,
-      eventCategory: 'user_action',
-      severity: 'info',
-      seasonId,
-      seasonSlug,
-      playerName,
-      playerEmail: this.obfuscateEmail(playerEmail),
-      userId: userId || 'anonymous',
-      userEmail: this.obfuscateEmail(userEmail),
-      isAnonymous,
-      data: playerData,
-      success: true,
-      tags: ['player', action, `season_${seasonSlug}`, `player_${playerName}`]
-    })
-  }
-
-  /**
-   * Log une sélection de joueurs
-   * @param {Object} params - Paramètres de la sélection
-   */
-  static async logSelectionChange(params) {
-    const {
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      action, // 'created', 'updated', 'deleted'
-      oldPlayers = [],
-      newPlayers = [],
-      userId,
-      userEmail,
-      isAnonymous = false
-    } = params
-
-    await this.logEvent({
-      eventType: `selection_${action}`,
-      eventCategory: 'user_action',
-      severity: 'info',
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      userId: userId || 'anonymous',
-      userEmail: userEmail || null,
-      isAnonymous,
+  static async logUserLogin(params) {
+    const { userId, userAgent, ipAddress, timestamp } = params
+    
+    return await this.logEvent({
+      eventType: 'user_login',
+      userId: this.obfuscateEmail(userId),
       data: {
-        oldPlayers,
-        newPlayers,
-        added: newPlayers.filter(p => !oldPlayers.includes(p)),
-        removed: oldPlayers.filter(p => !newPlayers.includes(p))
+        userAgent: userAgent ? userAgent.substring(0, 200) : null, // Limiter la taille
+        ipAddress: ipAddress ? this.obfuscateIP(ipAddress) : null,
+        timestamp: timestamp || new Date().toISOString()
       },
-      success: true,
-      tags: ['selection', action, `season_${seasonSlug}`, `event_${eventId}`]
+      severity: 'info',
+      tags: ['authentication', 'security']
     })
   }
 
   /**
-   * Log une erreur
+   * Log une déconnexion utilisateur
+   * @param {Object} params - Paramètres de déconnexion
+   */
+  static async logUserLogout(params) {
+    const { userId, timestamp } = params
+    
+    return await this.logEvent({
+      eventType: 'user_logout',
+      userId: this.obfuscateEmail(userId),
+      data: {
+        timestamp: timestamp || new Date().toISOString()
+      },
+      severity: 'info',
+      tags: ['authentication', 'security']
+    })
+  }
+
+  /**
+   * Log une erreur système
    * @param {Object} params - Paramètres de l'erreur
    */
-  static async logError(params) {
-    const {
-      error,
-      context,
-      userId,
-      userEmail,
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle
-    } = params
-
-    await this.logEvent({
-      eventType: 'error_occurred',
-      eventCategory: 'error',
-      severity: 'error',
-      seasonId,
-      seasonSlug,
-      eventId,
-      eventTitle,
-      userId: userId || 'anonymous',
-      userEmail: userEmail || null,
+  static async logSystemError(params) {
+    const { error, context, userId, timestamp } = params
+    
+    return await this.logEvent({
+      eventType: 'system_error',
+      userId: userId ? this.obfuscateEmail(userId) : null,
       data: {
-        error: error.message,
-        code: error.code,
-        stack: error.stack,
-        context
+        error: error.message || error,
+        stack: error.stack ? error.stack.substring(0, 1000) : null, // Limiter la taille
+        context,
+        timestamp: timestamp || new Date().toISOString()
       },
-      success: false,
-      tags: ['error', context, seasonSlug ? `season_${seasonSlug}` : null].filter(Boolean)
+      severity: 'error',
+      tags: ['system', 'error']
     })
   }
 
-  // Note: isTestEnvironment() supprimée - utilise maintenant EnvironmentDetector.isTestEnvironment()
-  
   /**
-   * Active manuellement l'audit (force AUDIT_ENABLED=true)
-   * Fonctionne différemment selon l'environnement
-   * @returns {Promise<Object>} Résultat de l'opération
+   * Log une action administrative
+   * @param {Object} params - Paramètres de l'action
+   */
+  static async logAdminAction(params) {
+    const { adminUserId, action, targetUserId, details, timestamp } = params
+    
+    return await this.logEvent({
+      eventType: 'admin_action',
+      userId: this.obfuscateEmail(adminUserId),
+      data: {
+        action,
+        targetUserId: targetUserId ? this.obfuscateEmail(targetUserId) : null,
+        details,
+        timestamp: timestamp || new Date().toISOString()
+      },
+      severity: 'warning',
+      tags: ['admin', 'security']
+    })
+  }
+
+  /**
+   * Obfusque une adresse IP (garde seulement les 2 premiers octets)
+   * @param {string} ip - Adresse IP à obfusquer
+   * @returns {string} IP obfusquée
+   */
+  static obfuscateIP(ip) {
+    if (!ip || typeof ip !== 'string') {
+      return 'unknown'
+    }
+    
+    const parts = ip.split('.')
+    if (parts.length === 4) {
+      return `${parts[0]}.${parts[1]}.xxx.xxx`
+    }
+    
+    return 'unknown'
+  }
+
+  /**
+   * Obtient le statut actuel de l'audit
+   * @returns {Promise<Object>} Statut détaillé de l'audit
+   */
+  static async getAuditStatus() {
+    try {
+      const isAuditExplicitlyEnabled = process.env.AUDIT_ENABLED === 'true'
+      const isAuditExplicitlyDisabled = process.env.AUDIT_ENABLED === 'false'
+
+      let actualStatus = false
+      let statusSource = 'unknown'
+      let message = ''
+
+      if (isAuditExplicitlyEnabled) {
+        actualStatus = true
+        statusSource = 'explicit_override'
+        message = 'Audit activé (explicit_override)'
+      } else if (isAuditExplicitlyDisabled) {
+        actualStatus = false
+        statusSource = 'explicit_override'
+        message = 'Audit désactivé (explicit_override)'
+      } else {
+        // Comportement par défaut selon l'environnement
+        if (_environment === 'test') {
+          actualStatus = false
+          statusSource = 'default_test'
+          message = 'Audit désactivé (default_test)'
+        } else if (_environment === 'development') {
+          actualStatus = false
+          statusSource = 'default_development'
+          message = 'Audit désactivé (default_development)'
+        } else {
+          actualStatus = true
+          statusSource = 'default_production'
+          message = 'Audit activé (default_production)'
+        }
+      }
+
+      return {
+        success: true,
+        environment: _environment,
+        auditEnabled: process.env.AUDIT_ENABLED,
+        actualStatus,
+        statusSource,
+        message
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la vérification du statut audit:', error)
+      return {
+        success: false,
+        environment: 'unknown',
+        auditEnabled: null,
+        actualStatus: false,
+        statusSource: 'error',
+        message: 'Erreur lors de la vérification'
+      }
+    }
+  }
+
+  /**
+   * Active manuellement l'audit
+   * @returns {Promise<Object>} Résultat de l'activation
    */
   static async enableAudit() {
     try {
-      // Initialiser EnvironmentDetector si nécessaire
-      if (!EnvironmentDetector) {
-        try {
-          const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
-          EnvironmentDetector = ED
-        } catch (error) {
-          console.warn('⚠️ Impossible d\'importer EnvironmentDetector')
-          EnvironmentDetector = {
-            detectEnvironment: () => process.env.NODE_ENV || 'production'
-          }
-        }
-      }
+      const { exec } = require('child_process')
+      const { promisify } = require('util')
+      const execAsync = promisify(exec)
       
-      const environment = EnvironmentDetector.detectEnvironment()
-      
-      if (environment === 'development') {
-        // En développement, on ne peut pas modifier les variables d'environnement
-        // On retourne des instructions pour l'utilisateur
+      if (_environment === 'development') {
         return {
           success: false,
-          environment: environment,
           message: 'En développement, vous devez modifier manuellement le fichier .env.local',
+          command: 'echo "VITE_AUDIT_ENABLED=true" >> .env.local',
           instructions: [
             '1. Ouvrir le fichier .env.local',
             '2. Ajouter ou modifier: VITE_AUDIT_ENABLED=true',
             '3. Redémarrer le serveur de développement: npm run dev -- --host'
-          ],
-          command: 'echo "VITE_AUDIT_ENABLED=true" >> .env.local'
+          ]
         }
       } else {
-        // En staging/production, on peut modifier les variables Firebase Functions
+        // En staging/production, utiliser Firebase CLI
         try {
-          // Utiliser Firebase Admin pour modifier la configuration
-          // Note: Cette approche nécessite des permissions admin
-          const { exec } = require('child_process')
-          const util = require('util')
-          const execAsync = util.promisify(exec)
-          
-          // Commande Firebase CLI pour définir la variable
-          const command = `firebase functions:config:set audit.enabled=true --project ${process.env.GCLOUD_PROJECT || 'impro-selector'}`
-          
+          await execAsync('firebase functions:config:set audit.enabled=true')
           return {
             success: true,
-            environment: environment,
             message: 'Audit activé avec succès',
+            command: 'firebase functions:config:set audit.enabled=true',
             instructions: [
               '1. La variable AUDIT_ENABLED a été définie à true',
               '2. Redéployer les Cloud Functions pour appliquer le changement',
               '3. Commande: firebase deploy --only functions'
-            ],
-            command: command,
-            note: 'Redéploiement des fonctions requis'
+            ]
           }
         } catch (error) {
           return {
             success: false,
-            environment: environment,
-            message: 'Erreur lors de l\'activation de l\'audit',
-            error: error.message,
+            message: 'Erreur lors de l\'activation via Firebase CLI',
+            command: 'firebase functions:config:set audit.enabled=true',
             instructions: [
-              '1. Vérifier les permissions Firebase',
-              '2. Exécuter manuellement: firebase functions:config:set audit.enabled=true',
-              '3. Redéployer: firebase deploy --only functions'
-            ]
+              '1. Vérifier que Firebase CLI est installé et configuré',
+              '2. Vérifier les permissions du projet',
+              '3. Exécuter manuellement: firebase functions:config:set audit.enabled=true'
+            ],
+            error: error.message
           }
         }
       }
     } catch (error) {
+      console.error('❌ Erreur lors de l\'activation de l\'audit:', error)
       return {
         success: false,
         message: 'Erreur lors de l\'activation de l\'audit',
@@ -426,252 +418,61 @@ class AuditService {
   }
 
   /**
-   * Désactive manuellement l'audit (force AUDIT_ENABLED=false)
-   * Fonctionne différemment selon l'environnement
-   * @returns {Promise<Object>} Résultat de l'opération
+   * Désactive manuellement l'audit
+   * @returns {Promise<Object>} Résultat de la désactivation
    */
   static async disableAudit() {
     try {
-      // Initialiser EnvironmentDetector si nécessaire
-      if (!EnvironmentDetector) {
-        try {
-          const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
-          EnvironmentDetector = ED
-        } catch (error) {
-          console.warn('⚠️ Impossible d\'importer EnvironmentDetector')
-          EnvironmentDetector = {
-            detectEnvironment: () => process.env.NODE_ENV || 'production'
-          }
-        }
-      }
+      const { exec } = require('child_process')
+      const { promisify } = require('util')
+      const execAsync = promisify(exec)
       
-      const environment = EnvironmentDetector.detectEnvironment()
-      
-      if (environment === 'development') {
-        // En développement, on ne peut pas modifier les variables d'environnement
+      if (_environment === 'development') {
         return {
           success: false,
-          environment: environment,
           message: 'En développement, vous devez modifier manuellement le fichier .env.local',
+          command: 'echo "VITE_AUDIT_ENABLED=false" >> .env.local',
           instructions: [
             '1. Ouvrir le fichier .env.local',
             '2. Ajouter ou modifier: VITE_AUDIT_ENABLED=false',
             '3. Redémarrer le serveur de développement: npm run dev -- --host'
-          ],
-          command: 'echo "VITE_AUDIT_ENABLED=false" >> .env.local'
+          ]
         }
       } else {
-        // En staging/production, on peut modifier les variables Firebase Functions
+        // En staging/production, utiliser Firebase CLI
         try {
-          const { exec } = require('child_process')
-          const util = require('util')
-          const execAsync = util.promisify(exec)
-          
-          const command = `firebase functions:config:set audit.enabled=false --project ${process.env.GCLOUD_PROJECT || 'impro-selector'}`
-          
+          await execAsync('firebase functions:config:set audit.enabled=false')
           return {
             success: true,
-            environment: environment,
             message: 'Audit désactivé avec succès',
+            command: 'firebase functions:config:set audit.enabled=false',
             instructions: [
               '1. La variable AUDIT_ENABLED a été définie à false',
               '2. Redéployer les Cloud Functions pour appliquer le changement',
               '3. Commande: firebase deploy --only functions'
-            ],
-            command: command,
-            note: 'Redéploiement des fonctions requis'
+            ]
           }
         } catch (error) {
           return {
             success: false,
-            environment: environment,
-            message: 'Erreur lors de la désactivation de l\'audit',
-            error: error.message,
+            message: 'Erreur lors de la désactivation via Firebase CLI',
+            command: 'firebase functions:config:set audit.enabled=false',
             instructions: [
-              '1. Vérifier les permissions Firebase',
-              '2. Exécuter manuellement: firebase functions:config:set audit.enabled=false',
-              '3. Redéployer: firebase deploy --only functions'
-            ]
+              '1. Vérifier que Firebase CLI est installé et configuré',
+              '2. Vérifier les permissions du projet',
+              '3. Exécuter manuellement: firebase functions:config:set audit.enabled=false'
+            ],
+            error: error.message
           }
         }
       }
     } catch (error) {
+      console.error('❌ Erreur lors de la désactivation de l\'audit:', error)
       return {
         success: false,
         message: 'Erreur lors de la désactivation de l\'audit',
         error: error.message
       }
-    }
-  }
-
-  /**
-   * Obtient le statut actuel de l'audit
-   * @returns {Promise<Object>} Statut de l'audit
-   */
-  static async getAuditStatus() {
-    try {
-      // Initialiser EnvironmentDetector si nécessaire
-      if (!EnvironmentDetector) {
-        try {
-          const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
-          EnvironmentDetector = ED
-        } catch (error) {
-          console.warn('⚠️ Impossible d\'importer EnvironmentDetector')
-          EnvironmentDetector = {
-            detectEnvironment: () => process.env.NODE_ENV || 'production'
-          }
-        }
-      }
-      
-      const environment = EnvironmentDetector.detectEnvironment()
-      const auditEnabled = process.env.AUDIT_ENABLED
-      const isExplicitlyEnabled = auditEnabled === 'true'
-      const isExplicitlyDisabled = auditEnabled === 'false'
-      
-      // Déterminer le statut réel
-      let actualStatus = false
-      let statusSource = 'default'
-      
-      if (isExplicitlyEnabled) {
-        actualStatus = true
-        statusSource = 'explicit_override'
-      } else if (isExplicitlyDisabled) {
-        actualStatus = false
-        statusSource = 'explicit_override'
-      } else {
-        // Comportement par défaut
-        if (environment === 'test') {
-          actualStatus = false
-          statusSource = 'default_test'
-        } else if (environment === 'development') {
-          actualStatus = false
-          statusSource = 'default_development'
-        } else if (environment === 'staging' || environment === 'production') {
-          actualStatus = true
-          statusSource = 'default_production'
-        }
-      }
-      
-      return {
-        success: true,
-        environment: environment,
-        auditEnabled: auditEnabled,
-        actualStatus: actualStatus,
-        statusSource: statusSource,
-        isExplicitlyEnabled: isExplicitlyEnabled,
-        isExplicitlyDisabled: isExplicitlyDisabled,
-        message: `Audit ${actualStatus ? 'activé' : 'désactivé'} (${statusSource})`
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Erreur lors de la récupération du statut audit',
-        error: error.message
-      }
-    }
-  }
-  
-  /**
-   * Génère un ID unique pour l'événement
-   * @returns {string} ID unique
-   */
-  static generateEventId() {
-    return `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  /**
-   * Récupère les logs d'audit avec filtres
-   * @param {Object} filters - Filtres de recherche
-   * @returns {Array} Liste des logs
-   */
-  static async getAuditLogs(filters = {}) {
-    try {
-      let query = db.collection('auditLogs')
-
-      // Appliquer les filtres
-      if (filters.seasonSlug) {
-        query = query.where('seasonSlug', '==', filters.seasonSlug)
-      }
-      
-      if (filters.eventId) {
-        query = query.where('eventId', '==', filters.eventId)
-      }
-      
-      if (filters.eventTitle) {
-        query = query.where('eventTitle', '==', filters.eventTitle)
-      }
-      
-      if (filters.playerName) {
-        query = query.where('playerName', '==', filters.playerName)
-      }
-      
-      if (filters.userId) {
-        query = query.where('userId', '==', filters.userId)
-      }
-      
-      if (filters.eventType) {
-        query = query.where('eventType', '==', filters.eventType)
-      }
-      
-      if (filters.severity) {
-        query = query.where('severity', '==', filters.severity)
-      }
-      
-      if (filters.startDate) {
-        query = query.where('timestamp', '>=', filters.startDate)
-      }
-      
-      if (filters.endDate) {
-        query = query.where('timestamp', '<=', filters.endDate)
-      }
-
-      // Trier par timestamp décroissant
-      query = query.orderBy('timestamp', 'desc')
-      
-      // Limiter le nombre de résultats
-      if (filters.limit) {
-        query = query.limit(filters.limit)
-      } else {
-        query = query.limit(100) // Limite par défaut
-      }
-
-      const snapshot = await query.get()
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate?.() || doc.data().timestamp
-      }))
-    } catch (error) {
-      console.error('Erreur lors de la récupération des logs:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Recherche textuelle dans les logs
-   * @param {string} searchTerm - Terme de recherche
-   * @param {Object} filters - Filtres additionnels
-   * @returns {Array} Liste des logs correspondants
-   */
-  static async searchAuditLogs(searchTerm, filters = {}) {
-    try {
-      // Récupérer tous les logs avec les filtres de base
-      const logs = await this.getAuditLogs({ ...filters, limit: 1000 })
-      
-      // Filtrer par terme de recherche
-      const searchLower = searchTerm.toLowerCase()
-      return logs.filter(log => {
-        return (
-          (log.eventTitle && log.eventTitle.toLowerCase().includes(searchLower)) ||
-          (log.playerName && log.playerName.toLowerCase().includes(searchLower)) ||
-          (log.userEmail && log.userEmail.toLowerCase().includes(searchLower)) ||
-          (log.eventType && log.eventType.toLowerCase().includes(searchLower)) ||
-          (log.data && JSON.stringify(log.data).toLowerCase().includes(searchLower))
-        )
-      })
-    } catch (error) {
-      console.error('Erreur lors de la recherche:', error)
-      throw error
     }
   }
 }

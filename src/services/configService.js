@@ -1030,16 +1030,20 @@ class ConfigService {
   getLogLevel() {
     const env = this.environment;
     
-    // Priorité 1: localStorage (pour mémoriser le choix de l'utilisateur)
-    const savedLevel = localStorage.getItem('hatcast_log_level');
-    if (savedLevel) {
-      return savedLevel;
+    // Priorité 1: localStorage (pour mémoriser le choix de l'utilisateur) - seulement côté client
+    if (typeof localStorage !== 'undefined') {
+      const savedLevel = localStorage.getItem('hatcast_log_level');
+      if (savedLevel) {
+        return savedLevel;
+      }
     }
     
-    // Priorité 2: Variable d'environnement VITE_LOG_LEVEL (pour le dev local)
-    const viteLogLevel = import.meta.env.VITE_LOG_LEVEL;
-    if (viteLogLevel) {
-      return viteLogLevel;
+    // Priorité 2: Variable d'environnement VITE_LOG_LEVEL (pour le dev local) - seulement côté client
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      const viteLogLevel = import.meta.env.VITE_LOG_LEVEL;
+      if (viteLogLevel) {
+        return viteLogLevel;
+      }
     }
     
     // Priorité 3: Configuration Firebase (pour staging/production) avec cache
@@ -1207,8 +1211,10 @@ class ConfigService {
         if (!this.config.logs) { this.config.logs = {}; }
         this.config.logs.level = level;
         
-        // En développement, sauvegarder le choix dans localStorage
-        localStorage.setItem('hatcast_log_level', level);
+        // En développement, sauvegarder le choix dans localStorage - seulement côté client
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('hatcast_log_level', level);
+        }
         return true;
       }
 

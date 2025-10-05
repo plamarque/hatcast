@@ -2,6 +2,7 @@
 import logger from './logger.js'
 import { createRemindersForSelection, removeRemindersForPlayer } from './reminderService.js'
 import firestoreService from './firestoreService.js'
+import AuditClient from './auditClient.js'
 import { LABELS } from '../constants/labels.js'
 
 // Fonctions utilitaires pour la migration vers les IDs de joueurs
@@ -645,6 +646,25 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
       }
       await firestoreService.setDocument('seasons', seasonId, availabilityData, false, 'players', playerId, 'availability', eventId)
     }
+    
+    // Logger l'audit APRÈS la sauvegarde réussie
+    try {
+      await AuditClient.logAvailabilityChange({
+        userId: playerName,
+        seasonId: seasonId,
+        availability: available,
+        previousAvailability: null, // On n'a pas l'ancienne valeur ici
+        timestamp: new Date().toISOString(),
+        eventId: eventId,
+        eventTitle: 'Unknown', // On n'a pas le titre de l'événement ici
+        roles: roles,
+        comment: comment
+      })
+    } catch (auditError) {
+      console.warn('Erreur audit availability change:', auditError)
+      // Ne pas faire échouer la sauvegarde si l'audit échoue
+    }
+    
   } catch (error) {
     logger.error('Erreur lors de la sauvegarde de la disponibilité avec rôles:', error)
     throw error

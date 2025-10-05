@@ -695,6 +695,36 @@ class AuditClient {
   }
 
   /**
+   * Logger le changement de disponibilité d'un joueur
+   */
+  static async logAvailabilityChange(data) {
+    try {
+      const { userId, seasonId, availability, previousAvailability, eventId, eventTitle, roles, comment } = data
+      
+      await this.logUserAction({
+        type: 'availability_change',
+        category: 'availability',
+        severity: 'info',
+        data: {
+          userId,
+          seasonId,
+          availability,
+          previousAvailability,
+          eventId,
+          eventTitle,
+          roles,
+          comment,
+          timestamp: new Date().toISOString()
+        },
+        success: true,
+        tags: ['availability', 'change', seasonId]
+      })
+    } catch (error) {
+      console.error('❌ AUDIT ERROR - Erreur dans logAvailabilityChange:', error)
+    }
+  }
+
+  /**
    * Logger le désistement du joueur
    */
     static async logPlayerWithdrawn(playerName, eventTitle, seasonSlug, data = {}) {
