@@ -270,12 +270,18 @@
                 </button>
               </div>
               
-              <!-- Informations audit -->
+              <!-- Informations détaillées audit -->
               <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
                 <div class="text-xs text-gray-400">
-                  <div>🔇 Audit désactivé par défaut en développement</div>
-                  <div>📝 Activer temporairement pour diagnostiquer</div>
-                  <div>🔄 Redémarrer le serveur après changement</div>
+                  <div v-if="auditStatus">
+                    <div><strong>Environnement:</strong> {{ auditStatus.environment }}</div>
+                    <div><strong>Statut:</strong> {{ auditStatusMessage }}</div>
+                    <div v-if="auditStatus.auditEnabled"><strong>Variable:</strong> {{ auditStatus.auditEnabled }}</div>
+                    <div v-if="auditStatus.statusSource"><strong>Source:</strong> {{ auditStatus.statusSource }}</div>
+                  </div>
+                  <div v-else class="text-gray-500">
+                    Chargement du statut...
+                  </div>
                 </div>
               </div>
             </div>
@@ -962,7 +968,8 @@ const environmentVars = ref({});
 const appConfig = ref(null); // Configuration réelle utilisée par l'app
 
 // Audit state
-const auditEnabled = ref(false);
+const auditStatus = ref(null);
+const auditEnabled = computed(() => auditStatus.value?.actualStatus ?? false);
 const auditStatusText = computed(() => auditEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
 const auditStatusClass = computed(() => auditEnabled.value 
   ? 'bg-green-600/30 border border-green-500/30 text-green-300' 
@@ -973,6 +980,7 @@ const auditToggleButtonClass = computed(() => auditEnabled.value
   ? 'bg-red-600 hover:bg-red-500' 
   : 'bg-green-600 hover:bg-green-500'
 );
+const auditStatusMessage = computed(() => auditStatus.value?.message ?? 'Chargement...');
 
 // Performance debug computed properties
 const performanceDebugStatusText = computed(() => performanceDebugEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
@@ -1282,27 +1290,48 @@ async function dumpToConsole() {
 // Fonctions pour gérer l'audit
 async function checkAuditStatus() {
   try {
-    auditEnabled.value = import.meta.env.VITE_AUDIT_ENABLED === 'true';
+    // Utiliser auditService pour obtenir le statut réel
+    const { default: AuditService } = await import('../services/auditClient.js');
+    const status = await AuditService.getAuditStatus();
+    
+    auditStatus.value = status;
+    
+    console.log('🔍 Statut audit obtenu via auditService:', status);
+    
   } catch (error) {
     console.warn('⚠️ Erreur lors de la vérification du statut audit:', error);
-    auditEnabled.value = false;
+    // En cas d'erreur, définir un statut par défaut
+    auditStatus.value = {
+      success: false,
+      environment: 'unknown',
+      actualStatus: false,
+      message: 'Erreur lors de la vérification'
+    };
   }
 }
 
 async function toggleAudit() {
   try {
-    const newStatus = !auditEnabled.value;
+    const { default: AuditService } = await import('../services/auditClient.js');
     
-    if (newStatus) {
-      // Activer l'audit
-      alert(`🔊 Audit activé !\n\nPour que le changement prenne effet, vous devez :\n\n1. Créer/modifier le fichier .env.local\n2. Ajouter : VITE_AUDIT_ENABLED=true\n3. Redémarrer le serveur de développement\n\nExemple de commande :\n\necho "VITE_AUDIT_ENABLED=true" >> .env.local\nnpm run dev -- --host`);
-    } else {
+    let result;
+    if (auditEnabled.value) {
       // Désactiver l'audit
-      alert(`🔇 Audit désactivé !\n\nPour que le changement prenne effet, vous devez :\n\n1. Modifier le fichier .env.local\n2. Commenter ou supprimer : VITE_AUDIT_ENABLED=true\n3. Redémarrer le serveur de développement\n\nExemple de commande :\n\n# VITE_AUDIT_ENABLED=true\nnpm run dev -- --host`);
+      result = await AuditService.disableAudit();
+    } else {
+      // Activer l'audit
+      result = await AuditService.enableAudit();
     }
     
-    // Mettre à jour l'état local
-    auditEnabled.value = newStatus;
+    // Afficher le résultat
+    if (result.success) {
+      alert(`✅ ${result.message}\n\n${result.instructions ? result.instructions.join('\n') : ''}\n\n${result.command ? `Commande: ${result.command}` : ''}`);
+    } else {
+      alert(`⚠️ ${result.message}\n\n${result.instructions ? result.instructions.join('\n') : ''}\n\n${result.command ? `Commande: ${result.command}` : ''}`);
+    }
+    
+    // Recharger le statut après l'action
+    await checkAuditStatus();
     
   } catch (error) {
     console.error('❌ Erreur lors du toggle audit:', error);

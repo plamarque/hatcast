@@ -15,17 +15,109 @@ class ConfigService {
   }
 
   /**
-   * Détecte l'environnement actuel basé sur l'URL
+   * Détecte l'environnement actuel - fonctionne côté client ET serveur
+   * Gère 4 types d'environnements : test, development, staging, production
+   * Source unique de vérité pour toute l'application
    */
   detectEnvironment() {
-    const hostname = window.location.hostname;
+    // Priorité 1: Détection d'environnement de test (le plus restrictif)
+    if (this.isTestEnvironment()) {
+      return 'test';
+    }
     
-    if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
-      return 'staging';
-    } else if (hostname.includes('localhost') || hostname.includes('192.168.1.134') || hostname.includes('127.0.0.1')) {
-      return 'development';
-    } else {
+    // Priorité 2: Variable d'environnement explicite (serveur)
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) {
+      const nodeEnv = process.env.NODE_ENV;
+      // Si NODE_ENV est 'test', on l'a déjà géré plus haut
+      if (nodeEnv !== 'test') {
+        return nodeEnv;
+      }
+    }
+    
+    // Priorité 3: Détection basée sur l'hostname (client)
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+      const hostname = window.location.hostname;
+      
+      // Environnements de staging
+      if (hostname.includes('staging') || hostname.includes('hatcast-staging')) {
+        return 'staging';
+      }
+      
+      // Environnements de développement
+      if (hostname.includes('localhost') || 
+          hostname.includes('192.168.1.134') || 
+          hostname.includes('127.0.0.1')) {
+        return 'development';
+      }
+      
+      // Production par défaut pour les autres hostnames
       return 'production';
+    }
+    
+    // Priorité 4: Détection basée sur les variables Firebase (serveur)
+    if (typeof process !== 'undefined' && process.env) {
+      // Environnement de développement (émulateur)
+      if (process.env.FUNCTIONS_EMULATOR === 'true' || 
+          process.env.FIREBASE_EMULATOR_HOST) {
+        return 'development';
+      }
+      
+      // Staging basé sur le project ID ou auth domain
+      if (process.env.FIREBASE_PROJECT_ID?.includes('staging') ||
+          process.env.FIREBASE_AUTH_DOMAIN?.includes('staging')) {
+        return 'staging';
+      }
+      
+      // Production par défaut
+      return 'production';
+    }
+    
+    // Fallback: production (mode sécurisé)
+    return 'production';
+  }
+
+  /**
+   * Détecte si on est en environnement de test
+   * Centralise la logique de détection de test de toute l'application
+   */
+  isTestEnvironment() {
+    try {
+      // Détection côté client (navigateur)
+      if (typeof window !== 'undefined' && window.navigator) {
+        const userAgent = window.navigator.userAgent;
+        if (userAgent.includes('HeadlessChrome') || 
+            userAgent.includes('Playwright') ||
+            userAgent.includes('TestCafe') ||
+            userAgent.includes('Puppeteer')) {
+          return true;
+        }
+      }
+      
+      // Détection côté serveur (variables d'environnement)
+      if (typeof process !== 'undefined' && process.env) {
+        if (process.env.NODE_ENV === 'test' ||
+            process.env.PLAYWRIGHT_TEST ||
+            process.env.CYPRESS ||
+            process.env.JEST_WORKER_ID ||
+            process.env.FIREBASE_EMULATOR_HOST) {
+          return true;
+        }
+      }
+      
+      // Détection basée sur les URLs de test
+      if (typeof window !== 'undefined' && window.location) {
+        const url = window.location.href;
+        if (url.includes('localhost:4173') || // Vite preview
+            url.includes('staging')) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Erreur dans isTestEnvironment:', error);
+      // En cas d'erreur, considérer comme environnement de test (mode sécurisé)
+      return true;
     }
   }
 
@@ -1315,5 +1407,71 @@ class ConfigService {
 
 // Instance singleton
 const configService = new ConfigService();
+
+// Méthodes statiques pour utilisation côté serveur (Cloud Functions)
+export const EnvironmentDetector = {
+  /**
+   * Détecte l'environnement - version statique pour Cloud Functions
+   */
+  detectEnvironment() {
+    // Priorité 1: Détection d'environnement de test (le plus restrictif)
+    if (this.isTestEnvironment()) {
+      return 'test';
+    }
+    
+    // Priorité 2: Variable d'environnement explicite (serveur)
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV) {
+      const nodeEnv = process.env.NODE_ENV;
+      if (nodeEnv !== 'test') {
+        return nodeEnv;
+      }
+    }
+    
+    // Priorité 3: Détection basée sur les variables Firebase (serveur)
+    if (typeof process !== 'undefined' && process.env) {
+      // Environnement de développement (émulateur)
+      if (process.env.FUNCTIONS_EMULATOR === 'true' || 
+          process.env.FIREBASE_EMULATOR_HOST) {
+        return 'development';
+      }
+      
+      // Staging basé sur le project ID ou auth domain
+      if (process.env.FIREBASE_PROJECT_ID?.includes('staging') ||
+          process.env.FIREBASE_AUTH_DOMAIN?.includes('staging')) {
+        return 'staging';
+      }
+      
+      // Production par défaut
+      return 'production';
+    }
+    
+    // Fallback: production (mode sécurisé)
+    return 'production';
+  },
+
+  /**
+   * Détecte si on est en environnement de test - version statique
+   */
+  isTestEnvironment() {
+    try {
+      // Détection côté serveur (variables d'environnement)
+      if (typeof process !== 'undefined' && process.env) {
+        if (process.env.NODE_ENV === 'test' ||
+            process.env.PLAYWRIGHT_TEST ||
+            process.env.CYPRESS ||
+            process.env.JEST_WORKER_ID ||
+            process.env.FIREBASE_EMULATOR_HOST) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Erreur dans isTestEnvironment:', error);
+      // En cas d'erreur, considérer comme environnement de test (mode sécurisé)
+      return true;
+    }
+  }
+};
 
 export default configService;

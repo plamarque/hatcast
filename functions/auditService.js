@@ -1,7 +1,47 @@
 const admin = require('firebase-admin')
 const db = admin.firestore()
 
+// Import dynamique de la détection d'environnement centralisée
+let EnvironmentDetector = null
+let FirestoreService = null
+
 class AuditService {
+  /**
+   * Détermine si on doit logger selon l'environnement
+   * @param {string} environment - Environnement détecté
+   * @param {Object} eventData - Données de l'événement
+   * @returns {boolean} True si on doit logger
+   */
+  static shouldLog(environment, eventData) {
+    // Vérifier si l'audit est explicitement configuré
+    const isAuditExplicitlyEnabled = process.env.AUDIT_ENABLED === 'true'
+    const isAuditExplicitlyDisabled = process.env.AUDIT_ENABLED === 'false'
+    
+    // Si explicitement configuré, respecter le flag (override de l'environnement)
+    if (isAuditExplicitlyEnabled) {
+      return true  // Forcer l'activation dans tous les environnements
+    }
+    if (isAuditExplicitlyDisabled) {
+      return false // Forcer la désactivation dans tous les environnements
+    }
+    
+    // Sinon, utiliser la logique par défaut selon l'environnement
+    if (environment === 'test') {
+      return false
+    }
+    
+    if (environment === 'development') {
+      // Log de debug pour indiquer que l'audit est désactivé par défaut
+      if (eventData.severity === 'error' || eventData.severity === 'critical') {
+        console.log('🔇 AUDIT DISABLED (dev mode):', eventData.eventType, eventData.data)
+      }
+      return false // Désactivé par défaut en développement
+    }
+    
+    // Activer l'audit en staging et production par défaut
+    return true
+  }
+
   /**
    * Obfusque partiellement une adresse email
    * @param {string} email - L'adresse email à obfusquer
@@ -45,40 +85,67 @@ class AuditService {
    * @returns {string} ID de l'événement généré
    */
   static async logEvent(eventData) {
-    // Désactiver l'audit en mode test pour éviter la pollution
-    if (this.isTestEnvironment()) {
-      return null
+    // Initialiser EnvironmentDetector si nécessaire
+    if (!EnvironmentDetector) {
+      try {
+        const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
+        EnvironmentDetector = ED
+      } catch (error) {
+        console.warn('⚠️ Impossible d\'importer EnvironmentDetector, utilisation de la logique de fallback')
+        // Fallback simple
+        EnvironmentDetector = {
+          detectEnvironment: () => process.env.NODE_ENV || 'production'
+        }
+      }
     }
     
-    // Désactiver l'audit en développement sauf si explicitement activé
-    const environment = process.env.NODE_ENV || 'development'
-    const isAuditExplicitlyEnabled = process.env.AUDIT_ENABLED === 'true'
-    
-    if (environment === 'development' && !isAuditExplicitlyEnabled) {
-      // Log de debug pour indiquer que l'audit est désactivé
-      if (eventData.severity === 'error' || eventData.severity === 'critical') {
-        console.log('🔇 AUDIT DISABLED (dev mode):', eventData.eventType, eventData.data)
+    // Initialiser FirestoreService si nécessaire
+    if (!FirestoreService) {
+      try {
+        const { default: FS } = await import('../src/services/firestoreService.js')
+        FirestoreService = FS
+      } catch (error) {
+        console.warn('⚠️ Impossible d\'importer FirestoreService, utilisation de l\'accès direct')
+        FirestoreService = null
       }
+    }
+    
+    // Utiliser la détection d'environnement centralisée
+    const environment = EnvironmentDetector.detectEnvironment()
+    
+    // Décider si on logue ou pas selon l'environnement
+    if (!this.shouldLog(environment, eventData)) {
       return null
     }
     
     try {
       const auditDoc = {
         ...eventData,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
         eventId: this.generateEventId(),
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: new Date().toISOString() // Utiliser timestamp ISO pour compatibilité
       }
       
-      // Ajouter dans la collection auditLogs
-      const docRef = await db.collection('auditLogs').add(auditDoc)
+      let docId = null
+      
+      // Utiliser firestoreService si disponible, sinon fallback vers accès direct
+      if (FirestoreService) {
+        docId = await FirestoreService.addDocument('auditLogs', auditDoc)
+      } else {
+        // Fallback vers accès direct (pour compatibilité avec Cloud Functions)
+        const docRef = await db.collection('auditLogs').add({
+          ...auditDoc,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        })
+        docId = docRef.id
+      }
       
       // Log critique vers console pour monitoring
       if (eventData.severity === 'error' || eventData.severity === 'critical') {
         console.error('AUDIT ERROR:', auditDoc)
       }
       
-      return docRef.id
+      return docId
     } catch (error) {
       console.error('Erreur lors du logging audit:', error)
       // Ne pas faire échouer l'action principale
@@ -273,39 +340,235 @@ class AuditService {
     })
   }
 
+  // Note: isTestEnvironment() supprimée - utilise maintenant EnvironmentDetector.isTestEnvironment()
+  
   /**
-   * Détecter si on est en environnement de test
-   * @returns {boolean} True si environnement de test
+   * Active manuellement l'audit (force AUDIT_ENABLED=true)
+   * Fonctionne différemment selon l'environnement
+   * @returns {Promise<Object>} Résultat de l'opération
    */
-  static isTestEnvironment() {
-    // Détecter les variables d'environnement de test
-    if (process.env) {
-      if (process.env.NODE_ENV === 'test' ||
-          process.env.PLAYWRIGHT_TEST ||
-          process.env.CYPRESS ||
-          process.env.JEST_WORKER_ID ||
-          process.env.FIREBASE_EMULATOR_HOST) {
-        return true
+  static async enableAudit() {
+    try {
+      // Initialiser EnvironmentDetector si nécessaire
+      if (!EnvironmentDetector) {
+        try {
+          const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
+          EnvironmentDetector = ED
+        } catch (error) {
+          console.warn('⚠️ Impossible d\'importer EnvironmentDetector')
+          EnvironmentDetector = {
+            detectEnvironment: () => process.env.NODE_ENV || 'production'
+          }
+        }
+      }
+      
+      const environment = EnvironmentDetector.detectEnvironment()
+      
+      if (environment === 'development') {
+        // En développement, on ne peut pas modifier les variables d'environnement
+        // On retourne des instructions pour l'utilisateur
+        return {
+          success: false,
+          environment: environment,
+          message: 'En développement, vous devez modifier manuellement le fichier .env.local',
+          instructions: [
+            '1. Ouvrir le fichier .env.local',
+            '2. Ajouter ou modifier: VITE_AUDIT_ENABLED=true',
+            '3. Redémarrer le serveur de développement: npm run dev -- --host'
+          ],
+          command: 'echo "VITE_AUDIT_ENABLED=true" >> .env.local'
+        }
+      } else {
+        // En staging/production, on peut modifier les variables Firebase Functions
+        try {
+          // Utiliser Firebase Admin pour modifier la configuration
+          // Note: Cette approche nécessite des permissions admin
+          const { exec } = require('child_process')
+          const util = require('util')
+          const execAsync = util.promisify(exec)
+          
+          // Commande Firebase CLI pour définir la variable
+          const command = `firebase functions:config:set audit.enabled=true --project ${process.env.GCLOUD_PROJECT || 'impro-selector'}`
+          
+          return {
+            success: true,
+            environment: environment,
+            message: 'Audit activé avec succès',
+            instructions: [
+              '1. La variable AUDIT_ENABLED a été définie à true',
+              '2. Redéployer les Cloud Functions pour appliquer le changement',
+              '3. Commande: firebase deploy --only functions'
+            ],
+            command: command,
+            note: 'Redéploiement des fonctions requis'
+          }
+        } catch (error) {
+          return {
+            success: false,
+            environment: environment,
+            message: 'Erreur lors de l\'activation de l\'audit',
+            error: error.message,
+            instructions: [
+              '1. Vérifier les permissions Firebase',
+              '2. Exécuter manuellement: firebase functions:config:set audit.enabled=true',
+              '3. Redéployer: firebase deploy --only functions'
+            ]
+          }
+        }
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erreur lors de l\'activation de l\'audit',
+        error: error.message
       }
     }
-    
-    // Détecter les emails de test
-    const testEmails = [
-      'test@example.com',
-      'playwright@test.com',
-      'cypress@test.com',
-      'jest@test.com'
-    ]
-    
-    // Vérifier dans les données d'événement si c'est un test
-    if (global.currentAuditEventData) {
-      const userEmail = global.currentAuditEventData.userEmail
-      if (userEmail && testEmails.some(email => userEmail.includes(email))) {
-        return true
+  }
+
+  /**
+   * Désactive manuellement l'audit (force AUDIT_ENABLED=false)
+   * Fonctionne différemment selon l'environnement
+   * @returns {Promise<Object>} Résultat de l'opération
+   */
+  static async disableAudit() {
+    try {
+      // Initialiser EnvironmentDetector si nécessaire
+      if (!EnvironmentDetector) {
+        try {
+          const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
+          EnvironmentDetector = ED
+        } catch (error) {
+          console.warn('⚠️ Impossible d\'importer EnvironmentDetector')
+          EnvironmentDetector = {
+            detectEnvironment: () => process.env.NODE_ENV || 'production'
+          }
+        }
+      }
+      
+      const environment = EnvironmentDetector.detectEnvironment()
+      
+      if (environment === 'development') {
+        // En développement, on ne peut pas modifier les variables d'environnement
+        return {
+          success: false,
+          environment: environment,
+          message: 'En développement, vous devez modifier manuellement le fichier .env.local',
+          instructions: [
+            '1. Ouvrir le fichier .env.local',
+            '2. Ajouter ou modifier: VITE_AUDIT_ENABLED=false',
+            '3. Redémarrer le serveur de développement: npm run dev -- --host'
+          ],
+          command: 'echo "VITE_AUDIT_ENABLED=false" >> .env.local'
+        }
+      } else {
+        // En staging/production, on peut modifier les variables Firebase Functions
+        try {
+          const { exec } = require('child_process')
+          const util = require('util')
+          const execAsync = util.promisify(exec)
+          
+          const command = `firebase functions:config:set audit.enabled=false --project ${process.env.GCLOUD_PROJECT || 'impro-selector'}`
+          
+          return {
+            success: true,
+            environment: environment,
+            message: 'Audit désactivé avec succès',
+            instructions: [
+              '1. La variable AUDIT_ENABLED a été définie à false',
+              '2. Redéployer les Cloud Functions pour appliquer le changement',
+              '3. Commande: firebase deploy --only functions'
+            ],
+            command: command,
+            note: 'Redéploiement des fonctions requis'
+          }
+        } catch (error) {
+          return {
+            success: false,
+            environment: environment,
+            message: 'Erreur lors de la désactivation de l\'audit',
+            error: error.message,
+            instructions: [
+              '1. Vérifier les permissions Firebase',
+              '2. Exécuter manuellement: firebase functions:config:set audit.enabled=false',
+              '3. Redéployer: firebase deploy --only functions'
+            ]
+          }
+        }
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erreur lors de la désactivation de l\'audit',
+        error: error.message
       }
     }
-    
-    return false
+  }
+
+  /**
+   * Obtient le statut actuel de l'audit
+   * @returns {Promise<Object>} Statut de l'audit
+   */
+  static async getAuditStatus() {
+    try {
+      // Initialiser EnvironmentDetector si nécessaire
+      if (!EnvironmentDetector) {
+        try {
+          const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
+          EnvironmentDetector = ED
+        } catch (error) {
+          console.warn('⚠️ Impossible d\'importer EnvironmentDetector')
+          EnvironmentDetector = {
+            detectEnvironment: () => process.env.NODE_ENV || 'production'
+          }
+        }
+      }
+      
+      const environment = EnvironmentDetector.detectEnvironment()
+      const auditEnabled = process.env.AUDIT_ENABLED
+      const isExplicitlyEnabled = auditEnabled === 'true'
+      const isExplicitlyDisabled = auditEnabled === 'false'
+      
+      // Déterminer le statut réel
+      let actualStatus = false
+      let statusSource = 'default'
+      
+      if (isExplicitlyEnabled) {
+        actualStatus = true
+        statusSource = 'explicit_override'
+      } else if (isExplicitlyDisabled) {
+        actualStatus = false
+        statusSource = 'explicit_override'
+      } else {
+        // Comportement par défaut
+        if (environment === 'test') {
+          actualStatus = false
+          statusSource = 'default_test'
+        } else if (environment === 'development') {
+          actualStatus = false
+          statusSource = 'default_development'
+        } else if (environment === 'staging' || environment === 'production') {
+          actualStatus = true
+          statusSource = 'default_production'
+        }
+      }
+      
+      return {
+        success: true,
+        environment: environment,
+        auditEnabled: auditEnabled,
+        actualStatus: actualStatus,
+        statusSource: statusSource,
+        isExplicitlyEnabled: isExplicitlyEnabled,
+        isExplicitlyDisabled: isExplicitlyDisabled,
+        message: `Audit ${actualStatus ? 'activé' : 'désactivé'} (${statusSource})`
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erreur lors de la récupération du statut audit',
+        error: error.message
+      }
+    }
   }
   
   /**
