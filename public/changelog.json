@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.25.0",
+    "date": "2025-10-05",
+    "changes": [
+      "✨ Remplacement des alertes d'audit par des messages intégrés dans l'interface.",
+      "✨ Refactorisation complète du système d'audit avec des fonctions de détection et de gestion de l'environnement.",
+      "✨ Déplacement du menu contextuel sur le clic du titre.",
+      "🔧 Optimisation de la fenêtre de localisation mobile.",
+      "🐛 Correction de l'initialisation de l'onglet Disponibilités.",
+      "🐛 Correction de l'affichage de l'onglet Disponibilités."
+    ]
+  },
+  {
     "version": "0.24.0",
     "date": "2025-10-03",
     "changes": [
