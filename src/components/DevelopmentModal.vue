@@ -284,6 +284,53 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Messages d'action audit -->
+              <div v-if="auditActionMessage" class="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm text-blue-200">
+                    {{ auditActionMessage }}
+                  </div>
+                  <button 
+                    @click="clearAuditActionMessage"
+                    class="text-blue-300 hover:text-blue-100 transition-colors text-xs"
+                    title="Fermer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <!-- Instructions -->
+                <div v-if="auditActionInstructions.length > 0" class="space-y-1">
+                  <div class="text-xs text-blue-300 font-semibold">Instructions :</div>
+                  <ol class="text-xs text-blue-200 space-y-1 ml-4">
+                    <li v-for="(instruction, index) in auditActionInstructions" :key="index" class="list-decimal">
+                      {{ instruction }}
+                    </li>
+                  </ol>
+                </div>
+                
+                <!-- Commande à copier -->
+                <div v-if="auditActionCommand" class="space-y-2">
+                  <div class="text-xs text-blue-300 font-semibold">Commande à exécuter :</div>
+                  <div class="relative">
+                    <input 
+                      type="text" 
+                      :value="auditActionCommand" 
+                      readonly 
+                      class="w-full bg-black/30 border border-blue-500/50 rounded px-3 py-2 text-xs font-mono text-blue-100 focus:outline-none focus:border-blue-400"
+                      @click="$event.target.select()"
+                    />
+                    <button 
+                      @click="copyToClipboard(auditActionCommand)"
+                      class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-300 hover:text-blue-100 transition-colors"
+                      title="Copier"
+                    >
+                      📋
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -982,6 +1029,11 @@ const auditToggleButtonClass = computed(() => auditEnabled.value
 );
 const auditStatusMessage = computed(() => auditStatus.value?.message ?? 'Chargement...');
 
+// Audit action messages
+const auditActionMessage = ref(null);
+const auditActionCommand = ref(null);
+const auditActionInstructions = ref([]);
+
 // Performance debug computed properties
 const performanceDebugStatusText = computed(() => performanceDebugEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
 const performanceDebugStatusClass = computed(() => performanceDebugEnabled.value 
@@ -1323,20 +1375,43 @@ async function toggleAudit() {
       result = await AuditService.enableAudit();
     }
     
-    // Afficher le résultat
-    if (result.success) {
-      alert(`✅ ${result.message}\n\n${result.instructions ? result.instructions.join('\n') : ''}\n\n${result.command ? `Commande: ${result.command}` : ''}`);
-    } else {
-      alert(`⚠️ ${result.message}\n\n${result.instructions ? result.instructions.join('\n') : ''}\n\n${result.command ? `Commande: ${result.command}` : ''}`);
-    }
+    // Afficher le résultat dans l'UI
+    auditActionMessage.value = result.success ? `✅ ${result.message}` : `⚠️ ${result.message}`;
+    auditActionCommand.value = result.command || null;
+    auditActionInstructions.value = result.instructions || [];
     
     // Recharger le statut après l'action
     await checkAuditStatus();
     
   } catch (error) {
     console.error('❌ Erreur lors du toggle audit:', error);
-    alert('❌ Erreur lors de la modification du statut audit');
+    auditActionMessage.value = `❌ Erreur lors de la modification du statut audit`;
+    auditActionCommand.value = null;
+    auditActionInstructions.value = [];
   }
+}
+
+// Fonction pour copier dans le presse-papier
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    // Optionnel: afficher un message de confirmation temporaire
+    const originalMessage = auditActionMessage.value;
+    auditActionMessage.value = '✅ Commande copiée dans le presse-papier !';
+    setTimeout(() => {
+      auditActionMessage.value = originalMessage;
+    }, 2000);
+  } catch (error) {
+    console.error('Erreur lors de la copie:', error);
+    auditActionMessage.value = '❌ Erreur lors de la copie dans le presse-papier';
+  }
+}
+
+// Fonction pour effacer les messages d'action audit
+function clearAuditActionMessage() {
+  auditActionMessage.value = null;
+  auditActionCommand.value = null;
+  auditActionInstructions.value = [];
 }
 
 // Fonctions pour gérer les logs
@@ -1513,5 +1588,7 @@ watch(() => props.show, (newValue) => {
 // Watcher pour sauvegarder l'onglet actif
 watch(activeTab, (newTab) => {
   localStorage.setItem('dev-modal-active-tab', newTab);
+  // Effacer les messages d'action audit quand on change d'onglet
+  clearAuditActionMessage();
 });
 </script>
