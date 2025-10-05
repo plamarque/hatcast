@@ -631,6 +631,16 @@
               </template>
             </div>
           </div>
+          
+          <!-- Status de l'événement -->
+          <SelectionStatusBadge
+            v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
+            :status="eventStatus?.type"
+            :show="true"
+            :clickable="false"
+            :reason="eventWarningText"
+            class="text-xs"
+          />
         </div>
         
         <!-- Layout horizontal compact -->
@@ -690,17 +700,6 @@
             
             <!-- Colonne droite: Status + Lieu + Carte -->
             <div class="flex-1 min-w-0">
-              <!-- Status aligné à droite -->
-              <div class="flex justify-end items-center mb-2 pt-8">
-                <SelectionStatusBadge
-                  v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
-                  :status="eventStatus?.type"
-                  :show="true"
-                  :clickable="false"
-                  :reason="eventWarningText"
-                  class="text-xs"
-                />
-              </div>
               
               <!-- Lieu avec dropdown -->
               <div v-if="selectedEvent?.location" class="relative mb-2">
@@ -862,20 +861,6 @@
                    </button>
                  </template>
                </div>
-             </div>
-             
-             <!-- Status et Actions -->
-             <div class="flex items-center justify-between gap-3">
-               <!-- Status de l'événement -->
-               <SelectionStatusBadge
-                 v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
-                 :status="eventStatus?.type"
-                 :show="true"
-                 :clickable="false"
-                 :reason="eventWarningText"
-                 class="text-xs"
-               />
-               
              </div>
              
              <!-- Description -->
