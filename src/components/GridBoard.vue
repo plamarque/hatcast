@@ -552,92 +552,93 @@
       <div class="relative p-3 sm:p-4 md:p-6">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-2 top-2 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
+        <!-- Titre avec pastille intégrée et chevron expand/collapse - Pleine largeur -->
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
+          <!-- Titre avec dropdown intégré -->
+          <div class="relative flex-1">
+            <h2 
+              @click="showEventActionsDropdown = !showEventActionsDropdown"
+              class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex items-center gap-2"
+              title="Cliquer pour les actions de l'événement"
+            >
+              {{ selectedEvent?.title }}
+              <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </h2>
+            
+            <!-- Menu dropdown -->
+            <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+              
+              <!-- Actions utilisateur -->
+              <!-- Action Partager -->
+              <button
+                @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
+                class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+              >
+                <span>🔗</span>
+                <span>Partager</span>
+              </button>
+              
+              <!-- Action Notifications -->
+              <button
+                @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
+                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
+                :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
+                :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
+              >
+                <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
+                <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
+              </button>
+              
+              <!-- Actions admin (avec PIN) -->
+              <template v-if="canEditEvents">
+                <!-- Séparateur -->
+                <div class="border-t border-gray-600 my-1"></div>
+                
+                <!-- En-tête admin -->
+                <div class="px-3 py-1 text-xs text-gray-400 font-medium">
+                  Actions administrateur
+                </div>
+                
+                <!-- Action Modifier -->
+                <button
+                  @click="startEditingFromDetails(); showEventActionsDropdown = false"
+                  class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                >
+                  <span>✏️</span>
+                  <span>Modifier</span>
+                </button>
+                
+                <!-- Action Archiver -->
+                <button
+                  @click="toggleEventArchived(); showEventActionsDropdown = false"
+                  class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                >
+                  <span>📁</span>
+                  <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+                </button>
+                
+                <!-- Action Supprimer -->
+                <button
+                  @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
+                  class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
+                >
+                  <span>🗑️</span>
+                  <span>Supprimer</span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+        
         <!-- Layout horizontal compact -->
         <div class="w-full">
           <!-- Layout desktop en 2 colonnes égales avec flexbox -->
           <div class="hidden md:flex md:gap-6 w-full">
-            <!-- Colonne gauche: Titre + Date + Description -->
-            <div class="flex-1 space-y-2 min-w-0 pt-8">
-              <!-- Titre avec pastille intégrée et chevron expand/collapse -->
-              <div class="flex items-center gap-2">
-                <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
-                <!-- Titre avec dropdown intégré -->
-                <div class="relative flex-1">
-                  <h2 
-                    @click="showEventActionsDropdown = !showEventActionsDropdown"
-                    class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex items-center gap-2"
-                    title="Cliquer pour les actions de l'événement"
-                  >
-                    {{ selectedEvent?.title }}
-                    <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </h2>
-                  
-                  <!-- Menu dropdown -->
-                  <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
-                    
-                    <!-- Actions utilisateur -->
-                    <!-- Action Partager -->
-                    <button
-                      @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>🔗</span>
-                      <span>Partager</span>
-                    </button>
-                    
-                    <!-- Action Notifications -->
-                    <button
-                      @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
-                      class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
-                      :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
-                      :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
-                    >
-                      <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
-                      <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
-                    </button>
-                    
-                    <!-- Actions admin (avec PIN) -->
-                    <template v-if="canEditEvents">
-                      <!-- Séparateur -->
-                      <div class="border-t border-gray-600 my-1"></div>
-                      
-                      <!-- En-tête admin -->
-                      <div class="px-3 py-1 text-xs text-gray-400 font-medium">
-                        Actions administrateur
-                      </div>
-                      
-                      <!-- Action Modifier -->
-                      <button
-                        @click="startEditingFromDetails(); showEventActionsDropdown = false"
-                        class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                      >
-                        <span>✏️</span>
-                        <span>Modifier</span>
-                      </button>
-                      
-                      <!-- Action Archiver -->
-                      <button
-                        @click="toggleEventArchived(); showEventActionsDropdown = false"
-                        class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
-                      >
-                        <span>📁</span>
-                        <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
-                      </button>
-                      
-                      <!-- Action Supprimer -->
-                      <button
-                        @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
-                        class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
-                      >
-                        <span>🗑️</span>
-                        <span>Supprimer</span>
-                      </button>
-                    </template>
-                  </div>
-                </div>
-              </div>
+            <!-- Colonne gauche: Date + Description -->
+            <div class="flex-1 space-y-2 min-w-0">
               
               <!-- Date avec dropdown -->
               <div class="relative">
