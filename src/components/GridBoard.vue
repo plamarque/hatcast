@@ -558,31 +558,24 @@
           <div class="hidden md:flex md:gap-6 w-full">
             <!-- Colonne gauche: Titre + Date + Description -->
             <div class="flex-1 space-y-2 min-w-0 pt-8">
-              <!-- Titre avec pastille intégrée et dropdown actions -->
+              <!-- Titre avec pastille intégrée et chevron expand/collapse -->
               <div class="flex items-center gap-2">
                 <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
-                <h2 
-                  @click="copyEventLinkToClipboard(selectedEvent)"
-                  class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex-1"
-                  title="Cliquer pour copier le lien de partage"
-                >
-                  {{ selectedEvent?.title }}
-                </h2>
-                
-                <!-- Dropdown des actions -->
-                <div class="relative">
-                  <button
+                <!-- Titre avec dropdown intégré -->
+                <div class="relative flex-1">
+                  <h2 
                     @click="showEventActionsDropdown = !showEventActionsDropdown"
-                    class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
-                    title="Actions de l'événement"
+                    class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex items-center gap-2"
+                    title="Cliquer pour les actions de l'événement"
                   >
+                    {{ selectedEvent?.title }}
                     <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
-                  </button>
+                  </h2>
                   
                   <!-- Menu dropdown -->
-                  <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                  <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
                     
                     <!-- Actions utilisateur -->
                     <!-- Action Partager -->
@@ -797,12 +790,77 @@
              <div class="flex items-center gap-2">
                <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
                <h2 
-                 @click="copyEventLinkToClipboard(selectedEvent)"
-                 class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex-1"
-                 title="Cliquer pour copier le lien de partage"
+                 @click="showEventActionsDropdown = !showEventActionsDropdown"
+                 class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex-1 flex items-center gap-2"
+                 title="Cliquer pour les actions de l'événement"
                >
                  {{ selectedEvent?.title }}
+                 <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                 </svg>
                </h2>
+               
+               <!-- Menu dropdown mobile (accessible depuis le titre) -->
+               <div v-if="showEventActionsDropdown" class="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                 
+                 <!-- Actions utilisateur -->
+                 <!-- Action Partager -->
+                 <button
+                   @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
+                   class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                 >
+                   <span>🔗</span>
+                   <span>Partager</span>
+                 </button>
+                 
+                 <!-- Action Notifications -->
+                 <button
+                   @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
+                   class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
+                 >
+                   <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
+                   <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
+                 </button>
+                 
+                 <!-- Actions admin (avec PIN) -->
+                 <template v-if="canEditEvents">
+                   <!-- Séparateur -->
+                   <div class="border-t border-gray-600 my-1"></div>
+                   
+                   <!-- En-tête admin -->
+                   <div class="px-3 py-1 text-xs text-gray-400 font-medium">
+                     Actions administrateur
+                   </div>
+                   
+                   <!-- Action Modifier -->
+                   <button
+                     @click="startEditingFromDetails(); showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>✏️</span>
+                     <span>Modifier</span>
+                   </button>
+                   
+                   <!-- Action Archiver -->
+                   <button
+                     @click="toggleEventArchived(); showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                   >
+                     <span>📁</span>
+                     <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+                   </button>
+                   
+                   <!-- Action Supprimer -->
+                   <button
+                     @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
+                     class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
+                   >
+                     <span>🗑️</span>
+                     <span>Supprimer</span>
+                   </button>
+                 </template>
+               </div>
              </div>
              
              <!-- Status et Actions -->
@@ -817,81 +875,6 @@
                  class="text-xs"
                />
                
-               <!-- Dropdown des actions (mobile) -->
-               <div class="relative md:hidden">
-                 <button
-                   @click="showEventActionsDropdown = !showEventActionsDropdown"
-                   class="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group"
-                   title="Actions de l'événement"
-                 >
-                   <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventActionsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                   </svg>
-                 </button>
-                 
-                 <!-- Menu dropdown (mobile) -->
-                 <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
-                   
-                   <!-- Actions utilisateur -->
-                   <!-- Action Partager -->
-                   <button
-                     @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
-                     class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                   >
-                     <span>🔗</span>
-                     <span>Partager</span>
-                   </button>
-                   
-                   <!-- Action Notifications -->
-                   <button
-                     @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
-                     class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
-                     :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
-                     :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
-                   >
-                     <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
-                     <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
-                   </button>
-                   
-                   <!-- Actions admin (avec PIN) -->
-                   <template v-if="canEditEvents">
-                     <!-- Séparateur -->
-                     <div class="border-t border-gray-600 my-1"></div>
-                     
-                     <!-- En-tête admin -->
-                     <div class="px-3 py-1 text-xs text-gray-400 font-medium">
-                       Actions administrateur
-                     </div>
-                     
-                     <!-- Action Modifier -->
-                     <button
-                       @click="startEditingFromDetails(); showEventActionsDropdown = false"
-                       class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                     >
-                       <span>✏️</span>
-                       <span>Modifier</span>
-                     </button>
-                     
-                     <!-- Action Archiver -->
-                     <button
-                       @click="toggleEventArchived(); showEventActionsDropdown = false"
-                       class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
-                     >
-                       <span>📁</span>
-                       <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
-                     </button>
-                     
-                     <!-- Action Supprimer -->
-                     <button
-                       @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
-                       class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
-                     >
-                       <span>🗑️</span>
-                       <span>Supprimer</span>
-                     </button>
-                   </template>
-                 </div>
-               </div>
              </div>
              
              <!-- Description -->
@@ -1251,22 +1234,15 @@
                     ></textarea>
                   </div>
                   
-                  <!-- Boutons de sauvegarde et retour (seulement pour l'utilisateur connecté) -->
-                  <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center gap-3">
-                    <button
-                      @click="selectAllTeamPlayers"
-                      class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
-                    >
-                      <span>👥</span>
-                      <span class="ml-1">Personnes Disponibles</span>
-                    </button>
+                  <!-- Bouton de sauvegarde (seulement pour l'utilisateur connecté) -->
+                  <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center">
                     <button
                       @click="saveAllAvailability"
                       :disabled="isSaving"
                       class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                     >
                       <span v-if="isSaving">💾 Enregistrement...</span>
-                      <span v-else>💾 Enregistrer mes dispos</span>
+                      <span v-else>💾 Enregistrer</span>
                     </button>
                   </div>
                   
@@ -3242,6 +3218,9 @@ const selectedTeamPlayer = ref(null)
 
 // État du modal de sélection de joueur pour l'onglet Disponibilités
 const showAvailabilityPlayerSelector = ref(false)
+
+// État d'expansion du header de l'événement
+const isEventHeaderExpanded = ref(false)
 
 // Variables pour la modale de confirmation
 const showConfirmationModal = ref(false)
@@ -10309,6 +10288,11 @@ function selectAvailabilityPlayer(player) {
 function selectAllAvailabilityPlayers() {
   selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
   showAvailabilityPlayerSelector.value = false
+}
+
+// Fonction pour toggle l'expansion du header
+function toggleEventHeaderExpansion() {
+  isEventHeaderExpanded.value = !isEventHeaderExpanded.value
 }
 
 // Computed pour le joueur sélectionné dans l'équipe (par défaut le joueur courant)
