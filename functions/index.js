@@ -1,8 +1,12 @@
 const functions = require('firebase-functions')
 const admin = require('firebase-admin')
+const { defineSecret } = require('firebase-functions/params')
 
 admin.initializeApp()
 const db = admin.firestore()
+
+// Définir le secret Google Maps API Key
+const googleMapsApiKey = defineSecret('GOOGLE_MAPS_API_KEY')
 
 // Import des services d'audit
 const AuditService = require('./auditService')
@@ -396,5 +400,28 @@ exports.checkSeasonAdminStatus = roleFunctions.checkSeasonAdminStatus;
 exports.grantSeasonAdmin = roleFunctions.grantSeasonAdmin;
 exports.revokeSeasonAdmin = roleFunctions.revokeSeasonAdmin;
 exports.listSeasonAdmins = roleFunctions.listSeasonAdmins;
+
+// ===== FONCTION GOOGLE MAPS API =====
+
+// Fonction pour exposer la clé API Google Maps de manière sécurisée
+exports.getGoogleMapsApiKey = functions
+  .runWith({ secrets: [googleMapsApiKey] })
+  .https.onCall(async (data, context) => {
+    try {
+      // Vérifier que l'utilisateur est authentifié
+      if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated')
+      }
+      
+      // Retourner la clé API (elle sera automatiquement injectée par Firebase)
+      return {
+        success: true,
+        apiKey: googleMapsApiKey.value()
+      }
+    } catch (error) {
+      console.error('Error getting Google Maps API key:', error)
+      throw new functions.https.HttpsError('internal', 'Failed to get API key')
+    }
+  })
 
 

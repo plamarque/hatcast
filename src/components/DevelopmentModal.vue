@@ -270,12 +270,65 @@
                 </button>
               </div>
               
-              <!-- Informations audit -->
+              <!-- Informations détaillées audit -->
               <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
                 <div class="text-xs text-gray-400">
-                  <div>🔇 Audit désactivé par défaut en développement</div>
-                  <div>📝 Activer temporairement pour diagnostiquer</div>
-                  <div>🔄 Redémarrer le serveur après changement</div>
+                  <div v-if="auditStatus">
+                    <div><strong>Environnement:</strong> {{ auditStatus.environment }}</div>
+                    <div><strong>Statut:</strong> {{ auditStatusMessage }}</div>
+                    <div v-if="auditStatus.auditEnabled"><strong>Variable:</strong> {{ auditStatus.auditEnabled }}</div>
+                    <div v-if="auditStatus.statusSource"><strong>Source:</strong> {{ auditStatus.statusSource }}</div>
+                  </div>
+                  <div v-else class="text-gray-500">
+                    Chargement du statut...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Messages d'action audit -->
+              <div v-if="auditActionMessage" class="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="text-sm text-blue-200">
+                    {{ auditActionMessage }}
+                  </div>
+                  <button 
+                    @click="clearAuditActionMessage"
+                    class="text-blue-300 hover:text-blue-100 transition-colors text-xs"
+                    title="Fermer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <!-- Instructions -->
+                <div v-if="auditActionInstructions.length > 0" class="space-y-1">
+                  <div class="text-xs text-blue-300 font-semibold">Instructions :</div>
+                  <ol class="text-xs text-blue-200 space-y-1 ml-4">
+                    <li v-for="(instruction, index) in auditActionInstructions" :key="index" class="list-decimal">
+                      {{ instruction }}
+                    </li>
+                  </ol>
+                </div>
+                
+                <!-- Commande à copier -->
+                <div v-if="auditActionCommand" class="space-y-2">
+                  <div class="text-xs text-blue-300 font-semibold">Commande à exécuter :</div>
+                  <div class="relative">
+                    <input 
+                      type="text" 
+                      :value="auditActionCommand" 
+                      readonly 
+                      class="w-full bg-black/30 border border-blue-500/50 rounded px-3 py-2 text-xs font-mono text-blue-100 focus:outline-none focus:border-blue-400"
+                      @click="$event.target.select()"
+                    />
+                    <button 
+                      @click="copyToClipboard(auditActionCommand)"
+                      class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-300 hover:text-blue-100 transition-colors"
+                      title="Copier"
+                    >
+                      📋
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -962,7 +1015,8 @@ const environmentVars = ref({});
 const appConfig = ref(null); // Configuration réelle utilisée par l'app
 
 // Audit state
-const auditEnabled = ref(false);
+const auditStatus = ref(null);
+const auditEnabled = computed(() => auditStatus.value?.actualStatus ?? false);
 const auditStatusText = computed(() => auditEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
 const auditStatusClass = computed(() => auditEnabled.value 
   ? 'bg-green-600/30 border border-green-500/30 text-green-300' 
@@ -973,6 +1027,12 @@ const auditToggleButtonClass = computed(() => auditEnabled.value
   ? 'bg-red-600 hover:bg-red-500' 
   : 'bg-green-600 hover:bg-green-500'
 );
+const auditStatusMessage = computed(() => auditStatus.value?.message ?? 'Chargement...');
+
+// Audit action messages
+const auditActionMessage = ref(null);
+const auditActionCommand = ref(null);
+const auditActionInstructions = ref([]);
 
 // Performance debug computed properties
 const performanceDebugStatusText = computed(() => performanceDebugEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
@@ -1282,32 +1342,76 @@ async function dumpToConsole() {
 // Fonctions pour gérer l'audit
 async function checkAuditStatus() {
   try {
-    auditEnabled.value = import.meta.env.VITE_AUDIT_ENABLED === 'true';
+    // Utiliser auditService pour obtenir le statut réel
+    const { default: AuditService } = await import('../services/auditClient.js');
+    const status = await AuditService.getAuditStatus();
+    
+    auditStatus.value = status;
+    
+    console.log('🔍 Statut audit obtenu via auditService:', status);
+    
   } catch (error) {
     console.warn('⚠️ Erreur lors de la vérification du statut audit:', error);
-    auditEnabled.value = false;
+    // En cas d'erreur, définir un statut par défaut
+    auditStatus.value = {
+      success: false,
+      environment: 'unknown',
+      actualStatus: false,
+      message: 'Erreur lors de la vérification'
+    };
   }
 }
 
 async function toggleAudit() {
   try {
-    const newStatus = !auditEnabled.value;
+    const { default: AuditService } = await import('../services/auditClient.js');
     
-    if (newStatus) {
-      // Activer l'audit
-      alert(`🔊 Audit activé !\n\nPour que le changement prenne effet, vous devez :\n\n1. Créer/modifier le fichier .env.local\n2. Ajouter : VITE_AUDIT_ENABLED=true\n3. Redémarrer le serveur de développement\n\nExemple de commande :\n\necho "VITE_AUDIT_ENABLED=true" >> .env.local\nnpm run dev -- --host`);
-    } else {
+    let result;
+    if (auditEnabled.value) {
       // Désactiver l'audit
-      alert(`🔇 Audit désactivé !\n\nPour que le changement prenne effet, vous devez :\n\n1. Modifier le fichier .env.local\n2. Commenter ou supprimer : VITE_AUDIT_ENABLED=true\n3. Redémarrer le serveur de développement\n\nExemple de commande :\n\n# VITE_AUDIT_ENABLED=true\nnpm run dev -- --host`);
+      result = await AuditService.disableAudit();
+    } else {
+      // Activer l'audit
+      result = await AuditService.enableAudit();
     }
     
-    // Mettre à jour l'état local
-    auditEnabled.value = newStatus;
+    // Afficher le résultat dans l'UI
+    auditActionMessage.value = result.success ? `✅ ${result.message}` : `⚠️ ${result.message}`;
+    auditActionCommand.value = result.command || null;
+    auditActionInstructions.value = result.instructions || [];
+    
+    // Recharger le statut après l'action
+    await checkAuditStatus();
     
   } catch (error) {
     console.error('❌ Erreur lors du toggle audit:', error);
-    alert('❌ Erreur lors de la modification du statut audit');
+    auditActionMessage.value = `❌ Erreur lors de la modification du statut audit`;
+    auditActionCommand.value = null;
+    auditActionInstructions.value = [];
   }
+}
+
+// Fonction pour copier dans le presse-papier
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    // Optionnel: afficher un message de confirmation temporaire
+    const originalMessage = auditActionMessage.value;
+    auditActionMessage.value = '✅ Commande copiée dans le presse-papier !';
+    setTimeout(() => {
+      auditActionMessage.value = originalMessage;
+    }, 2000);
+  } catch (error) {
+    console.error('Erreur lors de la copie:', error);
+    auditActionMessage.value = '❌ Erreur lors de la copie dans le presse-papier';
+  }
+}
+
+// Fonction pour effacer les messages d'action audit
+function clearAuditActionMessage() {
+  auditActionMessage.value = null;
+  auditActionCommand.value = null;
+  auditActionInstructions.value = [];
 }
 
 // Fonctions pour gérer les logs
@@ -1484,5 +1588,7 @@ watch(() => props.show, (newValue) => {
 // Watcher pour sauvegarder l'onglet actif
 watch(activeTab, (newTab) => {
   localStorage.setItem('dev-modal-active-tab', newTab);
+  // Effacer les messages d'action audit quand on change d'onglet
+  clearAuditActionMessage();
 });
 </script>

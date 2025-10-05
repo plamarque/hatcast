@@ -54,7 +54,12 @@ function updateConnection(options = {}) {
   
   // Se reconnecter à la base appropriée
   try {
-    db = admin.firestore()
+    // Pour les bases de données nommées, spécifier le nom de la base
+    if (environment === 'development' || environment === 'staging') {
+      db = admin.firestore(admin.app(), environment)
+    } else {
+      db = admin.firestore() // Base par défaut pour production
+    }
     console.log(`🔧 Connexion à la base Firestore: ${environment}`)
   } catch (error) {
     console.error('❌ Erreur lors de la connexion à la base:', error)

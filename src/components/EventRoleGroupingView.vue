@@ -2,14 +2,14 @@
   <div v-if="selectedEvent" class="space-y-4">
 
     <!-- Affichage par rôles -->
-    <div class="space-y-3">
+    <div class="space-y-2">
       <div 
         v-for="role in availableRoles" 
         :key="role"
-        class="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50"
+        class="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50"
       >
         <!-- En-tête du rôle -->
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
             <span class="font-medium text-white">{{ getRoleLabel(role) }}</span>
@@ -31,7 +31,7 @@
         </div>
 
         <!-- Liste des joueurs disponibles pour ce rôle -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 sm:gap-1.5">
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
@@ -67,53 +67,55 @@
 
             <!-- Design classique pour joueurs non sélectionnés -->
             <template v-else>
-              <!-- Avatar du joueur -->
-              <div class="relative flex-shrink-0">
-                <PlayerAvatar 
-                  :player-id="player.id"
-                  :season-id="seasonId"
-                  :player-name="player.name"
-                  :player-gender="player.gender || 'non-specified'"
-                  size="sm"
-                />
-                <!-- Statuts superposés -->
-                <span
-                  v-if="preferredPlayerIdsSet.has(player.id)"
-                  class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-4 h-4 flex items-center justify-center border border-gray-700"
-                  title="Ma personne"
-                >
-                  ⭐
-                </span>
-                <div class="absolute -top-1 -right-1">
-                  <CustomTooltip
-                    v-if="!isPlayerProtectedInGrid(player.id)"
-                    :content="getUnprotectedPlayerTooltip(player)"
-                    position="bottom"
+              <div class="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent">
+                <!-- Avatar du joueur -->
+                <div class="relative flex-shrink-0">
+                  <PlayerAvatar 
+                    :player-id="player.id"
+                    :season-id="seasonId"
+                    :player-name="player.name"
+                    :player-gender="player.gender || 'non-specified'"
+                    size="sm"
+                  />
+                  <!-- Statuts superposés -->
+                  <span
+                    v-if="preferredPlayerIdsSet.has(player.id)"
+                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center border border-gray-700"
+                    title="Ma personne"
                   >
-                    <span class="text-orange-400 text-xs">
-                      ⚠️
-                    </span>
-                  </CustomTooltip>
+                    ⭐
+                  </span>
+                  <div class="absolute -top-1 -right-1">
+                    <CustomTooltip
+                      v-if="!isPlayerProtectedInGrid(player.id)"
+                      :content="getUnprotectedPlayerTooltip(player)"
+                      position="bottom"
+                    >
+                      <span class="text-orange-400 text-xs">
+                        ⚠️
+                      </span>
+                    </CustomTooltip>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Nom du joueur -->
-              <span class="text-white text-lg font-medium flex-1 min-w-0 truncate">
-                {{ player.name }}
-              </span>
-
-              <!-- Pourcentage de chances -->
-              <span 
-                @click="showChanceDetails($event, player.name, role)"
-                class="px-2 py-1 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                :title="`Cliquer pour voir le détail du calcul`"
-              >
-                {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1" title="Algorithme Bruno">
-                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                <!-- Nom du joueur -->
+                <span class="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
+                  {{ player.name }}
                 </span>
-              </span>
+
+                <!-- Pourcentage de chances -->
+                <span 
+                  @click="showChanceDetails($event, player.name, role)"
+                  class="px-1 py-0.5 sm:px-1.5 sm:py-1 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                  :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                  :title="`Cliquer pour voir le détail du calcul`"
+                >
+                  {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                  <span v-if="showBrunoAlgorithm" class="text-gray-400 ml-1 hidden sm:inline" title="Algorithme Bruno">
+                    ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                  </span>
+                </span>
+              </div>
             </template>
           </div>
 

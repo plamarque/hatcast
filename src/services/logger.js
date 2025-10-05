@@ -32,8 +32,10 @@ async function getLogLevelAsync() {
       // Mettre en cache
       cachedLogLevel = level
       lastLogLevelCheck = Date.now()
-      // Persister en localStorage
-      localStorage.setItem(LOG_LEVEL_STORAGE_KEY, level)
+      // Persister en localStorage - seulement côté client
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(LOG_LEVEL_STORAGE_KEY, level)
+      }
       return level
     }
   } catch (error) {
@@ -74,12 +76,14 @@ export async function updateLogLevel() {
 }
 
 // Initialiser le niveau de log au chargement
-// Vérifier d'abord localStorage, puis configService
-const savedLevel = localStorage.getItem(LOG_LEVEL_STORAGE_KEY)
-if (savedLevel) {
-  cachedLogLevel = savedLevel
-  lastLogLevelCheck = Date.now()
-  console.log(`🔧 Niveau de log restauré depuis localStorage: ${savedLevel}`)
+// Vérifier d'abord localStorage, puis configService - seulement côté client
+if (typeof localStorage !== 'undefined') {
+  const savedLevel = localStorage.getItem(LOG_LEVEL_STORAGE_KEY)
+  if (savedLevel) {
+    cachedLogLevel = savedLevel
+    lastLogLevelCheck = Date.now()
+    console.log(`🔧 Niveau de log restauré depuis localStorage: ${savedLevel}`)
+  }
 }
 
 updateLogLevel()
