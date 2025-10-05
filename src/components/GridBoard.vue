@@ -559,22 +559,21 @@
           <div class="relative flex-1">
             <h2 
               @click="showEventActionsDropdown = !showEventActionsDropdown"
-              class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors"
+              class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex items-center gap-2"
               title="Cliquer pour les actions de l'événement"
             >
               {{ selectedEvent?.title }}
+              <!-- Bouton expand/collapse pour les détails -->
+              <button
+                @click.stop="showEventDetailsSection = !showEventDetailsSection"
+                class="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
+                :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+              >
+                <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
             </h2>
-            
-            <!-- Bouton expand/collapse pour les détails -->
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 ml-2"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
             
             <!-- Menu dropdown -->
             <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
