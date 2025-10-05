@@ -1263,7 +1263,7 @@
               
               <!-- Vue par rôles normale -->
               <EventRoleGroupingView
-                v-else-if="selectedEvent && selectedTeamPlayer && selectedTeamPlayer.id === 'all'"
+                v-else-if="selectedEvent && (!selectedTeamPlayer || selectedTeamPlayer.id === 'all')"
                 :selected-event="selectedEvent"
                 :season-id="seasonId"
                 :players="allSeasonPlayers"
@@ -3111,11 +3111,20 @@ function getDefaultTabForEvent(event) {
 // Watcher pour initialiser les données quand l'onglet Disponibilités est ouvert
 watch([eventDetailsActiveTab, selectedEvent], () => {
   if (eventDetailsActiveTab.value === 'team' && selectedEvent.value) {
+    // Initialiser selectedTeamPlayer selon les règles :
+    // - Si connecté : afficher les disponibilités de l'utilisateur connecté
+    // - Si pas connecté : afficher EventRoleGroupingView avec tous les joueurs
+    if (currentUserPlayer.value && !selectedTeamPlayer.value) {
+      selectedTeamPlayer.value = currentUserPlayer.value
+    } else if (!currentUserPlayer.value && !selectedTeamPlayer.value) {
+      selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    }
+    
     nextTick(() => {
       initializeAvailabilityData()
     })
   }
-})
+}, { immediate: true })
 
 // Watcher pour charger l'URL de la carte Google Maps quand l'événement change
 watch(selectedEvent, (newEvent) => {
