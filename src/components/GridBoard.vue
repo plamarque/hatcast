@@ -641,10 +641,21 @@
             :reason="eventWarningText"
             class="text-xs"
           />
+          
+          <!-- Bouton expand/collapse pour les détails -->
+          <button
+            @click="showEventDetailsSection = !showEventDetailsSection"
+            class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+            :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+          >
+            <svg class="w-5 h-5 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
         </div>
         
         <!-- Layout horizontal compact -->
-        <div class="w-full">
+        <div v-if="showEventDetailsSection" class="w-full">
           <!-- Layout desktop en 2 colonnes égales avec flexbox -->
           <div class="hidden md:flex md:gap-6 w-full">
             <!-- Colonne gauche: Date + Description -->
@@ -3204,6 +3215,9 @@ const showCalendarDropdown = ref(false)
 
 // État du dropdown des actions d'événement
 const showEventActionsDropdown = ref(false)
+
+// État de l'affichage des détails de l'événement
+const showEventDetailsSection = ref(false)
 
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
@@ -8567,6 +8581,9 @@ function closeEventDetails() {
   
   // Fermer le dropdown des actions d'événement
   showEventActionsDropdown.value = false;
+  
+  // Fermer les détails de l'événement
+  showEventDetailsSection.value = false;
   
   // Fermer le dropdown Google Maps
   showGoogleMapsDropdown.value = false;
