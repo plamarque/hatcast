@@ -654,7 +654,7 @@
         </div>
         
         <!-- Layout horizontal compact -->
-        <div v-if="showEventDetailsSection" class="w-full">
+        <div v-if="showEventDetailsSection" class="w-full px-3 sm:px-4 md:px-6">
           <!-- Layout desktop en 2 colonnes égales avec flexbox -->
           <div class="hidden md:flex md:gap-6 w-full">
             <!-- Colonne gauche: Date + Description -->
