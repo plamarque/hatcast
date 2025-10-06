@@ -643,8 +643,8 @@
             
             <!-- Status de l'événement -->
             <SelectionStatusBadge
-              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
-              :status="eventStatus?.type"
+              v-if="selectedEvent && eventStatus"
+              :status="eventStatus.type"
               :show="true"
               :clickable="false"
               :reason="eventWarningText"
