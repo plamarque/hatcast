@@ -640,17 +640,15 @@
                 </template>
               </div>
             </div>
-          </div>
-          
-          <!-- Ligne secondaire : Status de l'événement (passe à la ligne si nécessaire) -->
-          <div class="flex justify-start">
+            
+            <!-- Status de l'événement -->
             <SelectionStatusBadge
               v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
               :status="eventStatus?.type"
               :show="true"
               :clickable="false"
               :reason="eventWarningText"
-              class="text-xs"
+              class="text-xs flex-shrink-0"
             />
           </div>
         </div>
