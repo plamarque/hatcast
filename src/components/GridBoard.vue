@@ -648,7 +648,7 @@
               :show="true"
               :clickable="false"
               :reason="eventWarningText"
-              class="text-xs flex-shrink-0"
+              class="text-xs flex-shrink-0 mr-8"
             />
           </div>
         </div>
