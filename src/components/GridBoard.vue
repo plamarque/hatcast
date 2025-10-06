@@ -549,105 +549,110 @@
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-[calc(100vw-2rem)] sm:max-w-lg md:max-w-6xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-4rem)] md:max-h-[92vh] flex flex-col mb-4 md:mb-0" @click.stop>
       <!-- Header -->
-      <div class="relative p-3 sm:p-4 md:p-6">
+      <div class="relative p-1 sm:p-2 md:p-3">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-2 top-2 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
         <!-- Titre avec pastille intégrée et chevron expand/collapse - Pleine largeur -->
-        <div class="flex items-center gap-2 mb-4">
-          <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
-          <!-- Titre avec dropdown intégré -->
-          <div class="relative flex-1">
-            <h2 
-              @click="showEventActionsDropdown = !showEventActionsDropdown"
-              class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex items-center gap-2"
-              title="Cliquer pour les actions de l'événement"
-            >
-              {{ selectedEvent?.title }}
-              <!-- Bouton expand/collapse pour les détails -->
-              <button
-                @click.stop="showEventDetailsSection = !showEventDetailsSection"
-                class="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
-                :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+        <div class="flex flex-col gap-2 mb-2">
+          <!-- Ligne principale : Pastille + Titre + Chevron -->
+          <div class="flex items-center gap-2">
+            <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
+            <!-- Titre avec dropdown intégré -->
+            <div class="relative flex-1 min-w-0">
+              <h2 
+                @click="showEventActionsDropdown = !showEventActionsDropdown"
+                class="text-xl font-bold text-white leading-tight cursor-pointer hover:text-purple-300 transition-colors flex items-center gap-2"
+                title="Cliquer pour les actions de l'événement"
               >
-                <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-            </h2>
-            
-            <!-- Menu dropdown -->
-            <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
-              
-              <!-- Actions utilisateur -->
-              <!-- Action Partager -->
-              <button
-                @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
-                class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-              >
-                <span>🔗</span>
-                <span>Partager</span>
-              </button>
-              
-              <!-- Action Notifications -->
-              <button
-                @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
-                class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
-                :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
-                :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
-              >
-                <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
-                <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
-              </button>
-              
-              <!-- Actions admin (avec PIN) -->
-              <template v-if="canEditEvents">
-                <!-- Séparateur -->
-                <div class="border-t border-gray-600 my-1"></div>
-                
-                <!-- En-tête admin -->
-                <div class="px-3 py-1 text-xs text-gray-400 font-medium">
-                  Actions administrateur
-                </div>
-                
-                <!-- Action Modifier -->
+                {{ selectedEvent?.title }}
+                <!-- Bouton expand/collapse pour les détails -->
                 <button
-                  @click="startEditingFromDetails(); showEventActionsDropdown = false"
+                  @click.stop="showEventDetailsSection = !showEventDetailsSection"
+                  class="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 flex-shrink-0"
+                  :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+                >
+                  <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+              </h2>
+              
+              <!-- Menu dropdown -->
+              <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                
+                <!-- Actions utilisateur -->
+                <!-- Action Partager -->
+                <button
+                  @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false"
                   class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
                 >
-                  <span>✏️</span>
-                  <span>Modifier</span>
+                  <span>🔗</span>
+                  <span>Partager</span>
                 </button>
                 
-                <!-- Action Archiver -->
+                <!-- Action Notifications -->
                 <button
-                  @click="toggleEventArchived(); showEventActionsDropdown = false"
-                  class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                  @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false"
+                  class="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 rounded flex items-center gap-2"
+                  :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"
+                  :title="`État: ${isEventMonitoredState ? 'notifications activées' : 'notifications désactivées'}`"
                 >
-                  <span>📁</span>
-                  <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+                  <span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span>
+                  <span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span>
                 </button>
                 
-                <!-- Action Supprimer -->
-                <button
-                  @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
-                  class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
-                >
-                  <span>🗑️</span>
-                  <span>Supprimer</span>
-                </button>
-              </template>
+                <!-- Actions admin (avec PIN) -->
+                <template v-if="canEditEvents">
+                  <!-- Séparateur -->
+                  <div class="border-t border-gray-600 my-1"></div>
+                  
+                  <!-- En-tête admin -->
+                  <div class="px-3 py-1 text-xs text-gray-400 font-medium">
+                    Actions administrateur
+                  </div>
+                  
+                  <!-- Action Modifier -->
+                  <button
+                    @click="startEditingFromDetails(); showEventActionsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>✏️</span>
+                    <span>Modifier</span>
+                  </button>
+                  
+                  <!-- Action Archiver -->
+                  <button
+                    @click="toggleEventArchived(); showEventActionsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>📁</span>
+                    <span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span>
+                  </button>
+                  
+                  <!-- Action Supprimer -->
+                  <button
+                    @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"
+                  >
+                    <span>🗑️</span>
+                    <span>Supprimer</span>
+                  </button>
+                </template>
+              </div>
             </div>
           </div>
           
-          <!-- Status de l'événement -->
-          <SelectionStatusBadge
-            v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
-            :status="eventStatus?.type"
-            :show="true"
-            :clickable="false"
-            :reason="eventWarningText"
-            class="text-xs"
-          />
+          <!-- Ligne secondaire : Status de l'événement (passe à la ligne si nécessaire) -->
+          <div class="flex justify-start">
+            <SelectionStatusBadge
+              v-if="selectedEvent && getSelectionPlayers(selectedEvent.id).length > 0 && !selectedTeamPlayer"
+              :status="eventStatus?.type"
+              :show="true"
+              :clickable="false"
+              :reason="eventWarningText"
+              class="text-xs"
+            />
+          </div>
         </div>
         
         <!-- Layout horizontal compact -->
@@ -790,7 +795,7 @@
       </div>
       
       <!-- Content scrollable -->
-      <div class="px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-6 overflow-y-auto flex-1 min-h-0">
+      <div class="px-3 sm:px-4 md:px-6 py-2 md:py-3 space-y-4 overflow-y-auto flex-1 min-h-0">
         <!-- Version mobile: Layout vertical -->
            <div class="md:hidden space-y-3">
              <!-- Titre avec pastille intégrée -->
@@ -989,16 +994,15 @@
                </div>
              </div>
            </div>
-
         <!-- Section avec onglets (si utilisateur connecté) -->
-        <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10">
+        <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
             <button
               v-if="hasCompositionForSelectedEvent"
               @click="eventDetailsActiveTab = 'composition'"
               :class="[
-                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                'flex-1 px-4 py-2 text-sm font-medium transition-colors',
                 eventDetailsActiveTab === 'composition' 
                   ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
                   : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
@@ -1012,7 +1016,7 @@
             <button
               @click="eventDetailsActiveTab = 'team'"
               :class="[
-                'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+                'flex-1 px-4 py-2 text-sm font-medium transition-colors',
                 eventDetailsActiveTab === 'team' 
                   ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
                   : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
