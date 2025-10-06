@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.25.2",
+    "date": "2025-10-06",
+    "changes": [
+      "🐛 On a corrigé l'affichage des emojis dans la cellule de disponibilité."
+    ]
+  },
+  {
     "version": "0.25.1",
     "date": "2025-10-06",
     "changes": [
