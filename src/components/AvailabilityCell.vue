@@ -33,13 +33,16 @@
       
       <!-- Contenu normal -->
       <template v-else>
-        <!-- Affichage avec confirmation (1 ligne) -->
+        <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="isSelected && playerSelectionStatus">
-          <!-- Ligne unique: nom du rôle + emoji -->
-          <div class="flex items-center gap-1 text-center">
+          <!-- Ligne 1: nom du rôle -->
+          <div class="text-center">
             <span class="text-sm font-medium">
               {{ playerSelectionStatus === 'declined' ? 'Décliné' : getConfirmedRoleLabel() }}
             </span>
+          </div>
+          <!-- Ligne 2: emoji avec espacement cohérent -->
+          <div class="flex items-center justify-center mt-1">
             <span class="text-lg">
               {{ playerSelectionStatus === 'pending' ? '⏳' : getRoleEmoji() }}
             </span>
