@@ -703,7 +703,7 @@
                 title="Voir sur Google Maps"
               >
                 <span>📍</span>
-                <span class="truncate max-w-[200px]">{{ selectedEvent.location }}</span>
+                <span class="truncate max-w-[200px]">{{ getTruncatedLocation(selectedEvent.location) }}</span>
                 <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
