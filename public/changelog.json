@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.25.1",
+    "date": "2025-10-06",
+    "changes": [
+      "✨ Affichage de l'emplacement tronqué dans la section mobile des détails d'événement.",
+      "✨ Ajout d'une section de détails repliable dans la fenêtre de détail d'événement.",
+      "✨ Déplacement du badge de statut d'événement dans l'en-tête à côté du titre.",
+      "✨ Extraction du titre d'événement dans un en-tête plein largeur dans la fenêtre de détail d'événement.",
+      "🐛 Correction du positionnement de la fenêtre Google Maps dans la mise en page mobile.",
+      "🐛 Harmonisation du menu déroulant du calendrier entre les versions mobile et desktop.",
+      "🐛 Ajout de la mise en page mobile pour la section de détails repliable de l'événement.",
+      "🐛 Affichage du badge de statut dans l'en-tête de la fenêtre de détail d'événement pour tous les événements."
+    ]
+  },
+  {
     "version": "0.25.0",
     "date": "2025-10-05",
     "changes": [

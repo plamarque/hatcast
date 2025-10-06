@@ -1,4 +1,4 @@
-0.25.0
-Production build - 2025-10-05
-Git: 7c1a360
-Build: 2025-10-05T18:28:58+0200
+0.25.1
+Production build - 2025-10-06
+Git: 07d3623
+Build: 2025-10-06T07:18:02+0200

@@ -1,25 +1,39 @@
-## [0.25.0] - 2025-10-05
+## [0.25.1] - 2025-10-06
 
 ### ✨ New Features
 
-- feat: replace audit alert dialogs with inline UI messages
-- feat: complete audit system refactoring and fix CLI database connection
-- feat: centralize audit system with environment detection and management functions
-- feat: Déplacer le menu contextuel sur le clic du titre
-- feat: Optimise mobile location popup
+- feat: display truncated location in mobile event details section
+- feat: optimize badge positioning to stay on same line as title
+- feat: optimize modal spacing and improve responsive header layout
+- feat: add collapsible details section in event modal
+- feat: move event status badge to header next to title
+- feat: extract event title to full-width header in event details modal
+- feat: add audit logs consultation UI in DevelopmentModal
 
 ### 🐛 Bug Fixes
 
-- fix: Corriger l'initialisation de l'onglet Disponibilités
-- fix: Corriger l'affichage de l'onglet Disponibilités
+- fix: correct Google Maps popup positioning in mobile layout
+- fix: harmonize calendar dropdown between mobile and desktop versions
+- fix: add mobile layout for collapsible event details section
+- fix: align collapsible details section with tabs section margins
+- fix: display status badge in event modal header for all events
+- fix: move collapse chevron inside title to keep it on same line
+- fix: change audit CLI default environment to production
+
+### 🔧 Improvements
+
+- refactor: remove duplicate mobile header and unify responsive layout
+- refactor: move collapse button next to title and remove duplicate chevron
 
 ### 📝 Other Changes
 
-- release: version 0.24.0
+- badge more compact
+- release: version 0.25.0
 
 
 # Changelog
 
+## [0.25.1] - 2025-10-06
 ## [0.25.0] - 2025-10-05
 ## [0.24.0] - 2025-10-03
 ## [0.23.0] - 2025-10-03

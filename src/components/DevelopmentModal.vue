@@ -331,6 +331,150 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Interface de consultation des logs -->
+              <div class="p-3 bg-white/5 rounded-lg border border-white/10 space-y-4">
+                <div class="flex items-center justify-between">
+                  <h5 class="text-sm font-semibold text-orange-200 flex items-center gap-2">
+                    📊 Consultation des logs
+                  </h5>
+                  <button 
+                    @click="toggleAuditLogsView"
+                    class="text-xs px-2 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded transition-colors"
+                  >
+                    {{ showAuditLogs ? 'Masquer' : 'Afficher' }}
+                  </button>
+                </div>
+
+                <div v-if="showAuditLogs" class="space-y-4">
+                  <!-- Filtres de recherche -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs text-gray-300 mb-1">Environnement</label>
+                      <select v-model="auditLogsFilters.env" class="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-xs text-white">
+                        <option value="production">Production</option>
+                        <option value="staging">Staging</option>
+                        <option value="development">Development</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-300 mb-1">Limite</label>
+                      <input 
+                        v-model.number="auditLogsFilters.limit" 
+                        type="number" 
+                        min="1" 
+                        max="1000" 
+                        class="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-300 mb-1">Utilisateur (email)</label>
+                      <input 
+                        v-model="auditLogsFilters.user" 
+                        type="email" 
+                        placeholder="patrice.lamarque@gmail.com"
+                        class="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-300 mb-1">Joueur</label>
+                      <input 
+                        v-model="auditLogsFilters.player" 
+                        type="text" 
+                        placeholder="Christopher"
+                        class="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-300 mb-1">Saison</label>
+                      <input 
+                        v-model="auditLogsFilters.season" 
+                        type="text" 
+                        placeholder="malice-2025-2026"
+                        class="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-300 mb-1">Type d'événement</label>
+                      <select v-model="auditLogsFilters.type" class="w-full bg-black/30 border border-gray-600 rounded px-2 py-1 text-xs text-white">
+                        <option value="">Tous</option>
+                        <option value="user_login">Connexion utilisateur</option>
+                        <option value="user_logout">Déconnexion utilisateur</option>
+                        <option value="availability_change">Changement de disponibilité</option>
+                        <option value="player_confirmed">Confirmation joueur</option>
+                        <option value="event_created">Création événement</option>
+                        <option value="event_updated">Modification événement</option>
+                        <option value="season_created">Création saison</option>
+                        <option value="season_updated">Modification saison</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Boutons d'action -->
+                  <div class="flex flex-wrap gap-2">
+                    <button 
+                      @click="loadAuditLogs"
+                      :disabled="auditLogsLoading"
+                      class="px-3 py-1 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 text-white text-xs rounded transition-colors"
+                    >
+                      {{ auditLogsLoading ? '⏳ Chargement...' : '🔍 Charger les logs' }}
+                    </button>
+                    <button 
+                      @click="clearAuditLogsFilters"
+                      class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
+                    >
+                      🗑️ Effacer filtres
+                    </button>
+                    <button 
+                      @click="exportAuditLogs"
+                      :disabled="!auditLogs.length"
+                      class="px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 text-white text-xs rounded transition-colors"
+                    >
+                      📥 Exporter CSV
+                    </button>
+                  </div>
+
+                  <!-- Résultats -->
+                  <div v-if="auditLogs.length > 0" class="space-y-2">
+                    <div class="text-xs text-gray-300">
+                      {{ auditLogs.length }} log(s) trouvé(s)
+                    </div>
+                    <div class="max-h-96 overflow-y-auto border border-gray-600 rounded">
+                      <table class="w-full text-xs">
+                        <thead class="bg-gray-800 sticky top-0">
+                          <tr>
+                            <th class="px-2 py-1 text-left text-gray-300">Timestamp</th>
+                            <th class="px-2 py-1 text-left text-gray-300">Action</th>
+                            <th class="px-2 py-1 text-left text-gray-300">User</th>
+                            <th class="px-2 py-1 text-left text-gray-300">Saison</th>
+                            <th class="px-2 py-1 text-left text-gray-300">Spectacle</th>
+                            <th class="px-2 py-1 text-left text-gray-300">Joueur</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="log in auditLogs" :key="log.id" class="border-t border-gray-700 hover:bg-gray-800/50">
+                            <td class="px-2 py-1 text-gray-400">{{ formatTimestamp(log.timestamp) }}</td>
+                            <td class="px-2 py-1">
+                              <span class="px-1 py-0.5 rounded text-xs" :class="getActionClass(log.action)">
+                                {{ log.action }}
+                              </span>
+                            </td>
+                            <td class="px-2 py-1 text-gray-300">{{ log.userId || 'Anonyme' }}</td>
+                            <td class="px-2 py-1 text-gray-300">{{ log.seasonId || '-' }}</td>
+                            <td class="px-2 py-1 text-gray-300">{{ log.eventTitle || '-' }}</td>
+                            <td class="px-2 py-1 text-gray-300">{{ log.playerName || '-' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Message d'erreur -->
+                  <div v-if="auditLogsError" class="p-2 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-200">
+                    ❌ {{ auditLogsError }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1034,6 +1178,20 @@ const auditActionMessage = ref(null);
 const auditActionCommand = ref(null);
 const auditActionInstructions = ref([]);
 
+// Audit logs consultation
+const showAuditLogs = ref(false);
+const auditLogs = ref([]);
+const auditLogsLoading = ref(false);
+const auditLogsError = ref(null);
+const auditLogsFilters = ref({
+  env: 'production',
+  limit: 50,
+  user: '',
+  player: '',
+  season: '',
+  type: ''
+});
+
 // Performance debug computed properties
 const performanceDebugStatusText = computed(() => performanceDebugEnabled.value ? 'ACTIVÉ' : 'DÉSACTIVÉ');
 const performanceDebugStatusClass = computed(() => performanceDebugEnabled.value 
@@ -1412,6 +1570,116 @@ function clearAuditActionMessage() {
   auditActionMessage.value = null;
   auditActionCommand.value = null;
   auditActionInstructions.value = [];
+}
+
+// Fonctions pour la consultation des logs d'audit
+function toggleAuditLogsView() {
+  showAuditLogs.value = !showAuditLogs.value;
+  if (showAuditLogs.value) {
+    // Charger automatiquement les logs quand on affiche la section
+    loadAuditLogs();
+  }
+}
+
+async function loadAuditLogs() {
+  auditLogsLoading.value = true;
+  auditLogsError.value = null;
+  
+  try {
+    // Utiliser le service d'audit pour récupérer les logs
+    const { getAuditLogs } = await import('../api/audit-logs.js');
+    
+    const result = await getAuditLogs({
+      env: auditLogsFilters.value.env,
+      limit: auditLogsFilters.value.limit,
+      user: auditLogsFilters.value.user || undefined,
+      player: auditLogsFilters.value.player || undefined,
+      season: auditLogsFilters.value.season || undefined,
+      type: auditLogsFilters.value.type || undefined
+    });
+    
+    if (result.success) {
+      auditLogs.value = result.logs;
+    } else {
+      throw new Error(result.error || 'Erreur inconnue lors de la récupération des logs');
+    }
+    
+  } catch (error) {
+    console.error('Erreur lors du chargement des logs:', error);
+    auditLogsError.value = error.message;
+    auditLogs.value = [];
+  } finally {
+    auditLogsLoading.value = false;
+  }
+}
+
+function clearAuditLogsFilters() {
+  auditLogsFilters.value = {
+    env: 'production',
+    limit: 50,
+    user: '',
+    player: '',
+    season: '',
+    type: ''
+  };
+}
+
+function exportAuditLogs() {
+  if (!auditLogs.value.length) return;
+  
+  // Créer le CSV
+  const headers = ['Timestamp', 'Action', 'User', 'Saison', 'Spectacle', 'Joueur', 'Détails'];
+  const csvContent = [
+    headers.join(','),
+    ...auditLogs.value.map(log => [
+      formatTimestamp(log.timestamp),
+      log.action,
+      log.userId || 'Anonyme',
+      log.seasonId || '',
+      log.eventTitle || '',
+      log.playerName || '',
+      JSON.stringify(log.details || {})
+    ].map(field => `"${field}"`).join(','))
+  ].join('\n');
+  
+  // Télécharger le fichier
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `audit-logs-${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function formatTimestamp(timestamp) {
+  if (!timestamp) return '-';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return date.toLocaleString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+function getActionClass(action) {
+  const classes = {
+    'user_login': 'bg-green-600 text-white',
+    'user_logout': 'bg-gray-600 text-white',
+    'availability_change': 'bg-blue-600 text-white',
+    'player_confirmed': 'bg-purple-600 text-white',
+    'event_created': 'bg-green-700 text-white',
+    'event_updated': 'bg-yellow-600 text-white',
+    'event_deleted': 'bg-red-600 text-white',
+    'season_created': 'bg-indigo-600 text-white',
+    'season_updated': 'bg-orange-600 text-white'
+  };
+  return classes[action] || 'bg-gray-500 text-white';
 }
 
 // Fonctions pour gérer les logs

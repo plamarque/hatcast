@@ -17,13 +17,13 @@ function detectEnvironment(options = {}) {
     if (databaseMap[env]) {
       return databaseMap[env]
     } else {
-      console.warn(`⚠️ Environnement inconnu: ${env}, utilisation de 'development'`)
-      return 'development'
+      console.warn(`⚠️ Environnement inconnu: ${env}, utilisation de 'default' (production)`)
+      return 'default'
     }
   }
   
   // Priorité 2: Variables d'environnement
-  const env = process.env.NODE_ENV || process.env.FIREBASE_ENV || 'development'
+  const env = process.env.NODE_ENV || process.env.FIREBASE_ENV || 'production'
   
   // Mapping des environnements vers les bases Firestore
   const databaseMap = {
@@ -33,7 +33,7 @@ function detectEnvironment(options = {}) {
     'default': 'default'
   }
   
-  return databaseMap[env] || 'development'
+  return databaseMap[env] || 'default'
 }
 
 // Initialiser Firebase Admin avec les credentials Firebase CLI
@@ -45,7 +45,7 @@ if (!admin.apps.length) {
 }
 
 // Se connecter à la base appropriée (sera mis à jour après parsing des options)
-let environment = 'development'
+let environment = 'default' // Par défaut, utiliser la base de production
 let db = admin.firestore()
 
 // Fonction pour mettre à jour la connexion selon l'environnement
@@ -790,7 +790,7 @@ function showHelp() {
   log('  --season=SLUG    : Logs d\'une saison spécifique')
   log('  --type=TYPE      : Type d\'événement (ex: player_confirmed)')
   log('  --limit=N        : Nombre maximum de résultats (défaut: 100)')
-  log('  --env=ENV        : Environnement (development, staging, production)')
+  log('  --env=ENV        : Environnement (development, staging, production) [défaut: production]')
   log('\nExemples:')
   log('  node audit-cli.js list --user="patrice.lamarque@gmail.com" --limit=20')
   log('  node audit-cli.js list --player="Christopher" --season="test"')
@@ -799,6 +799,8 @@ function showHelp() {
   log('  node audit-cli.js event "malice-2025-2026" "Catch chez Geoff"')
   log('  node audit-cli.js stats --season="malice-2025-2026" --days=30')
   log('  node audit-cli.js mobile --days=8 --env=production')
+  log('  node audit-cli.js list --env=development  # Lire depuis la base de développement')
+  log('  node audit-cli.js list --env=staging      # Lire depuis la base de staging')
 }
 
 // Parser les arguments
