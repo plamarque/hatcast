@@ -658,9 +658,9 @@
           <!-- Layout mobile: vertical -->
           <div class="md:hidden space-y-4">
             <!-- Date avec dropdown -->
-            <div class="relative">
+            <div class="relative z-10">
               <button
-                @click="showCalendarDropdown = !showCalendarDropdown"
+                @click="showCalendarDropdown = !showCalendarDropdown; console.log('📅 Mobile calendar dropdown clicked:', showCalendarDropdown)"
                 class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer group"
                 title="Ajouter à votre agenda"
               >
@@ -672,26 +672,24 @@
               </button>
               
               <!-- Menu dropdown agenda -->
-              <div v-if="showCalendarDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
+              <div v-if="showCalendarDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-[100] min-w-[150px]">
                 <div class="p-2">
                   <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
                   <div class="space-y-1">
-                    <a 
-                      :href="getGoogleCalendarLink(selectedEvent)" 
-                      target="_blank" 
+                    <button
+                      @click="handleAddToCalendar('google', selectedEvent); showCalendarDropdown = false"
                       class="block w-full text-left px-2 py-1 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
                     >
                       <span>📅</span>
-                      <span>Google Calendar</span>
-                    </a>
-                    <a 
-                      :href="getOutlookCalendarLink(selectedEvent)" 
-                      target="_blank" 
+                      <span>Google</span>
+                    </button>
+                    <button
+                      @click="handleAddToCalendar('outlook', selectedEvent); showCalendarDropdown = false"
                       class="block w-full text-left px-2 py-1 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
                     >
                       <span>📧</span>
                       <span>Outlook</span>
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -786,14 +784,15 @@
                 </button>
                 
                 <!-- Menu déroulant d'agenda -->
-                <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[250px]">
+                <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
                   <div class="p-2">
+                    <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
                     <button
                       @click="addToGoogleCalendar(selectedEvent)"
                       class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
                     >
                       <span>📅</span>
-                      <span>Google Calendar</span>
+                      <span>Google</span>
                     </button>
                     <button
                       @click="addToOutlookCalendar(selectedEvent)"
@@ -807,7 +806,7 @@
                       class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
                     >
                       <span>🍎</span>
-                      <span>Apple Calendar</span>
+                      <span>Apple</span>
                     </button>
                   </div>
                 </div>
