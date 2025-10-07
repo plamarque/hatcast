@@ -8500,7 +8500,7 @@ function closeEventDetails() {
   showGoogleMapsDropdown.value = false;
   
   // Fermer le sélecteur de joueur dans l'équipe
-  showTeamPlayerSelector.value = false;
+  showAvailabilityPlayerSelector.value = false;
   
   // Réinitialiser l'état du partage de lien
   showShareLinkCopied.value = false;
