@@ -122,12 +122,25 @@
         rows="2"
       ></textarea>
     </div>
+    <!-- Actions: bouton Enregistrer intégré -->
+    <div v-if="!isReadOnly" class="flex justify-end mt-4">
+      <button
+        @click="onSaveClick"
+        :disabled="!canSave"
+        :class="[
+          'px-6 py-2 text-white rounded-lg transition-colors font-medium',
+          canSave ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 text-gray-300 cursor-not-allowed'
+        ]"
+      >
+        Enregistrer
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { ROLES, ROLE_EMOJIS, getRoleLabel } from '../services/storage.js'
+import { ROLES, ROLE_EMOJIS, getRoleLabel, saveAvailabilityWithRoles } from '../services/storage.js'
 import { getUserRolePreferences, getPreferredRolesForEvent, canDisableRole } from '../services/rolePreferencesService.js'
 import { listAssociationsForEmail } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
@@ -165,10 +178,24 @@ const props = defineProps({
   availableRoles: {
     type: Array,
     default: () => []
+  },
+  // Activer la persistance interne (autonome)
+  selfPersist: {
+    type: Boolean,
+    default: false
+  },
+  // Contexte requis pour la persistance interne
+  playerName: {
+    type: String,
+    required: false
+  },
+  eventId: {
+    type: String,
+    required: false
   }
 })
 
-const emit = defineEmits(['update:availability', 'update:roles', 'update:comment', 'status-button-clicked'])
+const emit = defineEmits(['update:availability', 'update:roles', 'update:comment', 'status-button-clicked', 'save-requested', 'availability-saved'])
 
 const selectedRoles = ref([])
 const comment = ref('')
@@ -220,6 +247,15 @@ function isSameAvailability(a, b) {
     areRolesEqual(a.roles, b.roles)
   )
 }
+
+// Snapshot initial pour la logique canSave (commentaire et rôles)
+const initialSnapshot = ref({ comment: '', roles: [] })
+
+const canSave = computed(() => {
+  const commentChanged = normalizeComment(comment.value) !== normalizeComment(initialSnapshot.value.comment)
+  const rolesChanged = selectedAvailability.value === true && !areRolesEqual(selectedRoles.value, initialSnapshot.value.roles)
+  return commentChanged || rolesChanged
+})
 
 // Charger les préférences de rôles de l'utilisateur
 async function loadUserRolePreferences() {
@@ -324,8 +360,14 @@ function handleAvailabilityChange(available) {
   
   // Notifier le parent qu'il y a eu un changement dans le formulaire (pour activer le bouton Enregistrer)
   emitChanges()
-  // Sauvegarde rapide via le parent si souhaitée (Dispo garde la modale ouverte)
-  emit('status-button-clicked', available)
+  
+  if (props.selfPersist) {
+    // Persistance rapide interne
+    persistCurrent(available === true)
+  } else {
+    // Comportement actuel: informer le parent
+    emit('status-button-clicked', available)
+  }
 }
 
 // Émettre tous les changements au parent
@@ -420,9 +462,47 @@ watch(() => props.currentAvailability, async (newAvailability) => {
     selectedRoles.value = []
   }
   comment.value = normalizeComment(newAvailability.comment)
+  // Mettre à jour le snapshot initial pour la logique canSave
+  initialSnapshot.value = {
+    comment: comment.value,
+    roles: [...selectedRoles.value]
+  }
   
   // Désactiver le flag après la mise à jour (utiliser nextTick pour s'assurer que tous les watchers sont passés)
   await nextTick()
   isUpdatingFromProps.value = false
 }, { immediate: true, deep: true })
+
+async function persistCurrent(keepOpen) {
+  try {
+    if (!props.seasonId || !props.playerName || !props.eventId) {
+      emit('save-requested', getCurrentData())
+      return
+    }
+    await saveAvailabilityWithRoles({
+      seasonId: props.seasonId,
+      playerName: props.playerName,
+      eventId: props.eventId,
+      available: selectedAvailability.value,
+      roles: selectedAvailability.value === true ? selectedRoles.value : [],
+      comment: normalizeComment(comment.value)
+    })
+    emit('availability-saved', { ...getCurrentData(), keepOpen: !!keepOpen })
+    initialSnapshot.value = {
+      comment: normalizeComment(comment.value),
+      roles: [...selectedRoles.value]
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('Erreur persistance disponibilité:', e)
+  }
+}
+
+function onSaveClick() {
+  if (props.selfPersist) {
+    persistCurrent(false)
+  } else {
+    emit('save-requested', getCurrentData())
+  }
+}
 </script>
