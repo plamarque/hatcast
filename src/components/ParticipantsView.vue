@@ -63,23 +63,24 @@
       <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
         <td 
-          class="left-col-td rounded-xl px-4 py-3 m-1"
+          class="left-col-td rounded-xl px-4 py-3 m-1 cursor-pointer transition-colors"
           :class="[
             event._isArchived 
-              ? 'bg-gray-600/50 border border-gray-500/30' 
+              ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
               : event._isPast 
-                ? 'bg-amber-800/30 border border-amber-600/30' 
-                : 'bg-gray-800'
+                ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
+                : 'bg-gray-800 hover:bg-gray-700'
           ]"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
             maxWidth: dynamicLeftColumnWidth 
           }"
+          @click="openEventModal(event)"
         >
           <div class="flex flex-col">
             <!-- Emoji et titre sur la même ligne -->
-            <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
+            <div class="flex items-center gap-2 mb-1">
               <span class="text-sm">{{ getEventIcon(event) }}</span>
               <span 
                 class="font-medium text-sm line-clamp-2 overflow-hidden" 

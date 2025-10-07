@@ -27,19 +27,20 @@
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200"
+        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
         :class="[
           item._isArchived 
-            ? 'bg-gray-600/50 border border-gray-500/30' 
+            ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
             : item._isPast 
-              ? 'bg-amber-800/30 border border-amber-600/30' 
-              : 'bg-gray-800 border border-gray-700/30'
+              ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
+              : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
         ]"
         :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
+        @click="openEventModal(item)"
       >
         <div class="flex flex-col items-center space-y-1 w-full">
           <!-- Emoji et titre empilés -->
-          <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
+          <div class="flex flex-col items-center gap-1 w-full">
             <span class="text-sm">{{ getEventIcon(item) }}</span>
             <span 
               class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 

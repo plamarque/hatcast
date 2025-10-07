@@ -56,9 +56,9 @@
     <template #rows="{ items: events, columns: players, itemWidth }">
       <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
-        <td class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700">
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2 mb-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors" @click="openEventModal(event)">
+        <td class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 cursor-pointer hover:bg-gray-700 transition-colors" @click="openEventModal(event)">
+          <div class="flex flex-col w-full h-full">
+            <div class="flex items-center gap-2 mb-1">
               <span class="text-sm">{{ getEventIcon(event) }}</span>
               <span class="text-white font-medium text-sm">{{ event.title }}</span>
             </div>

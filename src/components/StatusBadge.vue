@@ -1,5 +1,5 @@
 <template>
-  <span :class="statusColorClass" class="text-xs px-2 py-1 rounded-full font-normal flex items-center justify-center text-center leading-tight">
+  <span :class="statusColorClass" class="text-xs px-2 py-1 rounded-full font-normal flex items-center justify-center text-center leading-tight pointer-events-none">
     {{ statusLabel }}
   </span>
 </template>
