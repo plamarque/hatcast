@@ -298,9 +298,6 @@ function handleAvailabilityChange(available) {
     selectedRoles.value = []
   }
   
-  // Émettre les changements
-  emitChanges()
-  
   // Émettre un événement spécifique pour indiquer qu'un bouton de statut a été cliqué
   emit('status-button-clicked', available)
 }
@@ -320,7 +317,6 @@ function emitChanges() {
 // Watcher pour détecter les changements de rôles
 watch(selectedRoles, () => {
   ensureVolunteerRoleSelected()
-  emitChanges()
 }, { deep: true })
 
 // Note: On n'émet PAS les changements lors de la saisie du commentaire
