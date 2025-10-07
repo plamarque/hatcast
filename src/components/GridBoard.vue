@@ -1029,11 +1029,10 @@
 
               <!-- Vue individuelle : disponibilités de la personne sélectionnée -->
               <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'">
-                <!-- Contenu de Ma Dispo intégré -->
-                <div class="space-y-3">
-                  <!-- Section principale simplifiée -->
+                <!-- Si le joueur EST sélectionné : afficher AvailabilityCell avec statut de confirmation -->
+                <div v-if="isPlayerSelected(selectedTeamPlayer.name, selectedEvent?.id)" class="space-y-3">
+                  <!-- AvailabilityCell centrée -->
                   <div class="p-3">
-                    <!-- AvailabilityCell centrée -->
                     <div class="flex justify-center">
                       <div class="w-40 h-16">
                         <AvailabilityCell
@@ -1080,7 +1079,7 @@
                     </div>
                   </div>
                   
-                  <!-- Section rôles sélectionnés pour tous les joueurs -->
+                  <!-- Section rôles sélectionnés (pour mémoire) -->
                   <div v-if="selectedEvent?.roles && Object.keys(selectedEvent.roles).length > 0" class="space-y-2">
                     <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
                       <span>🎭</span>
@@ -1097,9 +1096,8 @@
                           type="checkbox"
                           :id="`availability-${role}-${selectedEvent?.id}`"
                           :checked="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.roles?.includes(role)"
-                          :disabled="selectedTeamPlayer.id !== currentUserPlayer?.id"
-                          @change="toggleRoleSelection(role)"
-                          class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled
+                          class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 opacity-50 cursor-not-allowed"
                         />
                         
                         <!-- Rôle avec emoji et nom -->
@@ -1107,45 +1105,29 @@
                           <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
                           <span class="text-sm font-medium text-gray-200">{{ getRoleLabelByGender(role, selectedTeamPlayer?.gender, false) || role }}</span>
                           <span class="text-xs text-gray-400">({{ selectedEvent.roles[role] }} place{{ selectedEvent.roles[role] > 1 ? 's' : '' }})</span>
-                          <span v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)" class="text-xs text-yellow-400">(obligatoire)</span>
                         </div>
-                        
-                        <!-- Pourcentage de chances (seulement pour l'utilisateur connecté) -->
-                        <span 
-                          v-if="selectedTeamPlayer.id === currentUserPlayer?.id"
-                          class="text-sm font-medium px-2 py-1 rounded-full"
-                          :class="getChanceColorClass(getPlayerTheoreticalChances(selectedTeamPlayer.name, selectedEvent?.id, role))"
-                        >
-                          {{ formatChancePercentage(getPlayerTheoreticalChances(selectedTeamPlayer.name, selectedEvent?.id, role)) }}
-                        </span>
                       </div>
                     </div>
                   </div>
-                  
-                  <!-- Champ commentaire -->
-                  <div class="p-3">
-                    <label for="comment-field" class="text-sm font-medium text-white mb-2 block">
-                      📝 Commentaire (optionnel)
-                    </label>
-                    <textarea
-                      id="comment-field"
-                      v-model="commentText"
-                      placeholder="Ajoutez un commentaire sur votre disponibilité..."
-                      :readonly="selectedTeamPlayer.id !== currentUserPlayer?.id"
-                      :class="[
-                        'w-full p-2 border border-gray-600 rounded text-white text-sm placeholder-gray-400 resize-none',
-                        selectedTeamPlayer.id === currentUserPlayer?.id 
-                          ? 'bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent' 
-                          : 'bg-gray-700/50 cursor-not-allowed'
-                      ]"
-                      rows="3"
-                    ></textarea>
-                  </div>
+                </div>
+                
+                <!-- Si le joueur N'EST PAS sélectionné : afficher le formulaire complet AvailabilityForm -->
+                <div v-else class="space-y-3 p-3">
+                  <AvailabilityForm
+                    :player-gender="selectedTeamPlayer.gender"
+                    :player-id="selectedTeamPlayer.id"
+                    :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
+                    :is-read-only="selectedTeamPlayer.id !== currentUserPlayer?.id"
+                    :season-id="seasonId"
+                    :event-roles="selectedEvent?.roles || {}"
+                    :available-roles="getEventAvailableRoles()"
+                    @update:availability="handleAvailabilityFormUpdate"
+                  />
                   
                   <!-- Bouton de sauvegarde (seulement pour l'utilisateur connecté) -->
-                  <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center">
+                  <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center mt-4">
                     <button
-                      @click="saveAllAvailability"
+                      @click="saveAvailabilityFromForm"
                       :disabled="isSaving"
                       class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                     >
@@ -2079,6 +2061,7 @@ import PlayerModal from './PlayerModal.vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import SelectionModal from './SelectionModal.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
+import AvailabilityForm from './AvailabilityForm.vue'
 import CreatorOnboardingModal from './CreatorOnboardingModal.vue'
 import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
 import AccountMenu from './AccountMenu.vue'
@@ -2233,6 +2216,11 @@ const seasonName = ref('')
 const selectedRoles = ref([])
 const commentText = ref('')
 const isSaving = ref(false)
+const availabilityFormData = ref({
+  available: null,
+  roles: [],
+  comment: null
+})
 
 // Fonction pour initialiser les données de disponibilité
 function initializeAvailabilityData() {
@@ -2318,6 +2306,72 @@ async function saveAllAvailability() {
     availabilityCellRefreshKey.value++
     
     console.log('✅ Disponibilités sauvegardées:', newAvailabilityData)
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde:', error)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+// Fonction pour obtenir les rôles disponibles pour l'événement sélectionné
+function getEventAvailableRoles() {
+  if (!selectedEvent.value?.roles) return []
+  
+  // Filtrer les rôles pour ne garder que ceux attendus (nombre > 0)
+  // et les trier par ordre de priorité du tirage
+  const rolesWithSlots = ROLE_PRIORITY_ORDER.filter(role => {
+    const count = selectedEvent.value.roles[role] || 0
+    return count > 0
+  })
+  
+  // Ajouter les rôles non définis dans ROLE_PRIORITY_ORDER à la fin (tri alphabétique)
+  const undefinedRoles = Object.keys(selectedEvent.value.roles)
+    .filter(role => selectedEvent.value.roles[role] > 0 && !ROLE_PRIORITY_ORDER.includes(role))
+    .sort()
+  
+  return [...rolesWithSlots, ...undefinedRoles]
+}
+
+// Gérer les mises à jour depuis AvailabilityForm
+function handleAvailabilityFormUpdate(updatedData) {
+  availabilityFormData.value = updatedData
+}
+
+// Sauvegarder la disponibilité depuis le formulaire
+async function saveAvailabilityFromForm() {
+  if (!currentUserPlayer.value || !selectedEvent.value || isSaving.value) return
+  
+  isSaving.value = true
+  
+  try {
+    const playerName = currentUserPlayer.value.name
+    const eventId = selectedEvent.value.id
+    
+    // Sauvegarder via le service de disponibilité
+    const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+    await saveAvailabilityWithRoles({
+      seasonId: seasonId.value,
+      playerName: playerName,
+      eventId: eventId,
+      available: availabilityFormData.value.available,
+      roles: availabilityFormData.value.roles || [],
+      comment: availabilityFormData.value.comment
+    })
+    
+    // Mettre à jour les données locales
+    if (!availability.value[playerName]) {
+      availability.value[playerName] = {}
+    }
+    availability.value[playerName][eventId] = availabilityFormData.value
+    
+    // Forcer le rechargement des disponibilités pour synchroniser avec le service
+    const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
+    availability.value = newAvailability
+    
+    // Forcer le re-render de AvailabilityCell
+    availabilityCellRefreshKey.value++
+    
+    console.log('✅ Disponibilités sauvegardées depuis le formulaire:', availabilityFormData.value)
   } catch (error) {
     console.error('❌ Erreur lors de la sauvegarde:', error)
   } finally {

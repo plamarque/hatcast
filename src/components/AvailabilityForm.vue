@@ -1,0 +1,361 @@
+<template>
+  <div class="space-y-4">
+    <!-- Actions rapides (les 3 boutons de choix) -->
+    <div class="grid grid-cols-3 gap-2">
+      <button
+        @click="handleAvailabilityChange(true)"
+        :disabled="isReadOnly"
+        :class="[
+          'px-3 py-3 text-white rounded-lg transition-all duration-300',
+          currentlyAvailable 
+            ? 'bg-green-600 border-2 border-green-400 shadow-lg shadow-green-500/25 hover:bg-green-700' 
+            : 'bg-green-500/60 hover:bg-green-500/80',
+          isReadOnly ? 'opacity-50 cursor-not-allowed' : ''
+        ]"
+      >
+        <span class="flex items-center justify-center gap-2">
+          <span v-if="currentlyAvailable" class="text-green-200">✓</span>
+          Dispo
+        </span>
+      </button>
+      <button
+        @click="handleAvailabilityChange(false)"
+        :disabled="isReadOnly"
+        :class="[
+          'px-3 py-3 text-white rounded-lg transition-all duration-300',
+          currentlyNotAvailable 
+            ? 'bg-red-600 border-2 border-red-400 shadow-lg shadow-red-500/25 hover:bg-red-700' 
+            : 'bg-red-500/60 hover:bg-red-500/80',
+          isReadOnly ? 'opacity-50 cursor-not-allowed' : ''
+        ]"
+      >
+        <span class="flex items-center justify-center gap-2">
+          <span v-if="currentlyNotAvailable" class="text-red-200">✓</span>
+          Pas dispo
+        </span>
+      </button>
+      <button
+        @click="handleAvailabilityChange(null)"
+        :disabled="isReadOnly"
+        :class="[
+          'px-3 py-3 text-white rounded-lg transition-all duration-300',
+          currentlyUnknown 
+            ? 'bg-gray-600 border-2 border-gray-400 shadow-lg shadow-gray-500/25 hover:bg-gray-700' 
+            : 'bg-gray-500/60 hover:bg-gray-500/80',
+          isReadOnly ? 'opacity-50 cursor-not-allowed' : ''
+        ]"
+      >
+        <span class="flex items-center justify-center gap-2">
+          <span v-if="currentlyUnknown" class="text-gray-200">✓</span>
+          Non renseigné
+        </span>
+      </button>
+    </div>
+    
+    <!-- Indicateur d'état pour les cas sans état défini -->
+    <div v-if="!hasCurrentState" class="text-center">
+      <span class="text-xs text-gray-400">
+        Aucune disponibilité définie pour cet événement
+      </span>
+    </div>
+    
+    <!-- Indication pour choisir les rôles -->
+    <div v-if="currentlyAvailable && availableRoles.length > 0" class="text-center">
+      <span class="text-sm text-purple-300">
+        ✨ Choisis les rôles pour lesquels tu es disponible
+      </span>
+    </div>
+    
+    <!-- Rôles disponibles (seulement si des rôles sont définis ET que "Dispo" est sélectionné) -->
+    <div v-if="availableRoles.length > 0 && currentlyAvailable" class="space-y-3">
+      <label v-if="isReadOnly" class="block text-sm font-medium text-gray-300">
+        Rôles sélectionnés
+      </label>
+      
+      <!-- Tous les rôles (version compacte, 2 colonnes) -->
+      <div class="grid grid-cols-2 gap-1 md:gap-2">
+        <label 
+          v-for="role in availableRoles" 
+          :key="role"
+          class="flex items-center gap-2 md:gap-3 p-2 rounded cursor-pointer hover:bg-gray-800/50 transition-colors group"
+          :class="{ 
+            'bg-purple-500/10': selectedRoles.includes(role),
+            'cursor-not-allowed opacity-50': isReadOnly
+          }"
+        >
+          <input
+            type="checkbox"
+            :value="role"
+            v-model="selectedRoles"
+            :disabled="isReadOnly || !canDisableRole(role)"
+            class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 flex-shrink-0"
+          >
+          <span class="text-base md:text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs md:text-sm text-white">{{ getRoleLabel(role, playerGender, false) }}</div>
+            <!-- Indicateur pour le rôle bénévole non modifiable -->
+            <div 
+              v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
+              class="text-xs text-yellow-400"
+            >
+              (obligatoire)
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Commentaire (toujours affiché) -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">
+        Commentaire (optionnel)
+      </label>
+      <textarea
+        v-model="comment"
+        :disabled="isReadOnly"
+        placeholder="Ex: Dispo à partir de 16H pour monter le plateau..."
+        class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white resize-none"
+        :class="{ 'opacity-50 cursor-not-allowed': isReadOnly }"
+        rows="2"
+      ></textarea>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, nextTick } from 'vue'
+import { ROLES, ROLE_EMOJIS, getRoleLabel } from '../services/storage.js'
+import { getUserRolePreferences, getPreferredRolesForEvent, canDisableRole } from '../services/rolePreferencesService.js'
+import { listAssociationsForEmail } from '../services/players.js'
+import { currentUser } from '../services/authState.js'
+
+const props = defineProps({
+  playerGender: {
+    type: String,
+    default: 'non-specified'
+  },
+  playerId: {
+    type: String,
+    required: false
+  },
+  currentAvailability: {
+    type: Object,
+    default: () => ({
+      available: null,
+      roles: [],
+      comment: null
+    })
+  },
+  isReadOnly: {
+    type: Boolean,
+    default: false
+  },
+  seasonId: {
+    type: String,
+    default: null
+  },
+  eventRoles: {
+    type: Object,
+    default: () => ({})
+  },
+  // Pour les préférences de rôles
+  availableRoles: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const emit = defineEmits(['update:availability', 'update:roles', 'update:comment'])
+
+const selectedRoles = ref([])
+const comment = ref('')
+const selectedAvailability = ref(null) // null = pas défini, true = dispo, false = pas dispo
+const userRolePreferences = ref(null)
+const favoritePlayerIds = ref(new Set())
+const isUpdatingFromProps = ref(false) // Flag pour éviter les boucles de réactivité
+
+// Computed properties pour l'état actuel
+const currentlyAvailable = computed(() => {
+  return selectedAvailability.value === true
+})
+
+const currentlyNotAvailable = computed(() => {
+  return selectedAvailability.value === false
+})
+
+const currentlyUnknown = computed(() => {
+  return selectedAvailability.value === null
+})
+
+const hasCurrentState = computed(() => {
+  return props.currentAvailability?.available !== undefined && props.currentAvailability?.available !== null
+})
+
+// Charger les préférences de rôles de l'utilisateur
+async function loadUserRolePreferences() {
+  try {
+    userRolePreferences.value = await getUserRolePreferences()
+  } catch (error) {
+    console.warn('Erreur lors du chargement des préférences de rôles:', error)
+    userRolePreferences.value = null
+  }
+}
+
+// Charger les joueurs favoris de l'utilisateur
+async function loadFavoritePlayers() {
+  try {
+    const user = currentUser.value
+    if (!user?.email || !props.seasonId) {
+      favoritePlayerIds.value = new Set()
+      return
+    }
+    
+    const assocs = await listAssociationsForEmail(user.email)
+    const seasonal = assocs.filter(a => a.seasonId === props.seasonId)
+    
+    if (seasonal.length > 0) {
+      const playerIds = seasonal.map(a => a.playerId)
+      favoritePlayerIds.value = new Set(playerIds)
+    } else {
+      favoritePlayerIds.value = new Set()
+    }
+  } catch (error) {
+    console.warn('Erreur lors du chargement des favoris:', error)
+    favoritePlayerIds.value = new Set()
+  }
+}
+
+// Fonction pour vérifier si le joueur actuel est un favori de l'utilisateur connecté
+function isCurrentPlayerFavorite() {
+  const currentPlayerId = props.playerId
+  return currentPlayerId ? favoritePlayerIds.value.has(currentPlayerId) : false
+}
+
+// Fonction pour obtenir les rôles à pré-cocher selon les préférences
+function getDefaultRolesToSelect() {
+  // Vérifier si le joueur actuel est un favori de l'utilisateur connecté
+  if (!isCurrentPlayerFavorite()) {
+    // Fallback vers l'ancien comportement si pas un favori
+    const defaultRoles = []
+    if (props.eventRoles[ROLES.PLAYER] > 0) {
+      defaultRoles.push(ROLES.PLAYER)
+    }
+    if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+      defaultRoles.push(ROLES.VOLUNTEER)
+    }
+    if (defaultRoles.length === 0 && props.availableRoles.length > 0) {
+      defaultRoles.push(props.availableRoles[0])
+    }
+    return defaultRoles
+  }
+  
+  if (!userRolePreferences.value || props.availableRoles.length === 0) {
+    // Fallback vers l'ancien comportement si pas de préférences
+    const defaultRoles = []
+    if (props.eventRoles[ROLES.PLAYER] > 0) {
+      defaultRoles.push(ROLES.PLAYER)
+    }
+    if (props.eventRoles[ROLES.VOLUNTEER] > 0) {
+      defaultRoles.push(ROLES.VOLUNTEER)
+    }
+    if (defaultRoles.length === 0 && props.availableRoles.length > 0) {
+      defaultRoles.push(props.availableRoles[0])
+    }
+    return defaultRoles
+  }
+
+  // Utiliser les préférences de l'utilisateur (seulement pour les favoris)
+  const preferredRoles = getPreferredRolesForEvent(props.availableRoles, userRolePreferences.value)
+  return preferredRoles
+}
+
+// Fonction pour s'assurer que le rôle bénévole est toujours sélectionné
+function ensureVolunteerRoleSelected() {
+  if (props.availableRoles.includes(ROLES.VOLUNTEER) && !selectedRoles.value.includes(ROLES.VOLUNTEER)) {
+    selectedRoles.value.push(ROLES.VOLUNTEER)
+  }
+}
+
+// Gérer le changement de disponibilité
+function handleAvailabilityChange(available) {
+  if (props.isReadOnly) return
+  
+  selectedAvailability.value = available
+  
+  // Si on passe à "Dispo", pré-cocher les rôles selon les préférences
+  if (available === true && props.availableRoles.length > 0) {
+    if (selectedRoles.value.length === 0) {
+      selectedRoles.value = getDefaultRolesToSelect()
+    }
+  } else {
+    // Sinon, vider les rôles
+    selectedRoles.value = []
+  }
+  
+  // Émettre les changements
+  emitChanges()
+}
+
+// Émettre tous les changements au parent
+function emitChanges() {
+  // Ne pas émettre si on est en train de mettre à jour depuis les props (éviter les boucles)
+  if (isUpdatingFromProps.value) return
+  
+  emit('update:availability', {
+    available: selectedAvailability.value,
+    roles: selectedRoles.value,
+    comment: comment.value.trim() || null
+  })
+}
+
+// Watcher pour détecter les changements de rôles
+watch(selectedRoles, () => {
+  ensureVolunteerRoleSelected()
+  emitChanges()
+}, { deep: true })
+
+// Watcher pour détecter les changements de commentaire
+watch(comment, () => {
+  emitChanges()
+})
+
+// Initialiser les valeurs quand les props changent
+watch(() => props.currentAvailability, async (newAvailability) => {
+  // Activer le flag pour éviter les boucles de réactivité
+  isUpdatingFromProps.value = true
+  
+  // Charger les préférences de rôles de l'utilisateur
+  await loadUserRolePreferences()
+  
+  // Charger les joueurs favoris
+  await loadFavoritePlayers()
+  
+  // Initialiser selectedAvailability basé sur l'état actuel
+  if (newAvailability.available === null || newAvailability.available === undefined) {
+    selectedAvailability.value = null
+  } else {
+    selectedAvailability.value = newAvailability.available
+  }
+  
+  // Initialiser les rôles selon l'état de disponibilité
+  if (newAvailability.available === true) {
+    // Disponible : utiliser les rôles existants ou pré-cocher selon les préférences
+    if (newAvailability.roles && newAvailability.roles.length > 0) {
+      selectedRoles.value = [...newAvailability.roles]
+    } else if (props.availableRoles.length > 0) {
+      // Utiliser les préférences de l'utilisateur pour pré-cocher les rôles
+      selectedRoles.value = getDefaultRolesToSelect()
+    } else {
+      selectedRoles.value = []
+    }
+  } else {
+    // Pas disponible ou je sais pas : pas de rôles sélectionnés
+    selectedRoles.value = []
+  }
+  comment.value = newAvailability.comment || ''
+  
+  // Désactiver le flag après la mise à jour (utiliser nextTick pour s'assurer que tous les watchers sont passés)
+  await nextTick()
+  isUpdatingFromProps.value = false
+}, { immediate: true, deep: true })
+</script>
