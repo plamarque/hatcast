@@ -108,10 +108,10 @@
               
               <!-- Statut de l'événement -->
               <div class="flex-shrink-0 flex flex-col items-end gap-1">
-                <div v-if="event.archived" class="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300 border border-gray-400/30" title="Événement archivé">
+                <div v-if="event.archived" class="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300" title="Événement archivé">
                   📁 Inactif
                 </div>
-                <div v-else-if="isEventPast(event.date)" class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30" title="Événement passé">
+                <div v-else-if="isEventPast(event.date)" class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-300" title="Événement passé">
                   ⏰ Passé
                 </div>
                 <div v-else class="text-xs px-2 py-1 rounded-full" :class="getEventStatusClass(event)" :title="getEventStatusText(event)">
@@ -343,8 +343,8 @@ const getEventStatusText = (event) => {
 const getEventStatusClass = (event) => {
   const status = getEventStatus(event)
   const colorClass = getStatusColor(status)
-  // Convertir les classes existantes en format badge
-  return colorClass.replace('text-', 'text-').replace('bg-', 'bg-') + ' border border-current/30'
+  // Convertir les classes existantes en format badge (sans bordure)
+  return colorClass.replace('text-', 'text-').replace('bg-', 'bg-')
 }
 
 // Fonction pour obtenir les statistiques d'un événement
