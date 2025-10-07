@@ -4,31 +4,31 @@
     <div class="flex md:items-center md:justify-center min-h-full h-full">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 md:rounded-2xl shadow-2xl w-full max-w-md flex flex-col h-full md:h-auto md:max-h-[85vh]" @click.stop>
         <!-- Header -->
-        <div class="p-6 border-b border-white/10 flex-shrink-0">
+        <div class="p-3 md:p-6 border-b border-white/10 flex-shrink-0">
           <div class="flex items-center justify-between">
-            <h2 class="text-2xl font-bold text-white">Filtrer les événements</h2>
-            <button @click="closeModal" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+            <h2 class="text-lg md:text-2xl font-bold text-white">Filtrer les événements</h2>
+            <button @click="closeModal" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
               ✖️
             </button>
           </div>
         </div>
         
         <!-- Content - flexible pour prendre l'espace disponible -->
-        <div class="p-6 flex flex-col flex-1 overflow-hidden">
+        <div class="p-3 md:p-6 flex flex-col flex-1 overflow-hidden">
           <!-- Input de recherche -->
-          <div class="mb-4 flex-shrink-0">
+          <div class="mb-3 md:mb-4 flex-shrink-0">
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Rechercher un événement..."
-              class="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
+              class="w-full px-3 py-2 md:px-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
               @keyup.escape="closeModal"
               ref="searchInput"
             />
           </div>
           
           <!-- Options de filtrage -->
-          <div class="mb-4 flex-shrink-0">
+          <div class="mb-3 md:mb-4 flex-shrink-0">
             <div class="flex gap-2 text-sm">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
