@@ -250,6 +250,7 @@ function isSameAvailability(a, b) {
 
 // Snapshot initial pour la logique canSave (commentaire et rôles)
 const initialSnapshot = ref({ comment: '', roles: [] })
+const isFirstSync = ref(true)
 
 // canSave se base sur props.currentAvailability (état persisté) et l'état local (saisie en cours)
 const baseAvailability = computed(() => ({
@@ -258,8 +259,14 @@ const baseAvailability = computed(() => ({
 }))
 
 const canSave = computed(() => {
-  const commentChanged = normalizeComment(comment.value) !== baseAvailability.value.comment
-  const rolesChanged = selectedAvailability.value === true && !areRolesEqual(selectedRoles.value, baseAvailability.value.roles)
+  const baseComment = props.selfPersist
+    ? normalizeComment(initialSnapshot.value.comment)
+    : baseAvailability.value.comment
+  const baseRoles = props.selfPersist
+    ? initialSnapshot.value.roles
+    : baseAvailability.value.roles
+  const commentChanged = normalizeComment(comment.value) !== baseComment
+  const rolesChanged = selectedAvailability.value === true && !areRolesEqual(selectedRoles.value, baseRoles)
   return commentChanged || rolesChanged
 })
 
@@ -468,7 +475,10 @@ watch(() => props.currentAvailability, async (newAvailability) => {
   } else {
     // Pas disponible ou Non renseigné : pas de rôles sélectionnés
     selectedRoles.value = []
-    // Ne PAS écraser le commentaire local: on préserve la saisie
+    // Ne PAS écraser le commentaire local après la première synchro
+    if (isFirstSync.value) {
+      comment.value = normalizeComment(newAvailability.comment)
+    }
   }
   // Mettre à jour le snapshot initial pour la logique canSave
   initialSnapshot.value = {
@@ -479,6 +489,9 @@ watch(() => props.currentAvailability, async (newAvailability) => {
   // Désactiver le flag après la mise à jour (utiliser nextTick pour s'assurer que tous les watchers sont passés)
   await nextTick()
   isUpdatingFromProps.value = false
+  if (isFirstSync.value) {
+    isFirstSync.value = false
+  }
 }, { immediate: true, deep: true })
 
 async function persistCurrent(keepOpen) {
