@@ -47,10 +47,11 @@
             @click="handleSaveAndClose"
             :class="[
               'px-6 py-3 text-white rounded-lg transition-colors',
-              localAvailability.available === true && availableRoles.length > 0 
-                ? 'bg-purple-600 hover:bg-purple-700 border-2 border-purple-400 shadow-lg shadow-purple-500/25' 
-                : 'bg-purple-600 hover:bg-purple-700'
+              canSave
+                ? 'bg-purple-600 hover:bg-purple-700'
+                : 'bg-gray-700 text-gray-300 cursor-not-allowed'
             ]"
+            :disabled="!canSave"
           >
             Enregistrer
           </button>
@@ -152,6 +153,13 @@ const localAvailability = ref({
   comment: null
 })
 
+// Activer le bouton Enregistrer uniquement quand le commentaire change
+const initialComment = ref('')
+const canSave = computed(() => {
+  const current = typeof localAvailability.value?.comment === 'string' ? localAvailability.value.comment : (localAvailability.value?.comment ?? '')
+  return current !== initialComment.value
+})
+
 // Suivi de l'état initial pour activer/désactiver le bouton Enregistrer
 const initialSnapshot = ref({ available: null, roles: [], comment: '' })
 const formDirty = ref(false)
@@ -182,6 +190,7 @@ watch(() => props.show, (newShow) => {
       roles: props.currentAvailability.roles || [],
       comment: props.currentAvailability.comment || null
     }
+    initialComment.value = props.currentAvailability.comment || ''
     initialSnapshot.value = {
       available: props.currentAvailability.available,
       roles: [...(props.currentAvailability.roles || [])],
