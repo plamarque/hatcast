@@ -52,7 +52,7 @@
                 : 'bg-purple-600 hover:bg-purple-700'
             ]"
           >
-            {{ localAvailability.available === true && availableRoles.length > 0 ? 'Enregistrer avec rôles' : 'Enregistrer' }}
+            Enregistrer
           </button>
         </div>
         
