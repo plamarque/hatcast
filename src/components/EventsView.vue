@@ -86,12 +86,13 @@
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->
         <td 
-          class="left-col-td bg-gray-900 px-4 py-3"
+          class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
             maxWidth: dynamicLeftColumnWidth 
           }"
+          @click="showPlayerDetails(player)"
         >
           <div class="flex items-center space-x-2">
             <PlayerAvatar
@@ -105,7 +106,7 @@
               class="!w-10 !h-10"
               @click="showPlayerDetails(player)"
             />
-            <span class="text-white font-medium text-sm cursor-pointer hover:text-blue-400 transition-colors" @click="showPlayerDetails(player)">{{ player.name }}</span>
+            <span class="text-white font-medium text-sm">{{ player.name }}</span>
           </div>
         </td>
         
@@ -145,7 +146,7 @@
       <!-- Ligne "Afficher Plus" -->
       <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
         <td 
-          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 

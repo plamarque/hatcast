@@ -27,7 +27,7 @@
     <!-- En-têtes des joueurs -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2 rounded-xl"
         @click="showPlayerDetails(item)"
       >
         <PlayerAvatar
@@ -46,7 +46,7 @@
     <!-- En-tête "Afficher Plus" -->
     <template #show-more-header="{ itemWidth }">
       <div
-        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2 rounded-xl"
         @click="addAllPlayersToGrid"
       >
         <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
