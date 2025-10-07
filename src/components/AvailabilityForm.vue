@@ -195,6 +195,32 @@ const hasCurrentState = computed(() => {
   return props.currentAvailability?.available !== undefined && props.currentAvailability?.available !== null
 })
 
+// Mémo de la dernière valeur émise pour éviter les boucles de synchro
+const lastEmittedData = ref(null)
+
+function normalizeComment(value) {
+  return value == null ? '' : String(value)
+}
+
+function areRolesEqual(a = [], b = []) {
+  const sa = [...a].sort()
+  const sb = [...b].sort()
+  if (sa.length !== sb.length) return false
+  for (let i = 0; i < sa.length; i += 1) {
+    if (sa[i] !== sb[i]) return false
+  }
+  return true
+}
+
+function isSameAvailability(a, b) {
+  if (!a || !b) return false
+  return (
+    a.available === b.available &&
+    normalizeComment(a.comment) === normalizeComment(b.comment) &&
+    areRolesEqual(a.roles, b.roles)
+  )
+}
+
 // Charger les préférences de rôles de l'utilisateur
 async function loadUserRolePreferences() {
   try {
@@ -307,11 +333,17 @@ function emitChanges() {
   // Ne pas émettre si on est en train de mettre à jour depuis les props (éviter les boucles)
   if (isUpdatingFromProps.value) return
   
-  emit('update:availability', {
+  const payload = {
     available: selectedAvailability.value,
     roles: selectedRoles.value,
     comment: comment.value
-  })
+  }
+  lastEmittedData.value = {
+    available: payload.available,
+    roles: [...payload.roles],
+    comment: normalizeComment(payload.comment)
+  }
+  emit('update:availability', payload)
 }
 
 // Watcher pour détecter les changements de rôles
@@ -354,6 +386,17 @@ watch(() => props.currentAvailability, async (newAvailability) => {
   // Charger les joueurs favoris
   await loadFavoritePlayers()
   
+  // Si la nouvelle dispo est identique à la dernière émise, ne rien réinitialiser
+  const normalizedIncoming = {
+    available: newAvailability.available ?? null,
+    roles: Array.isArray(newAvailability.roles) ? newAvailability.roles : [],
+    comment: normalizeComment(newAvailability.comment)
+  }
+  if (lastEmittedData.value && isSameAvailability(normalizedIncoming, lastEmittedData.value)) {
+    isUpdatingFromProps.value = false
+    return
+  }
+
   // Initialiser selectedAvailability basé sur l'état actuel
   if (newAvailability.available === null || newAvailability.available === undefined) {
     selectedAvailability.value = null
@@ -376,7 +419,7 @@ watch(() => props.currentAvailability, async (newAvailability) => {
     // Pas disponible ou je sais pas : pas de rôles sélectionnés
     selectedRoles.value = []
   }
-  comment.value = newAvailability.comment || ''
+  comment.value = normalizeComment(newAvailability.comment)
   
   // Désactiver le flag après la mise à jour (utiliser nextTick pour s'assurer que tous les watchers sont passés)
   await nextTick()
