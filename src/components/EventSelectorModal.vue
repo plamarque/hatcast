@@ -14,37 +14,56 @@
         </div>
         
         <!-- Content - flexible pour prendre l'espace disponible -->
-        <div class="p-3 md:p-6 flex flex-col flex-1 overflow-hidden">
-          <!-- Input de recherche -->
-          <div class="mb-3 md:mb-4 flex-shrink-0">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Rechercher un événement..."
-              class="w-full px-3 py-2 md:px-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
-              @keyup.escape="closeModal"
-              ref="searchInput"
-            />
-          </div>
-          
-          <!-- Options de filtrage -->
-          <div class="mb-3 md:mb-4 flex-shrink-0">
-            <div class="flex gap-2 text-sm">
-              <label class="flex items-center gap-2 cursor-pointer">
+        <div class="p-3 md:p-6 flex flex-col flex-1 overflow-hidden" @click="showFilterMenu = false">
+          <!-- Input de recherche avec bouton filtre -->
+          <div class="mb-3 md:mb-4 flex-shrink-0 relative flex items-center gap-2" @click.stop>
+            <div class="flex-1 relative">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Rechercher un événement..."
+                class="w-full pl-3 pr-3 py-2 md:pl-4 md:pr-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
+                @keyup.escape="closeModal"
+                ref="searchInput"
+              />
+            </div>
+            <!-- Bouton filtre -->
+            <button
+              @click.stop="showFilterMenu = !showFilterMenu"
+              class="flex-shrink-0 p-2 rounded-lg hover:bg-gray-700 transition-colors relative"
+              :class="activeFiltersCount > 0 ? 'text-purple-400' : 'text-gray-400'"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <!-- Badge indicateur de filtres actifs -->
+              <span v-if="activeFiltersCount > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                {{ activeFiltersCount }}
+              </span>
+            </button>
+            
+            <!-- Menu contextuel des filtres -->
+            <div
+              v-if="showFilterMenu"
+              class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-10 py-2 px-3 min-w-[160px]"
+              @click.stop
+            >
+              <div class="text-xs text-gray-400 mb-2 font-semibold">AFFICHER</div>
+              <label class="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-gray-700 rounded px-2 -mx-2">
                 <input
                   v-model="showPastEvents"
                   type="checkbox"
-                  class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
                 />
-                <span class="text-gray-300">Passés</span>
+                <span class="text-gray-200 text-sm">Passés</span>
               </label>
-              <label class="flex items-center gap-2 cursor-pointer">
+              <label class="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-gray-700 rounded px-2 -mx-2">
                 <input
                   v-model="showInactiveEvents"
                   type="checkbox"
-                  class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
                 />
-                <span class="text-gray-300">Inactifs</span>
+                <span class="text-gray-200 text-sm">Inactifs</span>
               </label>
             </div>
           </div>
@@ -187,6 +206,15 @@ const searchQuery = ref('')
 const searchInput = ref(null)
 const showPastEvents = ref(false)
 const showInactiveEvents = ref(false)
+const showFilterMenu = ref(false)
+
+// Calculer le nombre de filtres actifs
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (showPastEvents.value) count++
+  if (showInactiveEvents.value) count++
+  return count
+})
 
 // Événements filtrés pour l'autocomplete
 const filteredEvents = computed(() => {
@@ -347,6 +375,7 @@ const getEventStats = (event) => {
 // Focus sur l'input quand le modal s'ouvre
 watch(() => props.show, (newShow) => {
   if (newShow) {
+    showFilterMenu.value = false // Fermer le menu filtre
     nextTick(() => {
       searchInput.value?.focus()
       searchQuery.value = '' // Reset search query
