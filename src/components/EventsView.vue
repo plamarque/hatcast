@@ -27,19 +27,20 @@
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200"
+        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
         :class="[
           item._isArchived 
-            ? 'bg-gray-600/50 border border-gray-500/30' 
+            ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
             : item._isPast 
-              ? 'bg-amber-800/30 border border-amber-600/30' 
-              : 'bg-gray-800 border border-gray-700/30'
+              ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
+              : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
         ]"
         :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
+        @click="openEventModal(item)"
       >
         <div class="flex flex-col items-center space-y-1 w-full">
           <!-- Emoji et titre empilés -->
-          <div class="flex flex-col items-center gap-1 cursor-pointer hover:bg-gray-700/30 rounded p-1 -m-1 transition-colors w-full" @click="openEventModal(item)">
+          <div class="flex flex-col items-center gap-1 w-full">
             <span class="text-sm">{{ getEventIcon(item) }}</span>
             <span 
               class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
@@ -85,12 +86,13 @@
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->
         <td 
-          class="left-col-td bg-gray-900 px-4 py-3"
+          class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
             maxWidth: dynamicLeftColumnWidth 
           }"
+          @click="showPlayerDetails(player)"
         >
           <div class="flex items-center space-x-2">
             <PlayerAvatar
@@ -104,7 +106,7 @@
               class="!w-10 !h-10"
               @click="showPlayerDetails(player)"
             />
-            <span class="text-white font-medium text-sm cursor-pointer hover:text-blue-400 transition-colors" @click="showPlayerDetails(player)">{{ player.name }}</span>
+            <span class="text-white font-medium text-sm">{{ player.name }}</span>
           </div>
         </td>
         
@@ -144,7 +146,7 @@
       <!-- Ligne "Afficher Plus" -->
       <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
         <td 
-          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 

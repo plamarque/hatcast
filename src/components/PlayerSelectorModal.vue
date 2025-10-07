@@ -1,33 +1,34 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1500] p-4" @click="closeModal">
-    <div class="flex items-center justify-center min-h-full">
-      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1500] md:p-4" @click="closeModal">
+    <!-- Sur mobile: hauteur complète sans padding, sur desktop: centré avec padding -->
+    <div class="flex md:items-center md:justify-center min-h-full h-full">
+      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 md:rounded-2xl shadow-2xl w-full max-w-md flex flex-col h-full md:h-auto md:max-h-[85vh]" @click.stop>
       <!-- Header -->
-      <div class="p-6 border-b border-white/10">
+      <div class="p-3 md:p-6 border-b border-white/10 flex-shrink-0">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-bold text-white">Choisir des Participants</h2>
-          <button @click="closeModal" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+          <h2 class="text-lg md:text-2xl font-bold text-white">Filtrer les participants</h2>
+          <button @click="closeModal" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
             ✖️
           </button>
         </div>
       </div>
       
-      <!-- Content -->
-      <div class="p-6">
+      <!-- Content - flexible pour prendre l'espace disponible -->
+      <div class="p-3 md:p-6 flex flex-col flex-1 overflow-hidden">
         <!-- Input de recherche -->
-        <div class="mb-4">
+        <div class="mb-3 md:mb-4 flex-shrink-0">
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Rechercher un participant..."
-            class="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
+            class="w-full px-3 py-2 md:px-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
             @keyup.escape="closeModal"
             ref="searchInput"
           />
         </div>
         
-        <!-- Liste des participants -->
-        <div class="max-h-80 overflow-y-auto">
+        <!-- Liste des participants - prend tout l'espace restant -->
+        <div class="flex-1 overflow-y-auto -mx-2 px-2">
           <!-- Option "Tous" -->
           <div
             @click="selectAllPlayers"
@@ -46,7 +47,7 @@
           <!-- Séparateur -->
           <div class="border-t border-gray-600 my-2"></div>
           
-          <!-- Liste des participants filtrés -->
+          <!-- Liste des participants (favoris en premier) -->
           <div
             v-for="player in filteredPlayers"
             :key="player.id"
@@ -60,6 +61,9 @@
               :player-name="player.name"
               size="md"
               :player-gender="player.gender || 'non-specified'"
+              :show-status-icons="true"
+              :is-preferred="preferredPlayerIdsSet.has(player.id)"
+              :is-protected="isPlayerProtected(player.id)"
               @avatar-loaded="(data) => console.log('Avatar chargé pour', player.name, data)"
               @avatar-error="(error) => console.log('Erreur avatar pour', player.name, error)"
             />
@@ -162,15 +166,23 @@ export default {
     
     // Participants filtrés pour l'autocomplete
     const filteredPlayers = computed(() => {
-      if (!searchQuery.value.trim()) {
-        return props.players.slice(0, 20) // Limiter à 20 résultats par défaut
+      let players = props.players
+      
+      // Appliquer le filtre de recherche si nécessaire
+      if (searchQuery.value.trim()) {
+        const query = searchQuery.value.toLowerCase().trim()
+        players = players.filter(player => player.name.toLowerCase().includes(query))
       }
       
-      const query = searchQuery.value.toLowerCase().trim()
-      return props.players
-        .filter(player => player.name.toLowerCase().includes(query))
-        .slice(0, 20)
+      // Séparer les joueurs favoris des autres
+      const favoritePlayers = players.filter(player => props.preferredPlayerIdsSet.has(player.id))
+      const otherPlayers = players.filter(player => !props.preferredPlayerIdsSet.has(player.id))
+      
+      // Retourner d'abord les favoris, puis les autres (limiter à 20 au total)
+      const allPlayers = [...favoritePlayers, ...otherPlayers]
+      return allPlayers.slice(0, 20)
     })
+    
     
     // Fonctions
     const closeModal = () => {

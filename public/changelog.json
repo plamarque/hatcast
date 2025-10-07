@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.26.0",
+    "date": "2025-10-07",
+    "changes": [
+      "✨ On a uniformisé les arrondis et le survol des en-têtes entre les vues.",
+      "🐛 On a ajouté un espacement horizontal entre les cellules sur mobile.",
+      "🐛 Maintenant, toute l'en-tête d'événement est cliquable dans toutes les vues.",
+      "🐛 L'onglet Disponibilités est simplifié : le formulaire s'affiche toujours.",
+      "🔧 On a amélioré l'UX de l'onglet Disponibilités."
+    ]
+  },
+  {
     "version": "0.25.3",
     "date": "2025-10-07",
     "changes": [

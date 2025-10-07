@@ -1028,143 +1028,33 @@
               
 
               <!-- Vue individuelle : disponibilités de la personne sélectionnée -->
-              <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'">
-                <!-- Contenu de Ma Dispo intégré -->
-                <div class="space-y-3">
-                  <!-- Section principale simplifiée -->
-                  <div class="p-3">
-                    <!-- AvailabilityCell centrée -->
-                    <div class="flex justify-center">
-                      <div class="w-40 h-16">
-                        <AvailabilityCell
-                          :key="`availability-${selectedTeamPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
-                          :player-name="selectedTeamPlayer.name"
-                          :player-id="selectedTeamPlayer.id"
-                          :player-gender="selectedTeamPlayer.gender"
-                          :event-id="selectedEvent?.id"
-                          :event-title="selectedEvent?.title"
-                          :event-date="selectedEvent?.date"
-                          :availability-data="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :is-available="isAvailable(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :is-selected="isPlayerSelected(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
-                          :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                          :player-selection-status="getPlayerSelectionStatus(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :season-id="seasonId"
-                          :chance-percent="getPlayerRoleChances(selectedTeamPlayer.name, selectedEvent?.id) || 0"
-                          :is-protected="isPlayerProtectedInGrid(selectedEvent?.id)"
-                          :event-roles="selectedEvent?.roles || {}"
-                          @availability-changed="handleAvailabilityChanged"
-                          @show-availability-modal="openAvailabilityModal"
-                          @show-confirmation-modal="openConfirmationModal"
-                        />
-                      </div>
-                    </div>
-                    
-                    <!-- Instruction contextuelle -->
-                    <div class="mt-2 text-center">
-                      <div class="text-xs text-gray-400 px-1">
-                        {{ getPlayerInstruction(selectedTeamPlayer.name, selectedEvent?.id) }}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Section note (si présente) -->
-                  <div v-if="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.comment" class="p-2">
-                    <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-                      <span>📝</span>
-                      <span>Note</span>
-                    </div>
-                    <div class="text-sm text-gray-200 break-words">
-                      {{ getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.comment }}
-                    </div>
-                  </div>
-                  
-                  <!-- Section rôles sélectionnés pour tous les joueurs -->
-                  <div v-if="selectedEvent?.roles && Object.keys(selectedEvent.roles).length > 0" class="space-y-2">
-                    <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                      <span>🎭</span>
-                      <span>Rôles sélectionnés</span>
-                    </h4>
-                    <div class="space-y-1">
-                      <div 
-                        v-for="role in getSortedEventRoles()" 
-                        :key="role"
-                        class="flex items-center gap-3 p-2 rounded"
-                      >
-                        <!-- Case à cocher devant le rôle -->
-                        <input
-                          type="checkbox"
-                          :id="`availability-${role}-${selectedEvent?.id}`"
-                          :checked="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.roles?.includes(role)"
-                          :disabled="selectedTeamPlayer.id !== currentUserPlayer?.id"
-                          @change="toggleRoleSelection(role)"
-                          class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        />
-                        
-                        <!-- Rôle avec emoji et nom -->
-                        <div class="flex items-center gap-2 flex-1">
-                          <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
-                          <span class="text-sm font-medium text-gray-200">{{ getRoleLabelByGender(role, selectedTeamPlayer?.gender, false) || role }}</span>
-                          <span class="text-xs text-gray-400">({{ selectedEvent.roles[role] }} place{{ selectedEvent.roles[role] > 1 ? 's' : '' }})</span>
-                          <span v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)" class="text-xs text-yellow-400">(obligatoire)</span>
-                        </div>
-                        
-                        <!-- Pourcentage de chances (seulement pour l'utilisateur connecté) -->
-                        <span 
-                          v-if="selectedTeamPlayer.id === currentUserPlayer?.id"
-                          class="text-sm font-medium px-2 py-1 rounded-full"
-                          :class="getChanceColorClass(getPlayerTheoreticalChances(selectedTeamPlayer.name, selectedEvent?.id, role))"
-                        >
-                          {{ formatChancePercentage(getPlayerTheoreticalChances(selectedTeamPlayer.name, selectedEvent?.id, role)) }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Champ commentaire -->
-                  <div class="p-3">
-                    <label for="comment-field" class="text-sm font-medium text-white mb-2 block">
-                      📝 Commentaire (optionnel)
-                    </label>
-                    <textarea
-                      id="comment-field"
-                      v-model="commentText"
-                      placeholder="Ajoutez un commentaire sur votre disponibilité..."
-                      :readonly="selectedTeamPlayer.id !== currentUserPlayer?.id"
-                      :class="[
-                        'w-full p-2 border border-gray-600 rounded text-white text-sm placeholder-gray-400 resize-none',
-                        selectedTeamPlayer.id === currentUserPlayer?.id 
-                          ? 'bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent' 
-                          : 'bg-gray-700/50 cursor-not-allowed'
-                      ]"
-                      rows="3"
-                    ></textarea>
-                  </div>
-                  
-                  <!-- Bouton de sauvegarde (seulement pour l'utilisateur connecté) -->
-                  <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center">
-                    <button
-                      @click="saveAllAvailability"
-                      :disabled="isSaving"
-                      class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                    >
-                      <span v-if="isSaving">💾 Enregistrement...</span>
-                      <span v-else>💾 Enregistrer</span>
-                    </button>
-                  </div>
-                  
-                  <!-- Message si aucun rôle dans l'événement -->
-                  <div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4">
-                    <div class="text-center">
-                      <div class="text-2xl mb-2">🎯</div>
-                      <p class="text-sm text-gray-300">
-                        Événement sans rôles spécifiques
-                      </p>
-                      <p class="text-xs text-gray-400 mt-1">
-                        Vous serez assigné selon les besoins de l'équipe
-                      </p>
-                    </div>
+              <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="space-y-3 p-3">
+                <!-- Toujours afficher le formulaire de disponibilités (onglet dédié aux dispos uniquement) -->
+                <AvailabilityForm
+                  :player-gender="selectedTeamPlayer.gender"
+                  :player-id="selectedTeamPlayer.id"
+                  :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
+                  :is-read-only="selectedTeamPlayer.id !== currentUserPlayer?.id"
+                  :season-id="seasonId"
+                  :event-roles="selectedEvent?.roles || {}"
+                  :available-roles="getEventAvailableRoles()"
+                  :self-persist="selectedTeamPlayer.id === currentUserPlayer?.id"
+                  :player-name="selectedTeamPlayer.name"
+                  :event-id="selectedEvent?.id"
+                  @update:availability="handleAvailabilityFormUpdate"
+                  @availability-saved="handleAvailabilitySaved"
+                />
+                
+                <!-- Message si aucun rôle dans l'événement -->
+                <div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4">
+                  <div class="text-center">
+                    <div class="text-2xl mb-2">🎯</div>
+                    <p class="text-sm text-gray-300">
+                      Événement sans rôles spécifiques
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Vous serez assigné selon les besoins de l'équipe
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2079,6 +1969,7 @@ import PlayerModal from './PlayerModal.vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import SelectionModal from './SelectionModal.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
+import AvailabilityForm from './AvailabilityForm.vue'
 import CreatorOnboardingModal from './CreatorOnboardingModal.vue'
 import PlayerOnboardingModal from './PlayerOnboardingModal.vue'
 import AccountMenu from './AccountMenu.vue'
@@ -2233,6 +2124,11 @@ const seasonName = ref('')
 const selectedRoles = ref([])
 const commentText = ref('')
 const isSaving = ref(false)
+const availabilityFormData = ref({
+  available: null,
+  roles: [],
+  comment: null
+})
 
 // Fonction pour initialiser les données de disponibilité
 function initializeAvailabilityData() {
@@ -2325,6 +2221,55 @@ async function saveAllAvailability() {
   }
 }
 
+// Fonction pour obtenir les rôles disponibles pour l'événement sélectionné
+function getEventAvailableRoles() {
+  if (!selectedEvent.value?.roles) return []
+  
+  // Filtrer les rôles pour ne garder que ceux attendus (nombre > 0)
+  // et les trier par ordre de priorité du tirage
+  const rolesWithSlots = ROLE_PRIORITY_ORDER.filter(role => {
+    const count = selectedEvent.value.roles[role] || 0
+    return count > 0
+  })
+  
+  // Ajouter les rôles non définis dans ROLE_PRIORITY_ORDER à la fin (tri alphabétique)
+  const undefinedRoles = Object.keys(selectedEvent.value.roles)
+    .filter(role => selectedEvent.value.roles[role] > 0 && !ROLE_PRIORITY_ORDER.includes(role))
+    .sort()
+  
+  return [...rolesWithSlots, ...undefinedRoles]
+}
+
+// Gérer les mises à jour depuis AvailabilityForm
+function handleAvailabilityFormUpdate(updatedData) {
+  availabilityFormData.value = updatedData
+}
+
+// Sauvegarder la disponibilité depuis le formulaire
+async function handleAvailabilitySaved(payload) {
+  try {
+    // Mettre à jour les données locales
+    const playerName = currentUserPlayer.value?.name
+    const eventId = selectedEvent.value?.id
+    if (playerName && eventId) {
+      if (!availability.value[playerName]) {
+        availability.value[playerName] = {}
+      }
+      availability.value[playerName][eventId] = {
+        available: payload.available,
+        roles: payload.roles || [],
+        comment: payload.comment
+      }
+    }
+    // Recharger pour synchroniser
+    const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
+    availability.value = newAvailability
+    availabilityCellRefreshKey.value++
+  } catch (error) {
+    console.error('❌ Erreur post-sauvegarde (refresh):', error)
+  }
+}
+
 const seasonId = ref('')
 const seasonMeta = ref({})
 
@@ -2369,8 +2314,8 @@ const selectedPlayerForTimeline = ref(null)
 const selectedEventId = ref(null)
 const isAllEventsView = ref(false)
 const eventFilters = ref({
-  hidePastEvents: true,
-  hideArchivedEvents: true
+  showPastEvents: false,
+  showInactiveEvents: false
 })
 
 // Debug watcher pour tracer qui modifie selectedPlayerId
@@ -6331,11 +6276,11 @@ const displayedEvents = computed(() => {
     filteredEvents = allEvents.value
     const now = new Date()
     filteredEvents = filteredEvents.filter(event => {
-      // Appliquer le filtre des événements archivés
-      if (eventFilters.value.hideArchivedEvents && event.archived === true) return false
+      // Appliquer le filtre des événements inactifs/archivés (inversé : si NON coché, on masque)
+      if (!eventFilters.value.showInactiveEvents && event.archived === true) return false
       
-      // Appliquer le filtre des événements passés
-      if (eventFilters.value.hidePastEvents && event.date) {
+      // Appliquer le filtre des événements passés (inversé : si NON coché, on masque)
+      if (!eventFilters.value.showPastEvents && event.date) {
         const eventDate = (() => {
           if (event.date instanceof Date) return event.date
           if (typeof event.date?.toDate === 'function') return event.date.toDate()
@@ -8864,25 +8809,25 @@ function handleEventSelected(event) {
 function handleAllEventsSelected(filters = {}) {
   console.log('🎭 handleAllEventsSelected', filters)
   console.log('🎭 Filtres reçus:', {
-    hidePastEvents: filters.hidePastEvents,
-    hideArchivedEvents: filters.hideArchivedEvents,
-    condition: !filters.hidePastEvents || !filters.hideArchivedEvents
+    showPastEvents: filters.showPastEvents,
+    showInactiveEvents: filters.showInactiveEvents,
+    condition: filters.showPastEvents || filters.showInactiveEvents
   })
   
   // Stocker les filtres pour les appliquer dans displayedEvents
   eventFilters.value = {
-    hidePastEvents: filters.hidePastEvents || false,
-    hideArchivedEvents: filters.hideArchivedEvents || false
+    showPastEvents: filters.showPastEvents || false,
+    showInactiveEvents: filters.showInactiveEvents || false
   }
   
-  // Si les filtres permettent d'afficher les événements passés/archivés, charger tous les événements
-  if (!filters.hidePastEvents || !filters.hideArchivedEvents) {
+  // Si les filtres permettent d'afficher les événements passés/inactifs, charger tous les événements
+  if (filters.showPastEvents || filters.showInactiveEvents) {
     // Charger TOUS les événements (y compris passés et archivés)
     if (seasonId.value) {
-      console.log('🔄 Chargement de tous les événements (y compris passés et archivés)')
+      console.log('🔄 Chargement de tous les événements (y compris passés et inactifs)')
       firestoreService.getDocuments('seasons', seasonId.value, 'events').then(allEvents => {
         events.value = allEvents
-        console.log(`📊 Chargé ${allEvents.length} événements (tous, y compris passés et archivés)`)
+        console.log(`📊 Chargé ${allEvents.length} événements (tous, y compris passés et inactifs)`)
       }).catch(error => {
         console.error('❌ Erreur lors du chargement de tous les événements:', error)
       })
@@ -10972,7 +10917,10 @@ async function handleAvailabilitySave(availabilityData) {
     // Forcer le re-render de AvailabilityCell
     availabilityCellRefreshKey.value++
     
-    showAvailabilityModal.value = false
+    // Ne fermer la modale que si keepOpen n'est pas demandé
+    if (!availabilityData.keepOpen) {
+      showAvailabilityModal.value = false
+    }
     
     // Afficher un message de succès
     showSuccessMessage.value = true

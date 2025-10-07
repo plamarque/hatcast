@@ -1,117 +1,139 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1400] p-4" @click="closeModal">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
-      <!-- Header -->
-      <div class="p-6 border-b border-white/10">
-        <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-bold text-white">Filtrer les événements</h2>
-          <button @click="closeModal" class="text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
-            ✖️
-          </button>
-        </div>
-      </div>
-      
-      <!-- Content -->
-      <div class="p-6">
-        <!-- Input de recherche -->
-        <div class="mb-4">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Rechercher un événement..."
-            class="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
-            @keyup.escape="closeModal"
-            ref="searchInput"
-          />
+  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1400] md:p-4" @click="closeModal">
+    <!-- Sur mobile: hauteur complète sans padding, sur desktop: centré avec padding -->
+    <div class="flex md:items-center md:justify-center min-h-full h-full">
+      <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 md:rounded-2xl shadow-2xl w-full max-w-md flex flex-col h-full md:h-auto md:max-h-[85vh]" @click.stop>
+        <!-- Header -->
+        <div class="p-3 md:p-6 border-b border-white/10 flex-shrink-0">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg md:text-2xl font-bold text-white">Filtrer les événements</h2>
+            <button @click="closeModal" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
+              ✖️
+            </button>
+          </div>
         </div>
         
-        <!-- Options de filtrage -->
-        <div class="mb-4">
-          <div class="flex gap-2 text-sm">
-            <label class="flex items-center gap-2 cursor-pointer">
+        <!-- Content - flexible pour prendre l'espace disponible -->
+        <div class="p-3 md:p-6 flex flex-col flex-1 overflow-hidden" @click="showFilterMenu = false">
+          <!-- Input de recherche avec bouton filtre -->
+          <div class="mb-3 md:mb-4 flex-shrink-0 relative flex items-center gap-2" @click.stop>
+            <div class="flex-1 relative">
               <input
-                v-model="hidePastEvents"
-                type="checkbox"
-                class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Rechercher un événement..."
+                class="w-full pl-3 pr-3 py-2 md:pl-4 md:pr-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
+                @keyup.escape="closeModal"
+                ref="searchInput"
               />
-              <span class="text-gray-300">Masquer les événements passés</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                v-model="hideArchivedEvents"
-                type="checkbox"
-                class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
-              />
-              <span class="text-gray-300">Masquer les événements archivés</span>
-            </label>
+            </div>
+            <!-- Bouton filtre -->
+            <button
+              @click.stop="showFilterMenu = !showFilterMenu"
+              class="flex-shrink-0 p-2 rounded-lg hover:bg-gray-700 transition-colors relative"
+              :class="activeFiltersCount > 0 ? 'text-purple-400' : 'text-gray-400'"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <!-- Badge indicateur de filtres actifs -->
+              <span v-if="activeFiltersCount > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                {{ activeFiltersCount }}
+              </span>
+            </button>
+            
+            <!-- Menu contextuel des filtres -->
+            <div
+              v-if="showFilterMenu"
+              class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-10 py-2 px-3 min-w-[160px]"
+              @click.stop
+            >
+              <div class="text-xs text-gray-400 mb-2 font-semibold">AFFICHER</div>
+              <label class="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-gray-700 rounded px-2 -mx-2">
+                <input
+                  v-model="showPastEvents"
+                  type="checkbox"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+                />
+                <span class="text-gray-200 text-sm">Passés</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer py-1.5 hover:bg-gray-700 rounded px-2 -mx-2">
+                <input
+                  v-model="showInactiveEvents"
+                  type="checkbox"
+                  class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+                />
+                <span class="text-gray-200 text-sm">Inactifs</span>
+              </label>
+            </div>
           </div>
-        </div>
 
-        <!-- Liste des événements -->
-        <div class="max-h-80 overflow-y-auto">
-          <!-- Option "Tous les événements" -->
-          <div
-            class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors mb-2"
-            :class="!selectedEventId ? 'bg-purple-600/30 border border-purple-500/50' : ''"
-            @click="selectAllEvents"
-          >
-            <div class="w-8 h-8 flex items-center justify-center bg-gray-600 rounded-full">
-              <span class="text-sm font-bold">T</span>
-            </div>
-            <div class="flex-1">
-              <span class="text-white font-medium">Tous les événements</span>
-            </div>
-          </div>
-          
-          <!-- Liste filtrée des événements -->
-          <div
-            v-for="event in filteredEvents"
-            :key="event.id"
-            class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
-            :class="selectedEventId === event.id ? 'bg-purple-600/30 border border-purple-500/50' : ''"
-            @click="selectEvent(event)"
-          >
-            <!-- Icône de l'événement -->
-            <div class="w-8 h-8 flex items-center justify-center bg-gray-700 rounded-full">
-              <span class="text-lg">{{ getEventIcon(event) }}</span>
-            </div>
-            
-            <!-- Informations de l'événement -->
-            <div class="flex-1 min-w-0">
-              <div class="text-white font-medium truncate">{{ event.title }}</div>
-              <div class="text-gray-400 text-sm">{{ formatEventDate(event.date) }}</div>
-              <div class="text-xs text-gray-500 mt-1">
-                {{ getEventStats(event) }}
+          <!-- Liste des événements - prend tout l'espace restant -->
+          <div class="flex-1 overflow-y-auto -mx-2 px-2">
+            <!-- Option "Tous les événements" -->
+            <div
+              class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors mb-2"
+              :class="!selectedEventId ? 'bg-purple-600/30 border border-purple-500/50' : ''"
+              @click="selectAllEvents"
+            >
+              <div class="w-8 h-8 flex items-center justify-center bg-gray-600 rounded-full">
+                <span class="text-sm font-bold">T</span>
+              </div>
+              <div class="flex-1">
+                <span class="text-white font-medium">Tous les événements</span>
               </div>
             </div>
             
-            <!-- Statut de l'événement -->
-            <div class="flex-shrink-0 flex flex-col items-end gap-1">
-              <div v-if="event.archived" class="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300 border border-gray-400/30" title="Événement archivé">
-                📁 Inactif
+            <!-- Liste filtrée des événements -->
+            <div
+              v-for="event in filteredEvents"
+              :key="event.id"
+              class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
+              :class="selectedEventId === event.id ? 'bg-purple-600/30 border border-purple-500/50' : ''"
+              @click="selectEvent(event)"
+            >
+              <!-- Icône de l'événement -->
+              <div class="w-8 h-8 flex items-center justify-center bg-gray-700 rounded-full">
+                <span class="text-lg">{{ getEventIcon(event) }}</span>
               </div>
-              <div v-else-if="isEventPast(event.date)" class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30" title="Événement passé">
-                ⏰ Passé
+              
+              <!-- Informations de l'événement -->
+              <div class="flex-1 min-w-0">
+                <div class="text-white font-medium truncate">{{ event.title }}</div>
+                <div class="text-gray-400 text-sm">{{ formatEventDate(event.date) }}</div>
+                <div class="text-xs text-gray-500 mt-1">
+                  {{ getEventStats(event) }}
+                </div>
               </div>
-              <div v-else class="text-xs px-2 py-1 rounded-full" :class="getEventStatusClass(event)" :title="getEventStatusText(event)">
-                {{ getEventStatusText(event) }}
+              
+              <!-- Statut de l'événement -->
+              <div class="flex-shrink-0 flex flex-col items-end gap-1">
+                <div v-if="event.archived" class="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-300" title="Événement archivé">
+                  📁 Inactif
+                </div>
+                <div v-else-if="isEventPast(event.date)" class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-300" title="Événement passé">
+                  ⏰ Passé
+                </div>
+                <div v-else class="text-xs px-2 py-1 rounded-full" :class="getEventStatusClass(event)" :title="getEventStatusText(event)">
+                  {{ getEventStatusText(event) }}
+                </div>
               </div>
             </div>
-          </div>
-          
-          <!-- Message si aucun résultat -->
-          <div v-if="filteredEvents.length === 0" class="text-center py-8 text-gray-400">
-            <div v-if="searchQuery.trim()">
-              Aucun événement trouvé pour "{{ searchQuery }}"
-            </div>
-            <div v-else-if="hidePastEvents || hideArchivedEvents">
-              Aucun événement correspond aux filtres sélectionnés
-              <div class="text-xs mt-2 text-gray-500">
-                Essayez de désactiver les filtres "Masquer les événements passés" ou "Masquer les événements archivés"
+            
+            <!-- Message si aucun résultat -->
+            <div v-if="filteredEvents.length === 0" class="text-center py-8 text-gray-400">
+              <div v-if="searchQuery.trim()">
+                Aucun événement trouvé pour "{{ searchQuery }}"
               </div>
-            </div>
-            <div v-else>
-              Aucun événement disponible
+              <div v-else-if="!showPastEvents || !showInactiveEvents">
+                Aucun événement actif à venir
+                <div class="text-xs mt-2 text-gray-500">
+                  Cochez "Passés" ou "Inactifs" pour voir plus d'événements
+                </div>
+              </div>
+              <div v-else>
+                Aucun événement disponible
+              </div>
             </div>
           </div>
         </div>
@@ -182,8 +204,17 @@ const emit = defineEmits(['close', 'event-selected', 'all-events-selected'])
 // État local
 const searchQuery = ref('')
 const searchInput = ref(null)
-const hidePastEvents = ref(true)
-const hideArchivedEvents = ref(true)
+const showPastEvents = ref(false)
+const showInactiveEvents = ref(false)
+const showFilterMenu = ref(false)
+
+// Calculer le nombre de filtres actifs
+const activeFiltersCount = computed(() => {
+  let count = 0
+  if (showPastEvents.value) count++
+  if (showInactiveEvents.value) count++
+  return count
+})
 
 // Événements filtrés pour l'autocomplete
 const filteredEvents = computed(() => {
@@ -195,8 +226,8 @@ const filteredEvents = computed(() => {
     filtered = filtered.filter(event => event.title.toLowerCase().includes(query))
   }
   
-  // Appliquer le filtre des événements passés
-  if (hidePastEvents.value) {
+  // Appliquer le filtre des événements passés (inversé : si NON coché, on masque)
+  if (!showPastEvents.value) {
     const now = new Date()
     filtered = filtered.filter(event => {
       if (!event.date) return true
@@ -205,8 +236,8 @@ const filteredEvents = computed(() => {
     })
   }
   
-  // Appliquer le filtre des événements archivés
-  if (hideArchivedEvents.value) {
+  // Appliquer le filtre des événements inactifs/archivés (inversé : si NON coché, on masque)
+  if (!showInactiveEvents.value) {
     filtered = filtered.filter(event => !event.archived)
   }
   
@@ -225,8 +256,8 @@ const selectEvent = (event) => {
 
 const selectAllEvents = () => {
   emit('all-events-selected', {
-    hidePastEvents: hidePastEvents.value,
-    hideArchivedEvents: hideArchivedEvents.value
+    showPastEvents: showPastEvents.value,
+    showInactiveEvents: showInactiveEvents.value
   })
   closeModal()
 }
@@ -312,8 +343,8 @@ const getEventStatusText = (event) => {
 const getEventStatusClass = (event) => {
   const status = getEventStatus(event)
   const colorClass = getStatusColor(status)
-  // Convertir les classes existantes en format badge
-  return colorClass.replace('text-', 'text-').replace('bg-', 'bg-') + ' border border-current/30'
+  // Convertir les classes existantes en format badge (sans bordure)
+  return colorClass.replace('text-', 'text-').replace('bg-', 'bg-')
 }
 
 // Fonction pour obtenir les statistiques d'un événement
@@ -344,6 +375,7 @@ const getEventStats = (event) => {
 // Focus sur l'input quand le modal s'ouvre
 watch(() => props.show, (newShow) => {
   if (newShow) {
+    showFilterMenu.value = false // Fermer le menu filtre
     nextTick(() => {
       searchInput.value?.focus()
       searchQuery.value = '' // Reset search query
