@@ -35,10 +35,65 @@
           </div>
         </div>
 
-        
+        <!-- Actions de confirmation -->
+        <div class="grid grid-cols-3 gap-2 mb-4 sm:mb-6">
+          <button
+            @click="handleConfirm"
+            :class="[
+              'px-3 py-3 text-white rounded-lg transition-all duration-300 font-medium',
+              isConfirmed 
+                ? 'bg-gradient-to-br from-purple-600 to-pink-600 border-2 border-purple-400 shadow-lg shadow-purple-500/25' 
+                : 'bg-gradient-to-br from-purple-500/60 to-pink-500/60 hover:from-purple-500/80 hover:to-pink-500/80'
+            ]"
+          >
+            <span class="flex flex-col items-center justify-center gap-1">
+              <span class="flex items-center gap-1">
+                <span v-if="isConfirmed" class="text-purple-200 text-sm">✓</span>
+                <span class="text-lg">👍</span>
+              </span>
+              <span class="text-xs">Confirmer</span>
+            </span>
+          </button>
+          
+          <button
+            @click="handleDecline"
+            :class="[
+              'px-3 py-3 text-white rounded-lg transition-all duration-300 font-medium',
+              isDeclined 
+                ? 'bg-gradient-to-br from-red-600 to-orange-600 border-2 border-red-400 shadow-lg shadow-red-500/25' 
+                : 'bg-gradient-to-br from-red-500/60 to-orange-500/60 hover:from-red-500/80 hover:to-orange-500/80'
+            ]"
+          >
+            <span class="flex flex-col items-center justify-center gap-1">
+              <span class="flex items-center gap-1">
+                <span v-if="isDeclined" class="text-red-200 text-sm">✓</span>
+                <span class="text-lg">👎</span>
+              </span>
+              <span class="text-xs">Décliner</span>
+            </span>
+          </button>
+          
+          <button
+            @click="handlePending"
+            :class="[
+              'px-3 py-3 text-white rounded-lg transition-all duration-300 font-medium',
+              isPending 
+                ? 'bg-gradient-to-br from-orange-600 to-yellow-600 border-2 border-orange-400 shadow-lg shadow-orange-500/25' 
+                : 'bg-gradient-to-br from-orange-500/60 to-yellow-500/60 hover:from-orange-500/80 hover:to-yellow-500/80'
+            ]"
+          >
+            <span class="flex flex-col items-center justify-center gap-1">
+              <span class="flex items-center gap-1">
+                <span v-if="isPending" class="text-orange-200 text-sm">✓</span>
+                <span class="text-lg">⏳</span>
+              </span>
+              <span class="text-xs">À confirmer</span>
+            </span>
+          </button>
+        </div>
 
         <!-- Saisie d'une note facultative -->
-        <div class="mb-4 sm:mb-6">
+        <div>
           <div class="text-xs sm:text-sm font-medium text-gray-300 mb-2">Ajouter une note (optionnel)</div>
           <textarea
             v-model="comment"
@@ -47,54 +102,13 @@
           />
           <div class="text-[11px] sm:text-xs text-gray-500 mt-1">Visible par l'organisateur·ice.</div>
         </div>
-
-        <!-- Actions de confirmation -->
-        <div class="grid grid-cols-3 gap-2">
-          <button
-            @click="handleConfirm"
-            class="px-3 py-3 bg-gradient-to-br from-purple-500/60 to-pink-500/60 hover:from-purple-500/80 hover:to-pink-500/80 text-white rounded-lg transition-all duration-300 font-medium"
-          >
-            <span class="flex flex-col items-center justify-center gap-1">
-              <span class="text-lg">👍</span>
-              <span class="text-xs">Confirmer</span>
-            </span>
-          </button>
-          
-          <button
-            @click="handleDecline"
-            class="px-3 py-3 bg-gradient-to-br from-red-500/60 to-orange-500/60 hover:from-red-500/80 hover:to-orange-500/80 text-white rounded-lg transition-all duration-300 font-medium"
-          >
-            <span class="flex flex-col items-center justify-center gap-1">
-              <span class="text-lg">👎</span>
-              <span class="text-xs">Décliner</span>
-            </span>
-          </button>
-          
-          <button
-            @click="handlePending"
-            class="px-3 py-3 bg-gradient-to-br from-orange-500/60 to-yellow-500/60 hover:from-orange-500/80 hover:to-yellow-500/80 text-white rounded-lg transition-all duration-300 font-medium"
-          >
-            <span class="flex flex-col items-center justify-center gap-1">
-              <span class="text-lg">⏳</span>
-              <span class="text-xs">À confirmer</span>
-            </span>
-          </button>
-        </div>
-
-        <!-- Message d'information -->
-        <div class="mt-3 sm:mt-4 p-2 sm:p-3 bg-blue-900/30 border border-blue-700 rounded-lg">
-          <div class="text-xs sm:text-sm text-blue-300">
-            <div class="font-medium mb-1">💡 Astuce</div>
-            <div>Tu peux changer ta réponse à tout moment en cliquant à nouveau sur ta cellule.</div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, getRoleLabel } from '../services/storage.js'
 
 const props = defineProps({
@@ -141,6 +155,19 @@ const emit = defineEmits(['close', 'confirm', 'decline', 'pending'])
 const comment = ref(props.availabilityComment || '')
 watch(() => props.availabilityComment, (val) => {
   comment.value = val || ''
+})
+
+// Computed properties pour déterminer le statut actuel
+const isConfirmed = computed(() => {
+  return props.currentStatus === 'confirmed'
+})
+
+const isDeclined = computed(() => {
+  return props.currentStatus === 'declined'
+})
+
+const isPending = computed(() => {
+  return props.currentStatus === 'pending'
 })
 
 function getRoleEmoji(role) {
