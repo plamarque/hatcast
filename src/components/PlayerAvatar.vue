@@ -49,7 +49,7 @@
       <!-- Indicateur de favori -->
       <span 
         v-if="isPreferred"
-        class="absolute -top-1 -right-1 text-yellow-400 text-sm bg-gray-900 rounded-full w-5 h-5 flex items-center justify-center border border-gray-700"
+        class="absolute -top-1 -right-1 text-yellow-400 text-sm"
         title="Ma personne"
       >
         ⭐

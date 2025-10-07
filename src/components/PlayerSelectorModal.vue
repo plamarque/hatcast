@@ -47,7 +47,7 @@
           <!-- Séparateur -->
           <div class="border-t border-gray-600 my-2"></div>
           
-          <!-- Liste des participants filtrés -->
+          <!-- Liste des participants (favoris en premier) -->
           <div
             v-for="player in filteredPlayers"
             :key="player.id"
@@ -61,6 +61,9 @@
               :player-name="player.name"
               size="md"
               :player-gender="player.gender || 'non-specified'"
+              :show-status-icons="true"
+              :is-preferred="preferredPlayerIdsSet.has(player.id)"
+              :is-protected="isPlayerProtected(player.id)"
               @avatar-loaded="(data) => console.log('Avatar chargé pour', player.name, data)"
               @avatar-error="(error) => console.log('Erreur avatar pour', player.name, error)"
             />
@@ -163,15 +166,23 @@ export default {
     
     // Participants filtrés pour l'autocomplete
     const filteredPlayers = computed(() => {
-      if (!searchQuery.value.trim()) {
-        return props.players.slice(0, 20) // Limiter à 20 résultats par défaut
+      let players = props.players
+      
+      // Appliquer le filtre de recherche si nécessaire
+      if (searchQuery.value.trim()) {
+        const query = searchQuery.value.toLowerCase().trim()
+        players = players.filter(player => player.name.toLowerCase().includes(query))
       }
       
-      const query = searchQuery.value.toLowerCase().trim()
-      return props.players
-        .filter(player => player.name.toLowerCase().includes(query))
-        .slice(0, 20)
+      // Séparer les joueurs favoris des autres
+      const favoritePlayers = players.filter(player => props.preferredPlayerIdsSet.has(player.id))
+      const otherPlayers = players.filter(player => !props.preferredPlayerIdsSet.has(player.id))
+      
+      // Retourner d'abord les favoris, puis les autres (limiter à 20 au total)
+      const allPlayers = [...favoritePlayers, ...otherPlayers]
+      return allPlayers.slice(0, 20)
     })
+    
     
     // Fonctions
     const closeModal = () => {
