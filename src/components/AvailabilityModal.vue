@@ -153,11 +153,23 @@ const localAvailability = ref({
   comment: null
 })
 
-// Activer le bouton Enregistrer uniquement quand le commentaire change
+// Activer le bouton Enregistrer quand le commentaire change
+// et, en cas de Dispo, quand les rôles changent
 const initialComment = ref('')
 const canSave = computed(() => {
-  const current = typeof localAvailability.value?.comment === 'string' ? localAvailability.value.comment : (localAvailability.value?.comment ?? '')
-  return current !== initialComment.value
+  const currentComment = typeof localAvailability.value?.comment === 'string'
+    ? localAvailability.value.comment
+    : (localAvailability.value?.comment ?? '')
+  const commentChanged = currentComment !== initialComment.value
+  
+  let rolesChanged = false
+  if (localAvailability.value?.available === true) {
+    const currentRoles = [...(localAvailability.value?.roles || [])].sort()
+    const initialRoles = [...(initialSnapshot.value?.roles || [])].sort()
+    rolesChanged = JSON.stringify(currentRoles) !== JSON.stringify(initialRoles)
+  }
+  
+  return commentChanged || rolesChanged
 })
 
 // Suivi de l'état initial pour activer/désactiver le bouton Enregistrer
