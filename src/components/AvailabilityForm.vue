@@ -123,13 +123,13 @@
       ></textarea>
     </div>
     <!-- Actions: bouton Enregistrer intégré -->
-    <div v-if="!isReadOnly" class="flex justify-end mt-4">
+    <div class="flex justify-end mt-4">
       <button
         @click="onSaveClick"
-        :disabled="!canSave"
+        :disabled="isReadOnly || !canSave"
         :class="[
           'px-6 py-2 text-white rounded-lg transition-colors font-medium',
-          canSave ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 text-gray-300 cursor-not-allowed'
+          (!isReadOnly && canSave) ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 text-gray-300 cursor-not-allowed'
         ]"
       >
         Enregistrer
@@ -251,9 +251,15 @@ function isSameAvailability(a, b) {
 // Snapshot initial pour la logique canSave (commentaire et rôles)
 const initialSnapshot = ref({ comment: '', roles: [] })
 
+// canSave se base sur props.currentAvailability (état persisté) et l'état local (saisie en cours)
+const baseAvailability = computed(() => ({
+  roles: Array.isArray(props.currentAvailability?.roles) ? props.currentAvailability.roles : [],
+  comment: normalizeComment(props.currentAvailability?.comment)
+}))
+
 const canSave = computed(() => {
-  const commentChanged = normalizeComment(comment.value) !== normalizeComment(initialSnapshot.value.comment)
-  const rolesChanged = selectedAvailability.value === true && !areRolesEqual(selectedRoles.value, initialSnapshot.value.roles)
+  const commentChanged = normalizeComment(comment.value) !== baseAvailability.value.comment
+  const rolesChanged = selectedAvailability.value === true && !areRolesEqual(selectedRoles.value, baseAvailability.value.roles)
   return commentChanged || rolesChanged
 })
 
