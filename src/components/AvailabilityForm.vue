@@ -120,8 +120,6 @@
         class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white resize-none"
         :class="{ 'opacity-50 cursor-not-allowed': isReadOnly }"
         rows="2"
-        @focus="isTypingComment = true"
-        @blur="isTypingComment = false"
       ></textarea>
     </div>
   </div>
@@ -174,7 +172,7 @@ const emit = defineEmits(['update:availability', 'update:roles', 'update:comment
 
 const selectedRoles = ref([])
 const comment = ref('')
-const isTypingComment = ref(false)
+// plus utilisé: on remonte l'état via form-changed/editing
 const selectedAvailability = ref(null) // null = pas défini, true = dispo, false = pas dispo
 const userRolePreferences = ref(null)
 const favoritePlayerIds = ref(new Set())
@@ -298,7 +296,9 @@ function handleAvailabilityChange(available) {
     selectedRoles.value = []
   }
   
-  // Émettre un événement spécifique pour indiquer qu'un bouton de statut a été cliqué
+  // Notifier le parent qu'il y a eu un changement dans le formulaire (pour activer le bouton Enregistrer)
+  emitChanges()
+  // Sauvegarde rapide via le parent si souhaitée (Dispo garde la modale ouverte)
   emit('status-button-clicked', available)
 }
 
@@ -310,14 +310,21 @@ function emitChanges() {
   emit('update:availability', {
     available: selectedAvailability.value,
     roles: selectedRoles.value,
-    comment: comment.value.trim() || null
+    comment: comment.value
   })
 }
 
 // Watcher pour détecter les changements de rôles
 watch(selectedRoles, () => {
   ensureVolunteerRoleSelected()
+  // Notifier uniquement pour l'état visuel (pas d'update de disponibilité)
+  emitChanges()
 }, { deep: true })
+
+// Notifier les changements lors de la saisie du commentaire (sans émettre d'update)
+watch(comment, () => {
+  emitChanges()
+})
 
 // Note: On n'émet PAS les changements lors de la saisie du commentaire
 // Le commentaire sera sauvegardé lors du clic sur un bouton de choix ou sur "Enregistrer"
@@ -327,7 +334,7 @@ function getCurrentData() {
   return {
     available: selectedAvailability.value,
     roles: selectedRoles.value,
-    comment: comment.value.trim() || null
+    comment: comment.value
   }
 }
 
@@ -369,10 +376,7 @@ watch(() => props.currentAvailability, async (newAvailability) => {
     // Pas disponible ou je sais pas : pas de rôles sélectionnés
     selectedRoles.value = []
   }
-  // Ne pas écraser la saisie en cours dans le champ commentaire
-  if (!isTypingComment.value) {
-    comment.value = newAvailability.comment || ''
-  }
+  comment.value = newAvailability.comment || ''
   
   // Désactiver le flag après la mise à jour (utiliser nextTick pour s'assurer que tous les watchers sont passés)
   await nextTick()

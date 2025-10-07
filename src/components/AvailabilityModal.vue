@@ -27,7 +27,7 @@
       <!-- Contenu -->
       <div class="p-4">
         <!-- Utilisation du composant factorisé AvailabilityForm -->
-        <AvailabilityForm
+<AvailabilityForm
           ref="availabilityFormRef"
           :player-gender="playerGender"
           :player-id="playerId"
@@ -38,6 +38,7 @@
           :available-roles="availableRoles"
           @update:availability="handleAvailabilityUpdate"
           @status-button-clicked="handleStatusButtonClicked"
+          @form-changed="(data) => { localAvailability.value = data; formDirty.value = true }"
         />
 
         <!-- Actions secondaires -->
@@ -151,6 +152,10 @@ const localAvailability = ref({
   comment: null
 })
 
+// Suivi de l'état initial pour activer/désactiver le bouton Enregistrer
+const initialSnapshot = ref({ available: null, roles: [], comment: '' })
+const formDirty = ref(false)
+
 // Computed property pour gérer l'affichage des rôles
 const availableRoles = computed(() => {
   // Filtrer les rôles pour ne garder que ceux attendus (nombre > 0)
@@ -177,19 +182,18 @@ watch(() => props.show, (newShow) => {
       roles: props.currentAvailability.roles || [],
       comment: props.currentAvailability.comment || null
     }
+    initialSnapshot.value = {
+      available: props.currentAvailability.available,
+      roles: [...(props.currentAvailability.roles || [])],
+      comment: props.currentAvailability.comment || ''
+    }
+    formDirty.value = false
   }
 })
 
-// Initialiser aussi quand currentAvailability change
-watch(() => props.currentAvailability, (newAvailability) => {
-  if (props.show) {
-    localAvailability.value = {
-      available: newAvailability.available,
-      roles: newAvailability.roles || [],
-      comment: newAvailability.comment || null
-    }
-  }
-}, { deep: true })
+// Ne pas écraser l'édition en cours avec des rafraîchissements externes
+// (désactivé pendant que la modale est ouverte et que l'utilisateur édite)
+// Si nécessaire, on pourra re-synchroniser à la réouverture via le watcher props.show
 
 // Gérer les mises à jour depuis AvailabilityForm
 function handleAvailabilityUpdate(updatedData) {
@@ -197,11 +201,8 @@ function handleAvailabilityUpdate(updatedData) {
   localAvailability.value = updatedData
 }
 
-// Gérer le clic sur un bouton de statut (Dispo, Pas dispo, Non renseigné)
+// Sauvegarde au clic sur les boutons de statut
 function handleStatusButtonClicked(availabilityStatus) {
-  // Cliquer sur un des boutons sauvegarde toujours les données courantes (commentaire inclus)
-  // - Pas dispo / Non renseigné: sauvegarder et fermer
-  // - Dispo: sauvegarder (incluant les rôles) mais NE PAS fermer
   nextTick(() => {
     const latestData = availabilityFormRef.value && typeof availabilityFormRef.value.getCurrentData === 'function'
       ? availabilityFormRef.value.getCurrentData()
@@ -209,12 +210,31 @@ function handleStatusButtonClicked(availabilityStatus) {
     localAvailability.value = latestData
     
     if (availabilityStatus === true) {
-      // Sauvegarder sans fermer
-      emit('save', latestData)
+      // Sauvegarde sans fermer
+      emit('save', { ...latestData, keepOpen: true })
+      // Réinitialiser le snapshot pour refléter l'état sauvegardé
+      initialSnapshot.value = {
+        available: latestData.available,
+        roles: [...(latestData.roles || [])],
+        comment: latestData.comment || ''
+      }
+      formDirty.value = false
     } else if (availabilityStatus === false) {
       emit('not-available', latestData)
+      initialSnapshot.value = {
+        available: false,
+        roles: [],
+        comment: latestData.comment || ''
+      }
+      formDirty.value = false
     } else {
       emit('clear', latestData)
+      initialSnapshot.value = {
+        available: null,
+        roles: [],
+        comment: latestData.comment || ''
+      }
+      formDirty.value = false
     }
   })
 }
@@ -242,11 +262,29 @@ function handleSaveAndClose() {
   // Émettre selon le statut
   if (latestData.available === true) {
     emit('save', latestData)
+    initialSnapshot.value = {
+      available: latestData.available,
+      roles: [...(latestData.roles || [])],
+      comment: latestData.comment || ''
+    }
+    formDirty.value = false
   } else if (latestData.available === false) {
     emit('not-available', latestData)
+    initialSnapshot.value = {
+      available: latestData.available,
+      roles: [],
+      comment: latestData.comment || ''
+    }
+    formDirty.value = false
   } else {
     // available === null, "Non renseigné"
     emit('clear', latestData)
+    initialSnapshot.value = {
+      available: null,
+      roles: [],
+      comment: latestData.comment || ''
+    }
+    formDirty.value = false
   }
 }
 </script>
