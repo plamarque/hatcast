@@ -199,14 +199,24 @@ function handleAvailabilityUpdate(updatedData) {
 
 // Gérer le clic sur un bouton de statut (Dispo, Pas dispo, Non renseigné)
 function handleStatusButtonClicked(availabilityStatus) {
-  // Sauvegarde automatique pour "Pas dispo" et "Non renseigné"
-  // car dans ces cas il n'y a pas de rôles à sélectionner
-  if (availabilityStatus === false || availabilityStatus === null) {
-    // Utiliser nextTick pour s'assurer que l'état est bien mis à jour
-    nextTick(() => {
-      handleSaveAndClose()
-    })
-  }
+  // Cliquer sur un des boutons sauvegarde toujours les données courantes (commentaire inclus)
+  // - Pas dispo / Non renseigné: sauvegarder et fermer
+  // - Dispo: sauvegarder (incluant les rôles) mais NE PAS fermer
+  nextTick(() => {
+    const latestData = availabilityFormRef.value && typeof availabilityFormRef.value.getCurrentData === 'function'
+      ? availabilityFormRef.value.getCurrentData()
+      : localAvailability.value
+    localAvailability.value = latestData
+    
+    if (availabilityStatus === true) {
+      // Sauvegarder sans fermer
+      emit('save', latestData)
+    } else if (availabilityStatus === false) {
+      emit('not-available', latestData)
+    } else {
+      emit('clear', latestData)
+    }
+  })
 }
 
 function formatDate(dateString) {

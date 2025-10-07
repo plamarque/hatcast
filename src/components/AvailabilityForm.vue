@@ -120,6 +120,8 @@
         class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white resize-none"
         :class="{ 'opacity-50 cursor-not-allowed': isReadOnly }"
         rows="2"
+        @focus="isTypingComment = true"
+        @blur="isTypingComment = false"
       ></textarea>
     </div>
   </div>
@@ -172,6 +174,7 @@ const emit = defineEmits(['update:availability', 'update:roles', 'update:comment
 
 const selectedRoles = ref([])
 const comment = ref('')
+const isTypingComment = ref(false)
 const selectedAvailability = ref(null) // null = pas défini, true = dispo, false = pas dispo
 const userRolePreferences = ref(null)
 const favoritePlayerIds = ref(new Set())
@@ -370,7 +373,10 @@ watch(() => props.currentAvailability, async (newAvailability) => {
     // Pas disponible ou je sais pas : pas de rôles sélectionnés
     selectedRoles.value = []
   }
-  comment.value = newAvailability.comment || ''
+  // Ne pas écraser la saisie en cours dans le champ commentaire
+  if (!isTypingComment.value) {
+    comment.value = newAvailability.comment || ''
+  }
   
   // Désactiver le flag après la mise à jour (utiliser nextTick pour s'assurer que tous les watchers sont passés)
   await nextTick()
