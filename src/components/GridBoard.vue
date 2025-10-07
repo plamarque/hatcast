@@ -10942,7 +10942,10 @@ async function handleAvailabilitySave(availabilityData) {
     // Forcer le re-render de AvailabilityCell
     availabilityCellRefreshKey.value++
     
-    showAvailabilityModal.value = false
+    // Ne fermer la modale que si keepOpen n'est pas demandé
+    if (!availabilityData.keepOpen) {
+      showAvailabilityModal.value = false
+    }
     
     // Afficher un message de succès
     showSuccessMessage.value = true

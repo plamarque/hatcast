@@ -250,7 +250,10 @@ function handleAvailabilityChanged(data) {
 
 function handleAvailabilitySave(data) {
   emit('availability-changed', data)
-  showAvailabilityModal.value = false
+  // Fermer par défaut, sauf si keepOpen est demandé (cas Dispo)
+  if (!data.keepOpen) {
+    showAvailabilityModal.value = false
+  }
 }
 
 function handleAvailabilityNotAvailable(data) {
