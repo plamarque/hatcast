@@ -28,6 +28,7 @@
       <div class="p-4">
         <!-- Utilisation du composant factorisé AvailabilityForm -->
         <AvailabilityForm
+          ref="availabilityFormRef"
           :player-gender="playerGender"
           :player-id="playerId"
           :current-availability="localAvailability"
@@ -36,6 +37,7 @@
           :event-roles="eventRoles"
           :available-roles="availableRoles"
           @update:availability="handleAvailabilityUpdate"
+          @status-button-clicked="handleStatusButtonClicked"
         />
 
         <!-- Actions secondaires -->
@@ -74,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { ROLE_PRIORITY_ORDER } from '../services/storage.js'
 import AvailabilityForm from './AvailabilityForm.vue'
 
@@ -139,6 +141,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save', 'not-available', 'clear', 'requestEdit'])
 
+// Référence vers le composant AvailabilityForm pour accéder à ses données
+const availabilityFormRef = ref(null)
+
 // État local pour synchroniser avec AvailabilityForm
 const localAvailability = ref({
   available: null,
@@ -188,7 +193,20 @@ watch(() => props.currentAvailability, (newAvailability) => {
 
 // Gérer les mises à jour depuis AvailabilityForm
 function handleAvailabilityUpdate(updatedData) {
+  // Mettre à jour l'état local
   localAvailability.value = updatedData
+}
+
+// Gérer le clic sur un bouton de statut (Dispo, Pas dispo, Non renseigné)
+function handleStatusButtonClicked(availabilityStatus) {
+  // Sauvegarde automatique pour "Pas dispo" et "Non renseigné"
+  // car dans ces cas il n'y a pas de rôles à sélectionner
+  if (availabilityStatus === false || availabilityStatus === null) {
+    // Utiliser nextTick pour s'assurer que l'état est bien mis à jour
+    nextTick(() => {
+      handleSaveAndClose()
+    })
+  }
 }
 
 function formatDate(dateString) {
@@ -203,14 +221,22 @@ function formatDate(dateString) {
 }
 
 function handleSaveAndClose() {
-  // Utiliser l'état local pour émettre
-  if (localAvailability.value.available === true) {
-    emit('save', localAvailability.value)
-  } else if (localAvailability.value.available === false) {
-    emit('not-available', localAvailability.value)
+  // Toujours récupérer les dernières données du formulaire (inclut le commentaire courant)
+  const latestData = availabilityFormRef.value && typeof availabilityFormRef.value.getCurrentData === 'function'
+    ? availabilityFormRef.value.getCurrentData()
+    : localAvailability.value
+  
+  // Synchroniser l'état local
+  localAvailability.value = latestData
+  
+  // Émettre selon le statut
+  if (latestData.available === true) {
+    emit('save', latestData)
+  } else if (latestData.available === false) {
+    emit('not-available', latestData)
   } else {
     // available === null, "Non renseigné"
-    emit('clear', localAvailability.value)
+    emit('clear', latestData)
   }
 }
 </script>

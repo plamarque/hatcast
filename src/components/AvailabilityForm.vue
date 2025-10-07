@@ -165,7 +165,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:availability', 'update:roles', 'update:comment'])
+const emit = defineEmits(['update:availability', 'update:roles', 'update:comment', 'status-button-clicked'])
 
 const selectedRoles = ref([])
 const comment = ref('')
@@ -294,6 +294,9 @@ function handleAvailabilityChange(available) {
   
   // Émettre les changements
   emitChanges()
+  
+  // Émettre un événement spécifique pour indiquer qu'un bouton de statut a été cliqué
+  emit('status-button-clicked', available)
 }
 
 // Émettre tous les changements au parent
@@ -314,9 +317,21 @@ watch(selectedRoles, () => {
   emitChanges()
 }, { deep: true })
 
-// Watcher pour détecter les changements de commentaire
-watch(comment, () => {
-  emitChanges()
+// Note: On n'émet PAS les changements lors de la saisie du commentaire
+// Le commentaire sera sauvegardé lors du clic sur un bouton de choix ou sur "Enregistrer"
+
+// Exposer une méthode pour récupérer les données actuelles du formulaire
+function getCurrentData() {
+  return {
+    available: selectedAvailability.value,
+    roles: selectedRoles.value,
+    comment: comment.value.trim() || null
+  }
+}
+
+// Exposer la méthode au parent via defineExpose
+defineExpose({
+  getCurrentData
 })
 
 // Initialiser les valeurs quand les props changent
