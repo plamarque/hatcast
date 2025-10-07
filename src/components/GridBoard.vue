@@ -1028,125 +1028,41 @@
               
 
               <!-- Vue individuelle : disponibilités de la personne sélectionnée -->
-              <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'">
-                <!-- Si le joueur EST sélectionné : afficher AvailabilityCell avec statut de confirmation -->
-                <div v-if="isPlayerSelected(selectedTeamPlayer.name, selectedEvent?.id)" class="space-y-3">
-                  <!-- AvailabilityCell centrée -->
-                  <div class="p-3">
-                    <div class="flex justify-center">
-                      <div class="w-40 h-16">
-                        <AvailabilityCell
-                          :key="`availability-${selectedTeamPlayer.id}-${selectedEvent?.id}-${availabilityCellRefreshKey}`"
-                          :player-name="selectedTeamPlayer.name"
-                          :player-id="selectedTeamPlayer.id"
-                          :player-gender="selectedTeamPlayer.gender"
-                          :event-id="selectedEvent?.id"
-                          :event-title="selectedEvent?.title"
-                          :event-date="selectedEvent?.date"
-                          :availability-data="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :is-available="isAvailable(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :is-selected="isPlayerSelected(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
-                          :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                          :player-selection-status="getPlayerSelectionStatus(selectedTeamPlayer.name, selectedEvent?.id)"
-                          :season-id="seasonId"
-                          :chance-percent="getPlayerRoleChances(selectedTeamPlayer.name, selectedEvent?.id) || 0"
-                          :is-protected="isPlayerProtectedInGrid(selectedEvent?.id)"
-                          :event-roles="selectedEvent?.roles || {}"
-                          @availability-changed="handleAvailabilityChanged"
-                          @show-availability-modal="openAvailabilityModal"
-                          @show-confirmation-modal="openConfirmationModal"
-                        />
-                      </div>
-                    </div>
-                    
-                    <!-- Instruction contextuelle -->
-                    <div class="mt-2 text-center">
-                      <div class="text-xs text-gray-400 px-1">
-                        {{ getPlayerInstruction(selectedTeamPlayer.name, selectedEvent?.id) }}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Section note (si présente) -->
-                  <div v-if="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.comment" class="p-2">
-                    <div class="text-xs text-gray-400 mb-1 flex items-center gap-1">
-                      <span>📝</span>
-                      <span>Note</span>
-                    </div>
-                    <div class="text-sm text-gray-200 break-words">
-                      {{ getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.comment }}
-                    </div>
-                  </div>
-                  
-                  <!-- Section rôles sélectionnés (pour mémoire) -->
-                  <div v-if="selectedEvent?.roles && Object.keys(selectedEvent.roles).length > 0" class="space-y-2">
-                    <h4 class="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                      <span>🎭</span>
-                      <span>Rôles sélectionnés</span>
-                    </h4>
-                    <div class="space-y-1">
-                      <div 
-                        v-for="role in getSortedEventRoles()" 
-                        :key="role"
-                        class="flex items-center gap-3 p-2 rounded"
-                      >
-                        <!-- Case à cocher devant le rôle -->
-                        <input
-                          type="checkbox"
-                          :id="`availability-${role}-${selectedEvent?.id}`"
-                          :checked="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)?.roles?.includes(role)"
-                          disabled
-                          class="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-500 focus:ring-2 opacity-50 cursor-not-allowed"
-                        />
-                        
-                        <!-- Rôle avec emoji et nom -->
-                        <div class="flex items-center gap-2 flex-1">
-                          <span class="text-lg">{{ ROLE_EMOJIS[role] || '🎭' }}</span>
-                          <span class="text-sm font-medium text-gray-200">{{ getRoleLabelByGender(role, selectedTeamPlayer?.gender, false) || role }}</span>
-                          <span class="text-xs text-gray-400">({{ selectedEvent.roles[role] }} place{{ selectedEvent.roles[role] > 1 ? 's' : '' }})</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="space-y-3 p-3">
+                <!-- Toujours afficher le formulaire de disponibilités (onglet dédié aux dispos uniquement) -->
+                <AvailabilityForm
+                  :player-gender="selectedTeamPlayer.gender"
+                  :player-id="selectedTeamPlayer.id"
+                  :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
+                  :is-read-only="selectedTeamPlayer.id !== currentUserPlayer?.id"
+                  :season-id="seasonId"
+                  :event-roles="selectedEvent?.roles || {}"
+                  :available-roles="getEventAvailableRoles()"
+                  @update:availability="handleAvailabilityFormUpdate"
+                />
+                
+                <!-- Bouton de sauvegarde (seulement pour l'utilisateur connecté) -->
+                <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center mt-4">
+                  <button
+                    @click="saveAvailabilityFromForm"
+                    :disabled="isSaving"
+                    class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  >
+                    <span v-if="isSaving">💾 Enregistrement...</span>
+                    <span v-else>💾 Enregistrer</span>
+                  </button>
                 </div>
                 
-                <!-- Si le joueur N'EST PAS sélectionné : afficher le formulaire complet AvailabilityForm -->
-                <div v-else class="space-y-3 p-3">
-                  <AvailabilityForm
-                    :player-gender="selectedTeamPlayer.gender"
-                    :player-id="selectedTeamPlayer.id"
-                    :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
-                    :is-read-only="selectedTeamPlayer.id !== currentUserPlayer?.id"
-                    :season-id="seasonId"
-                    :event-roles="selectedEvent?.roles || {}"
-                    :available-roles="getEventAvailableRoles()"
-                    @update:availability="handleAvailabilityFormUpdate"
-                  />
-                  
-                  <!-- Bouton de sauvegarde (seulement pour l'utilisateur connecté) -->
-                  <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center mt-4">
-                    <button
-                      @click="saveAvailabilityFromForm"
-                      :disabled="isSaving"
-                      class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                    >
-                      <span v-if="isSaving">💾 Enregistrement...</span>
-                      <span v-else>💾 Enregistrer</span>
-                    </button>
-                  </div>
-                  
-                  <!-- Message si aucun rôle dans l'événement -->
-                  <div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4">
-                    <div class="text-center">
-                      <div class="text-2xl mb-2">🎯</div>
-                      <p class="text-sm text-gray-300">
-                        Événement sans rôles spécifiques
-                      </p>
-                      <p class="text-xs text-gray-400 mt-1">
-                        Vous serez assigné selon les besoins de l'équipe
-                      </p>
-                    </div>
+                <!-- Message si aucun rôle dans l'événement -->
+                <div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4">
+                  <div class="text-center">
+                    <div class="text-2xl mb-2">🎯</div>
+                    <p class="text-sm text-gray-300">
+                      Événement sans rôles spécifiques
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Vous serez assigné selon les besoins de l'équipe
+                    </p>
                   </div>
                 </div>
               </div>
