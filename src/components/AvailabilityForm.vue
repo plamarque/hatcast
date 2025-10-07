@@ -457,11 +457,13 @@ watch(() => props.currentAvailability, async (newAvailability) => {
     } else {
       selectedRoles.value = []
     }
+    // En mode Dispo, synchroniser aussi le commentaire (ex: après reload)
+    comment.value = normalizeComment(newAvailability.comment)
   } else {
-    // Pas disponible ou je sais pas : pas de rôles sélectionnés
+    // Pas disponible ou Non renseigné : pas de rôles sélectionnés
     selectedRoles.value = []
+    // Ne PAS écraser le commentaire local: on préserve la saisie
   }
-  comment.value = normalizeComment(newAvailability.comment)
   // Mettre à jour le snapshot initial pour la logique canSave
   initialSnapshot.value = {
     comment: comment.value,
@@ -479,17 +481,24 @@ async function persistCurrent(keepOpen) {
       emit('save-requested', getCurrentData())
       return
     }
+    // Préserver le commentaire existant pour "Non renseigné" si l'utilisateur ne l'a pas modifié
+    const currentComment = normalizeComment(comment.value)
+    const initialComment = normalizeComment(initialSnapshot.value.comment)
+    const commentToSave = (selectedAvailability.value === null && currentComment === '' && initialComment !== '')
+      ? initialComment
+      : currentComment
+
     await saveAvailabilityWithRoles({
       seasonId: props.seasonId,
       playerName: props.playerName,
       eventId: props.eventId,
       available: selectedAvailability.value,
       roles: selectedAvailability.value === true ? selectedRoles.value : [],
-      comment: normalizeComment(comment.value)
+      comment: commentToSave
     })
     emit('availability-saved', { ...getCurrentData(), keepOpen: !!keepOpen })
     initialSnapshot.value = {
-      comment: normalizeComment(comment.value),
+      comment: commentToSave,
       roles: [...selectedRoles.value]
     }
   } catch (e) {

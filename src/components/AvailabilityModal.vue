@@ -27,7 +27,7 @@
       <!-- Contenu -->
       <div class="p-4">
         <!-- Utilisation du composant factorisé AvailabilityForm -->
-<AvailabilityForm
+        <AvailabilityForm
           ref="availabilityFormRef"
           :player-gender="playerGender"
           :player-id="playerId"
@@ -36,28 +36,16 @@
           :season-id="seasonId"
           :event-roles="eventRoles"
           :available-roles="availableRoles"
+          :self-persist="true"
+          :player-name="playerName"
+          :event-id="eventId"
           @update:availability="handleAvailabilityUpdate"
-          @status-button-clicked="handleStatusButtonClicked"
+          @availability-saved="onFormSaved"
           @form-changed="(data) => { localAvailability.value = data; formDirty.value = true }"
         />
 
-        <!-- Actions secondaires -->
-        <div v-if="!isReadOnly" class="flex justify-end mt-4">
-          <button
-            @click="handleSaveAndClose"
-            :class="[
-              'px-6 py-3 text-white rounded-lg transition-colors',
-              canSave
-                ? 'bg-purple-600 hover:bg-purple-700'
-                : 'bg-gray-700 text-gray-300 cursor-not-allowed'
-            ]"
-            :disabled="!canSave"
-          >
-            Enregistrer
-          </button>
-        </div>
-        
-        <div v-else class="flex justify-end gap-3">
+        <!-- Actions secondaires en lecture seule -->
+        <div v-if="isReadOnly" class="flex justify-end gap-3">
           <button
             v-if="isProtected"
             @click="$emit('requestEdit')"
@@ -306,6 +294,19 @@ function handleSaveAndClose() {
       comment: latestData.comment || ''
     }
     formDirty.value = false
+  }
+}
+
+function onFormSaved(payload) {
+  // Relayer le comportement existant pour fermer/laisser ouvert
+  if (payload.keepOpen) {
+    emit('save', payload)
+  } else if (payload.available === false) {
+    emit('not-available', payload)
+  } else if (payload.available === null) {
+    emit('clear', payload)
+  } else {
+    emit('save', payload)
   }
 }
 </script>

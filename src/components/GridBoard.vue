@@ -1038,20 +1038,12 @@
                   :season-id="seasonId"
                   :event-roles="selectedEvent?.roles || {}"
                   :available-roles="getEventAvailableRoles()"
+                  :self-persist="selectedTeamPlayer.id === currentUserPlayer?.id"
+                  :player-name="selectedTeamPlayer.name"
+                  :event-id="selectedEvent?.id"
                   @update:availability="handleAvailabilityFormUpdate"
+                  @availability-saved="handleAvailabilitySaved"
                 />
-                
-                <!-- Bouton de sauvegarde (seulement pour l'utilisateur connecté) -->
-                <div v-if="selectedTeamPlayer.id === currentUserPlayer?.id" class="flex justify-center mt-4">
-                  <button
-                    @click="saveAvailabilityFromForm"
-                    :disabled="isSaving"
-                    class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    <span v-if="isSaving">💾 Enregistrement...</span>
-                    <span v-else>💾 Enregistrer</span>
-                  </button>
-                </div>
                 
                 <!-- Message si aucun rôle dans l'événement -->
                 <div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4">
@@ -2254,44 +2246,27 @@ function handleAvailabilityFormUpdate(updatedData) {
 }
 
 // Sauvegarder la disponibilité depuis le formulaire
-async function saveAvailabilityFromForm() {
-  if (!currentUserPlayer.value || !selectedEvent.value || isSaving.value) return
-  
-  isSaving.value = true
-  
+async function handleAvailabilitySaved(payload) {
   try {
-    const playerName = currentUserPlayer.value.name
-    const eventId = selectedEvent.value.id
-    
-    // Sauvegarder via le service de disponibilité
-    const { saveAvailabilityWithRoles } = await import('../services/storage.js')
-    await saveAvailabilityWithRoles({
-      seasonId: seasonId.value,
-      playerName: playerName,
-      eventId: eventId,
-      available: availabilityFormData.value.available,
-      roles: availabilityFormData.value.roles || [],
-      comment: availabilityFormData.value.comment
-    })
-    
     // Mettre à jour les données locales
-    if (!availability.value[playerName]) {
-      availability.value[playerName] = {}
+    const playerName = currentUserPlayer.value?.name
+    const eventId = selectedEvent.value?.id
+    if (playerName && eventId) {
+      if (!availability.value[playerName]) {
+        availability.value[playerName] = {}
+      }
+      availability.value[playerName][eventId] = {
+        available: payload.available,
+        roles: payload.roles || [],
+        comment: payload.comment
+      }
     }
-    availability.value[playerName][eventId] = availabilityFormData.value
-    
-    // Forcer le rechargement des disponibilités pour synchroniser avec le service
+    // Recharger pour synchroniser
     const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
     availability.value = newAvailability
-    
-    // Forcer le re-render de AvailabilityCell
     availabilityCellRefreshKey.value++
-    
-    console.log('✅ Disponibilités sauvegardées depuis le formulaire:', availabilityFormData.value)
   } catch (error) {
-    console.error('❌ Erreur lors de la sauvegarde:', error)
-  } finally {
-    isSaving.value = false
+    console.error('❌ Erreur post-sauvegarde (refresh):', error)
   }
 }
 
