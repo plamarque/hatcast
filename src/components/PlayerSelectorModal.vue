@@ -6,7 +6,7 @@
       <!-- Header -->
       <div class="p-3 md:p-6 border-b border-white/10 flex-shrink-0">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg md:text-2xl font-bold text-white">Choisir des Participants</h2>
+          <h2 class="text-lg md:text-2xl font-bold text-white">Filtrer les participants</h2>
           <button @click="closeModal" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
             ✖️
           </button>
