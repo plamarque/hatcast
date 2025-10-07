@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.25.3",
+    "date": "2025-10-07",
+    "changes": [
+      "🐛 Correction d'une erreur qui empêchait l'affichage de la sélection des joueurs dans la vue des participants."
+    ]
+  },
+  {
     "version": "0.25.2",
     "date": "2025-10-06",
     "changes": [

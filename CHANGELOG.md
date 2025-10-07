@@ -1,16 +1,14 @@
-## [0.25.2] - 2025-10-06
-
-### 🐛 Bug Fixes
-
-- fix: aligner l'affichage des emojis dans AvailabilityCell
+## [0.25.3] - 2025-10-07
 
 ### 📝 Other Changes
 
-- release: version 0.25.1
+- Fix: correction erreur showTeamPlayerSelector non défini dans ParticipantsView
+- release: version 0.25.2
 
 
 # Changelog
 
+## [0.25.3] - 2025-10-07
 ## [0.25.2] - 2025-10-06
 ## [0.25.1] - 2025-10-06
 ## [0.25.0] - 2025-10-05
