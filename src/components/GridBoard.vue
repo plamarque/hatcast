@@ -2339,8 +2339,8 @@ const selectedPlayerForTimeline = ref(null)
 const selectedEventId = ref(null)
 const isAllEventsView = ref(false)
 const eventFilters = ref({
-  hidePastEvents: true,
-  hideArchivedEvents: true
+  showPastEvents: false,
+  showInactiveEvents: false
 })
 
 // Debug watcher pour tracer qui modifie selectedPlayerId
@@ -6301,11 +6301,11 @@ const displayedEvents = computed(() => {
     filteredEvents = allEvents.value
     const now = new Date()
     filteredEvents = filteredEvents.filter(event => {
-      // Appliquer le filtre des événements archivés
-      if (eventFilters.value.hideArchivedEvents && event.archived === true) return false
+      // Appliquer le filtre des événements inactifs/archivés (inversé : si NON coché, on masque)
+      if (!eventFilters.value.showInactiveEvents && event.archived === true) return false
       
-      // Appliquer le filtre des événements passés
-      if (eventFilters.value.hidePastEvents && event.date) {
+      // Appliquer le filtre des événements passés (inversé : si NON coché, on masque)
+      if (!eventFilters.value.showPastEvents && event.date) {
         const eventDate = (() => {
           if (event.date instanceof Date) return event.date
           if (typeof event.date?.toDate === 'function') return event.date.toDate()
@@ -8834,25 +8834,25 @@ function handleEventSelected(event) {
 function handleAllEventsSelected(filters = {}) {
   console.log('🎭 handleAllEventsSelected', filters)
   console.log('🎭 Filtres reçus:', {
-    hidePastEvents: filters.hidePastEvents,
-    hideArchivedEvents: filters.hideArchivedEvents,
-    condition: !filters.hidePastEvents || !filters.hideArchivedEvents
+    showPastEvents: filters.showPastEvents,
+    showInactiveEvents: filters.showInactiveEvents,
+    condition: filters.showPastEvents || filters.showInactiveEvents
   })
   
   // Stocker les filtres pour les appliquer dans displayedEvents
   eventFilters.value = {
-    hidePastEvents: filters.hidePastEvents || false,
-    hideArchivedEvents: filters.hideArchivedEvents || false
+    showPastEvents: filters.showPastEvents || false,
+    showInactiveEvents: filters.showInactiveEvents || false
   }
   
-  // Si les filtres permettent d'afficher les événements passés/archivés, charger tous les événements
-  if (!filters.hidePastEvents || !filters.hideArchivedEvents) {
+  // Si les filtres permettent d'afficher les événements passés/inactifs, charger tous les événements
+  if (filters.showPastEvents || filters.showInactiveEvents) {
     // Charger TOUS les événements (y compris passés et archivés)
     if (seasonId.value) {
-      console.log('🔄 Chargement de tous les événements (y compris passés et archivés)')
+      console.log('🔄 Chargement de tous les événements (y compris passés et inactifs)')
       firestoreService.getDocuments('seasons', seasonId.value, 'events').then(allEvents => {
         events.value = allEvents
-        console.log(`📊 Chargé ${allEvents.length} événements (tous, y compris passés et archivés)`)
+        console.log(`📊 Chargé ${allEvents.length} événements (tous, y compris passés et inactifs)`)
       }).catch(error => {
         console.error('❌ Erreur lors du chargement de tous les événements:', error)
       })

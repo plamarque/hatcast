@@ -32,19 +32,19 @@
             <div class="flex gap-2 text-sm">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
-                  v-model="hidePastEvents"
+                  v-model="showPastEvents"
                   type="checkbox"
                   class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
                 />
-                <span class="text-gray-300">Masquer les événements passés</span>
+                <span class="text-gray-300">Passés</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
-                  v-model="hideArchivedEvents"
+                  v-model="showInactiveEvents"
                   type="checkbox"
                   class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
                 />
-                <span class="text-gray-300">Masquer les événements archivés</span>
+                <span class="text-gray-300">Inactifs</span>
               </label>
             </div>
           </div>
@@ -106,10 +106,10 @@
               <div v-if="searchQuery.trim()">
                 Aucun événement trouvé pour "{{ searchQuery }}"
               </div>
-              <div v-else-if="hidePastEvents || hideArchivedEvents">
-                Aucun événement correspond aux filtres sélectionnés
+              <div v-else-if="!showPastEvents || !showInactiveEvents">
+                Aucun événement actif à venir
                 <div class="text-xs mt-2 text-gray-500">
-                  Essayez de désactiver les filtres "Masquer les événements passés" ou "Masquer les événements archivés"
+                  Cochez "Passés" ou "Inactifs" pour voir plus d'événements
                 </div>
               </div>
               <div v-else>
@@ -185,8 +185,8 @@ const emit = defineEmits(['close', 'event-selected', 'all-events-selected'])
 // État local
 const searchQuery = ref('')
 const searchInput = ref(null)
-const hidePastEvents = ref(true)
-const hideArchivedEvents = ref(true)
+const showPastEvents = ref(false)
+const showInactiveEvents = ref(false)
 
 // Événements filtrés pour l'autocomplete
 const filteredEvents = computed(() => {
@@ -198,8 +198,8 @@ const filteredEvents = computed(() => {
     filtered = filtered.filter(event => event.title.toLowerCase().includes(query))
   }
   
-  // Appliquer le filtre des événements passés
-  if (hidePastEvents.value) {
+  // Appliquer le filtre des événements passés (inversé : si NON coché, on masque)
+  if (!showPastEvents.value) {
     const now = new Date()
     filtered = filtered.filter(event => {
       if (!event.date) return true
@@ -208,8 +208,8 @@ const filteredEvents = computed(() => {
     })
   }
   
-  // Appliquer le filtre des événements archivés
-  if (hideArchivedEvents.value) {
+  // Appliquer le filtre des événements inactifs/archivés (inversé : si NON coché, on masque)
+  if (!showInactiveEvents.value) {
     filtered = filtered.filter(event => !event.archived)
   }
   
@@ -228,8 +228,8 @@ const selectEvent = (event) => {
 
 const selectAllEvents = () => {
   emit('all-events-selected', {
-    hidePastEvents: hidePastEvents.value,
-    hideArchivedEvents: hideArchivedEvents.value
+    showPastEvents: showPastEvents.value,
+    showInactiveEvents: showInactiveEvents.value
   })
   closeModal()
 }
