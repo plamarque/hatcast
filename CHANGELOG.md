@@ -1,13 +1,50 @@
-## [0.25.3] - 2025-10-07
+## [0.26.0] - 2025-10-07
+
+### ✨ New Features
+
+- feat: uniformiser les arrondis et hover des en-têtes entre les vues
+
+### 🐛 Bug Fixes
+
+- fix: ajouter espacement horizontal entre cellules sur mobile
+- fix: rendre toute l'entête d'événement cliquable dans toutes les vues
+- fix: Simplifier l'onglet Disponibilités en affichant toujours le formulaire
+
+### 🔧 Improvements
+
+- refactor: Factoriser le formulaire de disponibilités et améliorer l'UX de l'onglet Disponibilités
 
 ### 📝 Other Changes
 
-- Fix: correction erreur showTeamPlayerSelector non défini dans ParticipantsView
-- release: version 0.25.2
+- save button enabledd when changes are detected
+- fix(availability-form): remove duplicate canSave; base activation on diff with currentAvailability (comment or roles in Dispo)
+- feat(availability): form self-contained save + canSave; fix preserve comment on 'Non renseigné'; remove parent save button in details tab
+- refactor(availability-form): import saveAvailabilityWithRoles at top-level; remove dynamic import
+- ux(availability-modal): enable Save when comment changes; in Dispo also on role changes
+- ux(availability-modal): disable save on open; enable only when comment changes
+- ux(availability-modal): unify save button label to 'Enregistrer'
+- chore: sync related modal handlers after availability form stabilization
+- fix(availability-form): évite les boucles d’emit en mode Dispo via mémo lastEmittedData; normalisation du commentaire; comparaison profonde des rôles
+- revert(availability): retour au comportement stable avant grisé/dégrisé du bouton; suppression des événements custom et de formDirty; rétablissement des updates via emitChanges()
+- fix(availability-form): supprime toute émission pendant la frappe ou la sélection des rôles; sauvegarde uniquement au clic sur un bouton; 'Dispo' sauvegarde rôles+comment sans fermer
+- fix(availability): empêche l’écrasement du commentaire pendant la saisie; sauvegarde sur clic de n’importe quel bouton; pour Dispo sauvegarde rôles+commentaire sans fermer, pour Pas dispo/Non renseigné sauvegarde et ferme
+- ux(availability-form): harmonise les libellés en tutoiement et style neutre; message rôles en gris léger, messages 'non renseigné' et 'pas dispo' en tutoiement
+- feat(availability-modal): saisie commentaire fluide, auto-enregistrement sur clic des boutons; fermeture sur 'Pas dispo'/'Non renseigné', maintien ouvert sur 'Dispo'; toujours sauvegarder le commentaire courant via ref
+- remove: supprimer ColumnView.vue obsolète
+- Fix: Suppression contours blancs badges statut modale événements
+- UX: Titre modale cohérent 'Filtrer les participants'
+- UX: Simplification liste participants + étoile sans fond
+- Fix: Positionnement icône filtre à droite du champ recherche
+- UX: Inversion sémantique filtres événements + labels compacts
+- Optimisation mobile: réduction hauteur header modales
+- Amélioration UX mobile: modales pleine hauteur avec meilleur affichage du filtrage
+- Amélioration UX modale de confirmation de participation
+- release: version 0.25.3
 
 
 # Changelog
 
+## [0.26.0] - 2025-10-07
 ## [0.25.3] - 2025-10-07
 ## [0.25.2] - 2025-10-06
 ## [0.25.1] - 2025-10-06
