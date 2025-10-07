@@ -52,16 +52,19 @@
       </button>
     </div>
     
-    <!-- Indicateur d'état pour les cas sans état défini -->
-    <div v-if="!hasCurrentState" class="text-center">
-      <span class="text-xs text-gray-400">
-        Aucune disponibilité définie pour cet événement
+    <!-- Libellé d'état clair sous les boutons -->
+    <div v-if="currentlyUnknown || currentlyNotAvailable" class="text-center">
+      <span v-if="currentlyUnknown" class="text-xs text-gray-400">
+        Tu n'as pas renseigné de dispo.
+      </span>
+      <span v-else-if="currentlyNotAvailable" class="text-xs text-gray-400">
+        Tu n'es pas disponible pour cet événement.
       </span>
     </div>
     
     <!-- Indication pour choisir les rôles -->
     <div v-if="currentlyAvailable && availableRoles.length > 0" class="text-center">
-      <span class="text-sm text-purple-300">
+      <span class="text-xs text-gray-400">
         ✨ Choisis les rôles pour lesquels tu es disponible
       </span>
     </div>
