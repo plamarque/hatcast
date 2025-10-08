@@ -32,7 +32,7 @@
       v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline'"
       :current-view="validCurrentView"
       :show-player-selector="validCurrentView === 'timeline' ? true : true"
-      :selected-player="validCurrentView === 'timeline' ? selectedPlayerForTimeline : selectedPlayer"
+      :selected-player="selectedPlayer"
       :season-id="seasonId"
       :show-event-selector="validCurrentView === 'timeline' ? false : true"
       :selected-event="selectedEventForFilter"
@@ -199,7 +199,7 @@
         :availability="availability"
         :casts="casts"
         :season-id="seasonId"
-        :selected-player-id="selectedPlayerForTimeline?.id || selectedPlayerId"
+        :selected-player-id="selectedPlayerId"
         :selected-event-id="selectedEventId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-available="isAvailable"
@@ -2308,7 +2308,6 @@ const validCurrentView = computed(() => {
 
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
-const selectedPlayerForTimeline = ref(null)
 
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
@@ -2561,7 +2560,7 @@ async function handleShowAvailabilityGrid(playerId) {
     selectView('timeline')
     
     // Définir le joueur sélectionné pour la vue Agenda
-    selectedPlayerForTimeline.value = selectedPlayer
+    selectedPlayerId.value = playerId
     
     // Fermer la modale de joueur
     closePlayerDetailsModal()
@@ -3176,11 +3175,6 @@ function selectView(view) {
   
   currentView.value = validView
   
-  // Réinitialiser le joueur sélectionné pour la timeline si on change de vue
-  if (validView !== 'timeline') {
-    selectedPlayerForTimeline.value = null
-  }
-  
   // Sauvegarder la préférence dans le localStorage
   localStorage.setItem('hatcast-view-preference', validView)
   
@@ -3222,11 +3216,9 @@ async function handlePlayerSelected(player) {
   // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
-    selectedPlayerForTimeline.value = player
     showPlayerModal.value = false
     
     console.log('🎯 After: selectedPlayerId =', selectedPlayerId.value)
-    console.log('🎯 selectedPlayerForTimeline =', selectedPlayerForTimeline.value ? { id: selectedPlayerForTimeline.value.id, name: selectedPlayerForTimeline.value.name } : null)
     
     // Charger les disponibilités pour ce joueur spécifique
     try {
