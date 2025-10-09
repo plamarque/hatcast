@@ -175,6 +175,10 @@ const props = defineProps({
     type: Function,
     default: () => 0
   },
+  countPlayersWithResponse: {
+    type: Function,
+    default: () => 0
+  },
   isSelectionConfirmed: {
     type: Function,
     default: () => false

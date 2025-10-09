@@ -87,6 +87,7 @@
       :get-selection-players="getSelectionPlayers"
       :get-total-required-count="getTotalRequiredCount"
       :count-available-players="countAvailablePlayers"
+      :count-players-with-response="countPlayersWithResponse"
       :is-selection-confirmed="isSelectionConfirmed"
       :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
       :casts="casts"
@@ -214,6 +215,7 @@
         :get-selection-players="getSelectionPlayers"
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
+        :count-players-with-response="countPlayersWithResponse"
         :is-all-events-view="isAllEventsView"
         :hidden-events-count="hiddenEventsCount"
         :hidden-events-display-text="hiddenEventsDisplayText"
@@ -7478,7 +7480,28 @@ function countAvailablePlayers(eventId) {
   const event = events.value.find(e => e.id === eventId);
   if (!event) return 0;
   
-  return countAvailablePlayersFromService(event, players.value, availability.value);
+  return countAvailablePlayersFromService(event, allSeasonPlayers.value, availability.value);
+}
+
+function countPlayersWithResponse(eventId) {
+  if (!eventId || !availability.value) return 0;
+  
+  let count = 0;
+  for (const [playerName, playerAvailability] of Object.entries(availability.value)) {
+    if (playerAvailability[eventId]) {
+      const eventAvailability = playerAvailability[eventId];
+      // Compter si le joueur a donné une réponse (disponible ou indisponible)
+      const hasResponse = typeof eventAvailability === 'object' 
+        ? eventAvailability.available !== undefined && eventAvailability.available !== null
+        : eventAvailability !== undefined && eventAvailability !== null;
+      
+      if (hasResponse) {
+        count++;
+      }
+    }
+  }
+  
+  return count;
 }
 
 function countSelectedPlayers(eventId) {

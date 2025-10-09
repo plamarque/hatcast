@@ -361,6 +361,10 @@ export default {
       type: Function,
       default: () => 0
     },
+    countPlayersWithResponse: {
+      type: Function,
+      default: () => 0
+    },
     isAvailableForRole: {
       type: Function,
       default: () => false
@@ -753,20 +757,57 @@ export default {
     const getPlayerInstruction = (playerName, eventId) => {
       if (!eventId) return ''
       
-      // Si aucun joueur n'est sélectionné, afficher une instruction générale
+      // Si aucun joueur n'est sélectionné, afficher des statistiques informatives
       if (!playerName) {
         const eventStatus = getEventStatus(eventId)
         const simplifiedStatus = mapToSimplifiedStatus(eventStatus)
         
         switch (simplifiedStatus) {
-          case 'collecting':
-            return 'Collecte des dispos'
-          case 'preparing':
-            return 'Équipe en préparation'
-          case 'confirmed':
-            return 'Équipe confirmée'
+          case 'collecting': {
+            // Compter les personnes disponibles et le total de réponses
+            const availableCount = props.countAvailablePlayers(eventId)
+            const totalResponses = props.countPlayersWithResponse(eventId)
+            
+            if (totalResponses === 0) {
+              return 'aucune disponibilité indiquée'
+            }
+            
+            return `${availableCount} disponible${availableCount > 1 ? 's' : ''} sur ${totalResponses} réponse${totalResponses > 1 ? 's' : ''}`
+          }
+          case 'preparing': {
+            // Compter les slots manquants et les confirmations en attente
+            const totalRequired = props.getTotalRequiredCount(eventId)
+            const selectionPlayers = props.getSelectionPlayers(eventId) || []
+            const missingCount = totalRequired - selectionPlayers.length
+            const pendingCount = selectionPlayers.filter(player => {
+              const status = props.getPlayerSelectionStatus(player, eventId)
+              return status === 'pending'
+            }).length
+            
+            const parts = []
+            if (missingCount > 0) {
+              parts.push(`${missingCount} manquant${missingCount > 1 ? 's' : ''}`)
+            }
+            if (pendingCount > 0) {
+              parts.push(`${pendingCount} à confirmer`)
+            }
+            
+            return parts.length > 0 ? parts.join(', ') : 'équipe complète en attente'
+          }
+          case 'confirmed': {
+            // Compter les personnes ayant confirmé
+            const selectionPlayers = props.getSelectionPlayers(eventId) || []
+            const confirmedCount = selectionPlayers.filter(player => {
+              const status = props.getPlayerSelectionStatus(player, eventId)
+              return status === 'confirmed'
+            }).length
+            
+            return confirmedCount > 0
+              ? `${confirmedCount} personne${confirmedCount > 1 ? 's' : ''} participe${confirmedCount > 1 ? 'nt' : ''}`
+              : 'équipe confirmée'
+          }
           default:
-            return 'Collecte des dispos'
+            return 'aucune disponibilité indiquée'
         }
       }
       
