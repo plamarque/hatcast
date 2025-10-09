@@ -220,7 +220,7 @@
         :hidden-events-count="hiddenEventsCount"
         :hidden-events-display-text="hiddenEventsDisplayText"
         :is-available-for-role="isAvailableForRole"
-        @event-click="showEventDetails"
+        @event-click="handleEventClickFromTimeline"
         @player-click="showPlayerDetails"
         @view-change="selectView"
         @availability-toggle="handleAvailabilityToggle"
@@ -8336,11 +8336,12 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event, showAvailability = false, updateUrl = true) {
+async function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false) {
   console.log('📋 DEBUG showEventDetails appelée:', {
     event: event ? { id: event.id, title: event.title } : null,
     showAvailability,
-    updateUrl
+    updateUrl,
+    fromAllPlayersFilter
   })
 
   // Démarrer la mesure de performance pour l'écran détail événement
@@ -8348,16 +8349,6 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     eventId: event.id,
     eventTitle: event.title,
     timestamp: new Date().toISOString()
-  })
-
-  selectedEvent.value = event
-  editingDescription.value = event.description || ''
-  editingArchived.value = !!event.archived
-  showAvailabilityInEventDetails.value = showAvailability
-
-  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
-    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
-    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null
   })
 
   // Toujours récupérer le joueur de l'utilisateur connecté pour l'onglet "Ma Dispo"
@@ -8371,19 +8362,45 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
   // Déterminer l'onglet par défaut selon l'état du tirage
   const defaultTab = getDefaultTabForEvent(event)
   
-  // If we tried to show availability but there is no player, default to computed tab
-  if (showAvailability && !currentUserPlayer.value) {
-    eventDetailsActiveTab.value = defaultTab
+  console.log('🔍 DEBUG showEventDetails - choix de l\'onglet:', {
+    fromAllPlayersFilter,
+    defaultTab,
+    currentUserPlayer: currentUserPlayer.value?.name,
+    showAvailability
+  })
+  
+  // IMPORTANT: Définir selectedTeamPlayer AVANT de changer selectedEvent pour éviter que le watcher l'écrase
+  // Si on arrive depuis le filtre "Tous", toujours afficher "Tous" dans l'onglet Disponibilités
+  if (fromAllPlayersFilter) {
     selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = 'team' // Forcer l'onglet Disponibilités
+    console.log('✅ DEBUG showEventDetails - Mode "Tous" activé depuis filtre')
+  }
+  // If we tried to show availability but there is no player, default to computed tab
+  else if (showAvailability && !currentUserPlayer.value) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = defaultTab
   } else if (showAvailability) {
     // Si on demande à voir la disponibilité, aller sur l'onglet team et sélectionner l'utilisateur
-    eventDetailsActiveTab.value = 'team'
     selectedTeamPlayer.value = currentUserPlayer.value
+    eventDetailsActiveTab.value = 'team'
   } else {
     // Utiliser l'onglet par défaut selon l'état du tirage
     eventDetailsActiveTab.value = defaultTab
-    // Sélection par défaut sera gérée par le watcher
+    // Sélection par défaut sera gérée par le watcher (donc on ne touche pas selectedTeamPlayer ici)
   }
+
+  // Maintenant, définir selectedEvent (ceci déclenche le watcher, mais selectedTeamPlayer est déjà défini)
+  selectedEvent.value = event
+  editingDescription.value = event.description || ''
+  editingArchived.value = !!event.archived
+  showAvailabilityInEventDetails.value = showAvailability
+
+  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
+    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
+    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null,
+    selectedTeamPlayer: selectedTeamPlayer.value
+  })
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
   if (updateUrl) {
@@ -10152,8 +10169,19 @@ function closeSelectionModal() {
   } catch {}
 }
 
+// Fonction pour gérer le clic sur un événement depuis TimelineView
+function handleEventClickFromTimeline(event, fromAllPlayersFilter = false) {
+  // Appeler showEventDetails avec les bons paramètres
+  showEventDetails(event, false, true, fromAllPlayersFilter)
+}
+
 // Fonction pour afficher la modale de composition depuis TimelineView
-function showCompositionModal(event) {
+function showCompositionModal(event, fromAllPlayersFilter = false) {
+  // Si on vient du filtre "Tous", passer cette info pour qu'elle soit prise en compte
+  if (fromAllPlayersFilter) {
+    // Définir explicitement le filtre sur "Tous" avant d'ouvrir la modale
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+  }
   openSelectionModal(event)
 }
 
@@ -10889,9 +10917,9 @@ function openAvailabilityModal(data) {
   showAvailabilityModal.value = true
 }
 
-function openEventModal(event) {
+function openEventModal(event, fromAllPlayersFilter = false) {
   // Ouvrir la modale d'événement et mettre à jour l'URL
-  showEventDetails(event, false, true) // showAvailability=false, updateUrl=true
+  showEventDetails(event, false, true, fromAllPlayersFilter) // showAvailability=false, updateUrl=true, fromAllPlayersFilter
 }
 
 async function handleAvailabilitySave(availabilityData) {

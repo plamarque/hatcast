@@ -93,7 +93,7 @@
               
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
-                v-if="selectedPlayerId && isPlayerInEventTeam(selectedPlayerId, event.id)"
+                v-if="selectedPlayerId"
                 :player-name="selectedPlayer.name"
                 :event-id="event.id"
                 :is-available="isAvailable(selectedPlayer.name, event.id)"
@@ -119,7 +119,7 @@
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
-              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-1 md:pr-3">
+              <div v-else-if="!selectedPlayerId && getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-1 md:pr-3">
                 <div class="relative group cursor-pointer" @click="handleAvatarClick(event, $event)">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
@@ -177,34 +177,6 @@
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Affichage du joueur sélectionné quand personne n'est disponible -->
-              <div v-else-if="selectedPlayerId && getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
-                <AvailabilityCell
-                  :player-name="selectedPlayer.name"
-                  :event-id="event.id"
-                  :is-available="isAvailable(selectedPlayer.name, event.id)"
-                  :is-selected="isPlayerSelected(selectedPlayer.name, event.id)"
-                  :is-selection-confirmed="isSelectionConfirmed(event.id)"
-                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-                  :player-selection-status="getPlayerSelectionStatus(selectedPlayer.name, event.id)"
-                  :season-id="seasonId"
-                  :player-gender="selectedPlayer.gender || 'non-specified'"
-                  :chance-percent="chances?.[selectedPlayer.name]?.[event.id] ?? null"
-                  :show-selected-chance="isSelectionComplete ? isSelectionComplete(event.id) : false"
-                  :disabled="event.archived === true"
-                  :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
-                  :event-title="event.title"
-                  :event-date="event.date ? new Date(event.date).toISOString() : ''"
-                  :is-protected="isPlayerProtected(event.id)"
-                  :compact="true"
-                  class="w-full h-16"
-                  @toggle="handleAvailabilityToggle"
-                  @toggle-selection-status="handleSelectionStatusToggle"
-                  @show-availability-modal="handleShowAvailabilityModal"
-                  @show-confirmation-modal="handleShowConfirmationModal"
-                />
               </div>
               
               <!-- Affichage du nombre requis quand personne n'est disponible ET aucun joueur sélectionné -->
@@ -531,37 +503,6 @@ export default {
       return 'ready'
     }
     
-    
-    
-    // Fonction pour vérifier si un joueur fait partie de l'équipe de l'événement
-    const isPlayerInEventTeam = (playerId, eventId) => {
-      if (!playerId || !eventId) return false
-      
-      try {
-        // Vérifier si le joueur est dans la composition de l'événement
-        const selectionPlayers = props.getSelectionPlayers ? props.getSelectionPlayers(eventId) : []
-        if (selectionPlayers && selectionPlayers.includes(playerId)) {
-          return true
-        }
-        
-        // Vérifier si le joueur est disponible pour l'événement
-        const player = props.players.find(p => p.id === playerId)
-        if (player && props.availability && props.availability[player.name]) {
-          const eventAvailability = props.availability[player.name][eventId]
-          if (eventAvailability) {
-            const isAvailable = typeof eventAvailability === 'object' 
-              ? eventAvailability.available === true 
-              : eventAvailability === true
-            return isAvailable
-          }
-        }
-        
-        return false
-      } catch (error) {
-        console.warn('Erreur lors de la vérification de l\'équipe:', error)
-        return false
-      }
-    }
     
     // Fonction pour obtenir les avatars à afficher pour un événement
     const getEventAvatars = (eventId) => {
@@ -896,10 +837,12 @@ export default {
       
       if (hasEventComposition(event.id)) {
         // S'il y a une composition, ouvrir la modale de composition
-        emit('show-composition-modal', event)
+        // Passer l'info que l'on vient du filtre "Tous" (pas de joueur sélectionné)
+        emit('show-composition-modal', event, props.selectedPlayerId === null)
       } else {
         // Sinon, ouvrir la modale de détail d'événement
-        emit('event-click', event)
+        // Passer l'info que l'on vient du filtre "Tous" (pas de joueur sélectionné)
+        emit('event-click', event, props.selectedPlayerId === null)
       }
     }
     
@@ -920,7 +863,6 @@ export default {
       getTotalRequiredCount,
       getPlayerTooltip,
       getRoleLabel,
-      isPlayerInEventTeam,
       getPlayerInstruction,
       mapToSimplifiedStatus,
       
