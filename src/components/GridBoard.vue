@@ -31,10 +31,10 @@
     <ViewHeader
       v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline'"
       :current-view="validCurrentView"
-      :show-player-selector="validCurrentView === 'timeline' ? true : true"
-      :selected-player="validCurrentView === 'timeline' ? selectedPlayerForTimeline : selectedPlayer"
+      :show-player-selector="true"
+      :selected-player="selectedPlayer"
       :season-id="seasonId"
-      :show-event-selector="validCurrentView === 'timeline' ? false : true"
+      :show-event-selector="true"
       :selected-event="selectedEventForFilter"
       :events="events"
       :is-sticky="true"
@@ -87,6 +87,7 @@
       :get-selection-players="getSelectionPlayers"
       :get-total-required-count="getTotalRequiredCount"
       :count-available-players="countAvailablePlayers"
+      :count-players-with-response="countPlayersWithResponse"
       :is-selection-confirmed="isSelectionConfirmed"
       :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
       :casts="casts"
@@ -199,7 +200,7 @@
         :availability="availability"
         :casts="casts"
         :season-id="seasonId"
-        :selected-player-id="selectedPlayerForTimeline?.id || selectedPlayerId"
+        :selected-player-id="selectedPlayerId"
         :selected-event-id="selectedEventId"
         :preferred-player-ids-set="preferredPlayerIdsSet"
         :is-available="isAvailable"
@@ -214,11 +215,12 @@
         :get-selection-players="getSelectionPlayers"
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
+        :count-players-with-response="countPlayersWithResponse"
         :is-all-events-view="isAllEventsView"
         :hidden-events-count="hiddenEventsCount"
         :hidden-events-display-text="hiddenEventsDisplayText"
         :is-available-for-role="isAvailableForRole"
-        @event-click="showEventDetails"
+        @event-click="handleEventClickFromTimeline"
         @player-click="showPlayerDetails"
         @view-change="selectView"
         @availability-toggle="handleAvailabilityToggle"
@@ -1898,6 +1900,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
+import { getTruncatedLocation } from '../utils/locationUtils.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
@@ -2308,7 +2311,6 @@ const validCurrentView = computed(() => {
 
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
-const selectedPlayerForTimeline = ref(null)
 
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
@@ -2561,7 +2563,7 @@ async function handleShowAvailabilityGrid(playerId) {
     selectView('timeline')
     
     // Définir le joueur sélectionné pour la vue Agenda
-    selectedPlayerForTimeline.value = selectedPlayer
+    selectedPlayerId.value = playerId
     
     // Fermer la modale de joueur
     closePlayerDetailsModal()
@@ -3176,11 +3178,6 @@ function selectView(view) {
   
   currentView.value = validView
   
-  // Réinitialiser le joueur sélectionné pour la timeline si on change de vue
-  if (validView !== 'timeline') {
-    selectedPlayerForTimeline.value = null
-  }
-  
   // Sauvegarder la préférence dans le localStorage
   localStorage.setItem('hatcast-view-preference', validView)
   
@@ -3222,11 +3219,9 @@ async function handlePlayerSelected(player) {
   // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
-    selectedPlayerForTimeline.value = player
     showPlayerModal.value = false
     
     console.log('🎯 After: selectedPlayerId =', selectedPlayerId.value)
-    console.log('🎯 selectedPlayerForTimeline =', selectedPlayerForTimeline.value ? { id: selectedPlayerForTimeline.value.id, name: selectedPlayerForTimeline.value.name } : null)
     
     // Charger les disponibilités pour ce joueur spécifique
     try {
@@ -7262,19 +7257,6 @@ function formatDateForCalendar(dateValue) {
   return `${year}${month}${day}T${hours}${minutes}${seconds}Z`
 }
 
-function getTruncatedLocation(location) {
-  if (!location) return ''
-  
-  // Si on trouve une virgule, couper après la première virgule
-  const commaIndex = location.indexOf(',')
-  if (commaIndex > 0) {
-    return location.substring(0, commaIndex).trim()
-  }
-  
-  // Sinon, retourner l'adresse complète
-  return location
-}
-
 // Variable pour stocker la clé API en cache
 let cachedApiKey = null
 
@@ -7486,7 +7468,28 @@ function countAvailablePlayers(eventId) {
   const event = events.value.find(e => e.id === eventId);
   if (!event) return 0;
   
-  return countAvailablePlayersFromService(event, players.value, availability.value);
+  return countAvailablePlayersFromService(event, allSeasonPlayers.value, availability.value);
+}
+
+function countPlayersWithResponse(eventId) {
+  if (!eventId || !availability.value) return 0;
+  
+  let count = 0;
+  for (const [playerName, playerAvailability] of Object.entries(availability.value)) {
+    if (playerAvailability[eventId]) {
+      const eventAvailability = playerAvailability[eventId];
+      // Compter si le joueur a donné une réponse (disponible ou indisponible)
+      const hasResponse = typeof eventAvailability === 'object' 
+        ? eventAvailability.available !== undefined && eventAvailability.available !== null
+        : eventAvailability !== undefined && eventAvailability !== null;
+      
+      if (hasResponse) {
+        count++;
+      }
+    }
+  }
+  
+  return count;
 }
 
 function countSelectedPlayers(eventId) {
@@ -8321,11 +8324,12 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event, showAvailability = false, updateUrl = true) {
+async function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false) {
   console.log('📋 DEBUG showEventDetails appelée:', {
     event: event ? { id: event.id, title: event.title } : null,
     showAvailability,
-    updateUrl
+    updateUrl,
+    fromAllPlayersFilter
   })
 
   // Démarrer la mesure de performance pour l'écran détail événement
@@ -8333,16 +8337,6 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     eventId: event.id,
     eventTitle: event.title,
     timestamp: new Date().toISOString()
-  })
-
-  selectedEvent.value = event
-  editingDescription.value = event.description || ''
-  editingArchived.value = !!event.archived
-  showAvailabilityInEventDetails.value = showAvailability
-
-  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
-    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
-    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null
   })
 
   // Toujours récupérer le joueur de l'utilisateur connecté pour l'onglet "Ma Dispo"
@@ -8356,19 +8350,45 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
   // Déterminer l'onglet par défaut selon l'état du tirage
   const defaultTab = getDefaultTabForEvent(event)
   
-  // If we tried to show availability but there is no player, default to computed tab
-  if (showAvailability && !currentUserPlayer.value) {
-    eventDetailsActiveTab.value = defaultTab
+  console.log('🔍 DEBUG showEventDetails - choix de l\'onglet:', {
+    fromAllPlayersFilter,
+    defaultTab,
+    currentUserPlayer: currentUserPlayer.value?.name,
+    showAvailability
+  })
+  
+  // IMPORTANT: Définir selectedTeamPlayer AVANT de changer selectedEvent pour éviter que le watcher l'écrase
+  // Si on arrive depuis le filtre "Tous", toujours afficher "Tous" dans l'onglet Disponibilités
+  if (fromAllPlayersFilter) {
     selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = 'team' // Forcer l'onglet Disponibilités
+    console.log('✅ DEBUG showEventDetails - Mode "Tous" activé depuis filtre')
+  }
+  // If we tried to show availability but there is no player, default to computed tab
+  else if (showAvailability && !currentUserPlayer.value) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = defaultTab
   } else if (showAvailability) {
     // Si on demande à voir la disponibilité, aller sur l'onglet team et sélectionner l'utilisateur
-    eventDetailsActiveTab.value = 'team'
     selectedTeamPlayer.value = currentUserPlayer.value
+    eventDetailsActiveTab.value = 'team'
   } else {
     // Utiliser l'onglet par défaut selon l'état du tirage
     eventDetailsActiveTab.value = defaultTab
-    // Sélection par défaut sera gérée par le watcher
+    // Sélection par défaut sera gérée par le watcher (donc on ne touche pas selectedTeamPlayer ici)
   }
+
+  // Maintenant, définir selectedEvent (ceci déclenche le watcher, mais selectedTeamPlayer est déjà défini)
+  selectedEvent.value = event
+  editingDescription.value = event.description || ''
+  editingArchived.value = !!event.archived
+  showAvailabilityInEventDetails.value = showAvailability
+
+  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
+    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
+    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null,
+    selectedTeamPlayer: selectedTeamPlayer.value
+  })
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
   if (updateUrl) {
@@ -9254,7 +9274,10 @@ function getTotalRequiredCount(event) {
   
   // Si l'événement a des rôles définis, calculer le total
   if (event.roles && typeof event.roles === 'object') {
-    return Object.values(event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    const total = Object.values(event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    
+    
+    return total
   }
   
   // Fallback pour les anciens événements
@@ -10043,44 +10066,42 @@ function getPlayerInstruction(playerName, eventId) {
   if (!eventId || !playerName) return ''
   
   const isSelected = isPlayerSelected(playerName, eventId)
-  const selectionConfirmed = isSelectionConfirmed(eventId)
-  const selectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
+  const isSelectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
   const playerSelectionStatus = getPlayerSelectionStatus(playerName, eventId)
-  const eventStatus = getEventStatus(eventId)
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  const playerGender = player?.gender || 'non-specified'
   
-  // Si la composition est confirmée et le joueur est dedans
-  if (selectionConfirmed && isSelected) {
-    // Récupérer le rôle du joueur dans la composition
-    const cast = casts.value?.[eventId]
-    if (cast && cast.teamSlots) {
-      const playerSlot = cast.teamSlots.find(slot => slot.player === playerName)
-      if (playerSlot && playerSlot.role) {
-        const roleEmoji = ROLE_EMOJIS[playerSlot.role] || '🎭'
-        const roleLabel = getRoleLabelByGender(playerSlot.role, currentUserPlayer?.gender, false) || playerSlot.role
-        return `Tu seras ${roleEmoji} ${roleLabel}`
-      }
+  // Déterminer si on a une composition (équipe en préparation ou confirmée)
+  const hasComposition = isSelected || isSelectionConfirmedByOrganizer
+  
+  // Phase 1: Collecte des dispos (pas de composition)
+  if (!hasComposition) {
+    if (availabilityData?.available === true) {
+      return 'tu es disponible'
+    } else if (availabilityData?.available === false) {
+      return 'tu n\'es pas disponible'
+    } else {
+      return 'clique pour indiquer ta dispo'
     }
-    return 'Tu participes'
   }
   
-  // Si la composition est confirmée et le joueur n'est pas dedans
-  if (selectionConfirmed && !isSelected) {
-    return 'Tu ne participes pas'
-  }
-  
-  // Si le joueur a été sélectionné mais pas encore confirmé
-  if (isSelected && !selectionConfirmed) {
-    return 'Confirme ta participation'
-  }
-  
-  // Si le joueur n'est pas sélectionné et qu'on a besoin de sa disponibilité
-  const availability = getAvailabilityData(playerName, eventId)
-  if (availability?.available === true) {
-    return 'Clique pour modifier'
-  } else if (availability?.available === false) {
-    return 'Clique pour modifier'
+  // Phase 2: Équipe en préparation ou confirmée (composition existe)
+  if (isSelected) {
+    // Joueur sélectionné
+    if (playerSelectionStatus === 'confirmed') {
+      return 'tu es dans l\'équipe!'
+    } else if (playerSelectionStatus === 'declined') {
+      return 'tu as décliné'
+    } else {
+      // Status 'pending' - à confirmer
+      const selectedText = playerGender === 'female' ? 'tu es sélectionnée' : 'tu es sélectionné'
+      return `${selectedText}, clique pour confirmer`
+    }
   } else {
-    return 'Clique pour indiquer ta dispo'
+    // Joueur non sélectionné
+    const notSelectedText = playerGender === 'female' ? 'tu n\'es pas sélectionnée' : 'tu n\'es pas sélectionné'
+    return notSelectedText
   }
 }
 
@@ -10136,8 +10157,19 @@ function closeSelectionModal() {
   } catch {}
 }
 
+// Fonction pour gérer le clic sur un événement depuis TimelineView
+function handleEventClickFromTimeline(event, fromAllPlayersFilter = false) {
+  // Appeler showEventDetails avec les bons paramètres
+  showEventDetails(event, false, true, fromAllPlayersFilter)
+}
+
 // Fonction pour afficher la modale de composition depuis TimelineView
-function showCompositionModal(event) {
+function showCompositionModal(event, fromAllPlayersFilter = false) {
+  // Si on vient du filtre "Tous", passer cette info pour qu'elle soit prise en compte
+  if (fromAllPlayersFilter) {
+    // Définir explicitement le filtre sur "Tous" avant d'ouvrir la modale
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+  }
   openSelectionModal(event)
 }
 
@@ -10873,9 +10905,9 @@ function openAvailabilityModal(data) {
   showAvailabilityModal.value = true
 }
 
-function openEventModal(event) {
+function openEventModal(event, fromAllPlayersFilter = false) {
   // Ouvrir la modale d'événement et mettre à jour l'URL
-  showEventDetails(event, false, true) // showAvailability=false, updateUrl=true
+  showEventDetails(event, false, true, fromAllPlayersFilter) // showAvailability=false, updateUrl=true, fromAllPlayersFilter
 }
 
 async function handleAvailabilitySave(availabilityData) {

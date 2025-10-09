@@ -76,8 +76,9 @@
                       ? 'text-amber-300' 
                       : 'text-gray-400'
                 ]"
+                :title="event.location"
               >
-                📍 {{ event.location }}
+                {{ getTruncatedLocation(event.location) }}
               </div>
               <!-- Badge de statut en dessous du titre, aligné avec le texte -->
               <div class="event-status mt-2 flex justify-start">
@@ -93,7 +94,7 @@
               
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
-                v-if="selectedPlayerId && isPlayerInEventTeam(selectedPlayerId, event.id)"
+                v-if="selectedPlayerId"
                 :player-name="selectedPlayer.name"
                 :event-id="event.id"
                 :is-available="isAvailable(selectedPlayer.name, event.id)"
@@ -119,7 +120,7 @@
               />
               
               <!-- Affichage des avatars de l'équipe de l'événement - SIMPLIFIÉ -->
-              <div v-else-if="getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-1 md:pr-3">
+              <div v-else-if="!selectedPlayerId && getEventAvatars(event.id).length > 0" class="flex items-center w-full h-16 pr-1 md:pr-3">
                 <div class="relative group cursor-pointer" @click="handleAvatarClick(event, $event)">
                   <!-- Container pour les avatars qui se chevauchent -->
                   <div class="flex items-center">
@@ -177,34 +178,6 @@
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Affichage du joueur sélectionné quand personne n'est disponible -->
-              <div v-else-if="selectedPlayerId && getTotalRequiredCount(event.id) > 0" class="flex items-center w-full h-16">
-                <AvailabilityCell
-                  :player-name="selectedPlayer.name"
-                  :event-id="event.id"
-                  :is-available="isAvailable(selectedPlayer.name, event.id)"
-                  :is-selected="isPlayerSelected(selectedPlayer.name, event.id)"
-                  :is-selection-confirmed="isSelectionConfirmed(event.id)"
-                  :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-                  :player-selection-status="getPlayerSelectionStatus(selectedPlayer.name, event.id)"
-                  :season-id="seasonId"
-                  :player-gender="selectedPlayer.gender || 'non-specified'"
-                  :chance-percent="chances?.[selectedPlayer.name]?.[event.id] ?? null"
-                  :show-selected-chance="isSelectionComplete ? isSelectionComplete(event.id) : false"
-                  :disabled="event.archived === true"
-                  :availability-data="getAvailabilityData(selectedPlayer.name, event.id)"
-                  :event-title="event.title"
-                  :event-date="event.date ? new Date(event.date).toISOString() : ''"
-                  :is-protected="isPlayerProtected(event.id)"
-                  :compact="true"
-                  class="w-full h-16"
-                  @toggle="handleAvailabilityToggle"
-                  @toggle-selection-status="handleSelectionStatusToggle"
-                  @show-availability-modal="handleShowAvailabilityModal"
-                  @show-confirmation-modal="handleShowConfirmationModal"
-                />
               </div>
               
               <!-- Affichage du nombre requis quand personne n'est disponible ET aucun joueur sélectionné -->
@@ -265,6 +238,7 @@
 import { computed, ref } from 'vue'
 import { EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getEventStatusWithSelection, mapToSimplifiedStatus } from '../services/eventStatusService.js'
+import { getTruncatedLocation } from '../utils/locationUtils.js'
 import AvailabilityCell from './AvailabilityCell.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import StatusBadge from './StatusBadge.vue'
@@ -358,6 +332,10 @@ export default {
       default: () => 0
     },
     countAvailablePlayers: {
+      type: Function,
+      default: () => 0
+    },
+    countPlayersWithResponse: {
       type: Function,
       default: () => 0
     },
@@ -527,37 +505,6 @@ export default {
       return 'ready'
     }
     
-    
-    
-    // Fonction pour vérifier si un joueur fait partie de l'équipe de l'événement
-    const isPlayerInEventTeam = (playerId, eventId) => {
-      if (!playerId || !eventId) return false
-      
-      try {
-        // Vérifier si le joueur est dans la composition de l'événement
-        const selectionPlayers = props.getSelectionPlayers ? props.getSelectionPlayers(eventId) : []
-        if (selectionPlayers && selectionPlayers.includes(playerId)) {
-          return true
-        }
-        
-        // Vérifier si le joueur est disponible pour l'événement
-        const player = props.players.find(p => p.id === playerId)
-        if (player && props.availability && props.availability[player.name]) {
-          const eventAvailability = props.availability[player.name][eventId]
-          if (eventAvailability) {
-            const isAvailable = typeof eventAvailability === 'object' 
-              ? eventAvailability.available === true 
-              : eventAvailability === true
-            return isAvailable
-          }
-        }
-        
-        return false
-      } catch (error) {
-        console.warn('Erreur lors de la vérification de l\'équipe:', error)
-        return false
-      }
-    }
     
     // Fonction pour obtenir les avatars à afficher pour un événement
     const getEventAvatars = (eventId) => {
@@ -753,64 +700,122 @@ export default {
     const getPlayerInstruction = (playerName, eventId) => {
       if (!eventId) return ''
       
-      // Si aucun joueur n'est sélectionné, afficher une instruction générale
+      // Si aucun joueur n'est sélectionné, afficher des statistiques informatives
       if (!playerName) {
         const eventStatus = getEventStatus(eventId)
         const simplifiedStatus = mapToSimplifiedStatus(eventStatus)
         
         switch (simplifiedStatus) {
-          case 'collecting':
-            return 'Collecte des dispos'
-          case 'preparing':
-            return 'Équipe en préparation'
-          case 'confirmed':
-            return 'Équipe confirmée'
+          case 'collecting': {
+            // Compter les personnes disponibles et le total de réponses
+            const availableCount = props.countAvailablePlayers(eventId)
+            const totalResponses = props.countPlayersWithResponse(eventId)
+            
+            if (totalResponses === 0) {
+              return 'aucune disponibilité indiquée'
+            }
+            
+            return `${availableCount} disponible${availableCount > 1 ? 's' : ''} sur ${totalResponses} réponse${totalResponses > 1 ? 's' : ''}`
+          }
+          case 'preparing': {
+            // Utiliser la même logique que la modale de composition
+            const selectionPlayerIds = props.getSelectionPlayers(eventId) || []
+            const event = props.events?.find(e => e.id === eventId)
+            const totalRequired = props.getTotalRequiredCount(event)
+            
+            
+            // Compter les joueurs qui ont confirmé vs ceux en attente
+            let confirmedCount = 0
+            let pendingCount = 0
+            
+            selectionPlayerIds.forEach(playerId => {
+              const player = props.players.find(p => p.id === playerId)
+              if (player) {
+                const status = props.getPlayerSelectionStatus(player.name, eventId)
+                if (status === 'confirmed') {
+                  confirmedCount++
+                } else if (status === 'pending') {
+                  pendingCount++
+                }
+              }
+            })
+            
+            // Les slots manquants = total requis - nombre de joueurs sélectionnés
+            const missingCount = totalRequired - selectionPlayerIds.length
+            
+            
+            const parts = []
+            if (missingCount > 0) {
+              parts.push(`⚠️ ${missingCount} manquant${missingCount > 1 ? 's' : ''}`)
+            }
+            if (pendingCount > 0) {
+              parts.push(`⚠️ ${pendingCount} à confirmer`)
+            }
+            
+            return parts.length > 0 ? parts.join(', ') : 'équipe complète en attente'
+          }
+          case 'confirmed': {
+            // Compter les joueurs confirmés
+            const selectionPlayerIds = props.getSelectionPlayers(eventId) || []
+            let confirmedCount = 0
+            
+            selectionPlayerIds.forEach(playerId => {
+              const player = props.players.find(p => p.id === playerId)
+              if (player) {
+                const status = props.getPlayerSelectionStatus(player.name, eventId)
+                if (status === 'confirmed') {
+                  confirmedCount++
+                }
+              }
+            })
+            
+            return confirmedCount > 0
+              ? `${confirmedCount} personne${confirmedCount > 1 ? 's' : ''} participe${confirmedCount > 1 ? 'nt' : ''}`
+              : 'équipe confirmée'
+          }
           default:
-            return 'Collecte des dispos'
+            return 'aucune disponibilité indiquée'
         }
       }
       
       const isSelected = props.isPlayerSelected(playerName, eventId)
-      const isSelectionConfirmed = props.isSelectionConfirmed(eventId)
       const isSelectionConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer(eventId)
       const playerSelectionStatus = props.getPlayerSelectionStatus(playerName, eventId)
-      const eventStatus = getEventStatus(eventId)
+      const availabilityData = props.getAvailabilityData(playerName, eventId)
+      const player = props.players.find(p => p.name === playerName)
+      const playerGender = player?.gender || 'non-specified'
       
-      // Si la composition est confirmée et le joueur est dedans
-      if (isSelectionConfirmed && isSelected) {
-        // Récupérer le rôle du joueur dans la composition
-        const cast = props.casts?.[eventId]
-        if (cast && cast.teamSlots) {
-          const playerSlot = cast.teamSlots.find(slot => slot.player === playerName)
-          if (playerSlot && playerSlot.role) {
-            const roleEmoji = getRoleEmoji(playerSlot.role)
-            return `Tu seras ${roleEmoji} ${getRoleLabel(playerSlot.role)}`
-          }
+      // Déterminer si on a une composition (équipe en préparation ou confirmée)
+      const hasComposition = isSelected || isSelectionConfirmedByOrganizer
+      
+      // Phase 1: Collecte des dispos (pas de composition)
+      if (!hasComposition) {
+        if (availabilityData?.available === true) {
+          return 'tu es disponible'
+        } else if (availabilityData?.available === false) {
+          return 'tu n\'es pas disponible'
+        } else {
+          return 'clique pour indiquer ta dispo'
         }
-        return 'Tu participes'
       }
       
-      // Si la composition est confirmée et le joueur n'est pas dedans
-      if (isSelectionConfirmed && !isSelected) {
-        return 'Tu ne participes pas'
+      // Phase 2: Équipe en préparation ou confirmée (composition existe)
+      if (isSelected) {
+        // Joueur sélectionné
+        if (playerSelectionStatus === 'confirmed') {
+          return 'tu es dans l\'équipe!'
+        } else if (playerSelectionStatus === 'declined') {
+          return 'tu as décliné'
+        } else {
+          // Status 'pending' - à confirmer
+          const selectedText = playerGender === 'female' ? 'tu es sélectionnée' : 'tu es sélectionné'
+          return `${selectedText}, clique pour confirmer`
+        }
+      } else {
+        // Joueur non sélectionné
+        const notSelectedText = playerGender === 'female' ? 'tu n\'es pas sélectionnée' : 'tu n\'es pas sélectionné'
+        return notSelectedText
       }
-      
-      // Si le joueur a été sélectionné mais pas encore confirmé
-      if (isSelected && !isSelectionConfirmed) {
-        return 'Confirme ta participation'
-      }
-      
-      // Si le joueur n'est pas sélectionné et qu'on a besoin de sa disponibilité
-      if (!isSelected && (eventStatus === 'ready' || eventStatus === 'missing' || eventStatus === 'insufficient')) {
-        return 'Indique ta dispo'
-      }
-      
-      // Si le joueur n'est pas sélectionné
-      if (!isSelected) {
-        return 'Tu n\'es pas sélectionné'
-      }
-      
-      return ''
     }
     
     // Fonction pour obtenir l'emoji d'un rôle
@@ -834,10 +839,12 @@ export default {
       
       if (hasEventComposition(event.id)) {
         // S'il y a une composition, ouvrir la modale de composition
-        emit('show-composition-modal', event)
+        // Passer l'info que l'on vient du filtre "Tous" (pas de joueur sélectionné)
+        emit('show-composition-modal', event, props.selectedPlayerId === null)
       } else {
         // Sinon, ouvrir la modale de détail d'événement
-        emit('event-click', event)
+        // Passer l'info que l'on vient du filtre "Tous" (pas de joueur sélectionné)
+        emit('event-click', event, props.selectedPlayerId === null)
       }
     }
     
@@ -858,8 +865,8 @@ export default {
       getTotalRequiredCount,
       getPlayerTooltip,
       getRoleLabel,
-      isPlayerInEventTeam,
       getPlayerInstruction,
+      getTruncatedLocation,
       mapToSimplifiedStatus,
       
       // Fonctions pour la disponibilité

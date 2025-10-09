@@ -207,8 +207,10 @@ export function getRoleLabel(role, userGender = 'non-specified', plural = false)
 // Icônes pour chaque type d'événement
 export const EVENT_TYPE_ICONS = {
   match: '⚔️',
-  cabaret: '🎭',
-  longform: '🎪',
+  catch: '🥊',
+  cabaret: '🎪',
+  longform: '⏱️',
+  freeform: '🦋',
   deplacement: '🚌',
   survey: '📊',
   custom: '❓'
@@ -226,6 +228,21 @@ export const ROLE_TEMPLATES = {
       [ROLES.ASSISTANT_REFEREE]: 2,
       [ROLES.VOLUNTEER]: 5,
       [ROLES.DJ]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
+  catch: {
+    name: 'Catch',
+    description: 'Format catch avec MC et DJ',
+    roles: {
+      [ROLES.PLAYER]: 9,
+      [ROLES.MC]: 1,
+      [ROLES.DJ]: 1,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
       [ROLES.LIGHTING]: 0,
       [ROLES.COACH]: 0,
       [ROLES.STAGE_MANAGER]: 0
@@ -251,6 +268,21 @@ export const ROLE_TEMPLATES = {
     description: 'Spectacle long format avec MC et DJ',
     roles: {
       [ROLES.PLAYER]: 4,
+      [ROLES.MC]: 1,
+      [ROLES.DJ]: 1,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
+  freeform: {
+    name: 'Free Form',
+    description: 'Improvisation libre avec MC et DJ',
+    roles: {
+      [ROLES.PLAYER]: 5,
       [ROLES.MC]: 1,
       [ROLES.DJ]: 1,
       [ROLES.VOLUNTEER]: 0,
@@ -309,7 +341,7 @@ export const ROLE_TEMPLATES = {
 }
 
 // Ordre d'affichage des types
-export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'longform', 'match', 'deplacement', 'survey', 'custom']
+export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'longform', 'freeform', 'match', 'catch', 'deplacement', 'survey', 'custom']
 
 export async function loadEvents(seasonId) {
   const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
