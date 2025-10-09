@@ -210,6 +210,7 @@ export const EVENT_TYPE_ICONS = {
   catch: '🥊',
   cabaret: '🎪',
   longform: '⏱️',
+  freeform: '🦋',
   deplacement: '🚌',
   survey: '📊',
   custom: '❓'
@@ -277,6 +278,21 @@ export const ROLE_TEMPLATES = {
       [ROLES.STAGE_MANAGER]: 0
     }
   },
+  freeform: {
+    name: 'Free Form',
+    description: 'Improvisation libre avec MC et DJ',
+    roles: {
+      [ROLES.PLAYER]: 5,
+      [ROLES.MC]: 1,
+      [ROLES.DJ]: 1,
+      [ROLES.VOLUNTEER]: 0,
+      [ROLES.REFEREE]: 0,
+      [ROLES.ASSISTANT_REFEREE]: 0,
+      [ROLES.LIGHTING]: 0,
+      [ROLES.COACH]: 0,
+      [ROLES.STAGE_MANAGER]: 0
+    }
+  },
   deplacement: {
     name: 'Déplacement',
     description: 'Événement extérieur simple',
@@ -325,7 +341,7 @@ export const ROLE_TEMPLATES = {
 }
 
 // Ordre d'affichage des types
-export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'longform', 'match', 'catch', 'deplacement', 'survey', 'custom']
+export const TEMPLATE_DISPLAY_ORDER = ['cabaret', 'longform', 'freeform', 'match', 'catch', 'deplacement', 'survey', 'custom']
 
 export async function loadEvents(seasonId) {
   const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
