@@ -31,10 +31,10 @@
     <ViewHeader
       v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline'"
       :current-view="validCurrentView"
-      :show-player-selector="validCurrentView === 'timeline' ? true : true"
+      :show-player-selector="true"
       :selected-player="selectedPlayer"
       :season-id="seasonId"
-      :show-event-selector="validCurrentView === 'timeline' ? false : true"
+      :show-event-selector="true"
       :selected-event="selectedEventForFilter"
       :events="events"
       :is-sticky="true"
