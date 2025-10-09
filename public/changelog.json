@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.27.0",
+    "date": "2025-10-09",
+    "changes": [
+      "✨ Ajout d'un type d'événement 'Free Form' avec un emoji papillon 🦋",
+      "✨ Ajout d'un type d'événement 'Catch' avec 9 joueurs, MC et DJ",
+      "✨ Activation du filtre d'événements dans la vue chronologique",
+      "✨ Affichage des statistiques de disponibilité détaillées dans la vue agenda",
+      "🐛 Correction des emojis pour les types cabaret et longform",
+      "🐛 Préservation du filtre 'Tout' lors de l'ouverture de la fenêtre d'événement depuis la chronologie",
+      "🐛 Correction du calcul totalRequired dans la vue chronologique",
+      "🐛 La vue agenda affiche le bon nom du joueur"
+    ]
+  },
+  {
     "version": "0.26.0",
     "date": "2025-10-07",
     "changes": [
