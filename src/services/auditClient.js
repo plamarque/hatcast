@@ -17,6 +17,11 @@ class AuditClient {
       return null
     }
     
+    // Préserver les objets Date
+    if (obj instanceof Date) {
+      return obj
+    }
+    
     if (typeof obj !== 'object') {
       return obj
     }
@@ -29,6 +34,8 @@ class AuditClient {
     for (const [key, value] of Object.entries(obj)) {
       if (value === undefined) {
         cleaned[key] = null
+      } else if (value instanceof Date) {
+        cleaned[key] = value // Préserver les Date
       } else if (typeof value === 'object' && value !== null) {
         cleaned[key] = this.cleanDataForFirestore(value)
       } else {
