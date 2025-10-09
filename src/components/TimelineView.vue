@@ -775,32 +775,56 @@ export default {
             return `${availableCount} disponible${availableCount > 1 ? 's' : ''} sur ${totalResponses} réponse${totalResponses > 1 ? 's' : ''}`
           }
           case 'preparing': {
-            // Compter les slots manquants et les confirmations en attente
-            const totalRequired = props.getTotalRequiredCount(eventId)
-            const selectionPlayers = props.getSelectionPlayers(eventId) || []
-            const missingCount = totalRequired - selectionPlayers.length
-            const pendingCount = selectionPlayers.filter(player => {
-              const status = props.getPlayerSelectionStatus(player, eventId)
-              return status === 'pending'
-            }).length
+            // Utiliser la même logique que la modale de composition
+            const selectionPlayerIds = props.getSelectionPlayers(eventId) || []
+            const event = props.events?.find(e => e.id === eventId)
+            const totalRequired = props.getTotalRequiredCount(event)
+            
+            
+            // Compter les joueurs qui ont confirmé vs ceux en attente
+            let confirmedCount = 0
+            let pendingCount = 0
+            
+            selectionPlayerIds.forEach(playerId => {
+              const player = props.players.find(p => p.id === playerId)
+              if (player) {
+                const status = props.getPlayerSelectionStatus(player.name, eventId)
+                if (status === 'confirmed') {
+                  confirmedCount++
+                } else if (status === 'pending') {
+                  pendingCount++
+                }
+              }
+            })
+            
+            // Les slots manquants = total requis - nombre de joueurs sélectionnés
+            const missingCount = totalRequired - selectionPlayerIds.length
+            
             
             const parts = []
             if (missingCount > 0) {
-              parts.push(`${missingCount} manquant${missingCount > 1 ? 's' : ''}`)
+              parts.push(`⚠️ ${missingCount} manquant${missingCount > 1 ? 's' : ''}`)
             }
             if (pendingCount > 0) {
-              parts.push(`${pendingCount} à confirmer`)
+              parts.push(`⚠️ ${pendingCount} à confirmer`)
             }
             
             return parts.length > 0 ? parts.join(', ') : 'équipe complète en attente'
           }
           case 'confirmed': {
-            // Compter les personnes ayant confirmé
-            const selectionPlayers = props.getSelectionPlayers(eventId) || []
-            const confirmedCount = selectionPlayers.filter(player => {
-              const status = props.getPlayerSelectionStatus(player, eventId)
-              return status === 'confirmed'
-            }).length
+            // Compter les joueurs confirmés
+            const selectionPlayerIds = props.getSelectionPlayers(eventId) || []
+            let confirmedCount = 0
+            
+            selectionPlayerIds.forEach(playerId => {
+              const player = props.players.find(p => p.id === playerId)
+              if (player) {
+                const status = props.getPlayerSelectionStatus(player.name, eventId)
+                if (status === 'confirmed') {
+                  confirmedCount++
+                }
+              }
+            })
             
             return confirmedCount > 0
               ? `${confirmedCount} personne${confirmedCount > 1 ? 's' : ''} participe${confirmedCount > 1 ? 'nt' : ''}`

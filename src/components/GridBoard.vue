@@ -9269,7 +9269,10 @@ function getTotalRequiredCount(event) {
   
   // Si l'événement a des rôles définis, calculer le total
   if (event.roles && typeof event.roles === 'object') {
-    return Object.values(event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    const total = Object.values(event.roles).reduce((sum, count) => sum + (count || 0), 0)
+    
+    
+    return total
   }
   
   // Fallback pour les anciens événements
