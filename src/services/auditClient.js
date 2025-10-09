@@ -66,32 +66,18 @@ class AuditClient {
     // Utiliser la détection d'environnement centralisée
     const environment = configService.getEnvironment()
     
-    // Vérifier si l'audit est explicitement configuré
-    const isAuditExplicitlyEnabled = import.meta.env.VITE_AUDIT_ENABLED === 'true'
-    const isAuditExplicitlyDisabled = import.meta.env.VITE_AUDIT_ENABLED === 'false'
+    // Vérifier si on doit logger selon le statut de l'audit
+    const status = await this.getAuditStatus()
     
-    // Si explicitement configuré, respecter le flag (override de l'environnement)
-    if (isAuditExplicitlyEnabled) {
-      // Forcer l'activation dans tous les environnements
-    } else if (isAuditExplicitlyDisabled) {
-      // Forcer la désactivation dans tous les environnements
+    if (!status.actualStatus) {
+      // Audit désactivé - log de debug uniquement
+      if (actionData.severity === 'error' || actionData.severity === 'critical') {
+        console.log('🔇 AUDIT DISABLED:', actionData.type, actionData.data)
+      }
       return
-    } else {
-      // Sinon, utiliser la logique par défaut selon l'environnement
-      if (environment === 'test') {
-        return
-      }
-      
-      if (environment === 'development') {
-        // Log de debug pour indiquer que l'audit est désactivé par défaut
-        if (actionData.severity === 'error' || actionData.severity === 'critical') {
-          console.log('🔇 AUDIT DISABLED (dev mode):', actionData.type, actionData.data)
-        }
-        return
-      }
-      
-      // Activer l'audit en staging et production par défaut
     }
+    
+    // Audit activé - continuer avec le logging
     
     try {
       const user = auth?.currentUser
@@ -979,44 +965,87 @@ class AuditClient {
   static async getAuditStatus() {
     try {
       const environment = configService.getEnvironment()
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : 'unknown'
       const isAuditExplicitlyEnabled = import.meta.env.VITE_AUDIT_ENABLED === 'true'
       const isAuditExplicitlyDisabled = import.meta.env.VITE_AUDIT_ENABLED === 'false'
 
       let actualStatus = false
       let statusSource = 'unknown'
       let message = ''
+      let configValue = undefined
 
-      if (isAuditExplicitlyEnabled) {
-        actualStatus = true
-        statusSource = 'explicit_override'
-        message = 'Audit activé (explicit_override)'
-      } else if (isAuditExplicitlyDisabled) {
-        actualStatus = false
-        statusSource = 'explicit_override'
-        message = 'Audit désactivé (explicit_override)'
-      } else {
-        // Comportement par défaut selon l'environnement
-        if (environment === 'test') {
-          actualStatus = false
-          statusSource = 'default_test'
-          message = 'Audit désactivé (default_test)'
-        } else if (environment === 'development') {
-          actualStatus = false
-          statusSource = 'default_development'
-          message = 'Audit désactivé (default_development)'
-        } else {
+      // En développement, utiliser les variables VITE
+      if (environment === 'development' || environment === 'test') {
+        if (isAuditExplicitlyEnabled) {
           actualStatus = true
-          statusSource = 'default_production'
-          message = 'Audit activé (default_production)'
+          statusSource = 'vite_env'
+          message = 'Audit activé via VITE_AUDIT_ENABLED=true'
+        } else if (isAuditExplicitlyDisabled) {
+          actualStatus = false
+          statusSource = 'vite_env'
+          message = 'Audit désactivé via VITE_AUDIT_ENABLED=false'
+        } else {
+          actualStatus = false
+          statusSource = 'default_local'
+          message = environment === 'test' 
+            ? 'Audit désactivé (environnement de test)'
+            : 'Audit désactivé (environnement local)'
+        }
+      } else {
+        // En staging/production, appeler la Cloud Function pour obtenir le statut
+        try {
+          const { callCloudFunction } = await import('./firebase.js')
+          const result = await callCloudFunction('getAuditConfig', { environment })
+          
+          if (result.success) {
+            actualStatus = result.isEnabled
+            configValue = result.configValue
+            statusSource = 'firebase_config'
+            message = result.message
+          } else {
+            // Fallback sur le comportement par défaut si la fonction échoue
+            if (environment === 'staging') {
+              actualStatus = false
+              statusSource = 'default_staging'
+              message = 'Audit désactivé par défaut (staging)'
+            } else {
+              actualStatus = true
+              statusSource = 'default_production'
+              message = 'Audit activé par défaut (production)'
+            }
+          }
+        } catch (cloudFunctionError) {
+          console.warn('⚠️ Erreur lors de l\'appel à getAuditConfig:', cloudFunctionError)
+          // Fallback sur le comportement par défaut
+          if (environment === 'staging') {
+            actualStatus = false
+            statusSource = 'default_staging'
+            message = 'Audit désactivé par défaut (staging - config non disponible)'
+          } else {
+            actualStatus = true
+            statusSource = 'default_production'
+            message = 'Audit activé par défaut (production - config non disponible)'
+          }
         }
       }
+
+      logger.debug('🔍 Statut audit:', {
+        environment,
+        hostname,
+        actualStatus,
+        statusSource,
+        configValue,
+        viteAuditEnabled: import.meta.env.VITE_AUDIT_ENABLED
+      })
 
       return {
         success: true,
         environment,
+        hostname,
         auditEnabled: import.meta.env.VITE_AUDIT_ENABLED,
         actualStatus,
         statusSource,
+        configValue,
         message
       }
     } catch (error) {
@@ -1040,28 +1069,51 @@ class AuditClient {
     try {
       const environment = configService.getEnvironment()
       
-      if (environment === 'development') {
+      if (environment === 'development' || environment === 'test') {
         return {
           success: false,
-          message: 'En développement, vous devez modifier manuellement le fichier .env.local',
-          command: 'echo "VITE_AUDIT_ENABLED=true" >> .env.local',
+          message: '💡 Pour activer l\'audit en développement local',
           instructions: [
-            '1. Ouvrir le fichier .env.local',
-            '2. Ajouter ou modifier: VITE_AUDIT_ENABLED=true',
-            '3. Redémarrer le serveur de développement: npm run dev -- --host'
+            '1. Ouvrir le fichier .env.local à la racine du projet',
+            '2. Ajouter ou modifier la ligne: VITE_AUDIT_ENABLED=true',
+            '3. Redémarrer le serveur de développement: npm run dev -- --host',
+            '4. Les logs d\'audit seront écrits dans la base Firestore "development"'
           ]
         }
       } else {
-        // En staging/production, on ne peut pas modifier les variables d'environnement côté client
-        return {
-          success: false,
-          message: 'En staging/production, l\'audit doit être activé via les Cloud Functions',
-          command: 'firebase functions:config:set audit.enabled=true',
-          instructions: [
-            '1. Utiliser Firebase CLI pour modifier la configuration',
-            '2. Redéployer les Cloud Functions',
-            '3. L\'audit sera activé côté serveur'
-          ]
+        // En staging/production, appeler la Cloud Function
+        try {
+          const { callCloudFunction } = await import('./firebase.js')
+          const result = await callCloudFunction('enableAudit', { environment })
+          
+          if (result.success) {
+            const instructions = [result.details];
+            if (result.requiresRedeploy) {
+              instructions.push(`⚠️ Redéploiement requis: ${result.redeployCommand}`);
+              instructions.push('Les changements prendront effet après le redéploiement.');
+            }
+            
+            return {
+              success: true,
+              message: result.message,
+              command: result.redeployCommand,
+              instructions
+            }
+          }
+          
+          return {
+            success: false,
+            message: result.message || 'Erreur lors de l\'activation',
+            error: result.details,
+            instructions: []
+          }
+        } catch (error) {
+          console.error('❌ Erreur lors de l\'appel à enableAudit:', error)
+          return {
+            success: false,
+            message: 'Erreur lors de l\'activation de l\'audit',
+            error: error.message
+          }
         }
       }
     } catch (error) {
@@ -1082,28 +1134,53 @@ class AuditClient {
     try {
       const environment = configService.getEnvironment()
       
-      if (environment === 'development') {
+      if (environment === 'development' || environment === 'test') {
         return {
-          success: false,
-          message: 'En développement, vous devez modifier manuellement le fichier .env.local',
-          command: 'echo "VITE_AUDIT_ENABLED=false" >> .env.local',
+          success: true,
+          message: 'ℹ️ L\'audit est déjà désactivé par défaut en développement',
           instructions: [
-            '1. Ouvrir le fichier .env.local',
-            '2. Ajouter ou modifier: VITE_AUDIT_ENABLED=false',
-            '3. Redémarrer le serveur de développement: npm run dev -- --host'
+            'L\'audit est automatiquement désactivé en local',
+            'Seuls les messages de debug sont affichés dans la console',
+            'Pour forcer l\'activation, ajoutez VITE_AUDIT_ENABLED=true dans .env.local'
           ]
         }
       } else {
-        // En staging/production, on ne peut pas modifier les variables d'environnement côté client
-        return {
-          success: false,
-          message: 'En staging/production, l\'audit doit être désactivé via les Cloud Functions',
-          command: 'firebase functions:config:set audit.enabled=false',
-          instructions: [
-            '1. Utiliser Firebase CLI pour modifier la configuration',
-            '2. Redéployer les Cloud Functions',
-            '3. L\'audit sera désactivé côté serveur'
-          ]
+        // En staging/production, appeler la Cloud Function
+        try {
+          const { callCloudFunction } = await import('./firebase.js')
+          const result = await callCloudFunction('disableAudit', { environment })
+          
+          if (result.success) {
+            const instructions = [result.details];
+            if (result.warning) {
+              instructions.push(`⚠️ ${result.warning}`);
+            }
+            if (result.requiresRedeploy) {
+              instructions.push(`⚠️ Redéploiement requis: ${result.redeployCommand}`);
+              instructions.push('Les changements prendront effet après le redéploiement.');
+            }
+            
+            return {
+              success: true,
+              message: result.message,
+              command: result.redeployCommand,
+              instructions
+            }
+          }
+          
+          return {
+            success: false,
+            message: result.message || 'Erreur lors de la désactivation',
+            error: result.details,
+            instructions: []
+          }
+        } catch (error) {
+          console.error('❌ Erreur lors de l\'appel à disableAudit:', error)
+          return {
+            success: false,
+            message: 'Erreur lors de la désactivation de l\'audit',
+            error: error.message
+          }
         }
       }
     } catch (error) {

@@ -275,8 +275,10 @@
                 <div class="text-xs text-gray-400">
                   <div v-if="auditStatus">
                     <div><strong>Environnement:</strong> {{ auditStatus.environment }}</div>
+                    <div v-if="auditStatus.hostname"><strong>Hostname:</strong> {{ auditStatus.hostname }}</div>
                     <div><strong>Statut:</strong> {{ auditStatusMessage }}</div>
-                    <div v-if="auditStatus.auditEnabled"><strong>Variable:</strong> {{ auditStatus.auditEnabled }}</div>
+                    <div v-if="auditStatus.configValue !== undefined"><strong>Config Firebase:</strong> <code class="text-xs bg-black/30 px-1 py-0.5 rounded">audit.{{ auditStatus.environment }}.enabled={{ auditStatus.configValue }}</code></div>
+                    <div v-if="auditStatus.auditEnabled"><strong>Variable VITE:</strong> {{ auditStatus.auditEnabled }}</div>
                     <div v-if="auditStatus.statusSource"><strong>Source:</strong> {{ auditStatus.statusSource }}</div>
                   </div>
                   <div v-else class="text-gray-500">

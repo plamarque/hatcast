@@ -7,8 +7,91 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const AdminService = require('./adminService');
 const { cors } = require('./corsConfig');
+const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 
 const adminService = new AdminService();
+
+/**
+ * Crée ou met à jour un secret Firebase
+ */
+async function setFirebaseSecret(secretName, secretValue) {
+  const client = new SecretManagerServiceClient();
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'impro-selector';
+  const parent = `projects/${projectId}`;
+  
+  try {
+    // Vérifier si le secret existe
+    const secretPath = `${parent}/secrets/${secretName}`;
+    
+    try {
+      await client.getSecret({ name: secretPath });
+      
+      // Le secret existe, ajouter une nouvelle version
+      const [version] = await client.addSecretVersion({
+        parent: secretPath,
+        payload: {
+          data: Buffer.from(secretValue, 'utf8'),
+        },
+      });
+      
+      console.log(`✅ Secret ${secretName} mis à jour: ${version.name}`);
+      return { success: true, action: 'updated', version: version.name };
+      
+    } catch (getError) {
+      if (getError.code === 5) { // NOT_FOUND
+        // Le secret n'existe pas, le créer
+        const [secret] = await client.createSecret({
+          parent: parent,
+          secretId: secretName,
+          secret: {
+            replication: {
+              automatic: {},
+            },
+          },
+        });
+        
+        // Ajouter la première version
+        const [version] = await client.addSecretVersion({
+          parent: secret.name,
+          payload: {
+            data: Buffer.from(secretValue, 'utf8'),
+          },
+        });
+        
+        console.log(`✅ Secret ${secretName} créé: ${version.name}`);
+        return { success: true, action: 'created', version: version.name };
+      }
+      
+      throw getError;
+    }
+    
+  } catch (error) {
+    console.error(`❌ Erreur lors de la mise à jour du secret ${secretName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Supprime un secret Firebase
+ */
+async function deleteFirebaseSecret(secretName) {
+  const client = new SecretManagerServiceClient();
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'impro-selector';
+  const secretPath = `projects/${projectId}/secrets/${secretName}`;
+  
+  try {
+    await client.deleteSecret({ name: secretPath });
+    console.log(`✅ Secret ${secretName} supprimé`);
+    return { success: true, action: 'deleted' };
+  } catch (error) {
+    if (error.code === 5) { // NOT_FOUND
+      console.log(`ℹ️ Secret ${secretName} n'existe pas (déjà supprimé)`);
+      return { success: true, action: 'already_deleted' };
+    }
+    console.error(`❌ Erreur lors de la suppression du secret ${secretName}:`, error);
+    throw error;
+  }
+}
 
 /**
  * Récupère TOUS les secrets Firebase depuis Google Cloud Secret Manager
@@ -461,4 +544,169 @@ exports.resetPasswordWithCustomToken = functions.https.onCall(async (data, conte
     console.error('❌ Erreur générale dans resetPasswordWithCustomToken:', error)
     return { success: false, error: 'internal_error', details: error.message }
   }
-}); 
+});
+
+// ===== FONCTIONS DE GESTION DE L'AUDIT =====
+
+/**
+ * Récupère la configuration actuelle de l'audit
+ */
+exports.getAuditConfig = functions.https.onCall(async (data, context) => {
+  try {
+    // Vérifier l'authentification
+    if (!context.auth) {
+      return { success: false, error: 'unauthenticated' }
+    }
+    
+    const { environment } = data || {}
+    
+    if (!environment || !['staging', 'production'].includes(environment)) {
+      return { success: false, error: 'invalid_environment' }
+    }
+    
+    // Lire la configuration via les variables d'environnement
+    let isEnabled = false
+    let configValue = undefined
+    
+    if (environment === 'production') {
+      // Production: activé par défaut, désactivé seulement si explicitement false
+      configValue = process.env.AUDIT_PRODUCTION_ENABLED || undefined
+      isEnabled = configValue !== 'false' && configValue !== false
+    } else {
+      // Staging: désactivé par défaut, activé seulement si explicitement true
+      configValue = process.env.AUDIT_STAGING_ENABLED || undefined
+      isEnabled = configValue === 'true' || configValue === true
+    }
+    
+    return {
+      success: true,
+      environment,
+      isEnabled,
+      configValue,
+      message: isEnabled 
+        ? `Audit activé en ${environment}`
+        : `Audit désactivé en ${environment}`
+    }
+    
+  } catch (error) {
+    console.error('❌ Erreur dans getAuditConfig:', error)
+    return { success: false, error: 'internal_error', details: error.message }
+  }
+})
+
+/**
+ * Active l'audit pour un environnement
+ */
+exports.enableAudit = functions.https.onCall(async (data, context) => {
+  try {
+    // Vérifier l'authentification
+    if (!context.auth) {
+      return { success: false, error: 'unauthenticated' }
+    }
+    
+    const { environment } = data || {}
+    
+    if (!environment || !['staging', 'production'].includes(environment)) {
+      return { success: false, error: 'invalid_environment' }
+    }
+    
+    try {
+      if (environment === 'production') {
+        // Pour production, activer = supprimer le secret (car activé par défaut)
+        const result = await deleteFirebaseSecret('AUDIT_PRODUCTION_ENABLED');
+        
+        return {
+          success: true,
+          message: '✅ Audit activé en production',
+          action: result.action,
+          details: 'Le secret AUDIT_PRODUCTION_ENABLED a été supprimé. L\'audit est maintenant activé par défaut.',
+          requiresRedeploy: true,
+          redeployCommand: 'firebase deploy --only functions'
+        }
+      } else {
+        // Pour staging, activer = définir le secret à true
+        const result = await setFirebaseSecret('AUDIT_STAGING_ENABLED', 'true');
+        
+        return {
+          success: true,
+          message: '✅ Audit activé en staging',
+          action: result.action,
+          details: 'Le secret AUDIT_STAGING_ENABLED a été défini à "true".',
+          requiresRedeploy: true,
+          redeployCommand: 'firebase deploy --only functions'
+        }
+      }
+    } catch (secretError) {
+      console.error('❌ Erreur lors de la modification du secret:', secretError);
+      return {
+        success: false,
+        error: 'secret_management_error',
+        message: 'Erreur lors de la modification du secret Firebase',
+        details: secretError.message
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ Erreur dans enableAudit:', error)
+    return { success: false, error: 'internal_error', details: error.message }
+  }
+})
+
+/**
+ * Désactive l'audit pour un environnement
+ */
+exports.disableAudit = functions.https.onCall(async (data, context) => {
+  try {
+    // Vérifier l'authentification
+    if (!context.auth) {
+      return { success: false, error: 'unauthenticated' }
+    }
+    
+    const { environment } = data || {}
+    
+    if (!environment || !['staging', 'production'].includes(environment)) {
+      return { success: false, error: 'invalid_environment' }
+    }
+    
+    try {
+      if (environment === 'production') {
+        // Pour production, désactiver = définir le secret à false
+        const result = await setFirebaseSecret('AUDIT_PRODUCTION_ENABLED', 'false');
+        
+        return {
+          success: true,
+          message: '⚠️ Audit désactivé en production',
+          action: result.action,
+          details: 'Le secret AUDIT_PRODUCTION_ENABLED a été défini à "false".',
+          warning: 'Désactiver l\'audit en production réduit la traçabilité des actions.',
+          requiresRedeploy: true,
+          redeployCommand: 'firebase deploy --only functions'
+        }
+      } else {
+        // Pour staging, désactiver = supprimer le secret (car désactivé par défaut)
+        const result = await deleteFirebaseSecret('AUDIT_STAGING_ENABLED');
+        
+        return {
+          success: true,
+          message: '✅ Audit désactivé en staging',
+          action: result.action,
+          details: 'Le secret AUDIT_STAGING_ENABLED a été supprimé. L\'audit est maintenant désactivé par défaut.',
+          requiresRedeploy: true,
+          redeployCommand: 'firebase deploy --only functions'
+        }
+      }
+    } catch (secretError) {
+      console.error('❌ Erreur lors de la modification du secret:', secretError);
+      return {
+        success: false,
+        error: 'secret_management_error',
+        message: 'Erreur lors de la modification du secret Firebase',
+        details: secretError.message
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ Erreur dans disableAudit:', error)
+    return { success: false, error: 'internal_error', details: error.message }
+  }
+}) 

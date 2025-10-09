@@ -1,14 +1,26 @@
 // API endpoint pour récupérer les logs d'audit
 // Ce fichier sera utilisé par le serveur de développement Vite
 
-import { initializeApp } from 'firebase/app';
+import { getApp } from 'firebase/app';
 import { getFirestore, collection, query, orderBy, limit, where, getDocs } from 'firebase/firestore';
-import configService from '../services/configService.js';
 
-// Configuration Firebase pour l'API
-const firebaseConfig = configService.getFirebaseConfig();
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Use existing Firebase app instance (singleton pattern)
+let app;
+let db;
+
+function getFirebaseApp() {
+  if (!app) {
+    app = getApp(); // Get existing Firebase app
+  }
+  return app;
+}
+
+function getFirebaseDb() {
+  if (!db) {
+    db = getFirestore(getFirebaseApp());
+  }
+  return db;
+}
 
 // Fonction pour récupérer les logs d'audit
 export async function getAuditLogs(filters = {}) {
@@ -30,11 +42,12 @@ export async function getAuditLogs(filters = {}) {
     } = filters;
 
     // Déterminer la base de données à utiliser
-    let database = db;
+    const firebaseApp = getFirebaseApp();
+    let database = getFirebaseDb();
     if (env === 'development') {
-      database = getFirestore(app, 'development');
+      database = getFirestore(firebaseApp, 'development');
     } else if (env === 'staging') {
-      database = getFirestore(app, 'staging');
+      database = getFirestore(firebaseApp, 'staging');
     }
     // Pour 'production', utiliser la base par défaut
 
