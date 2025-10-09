@@ -76,8 +76,9 @@
                       ? 'text-amber-300' 
                       : 'text-gray-400'
                 ]"
+                :title="event.location"
               >
-                {{ event.location }}
+                {{ getTruncatedLocation(event.location) }}
               </div>
               <!-- Badge de statut en dessous du titre, aligné avec le texte -->
               <div class="event-status mt-2 flex justify-start">
@@ -237,6 +238,7 @@
 import { computed, ref } from 'vue'
 import { EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getEventStatusWithSelection, mapToSimplifiedStatus } from '../services/eventStatusService.js'
+import { getTruncatedLocation } from '../utils/locationUtils.js'
 import AvailabilityCell from './AvailabilityCell.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import StatusBadge from './StatusBadge.vue'
@@ -864,6 +866,7 @@ export default {
       getPlayerTooltip,
       getRoleLabel,
       getPlayerInstruction,
+      getTruncatedLocation,
       mapToSimplifiedStatus,
       
       // Fonctions pour la disponibilité

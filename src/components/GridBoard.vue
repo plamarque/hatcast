@@ -1900,6 +1900,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
+import { getTruncatedLocation } from '../utils/locationUtils.js'
 import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
@@ -7254,19 +7255,6 @@ function formatDateForCalendar(dateValue) {
   const seconds = String(date.getSeconds()).padStart(2, '0')
   
   return `${year}${month}${day}T${hours}${minutes}${seconds}Z`
-}
-
-function getTruncatedLocation(location) {
-  if (!location) return ''
-  
-  // Si on trouve une virgule, couper après la première virgule
-  const commaIndex = location.indexOf(',')
-  if (commaIndex > 0) {
-    return location.substring(0, commaIndex).trim()
-  }
-  
-  // Sinon, retourner l'adresse complète
-  return location
 }
 
 // Variable pour stocker la clé API en cache
