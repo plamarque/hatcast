@@ -77,7 +77,7 @@
                       : 'text-gray-400'
                 ]"
               >
-                📍 {{ event.location }}
+                {{ event.location }}
               </div>
               <!-- Badge de statut en dessous du titre, aligné avec le texte -->
               <div class="event-status mt-2 flex justify-start">
