@@ -207,8 +207,8 @@ export function getRoleLabel(role, userGender = 'non-specified', plural = false)
 // Icônes pour chaque type d'événement
 export const EVENT_TYPE_ICONS = {
   match: '⚔️',
-  cabaret: '🎭',
-  longform: '🎪',
+  cabaret: '🎪',
+  longform: '⏱️',
   deplacement: '🚌',
   survey: '📊',
   custom: '❓'
