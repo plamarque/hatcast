@@ -10035,44 +10035,42 @@ function getPlayerInstruction(playerName, eventId) {
   if (!eventId || !playerName) return ''
   
   const isSelected = isPlayerSelected(playerName, eventId)
-  const selectionConfirmed = isSelectionConfirmed(eventId)
-  const selectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
+  const isSelectionConfirmedByOrganizer = isSelectionConfirmedByOrganizer(eventId)
   const playerSelectionStatus = getPlayerSelectionStatus(playerName, eventId)
-  const eventStatus = getEventStatus(eventId)
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  const player = allSeasonPlayers.value.find(p => p.name === playerName)
+  const playerGender = player?.gender || 'non-specified'
   
-  // Si la composition est confirmée et le joueur est dedans
-  if (selectionConfirmed && isSelected) {
-    // Récupérer le rôle du joueur dans la composition
-    const cast = casts.value?.[eventId]
-    if (cast && cast.teamSlots) {
-      const playerSlot = cast.teamSlots.find(slot => slot.player === playerName)
-      if (playerSlot && playerSlot.role) {
-        const roleEmoji = ROLE_EMOJIS[playerSlot.role] || '🎭'
-        const roleLabel = getRoleLabelByGender(playerSlot.role, currentUserPlayer?.gender, false) || playerSlot.role
-        return `Tu seras ${roleEmoji} ${roleLabel}`
-      }
+  // Déterminer si on a une composition (équipe en préparation ou confirmée)
+  const hasComposition = isSelected || isSelectionConfirmedByOrganizer
+  
+  // Phase 1: Collecte des dispos (pas de composition)
+  if (!hasComposition) {
+    if (availabilityData?.available === true) {
+      return 'tu es disponible'
+    } else if (availabilityData?.available === false) {
+      return 'tu n\'es pas disponible'
+    } else {
+      return 'clique pour indiquer ta dispo'
     }
-    return 'Tu participes'
   }
   
-  // Si la composition est confirmée et le joueur n'est pas dedans
-  if (selectionConfirmed && !isSelected) {
-    return 'Tu ne participes pas'
-  }
-  
-  // Si le joueur a été sélectionné mais pas encore confirmé
-  if (isSelected && !selectionConfirmed) {
-    return 'Confirme ta participation'
-  }
-  
-  // Si le joueur n'est pas sélectionné et qu'on a besoin de sa disponibilité
-  const availability = getAvailabilityData(playerName, eventId)
-  if (availability?.available === true) {
-    return 'Clique pour modifier'
-  } else if (availability?.available === false) {
-    return 'Clique pour modifier'
+  // Phase 2: Équipe en préparation ou confirmée (composition existe)
+  if (isSelected) {
+    // Joueur sélectionné
+    if (playerSelectionStatus === 'confirmed') {
+      return 'tu es dans l\'équipe!'
+    } else if (playerSelectionStatus === 'declined') {
+      return 'tu as décliné'
+    } else {
+      // Status 'pending' - à confirmer
+      const selectedText = playerGender === 'female' ? 'tu es sélectionnée' : 'tu es sélectionné'
+      return `${selectedText}, clique pour confirmer`
+    }
   } else {
-    return 'Clique pour indiquer ta dispo'
+    // Joueur non sélectionné
+    const notSelectedText = playerGender === 'female' ? 'tu n\'es pas sélectionnée' : 'tu n\'es pas sélectionné'
+    return notSelectedText
   }
 }
 
