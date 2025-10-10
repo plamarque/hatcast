@@ -14,22 +14,18 @@
     :is-all-events-view="isAllEventsView"
     :hidden-events-count="hiddenEventsCount"
     :hidden-events-display-text="hiddenEventsDisplayText"
-    :can-edit-availability="false"
-    :get-player-availability="() => null"
+    :can-edit-availability="canEditAvailability"
+    :get-player-availability="getPlayerAvailability"
     :header-offset-x="headerOffsetX"
     :header-scroll-x="headerScrollX"
     @player-selected="showPlayerDetails"
-    @availability-changed="() => {}"
+    @availability-changed="handleAvailabilityChanged"
     @scroll="handleScroll"
-    @toggle-player-modal="() => {}"
+    @toggle-player-modal="togglePlayerModal"
     @toggle-event-modal="toggleEventModal"
   >
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
-      <!-- Debug: vérifier les événements -->
-      <div v-if="!item" class="text-white text-center">
-        Événement manquant
-      </div>
       <div
         class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
         :class="[
@@ -87,12 +83,6 @@
 
     <!-- Lignes de joueurs (vue compositions) -->
     <template #rows="{ items: players, columns: events, itemWidth }">
-      <!-- Debug: vérifier les données -->
-      <tr v-if="players.length === 0" class="text-white">
-        <td colspan="100" class="text-center py-4">
-          Aucun joueur trouvé ({{ players?.length }} joueurs, {{ events?.length }} événements)
-        </td>
-      </tr>
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->
         <td 
@@ -120,63 +110,80 @@
           </div>
         </td>
         
-        <!-- Cellules de sélection -->
+        <!-- Cellules de disponibilité -->
         <td
           v-for="event in events"
           :key="`${player.id}-${event.id}`"
           class="col-event p-2 md:p-1"
           :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
         >
-          <SelectionCell
+          <AvailabilityCell
             :player-name="player.name"
             :event-id="event.id"
+            :is-available="isAvailable(player.name, event.id)"
             :is-selected="isSelected(player.name, event.id)"
-            :is-selection-confirmed="isSelectionConfirmed(player.name, event.id)"
+            :is-selection-confirmed="isSelectionConfirmed(event.id)"
             :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-            :selection-status="getPlayerSelectionStatus(player.name, event.id)"
+            :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
             :season-id="seasonId"
-            :can-edit="false"
-            :selection-data="getSelectionData(player.name, event.id)"
             :player-gender="player.gender || 'non-specified'"
-            @selection-status-click="() => {}"
-            @player-selected="showPlayerDetails"
+            :chance-percent="chances[player.name]?.[event.id] ?? null"
+            :show-selected-chance="isSelectionComplete(event.id)"
+            :disabled="event._isArchived === true"
+            :availability-data="getAvailabilityData(player.name, event.id)"
+            :event-title="event.title"
+            :event-date="event.date"
+            :is-protected="isPlayerProtectedInGrid(player.id)"
+            @availability-changed="handleAvailabilityChanged"
+            @toggle="toggleAvailability"
+            @toggle-selection-status="toggleSelectionStatus"
+            @show-availability-modal="openAvailabilityModal"
+            @show-confirmation-modal="openConfirmationModal"
           />
         </td>
-        
-        <!-- Bouton "Afficher Tous" pour les joueurs si nécessaire -->
-        <td
-          v-if="!isAllPlayersView && hiddenPlayersCount > 0"
-          class="col-event p-2 md:p-1"
-          :style="{ width: `${itemWidth * 1.5}px`, minWidth: `${itemWidth * 1.5}px`, height: '4rem' }"
-        >
-          <div class="w-full h-full flex items-center justify-center">
-            <button
-              @click="loadAllPlayers"
-              class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
-              :title="`Afficher les ${hiddenPlayersCount} autres participants`"
-            >
-              +{{ hiddenPlayersCount }}
-            </button>
-          </div>
-        </td>
-        
-        <!-- Bouton "Afficher Tous" pour les événements si nécessaire -->
-        <td
-          v-if="!isAllEventsView && hiddenEventsCount > 0"
-          class="col-event p-2 md:p-1"
-          :style="{ width: `${itemWidth * 1.5}px`, minWidth: `${itemWidth * 1.5}px`, height: '4rem' }"
-        >
-          <div class="w-full h-full flex items-center justify-center">
-            <button
-              @click="loadAllEvents"
-              class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
-              :title="`Afficher les ${hiddenEventsCount} autres spectacles`"
-            >
-              +{{ hiddenEventsCount }}
-            </button>
-          </div>
-        </td>
       </tr>
+      
+      <!-- Ligne "Afficher Plus" -->
+      <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
+        <td 
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
+          :style="{ 
+            width: dynamicLeftColumnWidth, 
+            minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
+            maxWidth: dynamicLeftColumnWidth 
+          }"
+        >
+          <button
+            class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
+            @click="addAllPlayersToGrid"
+          >
+            <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+              <span class="text-white text-sm font-normal">+</span>
+            </div>
+            <span class="text-sm">
+              voir les {{ hiddenPlayersCount }} autres
+            </span>
+          </button>
+        </td>
+        
+        <!-- Cellules vides pour "Afficher Plus" -->
+      </tr>
+      
+    </template>
+    
+    <!-- En-tête "Afficher Tous" pour les événements -->
+    <template #show-more-events-header="{ itemWidth }">
+      <div
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
+        @click="addAllEventsToGrid"
+      >
+        <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+          <span class="text-white text-sm font-normal">+</span>
+        </div>
+        <span class="text-white text-xs text-center leading-tight">
+          voir les {{ hiddenEventsCount }} autres
+        </span>
+      </div>
     </template>
   </BaseGridView>
 </template>
@@ -185,8 +192,13 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import SelectionCell from './SelectionCell.vue'
+import AvailabilityCell from './AvailabilityCell.vue'
 import StatusBadge from './StatusBadge.vue'
+import { formatEventDate } from '../utils/dateUtils.js'
+import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
+import { getEventStatusWithSelection } from '../services/eventStatusService.js'
+import { loadPlayers, loadAvailability } from '../services/storage.js'
+import logger from '../services/logger.js'
 
 // Props
 const props = defineProps({
@@ -210,20 +222,33 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  isAllEventsView: {
+  canEditAvailability: {
     type: Boolean,
     default: false
   },
-  hiddenEventsCount: {
+  getPlayerAvailability: {
+    type: Function,
+    required: true
+  },
+  headerOffsetX: {
     type: Number,
     default: 0
   },
-  hiddenEventsDisplayText: {
-    type: String,
-    default: ''
+  headerScrollX: {
+    type: Number,
+    default: 0
   },
+  // Props supplémentaires pour AvailabilityCell
   seasonId: {
     type: String,
+    required: true
+  },
+  chances: {
+    type: Object,
+    default: () => ({})
+  },
+  isAvailable: {
+    type: Function,
     required: true
   },
   isSelected: {
@@ -242,103 +267,242 @@ const props = defineProps({
     type: Function,
     required: true
   },
-  getSelectionData: {
+  isSelectionComplete: {
     type: Function,
     required: true
+  },
+  getAvailabilityData: {
+    type: Function,
+    required: true
+  },
+  isPlayerProtectedInGrid: {
+    type: Function,
+    required: true
+  },
+  // Props pour le calcul du statut des événements
+  getSelectionPlayers: {
+    type: Function,
+    required: true
+  },
+  getTotalRequiredCount: {
+    type: Function,
+    required: true
+  },
+  countAvailablePlayers: {
+    type: Function,
+    required: true
+  },
+  casts: {
+    type: Object,
+    default: () => ({})
+  },
+  // Props pour les événements cachés
+  isAllEventsView: {
+    type: Boolean,
+    default: false
+  },
+  hiddenEventsCount: {
+    type: Number,
+    default: 0
+  },
+  hiddenEventsDisplayText: {
+    type: String,
+    default: ''
   }
 })
 
 // Emits
 const emit = defineEmits([
   'player-selected',
+  'availability-changed',
   'scroll',
+  'toggle-player-modal',
   'toggle-event-modal',
-  'load-all-players',
-  'load-all-events'
+  'toggle-availability',
+  'toggle-selection-status',
+  'show-availability-modal',
+  'event-click',
+  'all-players-loaded',
+  'all-events-loaded'
 ])
 
-// Références
-const gridboardRef = ref(null)
-const headerOffsetX = ref(0)
-const headerScrollX = ref(0)
+// State pour la réactivité de la largeur d'écran
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
-// Variables réactives pour la largeur de la fenêtre
-const windowWidth = ref(window.innerWidth)
-
-// Computed properties
-const participantsTitle = computed(() => 'Participants')
-
-const eventColumnWidth = computed(() => {
-  if (windowWidth.value <= 430) return 100
-  if (windowWidth.value <= 768) return 120
-  return 140
-})
-
-const dynamicLeftColumnWidth = computed(() => {
-  if (windowWidth.value <= 430) return '80px'
-  if (windowWidth.value <= 768) return '100px'
-  return '120px'
-})
-
-// Fonctions utilitaires
-function formatEventDate(dateString) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
-}
-
-function getEventIcon(event) {
-  // Logique pour déterminer l'icône de l'événement
-  if (event.archived) return '📁'
-  if (event._isPast) return '⏰'
-  return '🎭'
-}
-
-function getEventStatus(event) {
-  // Logique pour déterminer le statut de l'événement
-  if (event.archived) return 'archived'
-  if (event._isPast) return 'past'
-  return 'active'
-}
-
-// Gestionnaires d'événements
-function showPlayerDetails(player) {
-  emit('player-selected', player)
-}
-
-function openEventModal(event) {
-  emit('toggle-event-modal', event)
-}
-
-function loadAllPlayers() {
-  emit('load-all-players')
-}
-
-function loadAllEvents() {
-  emit('load-all-events')
-}
-
-function handleScroll(event) {
-  const scrollLeft = event.target.scrollLeft
-  headerScrollX.value = scrollLeft
-  emit('scroll', { scrollLeft })
-}
-
-// Gestion de la largeur de la fenêtre
-function updateWindowWidth() {
-  windowWidth.value = window.innerWidth
-}
-
+// Écouter les changements de taille d'écran
 onMounted(() => {
+  const updateWindowWidth = () => {
+    windowWidth.value = window.innerWidth
+  }
+  
+  updateWindowWidth()
   window.addEventListener('resize', updateWindowWidth)
-  console.log('🎭 CastsView mounted:', {
-    events: props.events?.length,
-    players: props.displayedPlayers?.length,
-    seasonId: props.seasonId
+  
+  onUnmounted(() => {
+    window.removeEventListener('resize', updateWindowWidth)
   })
 })
 
-onUnmounted(() => {
-  window.removeEventListener('resize', updateWindowWidth)
+// Calculer la largeur dynamique de la colonne des événements
+const dynamicLeftColumnWidth = computed(() => {
+  const playerCount = props.displayedPlayers?.length || 0
+  const hiddenCount = props.hiddenPlayersCount || 0
+  const totalPlayers = playerCount + hiddenCount
+  
+  // Sur mobile (iPhone SE), utiliser des largeurs plus importantes pour la lisibilité
+  if (windowWidth.value <= 375) {
+    // iPhone SE : largeur fixe plus importante pour la lisibilité
+    return '10rem' // 160px - suffisant pour lire noms de joueurs
+  }
+  // iPhone 16 Plus et écrans moyens
+  else if (windowWidth.value <= 430) {
+    return '8rem' // 128px
+  }
+  // Desktop et autres écrans
+  else {
+    // Si peu de joueurs (1-3), colonne plus étroite
+    if (totalPlayers <= 3) {
+      return '5rem' // 80px
+    }
+    // Si nombre moyen de joueurs (4-10), colonne moyenne
+    else if (totalPlayers <= 10) {
+      return '7rem' // 112px
+    }
+    // Si beaucoup de joueurs (11+), colonne plus large
+    else {
+      return '10rem' // 160px
+    }
+  }
 })
+
+// Computed
+const participantsTitle = computed(() => {
+  if (!props.displayedPlayers) return 'Participants (0)'
+  const count = props.displayedPlayers.length || 0
+  
+  // Texte plus court sur mobile
+  if (window.innerWidth <= 430) {
+    return `Part. (${count})`
+  }
+  
+  return `Participants (${count})`
+})
+
+const eventColumnWidth = ref(300) // Valeur par défaut
+
+const updateEventColumnWidth = () => {
+  if (windowWidth.value <= 375) {
+    eventColumnWidth.value = 144 // 9rem pour iPhone 16 et plus petit
+  } else if (windowWidth.value <= 430) {
+    eventColumnWidth.value = 160 // 10rem pour iPhone 16 Plus
+  } else if (windowWidth.value <= 768) {
+    eventColumnWidth.value = 160 // 10rem pour écrans moyens
+  } else {
+    eventColumnWidth.value = 300 // Desktop - plus d'espace pour les titres d'événements
+  }
+}
+
+// Écouter les changements de taille d'écran
+onMounted(() => {
+  updateEventColumnWidth()
+  window.addEventListener('resize', updateEventColumnWidth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateEventColumnWidth)
+})
+
+// Fonctions utilitaires
+const getEventIcon = (event) => {
+  return EVENT_TYPE_ICONS[event.templateType] || '❓'
+}
+
+const getEventStatus = (event) => {
+  return getEventStatusWithSelection(event, {
+    getSelectionPlayers: props.getSelectionPlayers,
+    getTotalRequiredCount: props.getTotalRequiredCount,
+    countAvailablePlayers: props.countAvailablePlayers,
+    isSelectionConfirmed: props.isSelectionConfirmed,
+    isSelectionConfirmedByOrganizer: props.isSelectionConfirmedByOrganizer,
+    casts: props.casts
+  })
+}
+
+// Methods
+const showPlayerDetails = (player) => {
+  emit('player-selected', player)
+}
+
+const handleAvailabilityChanged = (data) => {
+  emit('availability-changed', data)
+}
+
+const handleScroll = (event) => {
+  emit('scroll', event)
+}
+
+const togglePlayerModal = () => {
+  emit('toggle-player-modal')
+}
+
+const toggleEventModal = () => {
+  emit('toggle-event-modal')
+}
+
+const toggleAvailability = (playerName, eventId) => {
+  emit('toggle-availability', playerName, eventId)
+}
+
+const toggleSelectionStatus = (playerName, eventId, status, seasonId) => {
+  emit('toggle-selection-status', playerName, eventId, status, seasonId)
+}
+
+const openAvailabilityModal = (data) => {
+  emit('show-availability-modal', data)
+}
+
+const openConfirmationModal = (data) => {
+  emit('show-confirmation-modal', data)
+}
+
+const openEventModal = (event) => {
+  emit('event-click', event)
+}
+
+// Fonction pour ajouter tous les joueurs à la grille
+async function addAllPlayersToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les joueurs de la saison...')
+    
+    // Charger tous les joueurs
+    const allPlayers = await loadPlayers(props.seasonId)
+    
+    // Recharger les disponibilités pour tous les joueurs
+    const newAvailability = await loadAvailability(allPlayers, props.events, props.seasonId)
+    
+    logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
+    logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
+    
+    // Émettre l'événement pour notifier le parent
+    emit('all-players-loaded', { players: allPlayers, availability: newAvailability })
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les joueurs:', error)
+  }
+}
+
+// Fonction pour ajouter tous les événements à la grille
+async function addAllEventsToGrid() {
+  try {
+    logger.debug('🔄 Chargement de tous les événements de la saison...')
+    
+    // Émettre l'événement pour notifier le parent de charger tous les événements
+    emit('all-events-loaded')
+    
+    logger.debug('✅ Demande de chargement de tous les événements envoyée')
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement de tous les événements:', error)
+  }
+}
 </script>
+
+<!-- Styles gérés par BaseGridView.vue -->

@@ -100,7 +100,7 @@
     />
 
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
       
       <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
@@ -189,11 +189,6 @@
         @all-events-loaded="handleAllEventsLoaded"
       />
 
-      <!-- Debug: afficher la valeur de validCurrentView -->
-      <div v-if="validCurrentView === 'casts'" class="text-white p-4 bg-red-500">
-        DEBUG: validCurrentView = 'casts' - CastsView devrait s'afficher
-      </div>
-      
       <CastsView
         v-if="validCurrentView === 'casts'"
         key="casts-view"
@@ -205,24 +200,36 @@
         :is-all-events-view="isAllEventsView"
         :hidden-events-count="hiddenEventsCount"
         :hidden-events-display-text="hiddenEventsDisplayText"
+        :can-edit-availability="canEditAvailability"
+        :get-player-availability="getPlayerAvailability"
         :season-id="seasonId"
+        :chances="chances"
+        :is-available="isAvailable"
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
         :get-player-selection-status="getPlayerSelectionStatus"
-        :get-selection-data="getSelectionData"
+        :is-selection-complete="isSelectionComplete"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        :casts="casts"
         :header-offset-x="0"
         :header-scroll-x="0"
         @player-selected="showPlayerDetails"
-        @toggle-event-modal="toggleEventModal"
+        @availability-changed="handleAvailabilityChanged"
+        @scroll="handleGridScroll"
+        @toggle-player-modal="togglePlayerModal"
+        @toggle-availability="toggleAvailability"
+        @toggle-selection-status="toggleSelectionStatus"
+        @show-availability-modal="openAvailabilityModal"
+        @show-confirmation-modal="openConfirmationModal"
+        @event-click="openEventModal"
         @all-players-loaded="handleAllPlayersLoaded"
         @all-events-loaded="handleAllEventsLoaded"
       />
-
-      <!-- Debug: afficher la valeur actuelle de validCurrentView -->
-      <div class="text-white p-2 bg-blue-500 text-xs">
-        DEBUG: validCurrentView = "{{ validCurrentView }}"
-      </div>
                 </div>
                 
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
