@@ -114,7 +114,7 @@
                 v-if="hoveredStat === 'availabilities'"
                 class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
               >
-                Disponibilités + sélections non déclinées<br>
+                Nombre de dispos<br>
                 Taux = ({{ props.stats.timesAvailable }} ÷ {{ props.stats.totalNonArchivedEvents || 'total' }}) × 100
               </div>
             </div>
@@ -132,7 +132,7 @@
                 v-if="hoveredStat === 'selections'"
                 class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
               >
-                Sélections confirmées non déclinées<br>
+                Sélections non déclinées<br>
                 Taux = ({{ props.stats.totalInitialSelections || (props.stats.selection + props.stats.declines) }} ÷ {{ props.stats.timesAvailable }}) × 100
               </div>
             </div>
