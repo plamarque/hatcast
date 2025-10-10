@@ -77,6 +77,11 @@ const props = defineProps({
     type: String,
     default: 'none' // 'none', 'pending', 'confirmed', 'declined'
   },
+  // Compatibilité avec AvailabilityCell
+  playerSelectionStatus: {
+    type: String,
+    default: 'pending' // 'pending', 'confirmed', 'declined'
+  },
   seasonId: {
     type: String,
     required: true
@@ -94,6 +99,16 @@ const props = defineProps({
     type: Object,
     default: () => null
   },
+  // Compatibilité avec AvailabilityCell
+  availabilityData: {
+    type: Object,
+    default: () => ({
+      available: false,
+      roles: [],
+      comment: null,
+      isSelectionDisplay: false
+    })
+  },
   playerGender: {
     type: String,
     default: 'non-specified'
@@ -108,7 +123,8 @@ const emit = defineEmits([
 
 // Computed properties
 const playerSelectionStatus = computed(() => {
-  return props.selectionStatus
+  // Utiliser playerSelectionStatus en priorité (compatibilité AvailabilityCell)
+  return props.playerSelectionStatus || props.selectionStatus
 })
 
 // Fonctions utilitaires
@@ -128,22 +144,26 @@ function getRoleLabel(role, gender = 'non-specified', plural = false) {
 }
 
 function getConfirmedRoleLabel() {
-  if (!props.selectionData?.roles || props.selectionData.roles.length === 0) {
+  // Utiliser selectionData en priorité, sinon availabilityData
+  const data = props.selectionData || props.availabilityData
+  if (!data?.roles || data.roles.length === 0) {
     return 'Joue' // Fallback si pas de rôle
   }
   
   // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
-  const role = props.selectionData.roles[0]
+  const role = data.roles[0]
   return getRoleLabel(role, props.playerGender, false) || 'Joue'
 }
 
 function getRoleEmoji() {
-  if (!props.selectionData?.roles || props.selectionData.roles.length === 0) {
+  // Utiliser selectionData en priorité, sinon availabilityData
+  const data = props.selectionData || props.availabilityData
+  if (!data?.roles || data.roles.length === 0) {
     return '🎭' // Fallback si pas de rôle
   }
   
   // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
-  const role = props.selectionData.roles[0]
+  const role = data.roles[0]
   return ROLE_EMOJIS[role] || '🎭'
 }
 

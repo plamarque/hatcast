@@ -117,28 +117,17 @@
           class="col-event p-2 md:p-1"
           :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
         >
-          <AvailabilityCell
+          <SelectionCell
             :player-name="player.name"
             :event-id="event.id"
-            :is-available="isAvailable(player.name, event.id)"
             :is-selected="isSelected(player.name, event.id)"
-            :is-selection-confirmed="isSelectionConfirmed(event.id)"
+            :is-selection-confirmed="isSelectionConfirmed(player.name, event.id)"
             :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
             :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
             :season-id="seasonId"
-            :player-gender="player.gender || 'non-specified'"
-            :chance-percent="chances[player.name]?.[event.id] ?? null"
-            :show-selected-chance="isSelectionComplete(event.id)"
-            :disabled="event._isArchived === true"
+            :can-edit="false"
             :availability-data="getAvailabilityData(player.name, event.id)"
-            :event-title="event.title"
-            :event-date="event.date"
-            :is-protected="isPlayerProtectedInGrid(player.id)"
-            @availability-changed="handleAvailabilityChanged"
-            @toggle="toggleAvailability"
-            @toggle-selection-status="toggleSelectionStatus"
-            @show-availability-modal="openAvailabilityModal"
-            @show-confirmation-modal="openConfirmationModal"
+            :player-gender="player.gender || 'non-specified'"
           />
         </td>
       </tr>
@@ -192,7 +181,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import AvailabilityCell from './AvailabilityCell.vue'
+import SelectionCell from './SelectionCell.vue'
 import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
