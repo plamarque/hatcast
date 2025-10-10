@@ -423,105 +423,107 @@
                     :key="item.id"
                     class="bg-gray-700/50 rounded-lg p-4"
                   >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-3">
-                          <!-- Icône pour les invitations seulement (les utilisateurs ont PlayerAvatar) -->
-                          <span v-if="item.type === 'invitation'" class="text-2xl">
-                            {{ getInvitationIcon(item.status) }}
-                          </span>
+                    <!-- Layout responsive : vertical sur mobile, horizontal sur desktop -->
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      
+                      <!-- Section principale : Avatar et infos -->
+                      <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <!-- Icône pour les invitations seulement (les utilisateurs ont PlayerAvatar) -->
+                        <span v-if="item.type === 'invitation'" class="text-2xl flex-shrink-0">
+                          {{ getInvitationIcon(item.status) }}
+                        </span>
+                        
+                        <!-- Avatar du joueur -->
+                        <PlayerAvatar
+                          :player-id="getPlayerId(item)"
+                          :season-id="seasonId"
+                          :player-name="getPlayerName(item)"
+                          :player-gender="getPlayerGender(item)"
+                          size="sm"
+                          rounded="full"
+                          class="flex-shrink-0"
+                        />
+                        
+                        <!-- Informations du participant -->
+                        <div class="flex-1 min-w-0">
+                          <!-- Nom du joueur -->
+                          <div class="text-white font-medium truncate">
+                            {{ getPlayerName(item) }}
+                          </div>
                           
-                          <div class="flex-1">
-                            <!-- Nom du participant (joueur) avec avatar -->
-                            <div class="flex items-center gap-3">
-                              <!-- Avatar du joueur -->
-                              <PlayerAvatar
-                                :player-id="getPlayerId(item)"
-                                :season-id="seasonId"
-                                :player-name="getPlayerName(item)"
-                                :player-gender="getPlayerGender(item)"
-                                size="sm"
-                                rounded="full"
-                              />
-                              
-                              <!-- Nom du joueur à côté de l'avatar -->
-                              <div class="text-white font-medium">
-                                {{ getPlayerName(item) }}
-                              </div>
-                              
-                              <!-- Actions pour les utilisateurs actifs -->
-                              <div v-if="item.type === 'user'" class="flex items-center gap-3 ml-auto">
-                                <!-- Email de l'utilisateur -->
-                                <span class="text-sm text-gray-400">
-                                  {{ getPlayerEmail(item) }}
-                                </span>
-                                <!-- Date de dernière connexion -->
-                                <span class="text-xs text-gray-500">
-                                  {{ getLastConnectionText(item) }}
-                                </span>
-                                <!-- Switch Admin -->
-                                <label class="flex items-center gap-2">
-                                  <span class="text-sm text-gray-300">Admin</span>
-                                  <div class="relative">
-                                    <input
-                                      type="checkbox"
-                                      :checked="item.isAdmin"
-                                      @change="handleMakeAdmin(item.email, $event.target.checked)"
-                                      class="sr-only"
-                                    />
-                                    <div 
-                                      :class="[
-                                        'w-11 h-6 rounded-full transition-colors duration-200 ease-in-out',
-                                        item.isAdmin ? 'bg-blue-600' : 'bg-gray-600'
-                                      ]"
-                                    >
-                                      <div 
-                                        :class="[
-                                          'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out',
-                                          item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'
-                                        ]"
-                                      ></div>
-                                    </div>
-                                  </div>
-                                </label>
-                                <!-- Bouton suppression -->
-                                <button
-                                  @click="handleDeleteParticipant(item)"
-                                  class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
-                                  title="Supprimer ce participant"
-                                >
-                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                              
-                              <!-- Actions pour les joueurs non associés -->
-                              <div v-else-if="item.type === 'player'" class="flex items-center gap-3 ml-auto">
-                                <!-- Statut du joueur -->
-                                <span class="text-sm text-gray-500">
-                                  Joueur sans compte
-                                </span>
-                                <!-- Bouton suppression -->
-                                <button
-                                  @click="handleDeleteParticipant(item)"
-                                  class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
-                                  title="Supprimer ce participant"
-                                >
-                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
+                          <!-- Email et statut -->
+                          <div class="text-sm text-gray-400 truncate">
+                            {{ getPlayerEmail(item) }}
+                          </div>
+                          <div class="text-xs text-gray-500">
+                            {{ getLastConnectionText(item) }}
                           </div>
                         </div>
                       </div>
                       
-                      <!-- Actions selon le type et statut -->
-                      <div class="flex items-center gap-2 ml-4">
+                      <!-- Section actions : responsive -->
+                      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:ml-4 lg:flex-shrink-0">
+                        
+                        <!-- Actions pour les utilisateurs actifs -->
+                        <template v-if="item.type === 'user'">
+                          <!-- Switch Admin -->
+                          <label class="flex items-center gap-2">
+                            <span class="text-sm text-gray-300">Admin</span>
+                            <div class="relative">
+                              <input
+                                type="checkbox"
+                                :checked="item.isAdmin"
+                                @change="handleMakeAdmin(item.email, $event.target.checked)"
+                                class="sr-only"
+                              />
+                              <div 
+                                :class="[
+                                  'w-11 h-6 rounded-full transition-colors duration-200 ease-in-out',
+                                  item.isAdmin ? 'bg-blue-600' : 'bg-gray-600'
+                                ]"
+                              >
+                                <div 
+                                  :class="[
+                                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out',
+                                    item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'
+                                  ]"
+                                ></div>
+                              </div>
+                            </div>
+                          </label>
+                          
+                          <!-- Bouton suppression -->
+                          <button
+                            @click="handleDeleteParticipant(item)"
+                            class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Supprimer ce participant"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </template>
+                        
+                        <!-- Actions pour les joueurs non associés -->
+                        <template v-else-if="item.type === 'player'">
+                          <!-- Statut du joueur -->
+                          <span class="text-sm text-gray-500">
+                            Joueur sans compte
+                          </span>
+                          <!-- Bouton suppression -->
+                          <button
+                            @click="handleDeleteParticipant(item)"
+                            class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Supprimer ce participant"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </template>
+                        
                         <!-- Actions pour les invitations -->
-                        <template v-if="item.type === 'invitation'">
+                        <template v-else-if="item.type === 'invitation'">
                           <!-- Copier le lien -->
                           <button
                             @click="copyInviteLink(item.id)"
@@ -567,11 +569,6 @@
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                           </button>
-                        </template>
-                        
-                        <!-- Actions pour les utilisateurs actifs -->
-                        <template v-else-if="item.type === 'user'">
-                          <!-- Pas d'actions pour l'instant, juste le switcher admin -->
                         </template>
                       </div>
                     </div>
