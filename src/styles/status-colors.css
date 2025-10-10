@@ -25,6 +25,11 @@
   @apply bg-gradient-to-r from-red-500/60 to-red-600/60 border-red-500/30;
 }
 
+/* Statut : Non renseigné (pas de réponse) */
+.status-unanswered {
+  @apply bg-gradient-to-r from-gray-400/60 to-gray-500/60 border-gray-400/30;
+}
+
 /* Statut : Indisponible (déjà pris) */
 .status-indisponible {
   @apply bg-gradient-to-r from-yellow-500/60 to-orange-500/60 border-yellow-500/30;

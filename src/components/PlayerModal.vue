@@ -98,29 +98,61 @@
 
       <!-- Content (scrollable) -->
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <!-- Stats condensées en 2x2 -->
+        <!-- Stats condensées en 3 cases -->
         <div>
-          <div class="grid grid-cols-2 gap-3 md:gap-4">
-            <!-- Ligne du haut : Participations et Taux de sélection -->
-            <div class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Participations</div>
-            </div>
-            <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}%</div>
-              <div class="text-xs md:text-sm text-gray-300">Taux de sélection</div>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4">
-            <!-- Ligne du bas : Disponibilités et Désistements -->
-            <div class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal">({{ props.stats.availability }}%)</span></div>
+          <div class="grid grid-cols-3 gap-3 md:gap-4">
+            <!-- Disponibilités -->
+            <div 
+              class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center relative cursor-help"
+              @mouseenter="hoveredStat = 'availabilities'"
+              @mouseleave="hoveredStat = null"
+            >
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal text-sm md:text-lg">({{ props.stats.availability }}%)</span></div>
               <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
+              <!-- Tooltip -->
+              <div 
+                v-if="hoveredStat === 'availabilities'"
+                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
+              >
+                Nombre de dispos<br>
+                Taux = ({{ props.stats.timesAvailable }} ÷ {{ props.stats.totalNonArchivedEvents || 'total' }}) × 100
+              </div>
             </div>
-            <div class="bg-gradient-to-r from-red-500/20 to-orange-500/20 p-3 md:p-4 rounded-lg border border-red-500/30 text-center">
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.declines }} <span class="font-normal">({{ props.stats.declineRate }}%)</span></div>
+            
+            <!-- Sélections avec taux -->
+            <div 
+              class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center relative cursor-help"
+              @mouseenter="hoveredStat = 'selections'"
+              @mouseleave="hoveredStat = null"
+            >
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }} <span class="font-normal text-sm md:text-lg">({{ props.stats.ratio }}%)</span></div>
+              <div class="text-xs md:text-sm text-gray-300">Sélections</div>
+              <!-- Tooltip -->
+              <div 
+                v-if="hoveredStat === 'selections'"
+                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
+              >
+                Sélections non déclinées<br>
+                Taux = ({{ props.stats.totalInitialSelections || (props.stats.selection + props.stats.declines) }} ÷ {{ props.stats.timesAvailable }}) × 100
+              </div>
+            </div>
+            
+            <!-- Désistements -->
+            <div 
+              class="bg-gradient-to-r from-red-500/20 to-orange-500/20 p-3 md:p-4 rounded-lg border border-red-500/30 text-center relative cursor-help"
+              @mouseenter="hoveredStat = 'declines'"
+              @mouseleave="hoveredStat = null"
+            >
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.declines }} <span class="font-normal text-sm md:text-lg">({{ props.stats.declineRate }}%)</span></div>
               <div class="text-xs md:text-sm text-gray-300">Désistements</div>
+              <!-- Tooltip -->
+              <div 
+                v-if="hoveredStat === 'declines'"
+                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
+              >
+                Sélections déclinées<br>
+                Taux = ({{ props.stats.declines }} ÷ {{ props.stats.totalInitialSelections || (props.stats.selection + props.stats.declines) }}) × 100
+              </div>
             </div>
           </div>
         </div>
@@ -179,7 +211,10 @@
                 <span v-else-if="hoveredActivity.status === 'declined'"> - Décliné</span>
               </div>
               <div v-else-if="hoveredActivity.type === 'availability'">
-                {{ hoveredActivity.status === 'available' ? 'Disponible' : 'Indisponible' }}
+                <span v-if="hoveredActivity.status === 'available'">Disponible</span>
+                <span v-else-if="hoveredActivity.status === 'unavailable'">Indisponible</span>
+                <span v-else-if="hoveredActivity.status === 'unanswered'">Non renseigné</span>
+                <span v-else>Non renseigné</span>
               </div>
             </div>
             
@@ -378,16 +413,20 @@
           <div v-if="selectedSelection.type !== 'selection'" class="flex items-center gap-3">
             <div 
               class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
-              :class="getAvailabilityColor(selectedSelection.availabilityStatus)"
+              :class="getStatusColor(selectedSelection.type, selectedSelection.status)"
             >
-              <span>{{ selectedSelection.availabilityStatus === 'available' ? '✅' : '❌' }}</span>
+              <span v-if="selectedSelection.status === 'available'">✅</span>
+              <span v-else-if="selectedSelection.status === 'unavailable'">❌</span>
+              <span v-else-if="selectedSelection.status === 'unanswered'">❓</span>
+              <span v-else>❓</span>
             </div>
             <div>
               <div class="text-sm text-gray-400">Disponibilité</div>
               <div class="text-white font-medium">
-                <span v-if="selectedSelection.availabilityStatus === 'available'" class="text-green-400">Disponible</span>
-                <span v-else-if="selectedSelection.availabilityStatus === 'unavailable'" class="text-red-400">Indisponible</span>
-                <span v-else class="text-gray-400">Non renseignée</span>
+                <span v-if="selectedSelection.status === 'available'" class="text-green-400">Disponible</span>
+                <span v-else-if="selectedSelection.status === 'unavailable'" class="text-red-400">Indisponible</span>
+                <span v-else-if="selectedSelection.status === 'unanswered'" class="text-gray-400">Non renseigné</span>
+                <span v-else class="text-gray-400">Non renseigné</span>
               </div>
             </div>
           </div>
@@ -399,7 +438,12 @@
             </div>
             <div>
               <div class="text-sm text-gray-400">Événement</div>
-              <div class="text-white font-medium">{{ selectedSelection.eventTitle }}</div>
+              <a 
+                :href="`?event=${selectedSelection.eventId}&modal=event_details`"
+                class="text-white font-medium hover:text-purple-300 transition-colors cursor-pointer text-left"
+              >
+                {{ selectedSelection.eventTitle }}
+              </a>
             </div>
           </div>
           
@@ -480,6 +524,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated', 'show-availability-grid'])
 
+
 // Fonctions helper pour le graphique mensuel
 const getBarHeight = (count) => {
   const maxCount = Math.max(...reorderedMonthlyData.value)
@@ -538,6 +583,9 @@ const showSelectionDetailsModal = ref(false)
 // Variable pour le tooltip au survol
 const hoveredActivity = ref(null)
 
+// Variables pour les tooltips des statistiques
+const hoveredStat = ref(null)
+
 // Fonction pour calculer la position du tooltip
 const getTooltipPosition = (activity) => {
   if (!activity) return {}
@@ -578,6 +626,7 @@ const getStatusColor = (type, status) => {
     switch (status) {
       case 'available': return 'status-available'
       case 'unavailable': return 'status-unavailable'
+      case 'unanswered': return 'status-unanswered'
       default: return 'status-undefined'
     }
   }

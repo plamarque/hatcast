@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.28.0",
+    "date": "2025-10-10",
+    "changes": [
+      "✨ Ajout d'un tooltip explicatif pour l'algorithme de Bruno.",
+      "✨ Amélioration du tooltip d'explication des chances avec un calcul détaillé.",
+      "✨ Ajout de boutons de raccourci dans l'onglet des disponibilités.",
+      "✨ Ajout de la navigation vers la fenêtre de détail d'événement depuis la fenêtre de sélection de joueur.",
+      "✨ Amélioration de l'interface utilisateur pour les statistiques des joueurs.",
+      "🐛 Correction du calcul des chances théoriques dans le tooltip.",
+      "🐛 Amélioration de la visibilité des pourcentages pour les joueurs sélectionnés.",
+      "🐛 Correction du calcul des refus dans les statistiques des joueurs.",
+      "🐛 Correction des calculs des statistiques des joueurs."
+    ]
+  },
+  {
     "version": "0.27.2",
     "date": "2025-10-10",
     "changes": [

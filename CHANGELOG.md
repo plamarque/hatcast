@@ -1,16 +1,33 @@
-## [0.27.2] - 2025-10-10
+## [0.28.0] - 2025-10-10
+
+### ✨ New Features
+
+- feat: add explanatory tooltip for Bruno algorithm
+- feat: improve chance explanation tooltip with detailed calculation
+- feat: add shortcut buttons in availabilities tab
+- feat: add navigation to event details from player selection popup
+- feat: improve player statistics UI layout and styling
 
 ### 🐛 Bug Fixes
 
-- fix: prevent deployment failure on orphaned functions
+- fix: correct theoretical chance calculation in tooltip
+- fix: improve percentage visibility for selected players
+- fix: correct declines calculation in player statistics
+- fix: correct player statistics calculations and add debug tooltips
+
+### 🔧 Improvements
+
+- refactor: improve tooltip text and formatting for better readability
 
 ### 📝 Other Changes
 
-- release: version 0.27.1
+- simplify uplayer stat tooltips
+- release: version 0.27.2
 
 
 # Changelog
 
+## [0.28.0] - 2025-10-10
 ## [0.27.2] - 2025-10-10
 ## [0.27.1] - 2025-10-10
 ## [0.27.0] - 2025-10-09
