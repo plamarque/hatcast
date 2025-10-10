@@ -1,8 +1,8 @@
 <template>
-  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-[1370] p-1 sm:p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-lg h-[98vh] sm:max-h-[90vh] flex flex-col mx-1 sm:mx-0 mt-2 sm:mt-0">
+  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-[1370] p-0 sm:p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-none sm:rounded-2xl shadow-2xl w-full max-w-none sm:max-w-lg h-screen sm:max-h-[90vh] flex flex-col mt-0 sm:mt-0">
       <!-- Header fixe -->
-      <div class="p-3 sm:p-6 pb-2 sm:pb-4 border-b border-gray-700/50 relative flex-shrink-0">
+      <div class="p-2 sm:p-6 pb-2 sm:pb-4 border-b border-gray-700/50 relative flex-shrink-0">
         <h2 class="text-lg sm:text-2xl font-bold text-white text-center">
           {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
         </h2>
@@ -20,7 +20,7 @@
       </div>
 
       <!-- Contenu scrollable -->
-      <div class="flex-1 overflow-y-auto p-3 sm:p-6 pt-2 sm:pt-4">
+      <div class="flex-1 overflow-y-auto p-2 sm:p-6 pt-2 sm:pt-4">
         <form @submit.prevent="handleSubmit" class="space-y-3 sm:space-y-6">
         <!-- Ligne 1 : Titre (pleine largeur) -->
         <div>
@@ -28,7 +28,7 @@
           <input
             v-model="formData.title"
             type="text"
-            class="w-full p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            class="w-full p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             placeholder="Titre du spectacle"
             @keydown.esc="handleCancel"
             @keydown.enter="handleSubmit"
@@ -43,7 +43,7 @@
           <input
             v-model="formData.date"
             type="date"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+            class="w-full p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
             @keydown.esc="handleCancel"
             @keydown.enter="handleSubmit"
             required
@@ -56,7 +56,7 @@
           <input
             v-model="formData.location"
             type="text"
-            class="w-full p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            class="w-full p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             placeholder="Lieu du spectacle (optionnel)"
             @keydown.esc="handleCancel"
           >
@@ -67,7 +67,7 @@
           <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
           <textarea
             v-model="formData.description"
-            class="w-full p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            class="w-full p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             rows="3"
             placeholder="Description du spectacle (optionnel)"
             @keydown.esc="handleCancel"
@@ -77,27 +77,19 @@
         <!-- Ligne 5 : Type de spectacle et badge personnes -->
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-2">Type de spectacle</label>
-          <div class="flex items-center justify-between gap-2 sm:gap-3">
-            <select
-              v-model="selectedRoleTemplate"
-              @change="applyRoleTemplate(selectedRoleTemplate)"
-              class="flex-1 p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+          <select
+            v-model="selectedRoleTemplate"
+            @change="applyRoleTemplate(selectedRoleTemplate)"
+            class="w-full p-2 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+          >
+            <option
+              v-for="templateId in TEMPLATE_DISPLAY_ORDER"
+              :key="templateId"
+              :value="templateId"
             >
-              <option
-                v-for="templateId in TEMPLATE_DISPLAY_ORDER"
-                :key="templateId"
-                :value="templateId"
-              >
-                {{ EVENT_TYPE_ICONS[templateId] }} {{ ROLE_TEMPLATES[templateId].name }}
-              </option>
-            </select>
-            <div class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-700/50 border border-gray-600 rounded-lg flex-shrink-0">
-              <span class="text-gray-300 text-sm">👥</span>
-              <span class="text-xs sm:text-sm text-gray-200 font-medium">
-                {{ totalTeamSize }} <span class="hidden sm:inline">personnes</span><span class="sm:hidden">pers.</span>
-              </span>
-            </div>
-          </div>
+              {{ EVENT_TYPE_ICONS[templateId] }} {{ ROLE_TEMPLATES[templateId].name }}
+            </option>
+          </select>
         </div>
 
         <!-- Ligne 6 : Nombre de joueurs -->
@@ -203,7 +195,7 @@
                 type="number"
                 min="0"
                 max="20"
-                class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+                class="w-12 sm:w-16 p-1.5 sm:p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
                 @keydown.esc="handleCancel"
               >
             </div>
@@ -219,7 +211,7 @@
                 type="number"
                 min="0"
                 max="20"
-                class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+                class="w-12 sm:w-16 p-1.5 sm:p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
                 @keydown.esc="handleCancel"
               >
             </div>
@@ -253,12 +245,12 @@
       </div>
 
       <!-- Boutons fixes en bas -->
-      <div class="p-3 sm:p-6 pt-2 sm:pt-4 border-t border-gray-700/50 flex-shrink-0">
+      <div class="p-2 sm:p-6 pt-2 sm:pt-4 border-t border-gray-700/50 flex-shrink-0">
         <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             @click="handleCancel"
             type="button"
-            class="px-6 py-3 text-gray-300 hover:text-white transition-colors"
+            class="hidden sm:inline-block px-6 py-3 text-gray-300 hover:text-white transition-colors"
           >
             Annuler
           </button>
