@@ -20,8 +20,9 @@
     />
 
     <!-- Contenu principal -->
-    <div class="pb-16 px-4" style="padding-top: calc(2rem + env(safe-area-inset-top));">
-      <div class="max-w-4xl mx-auto">
+    <div class="h-full flex flex-col px-4" style="padding-top: calc(2rem + env(safe-area-inset-top));">
+      <!-- Messages d'erreur et succès -->
+      <div class="flex-shrink-0">
         <!-- Message d'erreur -->
         <div v-if="errorMessage" class="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6">
           <div class="flex items-center justify-between">
@@ -55,9 +56,10 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <!-- Système d'onglets -->
-        <div class="bg-gray-800/50 rounded-lg overflow-hidden">
+      <!-- Système d'onglets - prend tout l'espace restant -->
+      <div class="bg-gray-800/50 rounded-lg overflow-hidden flex-1 flex flex-col">
           <!-- Navigation des onglets -->
           <div class="flex border-b border-white/10">
             <button
@@ -65,7 +67,7 @@
               :class="activeTab === 'info' ? 'bg-gray-700 text-white border-b-2 border-purple-400' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
               class="flex-1 px-6 py-4 text-center font-medium transition-all duration-200"
             >
-              📊 Informations
+              🎭 Saison
             </button>
             <button
               @click="activeTab = 'events'"
@@ -84,12 +86,12 @@
           </div>
 
           <!-- Contenu des onglets -->
-          <div class="p-6">
+          <div class="p-6 flex-1 overflow-y-auto">
             <!-- Onglet Informations -->
             <div v-if="activeTab === 'info'" class="space-y-6">
               <!-- Carte de saison -->
               <div>
-                <h2 class="text-2xl font-bold text-white mb-4">📋 Informations de la saison</h2>
+                <h2 class="text-2xl font-bold text-white mb-4">🎭 Informations de la saison</h2>
                 <div class="flex justify-center">
                   <SeasonCard 
                     :season="seasonCardData"
@@ -130,7 +132,7 @@
 
               <!-- Statistiques de la saison -->
               <div>
-                <h2 class="text-2xl font-bold text-white mb-4">📊 Statistiques de la saison</h2>
+                <h2 class="text-2xl font-bold text-white mb-4">🎭 Statistiques de la saison</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div class="bg-gray-700/50 rounded-lg p-4">
                     <div class="flex items-center gap-3 mb-2">
@@ -621,7 +623,6 @@
           </div>
         </div>
       </div>
-    </div>
 
     <!-- Modales -->
     <ModalManager
