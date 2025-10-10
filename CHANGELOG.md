@@ -1,32 +1,23 @@
-## [0.27.0] - 2025-10-09
+## [0.27.1] - 2025-10-10
 
 ### ✨ New Features
 
-- feat: add Free Form event type with butterfly emoji
-- feat: add Catch event type with 9 players, MC and DJ
-- feat: enable event filter in timeline view
-- feat: show detailed availability stats in agenda view
+- feat: implement audit management with Firebase secrets
 
 ### 🐛 Bug Fixes
 
-- fix: change cabaret and longform type emojis
-- fix: preserve All filter when opening event modal from timeline
-- fix: correct totalRequired calculation in timeline view
-- fix: agenda view shows correct player name
-
-### 🔧 Improvements
-
-- refactor: centralize location truncation logic
-- refactor: improve player instruction logic in agenda
+- fix: Display only cast role in agenda view
+- fix: handle Firestore timestamp formats in audit logs display
+- fix: preserve Date objects in cleanDataForFirestore
 
 ### 📝 Other Changes
 
-- ui: remove pin emoji from location in Timeline view
-- release: version 0.26.0
+- release: version 0.27.0
 
 
 # Changelog
 
+## [0.27.1] - 2025-10-10
 ## [0.27.0] - 2025-10-09
 ## [0.26.0] - 2025-10-07
 ## [0.25.3] - 2025-10-07
