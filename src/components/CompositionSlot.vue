@@ -23,8 +23,7 @@
       <div class="flex-shrink-0 flex flex-col items-center gap-1">
         <button
           v-if="rightText"
-          class="px-2 py-1 rounded text-xs font-medium"
-          :class="rightClass"
+          class="px-2 py-1 rounded text-xs font-medium text-white bg-gray-800/50 hover:bg-gray-700/70"
           :title="rightTitle || ''"
           @click.stop="$emit('right-click', $event)"
         >
