@@ -1,22 +1,17 @@
-## [0.27.1] - 2025-10-10
-
-### ✨ New Features
-
-- feat: implement audit management with Firebase secrets
+## [0.27.2] - 2025-10-10
 
 ### 🐛 Bug Fixes
 
-- fix: Display only cast role in agenda view
-- fix: handle Firestore timestamp formats in audit logs display
-- fix: preserve Date objects in cleanDataForFirestore
+- fix: prevent deployment failure on orphaned functions
 
 ### 📝 Other Changes
 
-- release: version 0.27.0
+- release: version 0.27.1
 
 
 # Changelog
 
+## [0.27.2] - 2025-10-10
 ## [0.27.1] - 2025-10-10
 ## [0.27.0] - 2025-10-09
 ## [0.26.0] - 2025-10-07

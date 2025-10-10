@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.27.2",
+    "date": "2025-10-10",
+    "changes": [
+      "🐛 On a corrigé un problème qui empêchait le déploiement à cause de fonctions orphelines."
+    ]
+  },
+  {
     "version": "0.27.1",
     "date": "2025-10-10",
     "changes": [
