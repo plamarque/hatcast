@@ -155,12 +155,29 @@
         </div>
         
         <!-- Probabilités théoriques (avant malus) -->
-        <div>
+        <div v-if="explanationData.requiredCount === 1">
           <span class="text-gray-300">Au hasard pur tu aurais eu </span>
           <span class="text-blue-400">1</span>
           <span class="text-gray-400">/</span>
           <span class="text-green-400">{{ explanationData.availableCount }}</span>
           <span class="text-gray-400"> = </span>
+          <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
+          <span class="text-gray-300"> de chances</span>
+        </div>
+        <div v-else>
+          <span class="text-gray-300">Au hasard pur tu aurais eu </span>
+          <span class="text-blue-400">{{ explanationData.requiredCount }}</span>
+          <span class="text-gray-400">/(</span>
+          <span class="text-green-400">{{ explanationData.availableCount }}</span>
+          <span class="text-gray-400">+</span>
+          <span class="text-green-400">{{ explanationData.availableCount - 1 }}</span>
+          <span class="text-gray-400">+</span>
+          <span class="text-green-400">{{ explanationData.availableCount - 2 }}</span>
+          <span class="text-gray-400">+</span>
+          <span class="text-green-400">{{ explanationData.availableCount - 3 }}</span>
+          <span class="text-gray-400">+</span>
+          <span class="text-green-400">{{ explanationData.availableCount - 4 }}</span>
+          <span class="text-gray-400">) = </span>
           <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
           <span class="text-gray-300"> de chances</span>
         </div>
