@@ -98,76 +98,59 @@
 
       <!-- Content (scrollable) -->
       <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
-        <!-- Stats condensées en 2x2 -->
+        <!-- Stats condensées en 3 cases -->
         <div>
-          <div class="grid grid-cols-2 gap-3 md:gap-4">
-            <!-- Ligne du haut : Participations et Taux de sélection -->
-            <div 
-              class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center relative cursor-help"
-              @mouseenter="hoveredStat = 'participations'"
-              @mouseleave="hoveredStat = null"
-            >
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }}</div>
-              <div class="text-xs md:text-sm text-gray-300">Participations</div>
-              <!-- Tooltip -->
-              <div 
-                v-if="hoveredStat === 'participations'"
-                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
-              >
-                Sélections confirmées non déclinées<br>
-                (tous rôles confondus)
-              </div>
-            </div>
+          <div class="grid grid-cols-3 gap-3 md:gap-4">
+            <!-- Disponibilités -->
             <div 
               class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 md:p-4 rounded-lg border border-green-500/30 text-center relative cursor-help"
-              @mouseenter="hoveredStat = 'selection-rate'"
-              @mouseleave="hoveredStat = null"
-            >
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.ratio }}%</div>
-              <div class="text-xs md:text-sm text-gray-300">Taux de sélection</div>
-              <!-- Tooltip -->
-              <div 
-                v-if="hoveredStat === 'selection-rate'"
-                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
-              >
-                (Sélections initiales ÷ Disponibilités) × 100<br>
-                = {{ props.stats.totalInitialSelections || (props.stats.selection + props.stats.declines) }} ÷ {{ props.stats.timesAvailable }} × 100
-              </div>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4">
-            <!-- Ligne du bas : Disponibilités et Désistements -->
-            <div 
-              class="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 p-3 md:p-4 rounded-lg border border-cyan-500/30 text-center relative cursor-help"
               @mouseenter="hoveredStat = 'availabilities'"
               @mouseleave="hoveredStat = null"
             >
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal">({{ props.stats.availability }}%)</span></div>
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.timesAvailable }} <span class="font-normal text-sm md:text-lg">({{ props.stats.availability }}%)</span></div>
               <div class="text-xs md:text-sm text-gray-300">Disponibilités</div>
               <!-- Tooltip -->
               <div 
                 v-if="hoveredStat === 'availabilities'"
                 class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
               >
-                Disponibilités effectives<br>
-                (marqué "Dispo" + sélections non déclinées)<br>
+                Disponibilités + sélections non déclinées<br>
                 Taux = ({{ props.stats.timesAvailable }} ÷ {{ props.stats.totalNonArchivedEvents || 'total' }}) × 100
               </div>
             </div>
+            
+            <!-- Sélections avec taux -->
+            <div 
+              class="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-3 md:p-4 rounded-lg border border-purple-500/30 text-center relative cursor-help"
+              @mouseenter="hoveredStat = 'selections'"
+              @mouseleave="hoveredStat = null"
+            >
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.selection }} <span class="font-normal text-sm md:text-lg">({{ props.stats.ratio }}%)</span></div>
+              <div class="text-xs md:text-sm text-gray-300">Sélections</div>
+              <!-- Tooltip -->
+              <div 
+                v-if="hoveredStat === 'selections'"
+                class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
+              >
+                Sélections confirmées non déclinées<br>
+                Taux = ({{ props.stats.totalInitialSelections || (props.stats.selection + props.stats.declines) }} ÷ {{ props.stats.timesAvailable }}) × 100
+              </div>
+            </div>
+            
+            <!-- Désistements -->
             <div 
               class="bg-gradient-to-r from-red-500/20 to-orange-500/20 p-3 md:p-4 rounded-lg border border-red-500/30 text-center relative cursor-help"
               @mouseenter="hoveredStat = 'declines'"
               @mouseleave="hoveredStat = null"
             >
-              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.declines }} <span class="font-normal">({{ props.stats.declineRate }}%)</span></div>
+              <div class="text-xl md:text-2xl font-bold text-white">{{ props.stats.declines }} <span class="font-normal text-sm md:text-lg">({{ props.stats.declineRate }}%)</span></div>
               <div class="text-xs md:text-sm text-gray-300">Désistements</div>
               <!-- Tooltip -->
               <div 
                 v-if="hoveredStat === 'declines'"
                 class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-50"
               >
-                Sélections déclinées après confirmation<br>
+                Sélections déclinées<br>
                 Taux = ({{ props.stats.declines }} ÷ {{ props.stats.totalInitialSelections || (props.stats.selection + props.stats.declines) }}) × 100
               </div>
             </div>
