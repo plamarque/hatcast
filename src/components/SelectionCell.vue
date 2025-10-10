@@ -48,7 +48,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR } from '../services/storage.js'
+import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, getRoleLabel } from '../services/storage.js'
 import { getStatusClass } from '../utils/statusUtils.js'
 
 // Props
@@ -128,20 +128,6 @@ const playerSelectionStatus = computed(() => {
 })
 
 // Fonctions utilitaires
-function getRoleLabel(role, gender = 'non-specified', plural = false) {
-  if (!role || !ROLE_LABELS_SINGULAR[role]) {
-    return 'Joue'
-  }
-  
-  const baseLabel = ROLE_LABELS_SINGULAR[role]
-  
-  // Gestion du genre et du pluriel (simplifiée)
-  if (plural) {
-    return baseLabel + 's'
-  }
-  
-  return baseLabel
-}
 
 function getConfirmedRoleLabel() {
   // Utiliser selectionData en priorité, sinon availabilityData
