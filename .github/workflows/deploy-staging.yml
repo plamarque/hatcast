@@ -100,7 +100,7 @@ jobs:
         echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}' > service-account.json
         export GOOGLE_APPLICATION_CREDENTIALS="$PWD/service-account.json"
         cd functions && npm install
-        cd .. && firebase deploy --only functions --project impro-selector
+        cd .. && firebase deploy --only functions --force --project impro-selector
         
     - name: Deploy Firestore Rules to staging database
       run: |
