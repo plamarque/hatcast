@@ -7538,6 +7538,13 @@ function countAllInitialSelections(playerName) {
       wasInitiallySelected = cast.includes(player.id)
     }
     
+    // Vérifier aussi dans les déclinés (car ils étaient initialement sélectionnés)
+    if (!wasInitiallySelected && cast.declined && typeof cast.declined === 'object') {
+      wasInitiallySelected = Object.values(cast.declined).some(rolePlayers => 
+        Array.isArray(rolePlayers) && rolePlayers.includes(player.id)
+      )
+    }
+    
     return wasInitiallySelected
   })
   
