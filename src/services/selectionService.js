@@ -167,24 +167,6 @@ export function isCastConfirmedByOrganizer(cast) {
 }
 
 /**
- * Met à jour le statut de confirmation d'un joueur dans un cast
- * @param {string} eventId - ID de l'événement
- * @param {string} playerId - ID du joueur
- * @param {string} status - Nouveau statut
- * @param {string} seasonId - ID de la saison
- * @returns {Promise<Object>} - Résultat de la mise à jour
- */
-export async function updatePlayerCastStatus(eventId, playerId, status, seasonId) {
-  try {
-    const result = await updatePlayerCastStatus(eventId, playerId, status, seasonId)
-    return result
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut du joueur:', error)
-    throw error
-  }
-}
-
-/**
  * Récupère le prochain statut dans le cycle de confirmation
  * @param {string} currentStatus - Statut actuel
  * @returns {string} - Prochain statut

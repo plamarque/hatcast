@@ -29,7 +29,7 @@
 
     <!-- Header sticky avec dropdown de vue et sélecteurs -->
     <ViewHeader
-      v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline'"
+      v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline' || validCurrentView === 'casts'"
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
@@ -188,6 +188,41 @@
         @all-players-loaded="handleAllPlayersLoaded"
         @all-events-loaded="handleAllEventsLoaded"
       />
+
+      <!-- Debug: afficher la valeur de validCurrentView -->
+      <div v-if="validCurrentView === 'casts'" class="text-white p-4 bg-red-500">
+        DEBUG: validCurrentView = 'casts' - CastsView devrait s'afficher
+      </div>
+      
+      <CastsView
+        v-if="validCurrentView === 'casts'"
+        key="casts-view"
+        :events="displayedEvents"
+        :displayed-players="displayedPlayers"
+        :is-all-players-view="isAllPlayersView"
+        :hidden-players-count="hiddenPlayersCount"
+        :hidden-players-display-text="hiddenPlayersDisplayText"
+        :is-all-events-view="isAllEventsView"
+        :hidden-events-count="hiddenEventsCount"
+        :hidden-events-display-text="hiddenEventsDisplayText"
+        :season-id="seasonId"
+        :is-selected="isSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :get-selection-data="getSelectionData"
+        :header-offset-x="0"
+        :header-scroll-x="0"
+        @player-selected="showPlayerDetails"
+        @toggle-event-modal="toggleEventModal"
+        @all-players-loaded="handleAllPlayersLoaded"
+        @all-events-loaded="handleAllEventsLoaded"
+      />
+
+      <!-- Debug: afficher la valeur actuelle de validCurrentView -->
+      <div class="text-white p-2 bg-blue-500 text-xs">
+        DEBUG: validCurrentView = "{{ validCurrentView }}"
+      </div>
                 </div>
                 
     <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
@@ -2028,6 +2063,7 @@ import PerformanceDebug from './PerformanceDebug.vue'
 import TimelineView from './TimelineView.vue'
 import ParticipantsView from './ParticipantsView.vue'
 import EventsView from './EventsView.vue'
+import CastsView from './CastsView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
 import EventSelectorModal from './EventSelectorModal.vue'
 import ViewHeader from './ViewHeader.vue'
@@ -2311,7 +2347,7 @@ const seasonMeta = ref({})
 const isScrolled = ref(false)
 
 // Vues valides disponibles
-const VALID_VIEWS = ['events', 'participants', 'timeline']
+const VALID_VIEWS = ['events', 'participants', 'timeline', 'casts']
 const DEFAULT_VIEW = 'events'
 
 // Fonction utilitaire pour valider et obtenir une vue valide
@@ -2336,7 +2372,9 @@ const currentView = ref((() => {
 
 // Computed pour s'assurer qu'on a toujours une vue valide
 const validCurrentView = computed(() => {
-  return getValidView(currentView.value)
+  const view = getValidView(currentView.value)
+  console.log('🔍 validCurrentView computed:', { currentView: currentView.value, validView: view })
+  return view
 })
 // showViewDropdown supprimé - maintenant géré par ViewHeader
 
@@ -3204,6 +3242,7 @@ function initializeViewMode() {
 
 // Fonction de sélection de vue
 function selectView(view) {
+  console.log('🔍 selectView called with:', view)
   // Valider la vue avant de l'appliquer
   const validView = getValidView(view)
   
@@ -3212,6 +3251,7 @@ function selectView(view) {
   // Sauvegarder la préférence dans le localStorage
   localStorage.setItem('hatcast-view-preference', validView)
   
+  console.log('🔍 selectView result:', { originalView: view, validView, currentView: currentView.value })
   logger.debug(`Vue sélectionnée: ${validView}`)
 }
 
@@ -3221,6 +3261,7 @@ function getViewLabel(view) {
     case 'events': return 'Spectacles'
     case 'participants': return 'Participants'
     case 'timeline': return 'Agenda'
+    case 'casts': return 'Compositions'
     default: return 'Lignes'
   }
 }
@@ -10283,6 +10324,27 @@ function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
+
+// Fonction helper pour obtenir les données de sélection d'un joueur
+function getSelectionData(playerName, eventId) {
+  const cast = casts.value[eventId]
+  if (!cast) {
+    return null
+  }
+  
+  // Obtenir le rôle du joueur
+  const role = getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
+  
+  if (!role) {
+    return null
+  }
+  
+  return {
+    roles: [role],
+    comment: null
+  }
+}
+
 // Fonction helper pour obtenir le rôle d'un joueur dans la section déclinés
 function getPlayerDeclinedRole(playerName, eventId) {
   const cast = casts.value[eventId]

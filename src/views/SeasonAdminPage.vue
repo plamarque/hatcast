@@ -839,6 +839,7 @@ const events = ref([])
 const showAddEventModal = ref(false)
 const editingEvent = ref(null)
 
+
 // Gestion des utilisateurs et invitations
 const usersWithPlayers = ref([])
 const unifiedUsersList = ref([])
@@ -1770,6 +1771,7 @@ async function loadSeasonEvents() {
   }
 }
 
+
 function formatDate(dateString) {
   try {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -2043,6 +2045,7 @@ async function deleteEvent(event) {
     isLoading.value = false
   }
 }
+
 
 // Gestionnaire pour fermer les dropdowns au clic extérieur
 function handleClickOutside(event) {
