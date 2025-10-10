@@ -1,4 +1,4 @@
-0.27.0
-Production build - 2025-10-09
-Git: bae7110
-Build: 2025-10-09T15:51:24+0200
+0.27.1
+Production build - 2025-10-10
+Git: 506136e
+Build: 2025-10-10T10:51:18+0200

@@ -29,3 +29,4 @@ export function getTruncatedLocation(location) {
   return location
 }
 
+

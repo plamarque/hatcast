@@ -275,8 +275,10 @@
                 <div class="text-xs text-gray-400">
                   <div v-if="auditStatus">
                     <div><strong>Environnement:</strong> {{ auditStatus.environment }}</div>
+                    <div v-if="auditStatus.hostname"><strong>Hostname:</strong> {{ auditStatus.hostname }}</div>
                     <div><strong>Statut:</strong> {{ auditStatusMessage }}</div>
-                    <div v-if="auditStatus.auditEnabled"><strong>Variable:</strong> {{ auditStatus.auditEnabled }}</div>
+                    <div v-if="auditStatus.configValue !== undefined"><strong>Config Firebase:</strong> <code class="text-xs bg-black/30 px-1 py-0.5 rounded">audit.{{ auditStatus.environment }}.enabled={{ auditStatus.configValue }}</code></div>
+                    <div v-if="auditStatus.auditEnabled"><strong>Variable VITE:</strong> {{ auditStatus.auditEnabled }}</div>
                     <div v-if="auditStatus.statusSource"><strong>Source:</strong> {{ auditStatus.statusSource }}</div>
                   </div>
                   <div v-else class="text-gray-500">
@@ -1656,7 +1658,38 @@ function exportAuditLogs() {
 
 function formatTimestamp(timestamp) {
   if (!timestamp) return '-';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  
+  let date;
+  
+  // Gérer les Timestamp Firestore
+  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+    date = timestamp.toDate();
+  }
+  // Gérer les objets {seconds, nanoseconds} de Firestore
+  else if (timestamp.seconds !== undefined) {
+    date = new Date(timestamp.seconds * 1000);
+  }
+  // Gérer les dates ISO string
+  else if (typeof timestamp === 'string') {
+    date = new Date(timestamp);
+  }
+  // Gérer les timestamps numériques
+  else if (typeof timestamp === 'number') {
+    date = new Date(timestamp);
+  }
+  // Gérer les objets Date
+  else if (timestamp instanceof Date) {
+    date = timestamp;
+  }
+  else {
+    return '-';
+  }
+  
+  // Vérifier que la date est valide
+  if (isNaN(date.getTime())) {
+    return '-';
+  }
+  
   return date.toLocaleString('fr-FR', {
     year: 'numeric',
     month: '2-digit',

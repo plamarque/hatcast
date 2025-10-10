@@ -48,11 +48,11 @@ class AuditService {
    * @returns {boolean} True si on doit logger
    */
   static shouldLog(eventData) {
-    // Vérifier si l'audit est explicitement configuré
+    // Vérifier si l'audit est explicitement configuré via process.env (override total)
     const isAuditExplicitlyEnabled = process.env.AUDIT_ENABLED === 'true'
     const isAuditExplicitlyDisabled = process.env.AUDIT_ENABLED === 'false'
     
-    // Si explicitement configuré, respecter le flag (override de l'environnement)
+    // Si explicitement configuré via process.env, respecter le flag (override de tout)
     if (isAuditExplicitlyEnabled) {
       return true  // Forcer l'activation dans tous les environnements
     }
@@ -60,20 +60,31 @@ class AuditService {
       return false // Forcer la désactivation dans tous les environnements
     }
     
-    // Sinon, utiliser la logique par défaut selon l'environnement
+    // Environnement de test: toujours désactivé
     if (_environment === 'test') {
       return false
     }
     
+    // Environnement de développement local: désactivé par défaut
     if (_environment === 'development') {
-      // Log de debug pour indiquer que l'audit est désactivé par défaut
       if (eventData.severity === 'error' || eventData.severity === 'critical') {
         console.log('🔇 AUDIT DISABLED (dev mode):', eventData.eventType, eventData.data)
       }
-      return false // Désactivé par défaut en développement
+      return false
     }
     
-    // Activer l'audit en staging et production par défaut
+    // Pour staging et production, lire les variables d'environnement
+    if (_environment === 'production') {
+      // Production: activé par défaut, désactivé seulement si explicitement false
+      const configValue = process.env.AUDIT_PRODUCTION_ENABLED
+      return configValue !== 'false' && configValue !== false
+    } else if (_environment === 'staging') {
+      // Staging: désactivé par défaut, activé seulement si explicitement true
+      const configValue = process.env.AUDIT_STAGING_ENABLED
+      return configValue === 'true' || configValue === true
+    }
+    
+    // Fallback: activer par défaut
     return true
   }
 
