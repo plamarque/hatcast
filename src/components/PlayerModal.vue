@@ -438,7 +438,12 @@
             </div>
             <div>
               <div class="text-sm text-gray-400">Événement</div>
-              <div class="text-white font-medium">{{ selectedSelection.eventTitle }}</div>
+              <a 
+                :href="`?event=${selectedSelection.eventId}&modal=event_details`"
+                class="text-white font-medium hover:text-purple-300 transition-colors cursor-pointer text-left"
+              >
+                {{ selectedSelection.eventTitle }}
+              </a>
             </div>
           </div>
           
@@ -518,6 +523,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'update', 'delete', 'refresh', 'advance-onboarding', 'avatar-updated', 'show-availability-grid'])
+
 
 // Fonctions helper pour le graphique mensuel
 const getBarHeight = (count) => {
