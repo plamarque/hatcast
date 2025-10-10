@@ -143,27 +143,43 @@
        }"
        @click.stop>
     <div class="text-xs">
-      <div class="font-medium text-white mb-2">Explications</div>
+      <div class="font-medium text-white mb-2">Comment sont estimées les chances ?</div>
       <div class="space-y-2">
-        <!-- Sélections passées -->
-        <div>
-          <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span> 
-          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}</span>
-        </div>
-        
         <!-- Places et candidats -->
         <div>
+          <span class="text-gray-300">Il y a </span>
           <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> 
-          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }}</span> 
-          <span class="text-white">pour </span>
+          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} pour </span>
           <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span> 
           <span class="text-gray-300"> candidats</span>
         </div>
         
-        <!-- Probabilités -->
+        <!-- Probabilités théoriques (avant malus) -->
         <div>
-          <span class="text-gray-300">Probabilités :</span> 
+          <span class="text-gray-300">Au hasard pur tu aurais eu </span>
+          <span class="text-blue-400">1</span>
+          <span class="text-gray-400">/</span>
+          <span class="text-green-400">{{ explanationData.availableCount }}</span>
+          <span class="text-gray-400"> = </span>
+          <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
+          <span class="text-gray-300"> de chances</span>
+        </div>
+        
+        <!-- Application du malus -->
+        <div>
+          <span class="text-gray-300">En pondérant tes </span>
+          <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span>
+          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }} avec celles des autres candidats on recalcule tes chances à </span>
           <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
+        </div>
+        
+        <!-- Explication du calcul -->
+        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+          <div class="mb-1"><strong>Calcul de la pondération :</strong></div>
+          <div>• Malus = 1÷(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span></div>
+          <div>• Ton poids = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span></div>
+          <div>• Poids des autres candidats = <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span></div>
+          <div>• Résultat = <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span>÷<span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span></div>
         </div>
       </div>
     </div>
@@ -522,6 +538,9 @@ function getChanceExplanation(playerName, role) {
     return null
   }
   
+  // Calculer les probabilités théoriques avant malus
+  const theoreticalChance = roleData.availableCount > 0 ? (1 / roleData.availableCount) * 100 : 0
+  
   const explanation = {
     playerName,
     role,
@@ -529,7 +548,10 @@ function getChanceExplanation(playerName, role) {
     requiredCount: roleData.requiredCount || 0,
     availableCount: roleData.availableCount || 0,
     malus: candidate.malus || 0,
-    pastSelections: candidate.pastSelections || 0
+    pastSelections: candidate.pastSelections || 0,
+    weightedChances: candidate.weightedChances || 0,
+    totalWeight: roleData.totalWeight || 0,
+    theoreticalChance: theoreticalChance
   }
   
   console.log('✅ Explanation data:', explanation)
