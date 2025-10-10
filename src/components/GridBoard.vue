@@ -1022,6 +1022,37 @@
                     </button>
                   </div>
                   
+                  <!-- Boutons raccourcis -->
+                  <div class="flex items-center gap-1.5">
+                    <!-- Bouton "Tous" -->
+                    <button
+                      @click="selectAllAvailabilityPlayers"
+                      :class="[
+                        'px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors',
+                        selectedTeamPlayer?.id === 'all' 
+                          ? 'bg-purple-600 text-white' 
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
+                      ]"
+                      title="Afficher tous les joueurs"
+                    >
+                      👥 Tous
+                    </button>
+                    
+                    <!-- Bouton "Moi" (uniquement si joueur connecté) -->
+                    <button
+                      v-if="currentUserPlayer || (preferredPlayerIdsSet.size > 0)"
+                      @click="selectFirstFavoriteAvailabilityPlayer"
+                      :class="[
+                        'px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors',
+                        (selectedTeamPlayer?.id === currentUserPlayer?.id || selectedTeamPlayer?.id === getFirstFavoritePlayerId()) 
+                          ? 'bg-purple-600 text-white' 
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
+                      ]"
+                      title="Afficher mes disponibilités"
+                    >
+                      👤 Moi
+                    </button>
+                  </div>
                   
                 </div>
               </div>
@@ -10397,6 +10428,32 @@ function selectAvailabilityPlayer(player) {
 function selectAllAvailabilityPlayers() {
   selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
   showAvailabilityPlayerSelector.value = false
+}
+
+function selectFirstFavoriteAvailabilityPlayer() {
+  // Prioriser le joueur connecté s'il existe
+  if (currentUserPlayer.value) {
+    selectedTeamPlayer.value = currentUserPlayer.value
+  } 
+  // Sinon, prendre le premier joueur favori
+  else if (preferredPlayerIdsSet.value.size > 0) {
+    const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
+    const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
+    if (firstFavorite) {
+      selectedTeamPlayer.value = firstFavorite
+    }
+  }
+  showAvailabilityPlayerSelector.value = false
+}
+
+function getFirstFavoritePlayerId() {
+  if (currentUserPlayer.value) {
+    return currentUserPlayer.value.id
+  }
+  if (preferredPlayerIdsSet.value.size > 0) {
+    return preferredPlayerIdsSet.value.values().next().value
+  }
+  return null
 }
 
 // Fonction pour toggle l'expansion du header
