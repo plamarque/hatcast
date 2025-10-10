@@ -1,9 +1,9 @@
 <template>
-  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1370] p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1370] p-2 sm:p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col">
       <!-- Header fixe -->
-      <div class="p-6 pb-4 border-b border-gray-700/50 relative">
-        <h2 class="text-2xl font-bold text-white text-center">
+      <div class="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-gray-700/50 relative flex-shrink-0">
+        <h2 class="text-lg sm:text-2xl font-bold text-white text-center">
           {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
         </h2>
         <!-- Bouton de fermeture -->
@@ -20,217 +20,37 @@
       </div>
 
       <!-- Contenu scrollable -->
-      <div class="flex-1 overflow-y-auto p-6 pt-4">
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-        <!-- Titre et Date sur une seule ligne -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 pt-3 sm:pt-4">
+        <form @submit.prevent="handleSubmit" class="space-y-4 sm:space-y-6">
+        <!-- Ligne 1 : Titre (pleine largeur) -->
         <div>
-          <div class="grid grid-cols-3 gap-4">
-            <!-- Titre (prend 2/3 de l'espace) -->
-            <div class="col-span-2">
-              <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
-              <input
-                v-model="formData.title"
-                type="text"
-                class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-                placeholder="Titre du spectacle"
-                @keydown.esc="handleCancel"
-                @keydown.enter="handleSubmit"
-                ref="titleInput"
-                required
-              >
-            </div>
-            
-            <!-- Date (prend 1/3 de l'espace) -->
-            <div class="col-span-1">
-              <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
-              <input
-                v-model="formData.date"
-                type="date"
-                class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-                @keydown.esc="handleCancel"
-                @keydown.enter="handleSubmit"
-                required
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Section Type de spectacle -->
-        <div>
-          <!-- Sélecteur de type de spectacle avec nombre de personnes -->
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-400 mb-2">Type de spectacle</label>
-            <div class="flex items-center justify-between">
-              <select
-                v-model="selectedRoleTemplate"
-                @change="applyRoleTemplate(selectedRoleTemplate)"
-                class="w-52 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
-              >
-                <option
-                  v-for="templateId in TEMPLATE_DISPLAY_ORDER"
-                  :key="templateId"
-                  :value="templateId"
-                >
-                  {{ EVENT_TYPE_ICONS[templateId] }} {{ ROLE_TEMPLATES[templateId].name }}
-                </option>
-              </select>
-              <div class="inline-flex items-center gap-2 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg">
-                <span class="text-gray-300">👥</span>
-                <span class="text-sm text-gray-200 font-medium">
-                  {{ totalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Confirmation de changement de template -->
-          <div v-if="showTemplateChangeConfirmation" class="mb-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-            <div class="flex items-start gap-3">
-              <div class="text-yellow-400 text-xl">⚠️</div>
-              <div class="flex-1">
-                <h4 class="text-yellow-300 font-medium mb-2">Changement de type de spectacle</h4>
-                <p class="text-gray-300 text-sm mb-3">
-                  Les rôles actuels ont été personnalisés et diffèrent du template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}".
-                </p>
-                
-                <!-- Comparaison des rôles -->
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                  <!-- Rôles actuels -->
-                  <div>
-                    <h5 class="text-gray-400 text-xs font-medium mb-2">Configuration actuelle :</h5>
-                    <div class="space-y-1">
-                      <div v-for="role in getRoleComparison(currentRolesSnapshot)" :key="role.name" class="flex justify-between text-sm">
-                        <span class="text-gray-300">{{ role.label }}:</span>
-                        <span class="font-medium text-blue-400">{{ role.count }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Nouveaux rôles -->
-                  <div>
-                    <h5 class="text-gray-400 text-xs font-medium mb-2">Avec le template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}" :</h5>
-                    <div class="space-y-1">
-                      <div v-for="role in getRoleComparison(newRolesSnapshot)" :key="role.name" class="flex justify-between text-sm">
-                        <span class="text-gray-300">{{ role.label }}:</span>
-                        <span class="font-medium text-green-400">{{ role.count }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Boutons d'action -->
-                <div class="flex gap-2">
-                  <button
-                    @click="confirmTemplateChange"
-                    type="button"
-                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Appliquer
-                  </button>
-                  <button
-                    @click="cancelTemplateChange"
-                    type="button"
-                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
-                  >
-                    Ignorer
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Affichage permanent des rôles attendus (filtrés) -->
-          <div class="mb-4" v-if="isRoleDataReady && !showTemplateChangeConfirmation">
-            <div class="text-sm text-gray-200 leading-relaxed flex flex-wrap gap-2 mb-3">
-              <span v-for="role in displayRoles" :key="role.name" class="inline-flex items-center gap-1">
-                <span class="text-gray-400">{{ role.label }}:</span>
-                <span class="font-medium" :class="role.color">{{ role.count }}</span>
-              </span>
-            </div>
-            <div class="text-center" v-if="!showRoleInputs">
-              <button
-                @click="enableCustomization"
-                type="button"
-                class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors flex items-center gap-1 mx-auto"
-              >
-                <span>✏️</span>
-                <span>Personnaliser</span>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Champs de saisie des rôles (révélés sur demande) -->
-          <div v-if="showRoleInputs && isRoleDataReady" class="mb-4">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-sm font-medium text-gray-300">Personnalisation des rôles :</span>
-              <button
-                @click="showRoleInputs = false"
-                type="button"
-                class="text-gray-400 hover:text-gray-300 text-sm font-medium transition-colors flex items-center gap-2"
-              >
-                <span>👁️</span>
-                <span>Voir résumé</span>
-              </button>
-            </div>
-            
-            <!-- Rôles principaux (responsive: 1 colonne mobile, 2 colonnes desktop) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-              <div v-for="roleName in visibleRoles" :key="roleName" class="flex items-center gap-2">
-                <span class="text-lg">{{ safeRoleEmojis[roleName] }}</span>
-                <span class="text-sm text-gray-300 flex-1">{{ safeRoleLabels[roleName] }}</span>
-                <input
-                  v-model="formData.roles[roleName]"
-                  type="number"
-                  min="0"
-                  max="20"
-                  class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
-                  @keydown.esc="handleCancel"
-                >
-              </div>
-            </div>
-            
-            <!-- Rôles supplémentaires (responsive: 1 colonne mobile, 2 colonnes desktop) -->
-            <div v-if="showAllRoles" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-              <div v-for="roleName in hiddenRoles" :key="roleName" class="flex items-center gap-2">
-                <span class="text-lg">{{ safeRoleEmojis[roleName] }}</span>
-                <span class="text-sm text-gray-300 flex-1">{{ safeRoleLabels[roleName] }}</span>
-                <input
-                  v-model="formData.roles[roleName]"
-                  type="number"
-                  min="0"
-                  max="20"
-                  class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
-                  @keydown.esc="handleCancel"
-                >
-              </div>
-            </div>
-            
-            <!-- Bouton "Plus de rôles" -->
-            <div v-if="!showAllRoles && hiddenRoles.length > 0" class="text-center">
-              <button
-                @click="showAllRoles = true"
-                type="button"
-                class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-              >
-                Plus de rôles...
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Description -->
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
-          <textarea
-            v-model="formData.description"
+          <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
+          <input
+            v-model="formData.title"
+            type="text"
             class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            rows="3"
-            placeholder="Description du spectacle (optionnel)"
+            placeholder="Titre du spectacle"
             @keydown.esc="handleCancel"
-          ></textarea>
+            @keydown.enter="handleSubmit"
+            ref="titleInput"
+            required
+          >
         </div>
 
-        <!-- Lieu -->
+        <!-- Ligne 2 : Date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Date</label>
+          <input
+            v-model="formData.date"
+            type="date"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+            @keydown.esc="handleCancel"
+            @keydown.enter="handleSubmit"
+            required
+          >
+        </div>
+
+        <!-- Ligne 3 : Lieu -->
         <div>
           <label class="block text-sm font-medium text-gray-300 mb-2">📍 Lieu</label>
           <input
@@ -242,10 +62,70 @@
           >
         </div>
 
-        <!-- Désactivé -->
+        <!-- Ligne 4 : Description -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+          <textarea
+            v-model="formData.description"
+            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            rows="3"
+            placeholder="Description du spectacle (optionnel)"
+            @keydown.esc="handleCancel"
+          ></textarea>
+        </div>
+
+        <!-- Ligne 5 : Type de spectacle et badge personnes -->
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">Type de spectacle</label>
+          <div class="flex items-center justify-between gap-3">
+            <select
+              v-model="selectedRoleTemplate"
+              @change="applyRoleTemplate(selectedRoleTemplate)"
+              class="flex-1 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+            >
+              <option
+                v-for="templateId in TEMPLATE_DISPLAY_ORDER"
+                :key="templateId"
+                :value="templateId"
+              >
+                {{ EVENT_TYPE_ICONS[templateId] }} {{ ROLE_TEMPLATES[templateId].name }}
+              </option>
+            </select>
+            <div class="inline-flex items-center gap-2 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg flex-shrink-0">
+              <span class="text-gray-300">👥</span>
+              <span class="text-sm text-gray-200 font-medium">
+                {{ totalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ligne 6 : Nombre de joueurs -->
+        <div v-if="isRoleDataReady && !showTemplateChangeConfirmation">
+          <div class="text-sm text-gray-200 leading-relaxed flex flex-wrap gap-2">
+            <span v-for="role in displayRoles" :key="role.name" class="inline-flex items-center gap-1">
+              <span class="text-gray-400">{{ role.label }}:</span>
+              <span class="font-medium" :class="role.color">{{ role.count }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Ligne 7 : Personnaliser -->
+        <div v-if="isRoleDataReady && !showTemplateChangeConfirmation && !showRoleInputs" class="text-center">
+          <button
+            @click="enableCustomization"
+            type="button"
+            class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors flex items-center gap-1 mx-auto"
+          >
+            <span>✏️</span>
+            <span>Personnaliser</span>
+          </button>
+        </div>
+
+        <!-- Ligne 8 : Checkbox désactiver -->
         <div class="flex items-center gap-3">
-          <input 
-            :id="`${mode}-archived`" 
+          <input
+            :id="`${mode}-archived`"
             type="checkbox" 
             v-model="formData.archived" 
             class="w-4 h-4" 
@@ -254,12 +134,126 @@
             {{ mode === 'create' ? 'Créer comme inactif' : 'Désactiver ce spectacle' }}
           </label>
         </div>
+
+        <!-- Confirmation de changement de template -->
+        <div v-if="showTemplateChangeConfirmation" class="mb-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+          <div class="flex items-start gap-3">
+            <div class="text-yellow-400 text-xl">⚠️</div>
+            <div class="flex-1">
+              <h4 class="text-yellow-300 font-medium mb-2">Changement de type de spectacle</h4>
+              <p class="text-gray-300 text-sm mb-3">
+                Les rôles actuels ont été personnalisés et diffèrent du template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}".
+              </p>
+              
+              <!-- Comparaison des rôles -->
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <!-- Rôles actuels -->
+                <div>
+                  <h5 class="text-gray-400 text-xs font-medium mb-2">Configuration actuelle :</h5>
+                  <div class="space-y-1">
+                    <div v-for="role in getRoleComparison(currentRolesSnapshot)" :key="role.name" class="flex justify-between text-sm">
+                      <span class="text-gray-300">{{ role.label }}:</span>
+                      <span class="font-medium text-blue-400">{{ role.count }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Nouveaux rôles -->
+                <div>
+                  <h5 class="text-gray-400 text-xs font-medium mb-2">Avec le template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}" :</h5>
+                  <div class="space-y-1">
+                    <div v-for="role in getRoleComparison(newRolesSnapshot)" :key="role.name" class="flex justify-between text-sm">
+                      <span class="text-gray-300">{{ role.label }}:</span>
+                      <span class="font-medium text-green-400">{{ role.count }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Boutons d'action -->
+              <div class="flex gap-2">
+                <button
+                  @click="confirmTemplateChange"
+                  type="button"
+                  class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Appliquer
+                </button>
+                <button
+                  @click="cancelTemplateChange"
+                  type="button"
+                  class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Ignorer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Champs de saisie des rôles (révélés sur demande) -->
+        <div v-if="showRoleInputs && isRoleDataReady" class="mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-medium text-gray-300">Personnalisation des rôles :</span>
+            <button
+              @click="showRoleInputs = false"
+              type="button"
+              class="text-gray-400 hover:text-gray-300 text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <span>👁️</span>
+              <span>Voir résumé</span>
+            </button>
+          </div>
+          
+          <!-- Rôles principaux (responsive: 1 colonne mobile, 2 colonnes desktop) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div v-for="roleName in visibleRoles" :key="roleName" class="flex items-center gap-2">
+              <span class="text-lg">{{ safeRoleEmojis[roleName] }}</span>
+              <span class="text-sm text-gray-300 flex-1">{{ safeRoleLabels[roleName] }}</span>
+              <input
+                v-model="formData.roles[roleName]"
+                type="number"
+                min="0"
+                max="20"
+                class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+                @keydown.esc="handleCancel"
+              >
+            </div>
+          </div>
+          
+          <!-- Rôles supplémentaires (responsive: 1 colonne mobile, 2 colonnes desktop) -->
+          <div v-if="showAllRoles" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div v-for="roleName in hiddenRoles" :key="roleName" class="flex items-center gap-2">
+              <span class="text-lg">{{ safeRoleEmojis[roleName] }}</span>
+              <span class="text-sm text-gray-300 flex-1">{{ safeRoleLabels[roleName] }}</span>
+              <input
+                v-model="formData.roles[roleName]"
+                type="number"
+                min="0"
+                max="20"
+                class="w-16 p-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white text-center"
+                @keydown.esc="handleCancel"
+              >
+            </div>
+          </div>
+          
+          <!-- Bouton "Plus de rôles" -->
+          <div v-if="!showAllRoles && hiddenRoles.length > 0" class="text-center">
+            <button
+              @click="showAllRoles = true"
+              type="button"
+              class="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+            >
+              Plus de rôles...
+            </button>
+          </div>
+        </div>
         </form>
       </div>
 
       <!-- Boutons fixes en bas -->
-      <div class="p-6 pt-4 border-t border-gray-700/50">
-        <div class="flex justify-end space-x-3">
+      <div class="p-4 sm:p-6 pt-3 sm:pt-4 border-t border-gray-700/50 flex-shrink-0">
+        <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             @click="handleCancel"
             type="button"
