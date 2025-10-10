@@ -4,7 +4,7 @@
       <!-- Header fixe -->
       <div class="p-6 pb-4 border-b border-gray-700/50">
         <h2 class="text-2xl font-bold text-white text-center">
-          {{ mode === 'create' ? '✨ Nouvel événement' : '✏️ Modifier l\'événement' }}
+          {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
         </h2>
       </div>
 
@@ -21,7 +21,7 @@
                 v-model="formData.title"
                 type="text"
                 class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-                placeholder="Titre de l'événement"
+                placeholder="Titre du spectacle"
                 @keydown.esc="handleCancel"
                 @keydown.enter="handleSubmit"
                 ref="titleInput"
@@ -44,11 +44,11 @@
           </div>
         </div>
 
-        <!-- Section Type d'événement -->
+        <!-- Section Type de spectacle -->
         <div>
-          <!-- Sélecteur de type d'événement avec nombre de personnes -->
+          <!-- Sélecteur de type de spectacle avec nombre de personnes -->
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-400 mb-2">Type d'événement</label>
+            <label class="block text-sm font-medium text-gray-400 mb-2">Type de spectacle</label>
             <div class="flex items-center justify-between">
               <select
                 v-model="selectedRoleTemplate"
@@ -77,7 +77,7 @@
             <div class="flex items-start gap-3">
               <div class="text-yellow-400 text-xl">⚠️</div>
               <div class="flex-1">
-                <h4 class="text-yellow-300 font-medium mb-2">Changement de type d'événement</h4>
+                <h4 class="text-yellow-300 font-medium mb-2">Changement de type de spectacle</h4>
                 <p class="text-gray-300 text-sm mb-3">
                   Les rôles actuels ont été personnalisés et diffèrent du template "{{ ROLE_TEMPLATES[pendingTemplateId]?.name }}".
                 </p>
@@ -214,7 +214,7 @@
             v-model="formData.description"
             class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             rows="3"
-            placeholder="Description de l'événement (optionnel)"
+            placeholder="Description du spectacle (optionnel)"
             @keydown.esc="handleCancel"
           ></textarea>
         </div>
@@ -226,7 +226,7 @@
             v-model="formData.location"
             type="text"
             class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
-            placeholder="Lieu de l'événement (optionnel)"
+            placeholder="Lieu du spectacle (optionnel)"
             @keydown.esc="handleCancel"
           >
         </div>
@@ -240,7 +240,7 @@
             class="w-4 h-4" 
           />
           <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
-            {{ mode === 'create' ? 'Créer comme inactif' : 'Désactiver cet événement' }}
+            {{ mode === 'create' ? 'Créer comme inactif' : 'Désactiver ce spectacle' }}
           </label>
         </div>
         </form>
