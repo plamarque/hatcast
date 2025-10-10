@@ -752,7 +752,7 @@
     <EventModal
       :mode="'edit'"
       :is-visible="!!editingEvent"
-      :event-data="editingEvent ? events.find(e => e.id === editingEvent) : null"
+      :event-data="editingEvent"
       @save="handleEditEvent"
       @cancel="cancelEdit"
     />
