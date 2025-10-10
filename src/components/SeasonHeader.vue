@@ -51,7 +51,7 @@
           class="cursor-pointer hover:opacity-80 transition-opacity duration-200 text-2xl md:text-3xl lg:text-4xl flex-shrink-0"
           :title="`Cliquer pour rafraîchir ${seasonName}`"
         >
-          🎭
+          ⚙️
         </div>
       </div>
       
@@ -67,15 +67,15 @@
           <span v-if="!isAdminMode">{{ seasonName || 'Chargement...' }}</span>
           
           <!-- Titre admin version mobile -->
-          <span v-if="isAdminMode" class="sm:hidden">⚙️ Admin - {{ seasonName }}</span>
+          <span v-if="isAdminMode" class="sm:hidden">Admin - {{ seasonName }}</span>
           
           <!-- Titre admin version desktop -->
-          <span v-if="isAdminMode" class="hidden sm:inline">⚙️ Administration - {{ seasonName }}</span>
+          <span v-if="isAdminMode" class="hidden sm:inline">Administration - {{ seasonName }}</span>
         </h1>
         
         <!-- Sous-titre pour le mode administration -->
         <p v-if="isAdminMode" class="text-gray-300 text-xs md:text-sm mt-1">
-          Gérer les utilisateurs, événements et paramètres
+          Gérer les utilisateurs, spectacles et paramètres
         </p>
       </div>
       
