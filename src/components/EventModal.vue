@@ -1,34 +1,34 @@
 <template>
-  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[1370] p-2 sm:p-4">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+  <div v-if="isVisible" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-[1370] p-1 sm:p-4">
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-lg h-[98vh] sm:max-h-[90vh] flex flex-col mx-1 sm:mx-0 mt-2 sm:mt-0">
       <!-- Header fixe -->
-      <div class="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-gray-700/50 relative flex-shrink-0">
+      <div class="p-3 sm:p-6 pb-2 sm:pb-4 border-b border-gray-700/50 relative flex-shrink-0">
         <h2 class="text-lg sm:text-2xl font-bold text-white text-center">
           {{ mode === 'create' ? '✨ Nouveau spectacle' : '✏️ Modifier le spectacle' }}
         </h2>
         <!-- Bouton de fermeture -->
         <button
           @click="handleCancel"
-          class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 p-2 hover:bg-white/10 rounded-full"
+          class="absolute top-1/2 right-3 sm:right-4 -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 p-1.5 sm:p-2 hover:bg-white/10 rounded-full"
           title="Fermer"
           type="button"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
       </div>
 
       <!-- Contenu scrollable -->
-      <div class="flex-1 overflow-y-auto p-4 sm:p-6 pt-3 sm:pt-4">
-        <form @submit.prevent="handleSubmit" class="space-y-4 sm:space-y-6">
+      <div class="flex-1 overflow-y-auto p-3 sm:p-6 pt-2 sm:pt-4">
+        <form @submit.prevent="handleSubmit" class="space-y-3 sm:space-y-6">
         <!-- Ligne 1 : Titre (pleine largeur) -->
         <div>
           <label class="block text-sm font-medium text-gray-300 mb-2">Titre</label>
           <input
             v-model="formData.title"
             type="text"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            class="w-full p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             placeholder="Titre du spectacle"
             @keydown.esc="handleCancel"
             @keydown.enter="handleSubmit"
@@ -56,7 +56,7 @@
           <input
             v-model="formData.location"
             type="text"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            class="w-full p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             placeholder="Lieu du spectacle (optionnel)"
             @keydown.esc="handleCancel"
           >
@@ -67,7 +67,7 @@
           <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
           <textarea
             v-model="formData.description"
-            class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
+            class="w-full p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-400"
             rows="3"
             placeholder="Description du spectacle (optionnel)"
             @keydown.esc="handleCancel"
@@ -77,11 +77,11 @@
         <!-- Ligne 5 : Type de spectacle et badge personnes -->
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-2">Type de spectacle</label>
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center justify-between gap-2 sm:gap-3">
             <select
               v-model="selectedRoleTemplate"
               @change="applyRoleTemplate(selectedRoleTemplate)"
-              class="flex-1 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+              class="flex-1 p-2.5 sm:p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
             >
               <option
                 v-for="templateId in TEMPLATE_DISPLAY_ORDER"
@@ -91,10 +91,10 @@
                 {{ EVENT_TYPE_ICONS[templateId] }} {{ ROLE_TEMPLATES[templateId].name }}
               </option>
             </select>
-            <div class="inline-flex items-center gap-2 px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg flex-shrink-0">
-              <span class="text-gray-300">👥</span>
-              <span class="text-sm text-gray-200 font-medium">
-                {{ totalTeamSize }} <span class="hidden md:inline">personnes</span><span class="md:hidden">pers.</span>
+            <div class="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-700/50 border border-gray-600 rounded-lg flex-shrink-0">
+              <span class="text-gray-300 text-sm">👥</span>
+              <span class="text-xs sm:text-sm text-gray-200 font-medium">
+                {{ totalTeamSize }} <span class="hidden sm:inline">personnes</span><span class="sm:hidden">pers.</span>
               </span>
             </div>
           </div>
@@ -122,18 +122,6 @@
           </button>
         </div>
 
-        <!-- Ligne 8 : Checkbox désactiver -->
-        <div class="flex items-center gap-3">
-          <input
-            :id="`${mode}-archived`"
-            type="checkbox" 
-            v-model="formData.archived" 
-            class="w-4 h-4" 
-          />
-          <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
-            {{ mode === 'create' ? 'Créer comme inactif' : 'Désactiver ce spectacle' }}
-          </label>
-        </div>
 
         <!-- Confirmation de changement de template -->
         <div v-if="showTemplateChangeConfirmation" class="mb-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
@@ -248,11 +236,24 @@
             </button>
           </div>
         </div>
+
+        <!-- Checkbox désactiver (toujours en dernier) -->
+        <div class="flex items-center gap-3">
+          <input
+            :id="`${mode}-archived`"
+            type="checkbox" 
+            v-model="formData.archived" 
+            class="w-4 h-4" 
+          />
+          <label :for="`${mode}-archived`" class="text-sm font-medium text-gray-300">
+            {{ mode === 'create' ? 'Créer comme inactif' : 'Désactiver ce spectacle' }}
+          </label>
+        </div>
         </form>
       </div>
 
       <!-- Boutons fixes en bas -->
-      <div class="p-4 sm:p-6 pt-3 sm:pt-4 border-t border-gray-700/50 flex-shrink-0">
+      <div class="p-3 sm:p-6 pt-2 sm:pt-4 border-t border-gray-700/50 flex-shrink-0">
         <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             @click="handleCancel"
