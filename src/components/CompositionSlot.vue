@@ -21,14 +21,23 @@
         </div>
       </div>
       <div class="flex-shrink-0 flex flex-col items-center gap-1">
-        <button
-          v-if="rightText"
-          class="px-2 py-1 rounded text-xs font-medium text-white bg-gray-800/50 hover:bg-gray-700/70"
-          :title="rightTitle || ''"
-          @click.stop="$emit('right-click', $event)"
-        >
-          {{ rightText }}%<span v-if="rightBrunoText" class="text-gray-400 ml-1">({{ rightBrunoText }}%)</span>
-        </button>
+        <div v-if="rightText" class="flex items-center gap-1">
+          <button
+            class="px-2 py-1 rounded text-xs font-medium text-white bg-gray-800/50 hover:bg-gray-700/70"
+            :title="rightTitle || ''"
+            @click.stop="$emit('right-click', $event)"
+          >
+            {{ rightText }}%
+          </button>
+          <span
+            v-if="rightBrunoText"
+            class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors"
+            title="Algorithme Bruno - Cliquer pour voir le détail"
+            @click.stop="$emit('right-bruno-click', $event)"
+          >
+            ({{ rightBrunoText }}%)
+          </span>
+        </div>
         <div v-if="showRoleInfo" class="flex flex-col items-center gap-1">
           <span class="text-lg">{{ roleEmoji }}</span>
           <span class="text-gray-300 text-xs text-center">{{ roleLabel }}</span>
@@ -74,7 +83,7 @@ const props = defineProps({
   showRoleInfo: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['right-click', 'slot-click'])
+const emit = defineEmits(['right-click', 'right-bruno-click', 'slot-click'])
 
 const rootClasses = computed(() => {
   if (props.playerName) {
