@@ -169,17 +169,20 @@
         <div>
           <span class="text-gray-300">En pondérant tes </span>
           <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span>
-          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }} avec celles des autres candidats on recalcule tes chances à </span>
+          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }} avec celles des autres candidats on ramène tes chances à </span>
           <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
         </div>
         
         <!-- Explication du calcul -->
         <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>Calcul de la pondération :</strong></div>
-          <div>• Malus = 1÷(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span></div>
+          <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span></div>
           <div>• Ton poids = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span></div>
-          <div>• Poids des autres candidats = <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span></div>
-          <div>• Résultat = <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span>÷<span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span></div>
+          <div>• Poids total des autres = <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span></div>
+          
+          <div>Tu as donc <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span> chances sur <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> soit <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span>/<span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> environ</div>
+          
+          <div class="mt-2"></div>
         </div>
       </div>
     </div>
