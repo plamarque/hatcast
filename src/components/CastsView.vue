@@ -225,14 +225,15 @@
               :player-name="player.name"
               :event-id="event.id"
               :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
-              :is-selection-confirmed="true"
-              :is-selection-confirmed-by-organizer="true"
-              :player-selection-status="getPlayerRoleInEvent(player.id, event.id) ? 'confirmed' : 'none'"
+              :is-selection-confirmed="false"
+              :is-selection-confirmed-by-organizer="false"
+              :player-selection-status="getPlayerRoleInEvent(player.id, event.id) ? props.getPlayerSelectionStatus(player.name, event.id) : null"
               :season-id="seasonId"
               :can-edit="false"
-              :availability-data="{}"
+              :availability-data="props.getAvailabilityData(player.id, event.id)"
               :player-gender="player.gender || 'non-specified'"
               :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
+              :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
             />
           </td>
         </tr>
@@ -584,6 +585,46 @@ function getPlayerRoleLabelInEvent(playerId, eventId, playerGender = 'non-specif
     return getRoleLabel(role, playerGender)
   }
   return null
+}
+
+// Fonction pour obtenir les rôles et chances d'un joueur pour un événement
+function getPlayerRolesAndChances(playerId, eventId, playerGender = 'non-specified') {
+  // Si le joueur est déjà sélectionné, on n'affiche pas les chances
+  const selectedRole = getPlayerRoleInEvent(playerId, eventId)
+  if (selectedRole) {
+    console.log(`🔍 Joueur ${playerId} déjà sélectionné avec le rôle: ${selectedRole}`)
+    return null
+  }
+  
+  // Récupérer les données d'availability
+  const availabilityData = props.getAvailabilityData(playerId, eventId)
+  console.log(`🔍 Availability data pour ${playerId} dans ${eventId}:`, availabilityData)
+  
+  if (!availabilityData?.available || !availabilityData?.roles || availabilityData.roles.length === 0) {
+    console.log(`❌ Joueur ${playerId} non disponible ou pas de rôles`)
+    return null
+  }
+  
+  // Calculer les chances pour chaque rôle
+  const rolesWithChances = []
+  availabilityData.roles.forEach(role => {
+    const chance = props.isAvailable(playerId, eventId, role) || 0
+    console.log(`🎯 Chance pour ${playerId} dans le rôle ${role}: ${chance}%`)
+    if (chance > 0) {
+      const roleLabel = getRoleLabel(role, playerGender)
+      rolesWithChances.push({
+        role: role,
+        label: roleLabel,
+        chance: Math.round(chance)
+      })
+    }
+  })
+  
+  // Trier par chance décroissante
+  rolesWithChances.sort((a, b) => b.chance - a.chance)
+  
+  console.log(`✅ Rôles avec chances pour ${playerId}:`, rolesWithChances)
+  return rolesWithChances
 }
 
 // Computed property pour les statistiques de tous les joueurs
