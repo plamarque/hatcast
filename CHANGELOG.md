@@ -1,16 +1,14 @@
-## [0.29.1] - 2025-10-11
-
-### ✨ New Features
-
-- feat: enhance CastsView with role chances display and correct status colors
+## [0.29.2] - 2025-10-11
 
 ### 📝 Other Changes
 
-- release: version 0.29.0
+- display avaiability on casts view (in progress)
+- release: version 0.29.1
 
 
 # Changelog
 
+## [0.29.2] - 2025-10-11
 ## [0.29.1] - 2025-10-11
 ## [0.29.0] - 2025-10-11
 ## [0.28.0] - 2025-10-10
