@@ -1,190 +1,268 @@
 <template>
-  <BaseGridView
-    class="casts-view"
-    :events="props.events"
-    :displayed-players="props.displayedPlayers"
-    :left-column-title="participantsTitle"
-    :header-items="props.events"
-    :row-items="props.displayedPlayers"
-    :column-items="props.events"
-    :item-column-width="eventColumnWidth"
-    :is-all-players-view="isAllPlayersView"
-    :hidden-players-count="hiddenPlayersCount"
-    :hidden-players-display-text="hiddenPlayersDisplayText"
-    :is-all-events-view="isAllEventsView"
-    :hidden-events-count="hiddenEventsCount"
-    :hidden-events-display-text="hiddenEventsDisplayText"
-    :can-edit-availability="canEditAvailability"
-    :get-player-availability="getPlayerAvailability"
-    :header-offset-x="headerOffsetX"
-    :header-scroll-x="headerScrollX"
-    @player-selected="showPlayerDetails"
-    @availability-changed="handleAvailabilityChanged"
-    @scroll="handleScroll"
-    @toggle-player-modal="togglePlayerModal"
-    @toggle-event-modal="toggleEventModal"
-  >
-    <!-- En-têtes des événements -->
-    <template #headers="{ item, itemWidth }">
-      <div
-        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
-        :class="[
-          item._isArchived 
-            ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
-            : item._isPast 
-              ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
-              : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
-        ]"
-        :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px` }"
-        @click="openEventModal(item)"
-      >
-        <div class="flex flex-col items-center space-y-1 w-full">
-          <!-- Emoji et titre empilés -->
-          <div class="flex flex-col items-center gap-1 w-full">
-            <span class="text-sm">{{ getEventIcon(item) }}</span>
-            <span 
-              class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
-              :class="[
-                item._isArchived 
-                  ? 'text-gray-400' 
-                  : item._isPast 
-                    ? 'text-amber-200' 
-                    : 'text-white'
-              ]"
-              :title="item.title + (item._isArchived ? ' (Archivé)' : item._isPast ? ' (Passé)' : '')"
-            >
-              {{ item.title }}
-              <span v-if="item._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
-              <span v-else-if="item._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
-            </span>
-          </div>
-          <!-- Date et statut empilés -->
-          <div class="flex flex-col items-center space-y-1">
-            <span 
-              class="text-xs text-center font-normal"
-              :class="[
-                item._isArchived 
-                  ? 'text-gray-500' 
-                  : item._isPast 
-                    ? 'text-amber-300' 
-                    : 'text-gray-400'
-              ]"
-            >
-              {{ formatEventDate(item.date) }}
-            </span>
-            <StatusBadge 
-              :event-id="item.id" 
-              :event-status="getEventStatus(item)" 
-            />
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- Lignes de joueurs (vue compositions) -->
-    <template #rows="{ items: players, columns: events, itemWidth }">
-      <tr v-for="player in players" :key="player.id">
-        <!-- Cellule joueur -->
-        <td 
-          class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl"
-          :style="{ 
-            width: dynamicLeftColumnWidth, 
-            minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
-            maxWidth: dynamicLeftColumnWidth 
-          }"
-          @click="showPlayerDetails(player)"
-        >
-          <div class="flex items-center space-x-2">
-            <PlayerAvatar
-              :player-id="player.id"
-              :season-id="seasonId"
-              :player-name="player.name"
-              :player-gender="player.gender || 'non-specified'"
-              :show-status-icons="true"
-              :size="'lg'"
-              :clickable="true"
-              class="!w-10 !h-10"
-              @click="showPlayerDetails(player)"
-            />
-            <span class="text-white font-medium text-sm">{{ player.name }}</span>
-          </div>
-        </td>
-        
-        <!-- Cellules de disponibilité -->
-        <td
-          v-for="event in events"
-          :key="`${player.id}-${event.id}`"
-          class="col-event p-2 md:p-1"
-          :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
-        >
-          <SelectionCell
-            :player-name="player.name"
-            :event-id="event.id"
-            :is-selected="isSelected(player.name, event.id)"
-            :is-selection-confirmed="isSelectionConfirmed(player.name, event.id)"
-            :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-            :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
-            :season-id="seasonId"
-            :can-edit="false"
-            :availability-data="getAvailabilityData(player.name, event.id)"
-            :player-gender="player.gender || 'non-specified'"
-          />
-        </td>
-      </tr>
-      
-      <!-- Ligne "Afficher Plus" -->
-      <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
-        <td 
-          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
-          :style="{ 
-            width: dynamicLeftColumnWidth, 
-            minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
-            maxWidth: dynamicLeftColumnWidth 
-          }"
-        >
-          <button
-            class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
-            @click="addAllPlayersToGrid"
+  <div class="w-full overflow-x-auto casts-view" @scroll="handleScroll">
+    <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 4px 8px;">
+      <!-- En-tête de la table -->
+      <thead class="sticky top-0 z-[110]">
+        <tr>
+          <!-- Colonne de gauche (Bouton Exporter) -->
+          <th 
+            class="col-left bg-gray-900 rounded-xl px-4 py-3 text-center sticky left-0 z-[111]"
+            :style="{ 
+              width: dynamicLeftColumnWidth, 
+              minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
+              maxWidth: dynamicLeftColumnWidth 
+            }"
           >
-            <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-              <span class="text-white text-sm font-normal">+</span>
+            <button
+              @click="exportToExcel"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 flex items-center space-x-1 mx-auto"
+            >
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+              <span>Exporter</span>
+            </button>
+          </th>
+          
+          <!-- Colonnes de comptage des rôles -->
+          <!-- DÉCORUM -->
+          <th class="bg-violet-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🎤&nbsp;MC
+          </th>
+          <th class="bg-indigo-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🎧&nbsp;DJ
+          </th>
+          <th class="bg-slate-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🙅&nbsp;ARBITRE
+          </th>
+          <th class="bg-slate-500 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            💁&nbsp;ASSIST.
+          </th>
+          <th class="bg-emerald-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🧢&nbsp;COACH
+          </th>
+          <th class="bg-violet-800 text-white text-xs font-bold px-1 py-2 text-center border-l-2 border-violet-400" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            TOT&nbsp;DECORUM
+          </th>
+          
+          <!-- JEU -->
+          <th class="bg-yellow-300 text-black text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🎭&nbsp;JEU&nbsp;MATCH
+          </th>
+          <th class="bg-yellow-300 text-black text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🎭&nbsp;JEU&nbsp;CAB
+          </th>
+          <th class="bg-yellow-300 text-black text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🎭&nbsp;JEU&nbsp;LONG
+          </th>
+          <th class="bg-yellow-600 text-black text-xs font-bold px-1 py-2 text-center border-l-2 border-yellow-400" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            TOT&nbsp;JEU
+          </th>
+          
+          <!-- BÉNÉVOLES -->
+          <th class="bg-orange-400 text-black text-xs px-1 py-2 text-center border-l-2 border-orange-300" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
+            🤝&nbsp;BÉNÉVOLE
+          </th>
+          
+          <!-- En-têtes des événements -->
+          <th
+            v-for="event in props.events"
+            :key="event.id"
+            class="col-header col-event px-2 py-3 text-center"
+            :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
+          >
+            <div
+              class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
+              :class="[
+                event._isArchived 
+                  ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
+                  : event._isPast 
+                    ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
+                    : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
+              ]"
+              :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
+              @click="openEventModal(event)"
+            >
+              <div class="flex flex-col items-center space-y-1 w-full">
+                <!-- Emoji et titre empilés -->
+                <div class="flex flex-col items-center gap-1 w-full">
+                  <span class="text-sm">{{ getEventIcon(event) }}</span>
+                  <span 
+                    class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
+                    :class="[
+                      event._isArchived 
+                        ? 'text-gray-400' 
+                        : event._isPast 
+                          ? 'text-amber-200' 
+                          : 'text-white'
+                    ]"
+                    :title="event.title + (event._isArchived ? ' (Archivé)' : event._isPast ? ' (Passé)' : '')"
+                  >
+                    {{ event.title }}
+                    <span v-if="event._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
+                    <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
+                  </span>
+                </div>
+                <!-- Date et statut empilés -->
+                <div class="flex flex-col items-center space-y-1">
+                  <span 
+                    class="text-xs text-center font-normal"
+                    :class="[
+                      event._isArchived 
+                        ? 'text-gray-500' 
+                        : event._isPast 
+                          ? 'text-amber-300' 
+                          : 'text-gray-400'
+                    ]"
+                  >
+                    {{ formatEventDate(event.date) }}
+                  </span>
+                  <StatusBadge 
+                    :event-id="event.id" 
+                    :event-status="getEventStatus(event)" 
+                  />
+                </div>
+              </div>
             </div>
-            <span class="text-sm">
-              voir les {{ hiddenPlayersCount }} autres
-            </span>
-          </button>
-        </td>
+          </th>
+        </tr>
+      </thead>
+
+      <!-- Corps de la table -->
+      <tbody class="relative z-[45]">
+
+        <!-- Lignes de joueurs -->
+        <tr v-for="player in props.displayedPlayers" :key="player.id">
+          <!-- Cellule joueur -->
+          <td 
+            class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl sticky left-0 z-[50]"
+            :style="{ 
+              width: dynamicLeftColumnWidth, 
+              minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
+              maxWidth: dynamicLeftColumnWidth 
+            }"
+            @click="showPlayerDetails(player)"
+          >
+            <div class="flex items-center space-x-2">
+              <PlayerAvatar
+                :player-id="player.id"
+                :season-id="seasonId"
+                :player-name="player.name"
+                :player-gender="player.gender || 'non-specified'"
+                :show-status-icons="true"
+                :size="'lg'"
+                :clickable="true"
+                class="!w-10 !h-10"
+                @click="showPlayerDetails(player)"
+              />
+              <span class="text-white font-medium text-sm">{{ player.name }}</span>
+            </div>
+          </td>
+          
+          <!-- Cellules de comptage des rôles -->
+          <template v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
+            <!-- Colonnes de décorum -->
+            <td class="bg-violet-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.mc }}
+            </td>
+            <td class="bg-indigo-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.dj }}
+            </td>
+            <td class="bg-slate-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.referee }}
+            </td>
+            <td class="bg-slate-500 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.assistantReferee }}
+            </td>
+            <td class="bg-emerald-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.coach }}
+            </td>
+            <td class="bg-violet-800 text-white text-center text-sm font-bold border-l-2 border-violet-400" style="width: 24px; min-width: 24px;">
+              {{ stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach }}
+            </td>
+            
+            <!-- Colonnes de jeu -->
+            <td class="bg-yellow-300 text-black text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.jeuMatch }}
+            </td>
+            <td class="bg-yellow-300 text-black text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.jeuCab }}
+            </td>
+            <td class="bg-yellow-300 text-black text-center text-sm" style="width: 24px; min-width: 24px;">
+              {{ stats.jeuLong }}
+            </td>
+            <td class="bg-yellow-600 text-black text-center text-sm font-bold border-l-2 border-yellow-400" style="width: 24px; min-width: 24px;">
+              {{ stats.totalJeu }}
+            </td>
+            
+            <!-- Colonne bénévoles -->
+            <td class="bg-orange-400 text-black text-center text-sm border-l-2 border-orange-300" style="width: 24px; min-width: 24px;">
+              {{ stats.volunteer }}
+            </td>
+          </template>
+          
+          <!-- Cellules de sélection -->
+          <td
+            v-for="event in props.events"
+            :key="`${player.id}-${event.id}`"
+            class="col-event p-2 md:p-1"
+            :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px`, height: '4rem' }"
+          >
+            <SelectionCell
+              :player-name="player.name"
+              :event-id="event.id"
+              :is-selected="isSelected(player.name, event.id)"
+              :is-selection-confirmed="isSelectionConfirmed(player.name, event.id)"
+              :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
+              :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
+              :season-id="seasonId"
+              :can-edit="false"
+              :availability-data="getAvailabilityData(player.name, event.id)"
+              :player-gender="player.gender || 'non-specified'"
+            />
+          </td>
+        </tr>
         
-        <!-- Cellules vides pour "Afficher Plus" -->
-      </tr>
-      
-    </template>
-    
-    <!-- En-tête "Afficher Tous" pour les événements -->
-    <template #show-more-events-header="{ itemWidth }">
-      <div
-        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
-        @click="addAllEventsToGrid"
-      >
-        <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-          <span class="text-white text-sm font-normal">+</span>
-        </div>
-        <span class="text-white text-xs text-center leading-tight">
-          voir les {{ hiddenEventsCount }} autres
-        </span>
-      </div>
-    </template>
-  </BaseGridView>
+        <!-- Ligne "Afficher Plus" -->
+        <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
+          <td 
+            class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
+            :style="{ 
+              width: dynamicLeftColumnWidth, 
+              minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
+              maxWidth: dynamicLeftColumnWidth 
+            }"
+          >
+            <button
+              class="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
+              @click="addAllPlayersToGrid"
+            >
+              <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                <span class="text-white text-sm font-normal">+</span>
+              </div>
+              <span class="text-sm">
+                voir les {{ hiddenPlayersCount }} autres
+              </span>
+            </button>
+          </td>
+          
+          <!-- Cellules vides pour les colonnes de rôles -->
+          <td colspan="11" class="bg-gray-800"></td>
+          
+          <!-- Cellules vides pour "Afficher Plus" -->
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import BaseGridView from './BaseGridView.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import SelectionCell from './SelectionCell.vue'
 import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
-import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
+import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import { loadPlayers, loadAvailability } from '../services/storage.js'
 import logger from '../services/logger.js'
@@ -363,6 +441,189 @@ const dynamicLeftColumnWidth = computed(() => {
     }
   }
 })
+
+// Fonctions de calcul des statistiques de rôles
+function calculatePlayerRoleStats(playerName) {
+  // Trouver l'ID du joueur à partir de son nom
+  const player = props.displayedPlayers.find(p => p.name === playerName)
+  if (!player) {
+    console.log(`❌ Joueur ${playerName} non trouvé dans displayedPlayers`)
+    return { mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0 }
+  }
+  
+  const playerId = player.id
+  console.log('🔍 calculatePlayerRoleStats pour:', playerName, '(ID:', playerId, ')')
+  
+  const stats = {
+    // Rôles de décorum
+    mc: 0,
+    dj: 0,
+    referee: 0,
+    assistantReferee: 0,
+    coach: 0,
+    // Rôles de jeu (basés sur le type d'événement)
+    jeuMatch: 0,
+    jeuCab: 0,
+    jeuLong: 0,
+    // Total de toutes les participations en tant que joueur
+    totalJeu: 0,
+    // Bénévoles
+    volunteer: 0
+  }
+
+  // Parcourir tous les événements pour compter les rôles
+  props.events.forEach(event => {
+    // Utiliser les données de casts pour obtenir les sélections
+    const eventCasts = props.casts[event.id] || {}
+    console.log(`🎪 Event ${event.title} (${event.id}):`, eventCasts)
+    
+    // Trouver le joueur par son ID dans les rôles
+    let playerRole = null
+    if (eventCasts.roles) {
+      // Chercher dans chaque rôle
+      Object.entries(eventCasts.roles).forEach(([role, players]) => {
+        if (Array.isArray(players)) {
+          players.forEach(player => {
+            // Comparer avec l'ID du joueur
+            const playerIdentifier = typeof player === 'string' ? player : (player.id || player.name || player)
+            if (playerIdentifier === playerId) {
+              playerRole = role
+              console.log(`✅ Trouvé ${playerName} (${playerId}) dans le rôle: ${role}`)
+            }
+          })
+        }
+      })
+    }
+    
+    if (playerRole) {
+      // Compter les rôles de décorum
+      switch (playerRole) {
+        case 'mc':
+          stats.mc++
+          break
+        case 'dj':
+          stats.dj++
+          break
+        case 'referee':
+          stats.referee++
+          break
+        case 'assistant_referee':
+          stats.assistantReferee++
+          break
+        case 'coach':
+          stats.coach++
+          break
+        case 'player':
+          // Compter TOUTES les participations en tant que joueur dans totalJeu
+          stats.totalJeu++
+          
+          // Compter selon le type d'événement spécifique pour les colonnes dédiées
+          switch (event.templateType) {
+            case 'match':
+              stats.jeuMatch++
+              break
+            case 'cabaret':
+              stats.jeuCab++
+              break
+            case 'longform':
+              stats.jeuLong++
+              break
+            // Pour les autres types (freeform, catch, etc.), on ne les compte pas dans les colonnes spécifiques
+            // mais ils sont déjà comptés dans totalJeu
+          }
+          break
+        case 'volunteer':
+          stats.volunteer++
+          break
+      }
+    }
+  })
+
+  return stats
+}
+
+// Computed property pour les statistiques de tous les joueurs
+const playersRoleStats = computed(() => {
+  const statsMap = new Map()
+  
+  props.displayedPlayers.forEach(player => {
+    statsMap.set(player.name, calculatePlayerRoleStats(player.name))
+  })
+  
+  return statsMap
+})
+
+// Fonction d'export vers Excel/Google Sheets
+function exportToExcel() {
+  try {
+    // Créer les données pour l'export
+    const exportData = []
+    
+    // En-têtes
+    const headers = [
+      'Joueur',
+      'MC',
+      'DJ', 
+      'ARBITRE',
+      'ASSIST.',
+      'COACH',
+      'TOT DECORUM',
+      'JEU MATCH',
+      'JEU CAB',
+      'JEU LONG',
+      'TOT JEU',
+      ...props.events.map(event => event.title)
+    ]
+    exportData.push(headers)
+    
+    // Données pour chaque joueur
+    props.displayedPlayers.forEach(player => {
+      const stats = calculatePlayerRoleStats(player.name)
+      const playerRow = [
+        player.name,
+        stats.mc,
+        stats.dj,
+        stats.referee,
+        stats.assistantReferee,
+        stats.coach,
+        stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach,
+        stats.jeuMatch,
+        stats.jeuCab,
+        stats.jeuLong,
+        stats.jeuMatch + stats.jeuCab + stats.jeuLong,
+        ...props.events.map(event => {
+          const eventCasts = props.casts[event.id] || {}
+          const playerCast = eventCasts[player.name]
+          if (playerCast && playerCast.roles && playerCast.roles.length > 0) {
+            return playerCast.roles[0]
+          }
+          return ''
+        })
+      ]
+      exportData.push(playerRow)
+    })
+    
+    // Convertir en CSV
+    const csvContent = exportData.map(row => 
+      row.map(cell => `"${cell}"`).join(',')
+    ).join('\n')
+    
+    // Créer et télécharger le fichier
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `compositions-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    logger.debug('✅ Export CSV généré avec succès')
+  } catch (error) {
+    logger.error('❌ Erreur lors de l\'export:', error)
+  }
+}
 
 // Computed
 const participantsTitle = computed(() => {

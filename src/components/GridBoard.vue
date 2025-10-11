@@ -5997,14 +5997,20 @@ watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], (
 
 // Watcher pour réinitialiser selectedPlayerId quand on passe à la vue "casts"
 watch(validCurrentView, async (newView, oldView) => {
+  console.log('🔍 Vue changée:', { from: oldView, to: newView })
+  
   // Si on passe à la vue "casts", réinitialiser selectedPlayerId et charger tous les joueurs
   if (newView === 'casts' && oldView !== 'casts') {
+    console.log('🎯 Activation de la vue casts')
     selectedPlayerId.value = null
     
     // Charger tous les joueurs pour la vue "casts"
     try {
       const allPlayers = await loadPlayers(seasonId.value)
+      console.log('📊 Joueurs chargés pour casts:', allPlayers.length, allPlayers.map(p => p.name))
+      
       players.value = allPlayers
+      console.log('📊 players.value après mise à jour:', players.value.length)
       
       // Recharger les disponibilités pour tous les joueurs
       const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
