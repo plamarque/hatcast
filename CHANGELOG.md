@@ -1,38 +1,17 @@
-## [0.29.0] - 2025-10-11
+## [0.29.1] - 2025-10-11
 
 ### ✨ New Features
 
-- feat: apply gender-aware role labels in SelectionCell
-- feat: replace AvailabilityCell with SelectionCell in CastsView
-- feat: add CastsView component cloned from EventsView
-- feat: reorganize EventModal form fields order and improve mobile responsiveness
-- feat: add close button to EventModal
-- feat: update EventModal terminology from 'événement' to 'spectacle'
-- feat: optimize admin interface space and improve naming
-- feat: improve season administration interface
-
-### 🐛 Bug Fixes
-
-- fix: display French role labels with correct icons in CastsView
-- fix: correct role counting in CastsView by using player IDs
-- fix: optimize EventModal mobile layout and remove width constraints
-- fix: improve EventModal mobile layout and field positioning
-- fix: event edit modal not loading event data
-- fix: responsive participants list in season administration
-- fix: responsive header in season administration
+- feat: enhance CastsView with role chances display and correct status colors
 
 ### 📝 Other Changes
 
-- allow to collapse/expand user stats in casts view
-- add google user photo url sync and use as avatar
-- export casts as spreadshaeet
-- display past events and all players on casts view
-- debug: add logs to diagnose CastsView rendering issue
-- release: version 0.28.0
+- release: version 0.29.0
 
 
 # Changelog
 
+## [0.29.1] - 2025-10-11
 ## [0.29.0] - 2025-10-11
 ## [0.28.0] - 2025-10-10
 ## [0.27.2] - 2025-10-10

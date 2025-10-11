@@ -38,9 +38,25 @@
       
       <!-- Pas sélectionné -->
       <template v-else>
-        <span class="text-center text-gray-400">
-          -
-        </span>
+        <!-- Afficher les rôles et chances si disponibles -->
+        <template v-if="rolesAndChances && rolesAndChances.length > 0">
+          <div class="flex flex-col space-y-1 text-xs">
+            <div 
+              v-for="roleChance in rolesAndChances" 
+              :key="roleChance.role"
+              class="text-center"
+              :class="getChanceTextClass(roleChance.chance)"
+            >
+              {{ roleChance.label }} ({{ roleChance.chance }}%)
+            </div>
+          </div>
+        </template>
+        <!-- Sinon afficher un tiret -->
+        <template v-else>
+          <span class="text-center text-gray-400">
+            -
+          </span>
+        </template>
       </template>
     </div>
   </div>
@@ -112,6 +128,11 @@ const props = defineProps({
   playerGender: {
     type: String,
     default: 'non-specified'
+  },
+  // Données des rôles et chances pour les joueurs disponibles non sélectionnés
+  rolesAndChances: {
+    type: Array,
+    default: () => null
   }
 })
 
@@ -168,6 +189,14 @@ function getRoleEmoji() {
   }
   
   return '🎭' // Fallback si pas de rôle
+}
+
+function getChanceTextClass(chance) {
+  if (chance >= 80) return 'text-green-300 font-semibold'
+  if (chance >= 60) return 'text-yellow-300'
+  if (chance >= 40) return 'text-orange-300'
+  if (chance >= 20) return 'text-red-300'
+  return 'text-gray-400'
 }
 
 function getCellStatusClass() {
