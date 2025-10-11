@@ -211,14 +211,15 @@
             <SelectionCell
               :player-name="player.name"
               :event-id="event.id"
-              :is-selected="isSelected(player.name, event.id)"
-              :is-selection-confirmed="isSelectionConfirmed(player.name, event.id)"
-              :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
-              :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
+              :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
+              :is-selection-confirmed="true"
+              :is-selection-confirmed-by-organizer="true"
+              :player-selection-status="getPlayerRoleInEvent(player.id, event.id) ? 'confirmed' : 'none'"
               :season-id="seasonId"
               :can-edit="false"
-              :availability-data="getAvailabilityData(player.name, event.id)"
+              :availability-data="{}"
               :player-gender="player.gender || 'non-specified'"
+              :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
             />
           </td>
         </tr>
@@ -262,7 +263,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import SelectionCell from './SelectionCell.vue'
 import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
-import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES } from '../services/storage.js'
+import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES, getRoleLabel } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import { loadPlayers, loadAvailability } from '../services/storage.js'
 import logger from '../services/logger.js'
@@ -542,6 +543,33 @@ function calculatePlayerRoleStats(playerName) {
   return stats
 }
 
+// Fonction pour obtenir le rôle d'un joueur dans un événement spécifique
+function getPlayerRoleInEvent(playerId, eventId) {
+  const eventCasts = props.casts[eventId] || {}
+  if (eventCasts.roles) {
+    for (const [role, players] of Object.entries(eventCasts.roles)) {
+      if (Array.isArray(players)) {
+        for (const player of players) {
+          const playerIdentifier = typeof player === 'string' ? player : (player.id || player.name || player)
+          if (playerIdentifier === playerId) {
+            return role
+          }
+        }
+      }
+    }
+  }
+  return null
+}
+
+// Fonction pour obtenir le label français du rôle d'un joueur dans un événement
+function getPlayerRoleLabelInEvent(playerId, eventId, playerGender = 'non-specified') {
+  const role = getPlayerRoleInEvent(playerId, eventId)
+  if (role) {
+    return getRoleLabel(role, playerGender)
+  }
+  return null
+}
+
 // Computed property pour les statistiques de tous les joueurs
 const playersRoleStats = computed(() => {
   const statsMap = new Map()
@@ -572,13 +600,14 @@ function exportToExcel() {
       'JEU CAB',
       'JEU LONG',
       'TOT JEU',
+      'BÉNÉVOLE',
       ...props.events.map(event => event.title)
     ]
     exportData.push(headers)
     
     // Données pour chaque joueur
     props.displayedPlayers.forEach(player => {
-      const stats = calculatePlayerRoleStats(player.name)
+      const stats = playersRoleStats.value.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0}
       const playerRow = [
         player.name,
         stats.mc,
@@ -590,14 +619,11 @@ function exportToExcel() {
         stats.jeuMatch,
         stats.jeuCab,
         stats.jeuLong,
-        stats.jeuMatch + stats.jeuCab + stats.jeuLong,
+        stats.totalJeu,
+        stats.volunteer,
         ...props.events.map(event => {
-          const eventCasts = props.casts[event.id] || {}
-          const playerCast = eventCasts[player.name]
-          if (playerCast && playerCast.roles && playerCast.roles.length > 0) {
-            return playerCast.roles[0]
-          }
-          return ''
+          const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
+          return roleLabel || ''
         })
       ]
       exportData.push(playerRow)
