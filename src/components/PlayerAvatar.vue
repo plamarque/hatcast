@@ -315,8 +315,10 @@ watch(() => props.showStatusIcons, (show) => {
 
 // Écouter les événements de mise à jour d'avatar
 let avatarUpdateListener = null
+let avatarsSyncedListener = null
 
 onMounted(() => {
+  // Écouter les événements de vidage de cache
   avatarUpdateListener = (event) => {
     const { playerId: updatedPlayerId, seasonId: updatedSeasonId } = event.detail
     if (updatedPlayerId === props.playerId && 
@@ -334,12 +336,36 @@ onMounted(() => {
     }
   }
   
+  // Écouter les événements de synchronisation d'avatars Google
+  avatarsSyncedListener = (event) => {
+    const { playerIds, photoURL } = event.detail
+    if (playerIds && playerIds.includes(props.playerId)) {
+      logger.debug('PlayerAvatar: Google avatar synced, reloading', { 
+        playerId: props.playerId,
+        photoURL 
+      })
+      
+      // Reset state and refetch
+      userPhotoURL.value = null
+      associatedUserEmail.value = null
+      isAssociated.value = false
+      imageLoaded.value = false
+      imageError.value = false
+      
+      fetchPlayerAssociation()
+    }
+  }
+  
   window.addEventListener('avatar-cache-cleared', avatarUpdateListener)
+  window.addEventListener('avatars-synced', avatarsSyncedListener)
 })
 
 onUnmounted(() => {
   if (avatarUpdateListener) {
     window.removeEventListener('avatar-cache-cleared', avatarUpdateListener)
+  }
+  if (avatarsSyncedListener) {
+    window.removeEventListener('avatars-synced', avatarsSyncedListener)
   }
 })
 
