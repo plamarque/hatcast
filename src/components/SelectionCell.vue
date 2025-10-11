@@ -132,25 +132,42 @@ const playerSelectionStatus = computed(() => {
 function getConfirmedRoleLabel() {
   // Utiliser selectionData en priorité, sinon availabilityData
   const data = props.selectionData || props.availabilityData
-  if (!data?.roles || data.roles.length === 0) {
-    return 'Joue' // Fallback si pas de rôle
+  
+  // Si on a un roleLabel direct (cas CastsView)
+  if (data?.roleLabel) {
+    return data.roleLabel
   }
   
-  // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
-  const role = data.roles[0]
-  return getRoleLabel(role, props.playerGender, false) || 'Joue'
+  // Si on a des rôles dans un array (cas AvailabilityCell)
+  if (data?.roles && data.roles.length > 0) {
+    const role = data.roles[0]
+    return getRoleLabel(role, props.playerGender, false) || 'Joue'
+  }
+  
+  // Si on a un rôle direct (cas CastsView)
+  if (data?.role) {
+    return getRoleLabel(data.role, props.playerGender, false) || 'Joue'
+  }
+  
+  return 'Joue' // Fallback si pas de rôle
 }
 
 function getRoleEmoji() {
   // Utiliser selectionData en priorité, sinon availabilityData
   const data = props.selectionData || props.availabilityData
-  if (!data?.roles || data.roles.length === 0) {
-    return '🎭' // Fallback si pas de rôle
+  
+  // Si on a un rôle direct (cas CastsView)
+  if (data?.role) {
+    return ROLE_EMOJIS[data.role] || '🎭'
   }
   
-  // Prendre le premier rôle (normalement il n'y en a qu'un en cas de composition)
-  const role = data.roles[0]
-  return ROLE_EMOJIS[role] || '🎭'
+  // Si on a des rôles dans un array (cas AvailabilityCell)
+  if (data?.roles && data.roles.length > 0) {
+    const role = data.roles[0]
+    return ROLE_EMOJIS[role] || '🎭'
+  }
+  
+  return '🎭' // Fallback si pas de rôle
 }
 
 function getCellStatusClass() {
