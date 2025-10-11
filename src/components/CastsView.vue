@@ -1,5 +1,25 @@
 <template>
-  <div class="w-full overflow-x-auto casts-view" @scroll="handleScroll">
+  <div class="w-full">
+    <!-- Encart d'avertissement -->
+    <div class="bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-4 mb-4">
+      <div class="flex items-start space-x-3">
+        <div class="flex-shrink-0">
+          <span class="text-yellow-400 text-xl">⚠️</span>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-yellow-200 font-medium text-sm mb-1">
+            Vue en cours de construction
+          </h3>
+          <p class="text-yellow-100 text-xs leading-relaxed">
+            Cette vue s'adresse plutôt à la pédagogie et permet de suivre les compositions et les statistiques des joueurs au fil du temps. 
+            Elle est encore en cours de construction et peut contenir des imprécisions.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau avec colonnes de statistiques et événements -->
+    <div class="overflow-x-auto casts-view" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 4px 8px;">
       <!-- En-tête de la table -->
       <thead class="sticky top-0 z-[110]">
@@ -77,66 +97,66 @@
             </th>
           </template>
           
-          <!-- En-têtes des événements -->
+    <!-- En-têtes des événements -->
           <th
             v-for="event in props.events"
             :key="event.id"
             class="col-header col-event px-2 py-3 text-center"
             :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
           >
-            <div
-              class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
-              :class="[
+      <div
+        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
+        :class="[
                 event._isArchived 
-                  ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
+            ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
                   : event._isPast 
-                    ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
-                    : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
-              ]"
+              ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
+              : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
+        ]"
               :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
               @click="openEventModal(event)"
-            >
-              <div class="flex flex-col items-center space-y-1 w-full">
-                <!-- Emoji et titre empilés -->
-                <div class="flex flex-col items-center gap-1 w-full">
+      >
+        <div class="flex flex-col items-center space-y-1 w-full">
+          <!-- Emoji et titre empilés -->
+          <div class="flex flex-col items-center gap-1 w-full">
                   <span class="text-sm">{{ getEventIcon(event) }}</span>
-                  <span 
-                    class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
-                    :class="[
+            <span 
+              class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
+              :class="[
                       event._isArchived 
-                        ? 'text-gray-400' 
+                  ? 'text-gray-400' 
                         : event._isPast 
-                          ? 'text-amber-200' 
-                          : 'text-white'
-                    ]"
+                    ? 'text-amber-200' 
+                    : 'text-white'
+              ]"
                     :title="event.title + (event._isArchived ? ' (Archivé)' : event._isPast ? ' (Passé)' : '')"
                   >
                     {{ event.title }}
                     <span v-if="event._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
                     <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
-                  </span>
-                </div>
-                <!-- Date et statut empilés -->
-                <div class="flex flex-col items-center space-y-1">
-                  <span 
-                    class="text-xs text-center font-normal"
-                    :class="[
+            </span>
+          </div>
+          <!-- Date et statut empilés -->
+          <div class="flex flex-col items-center space-y-1">
+            <span 
+              class="text-xs text-center font-normal"
+              :class="[
                       event._isArchived 
-                        ? 'text-gray-500' 
+                  ? 'text-gray-500' 
                         : event._isPast 
-                          ? 'text-amber-300' 
-                          : 'text-gray-400'
-                    ]"
-                  >
+                    ? 'text-amber-300' 
+                    : 'text-gray-400'
+              ]"
+            >
                     {{ formatEventDate(event.date) }}
-                  </span>
-                  <StatusBadge 
+            </span>
+            <StatusBadge 
                     :event-id="event.id" 
                     :event-status="getEventStatus(event)" 
-                  />
-                </div>
-              </div>
-            </div>
+            />
+          </div>
+        </div>
+      </div>
           </th>
         </tr>
       </thead>
@@ -146,31 +166,31 @@
 
         <!-- Lignes de joueurs -->
         <tr v-for="player in props.displayedPlayers" :key="player.id">
-          <!-- Cellule joueur -->
-          <td 
+        <!-- Cellule joueur -->
+        <td 
             class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl sticky left-0 z-[50]"
-            :style="{ 
-              width: dynamicLeftColumnWidth, 
+          :style="{ 
+            width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
-              maxWidth: dynamicLeftColumnWidth 
-            }"
-            @click="showPlayerDetails(player)"
-          >
-            <div class="flex items-center space-x-2">
-              <PlayerAvatar
-                :player-id="player.id"
-                :season-id="seasonId"
-                :player-name="player.name"
-                :player-gender="player.gender || 'non-specified'"
-                :show-status-icons="true"
-                :size="'lg'"
-                :clickable="true"
-                class="!w-10 !h-10"
-                @click="showPlayerDetails(player)"
-              />
-              <span class="text-white font-medium text-sm">{{ player.name }}</span>
-            </div>
-          </td>
+            maxWidth: dynamicLeftColumnWidth 
+          }"
+          @click="showPlayerDetails(player)"
+        >
+          <div class="flex items-center space-x-2">
+            <PlayerAvatar
+              :player-id="player.id"
+              :season-id="seasonId"
+              :player-name="player.name"
+              :player-gender="player.gender || 'non-specified'"
+              :show-status-icons="true"
+              :size="'lg'"
+              :clickable="true"
+              class="!w-10 !h-10"
+              @click="showPlayerDetails(player)"
+            />
+            <span class="text-white font-medium text-sm">{{ player.name }}</span>
+          </div>
+        </td>
           
           <!-- Cellules de comptage des rôles -->
           <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
@@ -213,29 +233,29 @@
               {{ stats.volunteer }}
             </td>
           </template>
-          
-          <!-- Cellules de sélection -->
-          <td
+        
+        <!-- Cellules de sélection -->
+        <td
             v-for="event in props.events"
-            :key="`${player.id}-${event.id}`"
-            class="col-event p-2 md:p-1"
+          :key="`${player.id}-${event.id}`"
+          class="col-event p-2 md:p-1"
             :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px`, height: '4rem' }"
-          >
-            <SelectionCell
-              :player-name="player.name"
-              :event-id="event.id"
+        >
+          <SelectionCell
+            :player-name="player.name"
+            :event-id="event.id"
               :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
               :is-selection-confirmed="false"
               :is-selection-confirmed-by-organizer="false"
               :player-selection-status="getPlayerRoleInEvent(player.id, event.id) ? props.getPlayerSelectionStatus(player.name, event.id) : null"
-              :season-id="seasonId"
-              :can-edit="false"
+            :season-id="seasonId"
+            :can-edit="false"
               :availability-data="props.getAvailabilityData(player.id, event.id)"
-              :player-gender="player.gender || 'non-specified'"
+            :player-gender="player.gender || 'non-specified'"
               :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
               :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
-            />
-          </td>
+          />
+        </td>
         </tr>
         
         <!-- Ligne "Afficher Plus" -->
@@ -259,8 +279,8 @@
                 voir les {{ hiddenPlayersCount }} autres
               </span>
             </button>
-          </td>
-          
+        </td>
+        
           <!-- Cellules vides pour les colonnes de rôles et événements -->
           <td :colspan="showMoreColspan - 1" class="bg-gray-800"></td>
           
@@ -268,6 +288,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
   </div>
 </template>
 
@@ -470,7 +491,6 @@ function calculatePlayerRoleStats(playerName) {
   }
   
   const playerId = player.id
-  console.log('🔍 calculatePlayerRoleStats pour:', playerName, '(ID:', playerId, ')')
   
   const stats = {
     // Rôles de décorum
@@ -493,7 +513,6 @@ function calculatePlayerRoleStats(playerName) {
   props.events.forEach(event => {
     // Utiliser les données de casts pour obtenir les sélections
     const eventCasts = props.casts[event.id] || {}
-    console.log(`🎪 Event ${event.title} (${event.id}):`, eventCasts)
     
     // Trouver le joueur par son ID dans les rôles
     let playerRole = null
@@ -506,7 +525,6 @@ function calculatePlayerRoleStats(playerName) {
             const playerIdentifier = typeof player === 'string' ? player : (player.id || player.name || player)
             if (playerIdentifier === playerId) {
               playerRole = role
-              console.log(`✅ Trouvé ${playerName} (${playerId}) dans le rôle: ${role}`)
             }
           })
         }
@@ -592,38 +610,33 @@ function getPlayerRolesAndChances(playerId, eventId, playerGender = 'non-specifi
   // Si le joueur est déjà sélectionné, on n'affiche pas les chances
   const selectedRole = getPlayerRoleInEvent(playerId, eventId)
   if (selectedRole) {
-    console.log(`🔍 Joueur ${playerId} déjà sélectionné avec le rôle: ${selectedRole}`)
     return null
   }
   
-  // Récupérer les données d'availability
-  const availabilityData = props.getAvailabilityData(playerId, eventId)
-  console.log(`🔍 Availability data pour ${playerId} dans ${eventId}:`, availabilityData)
+  // Trouver le nom du joueur à partir de l'ID
+  const player = props.displayedPlayers.find(p => p.id === playerId)
+  if (!player) {
+    return null
+  }
+  
+  // Récupérer les données d'availability avec le nom du joueur
+  const availabilityData = props.getAvailabilityData(player.name, eventId)
   
   if (!availabilityData?.available || !availabilityData?.roles || availabilityData.roles.length === 0) {
-    console.log(`❌ Joueur ${playerId} non disponible ou pas de rôles`)
     return null
   }
   
-  // Calculer les chances pour chaque rôle
-  const rolesWithChances = []
-  availabilityData.roles.forEach(role => {
-    const chance = props.isAvailable(playerId, eventId, role) || 0
-    console.log(`🎯 Chance pour ${playerId} dans le rôle ${role}: ${chance}%`)
-    if (chance > 0) {
-      const roleLabel = getRoleLabel(role, playerGender)
-      rolesWithChances.push({
-        role: role,
-        label: roleLabel,
-        chance: Math.round(chance)
-      })
+  // Pour l'instant, afficher simplement les rôles disponibles sans calculer les chances
+  // (l'algorithme de casting n'a pas encore été exécuté, donc toutes les chances seraient à 0)
+  const rolesWithChances = availabilityData.roles.map(role => {
+    const roleLabel = getRoleLabel(role, playerGender)
+    return {
+      role: role,
+      label: roleLabel,
+      chance: null  // Pas de pourcentage pour l'instant
     }
   })
   
-  // Trier par chance décroissante
-  rolesWithChances.sort((a, b) => b.chance - a.chance)
-  
-  console.log(`✅ Rôles avec chances pour ${playerId}:`, rolesWithChances)
   return rolesWithChances
 }
 
