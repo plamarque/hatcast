@@ -47,7 +47,12 @@
               class="text-center"
               :class="getChanceTextClass(roleChance.chance)"
             >
-              {{ roleChance.label }} ({{ roleChance.chance }}%)
+              <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
+                {{ roleChance.label }} ({{ roleChance.chance }}%)
+              </template>
+              <template v-else>
+                {{ roleChance.label }}
+              </template>
             </div>
           </div>
         </template>
@@ -200,10 +205,13 @@ function getChanceTextClass(chance) {
 }
 
 function getCellStatusClass() {
+  // Si le joueur est disponible mais pas sélectionné, afficher en vert
+  const isAvailableNotSelected = !props.isSelected && props.rolesAndChances && props.rolesAndChances.length > 0
+  
   return getStatusClass({
     isSelected: props.isSelected,
     playerSelectionStatus: playerSelectionStatus.value !== 'none' ? playerSelectionStatus.value : null,
-    isAvailable: null,
+    isAvailable: isAvailableNotSelected,
     isUnavailable: false,
     isLoading: false,
     isError: false
