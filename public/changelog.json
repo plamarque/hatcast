@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.29.1",
+    "date": "2025-10-11",
+    "changes": [
+      "✨ La vue des diffusions affiche maintenant les chances de rôle et les couleurs de statut sont corrigées."
+    ]
+  },
+  {
     "version": "0.29.0",
     "date": "2025-10-11",
     "changes": [
