@@ -82,15 +82,23 @@ async function initialize() {
       // Store user avatar for player avatars service
       if (user && user.email && user.photoURL) {
         try {
-          const { storeUserAvatar, clearPlayerAvatarCache } = await import('./playerAvatars.js')
+          const { storeUserAvatar, syncGooglePhotoToPlayers } = await import('./playerAvatars.js')
+          
+          // Stocker temporairement dans le cache
           storeUserAvatar(user.email, user.photoURL)
           
-          // Vider le cache des avatars pour forcer le rechargement
-          clearPlayerAvatarCache()
+          // Synchroniser la photoURL avec tous les joueurs associés dans Firestore
+          const syncCount = await syncGooglePhotoToPlayers(user.email, user.photoURL)
           
-          logger.info('✅ Avatar utilisateur sauvegardé et cache vidé', { email: user.email })
+          if (syncCount > 0) {
+            logger.info(`✅ Google avatar synced to ${syncCount} player(s) in Firestore`, { 
+              email: user.email 
+            })
+          } else {
+            logger.debug('No players to sync for this user', { email: user.email })
+          }
         } catch (error) {
-          logger.debug('Could not store user avatar:', error)
+          logger.warn('Could not sync Google avatar to players:', error)
         }
       }
       

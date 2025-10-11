@@ -1,32 +1,39 @@
-## [0.28.0] - 2025-10-10
+## [0.29.0] - 2025-10-11
 
 ### ✨ New Features
 
-- feat: add explanatory tooltip for Bruno algorithm
-- feat: improve chance explanation tooltip with detailed calculation
-- feat: add shortcut buttons in availabilities tab
-- feat: add navigation to event details from player selection popup
-- feat: improve player statistics UI layout and styling
+- feat: apply gender-aware role labels in SelectionCell
+- feat: replace AvailabilityCell with SelectionCell in CastsView
+- feat: add CastsView component cloned from EventsView
+- feat: reorganize EventModal form fields order and improve mobile responsiveness
+- feat: add close button to EventModal
+- feat: update EventModal terminology from 'événement' to 'spectacle'
+- feat: optimize admin interface space and improve naming
+- feat: improve season administration interface
 
 ### 🐛 Bug Fixes
 
-- fix: correct theoretical chance calculation in tooltip
-- fix: improve percentage visibility for selected players
-- fix: correct declines calculation in player statistics
-- fix: correct player statistics calculations and add debug tooltips
-
-### 🔧 Improvements
-
-- refactor: improve tooltip text and formatting for better readability
+- fix: display French role labels with correct icons in CastsView
+- fix: correct role counting in CastsView by using player IDs
+- fix: optimize EventModal mobile layout and remove width constraints
+- fix: improve EventModal mobile layout and field positioning
+- fix: event edit modal not loading event data
+- fix: responsive participants list in season administration
+- fix: responsive header in season administration
 
 ### 📝 Other Changes
 
-- simplify uplayer stat tooltips
-- release: version 0.27.2
+- allow to collapse/expand user stats in casts view
+- add google user photo url sync and use as avatar
+- export casts as spreadshaeet
+- display past events and all players on casts view
+- debug: add logs to diagnose CastsView rendering issue
+- release: version 0.28.0
 
 
 # Changelog
 
+## [0.29.0] - 2025-10-11
 ## [0.28.0] - 2025-10-10
 ## [0.27.2] - 2025-10-10
 ## [0.27.1] - 2025-10-10

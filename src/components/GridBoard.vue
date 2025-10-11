@@ -29,7 +29,7 @@
 
     <!-- Header sticky avec dropdown de vue et sélecteurs -->
     <ViewHeader
-      v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline'"
+      v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline' || validCurrentView === 'casts'"
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
@@ -100,7 +100,7 @@
     />
 
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
       
       <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
@@ -150,6 +150,48 @@
       <EventsView
         v-if="validCurrentView === 'events'"
         key="events-view"
+        :events="displayedEvents"
+        :displayed-players="displayedPlayers"
+        :is-all-players-view="isAllPlayersView"
+        :hidden-players-count="hiddenPlayersCount"
+        :hidden-players-display-text="hiddenPlayersDisplayText"
+        :is-all-events-view="isAllEventsView"
+        :hidden-events-count="hiddenEventsCount"
+        :hidden-events-display-text="hiddenEventsDisplayText"
+        :can-edit-availability="canEditAvailability"
+        :get-player-availability="getPlayerAvailability"
+        :season-id="seasonId"
+        :chances="chances"
+        :is-available="isAvailable"
+        :is-selected="isSelected"
+        :is-selection-confirmed="isSelectionConfirmed"
+        :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :get-player-selection-status="getPlayerSelectionStatus"
+        :is-selection-complete="isSelectionComplete"
+        :get-availability-data="getAvailabilityData"
+        :is-player-protected-in-grid="isPlayerProtectedInGrid"
+        :get-selection-players="getSelectionPlayers"
+        :get-total-required-count="getTotalRequiredCount"
+        :count-available-players="countAvailablePlayers"
+        :casts="casts"
+        :header-offset-x="0"
+        :header-scroll-x="0"
+        @player-selected="showPlayerDetails"
+        @availability-changed="handleAvailabilityChanged"
+        @scroll="handleGridScroll"
+        @toggle-player-modal="togglePlayerModal"
+        @toggle-availability="toggleAvailability"
+        @toggle-selection-status="toggleSelectionStatus"
+        @show-availability-modal="openAvailabilityModal"
+        @show-confirmation-modal="openConfirmationModal"
+        @event-click="openEventModal"
+        @all-players-loaded="handleAllPlayersLoaded"
+        @all-events-loaded="handleAllEventsLoaded"
+      />
+
+      <CastsView
+        v-if="validCurrentView === 'casts'"
+        key="casts-view"
         :events="displayedEvents"
         :displayed-players="displayedPlayers"
         :is-all-players-view="isAllPlayersView"
@@ -2028,6 +2070,7 @@ import PerformanceDebug from './PerformanceDebug.vue'
 import TimelineView from './TimelineView.vue'
 import ParticipantsView from './ParticipantsView.vue'
 import EventsView from './EventsView.vue'
+import CastsView from './CastsView.vue'
 import PlayerSelectorModal from './PlayerSelectorModal.vue'
 import EventSelectorModal from './EventSelectorModal.vue'
 import ViewHeader from './ViewHeader.vue'
@@ -2311,7 +2354,7 @@ const seasonMeta = ref({})
 const isScrolled = ref(false)
 
 // Vues valides disponibles
-const VALID_VIEWS = ['events', 'participants', 'timeline']
+const VALID_VIEWS = ['events', 'participants', 'timeline', 'casts']
 const DEFAULT_VIEW = 'events'
 
 // Fonction utilitaire pour valider et obtenir une vue valide
@@ -2336,7 +2379,9 @@ const currentView = ref((() => {
 
 // Computed pour s'assurer qu'on a toujours une vue valide
 const validCurrentView = computed(() => {
-  return getValidView(currentView.value)
+  const view = getValidView(currentView.value)
+  console.log('🔍 validCurrentView computed:', { currentView: currentView.value, validView: view })
+  return view
 })
 // showViewDropdown supprimé - maintenant géré par ViewHeader
 
@@ -2350,6 +2395,12 @@ const eventFilters = ref({
   showPastEvents: false,
   showInactiveEvents: false
 })
+
+// Filtres spécifiques pour la vue casts
+const castsEventFilters = computed(() => ({
+  showPastEvents: true,  // Afficher les événements passés
+  showInactiveEvents: false  // Ne pas afficher les événements inactifs/archivés
+}))
 
 // Debug watcher pour tracer qui modifie selectedPlayerId
 watch(selectedPlayerId, (newValue, oldValue) => {
@@ -3204,6 +3255,7 @@ function initializeViewMode() {
 
 // Fonction de sélection de vue
 function selectView(view) {
+  console.log('🔍 selectView called with:', view)
   // Valider la vue avant de l'appliquer
   const validView = getValidView(view)
   
@@ -3212,6 +3264,7 @@ function selectView(view) {
   // Sauvegarder la préférence dans le localStorage
   localStorage.setItem('hatcast-view-preference', validView)
   
+  console.log('🔍 selectView result:', { originalView: view, validView, currentView: currentView.value })
   logger.debug(`Vue sélectionnée: ${validView}`)
 }
 
@@ -3221,6 +3274,7 @@ function getViewLabel(view) {
     case 'events': return 'Spectacles'
     case 'participants': return 'Participants'
     case 'timeline': return 'Agenda'
+    case 'casts': return 'Compositions'
     default: return 'Lignes'
   }
 }
@@ -5921,6 +5975,11 @@ watch([selectedPlayerId, validCurrentView], ([newSelectedPlayerId, newView]) => 
 // Watcher pour initialiser selectedPlayerId avec le premier favori
 watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], ([favoritesSize, seasonPlayersLength]) => {
   try {
+    // Ne pas initialiser automatiquement le joueur favori pour la vue "casts"
+    if (validCurrentView.value === 'casts') {
+      return
+    }
+    
     // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
     if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
       const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
@@ -5935,6 +5994,34 @@ watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], (
     logger.error('❌ Erreur dans le watcher selectedPlayerId:', error)
   }
 }, { immediate: true })
+
+// Watcher pour réinitialiser selectedPlayerId quand on passe à la vue "casts"
+watch(validCurrentView, async (newView, oldView) => {
+  console.log('🔍 Vue changée:', { from: oldView, to: newView })
+  
+  // Si on passe à la vue "casts", réinitialiser selectedPlayerId et charger tous les joueurs
+  if (newView === 'casts' && oldView !== 'casts') {
+    console.log('🎯 Activation de la vue casts')
+    selectedPlayerId.value = null
+    
+    // Charger tous les joueurs pour la vue "casts"
+    try {
+      const allPlayers = await loadPlayers(seasonId.value)
+      console.log('📊 Joueurs chargés pour casts:', allPlayers.length, allPlayers.map(p => p.name))
+      
+      players.value = allPlayers
+      console.log('📊 players.value après mise à jour:', players.value.length)
+      
+      // Recharger les disponibilités pour tous les joueurs
+      const newAvailability = await loadAvailability(allPlayers, events.value, seasonId.value)
+      availability.value = newAvailability
+      
+      logger.debug('🎯 Vue "casts" activée, chargement de tous les joueurs:', allPlayers.length)
+    } catch (error) {
+      logger.error('❌ Erreur lors du chargement de tous les joueurs pour la vue casts:', error)
+    }
+  }
+})
 
 // Watcher pour recharger les joueurs protégés de l'utilisateur quand l'authentification change
 watch(() => currentUser.value?.email, async (newEmail) => {
@@ -6301,12 +6388,16 @@ const displayedEvents = computed(() => {
     // Mode "tous les événements" : afficher tous les événements selon les filtres
     filteredEvents = allEvents.value
     const now = new Date()
+    
+    // Utiliser les filtres appropriés selon la vue active
+    const currentFilters = validCurrentView.value === 'casts' ? castsEventFilters.value : eventFilters.value
+    
     filteredEvents = filteredEvents.filter(event => {
       // Appliquer le filtre des événements inactifs/archivés (inversé : si NON coché, on masque)
-      if (!eventFilters.value.showInactiveEvents && event.archived === true) return false
+      if (!currentFilters.showInactiveEvents && event.archived === true) return false
       
       // Appliquer le filtre des événements passés (inversé : si NON coché, on masque)
-      if (!eventFilters.value.showPastEvents && event.date) {
+      if (!currentFilters.showPastEvents && event.date) {
         const eventDate = (() => {
           if (event.date instanceof Date) return event.date
           if (typeof event.date?.toDate === 'function') return event.date.toDate()
@@ -6323,12 +6414,16 @@ const displayedEvents = computed(() => {
     // Mode normal : afficher seulement les événements actifs
     filteredEvents = sortedEvents.value
     const now = new Date()
+    
+    // Utiliser les filtres appropriés selon la vue active
+    const currentFilters = validCurrentView.value === 'casts' ? castsEventFilters.value : eventFilters.value
+    
     filteredEvents = filteredEvents.filter(event => {
-      // Garder les événements non archivés
-      if (event.archived === true) return false
+      // Appliquer le filtre des événements inactifs/archivés
+      if (!currentFilters.showInactiveEvents && event.archived === true) return false
       
-      // Garder les événements futurs ou sans date
-      if (event.date) {
+      // Appliquer le filtre des événements passés
+      if (!currentFilters.showPastEvents && event.date) {
         const eventDate = (() => {
           if (event.date instanceof Date) return event.date
           if (typeof event.date?.toDate === 'function') return event.date.toDate()
@@ -10283,6 +10378,27 @@ function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
+
+// Fonction helper pour obtenir les données de sélection d'un joueur
+function getSelectionData(playerName, eventId) {
+  const cast = casts.value[eventId]
+  if (!cast) {
+    return null
+  }
+  
+  // Obtenir le rôle du joueur
+  const role = getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
+  
+  if (!role) {
+    return null
+  }
+  
+  return {
+    roles: [role],
+    comment: null
+  }
+}
+
 // Fonction helper pour obtenir le rôle d'un joueur dans la section déclinés
 function getPlayerDeclinedRole(playerName, eventId) {
   const cast = casts.value[eventId]

@@ -343,3 +343,114 @@ export function clearPlayerAvatarCacheForPlayer(playerId) {
   
   logger.debug('PlayerAvatar service: Cleared cache for player', { playerId })
 }
+
+/**
+ * Synchronise la photoURL Google avec tous les joueurs associés à un email
+ * À appeler lors de la connexion avec Google
+ * @param {string} email - Email de l'utilisateur
+ * @param {string} photoURL - URL de l'avatar Google
+ * @returns {Promise<number>} - Nombre de joueurs mis à jour
+ */
+export async function syncGooglePhotoToPlayers(email, photoURL) {
+  if (!email || !photoURL) {
+    logger.debug('PlayerAvatar service: Missing email or photoURL for sync')
+    return 0
+  }
+  
+  try {
+    // Import dynamique pour éviter les dépendances circulaires
+    const { listAssociationsForEmail } = await import('./players.js')
+    
+    // Récupérer tous les joueurs associés à cet email
+    const associations = await listAssociationsForEmail(email)
+    
+    if (associations.length === 0) {
+      logger.debug('PlayerAvatar service: No players associated with email', { email })
+      return 0
+    }
+    
+    // Sanitize Google avatar URL
+    let sanitizedPhotoURL = photoURL.trim()
+    if (sanitizedPhotoURL.includes('googleusercontent.com')) {
+      sanitizedPhotoURL = sanitizedPhotoURL.replace(/=s\d+-c$/, '=s96')
+    }
+    
+    // Mettre à jour tous les joueurs en parallèle
+    const updatePromises = associations.map(async (assoc) => {
+      try {
+        await firestoreService.updateDocument('seasons', assoc.seasonId, {
+          photoURL: sanitizedPhotoURL,
+          updatedAt: new Date()
+        }, 'players', assoc.playerId)
+        
+        // Vider le cache pour ce joueur
+        clearPlayerAvatarCacheForPlayer(assoc.playerId)
+        
+        return true
+      } catch (error) {
+        logger.warn(`PlayerAvatar service: Failed to update player ${assoc.playerId}`, error)
+        return false
+      }
+    })
+    
+    const results = await Promise.all(updatePromises)
+    const successCount = results.filter(Boolean).length
+    
+    logger.info(`PlayerAvatar service: Synced Google photo to ${successCount}/${associations.length} players`, {
+      email,
+      playerIds: associations.map(a => a.playerId)
+    })
+    
+    // Émettre un événement pour informer les composants
+    if (successCount > 0) {
+      window.dispatchEvent(new CustomEvent('avatars-synced', { 
+        detail: { 
+          email,
+          playerIds: associations.map(a => a.playerId),
+          photoURL: sanitizedPhotoURL
+        } 
+      }))
+    }
+    
+    return successCount
+    
+  } catch (error) {
+    logger.error('PlayerAvatar service: Error syncing Google photo to players', error)
+    return 0
+  }
+}
+
+/**
+ * Résout l'avatar à afficher pour un joueur
+ * Retourne soit l'URL de la photo Google, soit un emoji selon le genre
+ * @param {string} playerId - ID du joueur
+ * @param {string} seasonId - ID de la saison (optionnel)
+ * @param {string} playerGender - Genre du joueur ('male', 'female', 'non-specified')
+ * @returns {Promise<{type: 'photo'|'emoji', value: string}>}
+ */
+export async function resolvePlayerAvatar(playerId, seasonId = null, playerGender = 'non-specified') {
+  const avatarData = await getPlayerAvatar(playerId, seasonId)
+  
+  if (avatarData.photoURL) {
+    return {
+      type: 'photo',
+      value: avatarData.photoURL,
+      email: avatarData.email,
+      isAssociated: avatarData.isAssociated
+    }
+  }
+  
+  // Fallback sur l'emoji selon le genre
+  const genderEmojis = {
+    'male': '👨',
+    'female': '👩',
+    'non-specified': '👤'
+  }
+  
+  return {
+    type: 'emoji',
+    value: genderEmojis[playerGender] || genderEmojis['non-specified'],
+    email: avatarData.email,
+    isAssociated: avatarData.isAssociated
+  }
+}

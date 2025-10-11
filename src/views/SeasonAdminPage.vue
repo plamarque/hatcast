@@ -20,8 +20,9 @@
     />
 
     <!-- Contenu principal -->
-    <div class="pb-16 px-4" style="padding-top: calc(2rem + env(safe-area-inset-top));">
-      <div class="max-w-4xl mx-auto">
+    <div class="h-full flex flex-col px-4" style="padding-top: calc(2rem + env(safe-area-inset-top));">
+      <!-- Messages d'erreur et succès -->
+      <div class="flex-shrink-0">
         <!-- Message d'erreur -->
         <div v-if="errorMessage" class="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6">
           <div class="flex items-center justify-between">
@@ -55,9 +56,10 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <!-- Système d'onglets -->
-        <div class="bg-gray-800/50 rounded-lg overflow-hidden">
+      <!-- Système d'onglets - prend tout l'espace restant -->
+      <div class="bg-gray-800/50 rounded-lg overflow-hidden flex-1 flex flex-col">
           <!-- Navigation des onglets -->
           <div class="flex border-b border-white/10">
             <button
@@ -65,14 +67,14 @@
               :class="activeTab === 'info' ? 'bg-gray-700 text-white border-b-2 border-purple-400' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
               class="flex-1 px-6 py-4 text-center font-medium transition-all duration-200"
             >
-              📊 Informations
+              🎭 Saison
             </button>
             <button
               @click="activeTab = 'events'"
               :class="activeTab === 'events' ? 'bg-gray-700 text-white border-b-2 border-purple-400' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
               class="flex-1 px-6 py-4 text-center font-medium transition-all duration-200"
             >
-              📅 Événements
+              📅 Spectacles
             </button>
             <button
               @click="switchToUsersTab"
@@ -84,12 +86,12 @@
           </div>
 
           <!-- Contenu des onglets -->
-          <div class="p-6">
+          <div class="p-6 flex-1 overflow-y-auto">
             <!-- Onglet Informations -->
             <div v-if="activeTab === 'info'" class="space-y-6">
               <!-- Carte de saison -->
               <div>
-                <h2 class="text-2xl font-bold text-white mb-4">📋 Informations de la saison</h2>
+                <h2 class="text-2xl font-bold text-white mb-4">🎭 Informations de la saison</h2>
                 <div class="flex justify-center">
                   <SeasonCard 
                     :season="seasonCardData"
@@ -130,7 +132,7 @@
 
               <!-- Statistiques de la saison -->
               <div>
-                <h2 class="text-2xl font-bold text-white mb-4">📊 Statistiques de la saison</h2>
+                <h2 class="text-2xl font-bold text-white mb-4">🎭 Statistiques de la saison</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div class="bg-gray-700/50 rounded-lg p-4">
                     <div class="flex items-center gap-3 mb-2">
@@ -165,20 +167,15 @@
               </div>
             </div>
 
-            <!-- Onglet Événements -->
+            <!-- Onglet Spectacles -->
             <div v-if="activeTab === 'events'" class="space-y-6">
-              <!-- Section Gestion des événements -->
+              <!-- Section Gestion des spectacles -->
             <div class="space-y-4 mb-6">
-              <!-- Titre et statistiques -->
+              <!-- Statistiques -->
               <div>
-                <h2 class="text-2xl font-bold text-white mb-2">📅 Gestion des événements</h2>
-                <!-- Nombre total d'événements -->
-                <div class="text-sm text-purple-300 mb-2">
-                  {{ totalEventsCount }} événement{{ totalEventsCount > 1 ? 's' : '' }} au total
-                </div>
                 <!-- Indicateur des résultats -->
                 <div v-if="searchTerm.trim() || showInactiveEvents || showPastEvents" class="text-sm text-purple-300 mt-1">
-                  {{ filteredEvents.length }} événement{{ filteredEvents.length > 1 ? 's' : '' }} affiché{{ filteredEvents.length > 1 ? 's' : '' }}
+                  {{ filteredEvents.length }} spectacle{{ filteredEvents.length > 1 ? 's' : '' }} affiché{{ filteredEvents.length > 1 ? 's' : '' }}
                   <span v-if="events.length > filteredEvents.length">
                     sur {{ events.length }} total
                   </span>
@@ -187,36 +184,35 @@
               
               <!-- Contrôles - responsive -->
               <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                <!-- Champ de recherche rapide -->
-                <div class="relative flex-1">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
+                <!-- Champ de recherche rapide avec filtre -->
+                <div class="flex items-center gap-3 flex-1">
+                  <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                      </svg>
+                    </div>
+                    <input
+                      v-model="searchTerm"
+                      type="text"
+                      placeholder="Rechercher un spectacle..."
+                      class="pl-10 pr-4 py-2 w-full bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    />
+                    <!-- Bouton de réinitialisation -->
+                    <button
+                      v-if="searchTerm"
+                      @click="searchTerm = ''"
+                      class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors duration-200"
+                      title="Effacer la recherche"
+                    >
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
                   </div>
-                  <input
-                    v-model="searchTerm"
-                    type="text"
-                    placeholder="Rechercher un événement..."
-                    class="pl-10 pr-4 py-2 w-full sm:w-64 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                  />
-                  <!-- Bouton de réinitialisation -->
-                  <button
-                    v-if="searchTerm"
-                    @click="searchTerm = ''"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors duration-200"
-                    title="Effacer la recherche"
-                  >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                  </button>
-                </div>
-                
-                <!-- Boutons d'action -->
-                <div class="flex items-center gap-3">
+                  
                   <!-- Bouton de filtres -->
-                  <div class="relative">
+                  <div class="relative flex-shrink-0">
                     <button
                       @click="toggleFiltersDropdown"
                       class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 relative"
@@ -268,23 +264,31 @@
                       </label>
                     </div>
                   </div>
-                  
+                </div>
+                
+                <!-- Boutons d'action -->
+                <div class="flex items-center gap-3">
                   <button
                     @click="showAddEventModal = true"
                     class="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap"
                   >
-                    ➕ Ajouter un événement
+                    ➕ Ajouter un spectacle
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Liste des événements -->
+            <!-- Liste des spectacles -->
+            <!-- Nombre total de spectacles -->
+            <div class="text-sm text-purple-300 mb-4">
+              {{ totalEventsCount }} spectacle{{ totalEventsCount > 1 ? 's' : '' }} au total
+            </div>
+            
             <div v-if="filteredEvents.length === 0" class="text-center py-8 text-gray-400">
               <span class="text-4xl mb-3 block">📅</span>
-              <p v-if="events.length === 0">Aucun événement créé pour cette saison</p>
-              <p v-else-if="searchTerm.trim()">Aucun événement ne correspond à la recherche "{{ searchTerm }}"</p>
-              <p v-else>Aucun événement ne correspond aux filtres sélectionnés</p>
+              <p v-if="events.length === 0">Aucun spectacle créé pour cette saison</p>
+              <p v-else-if="searchTerm.trim()">Aucun spectacle ne correspond à la recherche "{{ searchTerm }}"</p>
+              <p v-else>Aucun spectacle ne correspond aux filtres sélectionnés</p>
             </div>
 
             <div v-else class="space-y-3">
@@ -312,7 +316,7 @@
                     <button
                       @click.stop="editEvent(event)"
                       class="px-3 py-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
-                      title="Modifier cet événement"
+                      title="Modifier ce spectacle"
                     >
                       ✏️
                     </button>
@@ -326,7 +330,7 @@
                     <button
                       @click.stop="deleteEvent(event)"
                       class="px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-                      title="Supprimer cet événement"
+                      title="Supprimer ce spectacle"
                     >
                       🗑️
                     </button>
@@ -339,77 +343,116 @@
             <!-- Onglet Participants -->
             <div v-if="activeTab === 'users'" class="space-y-6">
               <!-- Section Participants et Invitations -->
-              <div>
-                <div class="mb-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h2 class="text-2xl font-bold text-white mb-2">🏃‍♂️ Participants de la saison</h2>
-                      <p class="text-gray-300">
-                        Gestion des participants actifs et des invitations en cours
-                      </p>
+              <div class="space-y-4 mb-6">
+                <!-- Contrôles - responsive -->
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <!-- Champ de recherche avec filtre -->
+                  <div class="flex items-center gap-3 flex-1">
+                    <div class="relative flex-1">
+                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                      </div>
+                      <input
+                        v-model="searchFilter"
+                        type="text"
+                        placeholder="Rechercher par nom ou email..."
+                        class="pl-10 pr-4 py-2 w-full bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      />
                     </div>
-                    <button
-                      @click="showCreateInviteModal = true"
-                      class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                      </svg>
-                      Ajouter un participant
-                    </button>
-                  </div>
-                </div>
-
-
-                <!-- Filtre de recherche -->
-                <div class="mb-6 space-y-4">
-                  <!-- Barre de recherche -->
-                  <div class="relative">
-                    <input
-                      v-model="searchFilter"
-                      type="text"
-                      placeholder="Rechercher par nom ou email..."
-                      class="w-full px-4 py-2 pl-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                    <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
+                    
+                    <!-- Bouton de filtres -->
+                    <div class="relative flex-shrink-0">
+                      <button
+                        @click="toggleParticipantsFiltersDropdown"
+                        class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 relative"
+                        :class="{ 'bg-white/20': showParticipantsFiltersDropdown }"
+                        title="Filtres de participants"
+                        aria-label="Filtres de participants"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+                        </svg>
+                        
+                        <!-- Indicateur de filtres actifs -->
+                        <div
+                          v-if="filterType !== 'all'"
+                          class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-500 rounded-full border border-gray-900"
+                        ></div>
+                      </button>
+                      
+                      <!-- Dropdown des filtres -->
+                      <div
+                        v-if="showParticipantsFiltersDropdown"
+                        class="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-white/20 rounded-xl shadow-2xl z-[1200] overflow-hidden"
+                      >
+                        <div class="p-3 border-b border-white/10">
+                          <h3 class="text-sm font-medium text-white mb-2">Filtres de participants</h3>
+                          <p class="text-xs text-gray-400">Filtrer par type de participant</p>
+                        </div>
+                        
+                        <!-- Option Tous -->
+                        <button
+                          @click="filterType = 'all'; showParticipantsFiltersDropdown = false"
+                          :class="filterType === 'all' ? 'bg-purple-600/20 text-purple-300' : 'hover:bg-white/10'"
+                          class="w-full flex items-center px-3 py-2 text-sm text-white transition-colors duration-150"
+                        >
+                          <span class="ml-auto text-xs">👥</span>
+                          <span class="ml-3">Tous</span>
+                        </button>
+                        
+                        <!-- Option Participants -->
+                        <button
+                          @click="filterType = 'users'; showParticipantsFiltersDropdown = false"
+                          :class="filterType === 'users' ? 'bg-purple-600/20 text-purple-300' : 'hover:bg-white/10'"
+                          class="w-full flex items-center px-3 py-2 text-sm text-white transition-colors duration-150"
+                        >
+                          <span class="ml-auto text-xs">👤</span>
+                          <span class="ml-3">Participants</span>
+                        </button>
+                        
+                        <!-- Option Invitations -->
+                        <button
+                          @click="filterType = 'invitations'; showParticipantsFiltersDropdown = false"
+                          :class="filterType === 'invitations' ? 'bg-purple-600/20 text-purple-300' : 'hover:bg-white/10'"
+                          class="w-full flex items-center px-3 py-2 text-sm text-white transition-colors duration-150"
+                        >
+                          <span class="ml-auto text-xs">📧</span>
+                          <span class="ml-3">Invitations</span>
+                        </button>
+                        
+                        <!-- Option Admins -->
+                        <button
+                          @click="filterType = 'admins'; showParticipantsFiltersDropdown = false"
+                          :class="filterType === 'admins' ? 'bg-purple-600/20 text-purple-300' : 'hover:bg-white/10'"
+                          class="w-full flex items-center px-3 py-2 text-sm text-white transition-colors duration-150"
+                        >
+                          <span class="ml-auto text-xs">👑</span>
+                          <span class="ml-3">Admins</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   
-                  <!-- Filtres par type -->
-                  <div class="flex gap-2">
+                  <!-- Boutons d'action -->
+                  <div class="flex items-center gap-3">
                     <button
-                      @click="filterType = 'all'"
-                      :class="filterType === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
-                      class="px-3 py-1 rounded-full text-sm transition-colors"
+                      @click="showCreateInviteModal = true"
+                      class="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl whitespace-nowrap"
                     >
-                      Tous
-                    </button>
-                    <button
-                      @click="filterType = 'users'"
-                      :class="filterType === 'users' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
-                      class="px-3 py-1 rounded-full text-sm transition-colors"
-                    >
-                      Participants
-                    </button>
-                    <button
-                      @click="filterType = 'invitations'"
-                      :class="filterType === 'invitations' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
-                      class="px-3 py-1 rounded-full text-sm transition-colors"
-                    >
-                      Invitations
-                    </button>
-                    <button
-                      @click="filterType = 'admins'"
-                      :class="filterType === 'admins' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
-                      class="px-3 py-1 rounded-full text-sm transition-colors"
-                    >
-                      Admins
+                      ➕ Ajouter un participant
                     </button>
                   </div>
                 </div>
+              </div>
 
                 <!-- Liste unifiée des utilisateurs et invitations -->
+                <!-- Nombre total de participants -->
+                <div class="text-sm text-purple-300 mb-4">
+                  {{ filteredUsersList.length }} participant{{ filteredUsersList.length > 1 ? 's' : '' }} au total
+                </div>
+                
                 <div v-if="filteredUsersList.length === 0" class="text-center py-8 text-gray-400">
                   <span class="text-4xl mb-3 block">🔍</span>
                   <p v-if="searchFilter || filterType !== 'all'">Aucun résultat trouvé</p>
@@ -423,105 +466,107 @@
                     :key="item.id"
                     class="bg-gray-700/50 rounded-lg p-4"
                   >
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-3">
-                          <!-- Icône pour les invitations seulement (les utilisateurs ont PlayerAvatar) -->
-                          <span v-if="item.type === 'invitation'" class="text-2xl">
-                            {{ getInvitationIcon(item.status) }}
-                          </span>
+                    <!-- Layout responsive : vertical sur mobile, horizontal sur desktop -->
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      
+                      <!-- Section principale : Avatar et infos -->
+                      <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <!-- Icône pour les invitations seulement (les utilisateurs ont PlayerAvatar) -->
+                        <span v-if="item.type === 'invitation'" class="text-2xl flex-shrink-0">
+                          {{ getInvitationIcon(item.status) }}
+                        </span>
+                        
+                        <!-- Avatar du joueur -->
+                        <PlayerAvatar
+                          :player-id="getPlayerId(item)"
+                          :season-id="seasonId"
+                          :player-name="getPlayerName(item)"
+                          :player-gender="getPlayerGender(item)"
+                          size="sm"
+                          rounded="full"
+                          class="flex-shrink-0"
+                        />
+                        
+                        <!-- Informations du participant -->
+                        <div class="flex-1 min-w-0">
+                          <!-- Nom du joueur -->
+                          <div class="text-white font-medium truncate">
+                            {{ getPlayerName(item) }}
+                          </div>
                           
-                          <div class="flex-1">
-                            <!-- Nom du participant (joueur) avec avatar -->
-                            <div class="flex items-center gap-3">
-                              <!-- Avatar du joueur -->
-                              <PlayerAvatar
-                                :player-id="getPlayerId(item)"
-                                :season-id="seasonId"
-                                :player-name="getPlayerName(item)"
-                                :player-gender="getPlayerGender(item)"
-                                size="sm"
-                                rounded="full"
-                              />
-                              
-                              <!-- Nom du joueur à côté de l'avatar -->
-                              <div class="text-white font-medium">
-                                {{ getPlayerName(item) }}
-                              </div>
-                              
-                              <!-- Actions pour les utilisateurs actifs -->
-                              <div v-if="item.type === 'user'" class="flex items-center gap-3 ml-auto">
-                                <!-- Email de l'utilisateur -->
-                                <span class="text-sm text-gray-400">
-                                  {{ getPlayerEmail(item) }}
-                                </span>
-                                <!-- Date de dernière connexion -->
-                                <span class="text-xs text-gray-500">
-                                  {{ getLastConnectionText(item) }}
-                                </span>
-                                <!-- Switch Admin -->
-                                <label class="flex items-center gap-2">
-                                  <span class="text-sm text-gray-300">Admin</span>
-                                  <div class="relative">
-                                    <input
-                                      type="checkbox"
-                                      :checked="item.isAdmin"
-                                      @change="handleMakeAdmin(item.email, $event.target.checked)"
-                                      class="sr-only"
-                                    />
-                                    <div 
-                                      :class="[
-                                        'w-11 h-6 rounded-full transition-colors duration-200 ease-in-out',
-                                        item.isAdmin ? 'bg-blue-600' : 'bg-gray-600'
-                                      ]"
-                                    >
-                                      <div 
-                                        :class="[
-                                          'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out',
-                                          item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'
-                                        ]"
-                                      ></div>
-                                    </div>
-                                  </div>
-                                </label>
-                                <!-- Bouton suppression -->
-                                <button
-                                  @click="handleDeleteParticipant(item)"
-                                  class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
-                                  title="Supprimer ce participant"
-                                >
-                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                              
-                              <!-- Actions pour les joueurs non associés -->
-                              <div v-else-if="item.type === 'player'" class="flex items-center gap-3 ml-auto">
-                                <!-- Statut du joueur -->
-                                <span class="text-sm text-gray-500">
-                                  Joueur sans compte
-                                </span>
-                                <!-- Bouton suppression -->
-                                <button
-                                  @click="handleDeleteParticipant(item)"
-                                  class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
-                                  title="Supprimer ce participant"
-                                >
-                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
+                          <!-- Email et statut -->
+                          <div class="text-sm text-gray-400 truncate">
+                            {{ getPlayerEmail(item) }}
+                          </div>
+                          <div class="text-xs text-gray-500">
+                            {{ getLastConnectionText(item) }}
                           </div>
                         </div>
                       </div>
                       
-                      <!-- Actions selon le type et statut -->
-                      <div class="flex items-center gap-2 ml-4">
+                      <!-- Section actions : responsive -->
+                      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:ml-4 lg:flex-shrink-0">
+                        
+                        <!-- Actions pour les utilisateurs actifs -->
+                        <template v-if="item.type === 'user'">
+                          <!-- Switch Admin -->
+                          <label class="flex items-center gap-2">
+                            <span class="text-sm text-gray-300">Admin</span>
+                            <div class="relative">
+                              <input
+                                type="checkbox"
+                                :checked="item.isAdmin"
+                                @change="handleMakeAdmin(item.email, $event.target.checked)"
+                                class="sr-only"
+                              />
+                              <div 
+                                :class="[
+                                  'w-11 h-6 rounded-full transition-colors duration-200 ease-in-out',
+                                  item.isAdmin ? 'bg-blue-600' : 'bg-gray-600'
+                                ]"
+                              >
+                                <div 
+                                  :class="[
+                                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ease-in-out',
+                                    item.isAdmin ? 'transform translate-x-5' : 'transform translate-x-0'
+                                  ]"
+                                ></div>
+                              </div>
+                            </div>
+                          </label>
+                          
+                          <!-- Bouton suppression -->
+                          <button
+                            @click="handleDeleteParticipant(item)"
+                            class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Supprimer ce participant"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </template>
+                        
+                        <!-- Actions pour les joueurs non associés -->
+                        <template v-else-if="item.type === 'player'">
+                          <!-- Statut du joueur -->
+                          <span class="text-sm text-gray-500">
+                            Joueur sans compte
+                          </span>
+                          <!-- Bouton suppression -->
+                          <button
+                            @click="handleDeleteParticipant(item)"
+                            class="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Supprimer ce participant"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                          </button>
+                        </template>
+                        
                         <!-- Actions pour les invitations -->
-                        <template v-if="item.type === 'invitation'">
+                        <template v-else-if="item.type === 'invitation'">
                           <!-- Copier le lien -->
                           <button
                             @click="copyInviteLink(item.id)"
@@ -568,11 +613,6 @@
                             </svg>
                           </button>
                         </template>
-                        
-                        <!-- Actions pour les utilisateurs actifs -->
-                        <template v-else-if="item.type === 'user'">
-                          <!-- Pas d'actions pour l'instant, juste le switcher admin -->
-                        </template>
                       </div>
                     </div>
                   </div>
@@ -583,7 +623,6 @@
           </div>
         </div>
       </div>
-    </div>
 
     <!-- Modales -->
     <ModalManager
@@ -702,7 +741,7 @@
       </div>
     </div>
 
-    <!-- EventModal pour créer/éditer des événements -->
+    <!-- EventModal pour créer/éditer des spectacles -->
     <EventModal
       :mode="'create'"
       :is-visible="showAddEventModal"
@@ -713,7 +752,7 @@
     <EventModal
       :mode="'edit'"
       :is-visible="!!editingEvent"
-      :event-data="editingEvent ? events.find(e => e.id === editingEvent) : null"
+      :event-data="editingEvent"
       @save="handleEditEvent"
       @cancel="cancelEdit"
     />
@@ -734,7 +773,6 @@
       @save="handleSeasonEditSave"
       @cancel="cancelSeasonEdit"
     />
-  </div>
 </template>
 
 <script setup>
@@ -796,10 +834,11 @@ const successMessage = ref('')
 // Gestion des onglets
 const activeTab = ref('info')
 
-// Gestion des événements
+// Gestion des spectacles
 const events = ref([])
 const showAddEventModal = ref(false)
 const editingEvent = ref(null)
+
 
 // Gestion des utilisateurs et invitations
 const usersWithPlayers = ref([])
@@ -821,10 +860,13 @@ const players = ref([])
 const availabilitiesCount = ref(0)
 const totalEventsCount = ref(0)
 
-// Filtres pour les événements
+// Filtres pour les spectacles
 const showInactiveEvents = ref(false)
 const showPastEvents = ref(false)
 const showFiltersDropdown = ref(false)
+
+// Filtres pour les participants
+const showParticipantsFiltersDropdown = ref(false)
 
 // Variables pour le feedback des changements de rôles
 const roleChangeSuccess = ref(null)
@@ -849,15 +891,15 @@ const filteredEvents = computed(() => {
     const isInactive = !!event.archived
     const isPast = eventDate < new Date()
     
-    // Par défaut : afficher les événements futurs actifs
+    // Par défaut : afficher les spectacles futurs actifs
     let shouldShow = !isInactive && !isPast
     
-    // Si on coche "Inactifs", ajouter les événements inactifs
+    // Si on coche "Inactifs", ajouter les spectacles inactifs
     if (showInactiveEvents.value) {
       shouldShow = shouldShow || isInactive
     }
     
-    // Si on coche "Passés", ajouter les événements passés
+    // Si on coche "Passés", ajouter les spectacles passés
     if (showPastEvents.value) {
       shouldShow = shouldShow || isPast
     }
@@ -868,7 +910,7 @@ const filteredEvents = computed(() => {
       const titleMatch = event.title?.toLowerCase().includes(searchLower) || false
       const descriptionMatch = event.description?.toLowerCase().includes(searchLower) || false
       
-      // Si aucun match sur le nom ou la description, exclure l'événement
+      // Si aucun match sur le nom ou la description, exclure le spectacle
       if (!titleMatch && !descriptionMatch) {
         shouldShow = false
       }
@@ -949,7 +991,7 @@ async function loadSeasonInfo() {
         loadPlayers(currentSeason.id)
       ])
       
-      // Filtrer les événements actifs pour le comptage
+      // Filtrer les spectacles actifs pour le comptage
       const activeEvents = (eventsData || []).filter(event => !event.archived)
       
       // Compter les disponibilités
@@ -970,7 +1012,7 @@ async function loadSeasonInfo() {
       totalEventsCount.value = eventsData?.length || 0
       
       
-      logger.info(`Informations de la saison chargées: ${activeEvents.length} événements actifs, ${totalEventsCount.value} événements total (${totalEventsCount.value - activeEvents.length} inactifs), ${playersData?.length || 0} joueurs, ${availabilitiesTotal} disponibilités`)
+      logger.info(`Informations de la saison chargées: ${activeEvents.length} spectacles actifs, ${totalEventsCount.value} spectacles total (${totalEventsCount.value - activeEvents.length} inactifs), ${playersData?.length || 0} joueurs, ${availabilitiesTotal} disponibilités`)
     } else {
       logger.error('Saison introuvable:', seasonSlug.value)
       errorMessage.value = 'Saison introuvable'
@@ -1713,7 +1755,7 @@ async function removeUser(userEmail) {
   }
 }
 
-// Fonctions de gestion des événements
+// Fonctions de gestion des spectacles
 
 async function loadSeasonEvents() {
   try {
@@ -1722,12 +1764,13 @@ async function loadSeasonEvents() {
     events.value = loadedEvents || []
     logger.info(`Événements chargés: ${events.value.length}`)
   } catch (error) {
-    logger.error('Erreur lors du chargement des événements:', error)
-    errorMessage.value = 'Erreur lors du chargement des événements'
+    logger.error('Erreur lors du chargement des spectacles:', error)
+    errorMessage.value = 'Erreur lors du chargement des spectacles'
   } finally {
     isLoading.value = false
   }
 }
+
 
 function formatDate(dateString) {
   try {
@@ -1746,7 +1789,7 @@ function editEvent(event) {
 }
 
 function openEventDetails(event) {
-  // Ouvrir la page de l'événement dans un nouvel onglet
+  // Ouvrir la page du spectacle dans un nouvel onglet
   const eventUrl = `/season/${seasonSlug.value}?event=${event.id}&modal=event_details`
   window.open(eventUrl, '_blank')
 }
@@ -1756,13 +1799,13 @@ async function handleCreateEvent(eventData) {
   try {
     isLoading.value = true
     await saveEvent(eventData, seasonId.value)
-    logger.info('Nouvel événement créé avec succès')
+    logger.info('Nouveau spectacle créé avec succès')
     await loadSeasonEvents()
     showAddEventModal.value = false
     errorMessage.value = ''
   } catch (error) {
-    logger.error('Erreur lors de la création de l\'événement:', error)
-    errorMessage.value = 'Erreur lors de la création de l\'événement'
+    logger.error('Erreur lors de la création du spectacle:', error)
+    errorMessage.value = 'Erreur lors de la création du spectacle'
   } finally {
     isLoading.value = false
   }
@@ -1777,8 +1820,8 @@ async function handleEditEvent(eventData) {
     editingEvent.value = null
     errorMessage.value = ''
   } catch (error) {
-    logger.error('Erreur lors de la modification de l\'événement:', error)
-    errorMessage.value = 'Erreur lors de la modification de l\'événement'
+    logger.error('Erreur lors de la modification du spectacle:', error)
+    errorMessage.value = 'Erreur lors de la modification du spectacle'
   } finally {
     isLoading.value = false
   }
@@ -1889,13 +1932,22 @@ function triggerLogoFileInput() {
 // Actions sur les utilisateurs
 // Fonctions dropdown supprimées - plus utilisées avec le nouveau switcher
 
-// Fonctions pour les filtres d'événements
+// Fonctions pour les filtres de spectacles
 function toggleFiltersDropdown() {
   showFiltersDropdown.value = !showFiltersDropdown.value
 }
 
 function closeFiltersDropdown() {
   showFiltersDropdown.value = false
+}
+
+// Fonctions pour les filtres de participants
+function toggleParticipantsFiltersDropdown() {
+  showParticipantsFiltersDropdown.value = !showParticipantsFiltersDropdown.value
+}
+
+function closeParticipantsFiltersDropdown() {
+  showParticipantsFiltersDropdown.value = false
 }
 
 async function toggleAdminRole(userEmail) {
@@ -1963,7 +2015,7 @@ async function toggleAdminRole(userEmail) {
 
 async function toggleEventArchive(event) {
   const action = event.archived ? 'activer' : 'désactiver'
-  if (!confirm(`Êtes-vous sûr de vouloir ${action} l'événement "${event.title}" ?`)) return
+  if (!confirm(`Êtes-vous sûr de vouloir ${action} le spectacle "${event.title}" ?`)) return
   
   try {
     isLoading.value = true
@@ -1971,15 +2023,15 @@ async function toggleEventArchive(event) {
     await loadSeasonEvents()
     logger.info(`Événement ${event.id} ${action} avec succès`)
   } catch (error) {
-    logger.error(`Erreur lors de l'${action} de l'événement:`, error)
-    errorMessage.value = `Erreur lors de l'${action} de l'événement`
+    logger.error(`Erreur lors de l'${action} du spectacle:`, error)
+    errorMessage.value = `Erreur lors de l'${action} du spectacle`
   } finally {
     isLoading.value = false
   }
 }
 
 async function deleteEvent(event) {
-  if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'événement "${event.title}" ? Cette action est irréversible.`)) return
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement le spectacle "${event.title}" ? Cette action est irréversible.`)) return
   
   try {
     isLoading.value = true
@@ -1987,18 +2039,20 @@ async function deleteEvent(event) {
     await loadSeasonEvents()
     logger.info(`Événement ${event.id} supprimé avec succès`)
   } catch (error) {
-    logger.error('Erreur lors de la suppression de l\'événement:', error)
-    errorMessage.value = 'Erreur lors de la suppression de l\'événement'
+    logger.error('Erreur lors de la suppression du spectacle:', error)
+    errorMessage.value = 'Erreur lors de la suppression du spectacle'
   } finally {
     isLoading.value = false
   }
 }
 
+
 // Gestionnaire pour fermer les dropdowns au clic extérieur
 function handleClickOutside(event) {
-  // Fermer le dropdown des filtres si on clique ailleurs
+  // Fermer les dropdowns des filtres si on clique ailleurs
   if (!event.target.closest('.relative')) {
     closeFiltersDropdown()
+    closeParticipantsFiltersDropdown()
   }
 }
 

@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.29.0",
+    "date": "2025-10-11",
+    "changes": [
+      "✨ Ajout d'étiquettes de rôle sensibles au genre dans la fenêtre de sélection.",
+      "✨ Remplacement de la cellule de disponibilité par la fenêtre de sélection dans la vue des distributions.",
+      "✨ Ajout d'un composant de vue des distributions cloné depuis la vue des spectacles.",
+      "✨ Réorganisation des champs du formulaire dans la fenêtre de détail de spectacle et amélioration de la réactivité mobile.",
+      "✨ Ajout d'un bouton de fermeture à la fenêtre de détail de spectacle.",
+      "✨ Mise à jour de la terminologie dans la fenêtre de détail de spectacle, passant de 'événement' à 'spectacle'.",
+      "🔧 Optimisation de l'espace de l'interface admin et amélioration des noms.",
+      "🔧 Amélioration de l'interface d'administration des saisons.",
+      "🐛 Correction de l'affichage des étiquettes de rôle en français avec les icônes correctes dans la vue des distributions.",
+      "🐛 Correction du comptage des rôles dans la vue des distributions en utilisant les IDs des joueurs.",
+      "🐛 Optimisation de la mise en page mobile de la fenêtre de détail de spectacle et suppression des contraintes de largeur.",
+      "🐛 Amélioration de la mise en page mobile et du positionnement des champs dans la fenêtre de détail de spectacle.",
+      "🐛 Correction du chargement des données d'événement dans la fenêtre d'édition d'événement.",
+      "🐛 Correction de la liste des participants réactive dans l'administration des saisons.",
+      "🐛 Correction de l'en-tête réactif dans l'administration des saisons.",
+      "📝 Ajout de la possibilité de réduire/agrandir les statistiques utilisateur dans la vue des distributions.",
+      "📝 Ajout de la synchronisation de l'URL de photo utilisateur Google et utilisation comme avatar.",
+      "📝 Exportation des distributions au format tableur.",
+      "📝 Affichage des spectacles passés et de tous les joueurs dans la vue des distributions."
+    ]
+  },
+  {
     "version": "0.28.0",
     "date": "2025-10-10",
     "changes": [
