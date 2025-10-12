@@ -87,15 +87,34 @@ async function initialize() {
           // Stocker temporairement dans le cache
           storeUserAvatar(user.email, user.photoURL)
           
-          // Synchroniser la photoURL avec tous les joueurs associés dans Firestore
-          const syncCount = await syncGooglePhotoToPlayers(user.email, user.photoURL)
+          // Vérifier si synchronisation nécessaire (éviter les syncs trop fréquents)
+          const lastSyncKey = `avatar_last_sync_${user.email}`
+          const lastSync = localStorage.getItem(lastSyncKey)
+          const now = Date.now()
+          const ONE_WEEK = 7 * 24 * 60 * 60 * 1000 // 7 jours en millisecondes
           
-          if (syncCount > 0) {
-            logger.info(`✅ Google avatar synced to ${syncCount} player(s) in Firestore`, { 
-              email: user.email 
-            })
+          const shouldSync = !lastSync || (now - parseInt(lastSync)) > ONE_WEEK
+          
+          if (shouldSync) {
+            // Synchroniser la photoURL avec tous les joueurs associés dans Firestore
+            const syncCount = await syncGooglePhotoToPlayers(user.email, user.photoURL)
+            
+            if (syncCount > 0) {
+              logger.info(`✅ Google avatar synced to ${syncCount} player(s) in Firestore`, { 
+                email: user.email 
+              })
+              // Enregistrer la date de dernière sync
+              localStorage.setItem(lastSyncKey, now.toString())
+            } else {
+              logger.debug('No players to sync for this user', { email: user.email })
+              // Enregistrer quand même pour éviter de réessayer trop souvent
+              localStorage.setItem(lastSyncKey, now.toString())
+            }
           } else {
-            logger.debug('No players to sync for this user', { email: user.email })
+            logger.debug('Avatar sync skipped (synced recently)', { 
+              email: user.email,
+              lastSyncDaysAgo: Math.floor((now - parseInt(lastSync)) / (24 * 60 * 60 * 1000))
+            })
           }
         } catch (error) {
           logger.warn('Could not sync Google avatar to players:', error)

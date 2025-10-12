@@ -87,12 +87,15 @@ npm run build
 
 ## Stockage
 
-Les avatars sont stockés dans Firestore :
+**Architecture simplifiée** : Les avatars sont stockés uniquement dans la collection `players` :
+
 ```
 /seasons/{seasonId}/players/{playerId}
   - photoURL: string (URL de l'avatar Google)
-  - updatedAt: timestamp
+  - photoURLUpdatedAt: timestamp (date de dernière sync)
 ```
+
+**Note importante** : La collection `userPreferences` n'est **plus utilisée** pour stocker les avatars. Cette simplification évite la redondance et améliore les performances.
 
 ## Événements
 
@@ -114,7 +117,37 @@ Les avatars sont stockés dans Firestore :
 - Les URLs Google sont "sanitizées" (=s96-c → =s96) pour éviter les problèmes CORS
 - Utilise `firestoreService` pour tous les accès à la base de données
 - Import dynamique pour éviter les dépendances circulaires
-- Cache multi-niveaux pour optimiser les performances
+- Cache optimisé pour minimiser les requêtes
+
+## Optimisations
+
+### Mise à jour conditionnelle
+
+La synchronisation est **intelligente** :
+- ✅ Vérifie d'abord si la `photoURL` a changé
+- ✅ Met à jour **seulement** les joueurs qui en ont besoin
+- ✅ Ne fait rien si tous les avatars sont déjà à jour
+
+```javascript
+// Exemple: utilisateur se connecte
+// - 3 joueurs associés
+// - 2 ont déjà la bonne photoURL
+// → Résultat: seulement 1 requête d'écriture au lieu de 3
+```
+
+### Architecture simplifiée
+
+**Avant** : 2 sources de données (confus)
+- `/userPreferences/{email}/photoURL`
+- `/seasons/{seasonId}/players/{playerId}/photoURL`
+
+**Maintenant** : 1 seule source de vérité (clair)
+- ✅ `/seasons/{seasonId}/players/{playerId}/photoURL`
+
+Cette simplification :
+- 📉 Réduit les requêtes Firestore
+- 🚀 Améliore les performances
+- 🧹 Simplifie le code et la maintenance
 
 ## Prochaines étapes possibles
 

@@ -1,11 +1,10 @@
 // Service pour gérer les avatars des joueurs
 import firestoreService from './firestoreService.js'
 import logger from './logger.js'
-import { getPlayerData } from './players.js'
+import { getPlayerData, listAssociationsForEmail } from './players.js'
 
 // Cache pour éviter les requêtes répétées
 const avatarCache = new Map()
-const associationCache = new Map()
 
 /**
  * Récupère l'avatar d'un joueur (depuis la collection playerAvatars ou via association)
@@ -22,94 +21,33 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
   }
   
   try {
-    const db = getFirebaseDb()
-    if (!db) {
-      throw new Error('Firestore not initialized')
-    }
+    // Récupérer les données du joueur depuis /seasons/{seasonId}/players/{playerId}
+    // C'est la SEULE source de vérité pour les avatars
+    const playerData = await getPlayerData(playerId, seasonId)
     
-    // 1. Essayer d'abord de récupérer depuis la collection players
-    const protectionData = await getPlayerData(playerId, seasonId)
-    
-    if (protectionData && protectionData.photoURL) {
+    if (playerData) {
       const result = {
-        photoURL: protectionData.photoURL,
-        email: protectionData.email || null,
-        isAssociated: !!protectionData.email,
+        photoURL: playerData.photoURL || null,
+        email: playerData.email || null,
+        isAssociated: !!playerData.email,
         source: 'players'
       }
       
       // Mettre en cache le résultat
       avatarCache.set(cacheKey, result)
       
-      // Log supprimé pour éviter la pollution de la console
-      
       return result
     }
     
-    // 2. Essayer de récupérer l'association joueur-utilisateur
-    const association = await getPlayerAssociation(playerId, seasonId)
-    
-    if (association && association.email) {
-      // 3. Récupérer l'avatar de l'utilisateur associé
-      const photoURL = await getUserPhotoURL(association.email)
-      
-      const result = {
-        photoURL,
-        email: association.email,
-        isAssociated: true,
-        source: 'association'
-      }
-      
-      // Mettre en cache le résultat
-      avatarCache.set(cacheKey, result)
-      
-
-      
-      return result
-    }
-    
-    // 4. Essayer de récupérer l'avatar depuis userPreferences (pour tous les utilisateurs)
-    try {
-      // Si on a une association avec un email, essayer de récupérer l'avatar de cet utilisateur
-      if (association && association.email) {
-        const photoURL = await getUserPhotoURL(association.email)
-        
-        if (photoURL) {
-          const result = {
-            photoURL,
-            email: association.email,
-            isAssociated: true,
-            source: 'userPreferences'
-          }
-          
-          // Mettre en cache le résultat
-          avatarCache.set(cacheKey, result)
-          
-          logger.debug('PlayerAvatar service: Retrieved avatar from userPreferences', {
-            playerId,
-            seasonId,
-            email: association.email,
-            hasAvatar: !!photoURL
-          })
-          
-          return result
-        }
-      }
-    } catch (error) {
-      logger.debug('Could not check userPreferences for avatar:', error)
-    }
-    
-    // 5. Aucun avatar trouvé
-    const result = { photoURL: null, email: null, isAssociated: false, source: 'none' }
+    // Aucun joueur trouvé
+    const result = { photoURL: null, email: null, isAssociated: false, source: 'not-found' }
     avatarCache.set(cacheKey, result)
-    
-    // Pas de log pour les avatars non trouvés (cas normal)
     
     return result
     
   } catch (error) {
     // Ne pas logger les erreurs 'unavailable' qui sont normales
-    if (error.code !== 'unavailable') {
+    if (error.code !== 'unavailable' && error.code !== 'not-found') {
       logger.warn('PlayerAvatar service: Error getting player avatar', error)
     }
     const result = { photoURL: null, email: null, isAssociated: false, source: 'error' }
@@ -118,85 +56,19 @@ export async function getPlayerAvatar(playerId, seasonId = null) {
   }
 }
 
-/**
- * Récupère l'association d'un joueur
- */
-async function getPlayerAssociation(playerId, seasonId) {
-  const cacheKey = `${seasonId || 'global'}_${playerId}`
-  
-  if (associationCache.has(cacheKey)) {
-    return associationCache.get(cacheKey)
-  }
-  
-  try {
-    // Utiliser le nouveau service players.js
-    const playerData = await getPlayerData(playerId, seasonId)
-    
-    if (playerData && playerData.email) {
-      const association = { email: playerData.email, source: 'player' }
-      associationCache.set(cacheKey, association)
-      return association
-    }
-    
-    // Aucune association trouvée
-    associationCache.set(cacheKey, null)
-    return null
-    
-  } catch (error) {
-    // Ne pas logger les erreurs 'unavailable' qui sont normales
-    if (error.code !== 'unavailable') {
-      logger.warn('PlayerAvatar service: Error getting association', error)
-    }
-    associationCache.set(cacheKey, null)
-    return null
-  }
-}
 
-// Cache des avatars utilisateurs (stockage temporaire)
+// Cache des avatars utilisateurs (stockage temporaire en mémoire uniquement)
 const userAvatarsCache = new Map()
 
 /**
- * Stocke l'avatar d'un utilisateur dans le cache
+ * Stocke l'avatar d'un utilisateur dans le cache mémoire
  * À appeler quand un utilisateur se connecte
+ * Note: Ce cache est temporaire et sera vidé au rechargement de la page
  */
 export function storeUserAvatar(email, photoURL) {
   if (email && photoURL) {
     userAvatarsCache.set(email, photoURL)
-    logger.debug('PlayerAvatar service: Stored user avatar', { email, photoURL })
-  }
-}
-
-/**
- * Récupère la photoURL d'un utilisateur via son email
- */
-async function getUserPhotoURL(email) {
-  try {
-    // 1. Vérifier le cache d'abord
-    if (userAvatarsCache.has(email)) {
-      const photoURL = userAvatarsCache.get(email)
-      logger.debug('PlayerAvatar service: Found user avatar in cache', { email, photoURL })
-      return photoURL
-    }
-    
-    // 2. Essayer de récupérer depuis userPreferences (utilise firestoreService car ce n'est pas un joueur/protection)
-    const userData = await firestoreService.getDocument('userPreferences', `email_${email}`)
-    
-    if (userData && userData.photoURL) {
-      // Stocker dans le cache pour la prochaine fois
-      userAvatarsCache.set(email, userData.photoURL)
-      logger.debug('PlayerAvatar service: Found user avatar in userPreferences', { email, photoURL: userData.photoURL })
-      return userData.photoURL
-    }
-    
-    // Pas de log pour les avatars utilisateur non trouvés (cas normal)
-    return null
-    
-  } catch (error) {
-    // Ne pas logger les erreurs 'unavailable' qui sont normales
-    if (error.code !== 'unavailable') {
-      logger.warn('PlayerAvatar service: Error getting user photoURL', error)
-    }
-    return null
+    logger.debug('PlayerAvatar service: Stored user avatar in memory cache', { email })
   }
 }
 
@@ -220,8 +92,7 @@ export async function getPlayersAvatars(playerIds, seasonId = null) {
  */
 export function clearPlayerAvatarCache() {
   avatarCache.clear()
-  associationCache.clear()
-  logger.debug('PlayerAvatar service: Cache cleared')
+  logger.debug('PlayerAvatar service: Avatar cache cleared')
 }
 
 /**
@@ -267,10 +138,6 @@ export async function savePlayerAvatar(playerId, photoURL, email = null, seasonI
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
     
-    // Vider aussi le cache des associations pour forcer le rechargement
-    const associationCacheKey = `${playerId}_${seasonId || 'global'}`
-    associationCache.delete(associationCacheKey)
-    
     logger.debug('PlayerAvatar service: Saved player avatar in players', {
       playerId,
       seasonId,
@@ -309,10 +176,6 @@ export async function deletePlayerAvatar(playerId, seasonId = null) {
     // Vider le cache pour ce joueur
     clearPlayerAvatarCacheForPlayer(playerId)
     
-    // Vider aussi le cache des associations pour forcer le rechargement
-    const associationCacheKey = `${playerId}_${seasonId || 'global'}`
-    associationCache.delete(associationCacheKey)
-    
     logger.debug('PlayerAvatar service: Deleted player avatar from players', { playerId, seasonId })
     
     return true
@@ -335,18 +198,13 @@ export function clearPlayerAvatarCacheForPlayer(playerId) {
     }
   }
   
-  for (const [key, value] of associationCache.entries()) {
-    if (key.includes(playerId)) {
-      associationCache.delete(key)
-    }
-  }
-  
   logger.debug('PlayerAvatar service: Cleared cache for player', { playerId })
 }
 
 /**
  * Synchronise la photoURL Google avec tous les joueurs associés à un email
  * À appeler lors de la connexion avec Google
+ * Met à jour seulement si la photoURL a changé (optimisation)
  * @param {string} email - Email de l'utilisateur
  * @param {string} photoURL - URL de l'avatar Google
  * @returns {Promise<number>} - Nombre de joueurs mis à jour
@@ -358,9 +216,6 @@ export async function syncGooglePhotoToPlayers(email, photoURL) {
   }
   
   try {
-    // Import dynamique pour éviter les dépendances circulaires
-    const { listAssociationsForEmail } = await import('./players.js')
-    
     // Récupérer tous les joueurs associés à cet email
     const associations = await listAssociationsForEmail(email)
     
@@ -375,20 +230,54 @@ export async function syncGooglePhotoToPlayers(email, photoURL) {
       sanitizedPhotoURL = sanitizedPhotoURL.replace(/=s\d+-c$/, '=s96')
     }
     
-    // Mettre à jour tous les joueurs en parallèle
-    const updatePromises = associations.map(async (assoc) => {
+    // Récupérer les données actuelles de tous les joueurs pour comparer
+    const playerDataPromises = associations.map(async (assoc) => {
       try {
-        await firestoreService.updateDocument('seasons', assoc.seasonId, {
+        const playerData = await firestoreService.getDocument('seasons', assoc.seasonId, 'players', assoc.playerId)
+        return {
+          ...assoc,
+          currentPhotoURL: playerData?.photoURL || null
+        }
+      } catch (error) {
+        logger.warn(`PlayerAvatar service: Could not fetch player ${assoc.playerId} data`, error)
+        return {
+          ...assoc,
+          currentPhotoURL: null
+        }
+      }
+    })
+    
+    const playersWithCurrentData = await Promise.all(playerDataPromises)
+    
+    // Filtrer les joueurs qui ont besoin d'une mise à jour
+    const playersToUpdate = playersWithCurrentData.filter(player => 
+      player.currentPhotoURL !== sanitizedPhotoURL
+    )
+    
+    if (playersToUpdate.length === 0) {
+      logger.debug('PlayerAvatar service: All players already have up-to-date photoURL', { 
+        email,
+        totalPlayers: associations.length 
+      })
+      return 0
+    }
+    
+    logger.debug(`PlayerAvatar service: Updating ${playersToUpdate.length}/${associations.length} players with new photoURL`)
+    
+    // Mettre à jour uniquement les joueurs qui en ont besoin
+    const updatePromises = playersToUpdate.map(async (player) => {
+      try {
+        await firestoreService.updateDocument('seasons', player.seasonId, {
           photoURL: sanitizedPhotoURL,
-          updatedAt: new Date()
-        }, 'players', assoc.playerId)
+          photoURLUpdatedAt: new Date()
+        }, 'players', player.playerId)
         
         // Vider le cache pour ce joueur
-        clearPlayerAvatarCacheForPlayer(assoc.playerId)
+        clearPlayerAvatarCacheForPlayer(player.playerId)
         
         return true
       } catch (error) {
-        logger.warn(`PlayerAvatar service: Failed to update player ${assoc.playerId}`, error)
+        logger.warn(`PlayerAvatar service: Failed to update player ${player.playerId}`, error)
         return false
       }
     })
@@ -396,17 +285,17 @@ export async function syncGooglePhotoToPlayers(email, photoURL) {
     const results = await Promise.all(updatePromises)
     const successCount = results.filter(Boolean).length
     
-    logger.info(`PlayerAvatar service: Synced Google photo to ${successCount}/${associations.length} players`, {
-      email,
-      playerIds: associations.map(a => a.playerId)
-    })
-    
-    // Émettre un événement pour informer les composants
     if (successCount > 0) {
+      logger.info(`PlayerAvatar service: Synced Google photo to ${successCount}/${playersToUpdate.length} players`, {
+        email,
+        playerIds: playersToUpdate.map(p => p.playerId)
+      })
+      
+      // Émettre un événement pour informer les composants
       window.dispatchEvent(new CustomEvent('avatars-synced', { 
         detail: { 
           email,
-          playerIds: associations.map(a => a.playerId),
+          playerIds: playersToUpdate.map(p => p.playerId),
           photoURL: sanitizedPhotoURL
         } 
       }))
