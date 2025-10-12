@@ -684,15 +684,16 @@
                 </template>
               </div>
             </div>
-            
-            <!-- Status de l'événement -->
+          </div>
+          
+          <!-- Status de l'événement - Nouvelle ligne -->
+          <div v-if="selectedEvent && eventStatus" class="flex items-center pl-1">
             <SelectionStatusBadge
-              v-if="selectedEvent && eventStatus"
               :status="eventStatus.type"
               :show="true"
               :clickable="false"
               :reason="eventWarningText"
-              class="text-xs flex-shrink-0 mr-8"
+              class="text-xs"
             />
           </div>
         </div>
