@@ -655,6 +655,17 @@
                     Actions administrateur
                   </div>
                   
+                  <!-- Action Annoncer -->
+                  <button
+                    @click="openEventAnnounceModal(selectedEvent); showEventActionsDropdown = false"
+                    :disabled="selectedEvent?.archived"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement inactif' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
+                  >
+                    <span>📢</span>
+                    <span>Annoncer</span>
+                  </button>
+                  
                   <!-- Action Modifier -->
                   <button
                     @click="startEditingFromDetails(); showEventActionsDropdown = false"
@@ -684,15 +695,16 @@
                 </template>
               </div>
             </div>
-            
-            <!-- Status de l'événement -->
+          </div>
+          
+          <!-- Status de l'événement - Nouvelle ligne -->
+          <div v-if="selectedEvent && eventStatus" class="flex items-center pl-1">
             <SelectionStatusBadge
-              v-if="selectedEvent && eventStatus"
               :status="eventStatus.type"
               :show="true"
               :clickable="false"
               :reason="eventWarningText"
-              class="text-xs flex-shrink-0 mr-8"
+              class="text-xs"
             />
           </div>
         </div>
@@ -1181,15 +1193,6 @@
           <!-- Boutons principaux -->
           <button 
             v-if="canEditEvents"
-            @click="openEventAnnounceModal(selectedEvent)" 
-            :disabled="selectedEvent?.archived"
-            class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600" 
-            :title="selectedEvent?.archived ? 'Impossible d\'annoncer un événement inactif' : 'Annoncer l\'événement aux personnes (email, copie, WhatsApp)'"
-          >
-            <span>📢</span><span>Annoncer</span>
-          </button>
-          <button 
-            v-if="canEditEvents"
             @click="openSelectionModal(selectedEvent)" 
             class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
             title="Gérer la composition"
@@ -1205,14 +1208,6 @@
       <!-- Footer sticky (mobile) -->
       <div class="md:hidden sticky bottom-0 w-full p-2 sm:p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm">
         <div class="flex items-center gap-1 sm:gap-2 min-w-0">
-          <button 
-            v-if="canEditEvents"
-            @click="openEventAnnounceModal(selectedEvent)" 
-            :disabled="selectedEvent?.archived" 
-            class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg hover:from-amber-600 hover:to-orange-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Annoncer
-          </button>
           <button 
             v-if="canEditEvents"
             @click="openSelectionModal(selectedEvent)" 
@@ -3157,7 +3152,7 @@ const showCalendarDropdown = ref(false)
 const showEventActionsDropdown = ref(false)
 
 // État de l'affichage des détails de l'événement
-const showEventDetailsSection = ref(false)
+const showEventDetailsSection = ref(true)
 
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
@@ -8774,8 +8769,8 @@ function closeEventDetails() {
   // Fermer le dropdown des actions d'événement
   showEventActionsDropdown.value = false;
   
-  // Fermer les détails de l'événement
-  showEventDetailsSection.value = false;
+  // Remettre les détails de l'événement visibles par défaut
+  showEventDetailsSection.value = true;
   
   // Fermer le dropdown Google Maps
   showGoogleMapsDropdown.value = false;

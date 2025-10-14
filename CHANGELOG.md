@@ -1,13 +1,26 @@
-## [0.29.2] - 2025-10-11
+## [0.30.0] - 2025-10-14
+
+### ✨ New Features
+
+- feat: sync Google avatars to player profiles automatically
+
+### 🐛 Bug Fixes
+
+- fix: improve event modal title layout on mobile
+- fix: expand event details by default in modal
+
+### 🔧 Improvements
+
+- refactor: move announce button to dropdown menu
 
 ### 📝 Other Changes
 
-- display avaiability on casts view (in progress)
-- release: version 0.29.1
+- release: version 0.29.2
 
 
 # Changelog
 
+## [0.30.0] - 2025-10-14
 ## [0.29.2] - 2025-10-11
 ## [0.29.1] - 2025-10-11
 ## [0.29.0] - 2025-10-11
