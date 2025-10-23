@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: hatcast-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  security:
+    user:
+      name: admin
+      password: admin
+
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:hatcast-dev}
+  database-id: ${FIREBASE_DATABASE_ID:staging}
+  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY:}
+
+sendgrid:
+  api-key: ${SENDGRID_API_KEY:}
+  from-email: ${SENDGRID_FROM_EMAIL:noreply@hatcast.com}
+  from-name: ${SENDGRID_FROM_NAME:HatCast}
+
+logging:
+  level:
+    com.hatcast: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID}
+  database-id: staging
+  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY}
+
+sendgrid:
+  api-key: ${SENDGRID_API_KEY}
+  from-email: ${SENDGRID_FROM_EMAIL}
+  from-name: ${SENDGRID_FROM_NAME}
+
+logging:
+  level:
+    com.hatcast: INFO
+    org.springframework.security: WARN
+
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID}
+  database-id: (default)
+  service-account-key: ${FIREBASE_SERVICE_ACCOUNT_KEY}
+
+sendgrid:
+  api-key: ${SENDGRID_API_KEY}
+  from-email: ${SENDGRID_FROM_EMAIL}
+  from-name: ${SENDGRID_FROM_NAME}
+
+logging:
+  level:
+    com.hatcast: WARN
+    org.springframework.security: WARN

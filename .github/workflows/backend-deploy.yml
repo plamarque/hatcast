@@ -1,0 +1,90 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches: [ v1 ]
+    paths: [ 'backend/**' ]
+  pull_request:
+    branches: [ v1 ]
+    paths: [ 'backend/**' ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: europe-west1
+  SERVICE_NAME: hatcast-api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      
+      - name: Run tests
+        run: |
+          cd backend
+          mvn clean test
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+
+  deploy-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/v1' && github.event_name == 'push'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Configure Docker
+        run: gcloud auth configure-docker
+      
+      - name: Build and push
+        run: |
+          cd backend
+          gcloud builds submit --config cloudbuild.yaml .
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/v1' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Deploy to production
+        run: |
+          gcloud run services update hatcast-api \
+            --region=europe-west1 \
+            --image=gcr.io/$PROJECT_ID/hatcast-api:${{ github.sha }} \
+            --set-env-vars=SPRING_PROFILES_ACTIVE=production
