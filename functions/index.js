@@ -78,14 +78,19 @@ exports.getPlayerHistory = auditQueries.getPlayerHistory
 exports.processPushQueue = functions.firestore
   .document('pushQueue/{pushId}')
   .onCreate(async (snap, context) => {
+    const pushId = context.params.pushId
     const payload = snap.data() || {}
     const toEmail = payload.to
     const title = payload.title || 'Notification'
     const body = payload.body || ''
     const data = payload.data || {}
+    const reason = payload.reason || 'generic'
+
+    console.log(`📱 Traitement notification push ${pushId}:`, { toEmail, title, reason })
 
     if (!toEmail) {
-      await snap.ref.set({ status: 'error', error: 'missing_toEmail' }, { merge: true })
+      console.warn(`⚠️ Email manquant pour ${pushId}`)
+      await snap.ref.set({ status: 'error', error: 'missing_toEmail', processedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
       return
     }
 
@@ -93,42 +98,56 @@ exports.processPushQueue = functions.firestore
     const tokens = tokensDoc.exists ? (tokensDoc.data().tokens || []) : []
 
     if (!tokens.length) {
-      await snap.ref.set({ status: 'no_tokens' }, { merge: true })
+      console.warn(`⚠️ Aucun token FCM pour ${toEmail}`)
+      await snap.ref.set({ status: 'no_tokens', toEmail, processedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
       return
     }
+
+    console.log(`📲 Envoi à ${tokens.length} device(s) pour ${toEmail}`)
 
     const message = {
       // Data-only message so the Service Worker builds the notification (enables actions)
       data: Object.fromEntries(
-        Object.entries({ title, body, ...data }).map(([k, v]) => [k, String(v)])
+        Object.entries({ title, body, reason, ...data }).map(([k, v]) => [k, String(v)])
       ),
       tokens
     }
 
-    const resp = await admin.messaging().sendEachForMulticast(message)
+    try {
+      const resp = await admin.messaging().sendEachForMulticast(message)
+      console.log(`✅ Push envoyée: ${resp.successCount}/${tokens.length} succès`)
 
-    const invalid = []
-    resp.responses.forEach((r, idx) => {
-      if (!r.success) {
-        const code = r.error?.code || ''
-        if (code.includes('registration-token-not-registered') || code.includes('invalid-argument')) {
-          invalid.push(tokens[idx])
+      const invalid = []
+      resp.responses.forEach((r, idx) => {
+        if (!r.success) {
+          const code = r.error?.code || ''
+          console.warn(`⚠️ Échec token ${idx}:`, code)
+          if (code.includes('registration-token-not-registered') || code.includes('invalid-argument')) {
+            invalid.push(tokens[idx])
+          }
         }
+      })
+      
+      if (invalid.length) {
+        console.log(`🧹 Suppression de ${invalid.length} token(s) invalide(s)`)
+        await db.collection('userPushTokens').doc(toEmail).set({
+          tokens: admin.firestore.FieldValue.arrayRemove(...invalid),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true })
       }
-    })
-    if (invalid.length) {
-      await db.collection('userPushTokens').doc(toEmail).set({
-        tokens: admin.firestore.FieldValue.arrayRemove(...invalid),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+
+      // Supprimer de la queue une fois traité avec succès
+      await snap.ref.delete()
+      console.log(`🗑️ Document ${pushId} supprimé de la queue`)
+      
+    } catch (error) {
+      console.error(`❌ Erreur envoi push ${pushId}:`, error)
+      await snap.ref.set({
+        status: 'error',
+        error: error.message,
+        processedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true })
     }
-
-    await snap.ref.set({
-      status: 'sent',
-      successCount: resp.successCount,
-      failureCount: resp.failureCount,
-      processedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true })
   })
 
 /**
