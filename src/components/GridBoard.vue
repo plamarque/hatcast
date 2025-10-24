@@ -966,7 +966,7 @@
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
             <button
-              v-if="hasCompositionForSelectedEvent"
+              v-if="hasCompositionForSelectedEvent && (canEditEvents || isSelectionConfirmedByOrganizer(selectedEvent?.id))"
               @click="eventDetailsActiveTab = 'composition'"
               :class="[
                 'flex-1 px-4 py-2 text-sm font-medium transition-colors',
@@ -1001,7 +1001,19 @@
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <!-- Message si composition non validée -->
+              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="text-center py-8">
+                <div class="text-gray-400 text-lg mb-2">⏳</div>
+                <div class="text-gray-300 text-sm">
+                  La composition n'est pas encore validée par l'organisateur
+                </div>
+                <div class="text-gray-500 text-xs mt-1">
+                  Elle sera visible ici une fois validée
+                </div>
+              </div>
+              
+              <!-- Slots de composition (seulement si validée) -->
+              <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
@@ -3078,6 +3090,12 @@ const hasCompositionForSelectedEvent = computed(() => {
 const compositionSlots = computed(() => {
   if (!selectedEvent.value?.roles) return []
   const eventId = selectedEvent.value.id
+  
+  // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
+  if (!isSelectionConfirmedByOrganizer(eventId)) {
+    return []
+  }
+  
   const roles = selectedEvent.value.roles
   const cast = casts.value[eventId] || { roles: {} }
   const playersById = new Map((allSeasonPlayers.value || []).map(p => [p.id, p]))
@@ -6854,6 +6872,11 @@ function isSelected(player, eventId) {
     return false
   }
   
+  // Vérifier d'abord si la composition est validée par l'organisateur
+  if (!isSelectionConfirmedByOrganizer(eventId)) {
+    return false
+  }
+  
   // Trouver l'ID du joueur avec une recherche plus robuste
   let playerObj = players.value.find(p => p.name === player)
   
@@ -10356,7 +10379,12 @@ function isSelectionConfirmedByOrganizer(eventId) {
 // Fonction helper pour obtenir le statut individuel d'un joueur dans une composition
 function getPlayerSelectionStatus(playerName, eventId) {
   const cast = casts.value[eventId]
-  if (!cast) return 'pending'
+  if (!cast) return null
+  
+  // Vérifier d'abord si la composition est validée par l'organisateur
+  if (!isSelectionConfirmedByOrganizer(eventId)) {
+    return null
+  }
   
   // Vérifier d'abord si le joueur est dans la section déclinés
   const declinedRole = getPlayerDeclinedRole(playerName, eventId)
@@ -10371,6 +10399,13 @@ function getPlayerSelectionStatus(playerName, eventId) {
 // Fonction helper pour obtenir le rôle de composition d'un joueur
 function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
+  if (!cast) return null
+  
+  // Vérifier d'abord si la composition est validée par l'organisateur
+  if (!isSelectionConfirmedByOrganizer(eventId)) {
+    return null
+  }
+  
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
 

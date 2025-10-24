@@ -9,8 +9,8 @@
     @click.stop="handleClick"
   >
     <div class="flex flex-col items-center justify-center h-full min-h-[4rem]">
-      <!-- Affichage des sélections -->
-      <template v-if="isSelected">
+      <!-- Affichage des sélections (seulement si composition validée par l'organisateur) -->
+      <template v-if="isSelected && isSelectionConfirmedByOrganizer">
         <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="playerSelectionStatus && playerSelectionStatus !== 'none'">
           <!-- Ligne 1: nom du rôle -->
@@ -36,7 +36,7 @@
         </template>
       </template>
       
-      <!-- Pas sélectionné -->
+      <!-- Pas sélectionné OU sélectionné mais non validé -->
       <template v-else>
         <!-- Afficher les rôles et chances si disponibles -->
         <template v-if="rolesAndChances && rolesAndChances.length > 0">
@@ -55,6 +55,30 @@
               </template>
             </div>
           </div>
+        </template>
+        <!-- Sinon, afficher les disponibilités depuis availabilityData -->
+        <template v-else-if="availabilityData && availabilityData.available && availabilityData.roles && availabilityData.roles.length > 0">
+          <div class="flex flex-col space-y-1 text-xs">
+            <div 
+              v-for="role in availabilityData.roles" 
+              :key="role"
+              class="text-center text-green-400"
+            >
+              {{ getRoleLabel(role) }}
+            </div>
+          </div>
+        </template>
+        <!-- Afficher "Pas dispo" si indisponible -->
+        <template v-else-if="availabilityData && availabilityData.available === false">
+          <span class="text-center text-red-300">
+            Pas dispo
+          </span>
+        </template>
+        <!-- Afficher "Non renseigné" si pas de données -->
+        <template v-else-if="!availabilityData || availabilityData.available === null || availabilityData.available === undefined">
+          <span class="text-center text-gray-400">
+            Non renseigné
+          </span>
         </template>
         <!-- Sinon afficher un tiret -->
         <template v-else>
@@ -205,14 +229,37 @@ function getChanceTextClass(chance) {
 }
 
 function getCellStatusClass() {
+  // Si le joueur est sélectionné mais la composition n'est pas validée par l'organisateur,
+  // afficher comme disponible (vert) au lieu de sélectionné (rouge)
+  const isSelectedButNotValidated = props.isSelected && !props.isSelectionConfirmedByOrganizer
+  
   // Si le joueur est disponible mais pas sélectionné, afficher en vert
   const isAvailableNotSelected = !props.isSelected && props.rolesAndChances && props.rolesAndChances.length > 0
   
+  // Si le joueur est sélectionné mais non validé, utiliser les données de disponibilité
+  const isAvailableFromData = isSelectedButNotValidated && props.availabilityData && props.availabilityData.available && props.availabilityData.roles && props.availabilityData.roles.length > 0
+  
+  // Déterminer si le joueur est indisponible (pas dispo)
+  const isUnavailable = props.availabilityData && props.availabilityData.available === false
+  
+  // Déterminer si le joueur n'a pas renseigné sa disponibilité
+  const isNotSpecified = !props.availabilityData || props.availabilityData.available === null || props.availabilityData.available === undefined
+  
+  // Logique de disponibilité
+  let isAvailable = null
+  if (isAvailableNotSelected || isAvailableFromData) {
+    isAvailable = true
+  } else if (isUnavailable) {
+    isAvailable = false
+  } else if (isNotSpecified) {
+    isAvailable = null // Non renseigné
+  }
+  
   return getStatusClass({
-    isSelected: props.isSelected,
+    isSelected: props.isSelected && props.isSelectionConfirmedByOrganizer, // Seulement si validé
     playerSelectionStatus: playerSelectionStatus.value !== 'none' ? playerSelectionStatus.value : null,
-    isAvailable: isAvailableNotSelected,
-    isUnavailable: false,
+    isAvailable: isAvailable,
+    isUnavailable: false, // Pas utilisé dans getStatusClass
     isLoading: false,
     isError: false
   })

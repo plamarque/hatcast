@@ -103,8 +103,8 @@ export function getAvailabilityData(playerName, eventId, playerAvailability, opt
   // Vérifier le statut de sélection
   const selectionStatus = getPlayerSelectionStatus(playerName, eventId)
   
-  // Si on est sélectionné (avec ou sans validation par l'organisateur) OU si on est dans les déclinés
-  if ((selectionRole && isSelectionValidated) || declinedRole || (selectionRole && selectionStatus)) {
+  // Si on est sélectionné ET la composition est validée par l'organisateur OU si on est dans les déclinés
+  if ((selectionRole && isSelectionValidated) || declinedRole) {
     // Afficher uniquement le rôle de composition, pas les rôles de disponibilité
     const selectedRole = selectionRole || declinedRole
     

@@ -33,8 +33,8 @@
       
       <!-- Contenu normal -->
       <template v-else>
-        <!-- Affichage avec confirmation (2 lignes) -->
-        <template v-if="isSelected && playerSelectionStatus">
+        <!-- Affichage avec confirmation (2 lignes) - seulement si la composition est validée par l'organisateur -->
+        <template v-if="isSelected && playerSelectionStatus && isSelectionConfirmedByOrganizer">
           <!-- Ligne 1: nom du rôle -->
           <div class="text-center">
             <span class="text-sm font-medium">
@@ -66,8 +66,8 @@
       <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
-      <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation) -->
-      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus)">
+      <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation OU si composition non validée) -->
+      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus && isSelectionConfirmedByOrganizer)">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
@@ -103,7 +103,7 @@
       </template>
       
       <!-- Icône commentaire seule (quand pas de rôles spécifiques) -->
-      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus)">
+      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus && isSelectionConfirmedByOrganizer)">
         <div class="flex items-center justify-center mt-1">
           <span 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"

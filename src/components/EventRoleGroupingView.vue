@@ -36,13 +36,13 @@
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
             :class="[
-              isPlayerSelectedForRole(player.name, role, selectedEvent.id)
+              isPlayerSelectedForRole(player.name, role, selectedEvent.id) && isSelectionConfirmedByOrganizer(selectedEvent.id)
                 ? 'rounded-lg transition-all duration-200 p-0 bg-transparent border-transparent'
                 : 'p-3 rounded-lg border transition-all duration-200 flex items-center gap-3 rounded-md hover:bg-gray-700/50 border-transparent'
             ]"
           >
-            <!-- Use CompositionSlot for selected players for consistent rendering -->
-            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id)">
+            <!-- Use CompositionSlot for selected players only if composition is validated by organizer -->
+            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id) && isSelectionConfirmedByOrganizer(selectedEvent.id)">
               <CompositionSlot
                 :player-id="player.id"
                 :player-name="player.name"
@@ -66,7 +66,7 @@
               />
             </div>
 
-            <!-- Design classique pour joueurs non sélectionnés -->
+            <!-- Design classique pour joueurs non sélectionnés OU sélectionnés mais non validés -->
             <template v-else>
               <div class="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent">
                 <!-- Avatar du joueur -->
@@ -103,6 +103,34 @@
                 <span class="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
                   {{ player.name }}
                 </span>
+
+                <!-- Disponibilité du joueur -->
+                <div class="flex-shrink-0">
+                  <AvailabilityCell
+                    :player-name="player.name"
+                    :event-id="selectedEvent.id"
+                    :is-available="isAvailable(player.name, selectedEvent.id)"
+                    :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                    :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                    :season-id="seasonId"
+                    :player-gender="player.gender || 'non-specified'"
+                    :chance-percent="getPlayerChanceForRole(player.name, role, selectedEvent.id)"
+                    :show-selected-chance="false"
+                    :disabled="selectedEvent.archived === true"
+                    :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                    :event-title="selectedEvent.title"
+                    :event-date="selectedEvent.date"
+                    :is-protected="isPlayerProtectedInGrid(player.id)"
+                    :compact="true"
+                    class="w-16 h-8"
+                    @toggle="handleAvailabilityToggle"
+                    @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                    @show-availability-modal="openAvailabilityModal"
+                    @show-confirmation-modal="openConfirmationModal"
+                  />
+                </div>
 
                 <!-- Pourcentage de chances -->
                 <span class="flex-shrink-0 flex items-center gap-1">
