@@ -965,21 +965,21 @@
         <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
-            <button
-              v-if="hasCompositionForSelectedEvent && (canEditEvents || isSelectionConfirmedByOrganizer(selectedEvent?.id))"
-              @click="eventDetailsActiveTab = 'composition'"
-              :class="[
-                'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-                eventDetailsActiveTab === 'composition' 
-                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              ]"
-            >
-              <span class="flex items-center justify-center gap-2">
-                <span>🎭</span>
-                <span>Composition</span>
-              </span>
-            </button>
+    <button
+      v-if="hasCompositionForSelectedEvent"
+      @click="eventDetailsActiveTab = 'composition'"
+      :class="[
+        'flex-1 px-4 py-2 text-sm font-medium transition-colors',
+        eventDetailsActiveTab === 'composition'
+          ? 'text-white bg-purple-600/20 border-b-2 border-purple-400'
+          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+      ]"
+    >
+      <span class="flex items-center justify-center gap-2">
+        <span>🎭</span>
+        <span>Composition</span>
+      </span>
+    </button>
             <button
               @click="eventDetailsActiveTab = 'team'"
               :class="[
@@ -1001,8 +1001,8 @@
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
-              <!-- Message si composition non validée -->
-              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="text-center py-8">
+              <!-- Message si composition non validée pour utilisateurs normaux -->
+              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditEvents" class="text-center py-8">
                 <div class="text-gray-400 text-lg mb-2">⏳</div>
                 <div class="text-gray-300 text-sm">
                   La composition n'est pas encore validée par l'organisateur
@@ -1012,8 +1012,8 @@
                 </div>
               </div>
               
-              <!-- Slots de composition (seulement si validée) -->
-              <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <!-- Slots de composition (pour admins ou si validée) -->
+              <div v-else-if="canEditEvents || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
