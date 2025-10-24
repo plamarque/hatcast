@@ -247,7 +247,7 @@
               :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
               :is-selection-confirmed="props.isSelectionConfirmed(event.id)"
               :is-selection-confirmed-by-organizer="props.isSelectionConfirmedByOrganizer(event.id)"
-              :player-selection-status="getPlayerRoleInEvent(player.id, event.id) ? props.getPlayerSelectionStatus(player.name, event.id) : null"
+              :player-selection-status="props.getPlayerSelectionStatus(player.name, event.id)"
             :season-id="seasonId"
             :can-edit="false"
               :availability-data="props.getAvailabilityData(player.name, event.id)"

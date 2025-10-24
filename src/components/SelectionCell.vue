@@ -38,8 +38,15 @@
       
       <!-- Pas sélectionné OU sélectionné mais non validé -->
       <template v-else>
+        <!-- Si le joueur a décliné, afficher "Décliné" -->
+        <template v-if="playerSelectionStatus === 'declined'">
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-sm font-medium text-orange-300">Décliné</span>
+            <span class="text-lg">❌</span>
+          </div>
+        </template>
         <!-- Afficher les rôles et chances si disponibles -->
-        <template v-if="rolesAndChances && rolesAndChances.length > 0">
+        <template v-else-if="rolesAndChances && rolesAndChances.length > 0">
           <div class="flex flex-col space-y-1 text-xs">
             <div 
               v-for="roleChance in rolesAndChances" 
@@ -233,6 +240,18 @@ function getChanceTextClass(chance) {
 }
 
 function getCellStatusClass() {
+  // Si le joueur a décliné, toujours afficher le statut declined (orange)
+  if (playerSelectionStatus.value === 'declined') {
+    return getStatusClass({
+      isSelected: false,
+      playerSelectionStatus: 'declined',
+      isAvailable: null,
+      isUnavailable: false,
+      isLoading: false,
+      isError: false
+    })
+  }
+  
   // Si le joueur est sélectionné mais la composition n'est pas validée par l'organisateur,
   // afficher comme disponible (vert) au lieu de sélectionné (rouge)
   const isSelectedButNotValidated = props.isSelected && !props.isSelectionConfirmedByOrganizer
