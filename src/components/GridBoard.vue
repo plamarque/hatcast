@@ -124,6 +124,7 @@
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :can-edit-events="canEditEvents"
         :get-player-selection-status="getPlayerSelectionStatus"
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
@@ -166,6 +167,7 @@
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :can-edit-events="canEditEvents"
         :get-player-selection-status="getPlayerSelectionStatus"
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
@@ -208,6 +210,7 @@
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :can-edit-events="canEditEvents"
         :get-player-selection-status="getPlayerSelectionStatus"
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
@@ -254,6 +257,7 @@
         :is-player-protected-in-grid="isPlayerProtectedInGrid"
         :chances="chances"
         :is-selection-complete="isSelectionComplete"
+        :can-edit-events="canEditEvents"
         :get-selection-players="getSelectionPlayers"
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
@@ -3092,7 +3096,8 @@ const compositionSlots = computed(() => {
   const eventId = selectedEvent.value.id
   
   // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
-  if (!isSelectionConfirmedByOrganizer(eventId)) {
+  // SAUF pour les admins qui peuvent voir la composition même non validée
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
     return []
   }
   
@@ -6862,7 +6867,8 @@ function getAvailabilityData(player, eventId) {
     getPlayerSelectionRole,
     getPlayerDeclinedRole,
     getPlayerSelectionStatus,
-    isSelectionConfirmedByOrganizer
+    isSelectionConfirmedByOrganizer,
+    canEditEvents: canEditEvents.value
   })
 }
 
@@ -6872,8 +6878,9 @@ function isSelected(player, eventId) {
     return false
   }
   
-  // Vérifier d'abord si la composition est validée par l'organisateur
-  if (!isSelectionConfirmedByOrganizer(eventId)) {
+  // Pour les admins, afficher les sélections même si la composition n'est pas validée
+  // Pour les utilisateurs normaux, ne pas afficher les sélections si la composition n'est pas validée
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
     return false
   }
   
@@ -10381,8 +10388,9 @@ function getPlayerSelectionStatus(playerName, eventId) {
   const cast = casts.value[eventId]
   if (!cast) return null
   
-  // Vérifier d'abord si la composition est validée par l'organisateur
-  if (!isSelectionConfirmedByOrganizer(eventId)) {
+  // Pour les admins, afficher le statut même si la composition n'est pas validée
+  // Pour les utilisateurs normaux, ne pas afficher le statut si la composition n'est pas validée
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
     return null
   }
   

@@ -9,8 +9,8 @@
     @click.stop="handleClick"
   >
     <div class="flex flex-col items-center justify-center h-full min-h-[4rem]">
-      <!-- Affichage des sélections (seulement si composition validée par l'organisateur) -->
-      <template v-if="isSelected && isSelectionConfirmedByOrganizer">
+      <!-- Affichage des sélections (seulement si composition validée par l'organisateur OU si admin) -->
+      <template v-if="isSelected && (isSelectionConfirmedByOrganizer || canEditEvents)">
         <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="playerSelectionStatus && playerSelectionStatus !== 'none'">
           <!-- Ligne 1: nom du rôle -->
@@ -115,6 +115,10 @@ const props = defineProps({
     default: false
   },
   isSelectionConfirmedByOrganizer: {
+    type: Boolean,
+    default: false
+  },
+  canEditEvents: {
     type: Boolean,
     default: false
   },

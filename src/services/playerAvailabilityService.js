@@ -88,7 +88,8 @@ export function getAvailabilityData(playerName, eventId, playerAvailability, opt
     getPlayerSelectionRole = () => null,
     getPlayerDeclinedRole = () => null,
     getPlayerSelectionStatus = () => null,
-    isSelectionConfirmedByOrganizer = () => false
+    isSelectionConfirmedByOrganizer = () => false,
+    canEditEvents = false
   } = options
 
   const availabilityData = playerAvailability?.[playerName]?.[eventId]
@@ -103,8 +104,8 @@ export function getAvailabilityData(playerName, eventId, playerAvailability, opt
   // Vérifier le statut de sélection
   const selectionStatus = getPlayerSelectionStatus(playerName, eventId)
   
-  // Si on est sélectionné ET la composition est validée par l'organisateur OU si on est dans les déclinés
-  if ((selectionRole && isSelectionValidated) || declinedRole) {
+  // Si on est sélectionné ET (la composition est validée par l'organisateur OU l'utilisateur est admin) OU si on est dans les déclinés
+  if ((selectionRole && (isSelectionValidated || canEditEvents)) || declinedRole) {
     // Afficher uniquement le rôle de composition, pas les rôles de disponibilité
     const selectedRole = selectionRole || declinedRole
     

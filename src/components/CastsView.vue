@@ -254,6 +254,7 @@
             :player-gender="player.gender || 'non-specified'"
               :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
               :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
+              :can-edit-events="canEditEvents"
           />
         </td>
         </tr>
@@ -326,6 +327,10 @@ const props = defineProps({
     default: ''
   },
   canEditAvailability: {
+    type: Boolean,
+    default: false
+  },
+  canEditEvents: {
     type: Boolean,
     default: false
   },
