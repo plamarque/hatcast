@@ -11,7 +11,7 @@
             Vue en cours de construction
           </h3>
           <p class="text-yellow-100 text-xs leading-relaxed">
-            Cette vue s'adresse plutôt à la pédagogie et permet de suivre les compositions et les statistiques des joueurs au fil du temps. 
+            Cette vue s'adresse plutôt aux sélectionneurs et permet de suivre les compositions et les statistiques des joueurs au fil du temps. 
             Elle est encore en cours de construction et peut contenir des imprécisions.
           </p>
         </div>
@@ -245,15 +245,16 @@
             :player-name="player.name"
             :event-id="event.id"
               :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
-              :is-selection-confirmed="false"
-              :is-selection-confirmed-by-organizer="false"
-              :player-selection-status="getPlayerRoleInEvent(player.id, event.id) ? props.getPlayerSelectionStatus(player.name, event.id) : null"
+              :is-selection-confirmed="props.isSelectionConfirmed(event.id)"
+              :is-selection-confirmed-by-organizer="props.isSelectionConfirmedByOrganizer(event.id)"
+              :player-selection-status="props.getPlayerSelectionStatus(player.name, event.id)"
             :season-id="seasonId"
             :can-edit="false"
-              :availability-data="props.getAvailabilityData(player.id, event.id)"
+              :availability-data="props.getAvailabilityData(player.name, event.id)"
             :player-gender="player.gender || 'non-specified'"
               :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
               :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
+              :can-edit-events="canEditEvents"
           />
         </td>
         </tr>
@@ -326,6 +327,10 @@ const props = defineProps({
     default: ''
   },
   canEditAvailability: {
+    type: Boolean,
+    default: false
+  },
+  canEditEvents: {
     type: Boolean,
     default: false
   },
@@ -607,9 +612,9 @@ function getPlayerRoleLabelInEvent(playerId, eventId, playerGender = 'non-specif
 
 // Fonction pour obtenir les rôles et chances d'un joueur pour un événement
 function getPlayerRolesAndChances(playerId, eventId, playerGender = 'non-specified') {
-  // Si le joueur est déjà sélectionné, on n'affiche pas les chances
+  // Si le joueur est sélectionné ET la composition est validée, on n'affiche pas les chances
   const selectedRole = getPlayerRoleInEvent(playerId, eventId)
-  if (selectedRole) {
+  if (selectedRole && props.isSelectionConfirmedByOrganizer(eventId)) {
     return null
   }
   

@@ -134,6 +134,7 @@
             :is-selected="isSelected(player.name, event.id)"
             :is-selection-confirmed="isSelectionConfirmed(event.id)"
             :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(event.id)"
+            :can-edit-events="canEditEvents"
             :player-selection-status="getPlayerSelectionStatus(player.name, event.id)"
             :season-id="seasonId"
             :player-gender="player.gender || 'non-specified'"
@@ -243,6 +244,10 @@ const props = defineProps({
     default: ''
   },
   canEditAvailability: {
+    type: Boolean,
+    default: false
+  },
+  canEditEvents: {
     type: Boolean,
     default: false
   },

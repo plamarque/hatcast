@@ -112,6 +112,7 @@
                 :event-date="event.date ? new Date(event.date).toISOString() : ''"
                 :is-protected="isPlayerProtected(event.id)"
                 :compact="true"
+                :can-edit-events="canEditEvents"
                 class="w-full h-16"
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handleSelectionStatusToggle"
@@ -342,6 +343,10 @@ export default {
     isAvailableForRole: {
       type: Function,
       default: () => false
+    },
+    canEditEvents: {
+      type: Boolean,
+      default: false
     },
     isAllEventsView: {
       type: Boolean,
@@ -808,8 +813,14 @@ export default {
           return 'tu as décliné'
         } else {
           // Status 'pending' - à confirmer
-          const selectedText = playerGender === 'female' ? 'tu es sélectionnée' : 'tu es sélectionné'
-          return `${selectedText}, clique pour confirmer`
+          // Seulement si la composition est validée par l'organisateur
+          if (isSelectionConfirmedByOrganizer) {
+            const selectedText = playerGender === 'female' ? 'tu es sélectionnée' : 'tu es sélectionné'
+            return `${selectedText}, clique pour confirmer`
+          } else {
+            // Composition pas encore validée, ne pas révéler la sélection
+            return 'clique pour indiquer ta dispo'
+          }
         }
       } else {
         // Joueur non sélectionné

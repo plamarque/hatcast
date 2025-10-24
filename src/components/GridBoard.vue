@@ -124,6 +124,7 @@
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :can-edit-events="canEditEvents"
         :get-player-selection-status="getPlayerSelectionStatus"
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
@@ -166,6 +167,7 @@
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :can-edit-events="canEditEvents"
         :get-player-selection-status="getPlayerSelectionStatus"
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
@@ -208,6 +210,7 @@
         :is-selected="isSelected"
         :is-selection-confirmed="isSelectionConfirmed"
         :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer"
+        :can-edit-events="canEditEvents"
         :get-player-selection-status="getPlayerSelectionStatus"
         :is-selection-complete="isSelectionComplete"
         :get-availability-data="getAvailabilityData"
@@ -254,6 +257,7 @@
         :is-player-protected-in-grid="isPlayerProtectedInGrid"
         :chances="chances"
         :is-selection-complete="isSelectionComplete"
+        :can-edit-events="canEditEvents"
         :get-selection-players="getSelectionPlayers"
         :get-total-required-count="getTotalRequiredCount"
         :count-available-players="countAvailablePlayers"
@@ -965,21 +969,21 @@
         <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
-            <button
-              v-if="hasCompositionForSelectedEvent"
-              @click="eventDetailsActiveTab = 'composition'"
-              :class="[
-                'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-                eventDetailsActiveTab === 'composition' 
-                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              ]"
-            >
-              <span class="flex items-center justify-center gap-2">
-                <span>🎭</span>
-                <span>Composition</span>
-              </span>
-            </button>
+    <button
+      v-if="hasCompositionForSelectedEvent"
+      @click="eventDetailsActiveTab = 'composition'"
+      :class="[
+        'flex-1 px-4 py-2 text-sm font-medium transition-colors',
+        eventDetailsActiveTab === 'composition'
+          ? 'text-white bg-purple-600/20 border-b-2 border-purple-400'
+          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+      ]"
+    >
+      <span class="flex items-center justify-center gap-2">
+        <span>🎭</span>
+        <span>Composition</span>
+      </span>
+    </button>
             <button
               @click="eventDetailsActiveTab = 'team'"
               :class="[
@@ -1001,7 +1005,19 @@
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <!-- Message si composition non validée pour utilisateurs normaux -->
+              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditEvents" class="text-center py-8">
+                <div class="text-gray-400 text-lg mb-2">⏳</div>
+                <div class="text-gray-300 text-sm">
+                  La composition n'est pas encore validée par l'organisateur
+                </div>
+                <div class="text-gray-500 text-xs mt-1">
+                  Elle sera visible ici une fois validée
+                </div>
+              </div>
+              
+              <!-- Slots de composition (pour admins ou si validée) -->
+              <div v-else-if="canEditEvents || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
@@ -3078,6 +3094,13 @@ const hasCompositionForSelectedEvent = computed(() => {
 const compositionSlots = computed(() => {
   if (!selectedEvent.value?.roles) return []
   const eventId = selectedEvent.value.id
+  
+  // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
+  // SAUF pour les admins qui peuvent voir la composition même non validée
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
+    return []
+  }
+  
   const roles = selectedEvent.value.roles
   const cast = casts.value[eventId] || { roles: {} }
   const playersById = new Map((allSeasonPlayers.value || []).map(p => [p.id, p]))
@@ -6844,13 +6867,20 @@ function getAvailabilityData(player, eventId) {
     getPlayerSelectionRole,
     getPlayerDeclinedRole,
     getPlayerSelectionStatus,
-    isSelectionConfirmedByOrganizer
+    isSelectionConfirmedByOrganizer,
+    canEditEvents: canEditEvents.value
   })
 }
 
 function isSelected(player, eventId) {
   const selection = casts.value[eventId]
   if (!selection) {
+    return false
+  }
+  
+  // Pour les admins, afficher les sélections même si la composition n'est pas validée
+  // Pour les utilisateurs normaux, ne pas afficher les sélections si la composition n'est pas validée
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
     return false
   }
   
@@ -10356,7 +10386,13 @@ function isSelectionConfirmedByOrganizer(eventId) {
 // Fonction helper pour obtenir le statut individuel d'un joueur dans une composition
 function getPlayerSelectionStatus(playerName, eventId) {
   const cast = casts.value[eventId]
-  if (!cast) return 'pending'
+  if (!cast) return null
+  
+  // Pour les admins, afficher le statut même si la composition n'est pas validée
+  // Pour les utilisateurs normaux, ne pas afficher le statut si la composition n'est pas validée
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
+    return null
+  }
   
   // Vérifier d'abord si le joueur est dans la section déclinés
   const declinedRole = getPlayerDeclinedRole(playerName, eventId)
@@ -10371,6 +10407,13 @@ function getPlayerSelectionStatus(playerName, eventId) {
 // Fonction helper pour obtenir le rôle de composition d'un joueur
 function getPlayerSelectionRole(playerName, eventId) {
   const cast = casts.value[eventId]
+  if (!cast) return null
+  
+  // Vérifier d'abord si la composition est validée par l'organisateur
+  if (!isSelectionConfirmedByOrganizer(eventId)) {
+    return null
+  }
+  
   return getPlayerCastRole(cast, playerName, allSeasonPlayers.value)
 }
 
