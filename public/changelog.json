@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.31.0",
+    "date": "2025-10-24",
+    "changes": [
+      "✨ On masque les compositions non validées pour les utilisateurs normaux.",
+      "🐛 On corrige l'affichage des joueurs déclinés dans la vue Compositions.",
+      "🐛 On corrige l'affichage des sélections dans toutes les vues.",
+      "🐛 On corrige l'affichage des onglets pour les utilisateurs normaux."
+    ]
+  },
+  {
     "version": "0.30.0",
     "date": "2025-10-14",
     "changes": [

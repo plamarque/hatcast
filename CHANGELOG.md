@@ -1,25 +1,25 @@
-## [0.30.0] - 2025-10-14
+## [0.31.0] - 2025-10-24
 
 ### ✨ New Features
 
-- feat: sync Google avatars to player profiles automatically
+- feat: masquer les compositions non validées aux utilisateurs normaux
 
 ### 🐛 Bug Fixes
 
-- fix: improve event modal title layout on mobile
-- fix: expand event details by default in modal
-
-### 🔧 Improvements
-
-- refactor: move announce button to dropdown menu
+- fix: corriger l'affichage des joueurs déclinés dans la vue Compositions
+- fix: corriger l'affichage des sélections dans toutes les vues
+- fix: corriger l'affichage des onglets pour utilisateurs normaux
+- fix: improve push notifications system with better logging and queue management
 
 ### 📝 Other Changes
 
-- release: version 0.29.2
+- plan migration to a more robust architecture
+- release: version 0.30.0
 
 
 # Changelog
 
+## [0.31.0] - 2025-10-24
 ## [0.30.0] - 2025-10-14
 ## [0.29.2] - 2025-10-11
 ## [0.29.1] - 2025-10-11
