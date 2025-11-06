@@ -1778,12 +1778,7 @@ function getDeclinedPlayers() {
 }
 
 function getRoleEmoji(role) {
-  const roleEmojis = {
-    player: '🎭',
-    dj: '🎧',
-    mc: '🎤'
-  }
-  return roleEmojis[role] || '🎭'
+  return ROLE_EMOJIS[role] || '🎭'
 }
 
 // Vérifier si un rôle a au moins un slot vide disponible
