@@ -1,26 +1,17 @@
-## [0.31.1] - 2025-11-06
-
-### ✨ New Features
-
-- feat: simplify past events display in Compositions view
-- feat: auto-decline cast members when unavailable
+## [0.31.2] - 2025-11-06
 
 ### 🐛 Bug Fixes
 
-- fix: add automatic project root detection to release script
-- fix: availability toggle for declined cast players
-- fix: display correct role emoji for declined players
-- fix: reset declined player status to pending when restored
-- fix: prevent declined players from staying in declined list
-- fix: slot removal incorrectly declining players
+- fix: upgrade Cloud Functions runtime to Node.js 20
 
 ### 📝 Other Changes
 
-- release: version 0.31.0
+- release: version 0.31.1
 
 
 # Changelog
 
+## [0.31.2] - 2025-11-06
 ## [0.31.1] - 2025-11-06
 ## [0.31.0] - 2025-10-24
 ## [0.30.0] - 2025-10-14
