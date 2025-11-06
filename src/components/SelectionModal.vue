@@ -880,39 +880,18 @@ async function clearSlot(index) {
   const removedPlayer = currentSlot?.player || slots.value[index]
   const role = currentSlot?.role || 'player'
   
-  // Si c'est un joueur décliné, le supprimer complètement
-  if (isPlayerDeclined(playerName)) {
-    // Vider le slot dans teamSlots
-    if (currentSlot) {
-      currentSlot.player = null
-      currentSlot.playerId = null
-      currentSlot.isEmpty = true
-    }
-    
-    // Vider aussi dans l'ancien système pour la compatibilité
+  // Vider le slot dans teamSlots
+  if (currentSlot) {
+    currentSlot.player = null
+    currentSlot.playerId = null
+    currentSlot.isEmpty = true
+  }
+  
+  // Vider aussi dans l'ancien système pour la compatibilité
+  if (slots.value && slots.value[index] !== undefined) {
+    await nextTick()
     if (slots.value && slots.value[index] !== undefined) {
-      await nextTick()
-      if (slots.value && slots.value[index] !== undefined) {
-        slots.value[index] = null
-      }
-    }
-  } else {
-    // Si c'est un joueur normal, le déplacer vers les déclinés
-    await movePlayerToDeclined(playerName, role)
-    
-    // Vider le slot dans teamSlots
-    if (currentSlot) {
-      currentSlot.player = null
-      currentSlot.playerId = null
-      currentSlot.isEmpty = true
-    }
-    
-    // Vider aussi dans l'ancien système pour la compatibilité
-    if (slots.value && slots.value[index] !== undefined) {
-      await nextTick()
-      if (slots.value && slots.value[index] !== undefined) {
-        slots.value[index] = null
-      }
+      slots.value[index] = null
     }
   }
   
