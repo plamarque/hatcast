@@ -5,6 +5,37 @@
 
 set -e
 
+# Detect and change to project root
+detect_project_root() {
+    # Get the directory where the script is located
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    # Find git root from script location
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null)"
+    
+    if [ -z "$PROJECT_ROOT" ]; then
+        echo "❌ Error: Not in a git repository"
+        exit 1
+    fi
+    
+    # Change to project root
+    cd "$PROJECT_ROOT" || {
+        echo "❌ Error: Cannot change to project root: $PROJECT_ROOT"
+        exit 1
+    }
+    
+    # Validate we're in the right place
+    if [ ! -f "package.json" ]; then
+        echo "❌ Error: package.json not found in project root"
+        exit 1
+    fi
+    
+    echo "📁 Project root: $PROJECT_ROOT"
+}
+
+# Execute root detection immediately
+detect_project_root
+
 # Load environment variables from .env.local if it exists
 if [ -f ".env.local" ]; then
     export $(grep -v '^#' .env.local | xargs)
