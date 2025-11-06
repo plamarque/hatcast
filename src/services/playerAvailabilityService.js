@@ -110,7 +110,7 @@ export function getAvailabilityData(playerName, eventId, playerAvailability, opt
     const selectedRole = selectionRole || declinedRole
     
     return {
-      available: true, // Toujours true pour l'affichage, le statut est géré par selectionStatus
+      available: availabilityData?.available ?? null, // Retourner la vraie disponibilité du joueur
       roles: [selectedRole], // Uniquement le rôle de composition
       comment: availabilityData?.comment || null,
       isSelectionDisplay: true,
