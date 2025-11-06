@@ -255,6 +255,7 @@
               :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
               :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
               :can-edit-events="canEditEvents"
+              :is-past-event="event._isPast"
           />
         </td>
         </tr>

@@ -6,11 +6,20 @@
       compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
       getCellStatusClass()
     ]"
+    :title="tooltipForPastEvent"
     @click.stop="handleClick"
   >
     <div class="flex flex-col items-center justify-center h-full min-h-[4rem]">
+      <!-- Pour les événements passés : afficher seulement un tiret si pas membre confirmé -->
+      <template v-if="isPastEvent && !isConfirmedMember">
+        <span class="text-center text-gray-400">
+          -
+        </span>
+      </template>
+      
+      <!-- Affichage normal pour les événements futurs ou les membres confirmés d'événements passés -->
       <!-- Affichage des sélections (seulement si composition validée par l'organisateur OU si admin) -->
-      <template v-if="isSelected && (isSelectionConfirmedByOrganizer || canEditEvents)">
+      <template v-else-if="isSelected && (isSelectionConfirmedByOrganizer || canEditEvents)">
         <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="playerSelectionStatus && playerSelectionStatus !== 'none'">
           <!-- Ligne 1: nom du rôle -->
@@ -173,6 +182,11 @@ const props = defineProps({
   rolesAndChances: {
     type: Array,
     default: () => null
+  },
+  // Indique si l'événement est passé (pour simplifier l'affichage dans la vue Compositions)
+  isPastEvent: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -186,6 +200,39 @@ const emit = defineEmits([
 const playerSelectionStatus = computed(() => {
   // Utiliser playerSelectionStatus en priorité (compatibilité AvailabilityCell)
   return props.playerSelectionStatus || props.selectionStatus
+})
+
+const isConfirmedMember = computed(() => {
+  return props.isSelected && props.isSelectionConfirmedByOrganizer && playerSelectionStatus.value === 'confirmed'
+})
+
+const tooltipForPastEvent = computed(() => {
+  if (!props.isPastEvent || isConfirmedMember.value) return ''
+  
+  // Construire le tooltip en fonction de l'état
+  if (playerSelectionStatus.value === 'declined') {
+    return 'A décliné la sélection'
+  }
+  
+  if (playerSelectionStatus.value === 'pending') {
+    return 'Sélectionné - en attente de confirmation'
+  }
+  
+  if (props.availabilityData && props.availabilityData.available && props.availabilityData.roles && props.availabilityData.roles.length > 0) {
+    const roles = props.availabilityData.roles.map(role => getRoleLabel(role, props.playerGender, false)).join(', ')
+    return `Disponible : ${roles}`
+  }
+  
+  if (props.availabilityData && props.availabilityData.available === false) {
+    return 'Pas disponible'
+  }
+  
+  if (props.rolesAndChances && props.rolesAndChances.length > 0) {
+    const roles = props.rolesAndChances.map(rc => rc.label).join(', ')
+    return `Disponible : ${roles}`
+  }
+  
+  return 'Disponibilité non renseignée'
 })
 
 // Fonctions utilitaires
@@ -240,6 +287,17 @@ function getChanceTextClass(chance) {
 }
 
 function getCellStatusClass() {
+  // Pour les événements passés : simplifier l'affichage
+  // Seuls les membres confirmés de la compo gardent leur style violet
+  // Tous les autres états deviennent gris (status-undefined)
+  if (props.isPastEvent) {
+    const isConfirmedMember = props.isSelected && props.isSelectionConfirmedByOrganizer && playerSelectionStatus.value === 'confirmed'
+    if (!isConfirmedMember) {
+      return 'status-undefined' // Gris pour tous les autres cas
+    }
+    // Si c'est un membre confirmé, continuer avec la logique normale pour avoir le violet
+  }
+  
   // Si le joueur a décliné, toujours afficher le statut declined (orange)
   if (playerSelectionStatus.value === 'declined') {
     return getStatusClass({
