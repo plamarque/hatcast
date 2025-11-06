@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.31.1",
+    "date": "2025-11-06",
+    "changes": [
+      "✨ Simplification de l'affichage des événements passés dans la vue des compositions.",
+      "✨ Déclenchement automatique du refus des membres du casting lorsqu'ils ne sont pas disponibles.",
+      "🐛 Correction de la détection automatique du répertoire du projet dans le script de publication.",
+      "🐛 Correction de l'activation de la disponibilité pour les joueurs du casting refusés.",
+      "🐛 Affichage du bon emoji de rôle pour les joueurs refusés.",
+      "🐛 Réinitialisation du statut des joueurs refusés à en attente lorsqu'ils sont restaurés.",
+      "🐛 Empêchement des joueurs refusés de rester dans la liste des refusés.",
+      "🐛 Correction de la suppression de créneaux qui refusait incorrectement des joueurs."
+    ]
+  },
+  {
     "version": "0.31.0",
     "date": "2025-10-24",
     "changes": [

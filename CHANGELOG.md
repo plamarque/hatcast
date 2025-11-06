@@ -1,24 +1,27 @@
-## [0.31.0] - 2025-10-24
+## [0.31.1] - 2025-11-06
 
 ### ✨ New Features
 
-- feat: masquer les compositions non validées aux utilisateurs normaux
+- feat: simplify past events display in Compositions view
+- feat: auto-decline cast members when unavailable
 
 ### 🐛 Bug Fixes
 
-- fix: corriger l'affichage des joueurs déclinés dans la vue Compositions
-- fix: corriger l'affichage des sélections dans toutes les vues
-- fix: corriger l'affichage des onglets pour utilisateurs normaux
-- fix: improve push notifications system with better logging and queue management
+- fix: add automatic project root detection to release script
+- fix: availability toggle for declined cast players
+- fix: display correct role emoji for declined players
+- fix: reset declined player status to pending when restored
+- fix: prevent declined players from staying in declined list
+- fix: slot removal incorrectly declining players
 
 ### 📝 Other Changes
 
-- plan migration to a more robust architecture
-- release: version 0.30.0
+- release: version 0.31.0
 
 
 # Changelog
 
+## [0.31.1] - 2025-11-06
 ## [0.31.0] - 2025-10-24
 ## [0.30.0] - 2025-10-14
 ## [0.29.2] - 2025-10-11
