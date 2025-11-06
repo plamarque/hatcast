@@ -228,7 +228,7 @@
                   </div>
                 </div>
                 <button
-                  v-if="!isSelectionConfirmedByOrganizer"
+                  v-if="!isSelectionConfirmedByOrganizer && hasEmptySlotForRole(declinedPlayer.role)"
                   @click="moveDeclinedToComposition(declinedPlayer)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Remettre en composition"
@@ -487,6 +487,7 @@ import { getStatusClass } from '../utils/statusUtils.js'
 import { getPlayerCastStatus } from '../services/castService.js'
 import { calculateAllRoleChances, formatChancePercentage, performAlgoBruno, performDefaultDraw } from '../services/chancesService.js'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
+import logger from '../services/logger.js'
 
 const props = defineProps({
   show: {
@@ -1785,6 +1786,11 @@ function getRoleEmoji(role) {
   return roleEmojis[role] || '🎭'
 }
 
+// Vérifier si un rôle a au moins un slot vide disponible
+function hasEmptySlotForRole(role) {
+  return teamSlots.value.some(slot => !slot.player && slot.role === role)
+}
+
 async function moveDeclinedToComposition(declinedPlayer) {
   try {
     // Trouver un slot vide pour ce rôle
@@ -1793,23 +1799,72 @@ async function moveDeclinedToComposition(declinedPlayer) {
     )
     
     if (!emptySlot) {
-      console.warn('Aucun slot vide trouvé pour le rôle:', declinedPlayer.role)
+      console.warn('No empty slot found for role:', declinedPlayer.role)
       return
     }
     
-    // Remplir le slot
+    const playerId = getPlayerIdFromName(declinedPlayer.name)
+    if (!playerId) {
+      console.error('Player ID not found for:', declinedPlayer.name)
+      return
+    }
+    
+    logger.debug('Moving declined player back to composition:', { 
+      playerName: declinedPlayer.name, 
+      playerId,
+      role: declinedPlayer.role 
+    })
+    
+    // Remplir le slot localement
     emptySlot.player = declinedPlayer.name
-    emptySlot.playerId = getPlayerIdFromName(declinedPlayer.name)
+    emptySlot.playerId = playerId
     
-    // Retirer le joueur de la liste des déclinés
-    await removeFromDeclined(declinedPlayer.name, declinedPlayer.role)
+    // Construire la structure par rôle à partir de teamSlots (incluant le joueur qu'on vient d'ajouter)
+    const roles = {}
+    teamSlots.value.forEach(slot => {
+      if (slot.playerId) {
+        if (!roles[slot.role]) {
+          roles[slot.role] = []
+        }
+        roles[slot.role].push(slot.playerId)
+      }
+    })
     
-    // Sauvegarder
-    await autoSaveSelection()
+    // Construire la nouvelle structure declined en retirant le joueur
+    const currentDeclined = props.currentSelection?.declined || {}
+    const newDeclined = { ...currentDeclined }
     
-    console.log('Joueur remis en composition:', declinedPlayer.name)
+    if (newDeclined[declinedPlayer.role] && Array.isArray(newDeclined[declinedPlayer.role])) {
+      newDeclined[declinedPlayer.role] = newDeclined[declinedPlayer.role].filter(id => id !== playerId)
+      
+      // Si le rôle est vide, le supprimer
+      if (newDeclined[declinedPlayer.role].length === 0) {
+        delete newDeclined[declinedPlayer.role]
+      }
+    }
+    
+    logger.debug('Atomic save with updated roles and declined:', { roles, declined: newDeclined })
+    
+    // Sauvegarder atomiquement roles ET declined en un seul appel
+    const { saveCast } = await import('../services/storage.js')
+    await saveCast(props.event.id, roles, props.seasonId, { 
+      declined: newDeclined
+    })
+    
+    // Recalculer le statut après la sauvegarde
+    try {
+      const { updateCastStatus } = await import('../services/storage.js')
+      await updateCastStatus(props.event.id, props.seasonId)
+    } catch (error) {
+      console.warn('Error updating cast status:', error)
+    }
+    
+    // Émettre un événement pour que le parent recharge les données
+    emit('updateCast')
+    
+    logger.debug('Player successfully moved back to composition:', declinedPlayer.name)
   } catch (error) {
-    console.error('Erreur lors du déplacement du joueur décliné:', error)
+    console.error('Error moving declined player to composition:', error)
   }
 }
 
