@@ -1985,7 +1985,7 @@ import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
 import { getTruncatedLocation } from '../utils/locationUtils.js'
-import { getPlayerCastStatus, getPlayerCastRole } from '../services/castService.js'
+import { getPlayerCastStatus, getPlayerCastRole, movePlayerToDeclined } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
@@ -2352,6 +2352,12 @@ async function handleAvailabilitySaved(payload) {
     // Recharger pour synchroniser
     const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
     availability.value = newAvailability
+    
+    // Reload casts to reflect any auto-decline changes
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedCasts = await loadCasts(seasonId.value)
+    casts.value = updatedCasts
+    
     availabilityCellRefreshKey.value++
   } catch (error) {
     console.error('❌ Erreur post-sauvegarde (refresh):', error)
@@ -6738,46 +6744,12 @@ async function movePlayerToDeclinedInCast(playerName, eventId, seasonId) {
     const player = allSeasonPlayers.value.find(p => p.name === playerName)
     if (!player) return
     
-    // Trouver le rôle du joueur dans la composition actuelle
-    const currentSelection = casts.value[eventId]
-    if (!currentSelection || !currentSelection.roles) return
+    // Use the centralized service function
+    const result = await movePlayerToDeclined(player.id, eventId, seasonId)
     
-    let playerRole = null
-    for (const [role, playerIds] of Object.entries(currentSelection.roles)) {
-      if (Array.isArray(playerIds) && playerIds.includes(player.id)) {
-        playerRole = role
-        break
-      }
+    if (result.success) {
+      console.log('Joueur déplacé vers les déclinés:', playerName)
     }
-    
-    if (!playerRole) return
-    
-    // Créer une copie de la structure declined existante
-    const currentDeclined = currentSelection.declined || {}
-    const newDeclined = { ...currentDeclined }
-    
-    // Ajouter le joueur à la liste des déclinés pour ce rôle
-    if (!newDeclined[playerRole]) {
-      newDeclined[playerRole] = []
-    }
-    if (!newDeclined[playerRole].includes(player.id)) {
-      newDeclined[playerRole].push(player.id)
-    }
-    
-    // Retirer le joueur de la composition normale
-    const newRoles = { ...currentSelection.roles }
-    if (newRoles[playerRole]) {
-      newRoles[playerRole] = newRoles[playerRole].filter(id => id !== player.id)
-    }
-    
-    // Sauvegarder avec la nouvelle structure
-    const { saveCast } = await import('../services/storage.js')
-    await saveCast(eventId, newRoles, seasonId, { 
-      declined: newDeclined,
-      preserveConfirmed: true 
-    })
-    
-    console.log('Joueur déplacé vers les déclinés:', playerName)
   } catch (error) {
     console.error('Erreur lors du déplacement vers les déclinés:', error)
   }
@@ -11366,6 +11338,11 @@ async function handleAvailabilitySave(availabilityData) {
     const newAvailability = await loadAvailability(allSeasonPlayers.value, events.value, seasonId.value)
     availability.value = newAvailability
     
+    // Reload casts to reflect any auto-decline changes
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedCasts = await loadCasts(seasonId.value)
+    casts.value = updatedCasts
+    
     // Forcer le re-render de AvailabilityCell
     availabilityCellRefreshKey.value++
     
@@ -11427,6 +11404,11 @@ async function handleAvailabilityNotAvailable(availabilityData) {
       comment: availabilityData.comment
     }
     
+    // Reload casts to reflect any auto-decline changes
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedCasts = await loadCasts(seasonId.value)
+    casts.value = updatedCasts
+    
     showAvailabilityModal.value = false
     
     // Afficher un message de succès
@@ -11481,6 +11463,11 @@ async function handleAvailabilityClear(availabilityData) {
       roles: [],
       comment: availabilityData.comment
     }
+    
+    // Reload casts to keep data in sync
+    const { loadCasts } = await import('../services/storage.js')
+    const updatedCasts = await loadCasts(seasonId.value)
+    casts.value = updatedCasts
     
     showAvailabilityModal.value = false
     

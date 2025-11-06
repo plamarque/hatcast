@@ -679,6 +679,24 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
       await firestoreService.setDocument('seasons', seasonId, availabilityData, false, 'players', playerId, 'availability', eventId)
     }
     
+    // If player set availability to false, check if they're in the cast and auto-decline
+    if (available === false) {
+      try {
+        const { movePlayerToDeclined } = await import('./castService.js')
+        const result = await movePlayerToDeclined(playerId, eventId, seasonId, {
+          source: 'availability_change',
+          playerName: playerName
+        })
+        
+        if (result.success) {
+          logger.debug(`Player ${playerName} auto-declined from cast for event ${eventId}`)
+        }
+      } catch (declineError) {
+        // Don't fail the availability save if decline fails
+        logger.debug('Error auto-declining player from cast:', declineError)
+      }
+    }
+    
     // Logger l'audit APRÈS la sauvegarde réussie
     try {
       await AuditClient.logAvailabilityChange({
@@ -754,6 +772,24 @@ export async function setSingleAvailability({ seasonId, playerName, eventId, val
         updatedAt: new Date()
       }
       await firestoreService.setDocument('seasons', seasonId, availabilityData, false, 'players', playerId, 'availability', eventId)
+    }
+    
+    // If player set availability to false, check if they're in the cast and auto-decline
+    if (value && value.available === false) {
+      try {
+        const { movePlayerToDeclined } = await import('./castService.js')
+        const result = await movePlayerToDeclined(playerId, eventId, seasonId, {
+          source: 'availability_change',
+          playerName: playerName
+        })
+        
+        if (result.success) {
+          logger.debug(`Player ${playerName} auto-declined from cast for event ${eventId}`)
+        }
+      } catch (declineError) {
+        // Don't fail the availability save if decline fails
+        logger.debug('Error auto-declining player from cast:', declineError)
+      }
     }
   } catch (error) {
     logger.error('Erreur lors de la mise à jour de la disponibilité:', error)

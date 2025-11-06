@@ -378,3 +378,96 @@ export function getNextCastStatus(currentStatus) {
       return 'pending'
   }
 }
+
+/**
+ * Move a player to the declined section and update their status
+ * @param {string} playerId - Player ID
+ * @param {string} eventId - Event ID
+ * @param {string} seasonId - Season ID
+ * @param {Object} options - Additional options
+ * @param {string} options.source - Source of the decline (for audit logging)
+ * @param {string} options.playerName - Player name (for audit logging)
+ * @param {string} options.oldStatus - Previous status (for audit logging)
+ * @returns {Promise<Object>} - Result with success status and role
+ */
+export async function movePlayerToDeclined(playerId, eventId, seasonId, options = {}) {
+  try {
+    // Get current cast
+    const casts = await loadCastsFromStorage(seasonId)
+    const currentCast = casts[eventId]
+    
+    if (!currentCast || !currentCast.roles) {
+      return { success: false, reason: 'Cast not found' }
+    }
+    
+    // Find the role of the player in the current cast
+    let playerRole = null
+    for (const [role, playerIds] of Object.entries(currentCast.roles)) {
+      if (Array.isArray(playerIds) && playerIds.includes(playerId)) {
+        playerRole = role
+        break
+      }
+    }
+    
+    if (!playerRole) {
+      return { success: false, reason: 'Player not in cast' }
+    }
+    
+    // Get old status for audit logging
+    const oldStatus = currentCast.playerStatuses?.[playerId] || 'pending'
+    
+    // Create a copy of the declined structure
+    const currentDeclined = currentCast.declined || {}
+    const newDeclined = { ...currentDeclined }
+    
+    // Add player to the declined list for this role
+    if (!newDeclined[playerRole]) {
+      newDeclined[playerRole] = []
+    }
+    if (!newDeclined[playerRole].includes(playerId)) {
+      newDeclined[playerRole].push(playerId)
+    }
+    
+    // Remove player from the normal cast
+    const newRoles = { ...currentCast.roles }
+    if (newRoles[playerRole]) {
+      newRoles[playerRole] = newRoles[playerRole].filter(id => id !== playerId)
+    }
+    
+    // Save with the new structure
+    await saveCast(eventId, newRoles, seasonId, { 
+      declined: newDeclined,
+      preserveConfirmed: true 
+    })
+    
+    // Update player status to declined
+    await updatePlayerCastStatus(eventId, playerId, 'declined', seasonId)
+    
+    // Audit logging for auto-decline
+    if (options.playerName && options.source === 'availability_change') {
+      try {
+        const { logPlayerStatusChange } = await import('./selectionAuditService.js')
+        const { firestoreService } = await import('./firestoreService.js')
+        const eventData = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+        const seasonData = await firestoreService.getDocument('seasons', seasonId)
+        
+        await logPlayerStatusChange({
+          playerName: options.playerName,
+          eventId,
+          eventTitle: eventData?.title || 'Unknown',
+          seasonSlug: seasonData?.slug || seasonId,
+          oldStatus: options.oldStatus || oldStatus,
+          newStatus: 'declined',
+          source: 'auto_decline_unavailable'
+        })
+      } catch (auditError) {
+        console.warn('Error logging auto-decline audit:', auditError)
+      }
+    }
+    
+    return { success: true, role: playerRole }
+  } catch (error) {
+    console.error('Error moving player to declined:', error)
+    return { success: false, reason: error.message }
+  }
+}
