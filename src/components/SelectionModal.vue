@@ -1846,10 +1846,13 @@ async function moveDeclinedToComposition(declinedPlayer) {
     logger.debug('Atomic save with updated roles and declined:', { roles, declined: newDeclined })
     
     // Sauvegarder atomiquement roles ET declined en un seul appel
-    const { saveCast } = await import('../services/storage.js')
+    const { saveCast, updatePlayerCastStatus } = await import('../services/storage.js')
     await saveCast(props.event.id, roles, props.seasonId, { 
       declined: newDeclined
     })
+    
+    // Reset player status to pending (needs reconfirmation after being declined)
+    await updatePlayerCastStatus(props.event.id, playerId, 'pending', props.seasonId)
     
     // Recalculer le statut après la sauvegarde
     try {
