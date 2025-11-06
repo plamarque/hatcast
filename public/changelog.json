@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.31.2",
+    "date": "2025-11-06",
+    "changes": [
+      "🐛 Mise à jour de l'environnement Cloud Functions vers Node.js 20 pour une meilleure stabilité."
+    ]
+  },
+  {
     "version": "0.31.1",
     "date": "2025-11-06",
     "changes": [
