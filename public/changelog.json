@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.32.1",
+    "date": "2025-11-08",
+    "changes": [
+      "✨ On a ajouté le support automatique du rafraîchissement du token FCM et la possibilité d'utiliser plusieurs appareils.",
+      "✨ On a amélioré l'expérience utilisateur pour le rôle de bénévole dans les préférences."
+    ]
+  },
+  {
     "version": "0.32.0",
     "date": "2025-11-08",
     "changes": [

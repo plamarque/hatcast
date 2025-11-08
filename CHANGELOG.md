@@ -1,27 +1,22 @@
-## [0.32.0] - 2025-11-08
+## [0.32.1] - 2025-11-08
 
 ### ✨ New Features
 
-- feat: separate probability pools for travels vs other shows
-
-### 🐛 Bug Fixes
-
-- fix: prevent ViewHeader overflow on mobile
+- feat: implement automatic FCM token refresh and multi-device support
+- feat: improve volunteer role UX in preferences
 
 ### 🔧 Improvements
 
-- refactor: migrate super admin config to Firebase Secrets
-- refactor: reorder views and update icons for mobile-first
+- refactor: shorten save button label in preferences modal
 
 ### 📝 Other Changes
 
-- docs: update ADMIN_SETUP with Firebase Secrets migration
-- feat(ui): Add down arrow emoji to role selection hint
-- release: version 0.31.2
+- release: version 0.32.0
 
 
 # Changelog
 
+## [0.32.1] - 2025-11-08
 ## [0.32.0] - 2025-11-08
 ## [0.31.2] - 2025-11-06
 ## [0.31.1] - 2025-11-06
