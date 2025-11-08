@@ -1,14 +1,14 @@
 <template>
-    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-full flex items-center justify-between"
+    <div class="view-header bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/30 w-full flex items-center flex-wrap gap-2"
          :class="{ 'sticky top-0 left-0 z-[120] shadow-lg': isSticky }"
          :style="headerStyle + '; ' + containerStyle">
           <!-- Filtres (à gauche) -->
           <div v-if="showPlayerSelector || showEventSelector" class="flex items-center gap-2 ml-4 md:ml-6">
             <!-- Sélecteur de joueur -->
-            <div v-if="showPlayerSelector" class="relative flex-shrink-0">
+            <div v-if="showPlayerSelector" class="relative">
               <button
                 @click="togglePlayerModal"
-                class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+                class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32 max-w-[240px] md:max-w-[300px]"
               >
                 <!-- Avatar du joueur sélectionné (un seul joueur) -->
                 <div v-if="showPlayerAvatar" class="flex-shrink-0">
@@ -25,7 +25,7 @@
               <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
                 <span class="text-xs">👥</span>
               </div>
-                <span class="flex-1 text-left text-xs md:text-sm truncate">
+                <span class="flex-1 min-w-0 text-left text-xs md:text-sm truncate">
                   {{ displayText }}
                 </span>
                 <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,10 +35,10 @@
             </div>
 
             <!-- Sélecteur d'événement -->
-            <div v-if="showEventSelector" class="relative flex-shrink-0">
+            <div v-if="showEventSelector" class="relative">
               <button
                 @click="toggleEventModal"
-                class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"
+                class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32 max-w-[240px] md:max-w-[300px]"
               >
                 <!-- Icône de l'événement sélectionné -->
                 <div v-if="showEventIcon" class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-700 rounded-full">
@@ -48,7 +48,7 @@
                 <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
                   <span class="text-xs">🎭</span>
                 </div>
-                <span class="flex-1 text-left text-xs md:text-sm truncate">
+                <span class="flex-1 min-w-0 text-left text-xs md:text-sm truncate">
                   {{ eventDisplayText }}
                 </span>
                 <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@
           </div>
 
           <!-- Tab switcher à droite -->
-          <div class="flex bg-gray-800/50 rounded-lg p-1 mr-4 md:mr-6">
+          <div class="flex bg-gray-800/50 rounded-lg p-1 mx-auto md:ml-auto md:mr-6">
             <button
               @click="selectView('events')"
               class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
