@@ -51,7 +51,10 @@
               <div 
                 v-for="role in allRoles" 
                 :key="role"
-                class="flex items-center gap-3 p-3 rounded-lg border border-white/5 hover:bg-white/5 transition-colors"
+                class="relative flex items-center gap-3 p-3 rounded-lg border border-white/5 hover:bg-white/5 transition-colors"
+                @mouseenter="role === ROLES.VOLUNTEER ? showVolunteerTooltip = true : null"
+                @mouseleave="role === ROLES.VOLUNTEER ? showVolunteerTooltip = false : null"
+                @click="role === ROLES.VOLUNTEER ? toggleVolunteerTooltip() : null"
               >
                 <input
                   type="checkbox"
@@ -63,19 +66,21 @@
                 <span class="text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
                 <span class="text-sm text-white flex-1">{{ ROLE_LABELS_SINGULAR[role] }}</span>
                 
-                <!-- Indicateur pour le rôle bénévole non modifiable -->
-                <span 
-                  v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
-                  class="text-[10px] px-2 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200"
-                  title="Rôle bénévole toujours composé"
+                <!-- Tooltip riche pour le rôle bénévole -->
+                <div 
+                  v-if="role === ROLES.VOLUNTEER && showVolunteerTooltip"
+                  class="absolute z-10 left-0 right-0 top-full mt-2 p-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 border border-blue-400/30 shadow-xl"
+                  @click.stop
                 >
-                  Fixe
-                </span>
+                  <div class="flex items-start gap-2 text-xs text-white">
+                    <span class="text-base flex-shrink-0">💡</span>
+                    <div>
+                      <strong class="font-semibold">Astuce :</strong>
+                      <span class="ml-1">Le rôle bénévole est toujours pré-coché car si tu es disponible, tu peux toujours aider !</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div class="text-xs text-gray-400 mt-3 p-2 bg-blue-500/10 border border-blue-400/20 rounded">
-              💡 <strong>Astuce :</strong> Le rôle bénévole est toujours pré-coché car si tu es disponible, tu peux toujours aider !
             </div>
           </div>
         </div>
@@ -296,6 +301,12 @@ function ensureRolePreferencesInitialized() {
     rolePreferences.value.preferredRoles = [ROLES.PLAYER, ROLES.VOLUNTEER, ROLES.DIRECTOR, ROLES.TECHNICIAN, ROLES.ORGANIZER]
   }
   
+  // S'assurer que le rôle bénévole est toujours présent
+  if (!rolePreferences.value.preferredRoles.includes(ROLES.VOLUNTEER)) {
+    console.warn('Rôle bénévole manquant, ajout automatique...')
+    rolePreferences.value.preferredRoles.push(ROLES.VOLUNTEER)
+  }
+  
   if (rolePreferences.value.volunteerAlwaysSelected === undefined) {
     console.warn('volunteerAlwaysSelected est undefined, initialisation...')
     rolePreferences.value.volunteerAlwaysSelected = true
@@ -308,6 +319,7 @@ const prefsSuccess = ref('')
 const enablePushLoading = ref(false)
 const fcmToken = ref(localStorage.getItem('fcmToken') || '')
 const pushEnabledOnDevice = ref(false)
+const showVolunteerTooltip = ref(false)
 
 // Tous les rôles disponibles
 const allRoles = ROLE_DISPLAY_ORDER
@@ -347,6 +359,10 @@ async function loadPrefs() {
       // Charger les préférences de rôles
       if (data.rolePreferences) {
         rolePreferences.value = data.rolePreferences
+        // S'assurer que le rôle bénévole est toujours présent
+        if (!rolePreferences.value.preferredRoles.includes(ROLES.VOLUNTEER)) {
+          rolePreferences.value.preferredRoles.push(ROLES.VOLUNTEER)
+        }
         console.log('Préférences de rôles chargées:', rolePreferences.value)
       } else {
         // Utiliser les préférences par défaut
@@ -505,6 +521,10 @@ async function savePrefs() {
 
 function close() { 
   emit('close') 
+}
+
+function toggleVolunteerTooltip() {
+  showVolunteerTooltip.value = !showVolunteerTooltip.value
 }
 
 // Watcher pour s'assurer que le rôle bénévole reste toujours composé
