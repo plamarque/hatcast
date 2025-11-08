@@ -11,9 +11,10 @@ import firestoreService from './firestoreService.js'
  * @param {string} playerId - ID du joueur (obligatoire)
  * @param {string} role - Rôle
  * @param {string} seasonId - ID de la saison
+ * @param {string} currentEventType - Type de l'événement en cours (pour filtrer les casts)
  * @returns {Promise<number>} - Nombre de casts passés
  */
-export async function countCasts(playerId, role, seasonId) {
+export async function countCasts(playerId, role, seasonId, currentEventType = null) {
   try {
     if (!playerId) {
       logger.warn('countCasts: playerId manquant')
@@ -42,6 +43,20 @@ export async function countCasts(playerId, role, seasonId) {
       // Règle 3: Le joueur ne doit pas avoir décliné (vérifier par ID uniquement)
       if (cast.declined && Array.isArray(cast.declined) && cast.declined.includes(playerId)) {
         continue
+      }
+      
+      // Règle 4: Filtrage par type d'événement pour pools séparés
+      // Si l'événement en cours est un déplacement, compter uniquement les déplacements
+      // Sinon, exclure les déplacements du comptage
+      if (currentEventType) {
+        const eventType = event.templateType || 'custom'
+        if (currentEventType === 'deplacement') {
+          // Pour les déplacements: ne compter que les déplacements
+          if (eventType !== 'deplacement') continue
+        } else {
+          // Pour les autres spectacles: exclure les déplacements
+          if (eventType === 'deplacement') continue
+        }
       }
       
       // Vérifier que le joueur était sélectionné pour ce rôle spécifique
@@ -147,14 +162,14 @@ export function calculateExactProbability(places, totalCandidates, malus = 1) {
  * @returns {Promise<Object>} - Données calculées pour le rôle
  */
 export async function calculateRoleChancesAsync(roleData, availablePlayers, isAvailableForRole, seasonId) {
-  const { role, requiredCount, eventId } = roleData
+  const { role, requiredCount, eventId, eventType } = roleData
   
   // Filtrer les joueurs disponibles pour ce rôle
   const candidates = []
   
   for (const player of availablePlayers) {
     if (isAvailableForRole(player.name, role, eventId)) {
-      const pastCasts = await countCasts(player.id, role, seasonId)
+      const pastCasts = await countCasts(player.id, role, seasonId, eventType)
       const malus = calculateMalus(pastCasts)
       const weightedChances = calculateWeightedChances(malus, requiredCount)
       
@@ -203,14 +218,14 @@ export async function calculateRoleChancesAsync(roleData, availablePlayers, isAv
  * @returns {Object} - Données calculées pour le rôle
  */
 export function calculateRoleChances(roleData, availablePlayers, countSelections, isAvailableForRole) {
-  const { role, requiredCount, eventId } = roleData
+  const { role, requiredCount, eventId, eventType } = roleData
   
   
   // Filtrer les joueurs disponibles pour ce rôle
   const candidates = availablePlayers
     .filter(player => isAvailableForRole(player.name, role, eventId))
     .map(player => {
-      const pastSelections = countSelections(player.name, role)
+      const pastSelections = countSelections(player.name, role, null, eventType)
       const malus = calculateMalus(pastSelections)
       const weightedChances = calculateWeightedChances(malus, requiredCount)
       
@@ -293,7 +308,7 @@ export function calculateAllRoleChances(event, availablePlayers, playerAvailabil
   // Calculer les chances pour chaque rôle
   Object.entries(event.roles).forEach(([role, requiredCount]) => {
     if (requiredCount > 0) {
-      const roleData = { role, requiredCount, eventId: event.id }
+      const roleData = { role, requiredCount, eventId: event.id, eventType: event.templateType }
       allRoleChances[role] = calculateRoleChances(roleData, availablePlayers, countSelections, checkAvailableForRole)
     }
   })
@@ -406,7 +421,7 @@ export function calculatePlayerChanceForRole(playerName, role, eventId, event, a
   }
   
   // Calculer les chances pour tous les candidats de ce rôle
-  const roleData = { role, requiredCount, eventId }
+  const roleData = { role, requiredCount, eventId, eventType: event.templateType }
   const roleChances = calculateRoleChances(roleData, availablePlayers, countSelections, isAvailableForRole)
   
   // Trouver le candidat correspondant
@@ -464,7 +479,7 @@ export function getMalusColorClass(malus) {
  * @returns {Promise<Object|null>} - Résultat du tirage avec toutes les informations nécessaires
  */
 export async function performAlgoBruno(availablePlayers, role, seasonId, eventId, isAvailableForRole, alreadySelectedPlayers = [], options = {}) {
-  const { logDetails = false } = options
+  const { logDetails = false, eventType = null } = options
   
   // Exclure les joueurs déjà sélectionnés dans ce tirage
   const availableCandidates = availablePlayers.filter(candidate => 
@@ -481,7 +496,7 @@ export async function performAlgoBruno(availablePlayers, role, seasonId, eventId
   }
   
   // Calculer les chances pour les candidats disponibles
-  const roleData = { role, requiredCount: 1, eventId }
+  const roleData = { role, requiredCount: 1, eventId, eventType }
   const roleChances = await calculateRoleChancesAsync(roleData, availableCandidates, isAvailableForRole, seasonId)
   
   if (roleChances.candidates.length === 0) {
@@ -718,7 +733,7 @@ export function calculateAllRoleChancesBruno(event, availablePlayers, playerAvai
   // Calculer les chances pour chaque rôle selon l'algorithme Bruno
   Object.entries(event.roles).forEach(([role, requiredCount]) => {
     if (requiredCount > 0) {
-      const roleData = { role, requiredCount, eventId: event.id }
+      const roleData = { role, requiredCount, eventId: event.id, eventType: event.templateType }
       allRoleChances[role] = calculateRoleChancesBruno(roleData, availablePlayers, countSelections, checkAvailableForRole)
     }
   })
@@ -735,13 +750,13 @@ export function calculateAllRoleChancesBruno(event, availablePlayers, playerAvai
  * @returns {Object} - Données calculées pour le rôle selon l'algorithme Bruno
  */
 function calculateRoleChancesBruno(roleData, availablePlayers, countSelections, isAvailableForRole) {
-  const { role, requiredCount, eventId } = roleData
+  const { role, requiredCount, eventId, eventType } = roleData
   
   // Filtrer les joueurs disponibles pour ce rôle
   const candidates = availablePlayers
     .filter(player => isAvailableForRole(player.name, role, eventId))
     .map(player => {
-      const pastSelections = countSelections(player.name, role)
+      const pastSelections = countSelections(player.name, role, null, eventType)
       const malus = calculateMalus(pastSelections)
       const weightedChances = calculateWeightedChances(malus, requiredCount)
       
