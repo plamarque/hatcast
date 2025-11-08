@@ -163,7 +163,7 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { ensurePushNotificationsActive } from './services/notifications.js'
+import { ensurePushNotificationsActive, initializePushNotifications } from './services/notifications.js'
 import PWAInstallModal from './components/PWAInstallModal.vue'
 import logger from './services/logger.js'
 import AuditClient from './services/auditClient.js'
@@ -562,7 +562,12 @@ onMounted(() => {
   // Vérifier si on doit afficher la barre d'installation
   checkIfShouldShowInstallBanner()
   
-  // Vérifier et réactiver automatiquement les notifications push
+  // Initialiser tous les listeners de notifications push (foreground, token monitoring, health check)
+  initializePushNotifications().catch(error => {
+    logger.warn('Erreur lors de l\'initialisation des notifications push:', error)
+  })
+  
+  // Vérifier et réactiver automatiquement les notifications push (pour les utilisateurs existants)
   ensurePushNotificationsActive().then(status => {
     if (status.active) {
       logger.info('Notifications push actives au démarrage')

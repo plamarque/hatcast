@@ -64,15 +64,6 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   try {
     const email = auth?.currentUser?.email || 'anonymous'
     if (email && token) {
-      // Debug: vérifier l'état de firestoreService
-      console.log('🔍 Debug firestoreService avant setDocument:', {
-        isInitialized: firestoreService.isInitialized,
-        hasDb: !!firestoreService.db,
-        environment: firestoreService.getEnvironmentInfo(),
-        email: email,
-        token: token ? 'present' : 'missing'
-      })
-      
       // Vérifier que firestoreService est initialisé
       if (!firestoreService.isInitialized) {
         console.warn('⚠️ FirestoreService pas encore initialisé, tentative d\'initialisation...')
@@ -85,8 +76,19 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
         throw new Error('FirestoreService.db est null')
       }
       
+      // Récupérer les tokens existants pour gérer multi-device
+      const existingDoc = await firestoreService.getDocument('userPushTokens', email)
+      const existingTokens = existingDoc?.tokens || []
+      
+      // Ajouter le nouveau token seulement s'il n'existe pas déjà (multi-device support)
+      const updatedTokens = existingTokens.includes(token) 
+        ? existingTokens 
+        : [...existingTokens, token]
+      
+      console.log(`🔍 Sauvegarde token: ${updatedTokens.length} device(s) total`)
+      
       await firestoreService.setDocument('userPushTokens', email, {
-        tokens: [token], // arrayUnion remplacé par un tableau simple
+        tokens: updatedTokens, // Array de tokens (multi-device)
         lastToken: token,
         email,
         updatedAt: new Date(),
@@ -173,6 +175,108 @@ export function startPushHealthCheck() {
       console.warn('Push health check failed:', error)
     }
   }, 5 * 60 * 1000) // 5 minutes
+}
+
+// Listener pour les messages en foreground
+export async function setupForegroundMessageListener() {
+  if (!(await canUsePush())) return
+  
+  const messaging = getMessaging(getApp())
+  
+  // Écouter les messages quand l'app est au premier plan
+  onMessage(messaging, (payload) => {
+    console.log('📱 Message reçu en foreground:', payload)
+    
+    const { title, body } = payload.data || {}
+    
+    // Afficher une notification même en foreground
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title || 'Notification', {
+        body: body || '',
+        icon: '/icons/manifest-icon-192.maskable.png',
+        data: payload.data
+      })
+    }
+  })
+}
+
+// Surveiller automatiquement les changements de token FCM
+export async function monitorTokenChanges() {
+  if (!(await canUsePush())) return
+  
+  const messaging = getMessaging(getApp())
+  
+  // Vérifier toutes les heures si le token a changé
+  setInterval(async () => {
+    try {
+      const currentStoredToken = localStorage.getItem('fcmToken')
+      if (!currentStoredToken) return // Pas de token initial
+      
+      const currentToken = await getToken(messaging, { 
+        vapidKey: configService.getVapidKey() 
+      })
+      
+      if (currentToken && currentToken !== currentStoredToken) {
+        console.log('🔄 Token FCM rafraîchi automatiquement')
+        
+        // Sauvegarder le nouveau token
+        localStorage.setItem('fcmToken', currentToken)
+        
+        // Mettre à jour dans Firestore
+        const email = auth?.currentUser?.email
+        if (email) {
+          // Vérifier que firestoreService est initialisé
+          if (!firestoreService.isInitialized) {
+            await firestoreService.initialize()
+          }
+          
+          if (!firestoreService.db) {
+            console.error('❌ FirestoreService.db est null lors du refresh du token')
+            return
+          }
+          
+          // Récupérer les tokens existants
+          const existingDoc = await firestoreService.getDocument('userPushTokens', email)
+          const existingTokens = existingDoc?.tokens || []
+          
+          // Remplacer l'ancien token par le nouveau
+          const updatedTokens = existingTokens
+            .filter(t => t !== currentStoredToken) // Supprimer l'ancien
+            .concat(currentToken) // Ajouter le nouveau
+          
+          await firestoreService.setDocument('userPushTokens', email, {
+            tokens: updatedTokens,
+            lastToken: currentToken,
+            email,
+            updatedAt: new Date(),
+            userAgent: navigator.userAgent,
+            lastRefresh: new Date(),
+            refreshReason: 'auto'
+          }, true) // merge: true
+          
+          console.log('✅ Token FCM mis à jour automatiquement dans Firestore')
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Erreur lors de la vérification du token:', error)
+    }
+  }, 60 * 60 * 1000) // Toutes les heures
+}
+
+// Initialiser tous les listeners de notifications push
+export async function initializePushNotifications() {
+  console.log('🔔 Initialisation des notifications push...')
+  
+  // Écouter les messages foreground
+  await setupForegroundMessageListener()
+  
+  // Surveiller les changements de token
+  await monitorTokenChanges()
+  
+  // Health check périodique (déjà existant)
+  startPushHealthCheck()
+  
+  console.log('✅ Notifications push initialisées')
 }
 
 export function onForegroundMessage(callback) {

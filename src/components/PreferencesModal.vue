@@ -146,21 +146,40 @@
           <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
             <h4 class="text-sm font-medium text-gray-300 mb-3">Notifications sur cet appareil</h4>
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm text-white">Statut</span>
-              <template v-if="!pushEnabledOnDevice">
-                <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">
-                  {{ enablePushLoading ? '...' : 'Activer' }}
-                </button>
-              </template>
-              <template v-else>
-                <span class="inline-flex items-center text-xs text-gray-300">
-                  <span class="mr-1 text-emerald-400">✓</span> Actif
+              <div class="flex flex-col">
+                <span class="text-sm text-white">Statut</span>
+                <span class="text-xs text-gray-400 mt-1">
+                  {{ pushEnabledOnDevice ? 'Les notifications sont actives' : 'Activer pour recevoir des notifications sur cet appareil' }}
                 </span>
-              </template>
+              </div>
+              <div class="flex gap-2">
+                <button 
+                  v-if="!pushEnabledOnDevice"
+                  @click="enablePushOnThisDevice" 
+                  :disabled="enablePushLoading" 
+                  class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                >
+                  <span v-if="enablePushLoading">⏳ Activation...</span>
+                  <span v-else>✓ Activer</span>
+                </button>
+                <button 
+                  v-else
+                  @click="disablePushOnThisDevice" 
+                  :disabled="enablePushLoading" 
+                  class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-500 disabled:opacity-50 transition-colors"
+                >
+                  <span v-if="enablePushLoading">⏳ Désactivation...</span>
+                  <span v-else>✕ Désactiver</span>
+                </button>
+              </div>
             </div>
             
-            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic">
-              ⚠️ Ces préférences sont désactivées car les notifications de l'application ne sont pas actives sur cet appareil
+            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+              ⚠️ Les préférences ci-dessous sont désactivées car les notifications ne sont pas actives sur cet appareil
+            </div>
+            
+            <div v-else class="text-xs text-emerald-300 italic p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              ✓ Les notifications sont actives. Tu peux les désactiver puis réactiver pour rafraîchir le token si besoin.
             </div>
           </div>
 
@@ -408,6 +427,9 @@ async function loadPrefs() {
 async function enablePushOnThisDevice() {
   try {
     enablePushLoading.value = true
+    prefsError.value = ''
+    prefsSuccess.value = ''
+    
     const supported = await canUsePush()
     if (!supported) {
       prefsError.value = 'Push non supporté sur cet appareil'
@@ -420,6 +442,12 @@ async function enablePushOnThisDevice() {
       pushEnabledOnDevice.value = true
       localStorage.setItem('fcmToken', status.token)
       console.log('Notifications push activées avec succès')
+      prefsSuccess.value = '✓ Notifications activées avec succès !'
+      
+      // Effacer le message après 3 secondes
+      setTimeout(() => {
+        prefsSuccess.value = ''
+      }, 3000)
     } else {
       prefsError.value = `Activation impossible: ${status.error}`
     }
@@ -427,6 +455,34 @@ async function enablePushOnThisDevice() {
     const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unknown'
     const msg = (e && (e.message || e.code)) ? ` (${e.message || e.code})` : ''
     prefsError.value = `Activation impossible – permission: ${perm}${msg}`
+  } finally {
+    enablePushLoading.value = false
+  }
+}
+
+async function disablePushOnThisDevice() {
+  try {
+    enablePushLoading.value = true
+    prefsError.value = ''
+    prefsSuccess.value = ''
+    
+    // Supprimer le token du localStorage
+    localStorage.removeItem('fcmToken')
+    
+    // Mettre à jour l'état local
+    fcmToken.value = ''
+    pushEnabledOnDevice.value = false
+    
+    console.log('Notifications push désactivées sur cet appareil')
+    prefsSuccess.value = '✓ Notifications désactivées. Tu peux les réactiver pour obtenir un nouveau token.'
+    
+    // Effacer le message après 5 secondes
+    setTimeout(() => {
+      prefsSuccess.value = ''
+    }, 5000)
+  } catch (e) {
+    console.error('Erreur lors de la désactivation:', e)
+    prefsError.value = `Erreur lors de la désactivation: ${e.message}`
   } finally {
     enablePushLoading.value = false
   }
