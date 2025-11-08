@@ -552,7 +552,7 @@ function getPlayerChanceForRole(playerName, role, eventId) {
   // Créer une fonction countSelections qui exclut l'événement en cours
   const countSelectionsExcludingCurrentEvent = (playerName, role) => {
     if (!props.countSelections) return 0
-    return props.countSelections(playerName, role, eventId)
+    return props.countSelections(playerName, role, eventId, props.selectedEvent?.templateType)
   }
   
   // Utiliser le même calcul que dans la popup d'explication
@@ -578,7 +578,7 @@ function getPlayerChanceForRoleBruno(playerName, role, eventId) {
   // Créer une fonction countSelections qui exclut l'événement en cours
   const countSelectionsExcludingCurrentEvent = (playerName, role) => {
     if (!props.countSelections) return 0
-    return props.countSelections(playerName, role, eventId)
+    return props.countSelections(playerName, role, eventId, props.selectedEvent?.templateType)
   }
   
   // Calculer les chances selon l'algorithme Bruno
@@ -607,7 +607,7 @@ function getChanceExplanationBruno(playerName, role) {
   // Créer une fonction countSelections qui exclut l'événement en cours
   const countSelectionsExcludingCurrentEvent = (playerName, role) => {
     if (!props.countSelections) return 0
-    return props.countSelections(playerName, role, props.selectedEvent.id)
+    return props.countSelections(playerName, role, props.selectedEvent.id, props.selectedEvent?.templateType)
   }
   
   // Calculer les chances selon l'algorithme Bruno

@@ -2597,7 +2597,7 @@ async function performDrawForAnimation() {
       props.event.id,
       props.isAvailableForRole,
       currentDrawSelected.value > 0 ? teamSlots.value.filter(s => !s.isEmpty).map(s => s.player) : [],
-      { logDetails: true }
+      { logDetails: true, eventType: props.event.templateType }
     )
   } else {
     // Utiliser l'algorithme par défaut (synchrone)

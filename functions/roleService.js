@@ -4,7 +4,11 @@
  */
 
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+
+// Define secrets for super admin emails
+const superAdminEmailsSecret = defineSecret('SUPERADMIN_EMAILS');
 
 class RoleService {
   constructor() {
@@ -12,12 +16,19 @@ class RoleService {
   }
 
   /**
-   * Récupère la liste des Super Admins depuis Firebase Functions Config
+   * Récupère la liste des Super Admins depuis Firebase Secrets (ou fallback vers functions.config())
    */
   getSuperAdminEmails() {
     try {
-      const config = functions.config();
-      const superAdminEmails = config.superadmin?.emails;
+      // Try to read from environment variable (Firebase Secret)
+      let superAdminEmails = process.env.SUPERADMIN_EMAILS;
+      
+      // Fallback to legacy functions.config() if secret not set
+      if (!superAdminEmails) {
+        console.warn('⚠️ SUPERADMIN_EMAILS secret not found, trying legacy functions.config()');
+        const config = functions.config();
+        superAdminEmails = config.superadmin?.emails;
+      }
       
       if (!superAdminEmails) {
         console.warn('⚠️ Configuration Super Admin non trouvée, aucun Super Admin autorisé');
@@ -320,3 +331,4 @@ class RoleService {
 }
 
 module.exports = RoleService;
+module.exports.superAdminEmailsSecret = superAdminEmailsSecret;

@@ -7137,7 +7137,7 @@ function calculateRoleChancesForFill(role, candidates, eventId) {
   const requiredCount = event?.roles?.[role] || 1
   
   // Utiliser le service officiel pour le calcul des chances
-  const roleData = { role, requiredCount, eventId }
+  const roleData = { role, requiredCount, eventId, eventType: event.templateType }
   const roleChances = calculateRoleChances(roleData, candidates, countSelections, isAvailableForRole)
   
   return roleChances.candidates || []
@@ -7474,7 +7474,7 @@ function getLocationAddressPart(location) {
   return location
 }
 
-function countSelections(playerName, role = 'player', excludeEventId = null) {
+function countSelections(playerName, role = 'player', excludeEventId = null, currentEventType = null) {
   // Trouver l'ID du joueur à partir de son nom
   const player = allSeasonPlayers.value.find(p => p.name === playerName)
   if (!player) {
@@ -7508,6 +7508,20 @@ function countSelections(playerName, role = 'player', excludeEventId = null) {
     const declinedPlayers = getDeclinedPlayers(eventId)
     if (declinedPlayers.includes(playerName)) {
       return false
+    }
+    
+    // Règle 4: Filtrage par type d'événement pour pools séparés
+    // Si l'événement en cours est un déplacement, compter uniquement les déplacements
+    // Sinon, exclure les déplacements du comptage
+    if (currentEventType) {
+      const eventType = event.templateType || 'custom'
+      if (currentEventType === 'deplacement') {
+        // Pour les déplacements: ne compter que les déplacements
+        if (eventType !== 'deplacement') return false
+      } else {
+        // Pour les autres spectacles: exclure les déplacements
+        if (eventType === 'deplacement') return false
+      }
     }
     
     // Nouvelle structure multi-rôles
@@ -7861,14 +7875,14 @@ function chanceToBeSelected(playerName, eventId, count = null) {
   if (!availablePlayers.find(p => p.name === playerName)) return 0
 
   // Si count n'est pas fourni, utiliser le nombre de joueurs de l'événement
+  const event = events.value.find(e => e.id === eventId)
   if (count === null) {
-    const event = events.value.find(e => e.id === eventId)
     count = event?.playerCount || 6
   }
 
   // Calcul du poids basé sur le nombre de compositions déjà faites
   const weights = availablePlayers.map(p => {
-    const pastSelections = countSelections(p.name)
+    const pastSelections = countSelections(p.name, 'player', null, event?.templateType)
     return {
       name: p.name,
       weight: 1 / (1 + pastSelections)
@@ -7888,7 +7902,7 @@ function updateAllChances() {
     const eventPlayerCount = event.playerCount || 6
     const availablePlayers = players.value.filter(p => isAvailableForPlayerRole(p.name, event.id))
     const weights = availablePlayers.map(p => {
-      const pastSelections = countSelections(p.name)
+      const pastSelections = countSelections(p.name, 'player', null, event.templateType)
       return {
         name: p.name,
         weight: 1 / (1 + pastSelections)

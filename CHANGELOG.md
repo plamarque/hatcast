@@ -1,16 +1,28 @@
-## [0.31.2] - 2025-11-06
+## [0.32.0] - 2025-11-08
+
+### ✨ New Features
+
+- feat: separate probability pools for travels vs other shows
 
 ### 🐛 Bug Fixes
 
-- fix: upgrade Cloud Functions runtime to Node.js 20
+- fix: prevent ViewHeader overflow on mobile
+
+### 🔧 Improvements
+
+- refactor: migrate super admin config to Firebase Secrets
+- refactor: reorder views and update icons for mobile-first
 
 ### 📝 Other Changes
 
-- release: version 0.31.1
+- docs: update ADMIN_SETUP with Firebase Secrets migration
+- feat(ui): Add down arrow emoji to role selection hint
+- release: version 0.31.2
 
 
 # Changelog
 
+## [0.32.0] - 2025-11-08
 ## [0.31.2] - 2025-11-06
 ## [0.31.1] - 2025-11-06
 ## [0.31.0] - 2025-10-24

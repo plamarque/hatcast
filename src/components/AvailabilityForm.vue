@@ -65,7 +65,7 @@
     <!-- Indication pour choisir les rôles -->
     <div v-if="currentlyAvailable && availableRoles.length > 0" class="text-center">
       <span class="text-xs text-gray-400">
-        ✨ Choisis les rôles pour lesquels tu es disponible
+        ✨ Choisis les rôles pour lesquels tu es disponible 👇
       </span>
     </div>
     

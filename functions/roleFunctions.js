@@ -6,6 +6,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const RoleService = require('./roleService');
+const { superAdminEmailsSecret } = require('./roleService');
 const { cors } = require('./corsConfig');
 
 const roleService = new RoleService();
@@ -34,7 +35,9 @@ async function authenticateRequest(req, res, callback) {
 /**
  * Vérifier le statut Super Admin d'un utilisateur
  */
-exports.checkSuperAdminStatus = functions.https.onRequest(async (req, res) => {
+exports.checkSuperAdminStatus = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -61,7 +64,9 @@ exports.checkSuperAdminStatus = functions.https.onRequest(async (req, res) => {
 /**
  * Vérifier le statut Admin de saison d'un utilisateur
  */
-exports.checkSeasonAdminStatus = functions.https.onRequest(async (req, res) => {
+exports.checkSeasonAdminStatus = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -113,7 +118,9 @@ exports.checkSeasonAdminStatus = functions.https.onRequest(async (req, res) => {
 /**
  * Accorder le rôle Admin de saison à un utilisateur (Super Admin uniquement)
  */
-exports.grantSeasonAdmin = functions.https.onRequest(async (req, res) => {
+exports.grantSeasonAdmin = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -159,7 +166,9 @@ exports.grantSeasonAdmin = functions.https.onRequest(async (req, res) => {
 /**
  * Révoquer le rôle Admin de saison d'un utilisateur (Super Admin uniquement)
  */
-exports.revokeSeasonAdmin = functions.https.onRequest(async (req, res) => {
+exports.revokeSeasonAdmin = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -205,7 +214,9 @@ exports.revokeSeasonAdmin = functions.https.onRequest(async (req, res) => {
 /**
  * Lister les admins d'une saison (Super Admin uniquement)
  */
-exports.listSeasonAdmins = functions.https.onRequest(async (req, res) => {
+exports.listSeasonAdmins = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
