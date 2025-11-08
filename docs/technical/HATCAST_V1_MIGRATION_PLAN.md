@@ -665,3 +665,4 @@ La migration sera considérée comme réussie si :
 - [ ] Phase 8 : Migration SendGrid (remplacement firestore-send-email)
 - [ ] Phase 9 : Tests et optimisation (end-to-end, performance, sécurité)
 - [ ] Phase 10 : Migration données et bascule production
+

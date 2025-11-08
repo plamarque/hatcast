@@ -6,6 +6,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const AdminService = require('./adminService');
+const { adminEmailsSecret } = require('./adminService');
 const { cors } = require('./corsConfig');
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 
@@ -227,7 +228,9 @@ async function authenticateRequest(req, res, next) {
 /**
  * Vérifier le statut admin d'un utilisateur
  */
-exports.checkAdminStatus = functions.https.onRequest(async (req, res) => {
+exports.checkAdminStatus = functions
+  .runWith({ secrets: [adminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -254,7 +257,9 @@ exports.checkAdminStatus = functions.https.onRequest(async (req, res) => {
 /**
  * Dumper les informations d'environnement (admin uniquement)
  */
-exports.dumpEnvironment = functions.https.onRequest(async (req, res) => {
+exports.dumpEnvironment = functions
+  .runWith({ secrets: [adminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -308,7 +313,9 @@ exports.dumpEnvironment = functions.https.onRequest(async (req, res) => {
 /**
  * Vérifier la configuration admin (admin uniquement)
  */
-exports.checkAdminConfig = functions.https.onRequest(async (req, res) => {
+exports.checkAdminConfig = functions
+  .runWith({ secrets: [adminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -346,7 +353,9 @@ exports.checkAdminConfig = functions.https.onRequest(async (req, res) => {
 /**
  * Test de sécurité (admin uniquement)
  */
-exports.testAdminAccess = functions.https.onRequest(async (req, res) => {
+exports.testAdminAccess = functions
+  .runWith({ secrets: [adminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -387,7 +396,9 @@ exports.testAdminAccess = functions.https.onRequest(async (req, res) => {
 /**
  * Récupérer le niveau de log configuré (admin uniquement)
  */
-exports.getLogLevel = functions.https.onRequest(async (req, res) => {
+exports.getLogLevel = functions
+  .runWith({ secrets: [adminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {
@@ -427,7 +438,9 @@ exports.getLogLevel = functions.https.onRequest(async (req, res) => {
 /**
  * Mettre à jour le niveau de log (admin uniquement)
  */
-exports.setLogLevel = functions.https.onRequest(async (req, res) => {
+exports.setLogLevel = functions
+  .runWith({ secrets: [adminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
   return cors(req, res, async () => {
     try {
       await authenticateRequest(req, res, async () => {

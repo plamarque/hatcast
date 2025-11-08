@@ -4,6 +4,10 @@
  */
 
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
+
+// Define secrets for admin emails
+const adminEmailsSecret = defineSecret('ADMIN_EMAILS');
 
 class AdminService {
   constructor() {
@@ -11,12 +15,19 @@ class AdminService {
   }
 
   /**
-   * Récupère la liste des admins depuis Firebase Secrets
+   * Récupère la liste des admins depuis Firebase Secrets (ou fallback vers functions.config())
    */
   getAdminEmails() {
     try {
-      const config = functions.config();
-      const adminEmails = config.admin?.emails;
+      // Try to read from environment variable (Firebase Secret)
+      let adminEmails = process.env.ADMIN_EMAILS;
+      
+      // Fallback to legacy functions.config() if secret not set
+      if (!adminEmails) {
+        console.warn('⚠️ ADMIN_EMAILS secret not found, trying legacy functions.config()');
+        const config = functions.config();
+        adminEmails = config.admin?.emails;
+      }
       
       if (!adminEmails) {
         console.warn('⚠️ Configuration admin non trouvée, aucun admin autorisé');
@@ -102,3 +113,4 @@ class AdminService {
 }
 
 module.exports = AdminService;
+module.exports.adminEmailsSecret = adminEmailsSecret;
