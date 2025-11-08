@@ -51,7 +51,10 @@
               <div 
                 v-for="role in allRoles" 
                 :key="role"
-                class="flex items-center gap-3 p-3 rounded-lg border border-white/5 hover:bg-white/5 transition-colors"
+                class="relative flex items-center gap-3 p-3 rounded-lg border border-white/5 hover:bg-white/5 transition-colors"
+                @mouseenter="role === ROLES.VOLUNTEER ? showVolunteerTooltip = true : null"
+                @mouseleave="role === ROLES.VOLUNTEER ? showVolunteerTooltip = false : null"
+                @click="role === ROLES.VOLUNTEER ? toggleVolunteerTooltip() : null"
               >
                 <input
                   type="checkbox"
@@ -63,19 +66,21 @@
                 <span class="text-lg flex-shrink-0">{{ ROLE_EMOJIS[role] }}</span>
                 <span class="text-sm text-white flex-1">{{ ROLE_LABELS_SINGULAR[role] }}</span>
                 
-                <!-- Indicateur pour le rôle bénévole non modifiable -->
-                <span 
-                  v-if="role === ROLES.VOLUNTEER && !canDisableRole(role)"
-                  class="text-[10px] px-2 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200"
-                  title="Rôle bénévole toujours composé"
+                <!-- Tooltip riche pour le rôle bénévole -->
+                <div 
+                  v-if="role === ROLES.VOLUNTEER && showVolunteerTooltip"
+                  class="absolute z-10 left-0 right-0 top-full mt-2 p-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 border border-blue-400/30 shadow-xl"
+                  @click.stop
                 >
-                  Fixe
-                </span>
+                  <div class="flex items-start gap-2 text-xs text-white">
+                    <span class="text-base flex-shrink-0">💡</span>
+                    <div>
+                      <strong class="font-semibold">Astuce :</strong>
+                      <span class="ml-1">Le rôle bénévole est toujours pré-coché car si tu es disponible, tu peux toujours aider !</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div class="text-xs text-gray-400 mt-3 p-2 bg-blue-500/10 border border-blue-400/20 rounded">
-              💡 <strong>Astuce :</strong> Le rôle bénévole est toujours pré-coché car si tu es disponible, tu peux toujours aider !
             </div>
           </div>
         </div>
@@ -141,21 +146,40 @@
           <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
             <h4 class="text-sm font-medium text-gray-300 mb-3">Notifications sur cet appareil</h4>
             <div class="flex items-center justify-between mb-3">
-              <span class="text-sm text-white">Statut</span>
-              <template v-if="!pushEnabledOnDevice">
-                <button @click="enablePushOnThisDevice" :disabled="enablePushLoading" class="px-3 py-1 rounded bg-emerald-600 text-white text-xs hover:bg-emerald-500 disabled:opacity-50">
-                  {{ enablePushLoading ? '...' : 'Activer' }}
-                </button>
-              </template>
-              <template v-else>
-                <span class="inline-flex items-center text-xs text-gray-300">
-                  <span class="mr-1 text-emerald-400">✓</span> Actif
+              <div class="flex flex-col">
+                <span class="text-sm text-white">Statut</span>
+                <span class="text-xs text-gray-400 mt-1">
+                  {{ pushEnabledOnDevice ? 'Les notifications sont actives' : 'Activer pour recevoir des notifications sur cet appareil' }}
                 </span>
-              </template>
+              </div>
+              <div class="flex gap-2">
+                <button 
+                  v-if="!pushEnabledOnDevice"
+                  @click="enablePushOnThisDevice" 
+                  :disabled="enablePushLoading" 
+                  class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                >
+                  <span v-if="enablePushLoading">⏳ Activation...</span>
+                  <span v-else>✓ Activer</span>
+                </button>
+                <button 
+                  v-else
+                  @click="disablePushOnThisDevice" 
+                  :disabled="enablePushLoading" 
+                  class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-500 disabled:opacity-50 transition-colors"
+                >
+                  <span v-if="enablePushLoading">⏳ Désactivation...</span>
+                  <span v-else>✕ Désactiver</span>
+                </button>
+              </div>
             </div>
             
-            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic">
-              ⚠️ Ces préférences sont désactivées car les notifications de l'application ne sont pas actives sur cet appareil
+            <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+              ⚠️ Les préférences ci-dessous sont désactivées car les notifications ne sont pas actives sur cet appareil
+            </div>
+            
+            <div v-else class="text-xs text-emerald-300 italic p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              ✓ Les notifications sont actives. Tu peux les désactiver puis réactiver pour rafraîchir le token si besoin.
             </div>
           </div>
 
@@ -213,7 +237,7 @@
         >
           <span v-if="prefsLoading" class="animate-spin">⏳</span>
           <span v-else>💾</span>
-          {{ prefsLoading ? 'Sauvegarde...' : 'Sauvegarder les préférences' }}
+          {{ prefsLoading ? 'Sauvegarde...' : 'Enregistrer' }}
         </button>
         <button @click="close" class="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-colors duration-200">
           Fermer
@@ -296,6 +320,12 @@ function ensureRolePreferencesInitialized() {
     rolePreferences.value.preferredRoles = [ROLES.PLAYER, ROLES.VOLUNTEER, ROLES.DIRECTOR, ROLES.TECHNICIAN, ROLES.ORGANIZER]
   }
   
+  // S'assurer que le rôle bénévole est toujours présent
+  if (!rolePreferences.value.preferredRoles.includes(ROLES.VOLUNTEER)) {
+    console.warn('Rôle bénévole manquant, ajout automatique...')
+    rolePreferences.value.preferredRoles.push(ROLES.VOLUNTEER)
+  }
+  
   if (rolePreferences.value.volunteerAlwaysSelected === undefined) {
     console.warn('volunteerAlwaysSelected est undefined, initialisation...')
     rolePreferences.value.volunteerAlwaysSelected = true
@@ -308,6 +338,7 @@ const prefsSuccess = ref('')
 const enablePushLoading = ref(false)
 const fcmToken = ref(localStorage.getItem('fcmToken') || '')
 const pushEnabledOnDevice = ref(false)
+const showVolunteerTooltip = ref(false)
 
 // Tous les rôles disponibles
 const allRoles = ROLE_DISPLAY_ORDER
@@ -347,6 +378,10 @@ async function loadPrefs() {
       // Charger les préférences de rôles
       if (data.rolePreferences) {
         rolePreferences.value = data.rolePreferences
+        // S'assurer que le rôle bénévole est toujours présent
+        if (!rolePreferences.value.preferredRoles.includes(ROLES.VOLUNTEER)) {
+          rolePreferences.value.preferredRoles.push(ROLES.VOLUNTEER)
+        }
         console.log('Préférences de rôles chargées:', rolePreferences.value)
       } else {
         // Utiliser les préférences par défaut
@@ -392,6 +427,9 @@ async function loadPrefs() {
 async function enablePushOnThisDevice() {
   try {
     enablePushLoading.value = true
+    prefsError.value = ''
+    prefsSuccess.value = ''
+    
     const supported = await canUsePush()
     if (!supported) {
       prefsError.value = 'Push non supporté sur cet appareil'
@@ -404,6 +442,12 @@ async function enablePushOnThisDevice() {
       pushEnabledOnDevice.value = true
       localStorage.setItem('fcmToken', status.token)
       console.log('Notifications push activées avec succès')
+      prefsSuccess.value = '✓ Notifications activées avec succès !'
+      
+      // Effacer le message après 3 secondes
+      setTimeout(() => {
+        prefsSuccess.value = ''
+      }, 3000)
     } else {
       prefsError.value = `Activation impossible: ${status.error}`
     }
@@ -411,6 +455,34 @@ async function enablePushOnThisDevice() {
     const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unknown'
     const msg = (e && (e.message || e.code)) ? ` (${e.message || e.code})` : ''
     prefsError.value = `Activation impossible – permission: ${perm}${msg}`
+  } finally {
+    enablePushLoading.value = false
+  }
+}
+
+async function disablePushOnThisDevice() {
+  try {
+    enablePushLoading.value = true
+    prefsError.value = ''
+    prefsSuccess.value = ''
+    
+    // Supprimer le token du localStorage
+    localStorage.removeItem('fcmToken')
+    
+    // Mettre à jour l'état local
+    fcmToken.value = ''
+    pushEnabledOnDevice.value = false
+    
+    console.log('Notifications push désactivées sur cet appareil')
+    prefsSuccess.value = '✓ Notifications désactivées. Tu peux les réactiver pour obtenir un nouveau token.'
+    
+    // Effacer le message après 5 secondes
+    setTimeout(() => {
+      prefsSuccess.value = ''
+    }, 5000)
+  } catch (e) {
+    console.error('Erreur lors de la désactivation:', e)
+    prefsError.value = `Erreur lors de la désactivation: ${e.message}`
   } finally {
     enablePushLoading.value = false
   }
@@ -505,6 +577,10 @@ async function savePrefs() {
 
 function close() { 
   emit('close') 
+}
+
+function toggleVolunteerTooltip() {
+  showVolunteerTooltip.value = !showVolunteerTooltip.value
 }
 
 // Watcher pour s'assurer que le rôle bénévole reste toujours composé
