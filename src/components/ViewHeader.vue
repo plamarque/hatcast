@@ -61,25 +61,25 @@
           <!-- Tab switcher à droite -->
           <div class="flex bg-gray-800/50 rounded-lg p-1 mx-auto md:ml-auto md:mr-6">
             <button
-              @click="selectView('events')"
-              class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
-              :class="currentView === 'events' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h3a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1h3zM9 4h6M9 8h6M9 12h6M9 16h6"/>
-              </svg>
-              <span class="hidden sm:inline">Spectacles</span>
-            </button>
-            
-            <button
               @click="selectView('participants')"
               class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
               :class="currentView === 'participants' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/>
               </svg>
               <span class="hidden sm:inline">Participants</span>
+            </button>
+            
+            <button
+              @click="selectView('events')"
+              class="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-medium transition-colors"
+              :class="currentView === 'events' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50'"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/>
+              </svg>
+              <span class="hidden sm:inline">Spectacles</span>
             </button>
             
             <button
