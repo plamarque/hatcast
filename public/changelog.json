@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.32.0",
+    "date": "2025-11-08",
+    "changes": [
+      "✨ Ajout de pools de probabilité séparés pour les voyages et les autres spectacles.",
+      "🐛 Correction d'un problème d'affichage de l'en-tête de vue sur mobile.",
+      "✨ Ajout d'un emoji flèche vers le bas dans l'indice de sélection de rôle."
+    ]
+  },
+  {
     "version": "0.31.2",
     "date": "2025-11-06",
     "changes": [
