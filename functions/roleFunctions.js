@@ -37,29 +37,27 @@ async function authenticateRequest(req, res, callback) {
  */
 exports.checkSuperAdminStatus = functions
   .runWith({ secrets: [superAdminEmailsSecret] })
-  .https.onRequest(async (req, res) => {
-  return cors(req, res, async () => {
+  .https.onCall(async (data, context) => {
     try {
-      await authenticateRequest(req, res, async () => {
-        const user = req.user;
-        const isSuperAdmin = roleService.isSuperAdmin(user.email);
-        
-        res.json({
-          isSuperAdmin,
-          email: user.email,
-          uid: user.uid,
-          timestamp: new Date().toISOString()
-        });
-      });
+      // Vérifier l'authentification
+      if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Authentification requise');
+      }
+      
+      const user = context.auth;
+      const isSuperAdmin = roleService.isSuperAdmin(user.token.email);
+      
+      return {
+        isSuperAdmin,
+        email: user.token.email,
+        uid: user.uid,
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
       console.error('❌ Erreur dans checkSuperAdminStatus:', error);
-      res.status(500).json({ 
-        error: 'Internal server error',
-        message: 'Erreur lors de la vérification du statut Super Admin'
-      });
+      throw new functions.https.HttpsError('internal', 'Erreur lors de la vérification du statut Super Admin');
     }
   });
-});
 
 /**
  * Vérifier le statut Admin de saison d'un utilisateur
