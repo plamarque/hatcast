@@ -301,10 +301,7 @@ function checkIfShouldShowInstallBanner() {
 
 // Vérifier si la PWA est réellement installée (mode standalone ou display-mode)
 function isPwaInstalled() {
-  // Vérifier le localStorage d'abord
-  if (localStorage.getItem('hatcast-pwa-installed') === 'true') {
-    return true
-  }
+  // Vérifier d'abord les CONDITIONS RÉELLES (pas le cache localStorage)
   
   // Vérifier si on est en mode standalone (PWA installée)
   if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
@@ -313,13 +310,16 @@ function isPwaInstalled() {
     return true
   }
   
-  // Vérifier d'autres indicateurs PWA
+  // Vérifier d'autres indicateurs PWA (iOS Safari)
   if (window.navigator && window.navigator.standalone === true) {
     // iOS Safari mode standalone
     localStorage.setItem('hatcast-pwa-installed', 'true')
     return true
   }
   
+  // Si aucune condition réelle n'est vérifiée, nettoyer le localStorage et retourner false
+  // Cela gère le cas où l'app a été désinstallée mais localStorage persiste
+  localStorage.removeItem('hatcast-pwa-installed')
   return false
 }
 
