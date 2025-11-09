@@ -1,6 +1,6 @@
 // FCM push notifications helper
 import { isSupported, getToken, onMessage, deleteToken } from 'firebase/messaging'
-import { auth, getMessaging } from './firebase'
+import { getMessaging, getFirebaseAuth } from './firebase'
 import firestoreService from './firestoreService.js'
 import configService from './configService.js'
 import { getApp } from 'firebase/app'
@@ -62,8 +62,21 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   
   // Persist token with user identity (by email if available)
   try {
-    const email = auth?.currentUser?.email || 'anonymous'
-    if (email && token) {
+    // Utiliser getFirebaseAuth() pour obtenir l'état actuel de l'auth
+    const auth = getFirebaseAuth()
+    const email = auth?.currentUser?.email
+    
+    if (!email || email === 'anonymous') {
+      console.error('❌ Utilisateur non connecté, impossible de sauvegarder le token FCM')
+      console.error('   auth:', auth ? 'présent' : 'null')
+      console.error('   currentUser:', auth?.currentUser ? 'présent' : 'null')
+      console.error('   email:', email || 'null')
+      // Retourner quand même le token pour qu'il soit sauvegardé en local
+      // mais NE PAS essayer de le sauvegarder dans Firestore
+      return token
+    }
+    
+    if (token) {
       // Vérifier que firestoreService est initialisé
       if (!firestoreService.isInitialized) {
         console.warn('⚠️ FirestoreService pas encore initialisé, tentative d\'initialisation...')
@@ -223,8 +236,10 @@ export async function monitorTokenChanges() {
         localStorage.setItem('fcmToken', currentToken)
         
         // Mettre à jour dans Firestore
+        const auth = getFirebaseAuth()
         const email = auth?.currentUser?.email
-        if (email) {
+        
+        if (email && email !== 'anonymous') {
           // Vérifier que firestoreService est initialisé
           if (!firestoreService.isInitialized) {
             await firestoreService.initialize()
