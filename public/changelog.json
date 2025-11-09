@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.32.6",
+    "date": "2025-11-09",
+    "changes": [
+      "🐛 Correction de l'importation de firestoreService et amélioration des notifications de sélection.",
+      "🐛 Utilisation de Firebase httpsCallable pour les fonctions Cloud."
+    ]
+  },
+  {
     "version": "0.32.5",
     "date": "2025-11-09",
     "changes": []

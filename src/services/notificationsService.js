@@ -176,11 +176,13 @@ export async function sendCastNotificationsForEvent(args) {
   
   if (!selectedPlayersByRole && args.eventId && args.seasonId) {
     try {
-      const { firestoreService } = await import('./firestoreService.js')
-      const cast = await firestoreService.getDocument('seasons', args.seasonId, 'casts', args.eventId)
+      // Fix: firestoreService est un export default, pas un export nommé
+      const firestoreServiceModule = await import('./firestoreService.js')
+      const firestoreServiceInstance = firestoreServiceModule.default
+      const cast = await firestoreServiceInstance.getDocument('seasons', args.seasonId, 'casts', args.eventId)
       selectedPlayersByRole = cast?.roles || {}
     } catch (error) {
-      console.warn('Impossible de récupérer la structure par rôles:', error)
+      logger.warn('Impossible de récupérer la structure par rôles:', error)
       selectedPlayersByRole = {}
     }
   }
