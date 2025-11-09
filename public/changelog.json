@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.32.2",
+    "date": "2025-11-09",
+    "changes": [
+      "🐛 Correction d'un problème qui empêchait d'enregistrer le token d'authentification correctement."
+    ]
+  },
+  {
     "version": "0.32.1",
     "date": "2025-11-08",
     "changes": [
