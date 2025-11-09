@@ -1,17 +1,17 @@
-## [0.32.6] - 2025-11-09
+## [0.32.7] - 2025-11-09
 
 ### 🐛 Bug Fixes
 
-- fix: correct firestoreService import and improve selection notification logs
-- fix: use Firebase httpsCallable for Cloud Functions
+- fix: convert checkSuperAdminStatus to onCall function
 
 ### 📝 Other Changes
 
-- release: version 0.32.5
+- release: version 0.32.6
 
 
 # Changelog
 
+## [0.32.7] - 2025-11-09
 ## [0.32.6] - 2025-11-09
 ## [0.32.5] - 2025-11-09
 ## [0.32.4] - 2025-11-09
