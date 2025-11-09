@@ -6,6 +6,7 @@
  */
 
 import { buildAvailabilityEmailTemplate, buildCastEmailMessage } from './emailTemplates.js'
+import logger from './logger.js'
 
 export function buildNotificationPayloads({ reason, recipientName, eventTitle, eventDate, urls = {}, prefs = {}, extra = {} }) {
   const payloads = { email: null, push: null }
@@ -27,11 +28,12 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     }
     
     // Log de débogage pour les URLs
-    console.log('URLs pour notifications de disponibilité:', {
+    logger.info('URLs pour notifications de disponibilité', {
       eventUrl: urls.eventUrl,
       yesUrl: urls.yesUrl,
       noUrl: urls.noUrl,
-      urls
+      hasYesUrl: !!urls.yesUrl,
+      hasNoUrl: !!urls.noUrl
     })
   }
 
@@ -57,10 +59,10 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
     }
     
     // Log de débogage pour les URLs de sélection
-    console.log('URLs pour notifications de sélection:', {
+    logger.info('URLs pour notifications de sélection', {
       eventUrl: urls.eventUrl,
       noUrl: urls.noUrl,
-      urls
+      hasNoUrl: !!urls.noUrl
     })
   }
 
@@ -97,20 +99,19 @@ export function buildNotificationPayloads({ reason, recipientName, eventTitle, e
       }
     }
     
-    console.log('URLs pour notifications de rappel:', {
+    logger.info('URLs pour notifications de rappel', {
       eventUrl: urls.eventUrl,
       noUrl: urls.noUrl,
+      hasNoUrl: !!urls.noUrl,
       reason,
       reminderType: reason
     })
   }
 
   // Log de débogage
-  console.log('buildNotificationPayloads', { 
+  logger.info('buildNotificationPayloads', { 
     reason, 
     recipientName, 
-    prefs, 
-    payloads,
     emailEnabled: payloads.email?.enabled,
     pushEnabled: payloads.push?.enabled
   })
