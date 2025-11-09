@@ -1,16 +1,18 @@
-## [0.32.5] - 2025-11-09
+## [0.32.6] - 2025-11-09
 
-### ✨ New Features
+### 🐛 Bug Fixes
 
-- feat: add detailed logging for push notification URLs
+- fix: correct firestoreService import and improve selection notification logs
+- fix: use Firebase httpsCallable for Cloud Functions
 
 ### 📝 Other Changes
 
-- release: version 0.32.4
+- release: version 0.32.5
 
 
 # Changelog
 
+## [0.32.6] - 2025-11-09
 ## [0.32.5] - 2025-11-09
 ## [0.32.4] - 2025-11-09
 ## [0.32.3] - 2025-11-09
