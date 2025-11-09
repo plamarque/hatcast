@@ -62,15 +62,25 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   
   // Persist token with user identity (by email if available)
   try {
-    // Utiliser getFirebaseAuth() pour obtenir l'état actuel de l'auth
-    const auth = getFirebaseAuth()
-    const email = auth?.currentUser?.email
+    // Attendre que l'auth soit complètement initialisé et récupérer l'utilisateur depuis authState
+    const { waitForInitialization, currentUser } = await import('./authState.js')
+    await waitForInitialization()
     
-    if (!email || email === 'anonymous') {
+    // Utiliser currentUser depuis authState (état réactif) au lieu de auth.currentUser (synchrone)
+    const user = currentUser.value
+    const email = user?.email
+    
+    console.log('🔍 État d\'authentification lors de la sauvegarde du token:', {
+      hasUser: !!user,
+      email: email || 'null',
+      isAnonymous: user?.isAnonymous || false
+    })
+    
+    if (!email || email === 'anonymous' || user?.isAnonymous) {
       console.error('❌ Utilisateur non connecté, impossible de sauvegarder le token FCM')
-      console.error('   auth:', auth ? 'présent' : 'null')
-      console.error('   currentUser:', auth?.currentUser ? 'présent' : 'null')
+      console.error('   user:', user ? 'présent' : 'null')
       console.error('   email:', email || 'null')
+      console.error('   isAnonymous:', user?.isAnonymous || false)
       // Retourner quand même le token pour qu'il soit sauvegardé en local
       // mais NE PAS essayer de le sauvegarder dans Firestore
       return token
@@ -236,10 +246,14 @@ export async function monitorTokenChanges() {
         localStorage.setItem('fcmToken', currentToken)
         
         // Mettre à jour dans Firestore
-        const auth = getFirebaseAuth()
-        const email = auth?.currentUser?.email
+        // Attendre que l'auth soit initialisé et utiliser currentUser depuis authState
+        const { waitForInitialization, currentUser } = await import('./authState.js')
+        await waitForInitialization()
         
-        if (email && email !== 'anonymous') {
+        const user = currentUser.value
+        const email = user?.email
+        
+        if (email && email !== 'anonymous' && !user?.isAnonymous) {
           // Vérifier que firestoreService est initialisé
           if (!firestoreService.isInitialized) {
             await firestoreService.initialize()

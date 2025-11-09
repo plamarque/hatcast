@@ -1,16 +1,19 @@
-## [0.32.2] - 2025-11-09
+## [0.32.3] - 2025-11-09
 
 ### 🐛 Bug Fixes
 
-- fix: use getFirebaseAuth() dynamically to avoid null auth on token save
+- fix: use authState.currentUser instead of getFirebaseAuth().currentUser
+- fix: wait for auth initialization before saving FCM token
+- fix: enable test push button by updating email when dev modal opens
 
 ### 📝 Other Changes
 
-- release: version 0.32.1
+- release: version 0.32.2
 
 
 # Changelog
 
+## [0.32.3] - 2025-11-09
 ## [0.32.2] - 2025-11-09
 ## [0.32.1] - 2025-11-08
 ## [0.32.0] - 2025-11-08
