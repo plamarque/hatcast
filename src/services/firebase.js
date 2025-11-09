@@ -1,7 +1,7 @@
 // src/services/firebase.js
 import { initializeApp, getApp, getApps } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-import { getFunctions } from 'firebase/functions'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 import { getMessaging } from 'firebase/messaging'
 import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, updatePassword, setPersistence, browserLocalPersistence, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth'
@@ -10,9 +10,9 @@ import logger from './logger.js'
 
 /**
  * Utilitaire unifié pour les appels aux Cloud Functions
- * Combine le meilleur des implémentations existantes
+ * Utilise Firebase SDK httpsCallable pour une meilleure gestion
  */
-export async function callCloudFunction(functionName, options = {}) {
+export async function callCloudFunction(functionName, data = {}) {
   try {
     const auth = getFirebaseAuth();
     const user = auth?.currentUser;
@@ -21,62 +21,26 @@ export async function callCloudFunction(functionName, options = {}) {
       throw new Error('Utilisateur non connecté');
     }
 
-    const token = await user.getIdToken();
-    const baseUrl = getCloudFunctionsBaseUrl();
-    const url = `${baseUrl}/${functionName}`;
-    
-    const {
-      method = 'POST',
-      data = {},
-      headers = {},
-      ...fetchOptions
-    } = options;
-    
     logger.debug(`🔐 Appel Cloud Function: ${functionName}`, { 
-      url, 
-      method, 
       data: Object.keys(data).length > 0 ? data : undefined 
     });
     
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        ...headers
-      },
-      body: method !== 'GET' && Object.keys(data).length > 0 ? JSON.stringify(data) : undefined,
-      ...fetchOptions
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log(`🔍 firebase.js: Réponse Cloud Function ${functionName}:`, result);
-    logger.debug(`🔐 Réponse Cloud Function ${functionName}:`, result);
+    const functions = getFirebaseFunctions();
+    const callable = httpsCallable(functions, functionName);
+    const result = await callable(data);
     
-    return result;
+    console.log(`🔍 firebase.js: Réponse Cloud Function ${functionName}:`, result.data);
+    logger.debug(`🔐 Réponse Cloud Function ${functionName}:`, result.data);
+    
+    return result.data;
   } catch (error) {
     logger.error(`❌ Erreur lors de l'appel à ${functionName}:`, error);
+    
+    // Convert Firebase error to more readable format
+    if (error.code) {
+      throw new Error(`${error.code}: ${error.message}`);
+    }
     throw error;
-  }
-}
-
-/**
- * Retourne l'URL de base des Cloud Functions selon l'environnement
- */
-function getCloudFunctionsBaseUrl() {
-  const hostname = window.location.hostname;
-  
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'https://us-central1-impro-selector.cloudfunctions.net';
-  } else if (hostname.includes('staging')) {
-    return 'https://us-central1-impro-selector.cloudfunctions.net';
-  } else {
-    return 'https://us-central1-impro-selector.cloudfunctions.net';
   }
 }
 
