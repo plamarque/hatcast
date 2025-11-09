@@ -1,18 +1,20 @@
-## [0.32.3] - 2025-11-09
+## [0.32.4] - 2025-11-09
 
 ### 🐛 Bug Fixes
 
-- fix: use authState.currentUser instead of getFirebaseAuth().currentUser
-- fix: wait for auth initialization before saving FCM token
-- fix: enable test push button by updating email when dev modal opens
+- fix: detect PWA uninstall by checking real conditions before localStorage
+- fix: delete all pushQueue documents after processing, including errors
+- fix: trim email in processPushQueue to handle whitespace
 
 ### 📝 Other Changes
 
-- release: version 0.32.2
+- chore: remove temporary cleanup-push-queue.js script
+- release: version 0.32.3
 
 
 # Changelog
 
+## [0.32.4] - 2025-11-09
 ## [0.32.3] - 2025-11-09
 ## [0.32.2] - 2025-11-09
 ## [0.32.1] - 2025-11-08

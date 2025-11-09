@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.32.4",
+    "date": "2025-11-09",
+    "changes": [
+      "🐛 On détecte maintenant la désinstallation de la PWA en vérifiant les conditions réelles avant d'accéder au stockage local.",
+      "🐛 On supprime tous les documents de la file d'attente après traitement, y compris en cas d'erreurs.",
+      "🐛 On a corrigé le traitement des espaces dans les e-mails lors du traitement de la file d'attente."
+    ]
+  },
+  {
     "version": "0.32.3",
     "date": "2025-11-09",
     "changes": [
