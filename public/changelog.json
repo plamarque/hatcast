@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.32.3",
+    "date": "2025-11-09",
+    "changes": [
+      "🐛 On utilise maintenant l'utilisateur authentifié correctement pour éviter des problèmes de connexion.",
+      "🐛 On attend que l'authentification soit prête avant de sauvegarder le token FCM.",
+      "🐛 Le bouton de test pour les notifications fonctionne maintenant quand la fenêtre de développement s'ouvre."
+    ]
+  },
+  {
     "version": "0.32.2",
     "date": "2025-11-09",
     "changes": [
