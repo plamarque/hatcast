@@ -82,6 +82,17 @@ export async function notifyRecipientAcrossChannels({
 
   // Push
   if (payloads.push && payloads.push.enabled) {
+    logger.info('🔔 Préparation notification push', {
+      reason,
+      recipientEmail,
+      title: payloads.push.title,
+      hasYesUrl: !!payloads.push.data?.yesUrl,
+      hasNoUrl: !!payloads.push.data?.noUrl,
+      hasConfirmUrl: !!payloads.push.data?.confirmUrl,
+      hasDeclineUrl: !!payloads.push.data?.declineUrl,
+      dataKeys: Object.keys(payloads.push.data || {})
+    })
+    
     await queuePushMessage({
       toEmail: recipientEmail,
       title: payloads.push.title,
