@@ -364,12 +364,22 @@ export async function queueCastEmail({
         shouldSendPush: prefs?.notifyCastPush !== false 
       })
       if (prefs?.notifyCastPush !== false) {
-        console.log('Envoi notification push de composition', { toEmail, playerName, eventTitle })
+        logger.info('Envoi notification push de composition', { toEmail, playerName, eventTitle })
         {
           const pushData = { url: eventUrl || window.location.origin }
           if (typeof confirmUrl !== 'undefined') pushData.confirmUrl = confirmUrl
           if (typeof declineUrl !== 'undefined') pushData.declineUrl = declineUrl
           if (typeof noUrl !== 'undefined') pushData.noUrl = noUrl
+          
+          // Log détaillé des URLs pour debug
+          logger.info('🔗 URLs pour notification push de composition', {
+            hasConfirmUrl: !!confirmUrl,
+            hasDeclineUrl: !!declineUrl,
+            hasNoUrl: !!noUrl,
+            confirmUrl: confirmUrl ? confirmUrl.substring(0, 60) + '...' : 'absent',
+            declineUrl: declineUrl ? declineUrl.substring(0, 60) + '...' : 'absent',
+            noUrl: noUrl ? noUrl.substring(0, 60) + '...' : 'absent'
+          })
           
           // Déterminer le titre et le message selon le type de notification
           const isConfirmedTeam = subject.includes('Équipe confirmée')
@@ -386,9 +396,9 @@ export async function queueCastEmail({
             reason: 'cast'
           })
         }
-        console.log('Notification push de composition envoyée avec succès')
+        logger.info('Notification push de composition envoyée avec succès')
       } else {
-        console.log('Notification push de composition désactivée par préférences utilisateur')
+        logger.info('Notification push de composition désactivée par préférences utilisateur')
       }
     } catch (error) {
       console.error('Erreur lors de l\'envoi de la notification push de composition', error)
