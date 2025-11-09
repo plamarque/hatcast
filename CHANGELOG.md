@@ -1,19 +1,17 @@
-## [0.32.4] - 2025-11-09
+## [0.32.5] - 2025-11-09
 
-### 🐛 Bug Fixes
+### ✨ New Features
 
-- fix: detect PWA uninstall by checking real conditions before localStorage
-- fix: delete all pushQueue documents after processing, including errors
-- fix: trim email in processPushQueue to handle whitespace
+- feat: add detailed logging for push notification URLs
 
 ### 📝 Other Changes
 
-- chore: remove temporary cleanup-push-queue.js script
-- release: version 0.32.3
+- release: version 0.32.4
 
 
 # Changelog
 
+## [0.32.5] - 2025-11-09
 ## [0.32.4] - 2025-11-09
 ## [0.32.3] - 2025-11-09
 ## [0.32.2] - 2025-11-09
