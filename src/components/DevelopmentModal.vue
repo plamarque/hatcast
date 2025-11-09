@@ -1837,7 +1837,8 @@ onMounted(async () => {
     const { getAuth } = await import('firebase/auth');
     auth.value = getAuth();
     
-    if (props.show && auth.value?.currentUser) {
+    // Toujours récupérer l'email si disponible (pas seulement si props.show)
+    if (auth.value?.currentUser) {
       email.value = auth.value.currentUser.email || '';
     }
   } catch (error) {
@@ -1868,6 +1869,22 @@ onMounted(async () => {
   const savedTab = localStorage.getItem('dev-modal-active-tab');
   if (savedTab && tabs.value.find(tab => tab.id === savedTab)) {
     activeTab.value = savedTab;
+  }
+});
+
+// Watcher pour actualiser les informations quand la modale de debug s'ouvre
+watch(() => props.show, async (isShown) => {
+  if (isShown) {
+    // Mettre à jour l'email quand le modal s'ouvre
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const currentAuth = getAuth();
+      if (currentAuth?.currentUser) {
+        email.value = currentAuth.currentUser.email || '';
+      }
+    } catch (error) {
+      logger.warn('⚠️ Erreur lors de la mise à jour de l\'email:', error);
+    }
   }
 });
 
