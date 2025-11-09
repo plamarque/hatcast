@@ -62,7 +62,11 @@ export async function requestAndGetToken(serviceWorkerRegistration) {
   
   // Persist token with user identity (by email if available)
   try {
-    // Utiliser getFirebaseAuth() pour obtenir l'état actuel de l'auth
+    // Attendre que l'auth soit complètement initialisé avant de récupérer l'utilisateur
+    const { waitForInitialization } = await import('./authState.js')
+    await waitForInitialization()
+    
+    // Maintenant on peut récupérer l'utilisateur en toute sécurité
     const auth = getFirebaseAuth()
     const email = auth?.currentUser?.email
     
@@ -236,6 +240,10 @@ export async function monitorTokenChanges() {
         localStorage.setItem('fcmToken', currentToken)
         
         // Mettre à jour dans Firestore
+        // Attendre que l'auth soit initialisé
+        const { waitForInitialization } = await import('./authState.js')
+        await waitForInitialization()
+        
         const auth = getFirebaseAuth()
         const email = auth?.currentUser?.email
         

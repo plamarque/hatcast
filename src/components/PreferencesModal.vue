@@ -430,6 +430,15 @@ async function enablePushOnThisDevice() {
     prefsError.value = ''
     prefsSuccess.value = ''
     
+    // Vérifier que l'utilisateur est connecté AVANT de commencer
+    if (!email.value) {
+      prefsError.value = 'Tu dois être connecté pour activer les notifications'
+      console.error('❌ Tentative d\'activation sans être connecté')
+      return
+    }
+    
+    console.log('🔔 Activation des notifications pour:', email.value)
+    
     const supported = await canUsePush()
     if (!supported) {
       prefsError.value = 'Push non supporté sur cet appareil'
@@ -441,7 +450,7 @@ async function enablePushOnThisDevice() {
       fcmToken.value = status.token
       pushEnabledOnDevice.value = true
       localStorage.setItem('fcmToken', status.token)
-      console.log('Notifications push activées avec succès')
+      console.log('✅ Notifications push activées avec succès pour', email.value)
       prefsSuccess.value = '✓ Notifications activées avec succès !'
       
       // Effacer le message après 3 secondes
@@ -455,6 +464,7 @@ async function enablePushOnThisDevice() {
     const perm = (typeof Notification !== 'undefined') ? Notification.permission : 'unknown'
     const msg = (e && (e.message || e.code)) ? ` (${e.message || e.code})` : ''
     prefsError.value = `Activation impossible – permission: ${perm}${msg}`
+    console.error('❌ Erreur lors de l\'activation:', e)
   } finally {
     enablePushLoading.value = false
   }
