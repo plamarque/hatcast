@@ -1,21 +1,17 @@
-## [0.32.1] - 2025-11-08
+## [0.32.2] - 2025-11-09
 
-### ✨ New Features
+### 🐛 Bug Fixes
 
-- feat: implement automatic FCM token refresh and multi-device support
-- feat: improve volunteer role UX in preferences
-
-### 🔧 Improvements
-
-- refactor: shorten save button label in preferences modal
+- fix: use getFirebaseAuth() dynamically to avoid null auth on token save
 
 ### 📝 Other Changes
 
-- release: version 0.32.0
+- release: version 0.32.1
 
 
 # Changelog
 
+## [0.32.2] - 2025-11-09
 ## [0.32.1] - 2025-11-08
 ## [0.32.0] - 2025-11-08
 ## [0.31.2] - 2025-11-06
