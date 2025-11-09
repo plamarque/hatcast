@@ -80,7 +80,7 @@ exports.processPushQueue = functions.firestore
   .onCreate(async (snap, context) => {
     const pushId = context.params.pushId
     const payload = snap.data() || {}
-    const toEmail = payload.to
+    const toEmail = (payload.to || '').trim() // Nettoyer les espaces/tabs
     const title = payload.title || 'Notification'
     const body = payload.body || ''
     const data = payload.data || {}
@@ -90,7 +90,9 @@ exports.processPushQueue = functions.firestore
 
     if (!toEmail) {
       console.warn(`⚠️ Email manquant pour ${pushId}`)
-      await snap.ref.set({ status: 'error', error: 'missing_toEmail', processedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
+      // Supprimer immédiatement (pas besoin de garder les erreurs dans la queue)
+      await snap.ref.delete()
+      console.log(`🗑️ Document ${pushId} (missing_toEmail) supprimé de la queue`)
       return
     }
 
@@ -99,7 +101,9 @@ exports.processPushQueue = functions.firestore
 
     if (!tokens.length) {
       console.warn(`⚠️ Aucun token FCM pour ${toEmail}`)
-      await snap.ref.set({ status: 'no_tokens', toEmail, processedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true })
+      // Supprimer immédiatement (l'utilisateur doit activer les notifications)
+      await snap.ref.delete()
+      console.log(`🗑️ Document ${pushId} (no_tokens) supprimé de la queue`)
       return
     }
 
@@ -142,11 +146,9 @@ exports.processPushQueue = functions.firestore
       
     } catch (error) {
       console.error(`❌ Erreur envoi push ${pushId}:`, error)
-      await snap.ref.set({
-        status: 'error',
-        error: error.message,
-        processedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true })
+      // Supprimer immédiatement même en cas d'erreur (garde la queue propre)
+      await snap.ref.delete()
+      console.log(`🗑️ Document ${pushId} (error: ${error.message}) supprimé de la queue`)
     }
   })
 
