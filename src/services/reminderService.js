@@ -45,6 +45,7 @@ export async function createRemindersForSelection({
     if (eventDateObj > now && eventDateObj.getTime() - now.getTime() <= 7 * 24 * 60 * 60 * 1000) {
       reminders.push({
         type: '7days',
+        reminderType: 'reminder_7days', // Fix: ajouter reminderType pour compatibilité backend
         scheduledFor: now, // Notifier immédiatement
         eventId,
         seasonId,
@@ -59,6 +60,7 @@ export async function createRemindersForSelection({
       // Sinon, programmer le rappel 7 jours avant
       reminders.push({
         type: '7days',
+        reminderType: 'reminder_7days', // Fix: ajouter reminderType pour compatibilité backend
         scheduledFor: reminder7Days,
         eventId,
         seasonId,
@@ -75,6 +77,7 @@ export async function createRemindersForSelection({
     if (eventDateObj > now && eventDateObj.getTime() - now.getTime() <= 1 * 24 * 60 * 60 * 1000) {
       reminders.push({
         type: '1day',
+        reminderType: 'reminder_1day', // Fix: ajouter reminderType pour compatibilité backend
         scheduledFor: now, // Notifier immédiatement
         eventId,
         seasonId,
@@ -89,6 +92,7 @@ export async function createRemindersForSelection({
       // Sinon, programmer le rappel 1 jour avant
       reminders.push({
         type: '1day',
+        reminderType: 'reminder_1day', // Fix: ajouter reminderType pour compatibilité backend
         scheduledFor: reminder1Day,
         eventId,
         seasonId,
@@ -212,6 +216,43 @@ export async function removeRemindersForEvent({
 }
 
 /**
+ * Supprime uniquement les rappels de disponibilité pour un événement
+ * Utile lors d'un changement de date (les rappels de sélection sont gérés séparément)
+ */
+export async function removeAvailabilityRemindersForEvent({
+  seasonId,
+  eventId
+}) {
+  try {
+    const reminders = await firestoreService.queryDocuments(
+      'reminderQueue',
+      [
+        firestoreService.where('seasonId', '==', seasonId),
+        firestoreService.where('eventId', '==', eventId),
+        firestoreService.where('reminderType', '==', 'availability_weekly')
+      ]
+    )
+    
+    const deletePromises = reminders.map(reminder => 
+      firestoreService.deleteDocument('reminderQueue', reminder.id)
+    )
+    
+    await Promise.all(deletePromises)
+    
+    logger.info('Rappels de disponibilité supprimés pour l\'événement', { 
+      seasonId, 
+      eventId, 
+      count: reminders.length 
+    })
+    
+    return { success: true, deletedCount: reminders.length }
+  } catch (error) {
+    logger.error('Erreur lors de la suppression des rappels de disponibilité de l\'événement', error)
+    throw error
+  }
+}
+
+/**
  * Récupère les rappels en attente pour une date donnée
  * Utilisé par la Cloud Function pour traiter les rappels
  */
@@ -281,6 +322,7 @@ export async function triggerRemindersForEvent({
     const reminders = [
       {
         type: '7days',
+        reminderType: 'reminder_7days', // Fix: ajouter reminderType pour compatibilité backend
         scheduledFor: pastDate,
         eventId,
         seasonId,
@@ -293,6 +335,7 @@ export async function triggerRemindersForEvent({
       },
       {
         type: '1day',
+        reminderType: 'reminder_1day', // Fix: ajouter reminderType pour compatibilité backend
         scheduledFor: pastDate,
         eventId,
         seasonId,

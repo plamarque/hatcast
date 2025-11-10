@@ -114,18 +114,23 @@
           <!-- Rappels automatiques -->
           <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
             <h4 class="text-sm font-medium text-gray-300 mb-3">Rappels automatiques</h4>
-            <p class="text-xs text-gray-400 italic mb-3">🚧 Bientôt disponible</p>
-            <div class="space-y-3 opacity-50">
+            <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 cursor-not-allowed">
-                  <input type="checkbox" v-model="notificationPrefs.notifyReminder7Days" disabled class="w-4 h-4 cursor-not-allowed">
-                  <span class="text-sm text-gray-400">Rappel automatique 7 jours avant un événement</span>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="notificationPrefs.notifyReminder7Days" class="w-4 h-4">
+                  <span class="text-sm text-white">Rappel automatique 7 jours avant un événement</span>
                 </label>
               </div>
               <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 cursor-not-allowed">
-                  <input type="checkbox" v-model="notificationPrefs.notifyReminder1Day" disabled class="w-4 h-4 cursor-not-allowed">
-                  <span class="text-sm text-gray-400">Rappel automatique 1 jour avant un événement</span>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="notificationPrefs.notifyReminder1Day" class="w-4 h-4">
+                  <span class="text-sm text-white">Rappel automatique 1 jour avant un événement</span>
+                </label>
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="notificationPrefs.notifyAvailabilityReminderEmail" class="w-4 h-4">
+                  <span class="text-sm text-white">Rappels hebdomadaires si je n'ai pas répondu à une demande de disponibilité</span>
                 </label>
               </div>
             </div>
@@ -205,18 +210,23 @@
           <!-- Rappels automatiques -->
           <div class="p-4 rounded-lg border border-white/10 bg-white/5 space-y-3">
             <h4 class="text-sm font-medium text-gray-300 mb-3">Rappels automatiques</h4>
-            <p class="text-xs text-gray-400 italic mb-3">🚧 Bientôt disponible</p>
-            <div class="space-y-3 opacity-50">
+            <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 cursor-not-allowed">
-                  <input type="checkbox" v-model="notificationPrefs.notifyReminder7DaysPush" disabled class="w-4 h-4 cursor-not-allowed">
-                  <span class="text-sm text-gray-400">Rappel automatique 7 jours avant un événement</span>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="notificationPrefs.notifyReminder7DaysPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Rappel automatique 7 jours avant un événement</span>
                 </label>
               </div>
               <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 cursor-not-allowed">
-                  <input type="checkbox" v-model="notificationPrefs.notifyReminder1DayPush" disabled class="w-4 h-4 cursor-not-allowed">
-                  <span class="text-sm text-gray-400">Rappel automatique 1 jour avant un événement</span>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="notificationPrefs.notifyReminder1DayPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Rappel automatique 1 jour avant un événement</span>
+                </label>
+              </div>
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="notificationPrefs.notifyAvailabilityReminderPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Rappels hebdomadaires si je n'ai pas répondu à une demande de disponibilité</span>
                 </label>
               </div>
             </div>
@@ -281,7 +291,9 @@ const notificationPrefs = ref({
   notifySelectionPush: true,
   notifyAvailabilityPush: true,
   notifyReminder7DaysPush: true,
-  notifyReminder1DayPush: true
+  notifyReminder1DayPush: true,
+  notifyAvailabilityReminderEmail: true,
+  notifyAvailabilityReminderPush: true
 })
 
 // Fonction pour s'assurer que toutes les propriétés sont initialisées
@@ -294,7 +306,9 @@ function ensureNotificationPrefsInitialized() {
     notifySelectionPush: true,
     notifyAvailabilityPush: true,
     notifyReminder7DaysPush: true,
-    notifyReminder1DayPush: true
+    notifyReminder1DayPush: true,
+    notifyAvailabilityReminderEmail: true,
+    notifyAvailabilityReminderPush: true
   }
   
   for (const [key, defaultValue] of Object.entries(defaultPrefs)) {
@@ -401,6 +415,8 @@ async function loadPrefs() {
       notificationPrefs.value.notifyAvailabilityPush = data.notifyAvailabilityPush !== false
       notificationPrefs.value.notifyReminder7DaysPush = data.notifyReminder7DaysPush !== false
       notificationPrefs.value.notifyReminder1DayPush = data.notifyReminder1DayPush !== false
+      notificationPrefs.value.notifyAvailabilityReminderEmail = data.notifyAvailabilityReminderEmail !== false
+      notificationPrefs.value.notifyAvailabilityReminderPush = data.notifyAvailabilityReminderPush !== false
     } else {
       // Préférences par défaut
       rolePreferences.value = {
@@ -415,7 +431,9 @@ async function loadPrefs() {
         notifySelectionPush: true,
         notifyAvailabilityPush: true,
         notifyReminder7DaysPush: true,
-        notifyReminder1DayPush: true
+        notifyReminder1DayPush: true,
+        notifyAvailabilityReminderEmail: true,
+        notifyAvailabilityReminderPush: true
       }
       console.log('Aucune préférence trouvée, utilisation des valeurs par défaut:', rolePreferences.value)
     }
@@ -574,7 +592,7 @@ async function savePrefs() {
       throw new Error('Données contiennent des valeurs undefined')
     }
     
-    await firestoreService.setDocument('userPreferences', email.value, dataToSave, { merge: true })
+    await firestoreService.setDocument('userPreferences', email.value, dataToSave, true)
     prefsSuccess.value = 'Préférences sauvegardées avec succès !'
     console.log('Préférences sauvegardées avec succès')
   } catch (e) {
