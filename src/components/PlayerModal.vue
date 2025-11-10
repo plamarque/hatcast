@@ -257,6 +257,26 @@
             <span>Planning</span>
           </button>
           
+          <!-- Bouton C'est moi! (si joueur non protégé) -->
+          <button 
+            v-if="showCestMoiButton"
+            @click="showProtectionModal = true"
+            class="px-5 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex items-center gap-2"
+          >
+            <span>🔒</span>
+            <span>C'est moi!</span>
+          </button>
+          
+          <!-- Bouton Modifier (si joueur protégé par l'utilisateur courant) -->
+          <button 
+            v-if="showModifyButton"
+            @click="startEditing()"
+            class="px-5 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 flex items-center gap-2"
+          >
+            <span>✏️</span>
+            <span>Modifier</span>
+          </button>
+          
           <!-- Bouton Fermer -->
           <button @click="closeModal" class="px-5 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-300">
             Fermer
@@ -268,11 +288,32 @@
       </div>
 
       <!-- Footer sticky (mobile) -->
-      <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1">
+      <div class="md:hidden sticky bottom-0 w-full p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm flex flex-wrap items-center gap-2">
+        <button @click="showAvailabilityGrid" class="h-12 px-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 flex-1 min-w-[80px]">
           📅
         </button>
-        <button @click="closeModal" class="h-12 px-3 bg-gray-700 text-white rounded-lg flex-1">
+        
+        <!-- Bouton C'est moi! (si joueur non protégé) -->
+        <button 
+          v-if="showCestMoiButton"
+          @click="showProtectionModal = true"
+          class="h-12 px-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 flex-1 min-w-[100px] flex items-center justify-center gap-1"
+        >
+          <span>🔒</span>
+          <span class="text-sm">C'est moi!</span>
+        </button>
+        
+        <!-- Bouton Modifier (si joueur protégé par l'utilisateur courant) -->
+        <button 
+          v-if="showModifyButton"
+          @click="startEditing()"
+          class="h-12 px-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all duration-300 flex-1 min-w-[100px] flex items-center justify-center gap-1"
+        >
+          <span>✏️</span>
+          <span class="text-sm">Modifier</span>
+        </button>
+        
+        <button @click="closeModal" class="h-12 px-3 bg-gray-700 text-white rounded-lg flex-1 min-w-[80px]">
           Fermer
         </button>
       </div>
@@ -478,7 +519,7 @@ import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import { isPlayerProtected, isPlayerPasswordCached } from '../services/players.js'
+import { isPlayerProtected, isPlayerPasswordCached, getPlayerData } from '../services/players.js'
 import { currentUser } from '../services/authState.js'
 import permissionService from '../services/permissionService.js'
 import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER, EVENT_TYPE_ICONS } from '../services/storage.js'
@@ -688,6 +729,33 @@ const isOwnerForPlayer = ref(false)
 // Coachmark simple sur le bouton Protection quand onboardingStep === 4
 const protectionCoachmark = ref({ position: null })
 
+// Fonction pour vérifier si le joueur appartient à l'utilisateur courant
+async function isPlayerOwnedByCurrentUser() {
+  if (!currentUser.value?.email || !props.player?.id || !props.seasonId) {
+    return false
+  }
+  
+  try {
+    const protectionData = await getPlayerData(props.player.id, props.seasonId)
+    // Le joueur appartient à l'utilisateur si :
+    // 1. Il est protégé
+    // 2. L'email de protection correspond à l'email de l'utilisateur connecté
+    return protectionData?.isProtected && protectionData?.email === currentUser.value.email
+  } catch (error) {
+    console.warn('Erreur lors de la vérification de propriété du joueur:', error)
+    return false
+  }
+}
+
+// Computed properties pour déterminer l'affichage des boutons
+const showCestMoiButton = computed(() => {
+  return !isProtectedForPlayer.value
+})
+
+const showModifyButton = computed(() => {
+  return isProtectedForPlayer.value && isOwnerForPlayer.value
+})
+
 
 
 
@@ -853,6 +921,9 @@ async function handleProtectionUpdate() {
       const { isPlayerProtected } = await import('../services/players.js')
       isProtectedForPlayer.value = await isPlayerProtected(props.player.id, props.seasonId)
       console.log('✅ État de protection rechargé:', isProtectedForPlayer.value)
+      
+      // Mettre à jour isOwnerForPlayer après un changement de protection
+      isOwnerForPlayer.value = await isPlayerOwnedByCurrentUser()
     } catch (error) {
       console.error('❌ Erreur lors de la mise à jour de l\'état de protection:', error)
     }
@@ -883,7 +954,7 @@ async function handlePasswordVerified(verificationData) {
 
 
 // Réinitialiser l'édition quand la modal se ferme
-watch(() => props.show, (newValue) => {
+watch(() => props.show, async (newValue) => {
   if (!newValue) {
     editing.value = false
     editingName.value = ''
@@ -895,13 +966,8 @@ watch(() => props.show, (newValue) => {
   }
   if (newValue && props.player?.id) {
     isPlayerProtected(props.player.id, props.seasonId).then(v => { isProtectedForPlayer.value = !!v })
-    import('../services/players.js').then(mod => {
-      try { 
-        // Seulement considérer comme owner si l'utilisateur est connecté ET a un cache
-        const isConnected = !!currentUser.value?.email
-        isOwnerForPlayer.value = isConnected && !!mod.isPlayerPasswordCached(props.player.id) 
-      } catch { isOwnerForPlayer.value = false }
-    })
+    // Mettre à jour isOwnerForPlayer en utilisant la vérification par email
+    isOwnerForPlayer.value = await isPlayerOwnedByCurrentUser()
   }
 })
 
