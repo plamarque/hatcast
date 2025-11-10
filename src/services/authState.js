@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { getFirebaseAuth } from './firebase.js'
 import logger from './logger.js'
+import permissionService from './permissionService.js'
 // Navigation tracking supprimé - remplacé par seasonPreferences
 
 // État global de l'authentification
@@ -122,6 +123,24 @@ async function initialize() {
       }
       
 
+      
+      // Invalider et recharger le cache des permissions lors des changements d'authentification
+      try {
+        if (permissionService.isInitialized) {
+          if (user && !previousUser) {
+            // Nouvelle connexion - invalider et recharger le cache pour charger les permissions du nouvel utilisateur
+            await permissionService.refreshAllRoles()
+            logger.info('🔐 Cache des permissions invalidé et rechargé lors de la connexion')
+          } else if (!user && previousUser) {
+            // Déconnexion - invalider le cache pour éviter que le prochain utilisateur voie les permissions précédentes
+            permissionService.invalidateAllCache()
+            logger.info('🔐 Cache des permissions invalidé lors de la déconnexion')
+          }
+        }
+      } catch (cacheError) {
+        // Ne pas bloquer le flux d'authentification si l'invalidation du cache échoue
+        logger.warn('⚠️ Erreur lors de l\'invalidation du cache des permissions:', cacheError)
+      }
       
       // Tracking de navigation et audit pour les changements d'authentification
       try {

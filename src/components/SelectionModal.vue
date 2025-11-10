@@ -489,6 +489,7 @@ import { calculateAllRoleChances, formatChancePercentage, performAlgoBruno, perf
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 import logger from '../services/logger.js'
 import permissionService from '../services/permissionService.js'
+import { currentUser } from '../services/authState.js'
 
 const props = defineProps({
   show: {
@@ -569,13 +570,20 @@ const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications',
 const canManageCompositionValue = ref(false)
 
 // Watcher pour mettre à jour les permissions de composition
-watch([() => props.event?.id, () => props.seasonId, () => props.canEditEvents], async () => {
+// Inclure currentUser pour re-vérifier les permissions lors des changements d'authentification
+let previousUserEmail = currentUser.value?.email
+watch([() => props.event?.id, () => props.seasonId, () => props.canEditEvents, () => currentUser.value?.email], async (newValues, oldValues) => {
   if (props.event?.id && props.seasonId) {
     try {
       if (!permissionService.isInitialized) {
         await permissionService.initialize()
       }
-      canManageCompositionValue.value = await permissionService.canManageComposition(props.event.id, props.seasonId)
+      // Forcer le rechargement des permissions (ignorer le cache) si l'utilisateur a changé
+      const currentEmail = currentUser.value?.email
+      const userChanged = currentEmail !== previousUserEmail
+      previousUserEmail = currentEmail
+      const force = userChanged
+      canManageCompositionValue.value = await permissionService.canManageComposition(props.event.id, props.seasonId, force)
     } catch (error) {
       logger.warn(`⚠️ Erreur lors de la vérification des permissions de composition:`, error)
       canManageCompositionValue.value = props.canEditEvents

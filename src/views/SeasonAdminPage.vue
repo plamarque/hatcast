@@ -1911,6 +1911,13 @@ async function handleMakeAdmin(userEmail, makeAdmin) {
       logger.info(`Rôle admin retiré à ${userEmail}`)
     }
     
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
+    
     // Recharger les données
     await loadSeasonRoles()
     await loadUnifiedUsersList()
@@ -1990,6 +1997,14 @@ async function addAdmin() {
     errorMessage.value = '' // Effacer les erreurs précédentes
     
     await permissionService.addSeasonAdmin(seasonId.value, newAdminEmail.value.trim(), currentUser.value?.email || 'system')
+    
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
+    
     await loadSeasonRoles()
     
     const email = newAdminEmail.value.trim()
@@ -2019,6 +2034,14 @@ async function removeAdmin(adminEmail) {
   try {
     isLoading.value = true
     await permissionService.removeSeasonAdmin(seasonId.value, adminEmail, currentUser.value?.email || 'system')
+    
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
+    
     await loadSeasonRoles()
     logger.info(`Admin ${adminEmail} retiré avec succès`)
   } catch (error) {
@@ -2618,6 +2641,13 @@ async function handleAddSeasonAdmin() {
     
     await permissionService.addSeasonAdmin(seasonId.value, email, currentUser.value?.email || 'system')
     
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
+    
     // Recharger les rôles
     await loadSeasonRoles()
     
@@ -2647,6 +2677,13 @@ async function handleRemoveSeasonAdmin(userEmail) {
     errorMessage.value = ''
     
     await permissionService.removeSeasonAdmin(seasonId.value, userEmail, currentUser.value?.email || 'system')
+    
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
     
     // Recharger les rôles
     await loadSeasonRoles()
@@ -2679,6 +2716,13 @@ async function handleAddSeasonCaster() {
     
     await permissionService.addSeasonCaster(seasonId.value, email, currentUser.value?.email || 'system')
     
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
+    
     // Recharger les rôles
     await loadSeasonRoles()
     
@@ -2708,6 +2752,13 @@ async function handleRemoveSeasonCaster(userEmail) {
     errorMessage.value = ''
     
     await permissionService.removeSeasonCaster(seasonId.value, userEmail, currentUser.value?.email || 'system')
+    
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
     
     // Recharger les rôles
     await loadSeasonRoles()
@@ -2930,25 +2981,17 @@ async function toggleAdminRole(userEmail) {
       logger.info(`Rôle admin accordé à ${userEmail}`)
     }
     
+    // Invalider tous les caches pour forcer le rechargement des permissions
+    try {
+      await permissionService.refreshAllRoles()
+      logger.info('🔐 Cache des permissions invalidé après modification de rôle')
+    } catch (cacheError) {
+      logger.warn('⚠️ Erreur lors du refresh des caches:', cacheError)
+    }
+    
     // Recharger les données
     await loadSeasonRoles()
     await loadUnifiedUsersList() // Rechargement forcé après modification
-    
-    // FORCER le refresh des permissions pour tous les utilisateurs connectés
-    // Cela va invalider le cache des rôles et forcer une nouvelle vérification
-    logger.info('🔐 Forçage du refresh des permissions après modification de rôle')
-    
-    // Si l'utilisateur modifié est l'utilisateur actuel, forcer le refresh immédiatement
-    if (userEmail === currentUser.value?.email) {
-      try {
-        // Importer le service de rôles et forcer le refresh
-        const { default: roleService } = await import('../services/permissionService.js')
-        await permissionService.refreshAllRoles()
-        logger.info('🔐 Permissions de l\'utilisateur actuel rafraîchies')
-      } catch (roleError) {
-        logger.warn('⚠️ Erreur lors du refresh des permissions:', roleError)
-      }
-    }
     
     errorMessage.value = ''
     

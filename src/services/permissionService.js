@@ -7,20 +7,31 @@ import { getAuth } from 'firebase/auth';
 import logger from './logger.js';
 import firestoreService from './firestoreService.js';
 import { callCloudFunction } from './firebase.js';
+import configService from './configService.js';
 
 class PermissionService {
   constructor() {
     this.auth = null;
+    
+    // Désactiver le cache en développement pour faciliter les tests
+    // En production/staging, utiliser un cache de 5 minutes pour réduire les coûts
+    const environment = configService.getEnvironment();
+    const checkValidity = environment === 'development' ? 0 : 5 * 60 * 1000; // 0 en dev, 5 min en prod/staging
+    
     this.permissionStatus = {
       seasonPermissions: new Map(), // seasonId -> { admins: [], users: [], timestamp }
       eventPermissions: new Map(), // eventId -> { admins: [], timestamp }
-      checkValidity: 5 * 60 * 1000 // 5 minutes
+      checkValidity: checkValidity
     };
     
     // Cache pour Super Admin (unifié avec les permissions de saison)
     this.superAdminCache = null;
     this.superAdminCacheTimestamp = null;
     this.isInitialized = false;
+    
+    if (environment === 'development') {
+      logger.info('🔐 Cache des permissions désactivé en développement pour faciliter les tests');
+    }
   }
 
   async initialize() {
@@ -83,24 +94,40 @@ class PermissionService {
       logger.info('🔐 Vérification du statut Super Admin via Cloud Functions...');
       console.log('🔍 permissionService: Appel à callCloudFunction checkSuperAdminStatus');
       
-      // Appeler la Cloud Function pour vérifier le statut Super Admin
-      const result = await callCloudFunction('checkSuperAdminStatus');
-      console.log('🔍 permissionService: Résultat de la Cloud Function:', result);
-      const isAdmin = result.isSuperAdmin || false;
+      // En développement, retry une fois en cas d'erreur
+      const environment = configService.getEnvironment();
+      const maxRetries = environment === 'development' ? 2 : 1;
+      let lastError = null;
       
-      // Mettre en cache
-      this.superAdminCache = isAdmin;
-      this.superAdminCacheTimestamp = now;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          // Appeler la Cloud Function pour vérifier le statut Super Admin
+          const result = await callCloudFunction('checkSuperAdminStatus');
+          console.log('🔍 permissionService: Résultat de la Cloud Function:', result);
+          const isAdmin = result.isSuperAdmin || false;
+          
+          // Mettre en cache
+          this.superAdminCache = isAdmin;
+          this.superAdminCacheTimestamp = now;
+          
+          logger.info(`🔐 Statut Super Admin: ${isAdmin ? '✅ OUI' : '❌ NON'}`);
+          return isAdmin;
+        } catch (error) {
+          lastError = error;
+          logger.warn(`⚠️ Tentative ${attempt}/${maxRetries} échouée pour vérifier Super Admin:`, error);
+          if (attempt < maxRetries) {
+            // Attendre un peu avant de réessayer
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
       
-      logger.info(`🔐 Statut Super Admin: ${isAdmin ? '✅ OUI' : '❌ NON'}`);
-      return isAdmin;
-      
-    } catch (error) {
-      logger.error('❌ Erreur lors de la vérification Super Admin:', error);
+      // Si toutes les tentatives ont échoué
+      logger.error('❌ Erreur lors de la vérification Super Admin après toutes les tentatives:', lastError);
       
       // Fallback gracieux vers impropick@gmail.com en cas d'erreur
-      const user = this.auth?.currentUser;
-      const isFallback = user?.email === 'impropick@gmail.com';
+      const currentUser = this.auth?.currentUser;
+      const isFallback = currentUser?.email === 'impropick@gmail.com';
       
       if (isFallback) {
         logger.warn('🔐 Utilisation du fallback de développement (impropick@gmail.com)');
@@ -110,6 +137,12 @@ class PermissionService {
       }
       
       // Pour tous les autres utilisateurs, retourner false en cas d'erreur
+      this.superAdminCache = false;
+      this.superAdminCacheTimestamp = Date.now();
+      return false;
+    } catch (error) {
+      // Erreur inattendue (ne devrait pas arriver car toutes les erreurs sont gérées dans la boucle)
+      logger.error('❌ Erreur inattendue lors de la vérification Super Admin:', error);
       this.superAdminCache = false;
       this.superAdminCacheTimestamp = Date.now();
       return false;
@@ -283,22 +316,12 @@ class PermissionService {
         return true;
       }
       
-      // Caster peut gérer seulement si un cast existe déjà pour l'événement
+      // Caster peut toujours gérer la composition (pour lancer la sélection auto)
+      // La restriction sur les sélections manuelles est gérée dans SelectionModal.vue
       const isCaster = await this.isSeasonCaster(seasonId, force);
       if (isCaster) {
-        // Vérifier si un cast existe pour cet événement
-        try {
-          const { loadCasts } = await import('./selectionService.js');
-          const casts = await loadCasts(seasonId);
-          const castExists = casts && casts[eventId] !== undefined && casts[eventId] !== null;
-          
-          logger.info(`🔐 Caster vérifie cast pour événement ${eventId}: ${castExists ? '✅ existe' : '❌ n\'existe pas'}`);
-          
-          return castExists;
-        } catch (error) {
-          logger.error(`❌ Erreur lors de la vérification du cast pour l'événement ${eventId}:`, error);
-          return false;
-        }
+        logger.info(`🔐 Caster détecté pour la saison ${seasonId} - accès accordé à la gestion de composition`);
+        return true;
       }
       
       return false;
