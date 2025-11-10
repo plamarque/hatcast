@@ -89,78 +89,43 @@
           <div class="p-6 flex-1 overflow-y-auto">
             <!-- Onglet Informations -->
             <div v-if="activeTab === 'info'" class="space-y-6">
-              <!-- Carte de saison -->
-              <div>
-                <h2 class="text-2xl font-bold text-white mb-4">🎭 Informations de la saison</h2>
-                <div class="flex justify-center">
-                  <SeasonCard 
-                    :season="seasonCardData"
-                    :show-availabilities="true"
-                    :show-id="true"
-                    :show-menu="false"
-                    :clickable="false"
-                  >
-                    <template #actions>
-                      <button
-                        @click="showSeasonEditModal = true"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105"
-                      >
-                        <span>✏️</span>
-                        Modifier
-                      </button>
-                      
-                      <button
-                        @click="deleteSeason"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105"
-                      >
-                        <span>🗑️</span>
-                        Supprimer
-                      </button>
-                    </template>
-                  </SeasonCard>
-                </div>
-              </div>
-
-
-              <!-- Statistiques de la saison -->
-              <div>
-                <h2 class="text-2xl font-bold text-white mb-4">🎭 Statistiques de la saison</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div class="bg-gray-700/50 rounded-lg p-4">
-                    <div class="flex items-center gap-3 mb-2">
-                      <span class="text-2xl">👥</span>
-                      <div>
-                        <div class="text-2xl font-bold text-blue-300">{{ playersCount }}</div>
-                        <div class="text-sm text-gray-400">Joueurs</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="bg-gray-700/50 rounded-lg p-4">
-                    <div class="flex items-center gap-3 mb-2">
-                      <span class="text-2xl">📅</span>
-                      <div>
-                        <div class="text-2xl font-bold text-purple-300">{{ totalEventsCount }}</div>
-                        <div class="text-sm text-gray-400">Événements</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="bg-gray-700/50 rounded-lg p-4">
-                    <div class="flex items-center gap-3 mb-2">
-                      <span class="text-2xl">✅</span>
-                      <div>
-                        <div class="text-2xl font-bold text-green-300">{{ availabilitiesCount }}</div>
-                        <div class="text-sm text-gray-400">Disponibilités</div>
-                      </div>
-                    </div>
+              <!-- Grille responsive : Desktop = 2 colonnes, Mobile = 1 colonne -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Colonne gauche : Informations de la saison -->
+                <div>
+                  <h2 class="text-2xl font-bold text-white mb-4">Informations</h2>
+                  <div class="flex justify-center">
+                    <SeasonCard 
+                      :season="seasonCardData"
+                      :show-availabilities="true"
+                      :show-id="true"
+                      :show-menu="false"
+                      :clickable="false"
+                    >
+                      <template #actions>
+                        <button
+                          @click="showSeasonEditModal = true"
+                          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105"
+                        >
+                          <span>✏️</span>
+                          Modifier
+                        </button>
+                        
+                        <button
+                          @click="deleteSeason"
+                          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105"
+                        >
+                          <span>🗑️</span>
+                          Supprimer
+                        </button>
+                      </template>
+                    </SeasonCard>
                   </div>
                 </div>
-              </div>
 
-              <!-- Section Administration des rôles -->
-              <div>
-                <h2 class="text-2xl font-bold text-white mb-4">👥 Administration des rôles</h2>
+                <!-- Colonne droite : Administration des rôles -->
+                <div>
+                  <h2 class="text-2xl font-bold text-white mb-4">Rôles</h2>
 
                 <!-- Liste des admins -->
                 <div class="mb-6">
@@ -333,6 +298,43 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- Statistiques de la saison - span les 2 colonnes en desktop -->
+              <div class="md:col-span-2">
+                <h2 class="text-2xl font-bold text-white mb-4">Statistiques</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="bg-gray-700/50 rounded-lg p-4">
+                    <div class="flex items-center gap-3 mb-2">
+                      <span class="text-2xl">👥</span>
+                      <div>
+                        <div class="text-2xl font-bold text-blue-300">{{ playersCount }}</div>
+                        <div class="text-sm text-gray-400">Participants</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-gray-700/50 rounded-lg p-4">
+                    <div class="flex items-center gap-3 mb-2">
+                      <span class="text-2xl">📅</span>
+                      <div>
+                        <div class="text-2xl font-bold text-purple-300">{{ totalEventsCount }}</div>
+                        <div class="text-sm text-gray-400">Spectacles</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-gray-700/50 rounded-lg p-4">
+                    <div class="flex items-center gap-3 mb-2">
+                      <span class="text-2xl">✅</span>
+                      <div>
+                        <div class="text-2xl font-bold text-green-300">{{ availabilitiesCount }}</div>
+                        <div class="text-sm text-gray-400">Disponibilités</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               </div>
             </div>
 
