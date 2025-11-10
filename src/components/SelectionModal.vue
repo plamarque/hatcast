@@ -189,7 +189,7 @@
                     ? 'text-white/80 hover:text-white hover:bg-white/10 cursor-pointer'
                     : 'text-white/40 cursor-not-allowed opacity-50'"
                   :title="!canCasterEditManually 
-                    ? 'Les sélectionneur.ses doivent d\'abord déclencher la sélection automatique avant de pouvoir faire des sélections manuelles.'
+                    ? 'Veuillez faire un tirage avec le bouton [✨ Composition Auto] et soumettre à la com péda avant de choisir les participants manuellement.'
                     : (isSelectionConfirmedByOrganizer ? 'Ajouter un {{ slot.roleLabel.toLowerCase() }} (sélection verrouillée)' : 'Ajouter un {{ slot.roleLabel.toLowerCase() }}')"
                 >
                   <span class="text-lg">＋</span>
@@ -197,6 +197,18 @@
                   <span class="text-sm">{{ slot.roleEmoji }}</span>
                 </button>
               </div>
+            </div>
+          </div>
+          
+          <!-- Message d'information pour les casters qui ne peuvent pas encore faire de sélections manuelles -->
+          <!-- Ne pas afficher pour les admins (super admin, admin de saison, admin d'événement) -->
+          <!-- Le message s'affiche seulement si : caster ET pas admin ET pas de cast existant -->
+          <div v-if="isCaster && !canCasterEditManually && !props.canEditEvents" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <div class="flex items-start gap-2 text-blue-200 text-sm">
+              <span class="text-lg flex-shrink-0">ℹ️</span>
+              <span>
+                Cliquez sur <strong>[✨ Compo Auto]</strong> pour lancer un tirage au sort parmi les personnes disponibles.
+              </span>
             </div>
           </div>
         </div>
@@ -489,7 +501,7 @@ import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
 import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import { saveCast } from '../services/storage.js'
+import { saveCast, getAllPlayersFromCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
 import { getStatusClass } from '../utils/statusUtils.js'
 import { getPlayerCastStatus } from '../services/castService.js'
@@ -615,45 +627,77 @@ const isReselection = ref(false)
 // Variables pour vérifier si un caster peut faire des sélections manuelles
 const isCaster = ref(false)
 const castExists = ref(false)
+const isEventAdmin = ref(false)
 
 // Computed property pour vérifier si un caster peut éditer manuellement
 const canCasterEditManually = computed(() => {
-  // Si l'utilisateur n'est pas caster, permettre l'édition (pour admins)
-  if (!isCaster.value) {
+  // Si l'utilisateur est super admin ou admin de saison (canEditEvents), permettre toujours l'édition
+  if (props.canEditEvents) {
     return true
   }
-  // Si caster, permettre seulement si un cast existe déjà
-  return castExists.value
+  
+  // Si l'utilisateur est admin d'événement, permettre toujours l'édition (même s'il est aussi caster)
+  if (isEventAdmin.value) {
+    return true
+  }
+  
+  // Si l'utilisateur peut gérer la composition mais n'est pas caster, c'est un admin d'événement
+  // → permettre toujours l'édition
+  if (canManageCompositionValue.value && !isCaster.value) {
+    return true
+  }
+  
+  // Si caster pur (pas admin), permettre seulement si un cast existe déjà
+  if (isCaster.value) {
+    return castExists.value
+  }
+  
+  // Par défaut, permettre (pour les autres cas)
+  return true
 })
 
 // Watcher pour vérifier le statut caster et l'existence d'un cast
-watch([() => props.event?.id, () => props.seasonId, () => props.currentSelection], async () => {
+watch([() => props.event?.id, () => props.seasonId, () => props.currentSelection, () => canManageCompositionValue.value], async () => {
   logger.info(`🔐 [SelectionModal] Watcher caster déclenché: eventId=${props.event?.id}, seasonId=${props.seasonId}, canManageComposition=${canManageCompositionValue.value}`)
   if (props.event?.id && props.seasonId && canManageCompositionValue.value) {
     try {
+      // Vérifier si admin d'événement
+      const eventAdminStatus = await permissionService.isEventAdmin(props.event.id, props.seasonId)
+      isEventAdmin.value = eventAdminStatus
+      logger.info(`🔐 [SelectionModal] Statut admin d'événement pour ${props.event.id}: ${eventAdminStatus ? '✅ OUI' : '❌ NON'}`)
+      
       const casterStatus = await permissionService.isSeasonCaster(props.seasonId)
       logger.info(`🔐 [SelectionModal] Statut caster pour saison ${props.seasonId}: ${casterStatus ? '✅ OUI' : '❌ NON'}`)
       isCaster.value = casterStatus
       
       if (casterStatus) {
-        // Vérifier si un cast existe pour cet événement
+        // Vérifier si un cast existe pour cet événement ET s'il a au moins un joueur assigné
         const { loadCasts } = await import('../services/selectionService.js')
         const casts = await loadCasts(props.seasonId)
-        castExists.value = casts && casts[props.event.id] !== undefined && casts[props.event.id] !== null
-        logger.info(`🔐 [SelectionModal] Cast existe pour événement ${props.event.id}: ${castExists.value ? '✅ OUI' : '❌ NON'}`)
+        const cast = casts && casts[props.event.id]
+        // Vérifier que le cast existe ET qu'il a au moins un joueur assigné
+        const playersInCast = cast ? getAllPlayersFromCast(cast) : []
+        castExists.value = playersInCast.length > 0
+        logger.info(`🔐 [SelectionModal] Cast existe pour événement ${props.event.id}: ${castExists.value ? '✅ OUI' : '❌ NON'}`, {
+          castExists: !!cast,
+          playersCount: playersInCast.length,
+          players: playersInCast
+        })
       } else {
         castExists.value = false
       }
-      logger.info(`🔐 [SelectionModal] État final: isCaster=${isCaster.value}, castExists=${castExists.value}, canCasterEditManually=${canCasterEditManually.value}`)
+      logger.info(`🔐 [SelectionModal] État final: isEventAdmin=${isEventAdmin.value}, isCaster=${isCaster.value}, castExists=${castExists.value}, canCasterEditManually=${canCasterEditManually.value}`)
     } catch (error) {
       logger.warn('🔐 [SelectionModal] Erreur lors de la vérification du statut caster:', error)
       isCaster.value = false
       castExists.value = false
+      isEventAdmin.value = false
     }
   } else {
     logger.info(`🔐 [SelectionModal] Conditions non remplies, réinitialisation: eventId=${props.event?.id}, seasonId=${props.seasonId}, canManageComposition=${canManageCompositionValue.value}`)
     isCaster.value = false
     castExists.value = false
+    isEventAdmin.value = false
   }
 }, { immediate: true })
 
@@ -879,6 +923,18 @@ function availableOptionsForSlot(index) {
 }
 
 function startEditSlot(index) {
+  // Vérifier si un caster pur (pas admin) essaie de faire une sélection manuelle sans cast
+  // Si canCasterEditManually est false ET que l'utilisateur est caster ET pas admin, bloquer
+  if (!canCasterEditManually.value && isCaster.value && !props.canEditEvents && !isEventAdmin.value) {
+    logger.warn('🔐 [SelectionModal] Tentative de sélection manuelle bloquée pour caster pur - aucun cast avec joueurs assignés')
+    showErrorMessage.value = true
+    errorMessageText.value = 'Veuillez faire un tirage avec le bouton [✨ Composition Auto] et soumettre à la com péda avant de choisir les participants manuellement.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+    return
+  }
+  
   // Permettre l'édition des slots vides même si la sélection est verrouillée
   // (pour complétion manuelle des slots vides)
   editingSlotIndex.value = index
@@ -892,29 +948,19 @@ async function onChooseForSlot(event, index) {
   // Permettre la sélection dans les slots vides même si la sélection est verrouillée
   // (pour complétion manuelle des slots vides)
   
-  // Vérifier si l'utilisateur est caster et si un cast existe déjà
-  if (canManageCompositionValue.value) {
-    try {
-      const isCaster = await permissionService.isSeasonCaster(props.seasonId)
-      if (isCaster) {
-        // Vérifier si un cast existe pour cet événement
-        const { loadCasts } = await import('../services/selectionService.js')
-        const casts = await loadCasts(props.seasonId)
-        const castExists = casts && casts[props.event.id] !== undefined && casts[props.event.id] !== null
-        
-        if (!castExists) {
-          // Bloquer la sélection manuelle si le caster n'a pas encore déclenché la sélection auto
-          showErrorMessage.value = true
-          errorMessageText.value = 'Les sélectionneur.ses doivent d\'abord déclencher la sélection automatique avant de pouvoir faire des sélections manuelles.'
-          setTimeout(() => {
-            showErrorMessage.value = false
-          }, 5000)
-          return
-        }
-      }
-    } catch (error) {
-      logger.warn('Erreur lors de la vérification du statut caster:', error)
-      // En cas d'erreur, permettre la sélection (fallback)
+  // Vérifier si un caster pur (pas admin) essaie de faire une sélection manuelle sans cast
+  // Utiliser canCasterEditManually qui prend déjà en compte les admins
+  if (!canCasterEditManually.value) {
+    // Vérifier si c'est vraiment un caster pur (pas un admin)
+    // Si l'utilisateur est admin, canCasterEditManually devrait être true
+    // Donc si c'est false, c'est un caster pur sans cast
+    if (isCaster.value && !props.canEditEvents && !isEventAdmin.value) {
+      showErrorMessage.value = true
+      errorMessageText.value = 'Veuillez faire un tirage avec le bouton [✨ Composition Auto] et soumettre à la com péda avant de choisir les participants manuellement.'
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
     }
   }
   
@@ -2327,12 +2373,18 @@ async function persistDrawResults() {
     // Émettre un événement pour que le parent recharge les données
     emit('updateCast')
     
-    // Re-vérifier si un cast existe maintenant (pour activer les sélections manuelles pour les casters)
+    // Re-vérifier si un cast existe maintenant ET s'il a au moins un joueur assigné (pour activer les sélections manuelles pour les casters)
     if (isCaster.value && props.event?.id && props.seasonId) {
       try {
         const { loadCasts } = await import('../services/selectionService.js')
         const casts = await loadCasts(props.seasonId)
-        castExists.value = casts && casts[props.event.id] !== undefined && casts[props.event.id] !== null
+        const cast = casts && casts[props.event.id]
+        // Vérifier que le cast existe ET qu'il a au moins un joueur assigné
+        castExists.value = cast && getAllPlayersFromCast(cast).length > 0
+        logger.info(`🔐 [SelectionModal] Cast re-vérifié après sauvegarde pour événement ${props.event.id}: ${castExists.value ? '✅ OUI' : '❌ NON'}`, {
+          castExists: !!cast,
+          playersCount: cast ? getAllPlayersFromCast(cast).length : 0
+        })
       } catch (error) {
         logger.warn('Erreur lors de la re-vérification du cast après sauvegarde:', error)
       }
