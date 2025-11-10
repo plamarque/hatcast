@@ -1,8 +1,91 @@
 <template>
   <div v-if="selectedEvent" class="space-y-4">
 
+    <!-- Affichage de tous les joueurs si pas de rôles définis -->
+    <div v-if="availableRoles.length === 0" class="space-y-2">
+      <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
+        <!-- En-tête -->
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">👥</span>
+            <span class="font-medium text-white">Tous les joueurs</span>
+            <span class="text-sm text-gray-400">
+              ({{ getAvailablePlayersCount() }}/{{ props.players.length }})
+            </span>
+          </div>
+        </div>
+
+        <!-- Liste de tous les joueurs -->
+        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 sm:gap-1.5">
+          <div
+            v-for="player in props.players"
+            :key="player.id"
+            class="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent"
+          >
+            <!-- Avatar du joueur -->
+            <div class="relative flex-shrink-0">
+              <PlayerAvatar 
+                :player-id="player.id"
+                :season-id="seasonId"
+                :player-name="player.name"
+                :player-gender="player.gender || 'non-specified'"
+                size="sm"
+              />
+              <!-- Statuts superposés -->
+              <span
+                v-if="preferredPlayerIdsSet.has(player.id)"
+                class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center border border-gray-700"
+                title="Ma personne"
+              >
+                ⭐
+              </span>
+            </div>
+
+            <!-- Nom du joueur -->
+            <span class="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
+              {{ player.name }}
+            </span>
+
+            <!-- Disponibilité du joueur -->
+            <div class="flex-shrink-0">
+              <AvailabilityCell
+                :player-name="player.name"
+                :event-id="selectedEvent.id"
+                :is-available="isAvailable(player.name, selectedEvent.id)"
+                :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
+                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
+                :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                :season-id="seasonId"
+                :player-gender="player.gender || 'non-specified'"
+                :show-selected-chance="false"
+                :disabled="selectedEvent.archived === true"
+                :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
+                :event-title="selectedEvent.title"
+                :event-date="selectedEvent.date"
+                :is-protected="isPlayerProtectedInGrid(player.id)"
+                :compact="true"
+                class="w-16 h-8"
+                @toggle="handleAvailabilityToggle"
+                @toggle-selection-status="handlePlayerSelectionStatusToggle"
+                @show-availability-modal="openAvailabilityModal"
+                @show-confirmation-modal="openConfirmationModal"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div 
+          v-if="props.players.length === 0"
+          class="col-span-full text-center py-4 text-gray-400 text-sm"
+        >
+          Aucun joueur dans la saison
+        </div>
+      </div>
+    </div>
+
     <!-- Affichage par rôles -->
-    <div class="space-y-2">
+    <div v-else class="space-y-2">
       <div 
         v-for="role in availableRoles" 
         :key="role"
@@ -538,6 +621,13 @@ function getRequiredCountForRole(role) {
 
 function getAvailableCountForRole(role) {
   return getPlayersForRole(role).length
+}
+
+function getAvailablePlayersCount() {
+  if (!props.selectedEvent) return 0
+  return props.players.filter(player => {
+    return props.isAvailable(player.name, props.selectedEvent.id) === true
+  }).length
 }
 
 function getPlayersForRole(role) {

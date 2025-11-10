@@ -1163,8 +1163,16 @@
               </div>
               
               <!-- Vue par rôles normale -->
+              <div v-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && allSeasonPlayers.length === 0" class="text-center py-8 text-gray-400">
+                <div class="text-lg mb-2">⏳</div>
+                <div class="text-sm">Chargement des joueurs...</div>
+              </div>
+              <div v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && (!selectedEvent.roles || Object.keys(selectedEvent.roles).length === 0)" class="text-center py-8 text-gray-400">
+                <div class="text-lg mb-2">🎯</div>
+                <div class="text-sm">Aucun rôle défini pour cet événement</div>
+              </div>
               <EventRoleGroupingView
-                v-else-if="selectedEvent && (!selectedTeamPlayer || selectedTeamPlayer.id === 'all')"
+                v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer)"
                 :selected-event="selectedEvent"
                 :season-id="seasonId"
                 :players="allSeasonPlayers"
@@ -3070,10 +3078,12 @@ watch([eventDetailsActiveTab, selectedEvent], () => {
     // Initialiser selectedTeamPlayer selon les règles :
     // - Si connecté : afficher les disponibilités de l'utilisateur connecté
     // - Si pas connecté : afficher EventRoleGroupingView avec tous les joueurs
-    if (currentUserPlayer.value && !selectedTeamPlayer.value) {
-      selectedTeamPlayer.value = currentUserPlayer.value
-    } else if (!currentUserPlayer.value && !selectedTeamPlayer.value) {
-      selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    if (!selectedTeamPlayer.value) {
+      if (currentUserPlayer.value) {
+        selectedTeamPlayer.value = currentUserPlayer.value
+      } else {
+        selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+      }
     }
     
     nextTick(() => {
@@ -3124,10 +3134,30 @@ const canEditSelectedEvent = computed(() => {
     canEditSpecificEvent(eventId).then(() => {
       delete eventPermissionsLoading[eventId]
     })
+    // Retourner canEditEvents en attendant (pour les super admins et admins de saison)
+    return canEditEvents.value
   }
   
   return canEditEventMap[eventId] ?? canEditEvents.value
 })
+
+// Helper pour obtenir les permissions d'édition d'un événement (utilisé dans les computed)
+function getCanEditEvent(eventId) {
+  if (!eventId || !currentUser.value?.email) return false
+  
+  // Si les permissions ne sont pas en cache, déclencher le chargement
+  if (!(eventId in canEditEventMap) && !eventPermissionsLoading[eventId]) {
+    // Déclencher le chargement de manière asynchrone
+    eventPermissionsLoading[eventId] = true
+    canEditSpecificEvent(eventId).then(() => {
+      delete eventPermissionsLoading[eventId]
+    })
+    // Retourner canEditEvents en attendant (pour les super admins et admins de saison)
+    return canEditEvents.value
+  }
+  
+  return canEditEventMap[eventId] ?? canEditEvents.value
+}
 
 const compositionSlots = computed(() => {
   if (!selectedEvent.value?.roles) return []
@@ -3135,7 +3165,7 @@ const compositionSlots = computed(() => {
   
   // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
   // SAUF pour les admins qui peuvent voir la composition même non validée
-  const canEditThisEvent = canEditEventMap[eventId] ?? canEditEvents.value
+  const canEditThisEvent = getCanEditEvent(eventId)
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return []
   }
