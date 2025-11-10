@@ -600,9 +600,9 @@
       <div class="relative p-1 sm:p-2 md:p-3">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-2 top-2 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
-        <!-- Titre avec pastille intégrée et chevron expand/collapse - Pleine largeur -->
+        <!-- Titre avec pastille intégrée et icône 3-dots pour actions - Pleine largeur -->
         <div class="flex flex-col gap-2 mb-2">
-          <!-- Ligne principale : Pastille + Titre + Chevron -->
+          <!-- Ligne principale : Pastille + Titre + Icône 3-dots -->
           <div class="flex items-center gap-2">
             <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
             <!-- Titre avec dropdown intégré -->
@@ -613,14 +613,14 @@
                 title="Cliquer pour les actions de l'événement"
               >
                 {{ selectedEvent?.title }}
-                <!-- Bouton expand/collapse pour les détails -->
+                <!-- Icône 3-dots pour indiquer les actions disponibles -->
                 <button
-                  @click.stop="showEventDetailsSection = !showEventDetailsSection"
+                  @click.stop="showEventActionsDropdown = !showEventActionsDropdown"
                   class="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 flex-shrink-0"
-                  :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+                  title="Actions de l'événement"
                 >
-                  <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                   </svg>
                 </button>
               </h2>
@@ -699,6 +699,17 @@
                 </template>
               </div>
             </div>
+          </div>
+          
+          <!-- Badge pour afficher/masquer les détails -->
+          <div class="flex items-center pl-1">
+            <button
+              @click="showEventDetailsSection = !showEventDetailsSection"
+              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors"
+              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+            >
+              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
+            </button>
           </div>
           
           <!-- Status de l'événement - Nouvelle ligne -->
