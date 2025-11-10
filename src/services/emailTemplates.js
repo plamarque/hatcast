@@ -61,6 +61,27 @@ export function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDa
 }
 
 /**
+ * Template pour les rappels de disponibilité (rappels hebdomadaires)
+ * Distinct des demandes initiales de disponibilité
+ */
+export function buildAvailabilityReminderEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, yesUrl, noUrl }) {
+  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  return `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting},</p>
+      <p>⏰ <strong>Rappel : demande de disponibilité</strong></p>
+      <p>Tu n'as pas encore répondu à la demande de disponibilité pour <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}.</p>
+      <p>🎭 <em>N'oublie pas de nous dire si tu es disponible ! ✨</em></p>
+      <p style="margin-top: 12px; text-align: center;">
+        <a href="${yesUrl}" style="display:inline-block;padding:10px 12px;margin-right:8px;border:2px solid #16a34a;color:#16a34a;border-radius:8px;text-decoration:none;">✅ Dispo</a>
+        <a href="${noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
+      </p>
+      <p style="margin-top: 16px; color:#6b7280;">Détails : <a href="${eventUrl}" style="color:#3b82f6;text-decoration:underline;">${eventUrl}</a></p>
+    </div>
+  `
+}
+
+/**
  * Construit le message email pour les notifications de cast
  */
 export function buildCastEmailMessage({ playerName, eventTitle, eventDate, eventUrl, declineUrl, confirmUrl, selectedPlayersByRole, players }) {
