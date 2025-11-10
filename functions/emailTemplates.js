@@ -24,7 +24,63 @@ function buildAvailabilityEmailTemplate({ playerName, eventTitle, eventDate, eve
 }
 
 /**
- * Template for availability reminder notifications (weekly reminders)
+ * Template for grouped availability reminder notifications (weekly reminders)
+ * Lists all events pending response in a single email
+ */
+function buildGroupedAvailabilityReminderEmailTemplate({ playerName, events }) {
+  const greeting = playerName ? `<strong>${playerName}</strong>` : '<strong>Hello</strong>'
+  const eventsCount = events.length
+  
+  // Sort events by date (closest first)
+  const sortedEvents = [...events].sort((a, b) => {
+    const dateA = a.eventDate.toDate ? a.eventDate.toDate().getTime() : new Date(a.eventDate).getTime()
+    const dateB = b.eventDate.toDate ? b.eventDate.toDate().getTime() : new Date(b.eventDate).getTime()
+    return dateA - dateB
+  })
+  
+  const eventsList = sortedEvents.map(event => {
+    const eventDateStr = event.eventDate.toDate 
+      ? event.eventDate.toDate().toLocaleDateString('fr-FR', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      : new Date(event.eventDate).toLocaleDateString('fr-FR', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+    
+    return `
+      <div style="margin: 20px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px; border-left: 4px solid #3b82f6;">
+        <h3 style="margin: 0 0 10px 0; color: #1f2937;">${event.eventTitle}</h3>
+        <p style="margin: 5px 0; color: #6b7280;">📅 ${eventDateStr}</p>
+        <p style="margin-top: 12px; text-align: center;">
+          <a href="${event.yesUrl}" style="display:inline-block;padding:10px 12px;margin-right:8px;border:2px solid #16a34a;color:#16a34a;border-radius:8px;text-decoration:none;">✅ Dispo</a>
+          <a href="${event.noUrl}" style="display:inline-block;padding:10px 12px;border:2px solid #dc2626;color:#dc2626;border-radius:8px;text-decoration:none;">❌ Pas dispo</a>
+        </p>
+        <p style="margin-top: 8px; text-align: center;">
+          <a href="${event.eventUrl}" style="color:#3b82f6;text-decoration:underline;font-size:14px;">Voir les détails</a>
+        </p>
+      </div>
+    `
+  }).join('')
+  
+  return `
+    <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
+      <p>${greeting},</p>
+      <p>⏰ <strong>Rappel : demande de disponibilité</strong></p>
+      <p>Tu n'as pas encore répondu à ${eventsCount === 1 ? 'la demande de disponibilité' : `${eventsCount} demandes de disponibilité`} :</p>
+      ${eventsList}
+      <p style="margin-top: 20px;">🎭 <em>N'oublie pas de nous dire si tu es disponible ! ✨</em></p>
+    </div>
+  `
+}
+
+/**
+ * Template for availability reminder notifications (single event - for push)
  * Distinct from initial availability requests
  */
 function buildAvailabilityReminderEmailTemplate({ playerName, eventTitle, eventDate, eventUrl, yesUrl, noUrl }) {
@@ -118,5 +174,6 @@ function buildReminderEmailTemplate({
 module.exports = {
   buildAvailabilityEmailTemplate,
   buildAvailabilityReminderEmailTemplate,
+  buildGroupedAvailabilityReminderEmailTemplate,
   buildReminderEmailTemplate
 }

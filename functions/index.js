@@ -5,8 +5,15 @@ const { defineSecret } = require('firebase-functions/params')
 admin.initializeApp()
 const db = admin.firestore()
 
-// Import token utilities
-const { generateRandomToken } = require('./utils/tokenUtils')
+// Helper function to generate random tokens
+function generateRandomToken(length = 32) {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let token = ''
+  for (let i = 0; i < length; i++) {
+    token += charset[Math.floor(Math.random() * charset.length)]
+  }
+  return token
+}
 
 // Définir le secret Google Maps API Key (optionnel)
 // const googleMapsApiKey = defineSecret('GOOGLE_MAPS_API_KEY')
@@ -282,6 +289,9 @@ exports.processAvailabilityReminders = functions.pubsub
       // Parcourir toutes les saisons
       const seasonsSnapshot = await db.collection('seasons').get()
       const results = []
+      
+      // Map pour regrouper les événements par joueur: playerEmail -> { playerInfo, events[] }
+      const playersRemindersMap = new Map()
 
       for (const seasonDoc of seasonsSnapshot.docs) {
         const seasonId = seasonDoc.id
@@ -345,6 +355,7 @@ exports.processAvailabilityReminders = functions.pubsub
             const playerData = playerDoc.data()
             const playerEmail = playerData.email
             const playerName = playerData.name
+            const playerId = playerDoc.id
 
             if (!playerEmail) {
               continue // Pas d'email, pas de rappel
@@ -353,7 +364,7 @@ exports.processAvailabilityReminders = functions.pubsub
             // Vérifier la disponibilité du joueur
             const availabilityDoc = await db.collection('seasons').doc(seasonId)
               .collection('players')
-              .doc(playerDoc.id)
+              .doc(playerId)
               .collection('availability')
               .doc(eventId)
               .get()
@@ -389,77 +400,74 @@ exports.processAvailabilityReminders = functions.pubsub
               }
             }
 
-            // Créer le rappel de disponibilité
-            try {
-              const baseUrl = functions.config().app?.base_url || 'https://hatcast.app'
-              const eventUrl = `${baseUrl}/season/${seasonData.slug}/event/${eventId}`
-
-              // Récupérer les préférences utilisateur
-              const userPrefsDoc = await db.collection('userPreferences').doc(playerEmail).get()
-              const userPrefs = userPrefsDoc.exists ? userPrefsDoc.data() : {}
-
-              // Vérifier les préférences pour les rappels de disponibilité
-              const shouldSendEmail = userPrefs.notifyAvailabilityReminderEmail !== false
-              const shouldSendPush = userPrefs.notifyAvailabilityReminderPush !== false
-
-              if (!shouldSendEmail && !shouldSendPush) {
-                console.log(`Utilisateur ${playerEmail} a désactivé les rappels de disponibilité`)
-                continue
-              }
-
-              // Créer le rappel dans reminderQueue
-              const reminderData = {
-                type: 'availability_weekly',
-                reminderType: 'availability_weekly',
-                scheduledFor: admin.firestore.Timestamp.fromDate(now),
-                eventId,
-                seasonId,
+            // Ajouter l'événement à la map pour regroupement
+            if (!playersRemindersMap.has(playerEmail)) {
+              playersRemindersMap.set(playerEmail, {
                 playerEmail,
                 playerName,
-                playerId: playerDoc.id, // Ajouter playerId pour la génération des magic links
-                eventTitle: eventData.title,
-                eventDate: eventData.date,
-                seasonSlug: seasonData.slug,
-                status: 'pending',
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-              }
-
-              const reminderRef = await db.collection('reminderQueue').add(reminderData)
-              console.log(`Rappel de disponibilité créé: ${reminderRef.id} pour ${playerEmail}`)
-
-              // Envoyer immédiatement la notification
-              await sendAvailabilityReminderNotification({
-                reminder: { ...reminderData, id: reminderRef.id },
-                eventUrl,
-                seasonSlug: seasonData.slug,
+                playerId,
                 seasonId,
-                eventId
-              })
-
-              // Marquer comme traité
-              await reminderRef.update({
-                status: 'processed',
-                processedAt: admin.firestore.FieldValue.serverTimestamp()
-              })
-
-              results.push({ 
-                reminderId: reminderRef.id, 
-                playerEmail, 
-                eventId, 
-                status: 'sent' 
-              })
-
-            } catch (error) {
-              console.error(`Erreur lors de la création du rappel pour ${playerEmail}:`, error)
-              results.push({ 
-                playerEmail, 
-                eventId, 
-                status: 'error', 
-                error: error.message 
+                seasonSlug: seasonData.slug,
+                events: []
               })
             }
+
+            const baseUrl = functions.config().app?.base_url || 'https://hatcast.app'
+            const eventUrl = `${baseUrl}/season/${seasonData.slug}/event/${eventId}`
+
+            playersRemindersMap.get(playerEmail).events.push({
+              eventId,
+              eventTitle: eventData.title,
+              eventDate: eventData.date,
+              eventUrl,
+              seasonId,
+              seasonSlug: seasonData.slug
+            })
           }
+        }
+      }
+
+      // Envoyer les notifications groupées pour chaque joueur
+      for (const [playerEmail, playerData] of playersRemindersMap.entries()) {
+        if (playerData.events.length === 0) {
+          continue
+        }
+
+        try {
+          // Récupérer les préférences utilisateur
+          const userPrefsDoc = await db.collection('userPreferences').doc(playerEmail).get()
+          const userPrefs = userPrefsDoc.exists ? userPrefsDoc.data() : {}
+
+          // Vérifier les préférences pour les rappels de disponibilité
+          const shouldSendEmail = userPrefs.notifyAvailabilityReminderEmail !== false
+          const shouldSendPush = userPrefs.notifyAvailabilityReminderPush !== false
+
+          if (!shouldSendEmail && !shouldSendPush) {
+            console.log(`Utilisateur ${playerEmail} a désactivé les rappels de disponibilité`)
+            continue
+          }
+
+          // Envoyer les notifications groupées
+          await sendGroupedAvailabilityReminderNotification({
+            playerEmail: playerData.playerEmail,
+            playerName: playerData.playerName,
+            playerId: playerData.playerId,
+            events: playerData.events
+          })
+
+          results.push({ 
+            playerEmail, 
+            eventsCount: playerData.events.length, 
+            status: 'sent' 
+          })
+
+        } catch (error) {
+          console.error(`Erreur lors de l'envoi des rappels groupés pour ${playerEmail}:`, error)
+          results.push({ 
+            playerEmail, 
+            status: 'error', 
+            error: error.message 
+          })
         }
       }
 
@@ -473,7 +481,199 @@ exports.processAvailabilityReminders = functions.pubsub
   })
 
 /**
- * Fonction helper pour envoyer une notification de rappel de disponibilité
+ * Fonction helper pour envoyer des notifications groupées de rappels de disponibilité
+ * Envoie un email regroupé avec tous les événements et une push pour le prochain événement
+ */
+async function sendGroupedAvailabilityReminderNotification({ playerEmail, playerName, playerId, events }) {
+  try {
+    if (!playerId) {
+      console.error('playerId manquant pour la génération des magic links')
+      throw new Error('playerId manquant pour générer les magic links')
+    }
+
+    if (!events || events.length === 0) {
+      return { skipped: true, reason: 'no_events' }
+    }
+
+    // Récupérer les préférences utilisateur
+    const userPrefsDoc = await db.collection('userPreferences').doc(playerEmail).get()
+    const userPrefs = userPrefsDoc.exists ? userPrefsDoc.data() : {}
+
+    const shouldSendEmail = userPrefs.notifyAvailabilityReminderEmail !== false
+    const shouldSendPush = userPrefs.notifyAvailabilityReminderPush !== false
+
+    if (!shouldSendEmail && !shouldSendPush) {
+      return { skipped: true, reason: 'user_preferences_disabled' }
+    }
+
+    const baseUrl = functions.config().app?.base_url || 'https://hatcast.app'
+    const expirationDays = 14 // 14 jours d'expiration
+    const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
+
+    // Générer les magic links pour tous les événements
+    const eventsWithLinks = []
+    for (const event of events) {
+      const yesToken = generateRandomToken(40)
+      const noToken = generateRandomToken(40)
+
+      // Sauvegarder les magic links dans Firestore
+      const yesLinkId = `${event.seasonId}__${playerId}__${event.eventId}__yes`
+      const noLinkId = `${event.seasonId}__${playerId}__${event.eventId}__no`
+
+      await db.collection('magicLinks').doc(yesLinkId).set({
+        seasonId: event.seasonId,
+        playerId: playerId,
+        eventId: event.eventId,
+        token: yesToken,
+        action: 'yes',
+        expiresAt
+      })
+
+      await db.collection('magicLinks').doc(noLinkId).set({
+        seasonId: event.seasonId,
+        playerId: playerId,
+        eventId: event.eventId,
+        token: noToken,
+        action: 'no',
+        expiresAt
+      })
+
+      const yesUrl = `${baseUrl}/magic?sid=${encodeURIComponent(event.seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(event.eventId)}&t=${encodeURIComponent(yesToken)}&a=yes&slug=${encodeURIComponent(event.seasonSlug)}`
+      const noUrl = `${baseUrl}/magic?sid=${encodeURIComponent(event.seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(event.eventId)}&t=${encodeURIComponent(noToken)}&a=no&slug=${encodeURIComponent(event.seasonSlug)}`
+
+      eventsWithLinks.push({
+        ...event,
+        yesUrl,
+        noUrl
+      })
+    }
+
+    // Trier les événements par date (le plus proche en premier)
+    eventsWithLinks.sort((a, b) => {
+      const dateA = a.eventDate.toDate ? a.eventDate.toDate().getTime() : new Date(a.eventDate).getTime()
+      const dateB = b.eventDate.toDate ? b.eventDate.toDate().getTime() : new Date(b.eventDate).getTime()
+      return dateA - dateB
+    })
+
+    const nextEvent = eventsWithLinks[0] // Le prochain événement (le plus proche)
+
+    const results = []
+
+    // Envoyer l'email regroupé si activé
+    if (shouldSendEmail) {
+      try {
+        const { buildGroupedAvailabilityReminderEmailTemplate } = require('./emailTemplates')
+        const html = buildGroupedAvailabilityReminderEmailTemplate({
+          playerName,
+          events: eventsWithLinks
+        })
+
+        await db.collection('mail').add({
+          to: playerEmail,
+          message: {
+            subject: `⏰ Rappel : demande de disponibilité`,
+            html
+          },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          meta: { 
+            reason: 'availability_reminder_grouped', 
+            eventsCount: eventsWithLinks.length,
+            playerName
+          }
+        })
+
+        results.push({ channel: 'email', success: true })
+        console.log(`Email de rappel groupé envoyé à ${playerEmail} pour ${eventsWithLinks.length} événement(s)`)
+
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi de l\'email de rappel groupé:', error)
+        results.push({ channel: 'email', success: false, error: error.message })
+      }
+    }
+
+    // Envoyer la notification push pour le prochain événement uniquement si activée
+    if (shouldSendPush && nextEvent) {
+      try {
+        const tokensDoc = await db.collection('userPushTokens').doc(playerEmail).get()
+        const tokens = tokensDoc.exists ? (tokensDoc.data().tokens || []) : []
+
+        if (tokens.length > 0) {
+          const nextEventDateStr = nextEvent.eventDate.toDate 
+            ? nextEvent.eventDate.toDate().toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })
+            : new Date(nextEvent.eventDate).toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })
+
+          const message = {
+            data: {
+              title: '⏰ Rappel : demande de disponibilité',
+              body: `${playerName}, as-tu répondu pour ${nextEvent.eventTitle} ?`,
+              url: nextEvent.eventUrl,
+              yesUrl: nextEvent.yesUrl,
+              noUrl: nextEvent.noUrl,
+              reason: 'availability_reminder',
+              eventId: nextEvent.eventId,
+              seasonId: nextEvent.seasonId
+            },
+            tokens
+          }
+
+          const resp = await admin.messaging().sendEachForMulticast(message)
+
+          // Nettoyer les tokens invalides
+          const invalid = []
+          resp.responses.forEach((r, idx) => {
+            if (!r.success) {
+              const code = r.error?.code || ''
+              if (code.includes('registration-token-not-registered') || code.includes('invalid-argument')) {
+                invalid.push(tokens[idx])
+              }
+            }
+          })
+
+          if (invalid.length) {
+            await db.collection('userPushTokens').doc(playerEmail).update({
+              tokens: admin.firestore.FieldValue.arrayRemove(...invalid)
+            })
+          }
+
+          results.push({ 
+            channel: 'push', 
+            success: true, 
+            successCount: resp.successCount,
+            failureCount: resp.failureCount,
+            eventId: nextEvent.eventId
+          })
+
+          console.log(`Notification push de rappel envoyée à ${playerEmail} pour le prochain événement: ${nextEvent.eventTitle}`)
+        } else {
+          results.push({ channel: 'push', success: false, reason: 'no_tokens' })
+        }
+
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi de la notification push de rappel:', error)
+        results.push({ channel: 'push', success: false, error: error.message })
+      }
+    }
+
+    return { success: true, results, eventsCount: eventsWithLinks.length }
+
+  } catch (error) {
+    console.error('Erreur lors de l\'envoi des notifications groupées de rappel de disponibilité:', error)
+    throw error
+  }
+}
+
+/**
+ * Fonction helper pour envoyer une notification de rappel de disponibilité (single event - deprecated, use sendGroupedAvailabilityReminderNotification)
  */
 async function sendAvailabilityReminderNotification({ reminder, eventUrl, seasonSlug, seasonId, eventId }) {
   try {
