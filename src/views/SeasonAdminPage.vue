@@ -295,44 +295,106 @@
               <div
                 v-for="event in filteredEvents"
                 :key="event.id"
-                class="bg-gray-700/50 rounded-lg p-4 cursor-pointer hover:bg-gray-600/50 transition-colors"
-                @click="openEventDetails(event)"
+                class="bg-gray-700/50 rounded-lg overflow-hidden"
               >
-                <div class="flex items-center justify-between">
-                  <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-white">{{ event.title }}</h3>
-                    <p class="text-gray-400 text-sm">{{ formatDate(event.date) }}</p>
-                    <p v-if="event.description" class="text-gray-300 text-sm mt-1">{{ event.description }}</p>
-                    <div class="flex items-center gap-2 mt-2">
-                      <span 
-                        :class="event.archived ? 'bg-orange-600' : 'bg-green-600'"
-                        class="px-2 py-1 text-xs rounded-full text-white"
+                <div
+                  class="p-4 cursor-pointer hover:bg-gray-600/50 transition-colors"
+                  @click="openEventDetails(event)"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <h3 class="text-lg font-semibold text-white">{{ event.title }}</h3>
+                      <p class="text-gray-400 text-sm">{{ formatDate(event.date) }}</p>
+                      <p v-if="event.description" class="text-gray-300 text-sm mt-1">{{ event.description }}</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <span 
+                          :class="event.archived ? 'bg-orange-600' : 'bg-green-600'"
+                          class="px-2 py-1 text-xs rounded-full text-white"
+                        >
+                          {{ event.archived ? 'Inactif' : 'Actif' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <button
+                        @click.stop="editEvent(event)"
+                        class="px-3 py-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
+                        title="Modifier ce spectacle"
                       >
-                        {{ event.archived ? 'Inactif' : 'Actif' }}
-                      </span>
+                        ✏️
+                      </button>
+                      <button
+                        @click.stop="toggleEventArchive(event)"
+                        class="px-3 py-1.5 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-all duration-200"
+                        :title="event.archived ? 'Activer' : 'Désactiver'"
+                      >
+                        {{ event.archived ? '📤' : '📦' }}
+                      </button>
+                      <button
+                        @click.stop="deleteEvent(event)"
+                        class="px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                        title="Supprimer ce spectacle"
+                      >
+                        🗑️
+                      </button>
+                      <button
+                        v-if="canManageEventAdminsMap[event.id]"
+                        @click.stop="toggleEventAdminsSection(event.id)"
+                        class="px-3 py-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-all duration-200"
+                        :title="expandedEventAdmins[event.id] ? 'Masquer les admins' : 'Gérer les admins'"
+                      >
+                        {{ expandedEventAdmins[event.id] ? '🔽' : '👥' }}
+                      </button>
                     </div>
                   </div>
+                </div>
+                
+                <!-- Section Admins d'événement (expandable) -->
+                <div
+                  v-if="expandedEventAdmins[event.id] && canManageEventAdminsMap[event.id]"
+                  class="border-t border-gray-600/50 p-4 bg-gray-800/30"
+                  @click.stop
+                >
+                  <h4 class="text-sm font-medium text-white mb-3">👥 Admins d'événement</h4>
+                  
+                  <!-- Liste des admins actuels -->
+                  <div v-if="(eventAdminsMap[event.id] || []).length > 0" class="mb-4 space-y-2">
+                    <div
+                      v-for="adminEmail in eventAdminsMap[event.id]"
+                      :key="adminEmail"
+                      class="flex items-center justify-between bg-gray-700/50 rounded-lg p-2"
+                    >
+                      <span class="text-sm text-gray-300">{{ adminEmail }}</span>
+                      <button
+                        @click="handleRemoveEventAdmin(event.id, adminEmail)"
+                        :disabled="isLoading"
+                        class="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all duration-200 disabled:opacity-50"
+                        title="Révoquer cet admin"
+                      >
+                        Révoquer
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="mb-4 text-sm text-gray-400">
+                    Aucun admin d'événement
+                  </div>
+                  
+                  <!-- Formulaire d'ajout -->
                   <div class="flex items-center gap-2">
+                    <input
+                      :value="newEventAdminEmails[event.id] || ''"
+                      @input="newEventAdminEmails[event.id] = $event.target.value"
+                      @keydown.enter.prevent="handleAddEventAdmin(event.id)"
+                      type="email"
+                      placeholder="email@example.com"
+                      class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    />
                     <button
-                      @click.stop="editEvent(event)"
-                      class="px-3 py-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-all duration-200"
-                      title="Modifier ce spectacle"
+                      @click="handleAddEventAdmin(event.id)"
+                      :disabled="isLoading || !(newEventAdminEmails[event.id] || '').trim()"
+                      class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
                     >
-                      ✏️
-                    </button>
-                    <button
-                      @click.stop="toggleEventArchive(event)"
-                      class="px-3 py-1.5 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-all duration-200"
-                      :title="event.archived ? 'Activer' : 'Désactiver'"
-                    >
-                      {{ event.archived ? '📤' : '📦' }}
-                    </button>
-                    <button
-                      @click.stop="deleteEvent(event)"
-                      class="px-3 py-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
-                      title="Supprimer ce spectacle"
-                    >
-                      🗑️
+                      Ajouter
                     </button>
                   </div>
                 </div>
@@ -646,6 +708,7 @@
 
     <!-- Modal de création d'invitation -->
     <CreateInviteModal
+      v-if="seasonId"
       :show="showCreateInviteModal"
       :season-id="seasonId"
       :season-name="seasonName"
@@ -776,7 +839,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
@@ -784,6 +847,14 @@ import { signOut } from 'firebase/auth'
 import permissionService from '../services/permissionService.js'
 // seasonRoleService fusionné dans permissionService
 import logger from '../services/logger.js'
+
+// Props
+const props = defineProps({
+  slug: {
+    type: String,
+    required: false
+  }
+})
 import SeasonHeader from '../components/SeasonHeader.vue'
 import ModalManager from '../components/ModalManager.vue'
 import EventModal from '../components/EventModal.vue'
@@ -793,7 +864,7 @@ import SeasonEditModal from '../components/SeasonEditModal.vue'
 import CreateInviteModal from '../components/CreateInviteModal.vue'
 import PinModal from '../components/PinModal.vue'
 import PlayerAvatar from '../components/PlayerAvatar.vue'
-import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities, deletePlayer } from '../services/storage.js'
+import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities, deletePlayer, getEventAdmins, addEventAdmin, removeEventAdmin } from '../services/storage.js'
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
@@ -808,7 +879,7 @@ import {
 // Props et route
 const router = useRouter()
 const route = useRoute()
-const seasonSlug = computed(() => route.params.slug)
+const seasonSlug = computed(() => props.slug || route.params.slug)
 const seasonId = ref(null)
 const seasonName = ref('')
 const seasonInfo = ref(null)
@@ -880,6 +951,12 @@ const filterType = ref('all') // 'all', 'users', 'invitations'
 const showSeasonEditModal = ref(false)
 const showDeleteConfirmationModal = ref(false)
 const seasonToDelete = ref(null)
+
+// Gestion des admins d'événement
+const expandedEventAdmins = reactive({}) // Objet réactif eventId -> boolean (section ouverte)
+const eventAdminsMap = reactive({}) // Objet réactif eventId -> array d'emails
+const newEventAdminEmails = reactive({}) // Objet réactif eventId -> email en cours de saisie
+const canManageEventAdminsMap = reactive({}) // Objet réactif eventId -> boolean (permissions)
 
 
 // Événements filtrés selon les critères
@@ -1763,9 +1840,109 @@ async function loadSeasonEvents() {
     const loadedEvents = await loadEvents(seasonId.value)
     events.value = loadedEvents || []
     logger.info(`Événements chargés: ${events.value.length}`)
+    
+    // Charger les permissions et les admins d'événement pour chaque événement
+    if (!permissionService.isInitialized) {
+      await permissionService.initialize()
+    }
+    
+    for (const event of events.value) {
+      // Vérifier les permissions de gestion des admins
+      const canManage = await permissionService.canManageEventAdmins(event.id, seasonId.value)
+      canManageEventAdminsMap[event.id] = canManage
+      logger.debug(`🔐 Permissions pour événement ${event.id} (${event.title}): canManage=${canManage}`)
+      
+      // Charger les admins d'événement
+      if (canManage) {
+        const admins = await getEventAdmins(event.id, seasonId.value)
+        eventAdminsMap[event.id] = admins
+        logger.debug(`👥 Admins chargés pour événement ${event.id}: ${admins.length} admins`)
+      }
+    }
   } catch (error) {
     logger.error('Erreur lors du chargement des spectacles:', error)
     errorMessage.value = 'Erreur lors du chargement des spectacles'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Fonctions de gestion des admins d'événement
+function toggleEventAdminsSection(eventId) {
+  if (expandedEventAdmins[eventId]) {
+    expandedEventAdmins[eventId] = false
+  } else {
+    expandedEventAdmins[eventId] = true
+    // Charger les admins si pas encore chargés
+    if (!eventAdminsMap[eventId]) {
+      loadEventAdmins(eventId)
+    }
+  }
+}
+
+async function loadEventAdmins(eventId) {
+  try {
+    const admins = await getEventAdmins(eventId, seasonId.value)
+    eventAdminsMap[eventId] = admins
+  } catch (error) {
+    logger.error(`Erreur lors du chargement des admins d'événement ${eventId}:`, error)
+  }
+}
+
+async function handleAddEventAdmin(eventId) {
+  const email = (newEventAdminEmails[eventId] || '').trim()
+  if (!email) return
+  
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    // Vérifier que l'email n'est pas déjà dans la liste
+    const currentAdmins = eventAdminsMap[eventId] || []
+    if (currentAdmins.includes(email)) {
+      errorMessage.value = 'Cet utilisateur est déjà admin de cet événement'
+      return
+    }
+    
+    await addEventAdmin(eventId, email, seasonId.value)
+    
+    // Recharger les admins
+    await loadEventAdmins(eventId)
+    
+    // Réinitialiser le champ de saisie
+    newEventAdminEmails[eventId] = ''
+    
+    successMessage.value = `Admin ${email} ajouté avec succès`
+    setTimeout(() => { successMessage.value = '' }, 3000)
+    
+    logger.info(`✅ Admin ${email} ajouté à l'événement ${eventId}`)
+  } catch (error) {
+    logger.error(`Erreur lors de l'ajout de l'admin d'événement:`, error)
+    errorMessage.value = error.message || 'Erreur lors de l\'ajout de l\'admin'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleRemoveEventAdmin(eventId, userEmail) {
+  if (!confirm(`Êtes-vous sûr de vouloir retirer ${userEmail} des admins de cet événement ?`)) return
+  
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    await removeEventAdmin(eventId, userEmail, seasonId.value)
+    
+    // Recharger les admins
+    await loadEventAdmins(eventId)
+    
+    successMessage.value = `Admin ${userEmail} retiré avec succès`
+    setTimeout(() => { successMessage.value = '' }, 3000)
+    
+    logger.info(`✅ Admin ${userEmail} retiré de l'événement ${eventId}`)
+  } catch (error) {
+    logger.error(`Erreur lors du retrait de l'admin d'événement:`, error)
+    errorMessage.value = error.message || 'Erreur lors du retrait de l\'admin'
   } finally {
     isLoading.value = false
   }
@@ -2058,8 +2235,8 @@ function handleClickOutside(event) {
 
 // Initialisation
 onMounted(async () => {
-  // Récupérer l'ID de la saison depuis l'URL
-  const slug = route.params.slug
+  // Récupérer l'ID de la saison depuis l'URL ou les props
+  const slug = props.slug || route.params.slug
   logger.info('🛡️ SeasonAdminPage: Initialisation avec slug:', slug)
   
   // Pour l'instant, utiliser le slug comme ID (à améliorer plus tard)
@@ -2074,6 +2251,9 @@ onMounted(async () => {
   
   // Charger la liste unifiée des utilisateurs et invitations
   await loadUnifiedUsersList()
+  
+  // Charger les événements pour l'onglet Spectacles
+  await loadSeasonEvents()
   
   // Ajouter l'écouteur pour fermer les dropdowns au clic extérieur
   document.addEventListener('click', handleClickOutside)

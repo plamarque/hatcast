@@ -2874,6 +2874,7 @@ const showDevelopmentModal = ref(false)
 // Variables pour la gestion des rôles
 const canEditEvents = ref(false)
 const isSuperAdmin = ref(false)
+const canEditEventMap = ref(new Map()) // Map eventId -> boolean (permissions par événement)
 
 // Variables pour l'affichage de la composition
 const isCompositionView = ref(false)
@@ -3103,7 +3104,8 @@ const compositionSlots = computed(() => {
   
   // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
   // SAUF pour les admins qui peuvent voir la composition même non validée
-  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
+  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return []
   }
   
@@ -3658,6 +3660,64 @@ async function checkEditPermissions(force = false) {
     logger.warn('⚠️ Utilisation du fallback en cas d\'erreur');
     canEditEvents.value = false;
     isSuperAdmin.value = false;
+  }
+}
+
+// Fonction pour vérifier les permissions d'édition pour un événement spécifique
+async function canEditSpecificEvent(eventId, force = false) {
+  try {
+    if (!eventId || !seasonId.value) return false;
+    
+    // Vérifier le cache d'abord
+    if (!force && canEditEventMap.value.has(eventId)) {
+      return canEditEventMap.value.get(eventId);
+    }
+    
+    // Vérifier que permissionService est initialisé
+    if (!permissionService.isInitialized) {
+      await permissionService.initialize();
+    }
+    
+    // Utiliser canEditEvent qui vérifie Super Admin OU Admin de saison OU Admin d'événement
+    const canEdit = await permissionService.canEditEvent(eventId, seasonId.value, force);
+    
+    // Mettre en cache
+    canEditEventMap.value.set(eventId, canEdit);
+    
+    return canEdit;
+  } catch (error) {
+    logger.warn(`⚠️ Erreur lors de la vérification des permissions pour l'événement ${eventId}:`, error);
+    // Fallback : utiliser les permissions globales
+    return canEditEvents.value;
+  }
+}
+
+// Fonction pour charger les permissions pour tous les événements
+async function loadEventPermissions() {
+  try {
+    if (!seasonId.value || !events.value || events.value.length === 0) return;
+    
+    // Vérifier que permissionService est initialisé
+    if (!permissionService.isInitialized) {
+      await permissionService.initialize();
+    }
+    
+    // Charger les permissions pour chaque événement en parallèle
+    const permissionPromises = events.value.map(async (event) => {
+      try {
+        const canEdit = await permissionService.canEditEvent(event.id, seasonId.value);
+        canEditEventMap.value.set(event.id, canEdit);
+      } catch (error) {
+        logger.warn(`⚠️ Erreur lors du chargement des permissions pour l'événement ${event.id}:`, error);
+        // Fallback : utiliser les permissions globales
+        canEditEventMap.value.set(event.id, canEditEvents.value);
+      }
+    });
+    
+    await Promise.all(permissionPromises);
+    logger.debug(`✅ Permissions chargées pour ${events.value.length} événements`);
+  } catch (error) {
+    logger.error('❌ Erreur lors du chargement des permissions d\'événement:', error);
   }
 }
 
@@ -5459,6 +5519,9 @@ onMounted(async () => {
       events.value = await performanceService.measureStep('load_events', async () => {
         return await loadActiveEvents(seasonId.value)
       }, { seasonId: seasonId.value, count: 'unknown' })
+      
+      // Charger les permissions pour chaque événement
+      await loadEventPermissions()
 
       // Étape 2: joueurs (optimisation mobile - chargement sélectif)
       currentLoadingLabel.value = 'Chargement des joueurs'
@@ -6852,7 +6915,8 @@ function isSelected(player, eventId) {
   
   // Pour les admins, afficher les sélections même si la composition n'est pas validée
   // Pour les utilisateurs normaux, ne pas afficher les sélections si la composition n'est pas validée
-  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
+  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return false
   }
   
@@ -10376,7 +10440,8 @@ function getPlayerSelectionStatus(playerName, eventId) {
   
   // Pour les admins, afficher le statut même si la composition n'est pas validée
   // Pour les utilisateurs normaux, ne pas afficher le statut si la composition n'est pas validée
-  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditEvents.value) {
+  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return null
   }
   

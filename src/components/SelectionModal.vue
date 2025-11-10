@@ -136,7 +136,7 @@
                   </div>
                 </div>
                 <button
-                  v-if="canEditEvents && (!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player))"
+                  v-if="canManageCompositionValue && (!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player))"
                   @click="clearSlot(slot.index)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer cette personne"
@@ -314,7 +314,7 @@
       <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
         <!-- Bouton Composition Auto (réservé aux admins - fonction privilégiée) -->
         <button 
-          v-if="!isSelectionConfirmedByOrganizer && canEditEvents"
+          v-if="!isSelectionConfirmedByOrganizer && canManageCompositionValue"
           @click="handleSelection" 
           :disabled="availableCount === 0" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
@@ -369,7 +369,7 @@
 
         <!-- Bouton Remplir Cast (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
-          v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canEditEvents" 
+          v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canManageCompositionValue" 
           @click="handleFillCast" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
           title="Remplir les slots vides avec des joueurs disponibles"
@@ -379,7 +379,7 @@
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé ET permissions d'édition) -->
         <button 
-          v-if="isSelectionConfirmedByOrganizer && canEditEvents" 
+          v-if="isSelectionConfirmedByOrganizer && canManageCompositionValue" 
           @click="handleUnconfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
           title="Déverrouiller la composition pour permettre les modifications"
@@ -389,7 +389,7 @@
 
         <!-- Bouton Valider (visible seulement si composition complète et organisateur n'a pas encore validé ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canEditEvents" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canManageCompositionValue" 
           @click="handleConfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Valider la composition et demander confirmation aux personnes"
@@ -399,7 +399,7 @@
 
         <!-- Bouton Annoncer la compo (visible seulement si organisateur a validé ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && isSelectionConfirmedByOrganizer && canEditEvents" 
+          v-if="hasSelection && isSelectionConfirmedByOrganizer && canManageCompositionValue" 
           @click="openAnnounce" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Annoncer la composition à toute la troupe"
@@ -409,7 +409,7 @@
 
         <!-- Bouton Réinitialiser (visible seulement si il y a une sélection ET que la composition n'est pas verrouillée ET permissions d'édition) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canEditEvents" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canManageCompositionValue" 
           @click="handleResetSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
@@ -488,6 +488,7 @@ import { getPlayerCastStatus } from '../services/castService.js'
 import { calculateAllRoleChances, formatChancePercentage, performAlgoBruno, performDefaultDraw } from '../services/chancesService.js'
 import { getPlayerAvatar } from '../services/playerAvatars.js'
 import logger from '../services/logger.js'
+import permissionService from '../services/permissionService.js'
 
 const props = defineProps({
   show: {
@@ -563,6 +564,26 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'fill-cast'])
+
+// Variable réactive pour stocker les permissions de composition
+const canManageCompositionValue = ref(false)
+
+// Watcher pour mettre à jour les permissions de composition
+watch([() => props.event?.id, () => props.seasonId, () => props.canEditEvents], async () => {
+  if (props.event?.id && props.seasonId) {
+    try {
+      if (!permissionService.isInitialized) {
+        await permissionService.initialize()
+      }
+      canManageCompositionValue.value = await permissionService.canManageComposition(props.event.id, props.seasonId)
+    } catch (error) {
+      logger.warn(`⚠️ Erreur lors de la vérification des permissions de composition:`, error)
+      canManageCompositionValue.value = props.canEditEvents
+    }
+  } else {
+    canManageCompositionValue.value = props.canEditEvents
+  }
+}, { immediate: true })
 
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')

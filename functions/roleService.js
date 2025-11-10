@@ -93,6 +93,44 @@ class RoleService {
   }
 
   /**
+   * Vérifie si un utilisateur est Admin d'un événement spécifique
+   */
+  async isEventAdmin(eventId, userEmail, seasonId) {
+    try {
+      if (!eventId || !userEmail || !seasonId) {
+        return false;
+      }
+      
+      console.log(`🔐 Vérification Admin d'événement pour ${userEmail} dans l'événement ${eventId} de la saison ${seasonId}`);
+      
+      // Récupérer le document événement
+      const eventDoc = await admin.firestore()
+        .collection('seasons')
+        .doc(seasonId)
+        .collection('events')
+        .doc(eventId)
+        .get();
+      
+      if (!eventDoc.exists) {
+        console.log(`⚠️ Événement ${eventId} non trouvé dans la saison ${seasonId}`);
+        return false;
+      }
+      
+      const eventData = eventDoc.data();
+      // Gérer l'absence du champ eventAdmins
+      const eventAdmins = eventData.eventAdmins || [];
+      
+      const isAdmin = eventAdmins.includes(userEmail);
+      console.log(`🔐 ${userEmail} ${isAdmin ? 'EST' : 'N\'EST PAS'} admin de l'événement ${eventId}`);
+      
+      return isAdmin;
+    } catch (error) {
+      console.error(`❌ Erreur lors de la vérification Admin d'événement pour ${userEmail} dans ${eventId}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Accorde le rôle Admin de saison à un utilisateur
    */
   async grantSeasonAdmin(seasonId, userEmail, grantedBy) {

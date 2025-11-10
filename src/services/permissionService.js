@@ -13,6 +13,7 @@ class PermissionService {
     this.auth = null;
     this.permissionStatus = {
       seasonPermissions: new Map(), // seasonId -> { admins: [], users: [], timestamp }
+      eventPermissions: new Map(), // eventId -> { admins: [], timestamp }
       checkValidity: 5 * 60 * 1000 // 5 minutes
     };
     
@@ -165,6 +166,132 @@ class PermissionService {
       return await this.isSeasonAdmin(seasonId, force);
     } catch (error) {
       logger.error(`❌ Erreur lors de la vérification des permissions d'édition pour ${seasonId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Récupère les admins d'un événement depuis Firestore
+   */
+  async getEventAdmins(eventId, seasonId, force = false) {
+    try {
+      const now = Date.now();
+      const cacheKey = `${seasonId}/${eventId}`;
+      
+      // Vérifier le cache
+      if (!force && this.permissionStatus.eventPermissions.has(cacheKey)) {
+        const cached = this.permissionStatus.eventPermissions.get(cacheKey);
+        if (cached.timestamp && (now - cached.timestamp) < this.permissionStatus.checkValidity) {
+          logger.debug(`🔐 Admins d'événement ${eventId} récupérés du cache`);
+          return cached.admins || [];
+        }
+      }
+
+      logger.info(`🔐 Récupération des admins d'événement ${eventId} depuis Firestore`);
+      
+      const eventDoc = await firestoreService.getDocument('seasons', seasonId, 'events', eventId);
+      const eventAdmins = eventDoc?.eventAdmins || [];
+      
+      // Mettre en cache
+      this.permissionStatus.eventPermissions.set(cacheKey, {
+        admins: eventAdmins,
+        timestamp: now
+      });
+      
+      logger.info(`🔐 Admins d'événement ${eventId} chargés: ${eventAdmins.length}`);
+      
+      return eventAdmins;
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la récupération des admins d'événement ${eventId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur actuel est Admin d'un événement spécifique
+   */
+  async isEventAdmin(eventId, seasonId, force = false) {
+    try {
+      // Super Admin a toujours accès à tout
+      if (await this.isSuperAdmin(force)) {
+        logger.info('🔐 Super Admin détecté - accès accordé à tous les événements');
+        return true;
+      }
+
+      logger.info(`🔐 Vérification du statut Admin d'événement ${eventId} via Firestore...`);
+      
+      const userEmail = this.auth?.currentUser?.email;
+      if (!userEmail) {
+        logger.warn('🔐 Pas d\'email utilisateur disponible');
+        return false;
+      }
+      
+      const eventAdmins = await this.getEventAdmins(eventId, seasonId, force);
+      const isAdmin = eventAdmins.includes(userEmail);
+      
+      logger.info(`🔐 Statut Admin d'événement ${eventId}: ${isAdmin ? '✅ OUI' : '❌ NON'}`);
+      
+      return isAdmin;
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification Admin d'événement ${eventId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur peut éditer un événement spécifique
+   * (Super Admin OU Admin de saison OU Admin d'événement)
+   */
+  async canEditEvent(eventId, seasonId, force = false) {
+    try {
+      // Super Admin peut toujours éditer
+      if (await this.isSuperAdmin(force)) {
+        return true;
+      }
+      
+      // Vérifier si Admin de saison
+      if (await this.isSeasonAdmin(seasonId, force)) {
+        return true;
+      }
+      
+      // Vérifier si Admin d'événement
+      return await this.isEventAdmin(eventId, seasonId, force);
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification des permissions d'édition pour l'événement ${eventId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur peut gérer la composition d'un événement
+   * (Super Admin OU Admin de saison OU Admin d'événement)
+   */
+  async canManageComposition(eventId, seasonId, force = false) {
+    try {
+      // Même logique que canEditEvent
+      return await this.canEditEvent(eventId, seasonId, force);
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification des permissions de composition pour l'événement ${eventId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur peut gérer les admins d'événement
+   * (Super Admin OU Admin de saison uniquement, PAS les admins d'événement)
+   */
+  async canManageEventAdmins(eventId, seasonId, force = false) {
+    try {
+      // Super Admin peut toujours gérer
+      if (await this.isSuperAdmin(force)) {
+        return true;
+      }
+      
+      // Vérifier si Admin de saison
+      return await this.isSeasonAdmin(seasonId, force);
+      // Note: Les admins d'événement ne peuvent PAS gérer d'autres admins d'événement
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification des permissions de gestion des admins d'événement pour ${eventId}:`, error);
       return false;
     }
   }
@@ -466,6 +593,15 @@ class PermissionService {
   }
 
   /**
+   * Invalide le cache des permissions d'événement pour un événement spécifique
+   */
+  invalidateEventCache(eventId, seasonId) {
+    const cacheKey = `${seasonId}/${eventId}`;
+    this.permissionStatus.eventPermissions.delete(cacheKey);
+    logger.debug(`🔐 Cache invalidé pour l'événement ${eventId}`);
+  }
+
+  /**
    * DEBUG: Fonction temporaire pour créer le document seasons manquant
    */
   async debugCreateSeasonDocument(seasonId, adminEmail) {
@@ -532,6 +668,7 @@ class PermissionService {
    */
   invalidateAllCache() {
     this.permissionStatus.seasonPermissions.clear();
+    this.permissionStatus.eventPermissions.clear();
     this.invalidateSuperAdminCache();
     logger.debug('🔐 Cache complet invalidé');
   }
