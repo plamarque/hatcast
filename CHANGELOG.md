@@ -1,26 +1,23 @@
-## [0.35.0] - 2025-11-10
+## [0.36.0] - 2025-11-10
 
 ### ✨ New Features
 
-- feat: improve event details modal UX clarity
-- feat: add protection and edit buttons for normal users in PlayerModal
+- feat: make composition view warning dismissable and more compact
+- feat: show stats columns by default in composition view
 
 ### 🐛 Bug Fixes
 
-- fix: availability cell status respects role-specific selection
-- fix: Afficher les disponibilités même quand aucun rôle n'est défini pour un événement
-- fix: team status shows incomplete when all slots filled
-- fix: Masquer le bouton Composition pour les utilisateurs non connectés
-- fix: Afficher le bouton Composition pour les admins d'événement dans la modale de détail
-- fix: Permettre aux admins d'événement de voir la pré-sélection (composition avant validation)
+- fix: remove rounded corners from first column cells
 
 ### 📝 Other Changes
 
-- release: version 0.34.0
+- style: modernize stats table design with soft colors and colored borders
+- release: version 0.35.0
 
 
 # Changelog
 
+## [0.36.0] - 2025-11-10
 ## [0.35.0] - 2025-11-10
 ## [0.34.0] - 2025-11-10
 ## [0.33.0] - 2025-11-10
