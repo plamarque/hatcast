@@ -514,7 +514,7 @@ const emit = defineEmits([
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
 // State pour contrôler l'affichage des colonnes de statistiques
-const showStatsColumns = ref(false)
+const showStatsColumns = ref(true)
 
 // Écouter les changements de taille d'écran
 onMounted(() => {
