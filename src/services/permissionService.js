@@ -301,32 +301,46 @@ class PermissionService {
    */
   async canManageComposition(eventId, seasonId, force = false) {
     try {
+      const userEmail = this.auth?.currentUser?.email;
+      logger.info(`🔐 [canManageComposition] Début vérification pour événement ${eventId}, saison ${seasonId}, utilisateur: ${userEmail || 'non connecté'}, force: ${force}`);
+      
       // Super Admin peut toujours gérer
-      if (await this.isSuperAdmin(force)) {
+      const isSuperAdminResult = await this.isSuperAdmin(force);
+      logger.info(`🔐 [canManageComposition] isSuperAdmin: ${isSuperAdminResult}`);
+      if (isSuperAdminResult) {
+        logger.info(`🔐 [canManageComposition] ✅ Super Admin - accès accordé`);
         return true;
       }
       
       // Admin de saison peut toujours gérer
-      if (await this.isSeasonAdmin(seasonId, force)) {
+      const isSeasonAdminResult = await this.isSeasonAdmin(seasonId, force);
+      logger.info(`🔐 [canManageComposition] isSeasonAdmin: ${isSeasonAdminResult}`);
+      if (isSeasonAdminResult) {
+        logger.info(`🔐 [canManageComposition] ✅ Admin de saison - accès accordé`);
         return true;
       }
       
       // Admin d'événement peut toujours gérer
-      if (await this.isEventAdmin(eventId, seasonId, force)) {
+      const isEventAdminResult = await this.isEventAdmin(eventId, seasonId, force);
+      logger.info(`🔐 [canManageComposition] isEventAdmin: ${isEventAdminResult}`);
+      if (isEventAdminResult) {
+        logger.info(`🔐 [canManageComposition] ✅ Admin d'événement - accès accordé`);
         return true;
       }
       
       // Caster peut toujours gérer la composition (pour lancer la sélection auto)
       // La restriction sur les sélections manuelles est gérée dans SelectionModal.vue
       const isCaster = await this.isSeasonCaster(seasonId, force);
+      logger.info(`🔐 [canManageComposition] isSeasonCaster: ${isCaster}`);
       if (isCaster) {
-        logger.info(`🔐 Caster détecté pour la saison ${seasonId} - accès accordé à la gestion de composition`);
+        logger.info(`🔐 [canManageComposition] ✅ Caster détecté pour la saison ${seasonId} - accès accordé à la gestion de composition`);
         return true;
       }
       
+      logger.info(`🔐 [canManageComposition] ❌ Aucune permission trouvée - accès refusé`);
       return false;
     } catch (error) {
-      logger.error(`❌ Erreur lors de la vérification des permissions de composition pour l'événement ${eventId}:`, error);
+      logger.error(`❌ [canManageComposition] Erreur lors de la vérification des permissions de composition pour l'événement ${eventId}:`, error);
       return false;
     }
   }
@@ -414,10 +428,10 @@ class PermissionService {
         }
       }
 
-      logger.info(`🔐 Récupération des permissions de saison ${seasonId} depuis Firestore`);
+      logger.info(`🔐 [getSeasonRoles] Récupération des permissions de saison ${seasonId} depuis Firestore, force: ${force}`);
       
       // DEBUG: Vérifier quelle base de données est utilisée
-      console.log('🔍 DEBUG getSeasonRoles: Environnement firestoreService:', {
+      logger.info('🔐 [getSeasonRoles] Environnement firestoreService:', {
         environment: firestoreService.environment,
         database: firestoreService.database,
         region: firestoreService.region,
@@ -426,10 +440,20 @@ class PermissionService {
       
       // Le seasonId passé est l'ID réel du document Firestore, pas le slug
       const seasonDoc = await firestoreService.getDocument('seasons', seasonId);
-      console.log('🔍 DEBUG getSeasonRoles: seasonDoc reçu:', seasonDoc);
-      console.log('🔍 DEBUG getSeasonRoles: seasonDoc.roles:', seasonDoc?.roles);
+      logger.info(`🔐 [getSeasonRoles] seasonDoc reçu pour ${seasonId}:`, {
+        exists: !!seasonDoc,
+        hasRoles: !!seasonDoc?.roles,
+        roles: seasonDoc?.roles
+      });
       const roles = seasonDoc?.roles || { admins: [], users: [], casters: [] };
-      console.log('🔍 DEBUG getSeasonRoles: roles final:', roles);
+      logger.info(`🔐 [getSeasonRoles] Roles final pour ${seasonId}:`, {
+        admins: roles.admins || [],
+        users: roles.users || [],
+        casters: roles.casters || [],
+        adminsCount: roles.admins?.length || 0,
+        usersCount: roles.users?.length || 0,
+        castersCount: roles.casters?.length || 0
+      });
       
       // S'assurer que casters existe
       if (!roles.casters) {
@@ -462,10 +486,26 @@ class PermissionService {
    */
   async isUserSeasonAdmin(seasonId, userEmail) {
     try {
+      logger.info(`🔐 [isUserSeasonAdmin] Vérification pour ${userEmail} dans saison ${seasonId}`);
       const roles = await this.getSeasonRoles(seasonId);
-      return roles.admins.includes(userEmail);
+      logger.info(`🔐 [isUserSeasonAdmin] Rôles récupérés:`, {
+        admins: roles.admins || [],
+        adminsCount: roles.admins?.length || 0,
+        userEmail: userEmail,
+        userEmailTrimmed: userEmail?.trim(),
+        userEmailLower: userEmail?.toLowerCase()
+      });
+      const isAdmin = roles.admins?.includes(userEmail) || false;
+      logger.info(`🔐 [isUserSeasonAdmin] Comparaison:`, {
+        userEmail: userEmail,
+        adminsList: roles.admins || [],
+        includesResult: roles.admins?.includes(userEmail),
+        isAdmin: isAdmin
+      });
+      logger.info(`🔐 [isUserSeasonAdmin] ${userEmail} est admin: ${isAdmin ? '✅ OUI' : '❌ NON'}`);
+      return isAdmin;
     } catch (error) {
-      logger.error(`❌ Erreur lors de la vérification du rôle admin pour ${userEmail} dans ${seasonId}:`, error);
+      logger.error(`❌ [isUserSeasonAdmin] Erreur lors de la vérification du rôle admin pour ${userEmail} dans ${seasonId}:`, error);
       return false;
     }
   }
@@ -488,27 +528,31 @@ class PermissionService {
    */
   async isSeasonCaster(seasonId, force = false) {
     try {
+      const userEmail = this.auth?.currentUser?.email;
+      logger.info(`🔐 [isSeasonCaster] Début vérification pour saison ${seasonId}, utilisateur: ${userEmail || 'non connecté'}, force: ${force}`);
+      
       // Super Admin a toujours accès à tout
-      if (await this.isSuperAdmin(force)) {
-        logger.info('🔐 Super Admin détecté - accès accordé à toutes les saisons');
+      const isSuperAdminResult = await this.isSuperAdmin(force);
+      logger.info(`🔐 [isSeasonCaster] isSuperAdmin: ${isSuperAdminResult}`);
+      if (isSuperAdminResult) {
+        logger.info('🔐 [isSeasonCaster] ✅ Super Admin détecté - accès accordé à toutes les saisons');
         return true;
       }
 
-      logger.info(`🔐 Vérification du statut Caster de saison ${seasonId} via Firestore...`);
+      logger.info(`🔐 [isSeasonCaster] Vérification du statut Caster de saison ${seasonId} via Firestore...`);
       
-      const userEmail = this.auth?.currentUser?.email;
       if (!userEmail) {
-        logger.warn('🔐 Pas d\'email utilisateur disponible');
+        logger.warn('🔐 [isSeasonCaster] ❌ Pas d\'email utilisateur disponible');
         return false;
       }
       
       const isCaster = await this.isUserSeasonCaster(seasonId, userEmail);
       
-      logger.info(`🔐 Statut Caster de saison ${seasonId}: ${isCaster ? '✅ OUI' : '❌ NON'}`);
+      logger.info(`🔐 [isSeasonCaster] Statut Caster de saison ${seasonId} pour ${userEmail}: ${isCaster ? '✅ OUI' : '❌ NON'}`);
       
       return isCaster;
     } catch (error) {
-      logger.error(`❌ Erreur lors de la vérification Caster de saison ${seasonId}:`, error);
+      logger.error(`❌ [isSeasonCaster] Erreur lors de la vérification Caster de saison ${seasonId}:`, error);
       return false;
     }
   }
@@ -518,10 +562,19 @@ class PermissionService {
    */
   async isUserSeasonCaster(seasonId, userEmail) {
     try {
+      logger.info(`🔐 [isUserSeasonCaster] Vérification pour ${userEmail} dans saison ${seasonId}`);
       const roles = await this.getSeasonRoles(seasonId);
-      return roles.casters?.includes(userEmail) || false;
+      logger.info(`🔐 [isUserSeasonCaster] Rôles récupérés:`, {
+        admins: roles.admins || [],
+        users: roles.users || [],
+        casters: roles.casters || [],
+        castersCount: roles.casters?.length || 0
+      });
+      const isCaster = roles.casters?.includes(userEmail) || false;
+      logger.info(`🔐 [isUserSeasonCaster] ${userEmail} est caster: ${isCaster ? '✅ OUI' : '❌ NON'}`);
+      return isCaster;
     } catch (error) {
-      logger.error(`❌ Erreur lors de la vérification du rôle caster pour ${userEmail} dans ${seasonId}:`, error);
+      logger.error(`❌ [isUserSeasonCaster] Erreur lors de la vérification du rôle caster pour ${userEmail} dans ${seasonId}:`, error);
       return false;
     }
   }

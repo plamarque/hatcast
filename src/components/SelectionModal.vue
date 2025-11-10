@@ -105,7 +105,9 @@
                       isError: false
                     })
                   ]
-                  : 'border-dashed border-white/20 hover:border-white/40 bg-white/5',
+                  : canCasterEditManually 
+                    ? 'border-dashed border-white/20 hover:border-white/40 bg-white/5'
+                    : 'border-dashed border-white/10 bg-white/5 cursor-not-allowed opacity-50',
                 // Animation pour le slot en cours de tirage
                 isSimulatingSlot(slot.index) ? 'border-yellow-400 bg-yellow-900/20 animate-pulse' : '',
                 // Effet sur les autres slots pendant l'animation
@@ -180,9 +182,15 @@
                 </template>
                 <button
                   v-else
-                  @click="startEditSlot(slot.index)"
-                  class="flex items-center gap-2 text-white/80 hover:text-white px-2 py-1 rounded-md hover:bg-white/10"
-                  :title="isSelectionConfirmedByOrganizer ? 'Ajouter un {{ slot.roleLabel.toLowerCase() }} (sélection verrouillée)' : 'Ajouter un {{ slot.roleLabel.toLowerCase() }}'"
+                  @click="canCasterEditManually ? startEditSlot(slot.index) : null"
+                  :disabled="!canCasterEditManually"
+                  class="flex items-center gap-2 px-2 py-1 rounded-md transition-all"
+                  :class="canCasterEditManually 
+                    ? 'text-white/80 hover:text-white hover:bg-white/10 cursor-pointer'
+                    : 'text-white/40 cursor-not-allowed opacity-50'"
+                  :title="!canCasterEditManually 
+                    ? 'Les sélectionneur.ses doivent d\'abord déclencher la sélection automatique avant de pouvoir faire des sélections manuelles.'
+                    : (isSelectionConfirmedByOrganizer ? 'Ajouter un {{ slot.roleLabel.toLowerCase() }} (sélection verrouillée)' : 'Ajouter un {{ slot.roleLabel.toLowerCase() }}')"
                 >
                   <span class="text-lg">＋</span>
                   <span class="text-sm">{{ slot.roleLabel }}</span>
@@ -583,7 +591,9 @@ watch([() => props.event?.id, () => props.seasonId, () => props.canEditEvents, (
       const userChanged = currentEmail !== previousUserEmail
       previousUserEmail = currentEmail
       const force = userChanged
+      logger.info(`🔐 [SelectionModal] Vérification permissions composition pour événement ${props.event.id}, saison ${props.seasonId}, utilisateur: ${currentEmail || 'non connecté'}, force: ${force}, userChanged: ${userChanged}`)
       canManageCompositionValue.value = await permissionService.canManageComposition(props.event.id, props.seasonId, force)
+      logger.info(`🔐 [SelectionModal] Résultat canManageComposition: ${canManageCompositionValue.value ? '✅ OUI' : '❌ NON'}`)
     } catch (error) {
       logger.warn(`⚠️ Erreur lors de la vérification des permissions de composition:`, error)
       canManageCompositionValue.value = props.canEditEvents
@@ -601,6 +611,51 @@ const successMessageText = ref('')
 const showErrorMessage = ref(false)
 const errorMessageText = ref('')
 const isReselection = ref(false)
+
+// Variables pour vérifier si un caster peut faire des sélections manuelles
+const isCaster = ref(false)
+const castExists = ref(false)
+
+// Computed property pour vérifier si un caster peut éditer manuellement
+const canCasterEditManually = computed(() => {
+  // Si l'utilisateur n'est pas caster, permettre l'édition (pour admins)
+  if (!isCaster.value) {
+    return true
+  }
+  // Si caster, permettre seulement si un cast existe déjà
+  return castExists.value
+})
+
+// Watcher pour vérifier le statut caster et l'existence d'un cast
+watch([() => props.event?.id, () => props.seasonId, () => props.currentSelection], async () => {
+  logger.info(`🔐 [SelectionModal] Watcher caster déclenché: eventId=${props.event?.id}, seasonId=${props.seasonId}, canManageComposition=${canManageCompositionValue.value}`)
+  if (props.event?.id && props.seasonId && canManageCompositionValue.value) {
+    try {
+      const casterStatus = await permissionService.isSeasonCaster(props.seasonId)
+      logger.info(`🔐 [SelectionModal] Statut caster pour saison ${props.seasonId}: ${casterStatus ? '✅ OUI' : '❌ NON'}`)
+      isCaster.value = casterStatus
+      
+      if (casterStatus) {
+        // Vérifier si un cast existe pour cet événement
+        const { loadCasts } = await import('../services/selectionService.js')
+        const casts = await loadCasts(props.seasonId)
+        castExists.value = casts && casts[props.event.id] !== undefined && casts[props.event.id] !== null
+        logger.info(`🔐 [SelectionModal] Cast existe pour événement ${props.event.id}: ${castExists.value ? '✅ OUI' : '❌ NON'}`)
+      } else {
+        castExists.value = false
+      }
+      logger.info(`🔐 [SelectionModal] État final: isCaster=${isCaster.value}, castExists=${castExists.value}, canCasterEditManually=${canCasterEditManually.value}`)
+    } catch (error) {
+      logger.warn('🔐 [SelectionModal] Erreur lors de la vérification du statut caster:', error)
+      isCaster.value = false
+      castExists.value = false
+    }
+  } else {
+    logger.info(`🔐 [SelectionModal] Conditions non remplies, réinitialisation: eventId=${props.event?.id}, seasonId=${props.seasonId}, canManageComposition=${canManageCompositionValue.value}`)
+    isCaster.value = false
+    castExists.value = false
+  }
+}, { immediate: true })
 
 // Variables pour la sélection d'algorithme
 const selectedAlgorithm = ref('default')
@@ -2271,6 +2326,17 @@ async function persistDrawResults() {
     
     // Émettre un événement pour que le parent recharge les données
     emit('updateCast')
+    
+    // Re-vérifier si un cast existe maintenant (pour activer les sélections manuelles pour les casters)
+    if (isCaster.value && props.event?.id && props.seasonId) {
+      try {
+        const { loadCasts } = await import('../services/selectionService.js')
+        const casts = await loadCasts(props.seasonId)
+        castExists.value = casts && casts[props.event.id] !== undefined && casts[props.event.id] !== null
+      } catch (error) {
+        logger.warn('Erreur lors de la re-vérification du cast après sauvegarde:', error)
+      }
+    }
     
     // Ne pas fermer la modale automatiquement - laisser l'utilisateur voir le résultat
     // emit('close')
