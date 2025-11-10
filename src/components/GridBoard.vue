@@ -1208,7 +1208,7 @@
         <div class="flex justify-center flex-wrap gap-3">
           <!-- Boutons principaux -->
           <button 
-            v-if="canEditEvents"
+            v-if="canEditSelectedEvent"
             @click="openSelectionModal(selectedEvent)" 
             class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
             title="Gérer la composition"
@@ -1225,7 +1225,7 @@
       <div class="md:hidden sticky bottom-0 w-full p-2 sm:p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm">
         <div class="flex items-center gap-1 sm:gap-2 min-w-0">
           <button 
-            v-if="canEditEvents"
+            v-if="canEditSelectedEvent"
             @click="openSelectionModal(selectedEvent)" 
             class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm"
           >
