@@ -295,7 +295,8 @@
               <div
                 v-for="event in filteredEvents"
                 :key="event.id"
-                class="bg-gray-700/50 rounded-lg overflow-hidden"
+                class="bg-gray-700/50 rounded-lg"
+                :class="expandedEventAdmins[event.id] ? 'overflow-visible' : 'overflow-hidden'"
               >
                 <div
                   class="p-4 cursor-pointer hover:bg-gray-600/50 transition-colors"
@@ -379,23 +380,57 @@
                     Aucun admin d'événement
                   </div>
                   
-                  <!-- Formulaire d'ajout -->
-                  <div class="flex items-center gap-2">
-                    <input
-                      :value="newEventAdminEmails[event.id] || ''"
-                      @input="newEventAdminEmails[event.id] = $event.target.value"
-                      @keydown.enter.prevent="handleAddEventAdmin(event.id)"
-                      type="email"
-                      placeholder="email@example.com"
-                      class="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                    />
-                    <button
-                      @click="handleAddEventAdmin(event.id)"
-                      :disabled="isLoading || !(newEventAdminEmails[event.id] || '').trim()"
-                      class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
-                    >
-                      Ajouter
-                    </button>
+                  <!-- Formulaire d'ajout avec autocomplete -->
+                  <div class="relative">
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 relative">
+                        <input
+                          :ref="el => setEventAdminInputRef(event.id, el)"
+                          :value="eventAdminSearchQueries[event.id] || ''"
+                          @input="handleEventAdminSearch(event.id, $event.target.value)"
+                          @focus="handleEventAdminFocus(event.id)"
+                          @blur="handleEventAdminBlur(event.id)"
+                          @keydown.enter.prevent="handleEventAdminEnter(event.id)"
+                          @keydown.escape="showEventAdminSuggestions[event.id] = false"
+                          @keydown.down.prevent="handleEventAdminKeyDown(event.id, 'down')"
+                          @keydown.up.prevent="handleEventAdminKeyUp(event.id, 'up')"
+                          type="text"
+                          placeholder="Rechercher par nom de joueur..."
+                          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                        />
+                        
+                        <!-- Suggestions d'autocomplete -->
+                        <Teleport to="body">
+                          <div
+                            v-if="showEventAdminSuggestions[event.id] && eventAdminSuggestions[event.id]?.length > 0"
+                            class="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-[9999]"
+                            :style="getAutocompleteStyle(event.id)"
+                            :ref="el => setAutocompleteRef(event.id, el)"
+                          >
+                            <div
+                              v-for="(suggestion, index) in eventAdminSuggestions[event.id]"
+                              :key="suggestion.email"
+                              @mousedown.prevent="handleSelectEventAdminSuggestion(event.id, suggestion)"
+                              class="px-3 py-2 cursor-pointer transition-colors"
+                              :class="{ 
+                                'bg-gray-700': index === (eventAdminSelectedIndex[event.id] ?? 0),
+                                'hover:bg-gray-700': index !== (eventAdminSelectedIndex[event.id] ?? 0)
+                              }"
+                            >
+                              <div class="text-sm text-white font-medium">{{ suggestion.displayName }}</div>
+                              <div class="text-xs text-gray-400">{{ suggestion.email }}</div>
+                            </div>
+                          </div>
+                        </Teleport>
+                      </div>
+                      <button
+                        @click="handleAddEventAdmin(event.id)"
+                        :disabled="isLoading || !(newEventAdminEmails[event.id] || '').trim()"
+                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -839,7 +874,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, Teleport, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getFirebaseAuth } from '../services/firebase.js'
 import { currentUser } from '../services/authState.js'
@@ -957,6 +992,13 @@ const expandedEventAdmins = reactive({}) // Objet réactif eventId -> boolean (s
 const eventAdminsMap = reactive({}) // Objet réactif eventId -> array d'emails
 const newEventAdminEmails = reactive({}) // Objet réactif eventId -> email en cours de saisie
 const canManageEventAdminsMap = reactive({}) // Objet réactif eventId -> boolean (permissions)
+const eventAdminSearchQueries = reactive({}) // Objet réactif eventId -> query de recherche
+const eventAdminSuggestions = reactive({}) // Objet réactif eventId -> array de suggestions
+const showEventAdminSuggestions = reactive({}) // Objet réactif eventId -> boolean (afficher suggestions)
+const eventAdminSelectedIndex = reactive({}) // Objet réactif eventId -> index de la suggestion sélectionnée
+const eventAdminBlurTimeout = reactive({}) // Objet réactif eventId -> timeout ID
+const eventAdminInputRefs = reactive({}) // Objet réactif eventId -> ref de l'input
+const eventAdminAutocompleteRefs = reactive({}) // Objet réactif eventId -> ref de l'autocomplete
 
 
 // Événements filtrés selon les critères
@@ -1889,6 +1931,173 @@ async function loadEventAdmins(eventId) {
   }
 }
 
+// Fonction pour gérer le focus sur le champ de recherche
+async function handleEventAdminFocus(eventId) {
+  showEventAdminSuggestions[eventId] = true
+  // Annuler le blur timeout s'il existe
+  if (eventAdminBlurTimeout[eventId]) {
+    clearTimeout(eventAdminBlurTimeout[eventId])
+    eventAdminBlurTimeout[eventId] = null
+  }
+  // Attendre le prochain tick pour que la ref soit disponible
+  await nextTick()
+}
+
+// Fonction pour gérer le blur sur le champ de recherche
+function handleEventAdminBlur(eventId) {
+  // Délai pour permettre le clic sur les suggestions
+  eventAdminBlurTimeout[eventId] = setTimeout(() => {
+    showEventAdminSuggestions[eventId] = false
+    eventAdminBlurTimeout[eventId] = null
+  }, 200)
+}
+
+// Fonction pour gérer les touches fléchées dans l'autocomplete
+function handleEventAdminKeyDown(eventId, direction) {
+  if (!eventAdminSuggestions[eventId] || eventAdminSuggestions[eventId].length === 0) return
+  
+  const currentIndex = eventAdminSelectedIndex[eventId] || -1
+  let newIndex = currentIndex
+  
+  if (direction === 'down') {
+    newIndex = currentIndex < eventAdminSuggestions[eventId].length - 1 ? currentIndex + 1 : 0
+  } else if (direction === 'up') {
+    newIndex = currentIndex > 0 ? currentIndex - 1 : eventAdminSuggestions[eventId].length - 1
+  }
+  
+  eventAdminSelectedIndex[eventId] = newIndex
+}
+
+// Fonction pour gérer les touches fléchées dans l'autocomplete
+function handleEventAdminKeyUp(eventId, direction) {
+  handleEventAdminKeyDown(eventId, direction)
+}
+
+// Fonction pour définir la ref de l'input
+function setEventAdminInputRef(eventId, el) {
+  if (el) {
+    eventAdminInputRefs[eventId] = el
+  }
+}
+
+// Fonction pour définir la ref de l'autocomplete
+function setAutocompleteRef(eventId, el) {
+  if (el) {
+    eventAdminAutocompleteRefs[eventId] = el
+  }
+}
+
+// Fonction pour calculer le style de positionnement de l'autocomplete
+function getAutocompleteStyle(eventId) {
+  const inputEl = eventAdminInputRefs[eventId]
+  if (!inputEl) {
+    return { display: 'none' }
+  }
+  
+  const rect = inputEl.getBoundingClientRect()
+  const scrollY = window.scrollY || window.pageYOffset
+  
+  return {
+    top: `${rect.bottom + scrollY + 4}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    minWidth: '200px'
+  }
+}
+
+// Fonction pour gérer la recherche d'admin d'événement
+function handleEventAdminSearch(eventId, query) {
+  eventAdminSearchQueries[eventId] = query
+  
+  // Si c'est un email valide, le stocker directement
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (emailRegex.test(query.trim())) {
+    newEventAdminEmails[eventId] = query.trim()
+    eventAdminSuggestions[eventId] = []
+    showEventAdminSuggestions[eventId] = false
+    return
+  }
+  
+  if (!query || query.trim().length < 2) {
+    eventAdminSuggestions[eventId] = []
+    showEventAdminSuggestions[eventId] = false
+    newEventAdminEmails[eventId] = ''
+    return
+  }
+  
+  const searchTerm = query.toLowerCase().trim()
+  
+  // Filtrer les participants qui ont un email (type 'user' ou 'invitation')
+  const participantsWithEmail = unifiedUsersList.value.filter(item => {
+    const email = getPlayerEmail(item)
+    return email && email !== 'Pas de compte' && (item.type === 'user' || item.type === 'invitation')
+  })
+  
+  // Rechercher par nom de joueur ou email
+  const suggestions = participantsWithEmail
+    .filter(item => {
+      const email = getPlayerEmail(item)
+      const playerName = getPlayerDisplayName(item).toLowerCase()
+      const fullName = `${item.firstName || ''} ${item.lastName || ''}`.toLowerCase().trim()
+      const emailLower = email.toLowerCase()
+      
+      return playerName.includes(searchTerm) || 
+             fullName.includes(searchTerm) || 
+             emailLower.includes(searchTerm)
+    })
+    .slice(0, 5) // Limiter à 5 suggestions
+    .map(item => {
+      const email = getPlayerEmail(item)
+      const displayName = getPlayerDisplayName(item)
+      return {
+        email,
+        displayName,
+        item
+      }
+    })
+  
+  eventAdminSuggestions[eventId] = suggestions
+  showEventAdminSuggestions[eventId] = suggestions.length > 0
+  eventAdminSelectedIndex[eventId] = -1 // Réinitialiser l'index sélectionné
+  
+  // Si une seule suggestion correspond exactement, pré-remplir l'email
+  if (suggestions.length === 1 && suggestions[0].displayName.toLowerCase() === searchTerm) {
+    newEventAdminEmails[eventId] = suggestions[0].email
+  } else {
+    newEventAdminEmails[eventId] = ''
+  }
+}
+
+// Fonction pour gérer la touche Entrée
+function handleEventAdminEnter(eventId) {
+  const selectedIndex = eventAdminSelectedIndex[eventId] ?? -1
+  const suggestions = eventAdminSuggestions[eventId] || []
+  
+  if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+    // Sélectionner la suggestion surlignée
+    handleSelectEventAdminSuggestion(eventId, suggestions[selectedIndex])
+  } else if (suggestions.length > 0) {
+    // Sélectionner la première suggestion
+    handleSelectEventAdminSuggestion(eventId, suggestions[0])
+  } else if (newEventAdminEmails[eventId]) {
+    // Ajouter directement si un email est déjà rempli
+    handleAddEventAdmin(eventId)
+  }
+}
+
+// Fonction pour sélectionner une suggestion
+function handleSelectEventAdminSuggestion(eventId, suggestion) {
+  if (!suggestion) return
+  
+  newEventAdminEmails[eventId] = suggestion.email
+  eventAdminSearchQueries[eventId] = suggestion.displayName
+  showEventAdminSuggestions[eventId] = false
+  eventAdminSelectedIndex[eventId] = -1
+  
+  // Ajouter automatiquement l'admin
+  handleAddEventAdmin(eventId)
+}
+
 async function handleAddEventAdmin(eventId) {
   const email = (newEventAdminEmails[eventId] || '').trim()
   if (!email) return
@@ -1909,8 +2118,11 @@ async function handleAddEventAdmin(eventId) {
     // Recharger les admins
     await loadEventAdmins(eventId)
     
-    // Réinitialiser le champ de saisie
+    // Réinitialiser les champs de saisie
     newEventAdminEmails[eventId] = ''
+    eventAdminSearchQueries[eventId] = ''
+    eventAdminSuggestions[eventId] = []
+    showEventAdminSuggestions[eventId] = false
     
     successMessage.value = `Admin ${email} ajouté avec succès`
     setTimeout(() => { successMessage.value = '' }, 3000)
