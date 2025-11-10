@@ -536,8 +536,8 @@ async function sendAvailabilityReminderNotification({ reminder, eventUrl, season
     // Envoyer l'email si activé
     if (shouldSendEmail) {
       try {
-        const { buildAvailabilityEmailTemplate } = require('./emailTemplates')
-        const html = buildAvailabilityEmailTemplate({
+        const { buildAvailabilityReminderEmailTemplate } = require('./emailTemplates')
+        const html = buildAvailabilityReminderEmailTemplate({
           playerName,
           eventTitle,
           eventDate: eventDate.toDate().toLocaleDateString('fr-FR', { 
@@ -554,7 +554,7 @@ async function sendAvailabilityReminderNotification({ reminder, eventUrl, season
         await db.collection('mail').add({
           to: playerEmail,
           message: {
-            subject: `⏰ Rappel : ${eventTitle} - As-tu répondu à la demande de disponibilité ?`,
+            subject: `⏰ Rappel : demande de disponibilité`,
             html
           },
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -585,7 +585,7 @@ async function sendAvailabilityReminderNotification({ reminder, eventUrl, season
         if (tokens.length > 0) {
           const message = {
             data: {
-              title: '⏰ Rappel disponibilité',
+              title: '⏰ Rappel : demande de disponibilité',
               body: `${playerName}, as-tu répondu pour ${eventTitle} ?`,
               url: eventUrl,
               yesUrl: yesUrl,
