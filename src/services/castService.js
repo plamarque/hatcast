@@ -208,17 +208,31 @@ export function calculateCastStatus(cast, event, teamSlots, playerAvailability, 
   // Extraire les joueurs composés
   const selectedPlayers = extractSelectedPlayers(cast)
   
-  // Vérifier s'il y a des slots vides (basé sur teamSlots si disponible)
-  const hasEmptySlots = teamSlots ? teamSlots.some(slot => !slot.player) : false
+  // Vérifier les joueurs qui ont décliné
+  const declinedPlayers = selectedPlayers.filter(playerName => 
+    cast.playerStatuses?.[playerName] === 'declined'
+  )
+  const hasDeclinedPlayers = declinedPlayers.length > 0
+  
+  // Compter les joueurs non-déclinés (ceux qui comptent vraiment dans la composition)
+  const nonDeclinedPlayers = selectedPlayers.filter(playerName => 
+    cast.playerStatuses?.[playerName] !== 'declined'
+  )
+  
+  // Vérifier s'il y a des slots vides
+  // Si teamSlots est disponible, l'utiliser pour une détection précise
+  // Sinon, comparer le nombre de joueurs non-déclinés avec le nombre requis
+  let hasEmptySlots = false
+  if (teamSlots) {
+    hasEmptySlots = teamSlots.some(slot => !slot.player)
+  } else {
+    // Détecter les slots vides en comparant le nombre de joueurs non-déclinés avec le nombre requis
+    hasEmptySlots = nonDeclinedPlayers.length < requiredCount
+  }
   
   // Vérifier les joueurs indisponibles
   const hasUnavailablePlayers = selectedPlayers.some(playerName => 
     playerAvailability && playerAvailability[playerName] === false
-  )
-  
-  // Vérifier les joueurs qui ont décliné
-  const hasDeclinedPlayers = selectedPlayers.some(playerName => 
-    cast.playerStatuses?.[playerName] === 'declined'
   )
   
   // Vérifier s'il y a assez de joueurs disponibles
@@ -246,9 +260,7 @@ export function calculateCastStatus(cast, event, teamSlots, playerAvailability, 
       unavailablePlayers: selectedPlayers.filter(playerName => 
         playerAvailability && playerAvailability[playerName] === false
       ),
-      declinedPlayers: selectedPlayers.filter(playerName => 
-        cast.playerStatuses?.[playerName] === 'declined'
-      ),
+      declinedPlayers,
       availableCount,
       requiredCount
     }

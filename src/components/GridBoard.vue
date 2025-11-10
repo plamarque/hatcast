@@ -1980,7 +1980,7 @@
 </style>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
@@ -2874,7 +2874,8 @@ const showDevelopmentModal = ref(false)
 // Variables pour la gestion des rôles
 const canEditEvents = ref(false)
 const isSuperAdmin = ref(false)
-const canEditEventMap = ref(new Map()) // Map eventId -> boolean (permissions par événement)
+const canEditEventMap = reactive({}) // Objet réactif eventId -> boolean (permissions par événement)
+const eventPermissionsLoading = reactive({}) // Objet réactif eventId -> boolean (en cours de chargement)
 
 // Variables pour l'affichage de la composition
 const isCompositionView = ref(false)
@@ -3088,6 +3089,17 @@ watch(selectedEvent, (newEvent) => {
   }
 }, { immediate: true })
 
+// Watcher pour charger les permissions de l'événement sélectionné si elles ne sont pas en cache
+watch(selectedEvent, async (newEvent) => {
+  if (newEvent?.id && currentUser.value?.email) {
+    // Vérifier si les permissions ne sont pas encore en cache
+    if (!(newEvent.id in canEditEventMap)) {
+      // Charger les permissions pour cet événement spécifique
+      await canEditSpecificEvent(newEvent.id)
+    }
+  }
+}, { immediate: true })
+
 
 // Onglet Composition: computed helpers
 const hasCompositionForSelectedEvent = computed(() => {
@@ -3103,7 +3115,18 @@ const canEditSelectedEvent = computed(() => {
   if (!selectedEvent.value) return false
   // Vérifier que l'utilisateur est connecté
   if (!currentUser.value?.email) return false
-  return canEditEventMap.value.get(selectedEvent.value.id) ?? canEditEvents.value
+  
+  const eventId = selectedEvent.value.id
+  // Si les permissions ne sont pas en cache, déclencher le chargement
+  if (!(eventId in canEditEventMap) && !eventPermissionsLoading[eventId]) {
+    // Déclencher le chargement de manière asynchrone
+    eventPermissionsLoading[eventId] = true
+    canEditSpecificEvent(eventId).then(() => {
+      delete eventPermissionsLoading[eventId]
+    })
+  }
+  
+  return canEditEventMap[eventId] ?? canEditEvents.value
 })
 
 const compositionSlots = computed(() => {
@@ -3112,7 +3135,7 @@ const compositionSlots = computed(() => {
   
   // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
   // SAUF pour les admins qui peuvent voir la composition même non validée
-  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  const canEditThisEvent = canEditEventMap[eventId] ?? canEditEvents.value
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return []
   }
@@ -3681,8 +3704,8 @@ async function canEditSpecificEvent(eventId, force = false) {
     if (!eventId || !seasonId.value) return false;
     
     // Vérifier le cache d'abord
-    if (!force && canEditEventMap.value.has(eventId)) {
-      return canEditEventMap.value.get(eventId);
+    if (!force && eventId in canEditEventMap) {
+      return canEditEventMap[eventId];
     }
     
     // Vérifier que permissionService est initialisé
@@ -3694,7 +3717,7 @@ async function canEditSpecificEvent(eventId, force = false) {
     const canEdit = await permissionService.canEditEvent(eventId, seasonId.value, force);
     
     // Mettre en cache
-    canEditEventMap.value.set(eventId, canEdit);
+    canEditEventMap[eventId] = canEdit;
     
     return canEdit;
   } catch (error) {
@@ -3718,11 +3741,11 @@ async function loadEventPermissions() {
     const permissionPromises = events.value.map(async (event) => {
       try {
         const canEdit = await permissionService.canEditEvent(event.id, seasonId.value);
-        canEditEventMap.value.set(event.id, canEdit);
+        canEditEventMap[event.id] = canEdit;
       } catch (error) {
         logger.warn(`⚠️ Erreur lors du chargement des permissions pour l'événement ${event.id}:`, error);
         // Fallback : utiliser les permissions globales
-        canEditEventMap.value.set(event.id, canEditEvents.value);
+        canEditEventMap[event.id] = canEditEvents.value;
       }
     });
     
@@ -6933,7 +6956,7 @@ function isSelected(player, eventId) {
   
   // Pour les admins, afficher les sélections même si la composition n'est pas validée
   // Pour les utilisateurs normaux, ne pas afficher les sélections si la composition n'est pas validée
-  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  const canEditThisEvent = canEditEventMap[eventId] ?? canEditEvents.value
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return false
   }
@@ -10466,7 +10489,7 @@ function getPlayerSelectionStatus(playerName, eventId) {
   
   // Pour les admins, afficher le statut même si la composition n'est pas validée
   // Pour les utilisateurs normaux, ne pas afficher le statut si la composition n'est pas validée
-  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  const canEditThisEvent = canEditEventMap[eventId] ?? canEditEvents.value
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return null
   }

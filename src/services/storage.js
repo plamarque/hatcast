@@ -1123,6 +1123,20 @@ export async function saveEvent(eventData, seasonId) {
 export async function updateEvent(eventId, eventData, seasonId) {
   // Utiliser merge pour ne pas écraser des champs existants (ex: archived)
   await firestoreService.setDocument('seasons', seasonId, eventData, true, 'events', eventId)
+  
+  // Toujours recalculer le statut de la composition si elle existe
+  // Cela garantit que le requiredCount est à jour même si les rôles ont été modifiés précédemment
+  try {
+    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
+    if (castDoc) {
+      // Recalculer le statut avec les données actuelles de l'événement
+      await updateCastStatus(eventId, seasonId)
+      logger.debug('Statut de la composition recalculé après modification de l\'événement', { eventId, seasonId })
+    }
+  } catch (error) {
+    // Ne pas faire échouer la mise à jour de l'événement si le recalcul du statut échoue
+    logger.warn('Erreur lors du recalcul du statut après modification de l\'événement', { error, eventId, seasonId })
+  }
 }
 
 // Mise à jour de l'état d'archivage d'un événement
@@ -1213,6 +1227,62 @@ export async function updatePlayerCastStatus(eventId, playerId, status, seasonId
     return { confirmedByAllPlayers: allPlayersConfirmed }
   } catch (error) {
     logger.error('❌ Erreur dans updatePlayerCastStatus:', error)
+    throw error
+  }
+}
+
+/**
+ * Recalculer et mettre à jour le statut de la composition sans modifier les rôles
+ * @param {string} eventId - ID de l'événement
+ * @param {string} seasonId - ID de la saison
+ */
+export async function updateCastStatus(eventId, seasonId) {
+  try {
+    const { calculateCastStatus } = await import('./castService.js')
+    
+    // Récupérer la composition actuelle
+    const castDoc = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
+    if (!castDoc) {
+      logger.warn('updateCastStatus: Composition non trouvée')
+      return
+    }
+    
+    // Récupérer l'événement
+    const eventData = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    if (!eventData) {
+      logger.warn('updateCastStatus: Événement non trouvé')
+      return
+    }
+    
+    // Calculer le nombre de joueurs disponibles (approximation)
+    const allPlayerIds = getAllPlayersFromCast(castDoc)
+    
+    // Recalculer le statut
+    const status = calculateCastStatus(
+      castDoc,
+      eventData,
+      null, // teamSlots pas disponible ici
+      {}, // playerAvailability pas disponible ici
+      allPlayerIds.length // approximation
+    )
+    
+    // Mettre à jour uniquement le statut dans la base
+    await firestoreService.updateDocument('seasons', seasonId, {
+      status: status.type,
+      statusDetails: {
+        hasUnavailablePlayers: status.hasUnavailablePlayers || false,
+        hasInsufficientPlayers: status.hasInsufficientPlayers || false,
+        hasDeclinedPlayers: status.hasDeclinedPlayers || false,
+        hasEmptySlots: status.hasEmptySlots || false,
+        unavailablePlayers: status.unavailablePlayers || [],
+        declinedPlayers: status.declinedPlayers || [],
+        availableCount: status.availableCount,
+        requiredCount: status.requiredCount
+      },
+      updatedAt: new Date()
+    }, 'casts', eventId)
+  } catch (error) {
+    logger.error('❌ Erreur dans updateCastStatus:', error)
     throw error
   }
 }
