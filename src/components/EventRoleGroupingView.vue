@@ -193,10 +193,10 @@
                     :player-name="player.name"
                     :event-id="selectedEvent.id"
                     :is-available="isAvailable(player.name, selectedEvent.id)"
-                    :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
+                    :is-selected="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
                     :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
                     :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                    :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
+                    :player-selection-status="getPlayerSelectionStatusForRole(player.name, role, selectedEvent.id)"
                     :season-id="seasonId"
                     :player-gender="player.gender || 'non-specified'"
                     :chance-percent="getPlayerChanceForRole(player.name, role, selectedEvent.id)"
@@ -636,6 +636,19 @@ function getPlayersForRole(role) {
   return props.players.filter(player => {
     return props.isAvailableForRole(player.name, role, props.selectedEvent.id)
   })
+}
+
+// Fonction helper pour obtenir le statut de sélection seulement si le joueur est sélectionné pour ce rôle spécifique
+function getPlayerSelectionStatusForRole(playerName, role, eventId) {
+  // Vérifier d'abord si le joueur est sélectionné pour ce rôle spécifique
+  if (!props.isPlayerSelectedForRole(playerName, role, eventId)) {
+    // Si le joueur n'est pas sélectionné pour ce rôle, retourner null
+    // Cela permettra d'afficher "Dispo" en vert au lieu du statut pending_confirmation
+    return null
+  }
+  
+  // Si le joueur est sélectionné pour ce rôle, retourner son statut de sélection
+  return props.getPlayerSelectionStatus(playerName, eventId)
 }
 
 function getPlayerChanceForRole(playerName, role, eventId) {
