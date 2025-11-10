@@ -68,7 +68,7 @@
         <tr>
           <!-- Colonne de gauche (Bouton Exporter) -->
           <th 
-            class="col-left bg-gray-900 rounded-xl px-4 py-3 text-center sticky left-0 z-[111]"
+            class="col-left bg-gray-900 px-4 py-3 text-center sticky left-0 z-[111]"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -243,7 +243,7 @@
         <tr v-for="player in props.displayedPlayers" :key="player.id">
         <!-- Cellule joueur -->
         <td 
-            class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl sticky left-0 z-[50]"
+            class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors sticky left-0 z-[50]"
           :style="{ 
             width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -338,7 +338,7 @@
         <!-- Ligne "Afficher Plus" -->
         <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
           <td 
-            class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
+            class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 

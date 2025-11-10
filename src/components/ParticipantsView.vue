@@ -27,7 +27,7 @@
     <!-- En-têtes des joueurs -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2 rounded-xl"
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
         @click="showPlayerDetails(item)"
       >
         <PlayerAvatar
@@ -46,7 +46,7 @@
     <!-- En-tête "Afficher Plus" -->
     <template #show-more-header="{ itemWidth }">
       <div
-        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2 rounded-xl"
+        class="flex flex-col items-center space-y-1 cursor-pointer hover:bg-gray-700 transition-colors p-2"
         @click="addAllPlayersToGrid"
       >
         <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
@@ -63,7 +63,7 @@
       <tr v-for="event in events" :key="event.id">
         <!-- Cellule événement -->
         <td 
-          class="left-col-td rounded-xl px-4 py-3 m-1 cursor-pointer transition-colors"
+          class="left-col-td px-4 py-3 m-1 cursor-pointer transition-colors"
           :class="[
             event._isArchived 
               ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
