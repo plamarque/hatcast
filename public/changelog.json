@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.35.0",
+    "date": "2025-11-10",
+    "changes": [
+      "🔧 Amélioration de la clarté de l'expérience utilisateur dans la fenêtre de détail d'événement.",
+      "✨ Ajout de boutons de protection et d'édition pour les utilisateurs normaux dans la fenêtre de détail de joueur.",
+      "🐛 Correction : la cellule de disponibilité respecte la sélection spécifique au rôle.",
+      "🐛 Correction : affichage des disponibilités même quand aucun rôle n'est défini pour un événement.",
+      "🐛 Correction : le statut de l'équipe affiche incomplet lorsque tous les slots sont remplis.",
+      "🐛 Correction : masquage du bouton Composition pour les utilisateurs non connectés.",
+      "🐛 Correction : affichage du bouton Composition pour les admins d'événement dans la fenêtre de détail.",
+      "🐛 Correction : possibilité pour les admins d'événement de voir la pré-sélection (composition avant validation)."
+    ]
+  },
+  {
     "version": "0.34.0",
     "date": "2025-11-10",
     "changes": [

@@ -1,22 +1,27 @@
-## [0.34.0] - 2025-11-10
+## [0.35.0] - 2025-11-10
 
 ### ✨ New Features
 
-- feat: Ajout autocomplete pour les admins d'événement avec Teleport pour éviter les problèmes de z-index
-- feat: Add weekly availability reminders and improve existing ones
+- feat: improve event details modal UX clarity
+- feat: add protection and edit buttons for normal users in PlayerModal
+
+### 🐛 Bug Fixes
+
+- fix: availability cell status respects role-specific selection
+- fix: Afficher les disponibilités même quand aucun rôle n'est défini pour un événement
+- fix: team status shows incomplete when all slots filled
+- fix: Masquer le bouton Composition pour les utilisateurs non connectés
+- fix: Afficher le bouton Composition pour les admins d'événement dans la modale de détail
+- fix: Permettre aux admins d'événement de voir la pré-sélection (composition avant validation)
 
 ### 📝 Other Changes
 
-- Merge availability reminders feature: grouped emails and push notifications
-- Refactor: Group availability reminders and send batched emails
-- release: version 0.33.0
-- Refactor: Improve email templates and notification logic
-- Refactor: Move token generation to shared utility
-- Add playerId to availability reminders for magic link generation
+- release: version 0.34.0
 
 
 # Changelog
 
+## [0.35.0] - 2025-11-10
 ## [0.34.0] - 2025-11-10
 ## [0.33.0] - 2025-11-10
 ## [0.32.7] - 2025-11-09
