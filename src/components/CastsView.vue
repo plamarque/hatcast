@@ -1,32 +1,85 @@
 <template>
   <div class="w-full">
     <!-- Encart d'avertissement -->
-    <div class="bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-4 mb-4">
-      <div class="flex items-start space-x-3">
+    <div v-if="showWarning" class="bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-2 mb-3">
+      <div class="flex items-start space-x-2">
         <div class="flex-shrink-0">
-          <span class="text-yellow-400 text-xl">⚠️</span>
+          <span class="text-yellow-400 text-sm">⚠️</span>
         </div>
         <div class="flex-1">
-          <h3 class="text-yellow-200 font-medium text-sm mb-1">
-            Vue en cours de construction
-          </h3>
-          <p class="text-yellow-100 text-xs leading-relaxed">
-            Cette vue s'adresse plutôt aux sélectionneurs et permet de suivre les compositions et les statistiques des joueurs au fil du temps. 
-            Elle est encore en cours de construction et peut contenir des imprécisions.
-          </p>
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
+              <h3 class="text-yellow-200 font-medium text-xs mb-0.5">
+                Vue en cours de construction
+              </h3>
+              <p class="text-yellow-100 text-xs leading-tight">
+                Cette vue permet de voir les statistiques de participation et l'historique des compositions. 
+                Elle est encore en cours de construction et peut contenir des imprécisions. 
+                N'hésite pas à nous signaler toute imprécision.
+              </p>
+            </div>
+            <button
+              @click="dismissWarning"
+              class="flex-shrink-0 text-yellow-200 hover:text-yellow-100 text-xs font-medium px-2 py-1 rounded transition-colors"
+            >
+              Ok, compris
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Tableau avec colonnes de statistiques et événements -->
     <div class="overflow-x-auto casts-view" @scroll="handleScroll">
-    <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 4px 8px;">
+    <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 0;">
       <!-- En-tête de la table -->
       <thead class="sticky top-0 z-[110]">
+        <!-- Ligne d'en-tête de groupe -->
+        <tr>
+          <!-- Cellule vide pour la colonne de gauche -->
+          <th 
+            class="bg-gray-900 sticky left-0 z-[111]"
+            :style="{ 
+              width: dynamicLeftColumnWidth, 
+              minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
+              maxWidth: dynamicLeftColumnWidth 
+            }"
+            style="border: none; padding: 0;"
+          ></th>
+          
+          <!-- En-tête de groupe DECORUM -->
+          <template v-if="showStatsColumns">
+            <th 
+              colspan="6" 
+              class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-1.5 text-center rounded-tl"
+              style="border: none; margin: 0;"
+            >
+              DECORUM
+            </th>
+            <!-- En-tête de groupe JEU -->
+            <th 
+              colspan="4" 
+              class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1.5 text-center rounded-tr"
+              style="border: none; margin: 0;"
+            >
+              JEU
+            </th>
+            <!-- Cellule vide pour BÉNÉVOLE -->
+            <th colspan="1" class="rounded-tr" style="border: none; padding: 0; margin: 0;"></th>
+          </template>
+          
+          <!-- Cellules vides pour les événements -->
+          <th 
+            v-for="event in props.events"
+            :key="`group-${event.id}`"
+            style="border: none; padding: 0;"
+          ></th>
+        </tr>
+        
         <tr>
           <!-- Colonne de gauche (Bouton Exporter) -->
           <th 
-            class="col-left bg-gray-900 rounded-xl px-4 py-3 text-center sticky left-0 z-[111]"
+            class="col-left bg-gray-900 px-4 py-3 text-center sticky left-0 z-[111]"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -58,42 +111,75 @@
           <!-- Colonnes de comptage des rôles -->
           <template v-if="showStatsColumns">
             <!-- DÉCORUM -->
-            <th class="bg-violet-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🎤&nbsp;MC
+            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🎤</span>
+                <span>MC</span>
+              </div>
             </th>
-            <th class="bg-indigo-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🎧&nbsp;DJ
+            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🎧</span>
+                <span>DJ</span>
+              </div>
             </th>
-            <th class="bg-slate-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🙅&nbsp;ARBITRE
+            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 80px; min-width: 80px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🙅</span>
+                <span>ARBITRE</span>
+              </div>
             </th>
-            <th class="bg-slate-500 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              💁&nbsp;ASSIST.
+            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 75px; min-width: 75px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>💁</span>
+                <span>ASSIST.</span>
+              </div>
             </th>
-            <th class="bg-emerald-600 text-white text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🧢&nbsp;COACH
+            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 70px; min-width: 70px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🧢</span>
+                <span>COACH</span>
+              </div>
             </th>
-            <th class="bg-violet-800 text-white text-xs font-bold px-1 py-2 text-center border-l-2 border-violet-400" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              TOT&nbsp;DECORUM
+            <th class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-violet-200" style="width: 100px; min-width: 100px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>TOTAL</span>
+                <span>DECORUM</span>
+              </div>
             </th>
             
             <!-- JEU -->
-            <th class="bg-yellow-300 text-black text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🎭&nbsp;JEU&nbsp;MATCH
+            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🎭</span>
+                <span>JEU MATCH</span>
+              </div>
             </th>
-            <th class="bg-yellow-300 text-black text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🎭&nbsp;JEU&nbsp;CAB
+            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 85px; min-width: 85px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🎭</span>
+                <span>JEU CAB</span>
+              </div>
             </th>
-            <th class="bg-yellow-300 text-black text-xs px-1 py-2 text-center" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🎭&nbsp;JEU&nbsp;LONG
+            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🎭</span>
+                <span>JEU LONG</span>
+              </div>
             </th>
-            <th class="bg-yellow-600 text-black text-xs font-bold px-1 py-2 text-center border-l-2 border-yellow-400" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              TOT&nbsp;JEU
+            <th class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-amber-200" style="width: 80px; min-width: 80px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>TOTAL</span>
+                <span>JEU</span>
+              </div>
             </th>
             
             <!-- BÉNÉVOLES -->
-            <th class="bg-orange-400 text-black text-xs px-1 py-2 text-center border-l-2 border-orange-300" style="width: 24px; min-width: 24px; height: 60px; writing-mode: vertical-rl; text-orientation: mixed;">
-              🤝&nbsp;BÉNÉVOLE
+            <th class="bg-slate-100 text-slate-700 text-xs px-2 py-2 text-center border-l-2 border-r border-b border-slate-200 rounded-tr" style="width: 85px; min-width: 85px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🤝</span>
+                <span>BÉNÉVOLE</span>
+              </div>
             </th>
           </template>
           
@@ -168,7 +254,7 @@
         <tr v-for="player in props.displayedPlayers" :key="player.id">
         <!-- Cellule joueur -->
         <td 
-            class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl sticky left-0 z-[50]"
+            class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors sticky left-0 z-[50]"
           :style="{ 
             width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -195,42 +281,42 @@
           <!-- Cellules de comptage des rôles -->
           <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
             <!-- Colonnes de décorum -->
-            <td class="bg-violet-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.mc }}
+            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+              {{ stats.mc || '' }}
             </td>
-            <td class="bg-indigo-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.dj }}
+            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+              {{ stats.dj || '' }}
             </td>
-            <td class="bg-slate-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.referee }}
+            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 80px; min-width: 80px;">
+              {{ stats.referee || '' }}
             </td>
-            <td class="bg-slate-500 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.assistantReferee }}
+            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 75px; min-width: 75px;">
+              {{ stats.assistantReferee || '' }}
             </td>
-            <td class="bg-emerald-600 text-white text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.coach }}
+            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 70px; min-width: 70px;">
+              {{ stats.coach || '' }}
             </td>
-            <td class="bg-violet-800 text-white text-center text-sm font-bold border-l-2 border-violet-400" style="width: 24px; min-width: 24px;">
-              {{ stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach }}
+            <td class="bg-violet-100 text-violet-800 text-center text-sm font-bold border-l-2 border-r border-b border-violet-200" style="width: 100px; min-width: 100px;">
+              {{ (stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || '' }}
             </td>
             
             <!-- Colonnes de jeu -->
-            <td class="bg-yellow-300 text-black text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.jeuMatch }}
+            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+              {{ stats.jeuMatch || '' }}
             </td>
-            <td class="bg-yellow-300 text-black text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.jeuCab }}
+            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 85px; min-width: 85px;">
+              {{ stats.jeuCab || '' }}
             </td>
-            <td class="bg-yellow-300 text-black text-center text-sm" style="width: 24px; min-width: 24px;">
-              {{ stats.jeuLong }}
+            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+              {{ stats.jeuLong || '' }}
             </td>
-            <td class="bg-yellow-600 text-black text-center text-sm font-bold border-l-2 border-yellow-400" style="width: 24px; min-width: 24px;">
-              {{ stats.totalJeu }}
+            <td class="bg-amber-100 text-amber-800 text-center text-sm font-bold border-l-2 border-r border-b border-amber-200" style="width: 80px; min-width: 80px;">
+              {{ stats.totalJeu || '' }}
             </td>
             
             <!-- Colonne bénévoles -->
-            <td class="bg-orange-400 text-black text-center text-sm border-l-2 border-orange-300" style="width: 24px; min-width: 24px;">
-              {{ stats.volunteer }}
+            <td class="bg-slate-100 text-slate-700 text-center text-sm border-l-2 border-r border-b border-slate-200" style="width: 85px; min-width: 85px;">
+              {{ stats.volunteer || '' }}
             </td>
           </template>
         
@@ -263,7 +349,7 @@
         <!-- Ligne "Afficher Plus" -->
         <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
           <td 
-            class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
+            class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
             :style="{ 
               width: dynamicLeftColumnWidth, 
               minWidth: windowWidth > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -439,7 +525,22 @@ const emit = defineEmits([
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
 // State pour contrôler l'affichage des colonnes de statistiques
-const showStatsColumns = ref(false)
+const showStatsColumns = ref(true)
+
+// State pour contrôler l'affichage de l'avertissement
+const showWarning = ref((() => {
+  if (typeof window === 'undefined') return true
+  const dismissed = localStorage.getItem('casts-view-warning-dismissed')
+  return dismissed !== 'true'
+})())
+
+// Fonction pour masquer l'avertissement
+function dismissWarning() {
+  showWarning.value = false
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('casts-view-warning-dismissed', 'true')
+  }
+}
 
 // Écouter les changements de taille d'écran
 onMounted(() => {
@@ -685,11 +786,11 @@ function exportToExcel() {
       'ARBITRE',
       'ASSIST.',
       'COACH',
-      'TOT DECORUM',
+      'TOTAL DECORUM',
       'JEU MATCH',
       'JEU CAB',
       'JEU LONG',
-      'TOT JEU',
+      'TOTAL JEU',
       'BÉNÉVOLE',
       ...props.events.map(event => event.title)
     ]

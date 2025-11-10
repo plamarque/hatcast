@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.36.0",
+    "date": "2025-11-10",
+    "changes": [
+      "✨ Tu peux maintenant fermer l'avertissement dans la vue de composition, et il est plus compact.",
+      "✨ Les colonnes de statistiques s'affichent par défaut dans la vue de composition.",
+      "🐛 Les coins arrondis ont été supprimés des cellules de la première colonne."
+    ]
+  },
+  {
     "version": "0.35.0",
     "date": "2025-11-10",
     "changes": [

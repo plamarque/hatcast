@@ -27,7 +27,7 @@
     <!-- En-têtes des événements -->
     <template #headers="{ item, itemWidth }">
       <div
-        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
+        class="col-event flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer"
         :class="[
           item._isArchived 
             ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
@@ -86,7 +86,7 @@
       <tr v-for="player in players" :key="player.id">
         <!-- Cellule joueur -->
         <td 
-          class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors rounded-xl"
+          class="left-col-td bg-gray-900 px-4 py-3 cursor-pointer hover:bg-gray-800 transition-colors"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
@@ -147,7 +147,7 @@
       <!-- Ligne "Afficher Plus" -->
       <tr v-if="!isAllPlayersView && hiddenPlayersCount > 0">
         <td 
-          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700 rounded-xl"
+          class="left-col-td bg-gray-800 px-4 py-3 border-r border-gray-700"
           :style="{ 
             width: dynamicLeftColumnWidth, 
             minWidth: windowWidth.value > 768 ? '6rem' : dynamicLeftColumnWidth, 
