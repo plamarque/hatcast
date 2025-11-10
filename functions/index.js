@@ -5,15 +5,8 @@ const { defineSecret } = require('firebase-functions/params')
 admin.initializeApp()
 const db = admin.firestore()
 
-// Helper function to generate random tokens
-function generateRandomToken(length = 32) {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let token = ''
-  for (let i = 0; i < length; i++) {
-    token += charset[Math.floor(Math.random() * charset.length)]
-  }
-  return token
-}
+// Import token utilities
+const { generateRandomToken } = require('./utils/tokenUtils')
 
 // Définir le secret Google Maps API Key (optionnel)
 // const googleMapsApiKey = defineSecret('GOOGLE_MAPS_API_KEY')
