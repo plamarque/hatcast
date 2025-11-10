@@ -3754,8 +3754,11 @@ async function canEditSpecificEvent(eventId, force = false) {
       await permissionService.initialize();
     }
     
-    // Utiliser canEditEvent qui vérifie Super Admin OU Admin de saison OU Admin d'événement
-    const canEdit = await permissionService.canEditEvent(eventId, seasonId.value, force);
+    // Utiliser canManageComposition qui vérifie Super Admin OU Admin de saison OU Admin d'événement OU Caster
+    // (canEditEvent ne vérifie pas les casters, donc on utilise canManageComposition pour les compositions)
+    const canEdit = await permissionService.canManageComposition(eventId, seasonId.value, force);
+    
+    logger.info(`🔐 [GridBoard] canEditSpecificEvent pour ${eventId}: ${canEdit ? '✅ OUI' : '❌ NON'}`);
     
     // Mettre en cache
     canEditEventMap[eventId] = canEdit;
@@ -3779,9 +3782,10 @@ async function loadEventPermissions() {
     }
     
     // Charger les permissions pour chaque événement en parallèle
+    // Utiliser canManageComposition qui vérifie Super Admin OU Admin de saison OU Admin d'événement OU Caster
     const permissionPromises = events.value.map(async (event) => {
       try {
-        const canEdit = await permissionService.canEditEvent(event.id, seasonId.value);
+        const canEdit = await permissionService.canManageComposition(event.id, seasonId.value);
         canEditEventMap[event.id] = canEdit;
       } catch (error) {
         logger.warn(`⚠️ Erreur lors du chargement des permissions pour l'événement ${event.id}:`, error);
@@ -5958,9 +5962,20 @@ onMounted(async () => {
 })
 
 // Watch for authentication state changes to update view mode
-watch(() => currentUser.value?.email, (newEmail) => {
+watch(() => currentUser.value?.email, async (newEmail, oldEmail) => {
   logger.debug('Changement d\'état d\'authentification détecté:', newEmail ? 'connecté' : 'déconnecté')
   initializeViewMode()
+  
+  // Invalider le cache des permissions d'événement lors du changement d'utilisateur
+  if (newEmail !== oldEmail) {
+    logger.info('🔐 [GridBoard] Invalidation du cache des permissions d\'événement suite au changement d\'utilisateur')
+    // Vider le cache
+    Object.keys(canEditEventMap).forEach(key => delete canEditEventMap[key])
+    // Recharger les permissions si on a des événements
+    if (seasonId.value && events.value && events.value.length > 0) {
+      await loadEventPermissions()
+    }
+  }
   
   // Fermer la modale de sélection si l'utilisateur se déconnecte
   if (!newEmail && showSelectionModal.value) {

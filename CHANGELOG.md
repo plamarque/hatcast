@@ -1,22 +1,27 @@
-## [0.36.0] - 2025-11-10
+## [0.37.0] - 2025-11-10
 
 ### ✨ New Features
 
-- feat: make composition view warning dismissable and more compact
-- feat: show stats columns by default in composition view
+- feat: add caster role and season role administration UI
 
 ### 🐛 Bug Fixes
 
-- fix: remove rounded corners from first column cells
+- fix: restrict manual selection for casters and allow admins to edit freely
+- fix: allow casters to see compositions and improve permission logging
+- fix: improve permission cache management and fix caster permissions
+
+### 🔧 Improvements
+
+- refactor: reorganize season admin page layout and update terminology
 
 ### 📝 Other Changes
 
-- style: modernize stats table design with soft colors and colored borders
-- release: version 0.35.0
+- release: version 0.36.0
 
 
 # Changelog
 
+## [0.37.0] - 2025-11-10
 ## [0.36.0] - 2025-11-10
 ## [0.35.0] - 2025-11-10
 ## [0.34.0] - 2025-11-10

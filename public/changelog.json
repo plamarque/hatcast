@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.37.0",
+    "date": "2025-11-10",
+    "changes": [
+      "✨ Ajout d'une interface pour gérer les rôles de caster et de saison.",
+      "🐛 Restriction de la sélection manuelle pour les casters, les admins peuvent maintenant éditer librement.",
+      "🐛 Les casters peuvent voir les compositions et la gestion des permissions a été améliorée.",
+      "🐛 Amélioration de la gestion du cache des permissions et correction des permissions des casters.",
+      "🔧 Réorganisation de la mise en page de la page d'administration de saison et mise à jour de la terminologie."
+    ]
+  },
+  {
     "version": "0.36.0",
     "date": "2025-11-10",
     "changes": [

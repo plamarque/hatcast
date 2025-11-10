@@ -1438,6 +1438,8 @@ export async function addEventAdmin(eventId, userEmail, seasonId) {
     
     // Invalider le cache des permissions
     permissionService.invalidateEventCache(eventId, seasonId)
+    // Invalider aussi le cache global pour forcer le rechargement des permissions
+    permissionService.invalidateAllCache()
     
     logger.info(`✅ Admin ${userEmail} ajouté à l'événement ${eventId}`)
     return true
@@ -1493,6 +1495,8 @@ export async function removeEventAdmin(eventId, userEmail, seasonId) {
     
     // Invalider le cache des permissions
     permissionService.invalidateEventCache(eventId, seasonId)
+    // Invalider aussi le cache global pour forcer le rechargement des permissions
+    permissionService.invalidateAllCache()
     
     logger.info(`✅ Admin ${userEmail} retiré de l'événement ${eventId}`)
     return true
