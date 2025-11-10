@@ -250,7 +250,7 @@
         </div>
 
         <!-- Message d'information pour composition avec joueurs déclinés -->
-        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers && hasEmptySlots" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-orange-200 text-sm">
             <span>⚠️</span>
             <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
@@ -1101,10 +1101,8 @@ const hasIncompleteSelection = computed(() => {
   // Vérifier si des joueurs composés ne sont plus disponibles
   const hasUnavailablePlayers = selectedPlayers.some(player => !isPlayerAvailable(player))
   
-  // Vérifier si des joueurs sélectionnés ont décliné
-  const hasDeclinedPlayers = selectedPlayers.some(player => {
-    return props.currentSelection?.playerStatuses?.[player] === 'declined'
-  })
+  // Vérifier s'il y a des slots vides
+  const hasEmpty = hasEmptySlots.value
   
   // Vérifier s'il y a assez de joueurs disponibles pour compléter la composition
   const requiredCount = props.event?.roles && typeof props.event.roles === 'object' 
@@ -1112,7 +1110,11 @@ const hasIncompleteSelection = computed(() => {
     : (props.event?.playerCount || 6)
   const hasInsufficientPlayers = props.availableCount < requiredCount
   
-  return hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers
+  // L'équipe est incomplète seulement si :
+  // - Il y a des joueurs indisponibles, OU
+  // - Il n'y a pas assez de joueurs disponibles, OU
+  // - Il y a des slots vides (même si causés par des déclinés)
+  return hasUnavailablePlayers || hasInsufficientPlayers || hasEmpty
 })
 
 // Computed property pour détecter s'il y a des slots vides (vraiment vides, pas des joueurs déclinés)

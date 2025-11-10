@@ -600,9 +600,9 @@
       <div class="relative p-1 sm:p-2 md:p-3">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-2 top-2 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
-        <!-- Titre avec pastille intégrée et chevron expand/collapse - Pleine largeur -->
+        <!-- Titre avec pastille intégrée et icône 3-dots pour actions - Pleine largeur -->
         <div class="flex flex-col gap-2 mb-2">
-          <!-- Ligne principale : Pastille + Titre + Chevron -->
+          <!-- Ligne principale : Pastille + Titre + Icône 3-dots -->
           <div class="flex items-center gap-2">
             <span class="text-lg text-gray-300 bg-gray-700/50 px-2 py-1 rounded-md border border-gray-600/50">{{ getEventTypeIcon(selectedEvent) }}</span>
             <!-- Titre avec dropdown intégré -->
@@ -613,14 +613,14 @@
                 title="Cliquer pour les actions de l'événement"
               >
                 {{ selectedEvent?.title }}
-                <!-- Bouton expand/collapse pour les détails -->
+                <!-- Icône 3-dots pour indiquer les actions disponibles -->
                 <button
-                  @click.stop="showEventDetailsSection = !showEventDetailsSection"
+                  @click.stop="showEventActionsDropdown = !showEventActionsDropdown"
                   class="text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 flex-shrink-0"
-                  :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+                  title="Actions de l'événement"
                 >
-                  <svg class="w-4 h-4 transform transition-transform duration-200" :class="{ 'rotate-180': showEventDetailsSection }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                   </svg>
                 </button>
               </h2>
@@ -699,6 +699,17 @@
                 </template>
               </div>
             </div>
+          </div>
+          
+          <!-- Badge pour afficher/masquer les détails -->
+          <div class="flex items-center pl-1">
+            <button
+              @click="showEventDetailsSection = !showEventDetailsSection"
+              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors"
+              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+            >
+              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
+            </button>
           </div>
           
           <!-- Status de l'événement - Nouvelle ligne -->
@@ -1006,7 +1017,7 @@
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
               <!-- Message si composition non validée pour utilisateurs normaux -->
-              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditEvents" class="text-center py-8">
+              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditSelectedEvent" class="text-center py-8">
                 <div class="text-gray-400 text-lg mb-2">⏳</div>
                 <div class="text-gray-300 text-sm">
                   La composition n'est pas encore validée par l'organisateur
@@ -1017,7 +1028,7 @@
               </div>
               
               <!-- Slots de composition (pour admins ou si validée) -->
-              <div v-else-if="canEditEvents || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
@@ -1049,7 +1060,7 @@
                   <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
                 </div>
               </div>
-              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition && hasEmptySlotsInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
                 <div class="flex items-center gap-2 text-orange-200 text-sm">
                   <span>⚠️</span>
                   <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
@@ -1163,8 +1174,16 @@
               </div>
               
               <!-- Vue par rôles normale -->
+              <div v-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && allSeasonPlayers.length === 0" class="text-center py-8 text-gray-400">
+                <div class="text-lg mb-2">⏳</div>
+                <div class="text-sm">Chargement des joueurs...</div>
+              </div>
+              <div v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && (!selectedEvent.roles || Object.keys(selectedEvent.roles).length === 0)" class="text-center py-8 text-gray-400">
+                <div class="text-lg mb-2">🎯</div>
+                <div class="text-sm">Aucun rôle défini pour cet événement</div>
+              </div>
               <EventRoleGroupingView
-                v-else-if="selectedEvent && (!selectedTeamPlayer || selectedTeamPlayer.id === 'all')"
+                v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer)"
                 :selected-event="selectedEvent"
                 :season-id="seasonId"
                 :players="allSeasonPlayers"
@@ -1208,7 +1227,7 @@
         <div class="flex justify-center flex-wrap gap-3">
           <!-- Boutons principaux -->
           <button 
-            v-if="canEditEvents"
+            v-if="canEditSelectedEvent"
             @click="openSelectionModal(selectedEvent)" 
             class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
             title="Gérer la composition"
@@ -1225,7 +1244,7 @@
       <div class="md:hidden sticky bottom-0 w-full p-2 sm:p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-sm">
         <div class="flex items-center gap-1 sm:gap-2 min-w-0">
           <button 
-            v-if="canEditEvents"
+            v-if="canEditSelectedEvent"
             @click="openSelectionModal(selectedEvent)" 
             class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm"
           >
@@ -1980,7 +1999,7 @@
 </style>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
@@ -2874,7 +2893,8 @@ const showDevelopmentModal = ref(false)
 // Variables pour la gestion des rôles
 const canEditEvents = ref(false)
 const isSuperAdmin = ref(false)
-const canEditEventMap = ref(new Map()) // Map eventId -> boolean (permissions par événement)
+const canEditEventMap = reactive({}) // Objet réactif eventId -> boolean (permissions par événement)
+const eventPermissionsLoading = reactive({}) // Objet réactif eventId -> boolean (en cours de chargement)
 
 // Variables pour l'affichage de la composition
 const isCompositionView = ref(false)
@@ -3069,10 +3089,12 @@ watch([eventDetailsActiveTab, selectedEvent], () => {
     // Initialiser selectedTeamPlayer selon les règles :
     // - Si connecté : afficher les disponibilités de l'utilisateur connecté
     // - Si pas connecté : afficher EventRoleGroupingView avec tous les joueurs
-    if (currentUserPlayer.value && !selectedTeamPlayer.value) {
-      selectedTeamPlayer.value = currentUserPlayer.value
-    } else if (!currentUserPlayer.value && !selectedTeamPlayer.value) {
-      selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    if (!selectedTeamPlayer.value) {
+      if (currentUserPlayer.value) {
+        selectedTeamPlayer.value = currentUserPlayer.value
+      } else {
+        selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+      }
     }
     
     nextTick(() => {
@@ -3088,6 +3110,17 @@ watch(selectedEvent, (newEvent) => {
   }
 }, { immediate: true })
 
+// Watcher pour charger les permissions de l'événement sélectionné si elles ne sont pas en cache
+watch(selectedEvent, async (newEvent) => {
+  if (newEvent?.id && currentUser.value?.email) {
+    // Vérifier si les permissions ne sont pas encore en cache
+    if (!(newEvent.id in canEditEventMap)) {
+      // Charger les permissions pour cet événement spécifique
+      await canEditSpecificEvent(newEvent.id)
+    }
+  }
+}, { immediate: true })
+
 
 // Onglet Composition: computed helpers
 const hasCompositionForSelectedEvent = computed(() => {
@@ -3098,13 +3131,52 @@ const hasCompositionForSelectedEvent = computed(() => {
   return Object.values(cast.roles).some(arr => Array.isArray(arr) && arr.length > 0)
 })
 
+// Computed pour obtenir les permissions d'édition pour l'événement sélectionné
+const canEditSelectedEvent = computed(() => {
+  if (!selectedEvent.value) return false
+  // Vérifier que l'utilisateur est connecté
+  if (!currentUser.value?.email) return false
+  
+  const eventId = selectedEvent.value.id
+  // Si les permissions ne sont pas en cache, déclencher le chargement
+  if (!(eventId in canEditEventMap) && !eventPermissionsLoading[eventId]) {
+    // Déclencher le chargement de manière asynchrone
+    eventPermissionsLoading[eventId] = true
+    canEditSpecificEvent(eventId).then(() => {
+      delete eventPermissionsLoading[eventId]
+    })
+    // Retourner canEditEvents en attendant (pour les super admins et admins de saison)
+    return canEditEvents.value
+  }
+  
+  return canEditEventMap[eventId] ?? canEditEvents.value
+})
+
+// Helper pour obtenir les permissions d'édition d'un événement (utilisé dans les computed)
+function getCanEditEvent(eventId) {
+  if (!eventId || !currentUser.value?.email) return false
+  
+  // Si les permissions ne sont pas en cache, déclencher le chargement
+  if (!(eventId in canEditEventMap) && !eventPermissionsLoading[eventId]) {
+    // Déclencher le chargement de manière asynchrone
+    eventPermissionsLoading[eventId] = true
+    canEditSpecificEvent(eventId).then(() => {
+      delete eventPermissionsLoading[eventId]
+    })
+    // Retourner canEditEvents en attendant (pour les super admins et admins de saison)
+    return canEditEvents.value
+  }
+  
+  return canEditEventMap[eventId] ?? canEditEvents.value
+}
+
 const compositionSlots = computed(() => {
   if (!selectedEvent.value?.roles) return []
   const eventId = selectedEvent.value.id
   
   // Ne pas afficher les slots de composition si elle n'est pas validée par l'organisateur
   // SAUF pour les admins qui peuvent voir la composition même non validée
-  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  const canEditThisEvent = getCanEditEvent(eventId)
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return []
   }
@@ -3145,6 +3217,10 @@ const compositionSlots = computed(() => {
 
 const hasDeclinedPlayersInComposition = computed(() => {
   return compositionSlots.value.some(s => s.selectionStatus === 'declined')
+})
+
+const hasEmptySlotsInComposition = computed(() => {
+  return compositionSlots.value.some(s => !s.playerName)
 })
 
 // If the current user player disappears, reset the selection to "Tous"
@@ -3669,8 +3745,8 @@ async function canEditSpecificEvent(eventId, force = false) {
     if (!eventId || !seasonId.value) return false;
     
     // Vérifier le cache d'abord
-    if (!force && canEditEventMap.value.has(eventId)) {
-      return canEditEventMap.value.get(eventId);
+    if (!force && eventId in canEditEventMap) {
+      return canEditEventMap[eventId];
     }
     
     // Vérifier que permissionService est initialisé
@@ -3682,7 +3758,7 @@ async function canEditSpecificEvent(eventId, force = false) {
     const canEdit = await permissionService.canEditEvent(eventId, seasonId.value, force);
     
     // Mettre en cache
-    canEditEventMap.value.set(eventId, canEdit);
+    canEditEventMap[eventId] = canEdit;
     
     return canEdit;
   } catch (error) {
@@ -3706,11 +3782,11 @@ async function loadEventPermissions() {
     const permissionPromises = events.value.map(async (event) => {
       try {
         const canEdit = await permissionService.canEditEvent(event.id, seasonId.value);
-        canEditEventMap.value.set(event.id, canEdit);
+        canEditEventMap[event.id] = canEdit;
       } catch (error) {
         logger.warn(`⚠️ Erreur lors du chargement des permissions pour l'événement ${event.id}:`, error);
         // Fallback : utiliser les permissions globales
-        canEditEventMap.value.set(event.id, canEditEvents.value);
+        canEditEventMap[event.id] = canEditEvents.value;
       }
     });
     
@@ -6921,7 +6997,7 @@ function isSelected(player, eventId) {
   
   // Pour les admins, afficher les sélections même si la composition n'est pas validée
   // Pour les utilisateurs normaux, ne pas afficher les sélections si la composition n'est pas validée
-  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  const canEditThisEvent = canEditEventMap[eventId] ?? canEditEvents.value
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return false
   }
@@ -9750,20 +9826,28 @@ function getEventStatus(eventId) {
     
     // Vérifier si des joueurs sélectionnés ont décliné
     const selection = casts.value[eventId]
-    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
-      return selection?.playerStatuses?.[playerName] === 'declined'
-    })
+    const declinedPlayers = selectedPlayers.filter(playerName => 
+      selection?.playerStatuses?.[playerName] === 'declined'
+    )
+    const hasDeclinedPlayers = declinedPlayers.length > 0
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
+    // Vérifier s'il y a des slots vides : compter les joueurs non-déclinés
+    const nonDeclinedPlayers = selectedPlayers.filter(playerName => 
+      selection?.playerStatuses?.[playerName] !== 'declined'
+    )
+    const hasEmptySlots = nonDeclinedPlayers.length < requiredCount
+    
+    // Ne considérer hasDeclinedPlayers comme un problème que s'il y a des slots vides
+    // Si tous les slots sont remplis, l'équipe n'est pas incomplète même avec des déclinés
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasEmptySlots) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
-        hasDeclinedPlayers,
+        hasDeclinedPlayers: hasDeclinedPlayers && hasEmptySlots, // Seulement si slots vides
+        hasEmptySlots,
         unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
-        declinedPlayers: selectedPlayers.filter(playerName => 
-          selection?.playerStatuses?.[playerName] === 'declined'
-        ),
+        declinedPlayers,
         availableCount,
         requiredCount,
         isConfirmedByOrganizer,
@@ -10446,7 +10530,7 @@ function getPlayerSelectionStatus(playerName, eventId) {
   
   // Pour les admins, afficher le statut même si la composition n'est pas validée
   // Pour les utilisateurs normaux, ne pas afficher le statut si la composition n'est pas validée
-  const canEditThisEvent = canEditEventMap.value.get(eventId) ?? canEditEvents.value
+  const canEditThisEvent = canEditEventMap[eventId] ?? canEditEvents.value
   if (!isSelectionConfirmedByOrganizer(eventId) && !canEditThisEvent) {
     return null
   }

@@ -18,8 +18,8 @@
       </template>
       
       <!-- Affichage normal pour les événements futurs ou les membres confirmés d'événements passés -->
-      <!-- Affichage des sélections (seulement si composition validée par l'organisateur OU si admin) -->
-      <template v-else-if="isSelected && (isSelectionConfirmedByOrganizer || canEditEvents)">
+      <!-- Affichage des sélections (seulement si composition validée par l'organisateur OU si admin - playerSelectionStatus est déjà filtré par getPlayerSelectionStatus qui inclut les admins d'événement) -->
+      <template v-else-if="isSelected && (isSelectionConfirmedByOrganizer || playerSelectionStatus)">
         <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="playerSelectionStatus && playerSelectionStatus !== 'none'">
           <!-- Ligne 1: nom du rôle -->
