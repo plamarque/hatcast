@@ -34,8 +34,8 @@
       <!-- Contenu normal -->
       <template v-else>
         
-        <!-- Affichage avec confirmation (2 lignes) - seulement si la composition est validée par l'organisateur -->
-        <template v-if="isSelected && playerSelectionStatus && (isSelectionConfirmedByOrganizer || canEditEvents)">
+        <!-- Affichage avec confirmation (2 lignes) - seulement si la composition est validée par l'organisateur OU si admin (playerSelectionStatus est déjà filtré par getPlayerSelectionStatus qui inclut les admins d'événement) -->
+        <template v-if="isSelected && playerSelectionStatus">
           <!-- Ligne 1: nom du rôle -->
           <div class="text-center">
             <span class="text-sm font-medium">
@@ -68,7 +68,7 @@
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
       <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation OU si composition non validée) -->
-      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus && (isSelectionConfirmedByOrganizer || canEditEvents))">
+      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus)">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
@@ -104,7 +104,7 @@
       </template>
       
       <!-- Icône commentaire seule (quand pas de rôles spécifiques) -->
-      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus && (isSelectionConfirmedByOrganizer || canEditEvents))">
+      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus)">
         <div class="flex items-center justify-center mt-1">
           <span 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"

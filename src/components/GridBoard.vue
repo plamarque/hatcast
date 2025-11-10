@@ -1006,7 +1006,7 @@
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
               <!-- Message si composition non validée pour utilisateurs normaux -->
-              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditEvents" class="text-center py-8">
+              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditSelectedEvent" class="text-center py-8">
                 <div class="text-gray-400 text-lg mb-2">⏳</div>
                 <div class="text-gray-300 text-sm">
                   La composition n'est pas encore validée par l'organisateur
@@ -1017,7 +1017,7 @@
               </div>
               
               <!-- Slots de composition (pour admins ou si validée) -->
-              <div v-else-if="canEditEvents || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
@@ -3096,6 +3096,12 @@ const hasCompositionForSelectedEvent = computed(() => {
   if (!cast || !cast.roles) return false
   // True if any role has at least one assigned player id
   return Object.values(cast.roles).some(arr => Array.isArray(arr) && arr.length > 0)
+})
+
+// Computed pour obtenir les permissions d'édition pour l'événement sélectionné
+const canEditSelectedEvent = computed(() => {
+  if (!selectedEvent.value) return false
+  return canEditEventMap.value.get(selectedEvent.value.id) ?? canEditEvents.value
 })
 
 const compositionSlots = computed(() => {
