@@ -423,6 +423,7 @@ exports.processAvailabilityReminders = functions.pubsub
                 seasonId,
                 playerEmail,
                 playerName,
+                playerId: playerDoc.id, // Ajouter playerId pour la génération des magic links
                 eventTitle: eventData.title,
                 eventDate: eventData.date,
                 seasonSlug: seasonData.slug,
@@ -483,7 +484,13 @@ exports.processAvailabilityReminders = functions.pubsub
  */
 async function sendAvailabilityReminderNotification({ reminder, eventUrl, seasonSlug, seasonId, eventId }) {
   try {
-    const { playerEmail, playerName, eventTitle, eventDate } = reminder
+    const { playerEmail, playerName, playerId, eventTitle, eventDate } = reminder
+
+    // Vérifier que playerId est disponible (requis pour la génération des magic links)
+    if (!playerId) {
+      console.error('playerId manquant dans le rappel:', reminder)
+      throw new Error('playerId manquant pour générer les magic links')
+    }
 
     // Récupérer les préférences utilisateur
     const userPrefsDoc = await db.collection('userPreferences').doc(playerEmail).get()
@@ -497,6 +504,7 @@ async function sendAvailabilityReminderNotification({ reminder, eventUrl, season
     }
 
     // Créer les magic links pour répondre (version serveur)
+    // Utiliser playerId (ID du joueur) au lieu de playerName pour cohérence avec le client
     const baseUrl = functions.config().app?.base_url || 'https://hatcast.app'
     const yesToken = generateRandomToken(40)
     const noToken = generateRandomToken(40)
@@ -504,12 +512,13 @@ async function sendAvailabilityReminderNotification({ reminder, eventUrl, season
     const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * expirationDays
 
     // Sauvegarder les magic links dans Firestore
-    const yesLinkId = `${seasonId}__${playerName}__${eventId}__yes`
-    const noLinkId = `${seasonId}__${playerName}__${eventId}__no`
+    // Utiliser playerId dans le buildId pour cohérence avec magicLinks.js côté client
+    const yesLinkId = `${seasonId}__${playerId}__${eventId}__yes`
+    const noLinkId = `${seasonId}__${playerId}__${eventId}__no`
 
     await db.collection('magicLinks').doc(yesLinkId).set({
       seasonId,
-      playerId: playerName,
+      playerId: playerId, // Utiliser playerId (ID du joueur) au lieu de playerName
       eventId,
       token: yesToken,
       action: 'yes',
@@ -518,15 +527,16 @@ async function sendAvailabilityReminderNotification({ reminder, eventUrl, season
 
     await db.collection('magicLinks').doc(noLinkId).set({
       seasonId,
-      playerId: playerName,
+      playerId: playerId, // Utiliser playerId (ID du joueur) au lieu de playerName
       eventId,
       token: noToken,
       action: 'no',
       expiresAt
     })
 
-    const yesUrl = `${baseUrl}/magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerName)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(yesToken)}&a=yes&slug=${encodeURIComponent(seasonSlug)}`
-    const noUrl = `${baseUrl}/magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerName)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(noToken)}&a=no&slug=${encodeURIComponent(seasonSlug)}`
+    // Construire les URLs avec playerId (ID du joueur) pour cohérence avec le format côté client
+    const yesUrl = `${baseUrl}/magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(yesToken)}&a=yes&slug=${encodeURIComponent(seasonSlug)}`
+    const noUrl = `${baseUrl}/magic?sid=${encodeURIComponent(seasonId)}&pid=${encodeURIComponent(playerId)}&eid=${encodeURIComponent(eventId)}&t=${encodeURIComponent(noToken)}&a=no&slug=${encodeURIComponent(seasonSlug)}`
 
     const results = []
 
