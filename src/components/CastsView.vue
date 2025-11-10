@@ -1,19 +1,30 @@
 <template>
   <div class="w-full">
     <!-- Encart d'avertissement -->
-    <div class="bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-4 mb-4">
-      <div class="flex items-start space-x-3">
+    <div v-if="showWarning" class="bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-2 mb-3">
+      <div class="flex items-start space-x-2">
         <div class="flex-shrink-0">
-          <span class="text-yellow-400 text-xl">⚠️</span>
+          <span class="text-yellow-400 text-sm">⚠️</span>
         </div>
         <div class="flex-1">
-          <h3 class="text-yellow-200 font-medium text-sm mb-1">
-            Vue en cours de construction
-          </h3>
-          <p class="text-yellow-100 text-xs leading-relaxed">
-            Cette vue s'adresse plutôt aux sélectionneurs et permet de suivre les compositions et les statistiques des joueurs au fil du temps. 
-            Elle est encore en cours de construction et peut contenir des imprécisions.
-          </p>
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
+              <h3 class="text-yellow-200 font-medium text-xs mb-0.5">
+                Vue en cours de construction
+              </h3>
+              <p class="text-yellow-100 text-xs leading-tight">
+                Cette vue permet de voir les statistiques de participation et l'historique des compositions. 
+                Elle est encore en cours de construction et peut contenir des imprécisions. 
+                N'hésite pas à nous signaler toute imprécision.
+              </p>
+            </div>
+            <button
+              @click="dismissWarning"
+              class="flex-shrink-0 text-yellow-200 hover:text-yellow-100 text-xs font-medium px-2 py-1 rounded transition-colors"
+            >
+              Ok, compris
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -515,6 +526,21 @@ const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024
 
 // State pour contrôler l'affichage des colonnes de statistiques
 const showStatsColumns = ref(true)
+
+// State pour contrôler l'affichage de l'avertissement
+const showWarning = ref((() => {
+  if (typeof window === 'undefined') return true
+  const dismissed = localStorage.getItem('casts-view-warning-dismissed')
+  return dismissed !== 'true'
+})())
+
+// Fonction pour masquer l'avertissement
+function dismissWarning() {
+  showWarning.value = false
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('casts-view-warning-dismissed', 'true')
+  }
+}
 
 // Écouter les changements de taille d'écran
 onMounted(() => {
