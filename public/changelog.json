@@ -1,9 +1,9 @@
 [
   {
     "version": "0.32.7",
-    "date": "2025-11-09",
+    "date": "2025-11-10",
     "changes": [
-      "🐛 Correction d'un problème lié à la vérification du statut super administrateur."
+      "✨ Ajout d'une gestion spécifique aux événements pour les admins"
     ]
   },
   {
