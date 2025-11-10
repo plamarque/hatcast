@@ -114,7 +114,7 @@ exports.checkSeasonAdminStatus = functions
 });
 
 /**
- * Accorder le rôle Admin de saison à un utilisateur (Super Admin uniquement)
+ * Accorder le rôle Admin de saison à un utilisateur (Super Admin ou Admin de saison)
  */
 exports.grantSeasonAdmin = functions
   .runWith({ secrets: [superAdminEmailsSecret] })
@@ -125,15 +125,6 @@ exports.grantSeasonAdmin = functions
         const user = req.user;
         const { seasonId, userEmail } = req.body;
         
-        // Vérifier que l'utilisateur est Super Admin
-        const isSuperAdmin = roleService.isSuperAdmin(user.email);
-        if (!isSuperAdmin) {
-          return res.status(403).json({ 
-            error: 'Forbidden',
-            message: 'Seuls les Super Admins peuvent accorder des rôles'
-          });
-        }
-        
         if (!seasonId || !userEmail) {
           return res.status(400).json({ 
             error: 'Bad request',
@@ -141,14 +132,17 @@ exports.grantSeasonAdmin = functions
           });
         }
         
-        // Accorder le rôle
-        await roleService.grantSeasonAdmin(seasonId, userEmail, user.email);
-        
-        res.json({
-          success: true,
-          message: `Rôle Admin accordé à ${userEmail} pour la saison ${seasonId}`,
-          grantedBy: user.email,
-          timestamp: new Date().toISOString()
+        // Vérifier que l'utilisateur est Super Admin ou Admin de saison
+        await roleService.requireSeasonAdmin(seasonId, req, res, async () => {
+          // Accorder le rôle
+          await roleService.grantSeasonAdmin(seasonId, userEmail, user.email);
+          
+          res.json({
+            success: true,
+            message: `Rôle Admin accordé à ${userEmail} pour la saison ${seasonId}`,
+            grantedBy: user.email,
+            timestamp: new Date().toISOString()
+          });
         });
       });
     } catch (error) {
@@ -162,7 +156,7 @@ exports.grantSeasonAdmin = functions
 });
 
 /**
- * Révoquer le rôle Admin de saison d'un utilisateur (Super Admin uniquement)
+ * Révoquer le rôle Admin de saison d'un utilisateur (Super Admin ou Admin de saison)
  */
 exports.revokeSeasonAdmin = functions
   .runWith({ secrets: [superAdminEmailsSecret] })
@@ -173,15 +167,6 @@ exports.revokeSeasonAdmin = functions
         const user = req.user;
         const { seasonId, userEmail } = req.body;
         
-        // Vérifier que l'utilisateur est Super Admin
-        const isSuperAdmin = roleService.isSuperAdmin(user.email);
-        if (!isSuperAdmin) {
-          return res.status(403).json({ 
-            error: 'Forbidden',
-            message: 'Seuls les Super Admins peuvent révoquer des rôles'
-          });
-        }
-        
         if (!seasonId || !userEmail) {
           return res.status(400).json({ 
             error: 'Bad request',
@@ -189,14 +174,17 @@ exports.revokeSeasonAdmin = functions
           });
         }
         
-        // Révoquer le rôle
-        await roleService.revokeSeasonAdmin(seasonId, userEmail, user.email);
-        
-        res.json({
-          success: true,
-          message: `Rôle Admin révoqué à ${userEmail} pour la saison ${seasonId}`,
-          revokedBy: user.email,
-          timestamp: new Date().toISOString()
+        // Vérifier que l'utilisateur est Super Admin ou Admin de saison
+        await roleService.requireSeasonAdmin(seasonId, req, res, async () => {
+          // Révoquer le rôle
+          await roleService.revokeSeasonAdmin(seasonId, userEmail, user.email);
+          
+          res.json({
+            success: true,
+            message: `Rôle Admin révoqué à ${userEmail} pour la saison ${seasonId}`,
+            revokedBy: user.email,
+            timestamp: new Date().toISOString()
+          });
         });
       });
     } catch (error) {
@@ -210,7 +198,7 @@ exports.revokeSeasonAdmin = functions
 });
 
 /**
- * Lister les admins d'une saison (Super Admin uniquement)
+ * Lister les admins d'une saison (Super Admin ou Admin de saison)
  */
 exports.listSeasonAdmins = functions
   .runWith({ secrets: [superAdminEmailsSecret] })
@@ -221,15 +209,6 @@ exports.listSeasonAdmins = functions
         const user = req.user;
         const { seasonId } = req.body;
         
-        // Vérifier que l'utilisateur est Super Admin
-        const isSuperAdmin = roleService.isSuperAdmin(user.email);
-        if (!isSuperAdmin) {
-          return res.status(403).json({ 
-            error: 'Forbidden',
-            message: 'Seuls les Super Admins peuvent lister les rôles'
-          });
-        }
-        
         if (!seasonId) {
           return res.status(400).json({ 
             error: 'Bad request',
@@ -237,15 +216,18 @@ exports.listSeasonAdmins = functions
           });
         }
         
-        // Lister les admins
-        const admins = await roleService.listSeasonAdmins(seasonId);
-        
-        res.json({
-          seasonId,
-          admins,
-          totalCount: admins.length,
-          requestedBy: user.email,
-          timestamp: new Date().toISOString()
+        // Vérifier que l'utilisateur est Super Admin ou Admin de saison
+        await roleService.requireSeasonAdmin(seasonId, req, res, async () => {
+          // Lister les admins
+          const admins = await roleService.listSeasonAdmins(seasonId);
+          
+          res.json({
+            seasonId,
+            admins,
+            totalCount: admins.length,
+            requestedBy: user.email,
+            timestamp: new Date().toISOString()
+          });
         });
       });
     } catch (error) {
@@ -253,6 +235,90 @@ exports.listSeasonAdmins = functions
       res.status(500).json({ 
         error: 'Internal server error',
         message: 'Erreur lors du listage des admins de saison'
+      });
+    }
+  });
+});
+
+/**
+ * Accorder le rôle Caster (sélectionneur) de saison à un utilisateur (Super Admin ou Admin de saison)
+ */
+exports.grantSeasonCaster = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      await authenticateRequest(req, res, async () => {
+        const user = req.user;
+        const { seasonId, userEmail } = req.body;
+        
+        if (!seasonId || !userEmail) {
+          return res.status(400).json({ 
+            error: 'Bad request',
+            message: 'seasonId et userEmail requis'
+          });
+        }
+        
+        // Vérifier que l'utilisateur est Super Admin ou Admin de saison
+        await roleService.requireSeasonAdmin(seasonId, req, res, async () => {
+          // Accorder le rôle
+          await roleService.grantSeasonCaster(seasonId, userEmail, user.email);
+          
+          res.json({
+            success: true,
+            message: `Rôle Caster accordé à ${userEmail} pour la saison ${seasonId}`,
+            grantedBy: user.email,
+            timestamp: new Date().toISOString()
+          });
+        });
+      });
+    } catch (error) {
+      console.error('❌ Erreur dans grantSeasonCaster:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Erreur lors de l\'octroi du rôle Caster de saison'
+      });
+    }
+  });
+});
+
+/**
+ * Révoquer le rôle Caster (sélectionneur) de saison d'un utilisateur (Super Admin ou Admin de saison)
+ */
+exports.revokeSeasonCaster = functions
+  .runWith({ secrets: [superAdminEmailsSecret] })
+  .https.onRequest(async (req, res) => {
+  return cors(req, res, async () => {
+    try {
+      await authenticateRequest(req, res, async () => {
+        const user = req.user;
+        const { seasonId, userEmail } = req.body;
+        
+        if (!seasonId || !userEmail) {
+          return res.status(400).json({ 
+            error: 'Bad request',
+            message: 'seasonId et userEmail requis'
+          });
+        }
+        
+        // Vérifier que l'utilisateur est Super Admin ou Admin de saison
+        await roleService.requireSeasonAdmin(seasonId, req, res, async () => {
+          // Révoquer le rôle
+          await roleService.revokeSeasonCaster(seasonId, userEmail, user.email);
+          
+          res.json({
+            success: true,
+            message: `Rôle Caster révoqué à ${userEmail} pour la saison ${seasonId}`,
+            revokedBy: user.email,
+            timestamp: new Date().toISOString()
+          });
+        });
+      });
+    } catch (error) {
+      console.error('❌ Erreur dans revokeSeasonCaster:', error);
+      res.status(500).json({ 
+        error: 'Internal server error',
+        message: 'Erreur lors de la révocation du rôle Caster de saison'
       });
     }
   });

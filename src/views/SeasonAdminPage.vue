@@ -110,14 +110,6 @@
                       </button>
                       
                       <button
-                        @click="exportAvailabilities"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105"
-                      >
-                        <span>📊</span>
-                        Exporter CSV
-                      </button>
-                      
-                      <button
                         @click="deleteSeason"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105"
                       >
@@ -161,6 +153,183 @@
                         <div class="text-2xl font-bold text-green-300">{{ availabilitiesCount }}</div>
                         <div class="text-sm text-gray-400">Disponibilités</div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section Administration des rôles -->
+              <div>
+                <h2 class="text-2xl font-bold text-white mb-4">👥 Administration des rôles</h2>
+
+                <!-- Liste des admins -->
+                <div class="mb-6">
+                  <h3 class="text-xl font-semibold text-white mb-3">🔑 Admins de saison</h3>
+                  
+                  <!-- Description du rôle admin -->
+                  <div class="bg-gray-700/50 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-gray-300">
+                      Les admins de saison peuvent gérer tous les aspects de la saison : créer des événements, 
+                      faire les compositions (auto et manuelle), valider les sélections, et nommer d'autres admins ou sélectionneur.ses.
+                    </p>
+                  </div>
+                  
+                  <!-- Liste des admins actuels -->
+                  <div v-if="seasonAdmins.length > 0" class="mb-4 space-y-2">
+                    <div
+                      v-for="adminEmail in seasonAdmins"
+                      :key="adminEmail"
+                      class="flex items-center justify-between bg-gray-700/50 rounded-lg p-2"
+                    >
+                      <span class="text-sm text-gray-300">{{ getDisplayNameForEmail(adminEmail) }}</span>
+                      <button
+                        @click="handleRemoveSeasonAdmin(adminEmail)"
+                        :disabled="isLoading"
+                        class="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all duration-200 disabled:opacity-50"
+                        title="Révoquer cet admin"
+                      >
+                        Révoquer
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="mb-4 text-sm text-gray-400">
+                    Aucun admin de saison
+                  </div>
+                  
+                  <!-- Formulaire d'ajout avec autocomplete -->
+                  <div class="relative">
+                    <div class="flex gap-2">
+                      <div class="flex-1 relative">
+                        <input
+                          ref="seasonAdminInputRef"
+                          :value="seasonAdminSearchQuery"
+                          @input="handleSeasonAdminSearch($event.target.value)"
+                          @focus="() => { if (seasonAdminSuggestions.length > 0) showSeasonAdminSuggestions = true }"
+                          @blur="() => { setTimeout(() => { showSeasonAdminSuggestions = false }, 200) }"
+                          @keydown.enter.prevent="handleSeasonAdminEnter"
+                          @keydown.escape="showSeasonAdminSuggestions = false"
+                          @keydown.arrow-down.prevent="seasonAdminSelectedIndex = Math.min((seasonAdminSelectedIndex ?? -1) + 1, (seasonAdminSuggestions.length || 0) - 1)"
+                          @keydown.arrow-up.prevent="seasonAdminSelectedIndex = Math.max((seasonAdminSelectedIndex ?? -1) - 1, -1)"
+                          type="text"
+                          placeholder="Rechercher un joueur ou saisir un email..."
+                          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        />
+                        <!-- Suggestions d'autocomplete -->
+                        <Teleport to="body">
+                          <div
+                            v-if="showSeasonAdminSuggestions && seasonAdminSuggestions.length > 0"
+                            class="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
+                            :style="{ ...getSeasonAdminAutocompleteStyle(), zIndex: 9999 }"
+                          >
+                            <div
+                              v-for="(suggestion, index) in seasonAdminSuggestions"
+                              :key="suggestion.email"
+                              @mousedown.prevent="handleSelectSeasonAdminSuggestion(suggestion)"
+                              class="px-3 py-2 cursor-pointer transition-colors"
+                              :class="{ 
+                                'bg-gray-700': index === (seasonAdminSelectedIndex ?? 0),
+                                'hover:bg-gray-700': index !== (seasonAdminSelectedIndex ?? 0)
+                              }"
+                            >
+                              <div class="text-sm text-white font-medium">{{ suggestion.displayName }}</div>
+                              <div class="text-xs text-gray-400">{{ suggestion.email }}</div>
+                            </div>
+                          </div>
+                        </Teleport>
+                      </div>
+                      <button
+                        @click="handleAddSeasonAdmin"
+                        :disabled="isLoading || !(newSeasonAdminEmail || '').trim()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Liste des sélectionneurs -->
+                <div>
+                  <h3 class="text-xl font-semibold text-white mb-3">🎯 Sélectionneur.ses</h3>
+                  
+                  <!-- Description du rôle sélectionneur -->
+                  <div class="bg-gray-700/50 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-gray-300">
+                      Les sélectionneur.ses peuvent faire les tirages au sort pour les présélections, modifier manuellement les compositions, 
+                      valider ou invalider les compositions et les annoncer.
+                    </p>
+                  </div>
+                  
+                  <!-- Liste des sélectionneurs actuels -->
+                  <div v-if="seasonCasters.length > 0" class="mb-4 space-y-2">
+                    <div
+                      v-for="casterEmail in seasonCasters"
+                      :key="casterEmail"
+                      class="flex items-center justify-between bg-gray-700/50 rounded-lg p-2"
+                    >
+                      <span class="text-sm text-gray-300">{{ getDisplayNameForEmail(casterEmail) }}</span>
+                      <button
+                        @click="handleRemoveSeasonCaster(casterEmail)"
+                        :disabled="isLoading"
+                        class="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all duration-200 disabled:opacity-50"
+                        title="Révoquer ce sélectionneur.se"
+                      >
+                        Révoquer
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="mb-4 text-sm text-gray-400">
+                    Aucun sélectionneur.se
+                  </div>
+                  
+                  <!-- Formulaire d'ajout avec autocomplete -->
+                  <div class="relative">
+                    <div class="flex gap-2">
+                      <div class="flex-1 relative">
+                        <input
+                          ref="seasonCasterInputRef"
+                          :value="seasonCasterSearchQuery"
+                          @input="handleSeasonCasterSearch($event.target.value)"
+                          @focus="() => { if (seasonCasterSuggestions.length > 0) showSeasonCasterSuggestions = true }"
+                          @blur="() => { setTimeout(() => { showSeasonCasterSuggestions = false }, 200) }"
+                          @keydown.enter.prevent="handleSeasonCasterEnter"
+                          @keydown.escape="showSeasonCasterSuggestions = false"
+                          @keydown.arrow-down.prevent="seasonCasterSelectedIndex = Math.min((seasonCasterSelectedIndex ?? -1) + 1, (seasonCasterSuggestions.length || 0) - 1)"
+                          @keydown.arrow-up.prevent="seasonCasterSelectedIndex = Math.max((seasonCasterSelectedIndex ?? -1) - 1, -1)"
+                          type="text"
+                          placeholder="Rechercher un joueur ou saisir un email..."
+                          class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                        />
+                        <!-- Suggestions d'autocomplete -->
+                        <Teleport to="body">
+                          <div
+                            v-if="showSeasonCasterSuggestions && seasonCasterSuggestions.length > 0"
+                            class="fixed bg-gray-800 border border-gray-600 rounded-lg shadow-2xl max-h-60 overflow-y-auto"
+                            :style="{ ...getSeasonCasterAutocompleteStyle(), zIndex: 9999 }"
+                          >
+                            <div
+                              v-for="(suggestion, index) in seasonCasterSuggestions"
+                              :key="suggestion.email"
+                              @mousedown.prevent="handleSelectSeasonCasterSuggestion(suggestion)"
+                              class="px-3 py-2 cursor-pointer transition-colors"
+                              :class="{ 
+                                'bg-gray-700': index === (seasonCasterSelectedIndex ?? 0),
+                                'hover:bg-gray-700': index !== (seasonCasterSelectedIndex ?? 0)
+                              }"
+                            >
+                              <div class="text-sm text-white font-medium">{{ suggestion.displayName }}</div>
+                              <div class="text-xs text-gray-400">{{ suggestion.email }}</div>
+                            </div>
+                          </div>
+                        </Teleport>
+                      </div>
+                      <button
+                        @click="handleAddSeasonCaster"
+                        :disabled="isLoading || !(newSeasonCasterEmail || '').trim()"
+                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm"
+                      >
+                        Ajouter
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1000,6 +1169,20 @@ const eventAdminBlurTimeout = reactive({}) // Objet réactif eventId -> timeout 
 const eventAdminInputRefs = reactive({}) // Objet réactif eventId -> ref de l'input
 const eventAdminAutocompleteRefs = reactive({}) // Objet réactif eventId -> ref de l'autocomplete
 
+// Gestion des admins et casters de saison
+const seasonCasters = ref([])
+const seasonAdminSearchQuery = ref('')
+const seasonCasterSearchQuery = ref('')
+const newSeasonAdminEmail = ref('')
+const newSeasonCasterEmail = ref('')
+const seasonAdminSuggestions = ref([])
+const seasonCasterSuggestions = ref([])
+const showSeasonAdminSuggestions = ref(false)
+const showSeasonCasterSuggestions = ref(false)
+const seasonAdminSelectedIndex = ref(-1)
+const seasonCasterSelectedIndex = ref(-1)
+const seasonAdminInputRef = ref(null)
+const seasonCasterInputRef = ref(null)
 
 // Événements filtrés selon les critères
 const filteredEvents = computed(() => {
@@ -1786,9 +1969,10 @@ function handlePostLoginNavigation() {
 async function loadSeasonRoles() {
   try {
     isLoading.value = true
-    const roles = await permissionService.listSeasonRoles(seasonId.value)
-    seasonAdmins.value = roles.admins
-    seasonUsers.value = roles.users
+    const roles = await permissionService.getSeasonRoles(seasonId.value, true)
+    seasonAdmins.value = roles.admins || []
+    seasonUsers.value = roles.users || []
+    seasonCasters.value = roles.casters || []
   } catch (error) {
     logger.error('Erreur lors du chargement des rôles:', error)
   } finally {
@@ -2160,6 +2344,383 @@ async function handleRemoveEventAdmin(eventId, userEmail) {
   }
 }
 
+// Fonctions pour gérer les admins de saison
+function getDisplayNameForEmail(email) {
+  const user = unifiedUsersList.value.find(item => {
+    const itemEmail = getPlayerEmail(item)
+    return itemEmail === email
+  })
+  if (user) {
+    return getPlayerDisplayName(user)
+  }
+  return email
+}
+
+function getSeasonAdminAutocompleteStyle() {
+  const inputEl = seasonAdminInputRef.value
+  if (!inputEl) {
+    logger.debug('getSeasonAdminAutocompleteStyle: inputEl non trouvé')
+    return {}
+  }
+  
+  const rect = inputEl.getBoundingClientRect()
+  
+  const style = {
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    minWidth: '200px'
+  }
+  
+  logger.debug('getSeasonAdminAutocompleteStyle:', { inputEl: !!inputEl, rect, style, showSuggestions: showSeasonAdminSuggestions.value, suggestionsCount: seasonAdminSuggestions.value.length })
+  return style
+}
+
+function getSeasonCasterAutocompleteStyle() {
+  const inputEl = seasonCasterInputRef.value
+  if (!inputEl) {
+    logger.debug('getSeasonCasterAutocompleteStyle: inputEl non trouvé')
+    return {}
+  }
+  
+  const rect = inputEl.getBoundingClientRect()
+  
+  const style = {
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    minWidth: '200px'
+  }
+  
+  logger.debug('getSeasonCasterAutocompleteStyle:', { inputEl: !!inputEl, rect, style, showSuggestions: showSeasonCasterSuggestions.value, suggestionsCount: seasonCasterSuggestions.value.length })
+  return style
+}
+
+function handleSeasonAdminSearch(query) {
+  seasonAdminSearchQuery.value = query
+  
+  // Si c'est un email valide, le stocker directement
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (emailRegex.test(query.trim())) {
+    newSeasonAdminEmail.value = query.trim()
+    seasonAdminSuggestions.value = []
+    showSeasonAdminSuggestions.value = false
+    return
+  }
+  
+  if (!query || query.trim().length < 2) {
+    seasonAdminSuggestions.value = []
+    showSeasonAdminSuggestions.value = false
+    newSeasonAdminEmail.value = ''
+    return
+  }
+  
+  // Vérifier que unifiedUsersList est chargé
+  if (!unifiedUsersList.value || unifiedUsersList.value.length === 0) {
+    logger.debug('handleSeasonAdminSearch: unifiedUsersList non chargé ou vide')
+    seasonAdminSuggestions.value = []
+    showSeasonAdminSuggestions.value = false
+    return
+  }
+  
+  const searchTerm = query.toLowerCase().trim()
+  
+  // Filtrer les participants qui ont un email (type 'user' ou 'invitation')
+  const participantsWithEmail = unifiedUsersList.value.filter(item => {
+    const email = getPlayerEmail(item)
+    return email && email !== 'Pas de compte' && (item.type === 'user' || item.type === 'invitation')
+  })
+  
+  logger.debug(`handleSeasonAdminSearch: ${participantsWithEmail.length} participants avec email, recherche: "${searchTerm}"`)
+  
+  // Rechercher par nom de joueur ou email
+  const suggestions = participantsWithEmail
+    .filter(item => {
+      const email = getPlayerEmail(item)
+      const playerName = getPlayerDisplayName(item).toLowerCase()
+      const fullName = `${item.firstName || ''} ${item.lastName || ''}`.toLowerCase().trim()
+      const emailLower = email.toLowerCase()
+      
+      return playerName.includes(searchTerm) || 
+             fullName.includes(searchTerm) || 
+             emailLower.includes(searchTerm)
+    })
+    .slice(0, 5) // Limiter à 5 suggestions
+    .map(item => {
+      const email = getPlayerEmail(item)
+      const displayName = getPlayerDisplayName(item)
+      return {
+        email,
+        displayName,
+        item
+      }
+    })
+  
+  logger.debug(`handleSeasonAdminSearch: ${suggestions.length} suggestions trouvées`, suggestions)
+  logger.debug(`handleSeasonAdminSearch: showSeasonAdminSuggestions sera mis à ${suggestions.length > 0}`)
+  
+  seasonAdminSuggestions.value = suggestions
+  showSeasonAdminSuggestions.value = suggestions.length > 0
+  seasonAdminSelectedIndex.value = -1
+  
+  logger.debug(`handleSeasonAdminSearch: État après mise à jour - showSeasonAdminSuggestions: ${showSeasonAdminSuggestions.value}, suggestions.length: ${seasonAdminSuggestions.value.length}`)
+  
+  // Si une seule suggestion correspond exactement, pré-remplir l'email
+  if (suggestions.length === 1 && suggestions[0].displayName.toLowerCase() === searchTerm) {
+    newSeasonAdminEmail.value = suggestions[0].email
+  } else {
+    newSeasonAdminEmail.value = ''
+  }
+}
+
+function handleSeasonCasterSearch(query) {
+  seasonCasterSearchQuery.value = query
+  
+  // Si c'est un email valide, le stocker directement
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (emailRegex.test(query.trim())) {
+    newSeasonCasterEmail.value = query.trim()
+    seasonCasterSuggestions.value = []
+    showSeasonCasterSuggestions.value = false
+    return
+  }
+  
+  if (!query || query.trim().length < 2) {
+    seasonCasterSuggestions.value = []
+    showSeasonCasterSuggestions.value = false
+    newSeasonCasterEmail.value = ''
+    return
+  }
+  
+  // Vérifier que unifiedUsersList est chargé
+  if (!unifiedUsersList.value || unifiedUsersList.value.length === 0) {
+    logger.debug('handleSeasonCasterSearch: unifiedUsersList non chargé ou vide')
+    seasonCasterSuggestions.value = []
+    showSeasonCasterSuggestions.value = false
+    return
+  }
+  
+  const searchTerm = query.toLowerCase().trim()
+  
+  // Filtrer les participants qui ont un email (type 'user' ou 'invitation')
+  const participantsWithEmail = unifiedUsersList.value.filter(item => {
+    const email = getPlayerEmail(item)
+    return email && email !== 'Pas de compte' && (item.type === 'user' || item.type === 'invitation')
+  })
+  
+  logger.debug(`handleSeasonCasterSearch: ${participantsWithEmail.length} participants avec email, recherche: "${searchTerm}"`)
+  
+  // Rechercher par nom de joueur ou email
+  const suggestions = participantsWithEmail
+    .filter(item => {
+      const email = getPlayerEmail(item)
+      const playerName = getPlayerDisplayName(item).toLowerCase()
+      const fullName = `${item.firstName || ''} ${item.lastName || ''}`.toLowerCase().trim()
+      const emailLower = email.toLowerCase()
+      
+      return playerName.includes(searchTerm) || 
+             fullName.includes(searchTerm) || 
+             emailLower.includes(searchTerm)
+    })
+    .slice(0, 5) // Limiter à 5 suggestions
+    .map(item => {
+      const email = getPlayerEmail(item)
+      const displayName = getPlayerDisplayName(item)
+      return {
+        email,
+        displayName,
+        item
+      }
+    })
+  
+  logger.debug(`handleSeasonCasterSearch: ${suggestions.length} suggestions trouvées`, suggestions)
+  logger.debug(`handleSeasonCasterSearch: showSeasonCasterSuggestions sera mis à ${suggestions.length > 0}`)
+  
+  seasonCasterSuggestions.value = suggestions
+  showSeasonCasterSuggestions.value = suggestions.length > 0
+  seasonCasterSelectedIndex.value = -1
+  
+  logger.debug(`handleSeasonCasterSearch: État après mise à jour - showSeasonCasterSuggestions: ${showSeasonCasterSuggestions.value}, suggestions.length: ${seasonCasterSuggestions.value.length}`)
+  
+  // Si une seule suggestion correspond exactement, pré-remplir l'email
+  if (suggestions.length === 1 && suggestions[0].displayName.toLowerCase() === searchTerm) {
+    newSeasonCasterEmail.value = suggestions[0].email
+  } else {
+    newSeasonCasterEmail.value = ''
+  }
+}
+
+function handleSeasonAdminEnter() {
+  const selectedIndex = seasonAdminSelectedIndex.value ?? -1
+  const suggestions = seasonAdminSuggestions.value || []
+  
+  if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+    handleSelectSeasonAdminSuggestion(suggestions[selectedIndex])
+  } else if (suggestions.length > 0) {
+    handleSelectSeasonAdminSuggestion(suggestions[0])
+  } else if (newSeasonAdminEmail.value) {
+    handleAddSeasonAdmin()
+  }
+}
+
+function handleSeasonCasterEnter() {
+  const selectedIndex = seasonCasterSelectedIndex.value ?? -1
+  const suggestions = seasonCasterSuggestions.value || []
+  
+  if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+    handleSelectSeasonCasterSuggestion(suggestions[selectedIndex])
+  } else if (suggestions.length > 0) {
+    handleSelectSeasonCasterSuggestion(suggestions[0])
+  } else if (newSeasonCasterEmail.value) {
+    handleAddSeasonCaster()
+  }
+}
+
+function handleSelectSeasonAdminSuggestion(suggestion) {
+  if (!suggestion) return
+  
+  newSeasonAdminEmail.value = suggestion.email
+  seasonAdminSearchQuery.value = suggestion.displayName
+  showSeasonAdminSuggestions.value = false
+  seasonAdminSelectedIndex.value = -1
+  
+  // Ajouter automatiquement l'admin
+  handleAddSeasonAdmin()
+}
+
+function handleSelectSeasonCasterSuggestion(suggestion) {
+  if (!suggestion) return
+  
+  newSeasonCasterEmail.value = suggestion.email
+  seasonCasterSearchQuery.value = suggestion.displayName
+  showSeasonCasterSuggestions.value = false
+  seasonCasterSelectedIndex.value = -1
+  
+  // Ajouter automatiquement le caster
+  handleAddSeasonCaster()
+}
+
+async function handleAddSeasonAdmin() {
+  const email = (newSeasonAdminEmail.value || '').trim()
+  if (!email) return
+  
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    // Vérifier que l'email n'est pas déjà dans la liste
+    if (seasonAdmins.value.includes(email)) {
+      errorMessage.value = 'Cet utilisateur est déjà admin de cette saison'
+      return
+    }
+    
+    await permissionService.addSeasonAdmin(seasonId.value, email, currentUser.value?.email || 'system')
+    
+    // Recharger les rôles
+    await loadSeasonRoles()
+    
+    // Réinitialiser les champs de saisie
+    newSeasonAdminEmail.value = ''
+    seasonAdminSearchQuery.value = ''
+    seasonAdminSuggestions.value = []
+    showSeasonAdminSuggestions.value = false
+    
+    successMessage.value = `Admin ${email} ajouté avec succès`
+    setTimeout(() => { successMessage.value = '' }, 3000)
+    
+    logger.info(`✅ Admin ${email} ajouté à la saison ${seasonId.value}`)
+  } catch (error) {
+    logger.error(`Erreur lors de l'ajout de l'admin de saison:`, error)
+    errorMessage.value = error.message || 'Erreur lors de l\'ajout de l\'admin'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleRemoveSeasonAdmin(userEmail) {
+  if (!confirm(`Êtes-vous sûr de vouloir retirer ${userEmail} des admins de cette saison ?`)) return
+  
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    await permissionService.removeSeasonAdmin(seasonId.value, userEmail, currentUser.value?.email || 'system')
+    
+    // Recharger les rôles
+    await loadSeasonRoles()
+    
+    successMessage.value = `Admin ${userEmail} retiré avec succès`
+    setTimeout(() => { successMessage.value = '' }, 3000)
+    
+    logger.info(`✅ Admin ${userEmail} retiré de la saison ${seasonId.value}`)
+  } catch (error) {
+    logger.error(`Erreur lors du retrait de l'admin de saison:`, error)
+    errorMessage.value = error.message || 'Erreur lors du retrait de l\'admin'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleAddSeasonCaster() {
+  const email = (newSeasonCasterEmail.value || '').trim()
+  if (!email) return
+  
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    // Vérifier que l'email n'est pas déjà dans la liste
+    if (seasonCasters.value.includes(email)) {
+      errorMessage.value = 'Cet utilisateur est déjà sélectionneur.se de cette saison'
+      return
+    }
+    
+    await permissionService.addSeasonCaster(seasonId.value, email, currentUser.value?.email || 'system')
+    
+    // Recharger les rôles
+    await loadSeasonRoles()
+    
+    // Réinitialiser les champs de saisie
+    newSeasonCasterEmail.value = ''
+    seasonCasterSearchQuery.value = ''
+    seasonCasterSuggestions.value = []
+    showSeasonCasterSuggestions.value = false
+    
+    successMessage.value = `Sélectionneur.se ${email} ajouté·e avec succès`
+    setTimeout(() => { successMessage.value = '' }, 3000)
+    
+    logger.info(`✅ Caster ${email} ajouté à la saison ${seasonId.value}`)
+  } catch (error) {
+    logger.error(`Erreur lors de l'ajout du sélectionneur.se:`, error)
+    errorMessage.value = error.message || 'Erreur lors de l\'ajout du sélectionneur.se'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleRemoveSeasonCaster(userEmail) {
+  if (!confirm(`Êtes-vous sûr de vouloir retirer ${userEmail} des sélectionneur.ses de cette saison ?`)) return
+  
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    await permissionService.removeSeasonCaster(seasonId.value, userEmail, currentUser.value?.email || 'system')
+    
+    // Recharger les rôles
+    await loadSeasonRoles()
+    
+    successMessage.value = `Sélectionneur.se ${userEmail} retiré·e avec succès`
+    setTimeout(() => { successMessage.value = '' }, 3000)
+    
+    logger.info(`✅ Caster ${userEmail} retiré de la saison ${seasonId.value}`)
+  } catch (error) {
+    logger.error(`Erreur lors du retrait du sélectionneur.se:`, error)
+    errorMessage.value = error.message || 'Erreur lors du retrait du sélectionneur.se'
+  } finally {
+    isLoading.value = false
+  }
+}
 
 function formatDate(dateString) {
   try {

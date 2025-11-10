@@ -264,12 +264,44 @@ class PermissionService {
 
   /**
    * Vérifie si l'utilisateur peut gérer la composition d'un événement
-   * (Super Admin OU Admin de saison OU Admin d'événement)
+   * (Super Admin OU Admin de saison OU Admin d'événement OU Caster si cast existe)
    */
   async canManageComposition(eventId, seasonId, force = false) {
     try {
-      // Même logique que canEditEvent
-      return await this.canEditEvent(eventId, seasonId, force);
+      // Super Admin peut toujours gérer
+      if (await this.isSuperAdmin(force)) {
+        return true;
+      }
+      
+      // Admin de saison peut toujours gérer
+      if (await this.isSeasonAdmin(seasonId, force)) {
+        return true;
+      }
+      
+      // Admin d'événement peut toujours gérer
+      if (await this.isEventAdmin(eventId, seasonId, force)) {
+        return true;
+      }
+      
+      // Caster peut gérer seulement si un cast existe déjà pour l'événement
+      const isCaster = await this.isSeasonCaster(seasonId, force);
+      if (isCaster) {
+        // Vérifier si un cast existe pour cet événement
+        try {
+          const { loadCasts } = await import('./selectionService.js');
+          const casts = await loadCasts(seasonId);
+          const castExists = casts && casts[eventId] !== undefined && casts[eventId] !== null;
+          
+          logger.info(`🔐 Caster vérifie cast pour événement ${eventId}: ${castExists ? '✅ existe' : '❌ n\'existe pas'}`);
+          
+          return castExists;
+        } catch (error) {
+          logger.error(`❌ Erreur lors de la vérification du cast pour l'événement ${eventId}:`, error);
+          return false;
+        }
+      }
+      
+      return false;
     } catch (error) {
       logger.error(`❌ Erreur lors de la vérification des permissions de composition pour l'événement ${eventId}:`, error);
       return false;
@@ -373,8 +405,13 @@ class PermissionService {
       const seasonDoc = await firestoreService.getDocument('seasons', seasonId);
       console.log('🔍 DEBUG getSeasonRoles: seasonDoc reçu:', seasonDoc);
       console.log('🔍 DEBUG getSeasonRoles: seasonDoc.roles:', seasonDoc?.roles);
-      const roles = seasonDoc?.roles || { admins: [], users: [] };
+      const roles = seasonDoc?.roles || { admins: [], users: [], casters: [] };
       console.log('🔍 DEBUG getSeasonRoles: roles final:', roles);
+      
+      // S'assurer que casters existe
+      if (!roles.casters) {
+        roles.casters = [];
+      }
       
       // Ajouter timestamp pour le cache
       const rolesWithTimestamp = {
@@ -386,13 +423,14 @@ class PermissionService {
       
       logger.info(`🔐 Permissions de saison ${seasonId} chargés:`, {
         admins: roles.admins?.length || 0,
-        users: roles.users?.length || 0
+        users: roles.users?.length || 0,
+        casters: roles.casters?.length || 0
       });
       
       return rolesWithTimestamp;
     } catch (error) {
       logger.error(`❌ Erreur lors de la récupération des permissions de saison ${seasonId}:`, error);
-      return { admins: [], users: [], timestamp: Date.now() };
+      return { admins: [], users: [], casters: [], timestamp: Date.now() };
     }
   }
 
@@ -418,6 +456,49 @@ class PermissionService {
       return roles.users.includes(userEmail);
     } catch (error) {
       logger.error(`❌ Erreur lors de la vérification du rôle user pour ${userEmail} dans ${seasonId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur actuel est Caster (sélectionneur) de saison pour une saison donnée
+   */
+  async isSeasonCaster(seasonId, force = false) {
+    try {
+      // Super Admin a toujours accès à tout
+      if (await this.isSuperAdmin(force)) {
+        logger.info('🔐 Super Admin détecté - accès accordé à toutes les saisons');
+        return true;
+      }
+
+      logger.info(`🔐 Vérification du statut Caster de saison ${seasonId} via Firestore...`);
+      
+      const userEmail = this.auth?.currentUser?.email;
+      if (!userEmail) {
+        logger.warn('🔐 Pas d\'email utilisateur disponible');
+        return false;
+      }
+      
+      const isCaster = await this.isUserSeasonCaster(seasonId, userEmail);
+      
+      logger.info(`🔐 Statut Caster de saison ${seasonId}: ${isCaster ? '✅ OUI' : '❌ NON'}`);
+      
+      return isCaster;
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification Caster de saison ${seasonId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Vérifie si un utilisateur est caster d'une saison (Firestore direct)
+   */
+  async isUserSeasonCaster(seasonId, userEmail) {
+    try {
+      const roles = await this.getSeasonRoles(seasonId);
+      return roles.casters?.includes(userEmail) || false;
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification du rôle caster pour ${userEmail} dans ${seasonId}:`, error);
       return false;
     }
   }
@@ -491,6 +572,90 @@ class PermissionService {
       }
     } catch (error) {
       logger.error(`❌ Erreur lors du retrait de l'admin ${userEmail} de la saison ${seasonId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ajoute un caster (sélectionneur) à une saison (Firestore direct)
+   */
+  async addSeasonCaster(seasonId, userEmail, grantedBy) {
+    try {
+      logger.info(`🔐 Ajout du caster ${userEmail} à la saison ${seasonId} par ${grantedBy}`);
+      
+      const roles = await this.getSeasonRoles(seasonId, true); // Force refresh
+      
+      // Initialiser casters si absent
+      if (!roles.casters) {
+        roles.casters = [];
+      }
+      
+      if (!roles.casters.includes(userEmail)) {
+        roles.casters.push(userEmail);
+        
+        // Vérifier si le document existe, sinon le créer
+        const seasonDoc = await firestoreService.getDocument('seasons', seasonId);
+        if (!seasonDoc) {
+          logger.info(`🔐 Création du document seasons/${seasonId}`);
+          await firestoreService.setDocument('seasons', seasonId, {
+            roles: {
+              admins: roles.admins || [],
+              users: roles.users || [],
+              casters: roles.casters
+            }
+          });
+        } else {
+          // Mettre à jour le document existant
+          await firestoreService.updateDocument('seasons', seasonId, {
+            'roles.casters': roles.casters
+          });
+        }
+        
+        // Invalider le cache
+        this.permissionStatus.seasonPermissions.delete(seasonId);
+        
+        logger.info(`✅ Caster ${userEmail} ajouté à la saison ${seasonId}`);
+      } else {
+        logger.info(`ℹ️ ${userEmail} est déjà caster de la saison ${seasonId}`);
+      }
+    } catch (error) {
+      logger.error(`❌ Erreur lors de l'ajout du caster ${userEmail} à la saison ${seasonId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retire un caster (sélectionneur) d'une saison (Firestore direct)
+   */
+  async removeSeasonCaster(seasonId, userEmail, revokedBy) {
+    try {
+      logger.info(`🔐 Retrait du caster ${userEmail} de la saison ${seasonId} par ${revokedBy}`);
+      
+      const roles = await this.getSeasonRoles(seasonId, true); // Force refresh
+      
+      // Initialiser casters si absent
+      if (!roles.casters) {
+        roles.casters = [];
+      }
+      
+      const casterIndex = roles.casters.indexOf(userEmail);
+      if (casterIndex !== -1) {
+        roles.casters.splice(casterIndex, 1);
+        
+        // Mettre à jour Firestore
+        await firestoreService.updateDocument('seasons', seasonId, {
+          'roles.casters': roles.casters
+        });
+        
+        // Invalider le cache
+        this.permissionStatus.seasonPermissions.delete(seasonId);
+        
+        logger.info(`✅ Caster ${userEmail} retiré de la saison ${seasonId}`);
+      } else {
+        logger.info(`ℹ️ ${userEmail} n'était pas caster de la saison ${seasonId}`);
+      }
+    } catch (error) {
+      logger.error(`❌ Erreur lors du retrait du caster ${userEmail} de la saison ${seasonId}:`, error);
       throw error;
     }
   }

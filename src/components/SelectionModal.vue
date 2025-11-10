@@ -829,6 +829,32 @@ async function onChooseForSlot(event, index) {
   // Permettre la sélection dans les slots vides même si la sélection est verrouillée
   // (pour complétion manuelle des slots vides)
   
+  // Vérifier si l'utilisateur est caster et si un cast existe déjà
+  if (canManageCompositionValue.value) {
+    try {
+      const isCaster = await permissionService.isSeasonCaster(props.seasonId)
+      if (isCaster) {
+        // Vérifier si un cast existe pour cet événement
+        const { loadCasts } = await import('../services/selectionService.js')
+        const casts = await loadCasts(props.seasonId)
+        const castExists = casts && casts[props.event.id] !== undefined && casts[props.event.id] !== null
+        
+        if (!castExists) {
+          // Bloquer la sélection manuelle si le caster n'a pas encore déclenché la sélection auto
+          showErrorMessage.value = true
+          errorMessageText.value = 'Les sélectionneur.ses doivent d\'abord déclencher la sélection automatique avant de pouvoir faire des sélections manuelles.'
+          setTimeout(() => {
+            showErrorMessage.value = false
+          }, 5000)
+          return
+        }
+      }
+    } catch (error) {
+      logger.warn('Erreur lors de la vérification du statut caster:', error)
+      // En cas d'erreur, permettre la sélection (fallback)
+    }
+  }
+  
   const playerName = event?.target?.value || ''
   if (playerName) {
     const currentSlot = teamSlots.value.find(s => s.index === index)

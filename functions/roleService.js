@@ -246,6 +246,138 @@ class RoleService {
   }
 
   /**
+   * Vérifie si un utilisateur est Caster (sélectionneur) d'une saison spécifique
+   */
+  async isSeasonCaster(seasonId, userEmail) {
+    try {
+      if (!seasonId || !userEmail) {
+        return false;
+      }
+      
+      console.log(`🔐 Vérification Caster de saison pour ${userEmail} dans ${seasonId}`);
+      
+      // Récupérer les rôles de la saison
+      const seasonDoc = await admin.firestore()
+        .collection('seasons')
+        .doc(seasonId)
+        .get();
+      
+      if (!seasonDoc.exists) {
+        console.log(`⚠️ Saison ${seasonId} non trouvée`);
+        return false;
+      }
+      
+      const seasonData = seasonDoc.data();
+      const casters = seasonData.roles?.casters || [];
+      
+      const isCaster = casters.includes(userEmail);
+      console.log(`🔐 ${userEmail} ${isCaster ? 'EST' : 'N\'EST PAS'} caster de la saison ${seasonId}`);
+      
+      return isCaster;
+    } catch (error) {
+      console.error(`❌ Erreur lors de la vérification Caster de saison pour ${userEmail} dans ${seasonId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Accorde le rôle Caster (sélectionneur) de saison à un utilisateur
+   */
+  async grantSeasonCaster(seasonId, userEmail, grantedBy) {
+    try {
+      console.log(`🔐 Octroi du rôle Caster de saison ${seasonId} à ${userEmail} par ${grantedBy}`);
+      
+      // Vérifier que la saison existe
+      const seasonRef = admin.firestore().collection('seasons').doc(seasonId);
+      const seasonDoc = await seasonRef.get();
+      
+      if (!seasonDoc.exists) {
+        throw new Error(`Saison ${seasonId} non trouvée`);
+      }
+      
+      // Récupérer les rôles actuels
+      const seasonData = seasonDoc.data();
+      const currentRoles = seasonData.roles || { admins: [], users: [], casters: [] };
+      
+      // Initialiser casters si absent
+      if (!currentRoles.casters) {
+        currentRoles.casters = [];
+      }
+      
+      // Ajouter l'email s'il n'y est pas déjà
+      if (!currentRoles.casters.includes(userEmail)) {
+        currentRoles.casters.push(userEmail);
+        
+        // Mettre à jour Firestore
+        await seasonRef.update({
+          roles: currentRoles
+        });
+        
+        // Log d'audit
+        await this.logRoleChange(seasonId, userEmail, 'caster', 'granted', grantedBy);
+        
+        console.log(`✅ Rôle Caster accordé à ${userEmail} pour la saison ${seasonId}`);
+      } else {
+        console.log(`ℹ️ ${userEmail} est déjà caster de la saison ${seasonId}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ Erreur lors de l'octroi du rôle Caster de saison:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Révoque le rôle Caster (sélectionneur) de saison d'un utilisateur
+   */
+  async revokeSeasonCaster(seasonId, userEmail, revokedBy) {
+    try {
+      console.log(`🔐 Révocation du rôle Caster de saison ${seasonId} à ${userEmail} par ${revokedBy}`);
+      
+      // Vérifier que la saison existe
+      const seasonRef = admin.firestore().collection('seasons').doc(seasonId);
+      const seasonDoc = await seasonRef.get();
+      
+      if (!seasonDoc.exists) {
+        throw new Error(`Saison ${seasonId} non trouvée`);
+      }
+      
+      // Récupérer les rôles actuels
+      const seasonData = seasonDoc.data();
+      const currentRoles = seasonData.roles || { admins: [], users: [], casters: [] };
+      
+      // Initialiser casters si absent
+      if (!currentRoles.casters) {
+        currentRoles.casters = [];
+      }
+      
+      // Retirer l'email s'il y est
+      const casterIndex = currentRoles.casters.indexOf(userEmail);
+      if (casterIndex > -1) {
+        currentRoles.casters.splice(casterIndex, 1);
+        
+        // Mettre à jour Firestore
+        await seasonRef.update({
+          roles: currentRoles
+        });
+        
+        // Log d'audit
+        await this.logRoleChange(seasonId, userEmail, 'caster', 'revoked', revokedBy);
+        
+        console.log(`✅ Rôle Caster révoqué à ${userEmail} pour la saison ${seasonId}`);
+      } else {
+        console.log(`ℹ️ ${userEmail} n'était pas caster de la saison ${seasonId}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ Erreur lors de la révocation du rôle Caster de saison:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Initialise les rôles pour une nouvelle saison
    */
   async initializeSeasonRoles(seasonId, creatorEmail) {
@@ -257,7 +389,8 @@ class RoleService {
       const initialRoles = {
         roles: {
           admins: [creatorEmail], // Le créateur devient admin par défaut
-          users: []
+          users: [],
+          casters: [] // Initialiser la liste des casters
         }
       };
       
