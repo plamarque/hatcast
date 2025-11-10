@@ -4,6 +4,7 @@ import { createRemindersForSelection, removeRemindersForPlayer } from './reminde
 import firestoreService from './firestoreService.js'
 import AuditClient from './auditClient.js'
 import { LABELS } from '../constants/labels.js'
+import permissionService from './permissionService.js'
 
 // Fonctions utilitaires pour la migration vers les IDs de joueurs
 export async function getPlayerIdByName(playerName, seasonId) {
@@ -1279,4 +1280,131 @@ export function getPlayerRole(cast, playerName) {
   }
   
   return null
+}
+
+/**
+ * Récupère la liste des admins d'un événement
+ * @param {string} eventId - ID de l'événement
+ * @param {string} seasonId - ID de la saison
+ * @returns {Promise<Array<string>>} - Array d'emails d'admins
+ */
+export async function getEventAdmins(eventId, seasonId) {
+  try {
+    const eventDoc = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    // Gérer l'absence du champ eventAdmins
+    return eventDoc?.eventAdmins || []
+  } catch (error) {
+    logger.error(`❌ Erreur lors de la récupération des admins d'événement ${eventId}:`, error)
+    return []
+  }
+}
+
+/**
+ * Ajoute un admin à un événement
+ * @param {string} eventId - ID de l'événement
+ * @param {string} userEmail - Email de l'utilisateur à ajouter
+ * @param {string} seasonId - ID de la saison
+ * @returns {Promise<boolean>} - true si succès
+ */
+export async function addEventAdmin(eventId, userEmail, seasonId) {
+  try {
+    // Vérifier les permissions
+    if (!permissionService.isInitialized) {
+      await permissionService.initialize()
+    }
+    
+    const canManage = await permissionService.canManageEventAdmins(eventId, seasonId)
+    if (!canManage) {
+      throw new Error('Vous n\'avez pas les permissions pour gérer les admins d\'événement')
+    }
+    
+    logger.info(`🔐 Ajout de l'admin ${userEmail} à l'événement ${eventId}`)
+    
+    // Récupérer le document événement
+    const eventDoc = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    if (!eventDoc) {
+      throw new Error(`Événement ${eventId} non trouvé`)
+    }
+    
+    // Gérer l'absence du champ eventAdmins
+    const eventAdmins = eventDoc.eventAdmins || []
+    
+    // Vérifier si l'email n'est pas déjà dans la liste
+    if (eventAdmins.includes(userEmail)) {
+      logger.info(`ℹ️ ${userEmail} est déjà admin de l'événement ${eventId}`)
+      return true
+    }
+    
+    // Ajouter l'email
+    eventAdmins.push(userEmail)
+    
+    // Mettre à jour le document
+    await firestoreService.updateDocument('seasons', seasonId, {
+      'eventAdmins': eventAdmins
+    }, 'events', eventId)
+    
+    // Invalider le cache des permissions
+    permissionService.invalidateEventCache(eventId, seasonId)
+    
+    logger.info(`✅ Admin ${userEmail} ajouté à l'événement ${eventId}`)
+    return true
+  } catch (error) {
+    logger.error(`❌ Erreur lors de l'ajout de l'admin ${userEmail} à l'événement ${eventId}:`, error)
+    throw error
+  }
+}
+
+/**
+ * Retire un admin d'un événement
+ * @param {string} eventId - ID de l'événement
+ * @param {string} userEmail - Email de l'utilisateur à retirer
+ * @param {string} seasonId - ID de la saison
+ * @returns {Promise<boolean>} - true si succès
+ */
+export async function removeEventAdmin(eventId, userEmail, seasonId) {
+  try {
+    // Vérifier les permissions
+    if (!permissionService.isInitialized) {
+      await permissionService.initialize()
+    }
+    
+    const canManage = await permissionService.canManageEventAdmins(eventId, seasonId)
+    if (!canManage) {
+      throw new Error('Vous n\'avez pas les permissions pour gérer les admins d\'événement')
+    }
+    
+    logger.info(`🔐 Retrait de l'admin ${userEmail} de l'événement ${eventId}`)
+    
+    // Récupérer le document événement
+    const eventDoc = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
+    if (!eventDoc) {
+      throw new Error(`Événement ${eventId} non trouvé`)
+    }
+    
+    // Gérer l'absence du champ eventAdmins
+    const eventAdmins = eventDoc.eventAdmins || []
+    
+    // Retirer l'email
+    const adminIndex = eventAdmins.indexOf(userEmail)
+    if (adminIndex === -1) {
+      logger.info(`ℹ️ ${userEmail} n'était pas admin de l'événement ${eventId}`)
+      return true
+    }
+    
+    eventAdmins.splice(adminIndex, 1)
+    
+    // Mettre à jour le document
+    await firestoreService.updateDocument('seasons', seasonId, {
+      'eventAdmins': eventAdmins
+    }, 'events', eventId)
+    
+    // Invalider le cache des permissions
+    permissionService.invalidateEventCache(eventId, seasonId)
+    
+    logger.info(`✅ Admin ${userEmail} retiré de l'événement ${eventId}`)
+    return true
+  } catch (error) {
+    logger.error(`❌ Erreur lors du retrait de l'admin ${userEmail} de l'événement ${eventId}:`, error)
+    throw error
+  }
 }

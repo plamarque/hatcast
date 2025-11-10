@@ -196,22 +196,55 @@ exports.auditEventChanges = functions.firestore
           title: after.title,
           date: after.date,
           location: after.location,
-          description: after.description
+          description: after.description,
+          eventAdmins: after.eventAdmins || []
         }
       } else if (before && after) {
         eventType = 'event_updated'
+        
+        // Vérifier les changements d'admins d'événement
+        const beforeAdmins = before.eventAdmins || []
+        const afterAdmins = after.eventAdmins || []
+        const adminsChanged = JSON.stringify(beforeAdmins.sort()) !== JSON.stringify(afterAdmins.sort())
+        
         eventData = {
           before: {
             title: before.title,
             date: before.date,
             location: before.location,
-            description: before.description
+            description: before.description,
+            eventAdmins: beforeAdmins
           },
           after: {
             title: after.title,
             date: after.date,
             location: after.location,
-            description: after.description
+            description: after.description,
+            eventAdmins: afterAdmins
+          }
+        }
+        
+        // Logger spécifiquement les changements d'admins d'événement
+        if (adminsChanged) {
+          const addedAdmins = afterAdmins.filter(email => !beforeAdmins.includes(email))
+          const removedAdmins = beforeAdmins.filter(email => !afterAdmins.includes(email))
+          
+          if (addedAdmins.length > 0 || removedAdmins.length > 0) {
+            await AuditService.logEventChange({
+              eventType: 'event_admins_changed',
+              seasonSlug,
+              eventId,
+              eventTitle: after?.title || before?.title || eventId,
+              userId,
+              userEmail,
+              isAnonymous,
+              eventData: {
+                addedAdmins,
+                removedAdmins,
+                beforeAdmins,
+                afterAdmins
+              }
+            })
           }
         }
       } else if (before && !after) {

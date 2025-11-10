@@ -1,16 +1,17 @@
-## [0.32.7] - 2025-11-09
+## [0.33.0] - 2025-11-10
 
-### 🐛 Bug Fixes
+### ✨ New Features
 
-- fix: convert checkSuperAdminStatus to onCall function
+- feat: add event-specific admin management
 
 ### 📝 Other Changes
 
-- release: version 0.32.6
+- release: version 0.32.7
 
 
 # Changelog
 
+## [0.33.0] - 2025-11-10
 ## [0.32.7] - 2025-11-09
 ## [0.32.6] - 2025-11-09
 ## [0.32.5] - 2025-11-09
