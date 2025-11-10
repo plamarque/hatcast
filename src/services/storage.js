@@ -1081,6 +1081,17 @@ export async function deleteEvent(eventId, seasonId) {
     })
     
     await batch.commit()
+    
+    // Supprimer tous les rappels associés à cet événement
+    try {
+      const { removeRemindersForEvent } = await import('./reminderService.js')
+      await removeRemindersForEvent({ seasonId, eventId })
+      logger.info('Rappels supprimés pour l\'événement supprimé', { seasonId, eventId })
+    } catch (error) {
+      logger.error('Erreur lors de la suppression des rappels pour l\'événement supprimé', { error, seasonId, eventId })
+      // Ne pas faire échouer la suppression si la suppression des rappels échoue
+    }
+    
     logger.info('Opérations de suppression terminées avec succès')
   } catch (error) {
     logger.error('Erreur lors de la suppression', error)
@@ -1117,6 +1128,18 @@ export async function updateEvent(eventId, eventData, seasonId) {
 // Mise à jour de l'état d'archivage d'un événement
 export async function setEventArchived(eventId, archived, seasonId) {
   await firestoreService.updateDocument('seasons', seasonId, { archived: !!archived }, 'events', eventId)
+  
+  // Si l'événement est archivé, supprimer tous les rappels associés
+  if (archived) {
+    try {
+      const { removeRemindersForEvent } = await import('./reminderService.js')
+      await removeRemindersForEvent({ seasonId, eventId })
+      logger.info('Rappels supprimés pour l\'événement archivé', { seasonId, eventId })
+    } catch (error) {
+      logger.error('Erreur lors de la suppression des rappels pour l\'événement archivé', { error, seasonId, eventId })
+      // Ne pas faire échouer l'archivage si la suppression des rappels échoue
+    }
+  }
 }
 
 /**

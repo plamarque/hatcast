@@ -1,16 +1,23 @@
-## [0.33.0] - 2025-11-10
+## [0.34.0] - 2025-11-10
 
 ### ✨ New Features
 
-- feat: add event-specific admin management
+- feat: Ajout autocomplete pour les admins d'événement avec Teleport pour éviter les problèmes de z-index
+- feat: Add weekly availability reminders and improve existing ones
 
 ### 📝 Other Changes
 
-- release: version 0.32.7
+- Merge availability reminders feature: grouped emails and push notifications
+- Refactor: Group availability reminders and send batched emails
+- release: version 0.33.0
+- Refactor: Improve email templates and notification logic
+- Refactor: Move token generation to shared utility
+- Add playerId to availability reminders for magic link generation
 
 
 # Changelog
 
+## [0.34.0] - 2025-11-10
 ## [0.33.0] - 2025-11-10
 ## [0.32.7] - 2025-11-09
 ## [0.32.6] - 2025-11-09

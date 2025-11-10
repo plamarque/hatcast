@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.34.0",
+    "date": "2025-11-10",
+    "changes": [
+      "✨ Ajout d'un système d'autocomplétion pour les admins d'événement avec Teleport, pour faciliter la gestion.",
+      "✨ Ajout de rappels hebdomadaires de disponibilité et amélioration des rappels existants.",
+      "🐛 Correction des problèmes liés aux rappels de disponibilité, maintenant regroupés en emails et notifications push."
+    ]
+  },
+  {
     "version": "0.32.7",
     "date": "2025-11-10",
     "changes": [

@@ -4638,13 +4638,19 @@ async function handleEditEvent(eventData) {
     // Si la date a changé et qu'il y a des joueurs compositionnés, recréer les rappels
     if (dateChanged && !eventData.archived) {
       try {
-        const { createRemindersForSelection, removeRemindersForEvent } = await import('../services/reminderService.js')
+        const { createRemindersForSelection, removeRemindersForEvent, removeAvailabilityRemindersForEvent } = await import('../services/reminderService.js')
         
-        // Supprimer tous les anciens rappels pour cet événement
-        await removeRemindersForEvent({
-          seasonId: seasonId.value,
-          eventId: editingEvent.value
-        })
+        // Supprimer tous les anciens rappels pour cet événement (sélection + disponibilité)
+        await Promise.all([
+          removeRemindersForEvent({
+            seasonId: seasonId.value,
+            eventId: editingEvent.value
+          }),
+          removeAvailabilityRemindersForEvent({
+            seasonId: seasonId.value,
+            eventId: editingEvent.value
+          })
+        ])
         
         // Récupérer les joueurs compositionnés (toujours un tableau)
         const selectedPlayers = getSelectionPlayers(editingEvent.value)

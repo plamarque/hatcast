@@ -11,7 +11,12 @@ function buildId({ seasonId, playerId, eventId, action }) {
   return `${seasonId}__${playerId}__${eventId}__${action}`
 }
 
-function randomToken(length = 32) {
+/**
+ * Generate a random token of specified length
+ * @param {number} length - Length of the token (default: 32)
+ * @returns {string} Random token string
+ */
+export function randomToken(length = 32) {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let token = ''
   for (let i = 0; i < length; i++) {
