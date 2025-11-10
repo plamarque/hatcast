@@ -1049,7 +1049,7 @@
                   <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
                 </div>
               </div>
-              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition && hasEmptySlotsInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
                 <div class="flex items-center gap-2 text-orange-200 text-sm">
                   <span>⚠️</span>
                   <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
@@ -3101,6 +3101,8 @@ const hasCompositionForSelectedEvent = computed(() => {
 // Computed pour obtenir les permissions d'édition pour l'événement sélectionné
 const canEditSelectedEvent = computed(() => {
   if (!selectedEvent.value) return false
+  // Vérifier que l'utilisateur est connecté
+  if (!currentUser.value?.email) return false
   return canEditEventMap.value.get(selectedEvent.value.id) ?? canEditEvents.value
 })
 
@@ -3151,6 +3153,10 @@ const compositionSlots = computed(() => {
 
 const hasDeclinedPlayersInComposition = computed(() => {
   return compositionSlots.value.some(s => s.selectionStatus === 'declined')
+})
+
+const hasEmptySlotsInComposition = computed(() => {
+  return compositionSlots.value.some(s => !s.playerName)
 })
 
 // If the current user player disappears, reset the selection to "Tous"
@@ -9756,20 +9762,28 @@ function getEventStatus(eventId) {
     
     // Vérifier si des joueurs sélectionnés ont décliné
     const selection = casts.value[eventId]
-    const hasDeclinedPlayers = selectedPlayers.some(playerName => {
-      return selection?.playerStatuses?.[playerName] === 'declined'
-    })
+    const declinedPlayers = selectedPlayers.filter(playerName => 
+      selection?.playerStatuses?.[playerName] === 'declined'
+    )
+    const hasDeclinedPlayers = declinedPlayers.length > 0
     
-    if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers) {
+    // Vérifier s'il y a des slots vides : compter les joueurs non-déclinés
+    const nonDeclinedPlayers = selectedPlayers.filter(playerName => 
+      selection?.playerStatuses?.[playerName] !== 'declined'
+    )
+    const hasEmptySlots = nonDeclinedPlayers.length < requiredCount
+    
+    // Ne considérer hasDeclinedPlayers comme un problème que s'il y a des slots vides
+    // Si tous les slots sont remplis, l'équipe n'est pas incomplète même avec des déclinés
+    if (hasUnavailablePlayers || hasInsufficientPlayers || hasEmptySlots) {
       return {
         type: 'incomplete',
         hasUnavailablePlayers,
         hasInsufficientPlayers,
-        hasDeclinedPlayers,
+        hasDeclinedPlayers: hasDeclinedPlayers && hasEmptySlots, // Seulement si slots vides
+        hasEmptySlots,
         unavailablePlayers: selectedPlayers.filter(playerName => !isAvailable(playerName, eventId)),
-        declinedPlayers: selectedPlayers.filter(playerName => 
-          selection?.playerStatuses?.[playerName] === 'declined'
-        ),
+        declinedPlayers,
         availableCount,
         requiredCount,
         isConfirmedByOrganizer,

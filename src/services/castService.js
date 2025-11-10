@@ -234,12 +234,14 @@ export function calculateCastStatus(cast, event, teamSlots, playerAvailability, 
   }
 
   // Cas 2: Composition incomplète (problèmes détectés)
-  if (hasUnavailablePlayers || hasInsufficientPlayers || hasDeclinedPlayers || hasEmptySlots) {
+  // Ne considérer hasDeclinedPlayers comme un problème que s'il y a des slots vides
+  // Si tous les slots sont remplis, l'équipe n'est pas incomplète même avec des déclinés
+  if (hasUnavailablePlayers || hasInsufficientPlayers || hasEmptySlots) {
     return {
       type: 'incomplete',
       hasUnavailablePlayers,
       hasInsufficientPlayers,
-      hasDeclinedPlayers,
+      hasDeclinedPlayers: hasDeclinedPlayers && hasEmptySlots, // Seulement si slots vides
       hasEmptySlots,
       unavailablePlayers: selectedPlayers.filter(playerName => 
         playerAvailability && playerAvailability[playerName] === false
