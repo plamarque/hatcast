@@ -22,16 +22,24 @@
       <template v-else-if="isSelected && (isSelectionConfirmedByOrganizer || playerSelectionStatus)">
         <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="playerSelectionStatus && playerSelectionStatus !== 'none'">
-          <!-- Ligne 1: nom du rôle -->
+          <!-- Ligne 1: nom du rôle avec pourcentage si en présélection -->
           <div class="text-center">
             <span class="text-sm font-medium">
-              {{ playerSelectionStatus === 'declined' ? 'Décliné' : getConfirmedRoleLabel() }}
+              <template v-if="playerSelectionStatus === 'declined'">
+                Décliné
+              </template>
+              <template v-else>
+                {{ getConfirmedRoleLabel() }}<template v-if="playerSelectionStatus === 'pending' && selectedRoleChance !== null && selectedRoleChance !== undefined"> ({{ selectedRoleChance }}%)</template>
+              </template>
             </span>
           </div>
           <!-- Ligne 2: emoji avec espacement cohérent -->
-          <div class="flex items-center justify-center mt-1">
+          <div class="flex items-center justify-center gap-1 mt-1">
             <span class="text-lg">
               {{ playerSelectionStatus === 'pending' ? '⏳' : getRoleEmoji() }}
+            </span>
+            <span v-if="playerSelectionStatus === 'pending'" class="text-xs text-gray-400">
+              {{ isSelectionConfirmedByOrganizer ? 'à confirmer' : getPreselectedLabel() }}
             </span>
           </div>
         </template>
@@ -47,60 +55,76 @@
       
       <!-- Pas sélectionné OU sélectionné mais non validé -->
       <template v-else>
-        <!-- Si le joueur a décliné, afficher "Décliné" -->
-        <template v-if="playerSelectionStatus === 'declined'">
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-sm font-medium text-orange-300">Décliné</span>
-            <span class="text-lg">❌</span>
-          </div>
-        </template>
-        <!-- Afficher les rôles et chances si disponibles -->
-        <template v-else-if="rolesAndChances && rolesAndChances.length > 0">
-          <div class="flex flex-col space-y-1 text-xs">
-            <div 
-              v-for="roleChance in rolesAndChances" 
-              :key="roleChance.role"
-              class="text-center"
-              :class="getChanceTextClass(roleChance.chance)"
-            >
-              <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
-                {{ roleChance.label }} ({{ roleChance.chance }}%)
-              </template>
-              <template v-else>
-                {{ roleChance.label }}
-              </template>
-            </div>
-          </div>
-        </template>
-        <!-- Sinon, afficher les disponibilités depuis availabilityData -->
-        <template v-else-if="availabilityData && availabilityData.available && availabilityData.roles && availabilityData.roles.length > 0">
-          <div class="flex flex-col space-y-1 text-xs">
-            <div 
-              v-for="role in availabilityData.roles" 
-              :key="role"
-              class="text-center text-green-400"
-            >
-              {{ getRoleLabel(role) }}
-            </div>
-          </div>
-        </template>
-        <!-- Afficher "Pas dispo" si indisponible -->
-        <template v-else-if="availabilityData && availabilityData.available === false">
-          <span class="text-center text-red-300">
-            Pas dispo
-          </span>
-        </template>
-        <!-- Afficher "Non renseigné" si pas de données -->
-        <template v-else-if="!availabilityData || availabilityData.available === null || availabilityData.available === undefined">
-          <span class="text-center text-gray-400">
-            Non renseigné
-          </span>
-        </template>
-        <!-- Sinon afficher un tiret -->
-        <template v-else>
+        <!-- Pour les événements avec équipe confirmée (mais non passés), afficher un tiret gris pour tous les non-sélectionnés -->
+        <template v-if="!isPastEvent && isSelectionConfirmedByOrganizer && !isSelected">
           <span class="text-center text-gray-400">
             -
           </span>
+        </template>
+        <!-- Affichage détaillé pour les événements sans équipe confirmée ou passés -->
+        <template v-else>
+          <!-- Si le joueur a décliné, afficher "Décliné" -->
+          <template v-if="playerSelectionStatus === 'declined'">
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-sm font-medium text-orange-300">Décliné</span>
+              <span class="text-lg">❌</span>
+            </div>
+          </template>
+          <!-- Afficher les rôles et chances si disponibles -->
+          <template v-else-if="rolesAndChances && rolesAndChances.length > 0">
+            <div class="text-center text-xs">
+              <span class="text-white">Dispo pour : </span>
+              <template v-for="(roleChance, index) in rolesAndChances" :key="roleChance.role">
+                <span :class="getChanceTextClass(roleChance.chance)">
+                  <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
+                    {{ roleChance.label }} ({{ roleChance.chance }}%)
+                  </template>
+                  <template v-else>
+                    {{ roleChance.label }}
+                  </template>
+                </span>
+                <template v-if="index < rolesAndChances.length - 1">
+                  <span class="text-white">, </span>
+                </template>
+              </template>
+            </div>
+          </template>
+          <!-- Sinon, afficher les disponibilités depuis availabilityData -->
+          <template v-else-if="availabilityData && availabilityData.available && availabilityData.roles && availabilityData.roles.length > 0">
+            <div class="flex flex-col space-y-1 text-xs">
+              <div 
+                v-for="role in availabilityData.roles" 
+                :key="role"
+                class="text-center text-green-400"
+              >
+                {{ getRoleLabel(role) }}
+              </div>
+            </div>
+          </template>
+          <!-- Pour les événements avec équipe en préparation : afficher un tiret gris pour pas-dispos et non renseignés -->
+          <template v-else-if="!isPastEvent && !isSelectionConfirmedByOrganizer && !isSelected && (availabilityData?.available === false || !availabilityData || availabilityData.available === null || availabilityData.available === undefined)">
+            <span class="text-center text-gray-400">
+              -
+            </span>
+          </template>
+          <!-- Afficher "Pas dispo" si indisponible (pour les événements sans équipe) -->
+          <template v-else-if="availabilityData && availabilityData.available === false">
+            <span class="text-center text-red-300">
+              Pas dispo
+            </span>
+          </template>
+          <!-- Afficher "Non renseigné" si pas de données (pour les événements sans équipe) -->
+          <template v-else-if="!availabilityData || availabilityData.available === null || availabilityData.available === undefined">
+            <span class="text-center text-gray-400">
+              Non renseigné
+            </span>
+          </template>
+          <!-- Sinon afficher un tiret -->
+          <template v-else>
+            <span class="text-center text-gray-400">
+              -
+            </span>
+          </template>
         </template>
       </template>
     </div>
@@ -187,6 +211,11 @@ const props = defineProps({
   isPastEvent: {
     type: Boolean,
     default: false
+  },
+  // Pourcentage de chance pour le rôle assigné en présélection
+  selectedRoleChance: {
+    type: Number,
+    default: null
   }
 })
 
@@ -278,6 +307,18 @@ function getRoleEmoji() {
   return '🎭' // Fallback si pas de rôle
 }
 
+function getPreselectedLabel() {
+  // Accorder "présélectionné" selon le genre du joueur
+  if (props.playerGender === 'female') {
+    return 'pré-sélectionnée'
+  }
+  if (props.playerGender === 'non-specified') {
+    return 'pré-sélectionné·e'
+  }
+  // Pour 'male', utiliser la forme masculine
+  return 'pré-sélectionné'
+}
+
 function getChanceTextClass(chance) {
   if (chance >= 80) return 'text-green-300 font-semibold'
   if (chance >= 60) return 'text-yellow-300'
@@ -298,6 +339,23 @@ function getCellStatusClass() {
     // Si c'est un membre confirmé, continuer avec la logique normale pour avoir le violet
   }
   
+  // Pour les événements avec équipe confirmée (mais non passés) : simplifier l'affichage
+  // Seuls les membres sélectionnés gardent leur style (violet/orange selon statut)
+  // Tous les autres états (non sélectionnés) deviennent gris (status-undefined)
+  if (!props.isPastEvent && props.isSelectionConfirmedByOrganizer && !props.isSelected) {
+    return 'status-undefined' // Gris pour tous les non-sélectionnés
+  }
+  
+  // Pour les événements avec équipe en préparation (non confirmée) : simplifier l'affichage
+  // Pour les joueurs non sélectionnés qui sont pas-dispos ou non renseignés, afficher en gris
+  if (!props.isPastEvent && !props.isSelectionConfirmedByOrganizer && !props.isSelected) {
+    const isUnavailable = props.availabilityData && props.availabilityData.available === false
+    const isNotSpecified = !props.availabilityData || props.availabilityData.available === null || props.availabilityData.available === undefined
+    if (isUnavailable || isNotSpecified) {
+      return 'status-undefined' // Gris pour pas-dispos et non renseignés
+    }
+  }
+  
   // Si le joueur a décliné, toujours afficher le statut declined (orange)
   if (playerSelectionStatus.value === 'declined') {
     return getStatusClass({
@@ -310,15 +368,25 @@ function getCellStatusClass() {
     })
   }
   
-  // Si le joueur est sélectionné mais la composition n'est pas validée par l'organisateur,
-  // afficher comme disponible (vert) au lieu de sélectionné (rouge)
-  const isSelectedButNotValidated = props.isSelected && !props.isSelectionConfirmedByOrganizer
+  // PRIORITÉ : Si le joueur est sélectionné (même si la composition n'est pas validée),
+  // utiliser le statut de confirmation pour déterminer la couleur du fond
+  if (props.isSelected && playerSelectionStatus.value && playerSelectionStatus.value !== 'none') {
+    return getStatusClass({
+      isSelected: true, // Toujours true si le joueur est sélectionné
+      playerSelectionStatus: playerSelectionStatus.value,
+      isAvailable: null, // Ignorer la disponibilité pour les sélectionnés
+      isUnavailable: false,
+      isLoading: false,
+      isError: false
+    })
+  }
   
+  // Si le joueur n'est pas sélectionné, utiliser la disponibilité
   // Si le joueur est disponible mais pas sélectionné, afficher en vert
   const isAvailableNotSelected = !props.isSelected && props.rolesAndChances && props.rolesAndChances.length > 0
   
-  // Si le joueur est sélectionné mais non validé, utiliser les données de disponibilité
-  const isAvailableFromData = isSelectedButNotValidated && props.availabilityData && props.availabilityData.available && props.availabilityData.roles && props.availabilityData.roles.length > 0
+  // Si le joueur est sélectionné mais n'a pas de statut de confirmation, utiliser les données de disponibilité
+  const isAvailableFromData = props.isSelected && !playerSelectionStatus.value && props.availabilityData && props.availabilityData.available && props.availabilityData.roles && props.availabilityData.roles.length > 0
   
   // Déterminer si le joueur est indisponible (pas dispo)
   const isUnavailable = props.availabilityData && props.availabilityData.available === false
@@ -337,10 +405,10 @@ function getCellStatusClass() {
   }
   
   return getStatusClass({
-    isSelected: props.isSelected && props.isSelectionConfirmedByOrganizer, // Seulement si validé
-    playerSelectionStatus: playerSelectionStatus.value !== 'none' ? playerSelectionStatus.value : null,
+    isSelected: false, // Pas sélectionné, utiliser la disponibilité
+    playerSelectionStatus: null,
     isAvailable: isAvailable,
-    isUnavailable: false, // Pas utilisé dans getStatusClass
+    isUnavailable: false,
     isLoading: false,
     isError: false
   })

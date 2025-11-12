@@ -1,34 +1,5 @@
 <template>
   <div class="w-full">
-    <!-- Encart d'avertissement -->
-    <div v-if="showWarning" class="bg-yellow-900/50 border border-yellow-600/50 rounded-lg p-2 mb-3">
-      <div class="flex items-start space-x-2">
-        <div class="flex-shrink-0">
-          <span class="text-yellow-400 text-sm">⚠️</span>
-        </div>
-        <div class="flex-1">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex-1">
-              <h3 class="text-yellow-200 font-medium text-xs mb-0.5">
-                Vue en cours de construction
-              </h3>
-              <p class="text-yellow-100 text-xs leading-tight">
-                Cette vue permet de voir les statistiques de participation et l'historique des compositions. 
-                Elle est encore en cours de construction et peut contenir des imprécisions. 
-                N'hésite pas à nous signaler toute imprécision.
-              </p>
-            </div>
-            <button
-              @click="dismissWarning"
-              class="flex-shrink-0 text-yellow-200 hover:text-yellow-100 text-xs font-medium px-2 py-1 rounded transition-colors"
-            >
-              Ok, compris
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Tableau avec colonnes de statistiques et événements -->
     <div class="overflow-x-auto casts-view" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 0;">
@@ -422,6 +393,7 @@
             :player-gender="player.gender || 'non-specified'"
               :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
               :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
+              :selected-role-chance="getPlayerRoleInEvent(player.id, event.id) && getPlayerSelectionStatusFromCast(player.id, event.id) === 'pending' ? getPlayerChanceForRole(player.id, event.id, getPlayerRoleInEvent(player.id, event.id)) : null"
               :can-edit-events="canEditEvents"
               :is-past-event="event._isPast"
           />
@@ -471,6 +443,8 @@ import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES, getRoleLabel } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import { loadPlayers, loadAvailability } from '../services/storage.js'
+import { calculateAllRoleChances } from '../services/chancesService.js'
+import { getPlayerCastStatus } from '../services/castService.js'
 import logger from '../services/logger.js'
 
 // Props
@@ -585,6 +559,23 @@ const props = defineProps({
   hiddenEventsDisplayText: {
     type: String,
     default: ''
+  },
+  // Props pour le calcul des chances
+  countSelections: {
+    type: Function,
+    default: null
+  },
+  isAvailableForRole: {
+    type: Function,
+    default: null
+  },
+  availability: {
+    type: Object,
+    default: () => ({})
+  },
+  allSeasonPlayers: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -614,21 +605,6 @@ const showDecorumDetails = ref(false)
 
 // State pour contrôler l'affichage des détails du jeu
 const showJeuDetails = ref(false)
-
-// State pour contrôler l'affichage de l'avertissement
-const showWarning = ref((() => {
-  if (typeof window === 'undefined') return true
-  const dismissed = localStorage.getItem('casts-view-warning-dismissed')
-  return dismissed !== 'true'
-})())
-
-// Fonction pour masquer l'avertissement
-function dismissWarning() {
-  showWarning.value = false
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('casts-view-warning-dismissed', 'true')
-  }
-}
 
 // Écouter les changements de taille d'écran
 onMounted(() => {
@@ -834,6 +810,76 @@ function getPlayerRoleLabelInEvent(playerId, eventId, playerGender = 'non-specif
   return null
 }
 
+// Fonction pour obtenir directement le statut de sélection d'un joueur depuis le cast
+// (sans passer par getPlayerSelectionStatus qui filtre selon les permissions)
+function getPlayerSelectionStatusFromCast(playerId, eventId) {
+  const cast = props.casts[eventId]
+  if (!cast) return null
+  
+  // Trouver le nom du joueur à partir de l'ID
+  const player = props.displayedPlayers.find(p => p.id === playerId)
+  if (!player) {
+    return null
+  }
+  
+  // Vérifier d'abord si le joueur est dans la section déclinés
+  if (cast.declined) {
+    for (const [role, playerIds] of Object.entries(cast.declined)) {
+      if (Array.isArray(playerIds) && playerIds.includes(playerId)) {
+        return 'declined'
+      }
+    }
+  }
+  
+  // Utiliser getPlayerCastStatus pour obtenir le statut
+  // Utiliser allSeasonPlayers pour être sûr d'avoir tous les joueurs
+  return getPlayerCastStatus(cast, player.name, props.allSeasonPlayers.length > 0 ? props.allSeasonPlayers : props.displayedPlayers)
+}
+
+// Fonction pour calculer le pourcentage de chance pour un rôle spécifique d'un joueur
+function getPlayerChanceForRole(playerId, eventId, role) {
+  // Trouver le nom du joueur à partir de l'ID
+  const player = props.displayedPlayers.find(p => p.id === playerId)
+  if (!player) {
+    return null
+  }
+  
+  // Trouver l'événement correspondant
+  const event = props.events.find(e => e.id === eventId)
+  if (!event) {
+    return null
+  }
+  
+  // Vérifier que les props nécessaires sont disponibles pour calculer les chances
+  if (!props.countSelections || !props.isAvailableForRole || !props.allSeasonPlayers || props.allSeasonPlayers.length === 0) {
+    return null
+  }
+  
+  // Créer une fonction countSelections qui exclut l'événement en cours (même logique que EventRoleGroupingView)
+  const countSelectionsExcludingCurrentEvent = (playerName, roleKey) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, roleKey, eventId, event.templateType)
+  }
+  
+  // Calculer les chances pour tous les rôles (même logique que EventRoleGroupingView)
+  const allRoleChances = calculateAllRoleChances(
+    event,
+    props.allSeasonPlayers,
+    props.availability,
+    countSelectionsExcludingCurrentEvent,
+    props.isAvailableForRole
+  )
+  
+  // Récupérer les chances pour ce rôle spécifique
+  const roleData = allRoleChances[role]
+  if (!roleData || !roleData.candidates) {
+    return null
+  }
+  
+  const candidate = roleData.candidates.find(c => c.name === player.name)
+  return candidate ? Math.round(candidate.practicalChance) : null
+}
+
 // Fonction pour obtenir les rôles et chances d'un joueur pour un événement
 function getPlayerRolesAndChances(playerId, eventId, playerGender = 'non-specified') {
   // Si le joueur est sélectionné ET la composition est validée, on n'affiche pas les chances
@@ -855,14 +901,60 @@ function getPlayerRolesAndChances(playerId, eventId, playerGender = 'non-specifi
     return null
   }
   
-  // Pour l'instant, afficher simplement les rôles disponibles sans calculer les chances
-  // (l'algorithme de casting n'a pas encore été exécuté, donc toutes les chances seraient à 0)
+  // Trouver l'événement correspondant
+  const event = props.events.find(e => e.id === eventId)
+  if (!event) {
+    return null
+  }
+  
+  // Vérifier que les props nécessaires sont disponibles pour calculer les chances
+  if (!props.countSelections || !props.isAvailableForRole || !props.allSeasonPlayers || props.allSeasonPlayers.length === 0) {
+    // Si les props ne sont pas disponibles, retourner les rôles sans chances
+    const rolesWithChances = availabilityData.roles.map(role => {
+      const roleLabel = getRoleLabel(role, playerGender)
+      return {
+        role: role,
+        label: roleLabel,
+        chance: null
+      }
+    })
+    return rolesWithChances
+  }
+  
+  // Créer une fonction countSelections qui exclut l'événement en cours (même logique que EventRoleGroupingView)
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, eventId, event.templateType)
+  }
+  
+  // Calculer les chances pour tous les rôles (même logique que EventRoleGroupingView)
+  const allRoleChances = calculateAllRoleChances(
+    event,
+    props.allSeasonPlayers,
+    props.availability,
+    countSelectionsExcludingCurrentEvent,
+    props.isAvailableForRole
+  )
+  
+  // Mapper les rôles avec leurs chances calculées
   const rolesWithChances = availabilityData.roles.map(role => {
     const roleLabel = getRoleLabel(role, playerGender)
+    
+    // Récupérer les chances pour ce rôle
+    const roleData = allRoleChances[role]
+    let chance = null
+    
+    if (roleData && roleData.candidates) {
+      const candidate = roleData.candidates.find(c => c.name === player.name)
+      if (candidate) {
+        chance = Math.round(candidate.practicalChance)
+      }
+    }
+    
     return {
       role: role,
       label: roleLabel,
-      chance: null  // Pas de pourcentage pour l'instant
+      chance: chance
     }
   })
   
