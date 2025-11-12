@@ -1,16 +1,14 @@
-## [0.37.2] - 2025-11-12
+## [0.37.4] - 2025-11-12
 
-### ✨ New Features
+### 🐛 Bug Fixes
 
-- feat: make stats table compact with expandable details
-
-### 📝 Other Changes
-
-- release: version 0.37.1
+- fix: correct changelog generation after Git history changes
 
 
 # Changelog
 
+## [0.37.4] - 2025-11-12
+## [0.37.3] - 2025-11-12
 ## [0.37.2] - 2025-11-12
 ## [0.37.1] - 2025-11-12
 ## [0.37.0] - 2025-11-10

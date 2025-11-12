@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.37.4",
+    "date": "2025-11-12",
+    "changes": [
+      "🐛 Correction de la génération du changelog après des modifications de l'historique Git"
+    ]
+  },
+  {
+    "version": "0.37.3",
+    "date": "2025-11-12",
+    "changes": [
+      "✨ Augmentation de la taille de police dans la fenêtre d'explication des chances sur mobile.",
+      "✨ Amélioration de la mise en page mobile pour la vue de disponibilité des rôles d'événements.",
+      "🐛 Correction du calcul des chances théoriques dans la fenêtre d'explication."
+    ]
+  },
+  {
     "version": "0.37.2",
     "date": "2025-11-12",
     "changes": [

@@ -182,10 +182,33 @@
                   </div>
                 </div>
 
-                <!-- Nom du joueur -->
-                <span class="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
-                  {{ player.name }}
-                </span>
+                <!-- Conteneur vertical pour nom et pourcentages -->
+                <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <!-- Nom du joueur -->
+                  <span class="text-white text-xs sm:text-sm font-medium truncate">
+                    {{ player.name }}
+                  </span>
+
+                  <!-- Pourcentage de chances -->
+                  <div class="flex items-center gap-1">
+                    <span 
+                      @click="showChanceDetails($event, player.name, role, false)"
+                      class="px-1 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                      :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                      :title="`Cliquer pour voir le détail du calcul`"
+                    >
+                      {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                    </span>
+                    <span 
+                      v-if="showBrunoAlgorithm" 
+                      @click="showChanceDetails($event, player.name, role, true)"
+                      class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors hidden sm:inline" 
+                      title="Algorithme Bruno - Cliquer pour voir le détail"
+                    >
+                      ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                    </span>
+                  </div>
+                </div>
 
                 <!-- Disponibilité du joueur -->
                 <div class="flex-shrink-0">
@@ -214,26 +237,6 @@
                     @show-confirmation-modal="openConfirmationModal"
                   />
                 </div>
-
-                <!-- Pourcentage de chances -->
-                <span class="flex-shrink-0 flex items-center gap-1">
-                  <span 
-                    @click="showChanceDetails($event, player.name, role, false)"
-                    class="px-1 py-0.5 sm:px-1.5 sm:py-1 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                    :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                    :title="`Cliquer pour voir le détail du calcul`"
-                  >
-                    {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                  </span>
-                  <span 
-                    v-if="showBrunoAlgorithm" 
-                    @click="showChanceDetails($event, player.name, role, true)"
-                    class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors hidden sm:inline" 
-                    title="Algorithme Bruno - Cliquer pour voir le détail"
-                  >
-                    ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
-                  </span>
-                </span>
               </div>
             </template>
           </div>
@@ -254,14 +257,16 @@
   <!-- Mini-popup des explications de chances (algorithme par défaut) -->
   <div v-if="showChanceExplanation && explanationData && !showBrunoExplanation" 
        data-explanation-popup
-       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 max-w-xs"
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 w-[calc(100%-32px)] max-w-xs sm:max-w-xs sm:w-auto mx-4 sm:mx-0"
        :style="{
          left: `${explanationPosition.x}px`,
          top: `${explanationPosition.y}px`,
-         transform: 'translateX(-50%)'
+         transform: isMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
+         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'none',
+         overflowY: isMobile ? 'auto' : 'visible'
        }"
        @click.stop>
-    <div class="text-xs">
+    <div class="text-sm sm:text-xs">
       <div class="font-medium text-white mb-2">Comment sont estimées les chances ?</div>
       <div class="space-y-2">
         <!-- Places et candidats -->
@@ -284,21 +289,22 @@
           <span class="text-gray-300"> de chances</span>
         </div>
         <div v-else>
-          <span class="text-gray-300">Au hasard pur tu aurais eu </span>
-          <span class="text-blue-400">{{ explanationData.requiredCount }}</span>
-          <span class="text-gray-400">/(</span>
-          <span class="text-green-400">{{ explanationData.availableCount }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 1 }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 2 }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 3 }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 4 }}</span>
-          <span class="text-gray-400">) = </span>
-          <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
-          <span class="text-gray-300"> de chances</span>
+          <div class="mb-2">
+            <span class="text-gray-300">Avec </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-300"> tirages successifs sans remise, tu aurais eu en moyenne : </span>
+            <span class="text-gray-400">(</span>
+            <template v-for="(denominator, index) in Array.from({ length: explanationData.requiredCount }, (_, i) => explanationData.availableCount - i)" :key="index">
+              <span class="text-gray-400">1/</span>
+              <span class="text-green-400">{{ denominator }}</span>
+              <span v-if="index < explanationData.requiredCount - 1" class="text-gray-400"> + </span>
+            </template>
+            <span class="text-gray-400">) / </span>
+            <span class="text-blue-400">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-400"> ≈ </span>
+            <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
+            <span class="text-gray-300"> de chances</span>
+          </div>
         </div>
         
         <!-- Application du malus -->
@@ -310,13 +316,14 @@
         </div>
         
         <!-- Explication du calcul -->
-        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>Calcul de la pondération :</strong></div>
-          <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span></div>
-          <div>• Ton poids = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span></div>
-          <div>• Poids total des autres = <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span></div>
+          <div class="mb-2 text-gray-300">On rééquilibre en réduisant tes chances pour chacune des sélections passées.</div>
+          <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span></div>
+          <div>• Ton poids = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span></div>
+          <div>• Poids total des autres = <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span></div>
           
-          <div>Tu as donc <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span> chances sur <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> soit <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span>/<span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> environ</div>
+          <div>Tu as donc <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span> chances sur <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> soit <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span>/<span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> environ</div>
           
           <div class="mt-2"></div>
         </div>
@@ -333,14 +340,16 @@
   <!-- Mini-popup des explications de chances (algorithme Bruno) -->
   <div v-if="showChanceExplanation && explanationData && showBrunoExplanation" 
        data-explanation-popup
-       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 max-w-sm"
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 w-[calc(100%-32px)] max-w-sm sm:w-auto mx-4 sm:mx-0"
        :style="{
          left: `${explanationPosition.x}px`,
          top: `${explanationPosition.y}px`,
-         transform: 'translateX(-50%)'
+         transform: isMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
+         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'none',
+         overflowY: isMobile ? 'auto' : 'visible'
        }"
        @click.stop>
-    <div class="text-xs">
+    <div class="text-sm sm:text-xs">
       <div class="font-medium text-white mb-2">Comment fonctionne l'algorithme Bruno ?</div>
       <div class="space-y-2">
         <!-- Introduction -->
@@ -358,7 +367,7 @@
         </div>
         
         <!-- Groupement par niveau -->
-        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>L'algorithme groupe les candidats par expérience :</strong></div>
           <div v-for="levelDetail in explanationData.levelDetails" :key="levelDetail.level" class="ml-2">
             • <span class="text-purple-400">{{ levelDetail.level }}</span> sélection{{ levelDetail.level > 1 ? 's' : '' }} passée{{ levelDetail.level > 1 ? 's' : '' }} : 
@@ -398,7 +407,7 @@
         </div>
         
         <!-- Calcul détaillé -->
-        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>Calcul détaillé :</strong></div>
           <div v-for="(levelDetail, index) in explanationData.levelDetails" :key="levelDetail.level" class="ml-2">
             • Niveau <span class="text-purple-400">{{ levelDetail.level }}</span> ({{ levelDetail.level === 0 ? 'jamais castés' : levelDetail.level === 1 ? '1 sélection' : levelDetail.level + '+ sélections' }}) : 
@@ -573,6 +582,7 @@ const emit = defineEmits(['close'])
 const showChanceExplanation = ref(false)
 const explanationData = ref(null)
 const explanationPosition = ref({ x: 0, y: 0 })
+const isMobile = ref(window.innerWidth < 640)
 
 // Computed pour afficher l'algorithme Bruno seulement en dev/staging
 const showBrunoAlgorithm = computed(() => {
@@ -792,11 +802,37 @@ const showBrunoExplanation = ref(false)
 function showChanceDetails(event, playerName, role, isBruno = false) {
   console.log('🖱️ Click on percentage:', { playerName, role, event, isBruno })
   
-  // Calculer la position de la popup
-  const rect = event.target.getBoundingClientRect()
-  explanationPosition.value = {
-    x: rect.left + rect.width / 2,
-    y: rect.top - 10
+  if (isMobile.value) {
+    // En mobile, centrer la popup sur l'écran
+    explanationPosition.value = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    }
+  } else {
+    // En desktop, positionner relativement au clic mais s'assurer qu'elle ne déborde pas
+    const rect = event.target.getBoundingClientRect()
+    const popupWidth = 320 // max-w-xs = 20rem = 320px
+    const popupHeight = 400 // Estimation de la hauteur maximale
+    const padding = 16 // Padding de sécurité
+    
+    let x = rect.left + rect.width / 2
+    let y = rect.top - 10
+    
+    // Ajuster horizontalement si nécessaire
+    if (x - popupWidth / 2 < padding) {
+      x = popupWidth / 2 + padding
+    } else if (x + popupWidth / 2 > window.innerWidth - padding) {
+      x = window.innerWidth - popupWidth / 2 - padding
+    }
+    
+    // Ajuster verticalement si nécessaire
+    if (y - popupHeight < padding) {
+      y = rect.bottom + 10 + padding
+    } else if (y > window.innerHeight - padding) {
+      y = window.innerHeight - popupHeight - padding
+    }
+    
+    explanationPosition.value = { x, y }
   }
   
   // Récupérer les données d'explication selon l'algorithme
@@ -817,6 +853,15 @@ function hideChanceExplanation() {
   showChanceExplanation.value = false
   showBrunoExplanation.value = false
   explanationData.value = null
+}
+
+// Helper function to format numbers: show decimals only if they're not zero
+function formatNumber(num) {
+  const rounded = Math.round(num * 100) / 100 // Round to 2 decimal places
+  if (rounded % 1 === 0) {
+    return rounded.toString() // No decimals if it's a whole number
+  }
+  return rounded.toFixed(2) // Show 2 decimals if needed
 }
 
 function getChanceExplanation(playerName, role) {
@@ -870,7 +915,25 @@ function getChanceExplanation(playerName, role) {
   }
   
   // Calculer les probabilités théoriques avant malus
-  const theoreticalChance = roleData.availableCount > 0 ? (1 / roleData.availableCount) * 100 : 0
+  // Pour requiredCount places et availableCount candidats :
+  // Probabilité = [Σ(i=1 à requiredCount) (1 / (availableCount - i + 1))] / requiredCount
+  // C'est la moyenne des probabilités d'être sélectionné à chaque tirage
+  let theoreticalChance = 0
+  let withReplacementChance = 0 // Probabilité si on faisait des tirages avec remise
+  if (roleData.availableCount > 0 && roleData.requiredCount > 0) {
+    // Calculer la somme des probabilités individuelles pour chaque tirage (sans remise)
+    let sum = 0
+    for (let i = 1; i <= roleData.requiredCount; i++) {
+      const remainingCandidates = roleData.availableCount - i + 1
+      sum += 1 / remainingCandidates
+    }
+    // Diviser par le nombre de places pour obtenir la moyenne
+    theoreticalChance = (sum / roleData.requiredCount) * 100
+    
+    // Calculer la probabilité avec remise (tirages indépendants) : (1/availableCount)^requiredCount
+    const singleDrawChance = 1 / roleData.availableCount
+    withReplacementChance = Math.pow(singleDrawChance, roleData.requiredCount) * 100
+  }
   
   const explanation = {
     playerName,
@@ -882,7 +945,9 @@ function getChanceExplanation(playerName, role) {
     pastSelections: candidate.pastSelections || 0,
     weightedChances: candidate.weightedChances || 0,
     totalWeight: roleData.totalWeight || 0,
-    theoreticalChance: theoreticalChance
+    theoreticalChance: theoreticalChance,
+    withReplacementChance: withReplacementChance,
+    singleDrawChancePercent: roleData.availableCount > 0 ? (1 / roleData.availableCount) * 100 : 0
   }
   
   console.log('✅ Explanation data:', explanation)
@@ -896,12 +961,20 @@ function handleClickOutside(event) {
   }
 }
 
+// Gestion du redimensionnement pour détecter mobile/desktop
+function handleResize() {
+  isMobile.value = window.innerWidth < 640
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
+  handleResize() // Initialiser la valeur
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
 })
 
 function getRoleStatusClass(role) {
