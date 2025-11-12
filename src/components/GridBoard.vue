@@ -722,7 +722,7 @@
               {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
               <svg 
                 class="w-3 h-3 transition-transform duration-200" 
-                :class="{ 'rotate-180': !showEventDetailsSection }"
+                :class="{ 'rotate-180': showEventDetailsSection }"
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -741,7 +741,7 @@
               {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
               <svg 
                 class="w-3 h-3 transition-transform duration-200" 
-                :class="{ 'rotate-180': !showEventDetailsSection }"
+                :class="{ 'rotate-180': showEventDetailsSection }"
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
