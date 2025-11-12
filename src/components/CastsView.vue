@@ -618,8 +618,39 @@ function calculatePlayerRoleStats(playerName) {
 
   // Parcourir tous les événements pour compter les rôles
   props.events.forEach(event => {
+    // Règle 1: L'événement ne doit pas être archivé
+    if (event.archived === true) {
+      return
+    }
+    
     // Utiliser les données de casts pour obtenir les sélections
     const eventCasts = props.casts[event.id] || {}
+    
+    // Règle 2: La sélection doit avoir été verrouillée (confirmée par l'organisateur)
+    if (!eventCasts || !eventCasts.confirmed) {
+      return
+    }
+    
+    // Règle 3: Vérifier si le joueur a décliné
+    let hasDeclined = false
+    // Vérifier dans la nouvelle structure declined
+    if (eventCasts.declined) {
+      Object.values(eventCasts.declined).forEach(playerIds => {
+        if (Array.isArray(playerIds)) {
+          if (playerIds.includes(playerId)) {
+            hasDeclined = true
+          }
+        }
+      })
+    }
+    // Fallback sur l'ancienne structure playerStatuses
+    if (!hasDeclined && eventCasts.playerStatuses && eventCasts.playerStatuses[playerId] === 'declined') {
+      hasDeclined = true
+    }
+    
+    if (hasDeclined) {
+      return
+    }
     
     // Trouver le joueur par son ID dans les rôles
     let playerRole = null
