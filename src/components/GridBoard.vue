@@ -750,6 +750,106 @@
               </svg>
             </button>
           </div>
+          
+          <!-- Ligne Date et Lieu alignées avec badge/bouton (desktop uniquement) -->
+          <div v-if="showEventDetailsSection" class="hidden md:flex items-center justify-between pl-1 mt-2">
+            <!-- Date alignée à gauche -->
+            <div class="relative">
+              <button
+                @click="showCalendarDropdown = !showCalendarDropdown"
+                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
+                title="Ajouter à votre agenda"
+              >
+                <span>📆</span>
+                <span>{{ formatDateFull(selectedEvent?.date) }}</span>
+                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              
+              <!-- Menu déroulant d'agenda -->
+              <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
+                <div class="p-2">
+                  <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
+                  <button
+                    @click="addToGoogleCalendar(selectedEvent)"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>📅</span>
+                    <span>Google</span>
+                  </button>
+                  <button
+                    @click="addToOutlookCalendar(selectedEvent)"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>📧</span>
+                    <span>Outlook</span>
+                  </button>
+                  <button
+                    @click="addToAppleCalendar(selectedEvent)"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>🍎</span>
+                    <span>Apple</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Lieu aligné à droite -->
+            <div v-if="selectedEvent?.location" class="relative">
+              <button
+                @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
+                :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+              >
+                <span>📍</span>
+                <span>{{ selectedEvent.location }}</span>
+                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              
+              <!-- Tooltip avec l'adresse complète -->
+              <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-600 z-50 max-w-xs">
+                <div class="whitespace-normal">{{ selectedEvent.location }}</div>
+                <div class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
+              
+              <!-- Dropdown Navigation -->
+              <div v-if="showGoogleMapsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
+                <div class="p-2">
+                  <!-- Option Google Maps -->
+                  <a 
+                    :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    @click="showGoogleMapsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
+                    </svg>
+                    <span>Ouvrir dans Google Maps</span>
+                  </a>
+                  
+                  <!-- Option Waze -->
+                  <a 
+                    :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    @click="showGoogleMapsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#33CCFF"/>
+                    </svg>
+                    <span>Ouvrir dans Waze</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <!-- Layout horizontal compact -->
@@ -866,116 +966,17 @@
           </div>
           
           <!-- Layout desktop en 2 colonnes égales avec flexbox -->
-          <div class="hidden md:flex md:gap-6 w-full">
-            <!-- Colonne gauche: Date + Description -->
+          <div class="hidden md:flex md:gap-6 w-full mt-4">
+            <!-- Colonne gauche: Description -->
             <div class="flex-1 space-y-2 min-w-0">
-              
-              <!-- Date avec dropdown -->
-              <div class="relative">
-                <button
-                  @click="showCalendarDropdown = !showCalendarDropdown"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                  title="Ajouter à votre agenda"
-                >
-                  <span>📆</span>
-                  <span>{{ formatDateFull(selectedEvent?.date) }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Menu déroulant d'agenda -->
-                <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
-                  <div class="p-2">
-                    <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
-                    <button
-                      @click="addToGoogleCalendar(selectedEvent)"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>📅</span>
-                      <span>Google</span>
-                    </button>
-                    <button
-                      @click="addToOutlookCalendar(selectedEvent)"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>📧</span>
-                      <span>Outlook</span>
-                    </button>
-                    <button
-                      @click="addToAppleCalendar(selectedEvent)"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>🍎</span>
-                      <span>Apple</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
               <!-- Description -->
               <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30 h-44 overflow-hidden">
                 <div class="line-clamp-6">{{ selectedEvent.description }}</div>
               </div>
             </div>
             
-            <!-- Colonne droite: Status + Lieu + Carte -->
+            <!-- Colonne droite: Carte -->
             <div class="flex-1 min-w-0">
-              
-              <!-- Lieu avec dropdown -->
-              <div v-if="selectedEvent?.location" class="relative mb-2">
-                <button
-                  @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                  :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
-                >
-                  <span>📍</span>
-                  <span>{{ selectedEvent.location }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Tooltip avec l'adresse complète -->
-                <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-600 z-50 max-w-xs">
-                  <div class="whitespace-normal">{{ selectedEvent.location }}</div>
-                  <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                </div>
-                
-                <!-- Dropdown Navigation -->
-                <div v-if="showGoogleMapsDropdown" class="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
-                  <div class="p-2">
-                    <!-- Option Google Maps -->
-                    <a 
-                      :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click="showGoogleMapsDropdown = false"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
-                      </svg>
-                      <span>Ouvrir dans Google Maps</span>
-                    </a>
-                    
-                    <!-- Option Waze -->
-                    <a 
-                      :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click="showGoogleMapsDropdown = false"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#33CCFF"/>
-                      </svg>
-                      <span>Ouvrir dans Waze</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-              
               <!-- Carte -->
               <div v-if="selectedEvent?.location" class="relative group h-44 w-full overflow-hidden mt-2">
                 <iframe 
