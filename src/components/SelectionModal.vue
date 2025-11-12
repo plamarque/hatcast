@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1390] p-0 md:p-4" @click="close">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-full md:max-h-[92vh] flex flex-col" @click.stop>
       <div class="relative p-4 md:p-6 border-b border-white/10">
         <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
         
@@ -26,7 +26,7 @@
       </div>
       
       <!-- Content scrollable -->
-      <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+      <div class="flex-1 px-4 md:px-6 py-4 md:py-6 overflow-y-auto min-h-0">
         <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <div class="flex items-center gap-2 mb-2">
@@ -200,6 +200,51 @@
             </div>
           </div>
           
+          <!-- Bouton Simuler (déplacé dans la modale pour mobile) -->
+          <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4 flex justify-center md:hidden">
+            <div class="relative algorithm-dropdown-container w-full max-w-xs">
+              <!-- Bouton principal -->
+              <button 
+                v-if="!isSimulating"
+                @click="toggleAlgorithmDropdown" 
+                :disabled="availableCount === 0" 
+                class="w-full h-12 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
+              >
+                <span class="flex items-center">
+                  🎲 <span class="ml-1">Simuler</span>
+                </span>
+                <span class="text-xs">▼</span>
+              </button>
+              
+              <!-- Bouton Stop -->
+              <button 
+                v-if="isSimulating"
+                @click="abortDraw()" 
+                class="w-full h-12 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center"
+                title="Arrêter le tirage"
+              >
+                ⏹️ <span class="ml-1">Arrêter</span>
+              </button>
+              
+              <!-- Dropdown des algorithmes -->
+              <div 
+                v-if="showAlgorithmDropdown && !isSimulating"
+                class="absolute left-0 right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50"
+                style="bottom: 100%; margin-bottom: 4px;"
+              >
+                <div 
+                  v-for="algorithm in availableAlgorithms" 
+                  :key="algorithm.value"
+                  @click="selectAlgorithm(algorithm.value)"
+                  class="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors"
+                >
+                  <div class="font-medium text-white">{{ algorithm.label }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- Message d'information pour les casters qui ne peuvent pas encore faire de sélections manuelles -->
           <!-- Ne pas afficher pour les admins (super admin, admin de saison, admin d'événement) -->
           <!-- Le message s'affiche seulement si : caster ET pas admin ET pas de cast existant -->
@@ -331,7 +376,7 @@
       
       </div>
       <!-- Footer sticky -->
-      <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
+      <div class="w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 flex-shrink-0">
         <!-- Bouton Composition Auto (réservé aux admins - fonction privilégiée) -->
         <button 
           v-if="!isSelectionConfirmedByOrganizer && canManageCompositionValue"
@@ -343,8 +388,8 @@
           ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
         </button>
 
-        <!-- Bouton Simuler Compo avec dropdown / Stop (visible pour tous les utilisateurs - fonction éducative) -->
-        <div v-if="!isSelectionConfirmedByOrganizer" class="flex-1 relative algorithm-dropdown-container">
+        <!-- Bouton Simuler Compo avec dropdown / Stop (visible pour tous les utilisateurs - fonction éducative, masqué sur mobile) -->
+        <div v-if="!isSelectionConfirmedByOrganizer" class="hidden md:flex flex-1 relative algorithm-dropdown-container">
           <!-- Bouton principal -->
           <button 
             v-if="!isSimulating"
