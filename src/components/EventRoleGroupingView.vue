@@ -232,6 +232,7 @@
                     :is-protected="isPlayerProtectedInGrid(player.id)"
                     :compact="true"
                     :simplified-display="true"
+                    :assigned-role="role"
                     class="w-16 h-8"
                     @toggle="handleAvailabilityToggle"
                     @toggle-selection-status="handlePlayerSelectionStatusToggle"

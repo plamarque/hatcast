@@ -265,6 +265,11 @@ const props = defineProps({
   simplifiedDisplay: {
     type: Boolean,
     default: false
+  },
+  // Prop pour indiquer le rôle assigné dans le contexte spécifique (ex: section de rôle dans EventRoleGroupingView)
+  assignedRole: {
+    type: String,
+    default: null
   }
 })
 
@@ -318,6 +323,11 @@ const hasSpecificRoles = computed(() => {
 
 // Fonction pour obtenir le libellé du rôle confirmé
 function getConfirmedRoleLabel() {
+  // Si un rôle assigné est fourni et que le joueur est sélectionné, utiliser ce rôle
+  if (props.assignedRole && props.isSelected) {
+    return getRoleLabel(props.assignedRole, props.playerGender, false) || 'Joue'
+  }
+  
   if (!props.availabilityData?.roles || props.availabilityData.roles.length === 0) {
     return 'Joue' // Fallback si pas de rôle
   }
@@ -329,6 +339,11 @@ function getConfirmedRoleLabel() {
 
 // Fonction pour obtenir l'emoji du rôle confirmé
 function getRoleEmoji() {
+  // Si un rôle assigné est fourni et que le joueur est sélectionné, utiliser ce rôle
+  if (props.assignedRole && props.isSelected) {
+    return ROLE_EMOJIS[props.assignedRole] || '🎭'
+  }
+  
   if (!props.availabilityData?.roles || props.availabilityData.roles.length === 0) {
     return '🎭' // Fallback si pas de rôle
   }
