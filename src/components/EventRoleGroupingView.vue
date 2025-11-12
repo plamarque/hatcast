@@ -182,10 +182,33 @@
                   </div>
                 </div>
 
-                <!-- Nom du joueur -->
-                <span class="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
-                  {{ player.name }}
-                </span>
+                <!-- Conteneur vertical pour nom et pourcentages -->
+                <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <!-- Nom du joueur -->
+                  <span class="text-white text-xs sm:text-sm font-medium truncate">
+                    {{ player.name }}
+                  </span>
+
+                  <!-- Pourcentage de chances -->
+                  <div class="flex items-center gap-1">
+                    <span 
+                      @click="showChanceDetails($event, player.name, role, false)"
+                      class="px-1 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                      :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                      :title="`Cliquer pour voir le détail du calcul`"
+                    >
+                      {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                    </span>
+                    <span 
+                      v-if="showBrunoAlgorithm" 
+                      @click="showChanceDetails($event, player.name, role, true)"
+                      class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors hidden sm:inline" 
+                      title="Algorithme Bruno - Cliquer pour voir le détail"
+                    >
+                      ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                    </span>
+                  </div>
+                </div>
 
                 <!-- Disponibilité du joueur -->
                 <div class="flex-shrink-0">
@@ -214,26 +237,6 @@
                     @show-confirmation-modal="openConfirmationModal"
                   />
                 </div>
-
-                <!-- Pourcentage de chances -->
-                <span class="flex-shrink-0 flex items-center gap-1">
-                  <span 
-                    @click="showChanceDetails($event, player.name, role, false)"
-                    class="px-1 py-0.5 sm:px-1.5 sm:py-1 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                    :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                    :title="`Cliquer pour voir le détail du calcul`"
-                  >
-                    {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                  </span>
-                  <span 
-                    v-if="showBrunoAlgorithm" 
-                    @click="showChanceDetails($event, player.name, role, true)"
-                    class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors hidden sm:inline" 
-                    title="Algorithme Bruno - Cliquer pour voir le détail"
-                  >
-                    ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
-                  </span>
-                </span>
               </div>
             </template>
           </div>
