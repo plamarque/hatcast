@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1390] p-0 md:p-4" @click="close">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-full md:max-h-[92vh] flex flex-col" @click.stop>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-screen md:max-h-[92vh] flex flex-col" @click.stop>
       <div class="relative p-4 md:p-6 border-b border-white/10 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-6">
         <button @click="close" title="Fermer" class="absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] md:top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
@@ -376,8 +376,8 @@
       
       </div>
       <!-- Footer sticky -->
-      <div class="w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 flex-shrink-0">
-        <!-- Bouton Composition Auto (réservé aux admins - fonction privilégiée) -->
+      <div class="w-full bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 flex-shrink-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 pl-[calc(0.75rem+env(safe-area-inset-left))] pr-[calc(0.75rem+env(safe-area-inset-right))] md:pl-3 md:pr-3">
+        <!-- Bouton Tirage (réservé aux admins - fonction privilégiée) -->
         <button 
           v-if="!isSelectionConfirmedByOrganizer && canManageCompositionValue"
           @click="handleSelection" 
@@ -385,7 +385,7 @@
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
           :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
         >
-          ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
+          ✨ <span>Tirage</span>
         </button>
 
         <!-- Bouton Simuler Compo avec dropdown / Stop (visible pour tous les utilisateurs - fonction éducative, masqué sur mobile) -->
@@ -479,7 +479,7 @@
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
         >
-          🗑️ <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
+          🗑️ <span>Effacer</span>
         </button>
 
         <!-- Bouton Fermer (masqué s'il y a une sélection pour libérer l'espace) -->
