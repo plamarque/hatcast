@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.37.1",
+    "date": "2025-11-12",
+    "changes": [
+      "✨ Ajout d'une colonne 'JEU AUTRE' dans les statistiques de composition",
+      "🐛 Correction des statistiques de composition pour ne compter que les sélections confirmées"
+    ]
+  },
+  {
     "version": "0.37.0",
     "date": "2025-11-10",
     "changes": [
