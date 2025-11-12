@@ -190,14 +190,14 @@
             <div class="space-y-3">
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="notificationPrefs.notifySelectionPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
-                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une composition</span>
+                  <input type="checkbox" v-model="notificationPrefs.notifyAvailabilityPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsqu'un spectacle a besoin de personnes</span>
                 </label>
               </div>
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="notificationPrefs.notifyAvailabilityPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
-                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier en cas de nouveau spectacle</span>
+                  <input type="checkbox" v-model="notificationPrefs.notifySelectionPush" :disabled="!pushEnabledOnDevice" class="w-4 h-4">
+                  <span class="text-sm text-white" :class="{ 'text-gray-400': !pushEnabledOnDevice }">Me notifier lorsque je suis concerné par une composition</span>
                 </label>
               </div>
             </div>
