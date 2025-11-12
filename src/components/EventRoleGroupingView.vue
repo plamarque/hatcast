@@ -284,21 +284,22 @@
           <span class="text-gray-300"> de chances</span>
         </div>
         <div v-else>
-          <span class="text-gray-300">Au hasard pur tu aurais eu </span>
-          <span class="text-blue-400">{{ explanationData.requiredCount }}</span>
-          <span class="text-gray-400">/(</span>
-          <span class="text-green-400">{{ explanationData.availableCount }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 1 }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 2 }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 3 }}</span>
-          <span class="text-gray-400">+</span>
-          <span class="text-green-400">{{ explanationData.availableCount - 4 }}</span>
-          <span class="text-gray-400">) = </span>
-          <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
-          <span class="text-gray-300"> de chances</span>
+          <div class="mb-2">
+            <span class="text-gray-300">Avec </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-300"> tirages successifs sans remise, tu aurais eu en moyenne : </span>
+            <span class="text-gray-400">(</span>
+            <template v-for="(denominator, index) in Array.from({ length: explanationData.requiredCount }, (_, i) => explanationData.availableCount - i)" :key="index">
+              <span class="text-gray-400">1/</span>
+              <span class="text-green-400">{{ denominator }}</span>
+              <span v-if="index < explanationData.requiredCount - 1" class="text-gray-400"> + </span>
+            </template>
+            <span class="text-gray-400">) / </span>
+            <span class="text-blue-400">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-400"> ≈ </span>
+            <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
+            <span class="text-gray-300"> de chances</span>
+          </div>
         </div>
         
         <!-- Application du malus -->
@@ -312,11 +313,12 @@
         <!-- Explication du calcul -->
         <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>Calcul de la pondération :</strong></div>
-          <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span></div>
-          <div>• Ton poids = <span class="text-orange-400">{{ explanationData.malus.toFixed(2) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span></div>
-          <div>• Poids total des autres = <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span></div>
+          <div class="mb-2 text-gray-300">On rééquilibre en réduisant tes chances pour chacune des sélections passées.</div>
+          <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span></div>
+          <div>• Ton poids = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span></div>
+          <div>• Poids total des autres = <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span></div>
           
-          <div>Tu as donc <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span> chances sur <span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> soit <span class="text-cyan-400">{{ explanationData.weightedChances.toFixed(2) }}</span>/<span class="text-indigo-400">{{ explanationData.totalWeight.toFixed(2) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> environ</div>
+          <div>Tu as donc <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span> chances sur <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> soit <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span>/<span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> environ</div>
           
           <div class="mt-2"></div>
         </div>
@@ -819,6 +821,15 @@ function hideChanceExplanation() {
   explanationData.value = null
 }
 
+// Helper function to format numbers: show decimals only if they're not zero
+function formatNumber(num) {
+  const rounded = Math.round(num * 100) / 100 // Round to 2 decimal places
+  if (rounded % 1 === 0) {
+    return rounded.toString() // No decimals if it's a whole number
+  }
+  return rounded.toFixed(2) // Show 2 decimals if needed
+}
+
 function getChanceExplanation(playerName, role) {
   console.log('🔍 Debug getChanceExplanation:', { playerName, role, selectedEvent: props.selectedEvent })
   
@@ -870,7 +881,25 @@ function getChanceExplanation(playerName, role) {
   }
   
   // Calculer les probabilités théoriques avant malus
-  const theoreticalChance = roleData.availableCount > 0 ? (1 / roleData.availableCount) * 100 : 0
+  // Pour requiredCount places et availableCount candidats :
+  // Probabilité = [Σ(i=1 à requiredCount) (1 / (availableCount - i + 1))] / requiredCount
+  // C'est la moyenne des probabilités d'être sélectionné à chaque tirage
+  let theoreticalChance = 0
+  let withReplacementChance = 0 // Probabilité si on faisait des tirages avec remise
+  if (roleData.availableCount > 0 && roleData.requiredCount > 0) {
+    // Calculer la somme des probabilités individuelles pour chaque tirage (sans remise)
+    let sum = 0
+    for (let i = 1; i <= roleData.requiredCount; i++) {
+      const remainingCandidates = roleData.availableCount - i + 1
+      sum += 1 / remainingCandidates
+    }
+    // Diviser par le nombre de places pour obtenir la moyenne
+    theoreticalChance = (sum / roleData.requiredCount) * 100
+    
+    // Calculer la probabilité avec remise (tirages indépendants) : (1/availableCount)^requiredCount
+    const singleDrawChance = 1 / roleData.availableCount
+    withReplacementChance = Math.pow(singleDrawChance, roleData.requiredCount) * 100
+  }
   
   const explanation = {
     playerName,
@@ -882,7 +911,9 @@ function getChanceExplanation(playerName, role) {
     pastSelections: candidate.pastSelections || 0,
     weightedChances: candidate.weightedChances || 0,
     totalWeight: roleData.totalWeight || 0,
-    theoreticalChance: theoreticalChance
+    theoreticalChance: theoreticalChance,
+    withReplacementChance: withReplacementChance,
+    singleDrawChancePercent: roleData.availableCount > 0 ? (1 / roleData.availableCount) * 100 : 0
   }
   
   console.log('✅ Explanation data:', explanation)
