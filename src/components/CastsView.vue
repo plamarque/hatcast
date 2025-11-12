@@ -58,7 +58,7 @@
             </th>
             <!-- En-tête de groupe JEU -->
             <th 
-              colspan="4" 
+              colspan="5" 
               class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1.5 text-center rounded-tr"
               style="border: none; margin: 0;"
             >
@@ -165,6 +165,12 @@
               <div class="flex flex-col items-center space-y-0.5">
                 <span>🎭</span>
                 <span>JEU LONG</span>
+              </div>
+            </th>
+            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+              <div class="flex flex-col items-center space-y-0.5">
+                <span>🎭</span>
+                <span>JEU AUTRE</span>
               </div>
             </th>
             <th class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-amber-200" style="width: 80px; min-width: 80px;">
@@ -279,7 +285,7 @@
         </td>
           
           <!-- Cellules de comptage des rôles -->
-          <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
+          <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
             <!-- Colonnes de décorum -->
             <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
               {{ stats.mc || '' }}
@@ -309,6 +315,9 @@
             </td>
             <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
               {{ stats.jeuLong || '' }}
+            </td>
+            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+              {{ stats.jeuAutre || '' }}
             </td>
             <td class="bg-amber-100 text-amber-800 text-center text-sm font-bold border-l-2 border-r border-b border-amber-200" style="width: 80px; min-width: 80px;">
               {{ stats.totalJeu || '' }}
@@ -594,7 +603,7 @@ function calculatePlayerRoleStats(playerName) {
   const player = props.displayedPlayers.find(p => p.name === playerName)
   if (!player) {
     console.log(`❌ Joueur ${playerName} non trouvé dans displayedPlayers`)
-    return { mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0 }
+    return { mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0 }
   }
   
   const playerId = player.id
@@ -610,6 +619,7 @@ function calculatePlayerRoleStats(playerName) {
     jeuMatch: 0,
     jeuCab: 0,
     jeuLong: 0,
+    jeuAutre: 0,
     // Total de toutes les participations en tant que joueur
     totalJeu: 0,
     // Bénévoles
@@ -702,8 +712,10 @@ function calculatePlayerRoleStats(playerName) {
             case 'longform':
               stats.jeuLong++
               break
-            // Pour les autres types (freeform, catch, etc.), on ne les compte pas dans les colonnes spécifiques
-            // mais ils sont déjà comptés dans totalJeu
+            default:
+              // Pour les autres types (freeform, catch, etc.), compter dans jeuAutre
+              stats.jeuAutre++
+              break
           }
           break
         case 'volunteer':
@@ -821,6 +833,7 @@ function exportToExcel() {
       'JEU MATCH',
       'JEU CAB',
       'JEU LONG',
+      'JEU AUTRE',
       'TOTAL JEU',
       'BÉNÉVOLE',
       ...props.events.map(event => event.title)
@@ -829,7 +842,7 @@ function exportToExcel() {
     
     // Données pour chaque joueur
     props.displayedPlayers.forEach(player => {
-      const stats = playersRoleStats.value.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, totalJeu: 0, volunteer: 0}
+      const stats = playersRoleStats.value.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0}
       const playerRow = [
         player.name,
         stats.mc,
@@ -841,6 +854,7 @@ function exportToExcel() {
         stats.jeuMatch,
         stats.jeuCab,
         stats.jeuLong,
+        stats.jeuAutre,
         stats.totalJeu,
         stats.volunteer,
         ...props.events.map(event => {
