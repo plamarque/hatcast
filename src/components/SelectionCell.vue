@@ -98,13 +98,19 @@
               </div>
             </div>
           </template>
-          <!-- Afficher "Pas dispo" si indisponible -->
+          <!-- Pour les événements avec équipe en préparation : afficher un tiret gris pour pas-dispos et non renseignés -->
+          <template v-else-if="!isPastEvent && !isSelectionConfirmedByOrganizer && !isSelected && (availabilityData?.available === false || !availabilityData || availabilityData.available === null || availabilityData.available === undefined)">
+            <span class="text-center text-gray-400">
+              -
+            </span>
+          </template>
+          <!-- Afficher "Pas dispo" si indisponible (pour les événements sans équipe) -->
           <template v-else-if="availabilityData && availabilityData.available === false">
             <span class="text-center text-red-300">
               Pas dispo
             </span>
           </template>
-          <!-- Afficher "Non renseigné" si pas de données -->
+          <!-- Afficher "Non renseigné" si pas de données (pour les événements sans équipe) -->
           <template v-else-if="!availabilityData || availabilityData.available === null || availabilityData.available === undefined">
             <span class="text-center text-gray-400">
               Non renseigné
@@ -323,6 +329,16 @@ function getCellStatusClass() {
   // Tous les autres états (non sélectionnés) deviennent gris (status-undefined)
   if (!props.isPastEvent && props.isSelectionConfirmedByOrganizer && !props.isSelected) {
     return 'status-undefined' // Gris pour tous les non-sélectionnés
+  }
+  
+  // Pour les événements avec équipe en préparation (non confirmée) : simplifier l'affichage
+  // Pour les joueurs non sélectionnés qui sont pas-dispos ou non renseignés, afficher en gris
+  if (!props.isPastEvent && !props.isSelectionConfirmedByOrganizer && !props.isSelected) {
+    const isUnavailable = props.availabilityData && props.availabilityData.available === false
+    const isNotSpecified = !props.availabilityData || props.availabilityData.available === null || props.availabilityData.available === undefined
+    if (isUnavailable || isNotSpecified) {
+      return 'status-undefined' // Gris pour pas-dispos et non renseignés
+    }
   }
   
   // Si le joueur a décliné, toujours afficher le statut declined (orange)
