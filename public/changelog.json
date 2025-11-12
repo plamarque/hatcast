@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.37.4",
+    "date": "2025-11-12",
+    "changes": [
+      "🐛 Correction de la génération du changelog après des modifications de l'historique Git"
+    ]
+  },
+  {
     "version": "0.37.3",
     "date": "2025-11-12",
     "changes": [

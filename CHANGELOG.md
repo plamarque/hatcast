@@ -1,22 +1,13 @@
-## [0.37.3] - 2025-11-12
-
-### ✨ New Features
-
-- feat: increase font size in chance explanation popup on mobile
-- feat: improve mobile layout for event role availability view
+## [0.37.4] - 2025-11-12
 
 ### 🐛 Bug Fixes
 
-- fix: correct theoretical chance calculation in explanation popup
-
-### 📝 Other Changes
-
-- better display % in availability tab on mobile
-- release: version 0.37.2
+- fix: correct changelog generation after Git history changes
 
 
 # Changelog
 
+## [0.37.4] - 2025-11-12
 ## [0.37.3] - 2025-11-12
 ## [0.37.2] - 2025-11-12
 ## [0.37.1] - 2025-11-12
