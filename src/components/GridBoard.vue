@@ -705,19 +705,8 @@
             </div>
           </div>
           
-          <!-- Badge pour afficher/masquer les détails -->
-          <div class="flex items-center pl-1">
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
-            </button>
-          </div>
-          
-          <!-- Status de l'événement - Nouvelle ligne -->
-          <div v-if="selectedEvent && eventStatus" class="flex items-center pl-1">
+          <!-- Status de l'événement et bouton pour afficher/masquer les détails - Même ligne -->
+          <div v-if="selectedEvent && eventStatus" class="flex items-center justify-between pl-1">
             <SelectionStatusBadge
               :status="eventStatus.type"
               :show="true"
@@ -725,6 +714,41 @@
               :reason="eventWarningText"
               class="text-xs"
             />
+            <button
+              @click="showEventDetailsSection = !showEventDetailsSection"
+              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
+              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+            >
+              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
+              <svg 
+                class="w-3 h-3 transition-transform duration-200" 
+                :class="{ 'rotate-180': !showEventDetailsSection }"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          </div>
+          <!-- Si pas de badge d'état, afficher seulement le bouton -->
+          <div v-else class="flex items-center justify-end pl-1">
+            <button
+              @click="showEventDetailsSection = !showEventDetailsSection"
+              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
+              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+            >
+              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
+              <svg 
+                class="w-3 h-3 transition-transform duration-200" 
+                :class="{ 'rotate-180': !showEventDetailsSection }"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
           </div>
         </div>
         
