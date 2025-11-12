@@ -1,12 +1,22 @@
-## [0.37.4] - 2025-11-12
+## [0.38.0] - 2025-11-12
 
-### 🐛 Bug Fixes
+### ✨ New Features
 
-- fix: correct changelog generation after Git history changes
+- feat: add status label next to pending selection emoji in composition view
+- feat: simplify display for unavailable and unspecified players in preparation events
+- feat: simplify display for confirmed team events in composition view
+- feat: improve display of available roles in composition view
+- feat: use confirmation status background for selected players in composition view
+- feat: display selection chance percentage in composition view
+
+### 📝 Other Changes
+
+- chore: remove construction warning from composition view
 
 
 # Changelog
 
+## [0.38.0] - 2025-11-12
 ## [0.37.4] - 2025-11-12
 ## [0.37.3] - 2025-11-12
 ## [0.37.2] - 2025-11-12

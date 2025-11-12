@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.38.0",
+    "date": "2025-11-12",
+    "changes": [
+      "✨ Ajout d'une étiquette de statut à côté de l'emoji de sélection en attente dans la vue de composition.",
+      "✨ Simplification de l'affichage pour les joueurs indisponibles et non spécifiés dans les événements de préparation.",
+      "✨ Simplification de l'affichage pour les événements d'équipe confirmés dans la vue de composition.",
+      "✨ Amélioration de l'affichage des rôles disponibles dans la vue de composition.",
+      "✨ Utilisation d'un fond de statut de confirmation pour les joueurs sélectionnés dans la vue de composition.",
+      "✨ Affichage du pourcentage de chance de sélection dans la vue de composition."
+    ]
+  },
+  {
     "version": "0.37.4",
     "date": "2025-11-12",
     "changes": [
