@@ -320,15 +320,25 @@ function getCellStatusClass() {
     })
   }
   
-  // Si le joueur est sélectionné mais la composition n'est pas validée par l'organisateur,
-  // afficher comme disponible (vert) au lieu de sélectionné (rouge)
-  const isSelectedButNotValidated = props.isSelected && !props.isSelectionConfirmedByOrganizer
+  // PRIORITÉ : Si le joueur est sélectionné (même si la composition n'est pas validée),
+  // utiliser le statut de confirmation pour déterminer la couleur du fond
+  if (props.isSelected && playerSelectionStatus.value && playerSelectionStatus.value !== 'none') {
+    return getStatusClass({
+      isSelected: true, // Toujours true si le joueur est sélectionné
+      playerSelectionStatus: playerSelectionStatus.value,
+      isAvailable: null, // Ignorer la disponibilité pour les sélectionnés
+      isUnavailable: false,
+      isLoading: false,
+      isError: false
+    })
+  }
   
+  // Si le joueur n'est pas sélectionné, utiliser la disponibilité
   // Si le joueur est disponible mais pas sélectionné, afficher en vert
   const isAvailableNotSelected = !props.isSelected && props.rolesAndChances && props.rolesAndChances.length > 0
   
-  // Si le joueur est sélectionné mais non validé, utiliser les données de disponibilité
-  const isAvailableFromData = isSelectedButNotValidated && props.availabilityData && props.availabilityData.available && props.availabilityData.roles && props.availabilityData.roles.length > 0
+  // Si le joueur est sélectionné mais n'a pas de statut de confirmation, utiliser les données de disponibilité
+  const isAvailableFromData = props.isSelected && !playerSelectionStatus.value && props.availabilityData && props.availabilityData.available && props.availabilityData.roles && props.availabilityData.roles.length > 0
   
   // Déterminer si le joueur est indisponible (pas dispo)
   const isUnavailable = props.availabilityData && props.availabilityData.available === false
@@ -347,10 +357,10 @@ function getCellStatusClass() {
   }
   
   return getStatusClass({
-    isSelected: props.isSelected && props.isSelectionConfirmedByOrganizer, // Seulement si validé
-    playerSelectionStatus: playerSelectionStatus.value !== 'none' ? playerSelectionStatus.value : null,
+    isSelected: false, // Pas sélectionné, utiliser la disponibilité
+    playerSelectionStatus: null,
     isAvailable: isAvailable,
-    isUnavailable: false, // Pas utilisé dans getStatusClass
+    isUnavailable: false,
     isLoading: false,
     isError: false
   })
