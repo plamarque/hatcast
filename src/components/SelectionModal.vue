@@ -29,28 +29,26 @@
       <div class="flex-1 px-4 md:px-6 py-4 md:py-6 overflow-y-auto min-h-0">
         <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
-          <div class="flex items-center gap-2 mb-2">
-            <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
-            
-            <!-- Badge statut de composition -->
-            <SelectionStatusBadge
-              :status="getSelectionStatus().type"
-              :show="true"
-              :clickable="false"
-              :reason="selectionIncompleteReason"
-              class="text-sm"
-            />
-            
-            <!-- Badge nombre de personnes -->
-            <div class="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs">
-              <span class="text-blue-300">👥</span>
-              <span class="text-blue-200">{{ getTotalTeamSize() }} personnes</span>
+          <div class="mb-2">
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
+              
+              <!-- Badge statut de composition -->
+              <div 
+                class="px-2 py-1 rounded-full text-xs font-normal border"
+                :class="getCompositionStatusColorClass(compositionStatus.color)"
+                :title="compositionStatus.hint"
+              >
+                {{ compositionStatus.label }}
+              </div>
+              
+              <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la composition automatique ?">
+                <span class="text-sm">❓</span>
+              </button>
             </div>
             
-            <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la composition automatique ?">
-              <span class="text-sm">❓</span>
-            </button>
-
+            <!-- Message hint explicatif -->
+            <p class="text-xs text-gray-400 ml-0">{{ compositionStatus.hint }}</p>
           </div>
           
           <!-- Warning de simulation -->
@@ -200,15 +198,27 @@
             </div>
           </div>
           
-          <!-- Bouton Simuler (déplacé dans la modale pour mobile) -->
-          <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4 flex justify-center md:hidden">
-            <div class="relative algorithm-dropdown-container w-full max-w-xs">
+          <!-- Boutons Tirage et Simuler (déplacés dans la modale) -->
+          <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4 flex justify-center gap-3">
+            <!-- Bouton Tirage -->
+            <button 
+              v-if="canManageCompositionValue"
+              @click="handleSelection" 
+              :disabled="availableCount === 0" 
+              class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" 
+              :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
+            >
+              ✨ <span class="ml-1">Tirage</span>
+            </button>
+            
+            <!-- Bouton Simuler -->
+            <div class="relative algorithm-dropdown-container">
               <!-- Bouton principal -->
               <button 
                 v-if="!isSimulating"
                 @click="toggleAlgorithmDropdown" 
                 :disabled="availableCount === 0" 
-                class="w-full h-12 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                class="h-12 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
                 :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
               >
                 <span class="flex items-center">
@@ -221,7 +231,7 @@
               <button 
                 v-if="isSimulating"
                 @click="abortDraw()" 
-                class="w-full h-12 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center"
+                class="h-12 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center"
                 title="Arrêter le tirage"
               >
                 ⏹️ <span class="ml-1">Arrêter</span>
@@ -255,6 +265,14 @@
                 Cliquez sur <strong>[✨ Compo Auto]</strong> pour lancer un tirage au sort parmi les personnes disponibles.
               </span>
             </div>
+          </div>
+        </div>
+        
+        <!-- Message d'information pour composition avec joueurs déclinés -->
+        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers && hasEmptySlots" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <div class="flex items-center gap-2 text-orange-200 text-sm">
+            <span>⚠️</span>
+            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
           </div>
         </div>
         
@@ -308,22 +326,6 @@
           </div>
         </div>
         
-        <!-- Message d'information pour composition à confirmer -->
-        <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <div class="flex items-center gap-2 text-blue-200 text-sm">
-            <span>⏳</span>
-            <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
-          </div>
-        </div>
-
-        <!-- Message d'information pour composition avec joueurs déclinés -->
-        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers && hasEmptySlots" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-          <div class="flex items-center gap-2 text-orange-200 text-sm">
-            <span>⚠️</span>
-            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
-          </div>
-        </div>
-
         <!-- Message d'information pour composition définitive -->
         <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-green-200 text-sm">
@@ -379,19 +381,8 @@
       </div>
       <!-- Footer sticky -->
       <div class="w-full bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 flex-shrink-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 pl-[calc(0.75rem+env(safe-area-inset-left))] pr-[calc(0.75rem+env(safe-area-inset-right))] md:pl-3 md:pr-3">
-        <!-- Bouton Tirage (réservé aux admins - fonction privilégiée) -->
-        <button 
-          v-if="!isSelectionConfirmedByOrganizer && canManageCompositionValue"
-          @click="handleSelection" 
-          :disabled="availableCount === 0" 
-          class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
-        >
-          ✨ <span>Tirage</span>
-        </button>
-
-        <!-- Bouton Simuler Compo avec dropdown / Stop (visible pour tous les utilisateurs - fonction éducative, masqué sur mobile) -->
-        <div v-if="!isSelectionConfirmedByOrganizer" class="hidden md:flex flex-1 relative algorithm-dropdown-container">
+        <!-- Bouton Simuler Compo avec dropdown / Stop (masqué car déplacé dans la modale) -->
+        <div v-if="!isSelectionConfirmedByOrganizer" class="hidden relative algorithm-dropdown-container">
           <!-- Bouton principal -->
           <button 
             v-if="!isSimulating"
@@ -546,7 +537,6 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
-import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast, getAllPlayersFromCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
@@ -1241,6 +1231,67 @@ function getSelectionStatus() {
   }
   
   return { type: 'complete', availableCount, requiredCount }
+}
+
+// Fonction pour déterminer le statut de composition précis avec messages explicatifs
+const compositionStatus = computed(() => {
+  // Cas 1: Pas de composition (étape initiale)
+  if (!hasSelection.value) {
+    return {
+      type: 'none',
+      label: 'À composer',
+      hint: "Aucun joueur n'a encore été sélectionné. Utilisez le bouton [Tirage] pour sélectionner automatiquement les participants ou cliquez dans les cases ci-dessous pour les sélectionner manuellement.",
+      color: 'blue'
+    }
+  }
+  
+  // Cas 4: Équipe complète (toutes confirmations obtenues)
+  if (props.isSelectionConfirmed) {
+    return {
+      type: 'complete',
+      label: 'Équipe complète',
+      hint: "Tous les joueurs ont confirmé leur participation. L'équipe est complète.",
+      color: 'green'
+    }
+  }
+  
+  // Cas 3: En attente de confirmations (composition validée, confirmations en cours)
+  if (props.isSelectionConfirmedByOrganizer) {
+    return {
+      type: 'pending_confirmation',
+      label: 'Confirmations en cours',
+      hint: "La composition a été validée. En attente des confirmations des joueurs sélectionnés.",
+      color: 'blue'
+    }
+  }
+  
+  // Cas 2: Composition en cours (tirage effectué mais non validé)
+  // Adapter le message selon les permissions
+  const canManage = canManageCompositionValue.value || props.canEditEvents
+  const hint = canManage
+    ? "La composition n'est pas encore validée. Vous pouvez la modifier ou la partager aux responsables avant validation."
+    : "Une composition est en cours de préparation par les sélectionneurs."
+  
+  return {
+    type: 'draft',
+    label: 'En préparation',
+    hint: hint,
+    color: 'orange'
+  }
+})
+
+// Fonction helper pour obtenir les classes CSS selon la couleur du badge
+function getCompositionStatusColorClass(color) {
+  switch (color) {
+    case 'blue':
+      return 'bg-blue-500/20 border-blue-400/30 text-blue-200'
+    case 'green':
+      return 'bg-green-500/20 border-green-400/30 text-green-200'
+    case 'orange':
+      return 'bg-orange-500/20 border-orange-400/30 text-orange-200'
+    default:
+      return 'bg-gray-500/20 border-gray-400/30 text-gray-200'
+  }
 }
 
 // Fonction helper pour extraire les joueurs sélectionnés
