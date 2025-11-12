@@ -388,7 +388,8 @@ generate_changelog_json() {
     
     if [ -z "$technical_json" ]; then
         echo "   └─ ❌ Failed to create technical JSON, using fallback..."
-        generate_json_from_english_changelog "$(sed -n "/^## \\[$latest_version\\]/,/^## \\[/p" "CHANGELOG.md" | head -n -1)" "$latest_version"
+        # Use sed to remove last line instead of head -n -1 (not supported on macOS)
+        generate_json_from_english_changelog "$(sed -n "/^## \\[$latest_version\\]/,/^## \\[/p" "CHANGELOG.md" | sed '$d')" "$latest_version"
         return
     fi
     
@@ -432,14 +433,70 @@ create_technical_json_from_commits() {
     
     echo "   └─ Extracting commits for version $version..." >&2
     
-    # Get commits since last version bump commit
-    local last_bump_commit=$(git log --oneline --grep="bump version" -1 | cut -d' ' -f1)
-    local commits_cmd="git log --oneline"
+    # Get commits since last version tag
+    # Calculate previous version from current version
+    local version_parts=(${version//./ })
+    local major=${version_parts[0]}
+    local minor=${version_parts[1]}
+    local patch=${version_parts[2]}
     
-    if [ -n "$last_bump_commit" ]; then
-        commits_cmd="$commits_cmd $last_bump_commit..HEAD"
+    # Calculate previous version
+    if [ "$patch" -gt 0 ]; then
+        patch=$((patch - 1))
+    elif [ "$minor" -gt 0 ]; then
+        minor=$((minor - 1))
+        # Find the highest patch version for this minor version
+        patch=$(git tag -l "v${major}.${minor}.*" | sed "s/v${major}\.${minor}\.//" | sort -n -r | head -1)
+        if [ -z "$patch" ]; then
+            patch=0
+        fi
     else
-        commits_cmd="$commits_cmd --max-count=50"
+        major=$((major - 1))
+        # Find the highest minor.patch version for this major version
+        local last_version=$(git tag -l "v${major}.*" | sed "s/v//" | sort -V -r | head -1)
+        if [ -n "$last_version" ]; then
+            local last_parts=(${last_version//./ })
+            minor=${last_parts[1]}
+            patch=${last_parts[2]}
+        else
+            minor=0
+            patch=0
+        fi
+    fi
+    
+    local previous_version_tag="v${major}.${minor}.${patch}"
+    local commits_cmd="git log --oneline"
+    local current_head=$(git rev-parse HEAD)
+    
+    # Try to use the tag for the previous version
+    if git rev-parse "$previous_version_tag" >/dev/null 2>&1; then
+        # Use tag as reference point, but exclude current HEAD if it's a bump commit
+        local head_msg=$(git log -1 --format=%s HEAD 2>/dev/null)
+        if [[ "$head_msg" =~ ^chore:\ bump\ version ]]; then
+            # HEAD is a bump commit, exclude it
+            commits_cmd="$commits_cmd $previous_version_tag..HEAD^"
+        else
+            commits_cmd="$commits_cmd $previous_version_tag..HEAD"
+        fi
+    else
+        # Fallback: use last bump commit
+        local last_bump_commit=$(git log --oneline --grep="bump version" -1 | cut -d' ' -f1)
+        if [ -n "$last_bump_commit" ]; then
+            local head_msg=$(git log -1 --format=%s HEAD 2>/dev/null)
+            if [[ "$head_msg" =~ ^chore:\ bump\ version ]] && [ "$(git rev-parse $last_bump_commit)" = "$current_head" ]; then
+                # HEAD is the bump commit, get commits since the previous bump commit
+                local previous_bump_commit=$(git log --oneline --grep="bump version" -2 | tail -1 | cut -d' ' -f1)
+                if [ -n "$previous_bump_commit" ] && [ "$previous_bump_commit" != "$last_bump_commit" ]; then
+                    commits_cmd="$commits_cmd $previous_bump_commit..HEAD^"
+                else
+                    commits_cmd="$commits_cmd HEAD^ --max-count=50"
+                fi
+            else
+                commits_cmd="$commits_cmd $last_bump_commit..HEAD"
+            fi
+        else
+            commits_cmd="$commits_cmd --max-count=50"
+        fi
     fi
     
     # Get commits as array, properly handling spaces in commit messages
@@ -465,6 +522,10 @@ create_technical_json_from_commits() {
         # Extract commit message (remove hash and first space)
         local commit_msg=$(echo "$commit" | sed 's/^[a-f0-9]\{7,\} //')
         
+        # Skip automatic version/release commits
+        if [[ "$commit_msg" =~ ^(chore: bump version|release: version) ]]; then
+            continue
+        fi
         
         if [[ "$commit_msg" =~ ^feat: ]]; then
             features+=("$commit_msg")
@@ -704,22 +765,34 @@ update_changelog_json() {
     
     echo "   └─ Updating changelog.json with version $version..."
     
+    # Validate the new version JSON before using it
+    if ! echo "$new_version_json" | jq empty 2>/dev/null; then
+        echo "   └─ ❌ Invalid JSON provided, cannot update changelog.json"
+        return 1
+    fi
+    
     # Check if changelog.json exists
     if [ -f "public/changelog.json" ] && [ -s "public/changelog.json" ]; then
         echo "   └─ Existing changelog.json found, adding new version..."
         
-        # Use jq for safe JSON manipulation
-        if jq --argjson new_version "$new_version_json" \
-           'if any(.[]; .version == $new_version.version) then 
-              map(if .version == $new_version.version then $new_version else . end)
-            else 
-              [$new_version] + .
-            end' "public/changelog.json" > "public/changelog.json.tmp"; then
-            mv "public/changelog.json.tmp" "public/changelog.json"
-            echo "   └─ ✅ Version $version added/updated successfully"
-        else
-            echo "   └─ ❌ jq manipulation failed, falling back to regeneration"
+        # Validate existing changelog.json
+        if ! jq empty "public/changelog.json" 2>/dev/null; then
+            echo "   └─ ⚠️  Existing changelog.json is invalid, regenerating..."
             echo "[$new_version_json]" > "public/changelog.json"
+        else
+            # Use jq for safe JSON manipulation
+            if jq --argjson new_version "$new_version_json" \
+               'if any(.[]; .version == $new_version.version) then 
+                  map(if .version == $new_version.version then $new_version else . end)
+                else 
+                  [$new_version] + .
+                end' "public/changelog.json" > "public/changelog.json.tmp" 2>/dev/null; then
+                mv "public/changelog.json.tmp" "public/changelog.json"
+                echo "   └─ ✅ Version $version added/updated successfully"
+            else
+                echo "   └─ ❌ jq manipulation failed, falling back to regeneration"
+                echo "[$new_version_json]" > "public/changelog.json"
+            fi
         fi
     else
         echo "   └─ No existing changelog.json, creating new one..."
