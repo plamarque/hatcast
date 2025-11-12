@@ -266,7 +266,7 @@
          overflowY: isMobile ? 'auto' : 'visible'
        }"
        @click.stop>
-    <div class="text-xs">
+    <div class="text-sm sm:text-xs">
       <div class="font-medium text-white mb-2">Comment sont estimées les chances ?</div>
       <div class="space-y-2">
         <!-- Places et candidats -->
@@ -316,7 +316,7 @@
         </div>
         
         <!-- Explication du calcul -->
-        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>Calcul de la pondération :</strong></div>
           <div class="mb-2 text-gray-300">On rééquilibre en réduisant tes chances pour chacune des sélections passées.</div>
           <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span></div>
@@ -349,7 +349,7 @@
          overflowY: isMobile ? 'auto' : 'visible'
        }"
        @click.stop>
-    <div class="text-xs">
+    <div class="text-sm sm:text-xs">
       <div class="font-medium text-white mb-2">Comment fonctionne l'algorithme Bruno ?</div>
       <div class="space-y-2">
         <!-- Introduction -->
@@ -367,7 +367,7 @@
         </div>
         
         <!-- Groupement par niveau -->
-        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>L'algorithme groupe les candidats par expérience :</strong></div>
           <div v-for="levelDetail in explanationData.levelDetails" :key="levelDetail.level" class="ml-2">
             • <span class="text-purple-400">{{ levelDetail.level }}</span> sélection{{ levelDetail.level > 1 ? 's' : '' }} passée{{ levelDetail.level > 1 ? 's' : '' }} : 
@@ -407,7 +407,7 @@
         </div>
         
         <!-- Calcul détaillé -->
-        <div class="text-gray-400 text-xs mt-2 pt-2 border-t border-gray-600">
+        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
           <div class="mb-1"><strong>Calcul détaillé :</strong></div>
           <div v-for="(levelDetail, index) in explanationData.levelDetails" :key="levelDetail.level" class="ml-2">
             • Niveau <span class="text-purple-400">{{ levelDetail.level }}</span> ({{ levelDetail.level === 0 ? 'jamais castés' : levelDetail.level === 1 ? '1 sélection' : levelDetail.level + '+ sélections' }}) : 
