@@ -513,15 +513,21 @@ export async function sendCastEmailsForEvent({ eventId, eventData, selectedPlaye
   // Récupérer la composition pour vérifier les statuts de confirmation
   const cast = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
   
-  // Filtrer les joueurs : ne notifier que ceux qui sont "à confirmer" (statut 'pending')
+  // Filtrer les joueurs selon le type de notification
+  // Si équipe confirmée : notifier les joueurs avec le statut 'confirmed'
+  // Sinon : notifier les joueurs avec le statut 'pending' (à confirmer)
+  const expectedStatus = isConfirmedTeam ? 'confirmed' : 'pending'
   const playersToNotify = selectedPlayers.filter(playerName => {
     const status = getPlayerCastStatus(cast, playerName, players)
-    return status === 'pending'
+    return status === expectedStatus
   })
   
   if (playersToNotify.length === 0) {
-    logger.info('Aucun joueur à notifier (tous ont déjà confirmé ou décliné)')
-    return { success: true, skipped: true, reason: 'all_players_already_responded' }
+    const reason = isConfirmedTeam 
+      ? 'Aucun joueur confirmé à notifier'
+      : 'Aucun joueur à notifier (tous ont déjà confirmé ou décliné)'
+    logger.info(reason)
+    return { success: true, skipped: true, reason: isConfirmedTeam ? 'no_confirmed_players' : 'all_players_already_responded' }
   }
   
   // Créer la liste des joueurs à notifier
