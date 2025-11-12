@@ -1,8 +1,8 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1390] p-0 md:p-4" @click="close">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-full md:max-h-[92vh] flex flex-col" @click.stop>
-      <div class="relative p-4 md:p-6 border-b border-white/10">
-        <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+      <div class="relative p-4 md:p-6 border-b border-white/10 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-6">
+        <button @click="close" title="Fermer" class="absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] md:top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
         <!-- Layout horizontal compact -->
         <div class="flex items-start gap-4 md:gap-6">
@@ -12,8 +12,8 @@
           </div>
           
           <!-- Informations principales -->
-          <div class="flex-1 min-w-0">
-             <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">
+          <div class="flex-1 min-w-0 pr-12 md:pr-0">
+             <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2 break-words">
                Composition d'équipe {{ event?.title }}
              </h2>
             
