@@ -182,10 +182,6 @@
             <div v-if="!pushEnabledOnDevice" class="text-xs text-gray-400 italic p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
               ⚠️ Les préférences ci-dessous sont désactivées car les notifications ne sont pas actives sur cet appareil
             </div>
-            
-            <div v-else class="text-xs text-emerald-300 italic p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              ✓ Les notifications sont actives. Tu peux les désactiver puis réactiver pour rafraîchir le token si besoin.
-            </div>
           </div>
 
           <!-- Notifications d'événements -->
