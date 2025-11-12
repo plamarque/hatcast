@@ -257,11 +257,13 @@
   <!-- Mini-popup des explications de chances (algorithme par défaut) -->
   <div v-if="showChanceExplanation && explanationData && !showBrunoExplanation" 
        data-explanation-popup
-       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 max-w-xs"
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 w-[calc(100%-32px)] max-w-xs sm:max-w-xs sm:w-auto mx-4 sm:mx-0"
        :style="{
          left: `${explanationPosition.x}px`,
          top: `${explanationPosition.y}px`,
-         transform: 'translateX(-50%)'
+         transform: isMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
+         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'none',
+         overflowY: isMobile ? 'auto' : 'visible'
        }"
        @click.stop>
     <div class="text-xs">
@@ -338,11 +340,13 @@
   <!-- Mini-popup des explications de chances (algorithme Bruno) -->
   <div v-if="showChanceExplanation && explanationData && showBrunoExplanation" 
        data-explanation-popup
-       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 max-w-sm"
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 w-[calc(100%-32px)] max-w-sm sm:w-auto mx-4 sm:mx-0"
        :style="{
          left: `${explanationPosition.x}px`,
          top: `${explanationPosition.y}px`,
-         transform: 'translateX(-50%)'
+         transform: isMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
+         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'none',
+         overflowY: isMobile ? 'auto' : 'visible'
        }"
        @click.stop>
     <div class="text-xs">
@@ -578,6 +582,7 @@ const emit = defineEmits(['close'])
 const showChanceExplanation = ref(false)
 const explanationData = ref(null)
 const explanationPosition = ref({ x: 0, y: 0 })
+const isMobile = ref(window.innerWidth < 640)
 
 // Computed pour afficher l'algorithme Bruno seulement en dev/staging
 const showBrunoAlgorithm = computed(() => {
@@ -797,11 +802,37 @@ const showBrunoExplanation = ref(false)
 function showChanceDetails(event, playerName, role, isBruno = false) {
   console.log('🖱️ Click on percentage:', { playerName, role, event, isBruno })
   
-  // Calculer la position de la popup
-  const rect = event.target.getBoundingClientRect()
-  explanationPosition.value = {
-    x: rect.left + rect.width / 2,
-    y: rect.top - 10
+  if (isMobile.value) {
+    // En mobile, centrer la popup sur l'écran
+    explanationPosition.value = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
+    }
+  } else {
+    // En desktop, positionner relativement au clic mais s'assurer qu'elle ne déborde pas
+    const rect = event.target.getBoundingClientRect()
+    const popupWidth = 320 // max-w-xs = 20rem = 320px
+    const popupHeight = 400 // Estimation de la hauteur maximale
+    const padding = 16 // Padding de sécurité
+    
+    let x = rect.left + rect.width / 2
+    let y = rect.top - 10
+    
+    // Ajuster horizontalement si nécessaire
+    if (x - popupWidth / 2 < padding) {
+      x = popupWidth / 2 + padding
+    } else if (x + popupWidth / 2 > window.innerWidth - padding) {
+      x = window.innerWidth - popupWidth / 2 - padding
+    }
+    
+    // Ajuster verticalement si nécessaire
+    if (y - popupHeight < padding) {
+      y = rect.bottom + 10 + padding
+    } else if (y > window.innerHeight - padding) {
+      y = window.innerHeight - popupHeight - padding
+    }
+    
+    explanationPosition.value = { x, y }
   }
   
   // Récupérer les données d'explication selon l'algorithme
@@ -930,12 +961,20 @@ function handleClickOutside(event) {
   }
 }
 
+// Gestion du redimensionnement pour détecter mobile/desktop
+function handleResize() {
+  isMobile.value = window.innerWidth < 640
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
+  handleResize() // Initialiser la valeur
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
 })
 
 function getRoleStatusClass(role) {
