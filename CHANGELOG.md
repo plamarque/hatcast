@@ -1,26 +1,21 @@
-## [0.37.0] - 2025-11-10
+## [0.37.1] - 2025-11-12
 
 ### ✨ New Features
 
-- feat: add caster role and season role administration UI
+- feat: add 'JEU AUTRE' column to composition stats
 
 ### 🐛 Bug Fixes
 
-- fix: restrict manual selection for casters and allow admins to edit freely
-- fix: allow casters to see compositions and improve permission logging
-- fix: improve permission cache management and fix caster permissions
-
-### 🔧 Improvements
-
-- refactor: reorganize season admin page layout and update terminology
+- fix: correct composition stats to count only confirmed selections
 
 ### 📝 Other Changes
 
-- release: version 0.36.0
+- release: version 0.37.0
 
 
 # Changelog
 
+## [0.37.1] - 2025-11-12
 ## [0.37.0] - 2025-11-10
 ## [0.36.0] - 2025-11-10
 ## [0.35.0] - 2025-11-10
