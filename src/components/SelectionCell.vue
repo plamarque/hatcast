@@ -22,10 +22,15 @@
       <template v-else-if="isSelected && (isSelectionConfirmedByOrganizer || playerSelectionStatus)">
         <!-- Affichage avec confirmation (2 lignes) -->
         <template v-if="playerSelectionStatus && playerSelectionStatus !== 'none'">
-          <!-- Ligne 1: nom du rôle -->
+          <!-- Ligne 1: nom du rôle avec pourcentage si en présélection -->
           <div class="text-center">
             <span class="text-sm font-medium">
-              {{ playerSelectionStatus === 'declined' ? 'Décliné' : getConfirmedRoleLabel() }}
+              <template v-if="playerSelectionStatus === 'declined'">
+                Décliné
+              </template>
+              <template v-else>
+                {{ getConfirmedRoleLabel() }}<template v-if="playerSelectionStatus === 'pending' && selectedRoleChance !== null && selectedRoleChance !== undefined"> ({{ selectedRoleChance }}%)</template>
+              </template>
             </span>
           </div>
           <!-- Ligne 2: emoji avec espacement cohérent -->
@@ -187,6 +192,11 @@ const props = defineProps({
   isPastEvent: {
     type: Boolean,
     default: false
+  },
+  // Pourcentage de chance pour le rôle assigné en présélection
+  selectedRoleChance: {
+    type: Number,
+    default: null
   }
 })
 
