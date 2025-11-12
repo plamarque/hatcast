@@ -53,7 +53,7 @@
         <!-- Affichage classique sans confirmation -->
         <template v-else>
           <span v-if="isAvailable === true" class="text-center">
-            Dispo
+            {{ simplifiedDisplay ? 'Disponible' : 'Dispo' }}
           </span>
           <span v-else-if="isAvailable === false" class="text-center">
             Pas dispo
@@ -68,7 +68,8 @@
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
       <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation OU si composition non validée) -->
-      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus)">
+      <!-- Masquer les emojis de rôles si simplifiedDisplay est activé -->
+      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus) && !simplifiedDisplay">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
@@ -259,6 +260,16 @@ const props = defineProps({
   isError: {
     type: Boolean,
     default: false
+  },
+  // Prop pour simplifier l'affichage dans EventRoleGroupingView (masquer les emojis de rôles)
+  simplifiedDisplay: {
+    type: Boolean,
+    default: false
+  },
+  // Prop pour indiquer le rôle assigné dans le contexte spécifique (ex: section de rôle dans EventRoleGroupingView)
+  assignedRole: {
+    type: String,
+    default: null
   }
 })
 
@@ -312,6 +323,11 @@ const hasSpecificRoles = computed(() => {
 
 // Fonction pour obtenir le libellé du rôle confirmé
 function getConfirmedRoleLabel() {
+  // Si un rôle assigné est fourni et que le joueur est sélectionné, utiliser ce rôle
+  if (props.assignedRole && props.isSelected) {
+    return getRoleLabel(props.assignedRole, props.playerGender, false) || 'Joue'
+  }
+  
   if (!props.availabilityData?.roles || props.availabilityData.roles.length === 0) {
     return 'Joue' // Fallback si pas de rôle
   }
@@ -323,6 +339,11 @@ function getConfirmedRoleLabel() {
 
 // Fonction pour obtenir l'emoji du rôle confirmé
 function getRoleEmoji() {
+  // Si un rôle assigné est fourni et que le joueur est sélectionné, utiliser ce rôle
+  if (props.assignedRole && props.isSelected) {
+    return ROLE_EMOJIS[props.assignedRole] || '🎭'
+  }
+  
   if (!props.availabilityData?.roles || props.availabilityData.roles.length === 0) {
     return '🎭' // Fallback si pas de rôle
   }

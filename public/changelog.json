@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.39.0",
+    "date": "2025-11-12",
+    "changes": [
+      "✨ Ajout de la possibilité de réduire ou d'agrandir les sections de rôle dans la vue de regroupement des rôles d'événement.",
+      "✨ Simplification de l'affichage de la disponibilité dans la vue regroupée par rôle.",
+      "🐛 Correction de la direction de la flèche sur le bouton afficher/masquer les détails.",
+      "🐛 Affichage du rôle attribué au lieu du rôle de disponibilité dans la vue de regroupement des rôles d'événement.",
+      "🐛 Envoi des notifications d'équipe confirmées aux joueurs confirmés au lieu de ceux en attente.",
+      "🐛 Empêche la simulation de persister dans la base de données.",
+      "🔧 Alignement de la date et de la localisation avec le badge/bouton dans la vue bureau.",
+      "🔧 Déplacement du bouton masquer les détails sur la même ligne que le badge de statut."
+    ]
+  },
+  {
     "version": "0.38.0",
     "date": "2025-11-12",
     "changes": [

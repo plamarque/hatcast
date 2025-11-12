@@ -1,8 +1,8 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1390] p-0 md:p-4" @click="close">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
-      <div class="relative p-4 md:p-6 border-b border-white/10">
-        <button @click="close" title="Fermer" class="absolute right-3 top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">✖️</button>
+      <div class="relative p-4 md:p-6 border-b border-white/10 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-6">
+        <button @click="close" title="Fermer" class="absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] md:top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
         <!-- Layout horizontal compact -->
         <div class="flex items-start gap-4 md:gap-6">
@@ -12,8 +12,8 @@
           </div>
           
           <!-- Informations principales -->
-          <div class="flex-1 min-w-0">
-             <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2">
+          <div class="flex-1 min-w-0 pr-12 md:pr-0">
+             <h2 class="text-xl md:text-2xl font-bold text-white leading-tight mb-2 break-words">
                Composition d'équipe {{ event?.title }}
              </h2>
             
@@ -26,31 +26,29 @@
       </div>
       
       <!-- Content scrollable -->
-      <div class="px-4 md:px-6 py-4 md:py-6 overflow-y-auto">
+      <div class="flex-1 px-4 md:px-6 py-4 md:py-6 overflow-y-auto min-h-0">
         <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
-          <div class="flex items-center gap-2 mb-2">
-            <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
-            
-            <!-- Badge statut de composition -->
-            <SelectionStatusBadge
-              :status="getSelectionStatus().type"
-              :show="true"
-              :clickable="false"
-              :reason="selectionIncompleteReason"
-              class="text-sm"
-            />
-            
-            <!-- Badge nombre de personnes -->
-            <div class="flex items-center gap-1 px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded text-xs">
-              <span class="text-blue-300">👥</span>
-              <span class="text-blue-200">{{ getTotalTeamSize() }} personnes</span>
+          <div class="mb-2">
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
+              
+              <!-- Badge statut de composition -->
+              <div 
+                class="px-2 py-1 rounded-full text-xs font-normal border"
+                :class="getCompositionStatusColorClass(compositionStatus.color)"
+                :title="compositionStatus.hint"
+              >
+                {{ compositionStatus.label }}
+              </div>
+              
+              <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la composition automatique ?">
+                <span class="text-sm">❓</span>
+              </button>
             </div>
             
-            <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 p-1 rounded-full hover:bg-blue-500/10 transition-colors" title="Comment fonctionne la composition automatique ?">
-              <span class="text-sm">❓</span>
-            </button>
-
+            <!-- Message hint explicatif -->
+            <p class="text-xs text-gray-400 ml-0">{{ compositionStatus.hint }}</p>
           </div>
           
           <!-- Warning de simulation -->
@@ -200,6 +198,76 @@
             </div>
           </div>
           
+          <!-- Boutons Tirage et Simuler (déplacés dans la modale) -->
+          <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4 flex justify-center gap-3">
+            <!-- Bouton Tirage -->
+            <button 
+              v-if="canManageCompositionValue"
+              @click="handleSelection" 
+              :disabled="availableCount === 0" 
+              class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" 
+              :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
+            >
+              ✨ <span class="ml-1">Tirage</span>
+            </button>
+            
+            <!-- Bouton Simuler -->
+            <div class="relative algorithm-dropdown-container">
+              <!-- Bouton principal -->
+              <button 
+                v-if="!isSimulating"
+                @click="toggleAlgorithmDropdown" 
+                :disabled="availableCount === 0" 
+                class="h-12 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
+              >
+                <span class="flex items-center">
+                  🎲 <span class="ml-1">Simuler</span>
+                </span>
+                <span class="text-xs">▼</span>
+              </button>
+              
+              <!-- Bouton Stop -->
+              <button 
+                v-if="isSimulating"
+                @click="abortDraw()" 
+                class="h-12 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center"
+                title="Arrêter le tirage"
+              >
+                ⏹️ <span class="ml-1">Arrêter</span>
+              </button>
+              
+              <!-- Dropdown des algorithmes -->
+              <div 
+                v-if="showAlgorithmDropdown && !isSimulating"
+                class="absolute left-0 right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50"
+                style="bottom: 100%; margin-bottom: 4px;"
+              >
+                <div 
+                  v-for="algorithm in availableAlgorithms" 
+                  :key="algorithm.value"
+                  @click="selectAlgorithm(algorithm.value)"
+                  class="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors"
+                >
+                  <div class="font-medium text-white">{{ algorithm.label }}</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Bouton Envoyer (WhatsApp) - visible seulement si composition en préparation ET permissions d'édition -->
+            <button 
+              v-if="hasSelection && canManageCompositionValue"
+              @click="openDrawAnnounce" 
+              class="h-12 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
+              title="Envoyer le tirage par WhatsApp à la PEDA"
+            >
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+              </svg>
+              <span>Envoyer</span>
+            </button>
+          </div>
+          
           <!-- Message d'information pour les casters qui ne peuvent pas encore faire de sélections manuelles -->
           <!-- Ne pas afficher pour les admins (super admin, admin de saison, admin d'événement) -->
           <!-- Le message s'affiche seulement si : caster ET pas admin ET pas de cast existant -->
@@ -213,18 +281,28 @@
           </div>
         </div>
         
+        <!-- Message d'information pour composition avec joueurs déclinés -->
+        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers && hasEmptySlots" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+          <div class="flex items-center gap-2 text-orange-200 text-sm">
+            <span>⚠️</span>
+            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
+          </div>
+        </div>
+        
         <!-- Section des joueurs déclinés -->
-        <div v-if="hasDeclinedPlayers" class="mb-4">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <span>❌</span>
-            <span>Personnes ayant décliné</span>
-            <span class="text-sm text-gray-400">(ne comptent pas dans la composition)</span>
-          </h3>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div v-if="hasDeclinedPlayers" class="mt-6 mb-4 pt-6 border-t border-white/20">
+          <div class="mb-2">
+            <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
+              <span>❌</span>
+              <span>Personnes ayant décliné</span>
+            </h3>
+            <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
             <div
               v-for="declinedPlayer in getDeclinedPlayers()"
               :key="'declined-'+declinedPlayer.name"
-              class="p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
+              class="p-2 md:p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
             >
               <div class="flex items-center justify-between gap-2">
                 <div class="flex-1 flex items-center gap-2 min-w-0">
@@ -242,7 +320,7 @@
                   <!-- Nom du joueur + emoji du rôle -->
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1">
-                      <span class="text-white font-medium truncate">{{ declinedPlayer.name }}</span>
+                      <span class="text-white font-medium truncate text-sm md:text-base">{{ declinedPlayer.name }}</span>
                       <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
                     </div>
                   </div>
@@ -261,22 +339,6 @@
           </div>
         </div>
         
-        <!-- Message d'information pour composition à confirmer -->
-        <div v-if="isSelectionConfirmedByOrganizer && !isSelectionConfirmed && !hasDeclinedPlayers" class="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <div class="flex items-center gap-2 text-blue-200 text-sm">
-            <span>⏳</span>
-            <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
-          </div>
-        </div>
-
-        <!-- Message d'information pour composition avec joueurs déclinés -->
-        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers && hasEmptySlots" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-          <div class="flex items-center gap-2 text-orange-200 text-sm">
-            <span>⚠️</span>
-            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
-          </div>
-        </div>
-
         <!-- Message d'information pour composition définitive -->
         <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
           <div class="flex items-center gap-2 text-green-200 text-sm">
@@ -331,20 +393,9 @@
       
       </div>
       <!-- Footer sticky -->
-      <div class="sticky bottom-0 w-full p-3 bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2">
-        <!-- Bouton Composition Auto (réservé aux admins - fonction privilégiée) -->
-        <button 
-          v-if="!isSelectionConfirmedByOrganizer && canManageCompositionValue"
-          @click="handleSelection" 
-          :disabled="availableCount === 0" 
-          class="h-12 px-3 md:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex-1 whitespace-nowrap" 
-          :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
-        >
-          ✨ <span class="hidden sm:inline">Composition Auto</span><span class="sm:hidden">Auto</span>
-        </button>
-
-        <!-- Bouton Simuler Compo avec dropdown / Stop (visible pour tous les utilisateurs - fonction éducative) -->
-        <div v-if="!isSelectionConfirmedByOrganizer" class="flex-1 relative algorithm-dropdown-container">
+      <div class="w-full bg-gray-900/80 border-t border-white/10 backdrop-blur-sm flex items-center gap-2 flex-shrink-0 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 pl-[calc(0.75rem+env(safe-area-inset-left))] pr-[calc(0.75rem+env(safe-area-inset-right))] md:pl-3 md:pr-3">
+        <!-- Bouton Simuler Compo avec dropdown / Stop (masqué car déplacé dans la modale) -->
+        <div v-if="!isSelectionConfirmedByOrganizer" class="hidden relative algorithm-dropdown-container">
           <!-- Bouton principal -->
           <button 
             v-if="!isSimulating"
@@ -434,7 +485,7 @@
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
         >
-          🗑️ <span class="hidden sm:inline">Réinitialiser</span><span class="sm:hidden">Reset</span>
+          🗑️ <span>Effacer</span>
         </button>
 
         <!-- Bouton Fermer (masqué s'il y a une sélection pour libérer l'espace) -->
@@ -465,7 +516,14 @@
     @send-notifications="handleSendNotifications"
   />
   
-
+  <!-- Popin Envoyer tirage par WhatsApp -->
+  <DrawAnnounceModal
+    :show="showDrawAnnounce"
+    :event="event"
+    :selected-players-by-role="currentSelection?.roles || {}"
+    :players="players"
+    @close="showDrawAnnounce = false"
+  />
 
   <!-- Popin Comment ça marche -->
   <HowItWorksModal :show="showHowItWorks" @close="showHowItWorks = false" />
@@ -498,8 +556,8 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
+import DrawAnnounceModal from './DrawAnnounceModal.vue'
 import HowItWorksModal from './HowItWorksModal.vue'
-import SelectionStatusBadge from './SelectionStatusBadge.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { saveCast, getAllPlayersFromCast } from '../services/storage.js'
 import { ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_LABELS_BY_GENDER } from '../services/storage.js'
@@ -618,6 +676,7 @@ watch([() => props.event?.id, () => props.seasonId, () => props.canEditEvents, (
 const copied = ref(false)
 const copyButtonText = ref('Copier le message')
 const showAnnounce = ref(false)
+const showDrawAnnounce = ref(false)
 const showSuccessMessage = ref(false)
 const successMessageText = ref('')
 const showErrorMessage = ref(false)
@@ -1095,6 +1154,12 @@ async function saveSlotChanges() {
     return
   }
   
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [saveSlotChanges] Sauvegarde bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   try {
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}
@@ -1188,6 +1253,67 @@ function getSelectionStatus() {
   }
   
   return { type: 'complete', availableCount, requiredCount }
+}
+
+// Fonction pour déterminer le statut de composition précis avec messages explicatifs
+const compositionStatus = computed(() => {
+  // Cas 1: Pas de composition (étape initiale)
+  if (!hasSelection.value) {
+    return {
+      type: 'none',
+      label: 'À composer',
+      hint: "Aucun joueur n'a encore été sélectionné. Utilisez le bouton [Tirage] pour sélectionner automatiquement les participants ou cliquez dans les cases ci-dessous pour les sélectionner manuellement.",
+      color: 'blue'
+    }
+  }
+  
+  // Cas 4: Équipe complète (toutes confirmations obtenues)
+  if (props.isSelectionConfirmed) {
+    return {
+      type: 'complete',
+      label: 'Équipe complète',
+      hint: "Tous les joueurs ont confirmé leur participation. L'équipe est complète.",
+      color: 'green'
+    }
+  }
+  
+  // Cas 3: En attente de confirmations (composition validée, confirmations en cours)
+  if (props.isSelectionConfirmedByOrganizer) {
+    return {
+      type: 'pending_confirmation',
+      label: 'Confirmations en cours',
+      hint: "La composition a été validée. En attente des confirmations des joueurs sélectionnés.",
+      color: 'blue'
+    }
+  }
+  
+  // Cas 2: Composition en cours (tirage effectué mais non validé)
+  // Adapter le message selon les permissions
+  const canManage = canManageCompositionValue.value || props.canEditEvents
+  const hint = canManage
+    ? "La composition n'est pas encore validée. Vous pouvez la modifier ou la partager aux responsables avant validation."
+    : "Une composition est en cours de préparation par les sélectionneurs."
+  
+  return {
+    type: 'draft',
+    label: 'En préparation',
+    hint: hint,
+    color: 'orange'
+  }
+})
+
+// Fonction helper pour obtenir les classes CSS selon la couleur du badge
+function getCompositionStatusColorClass(color) {
+  switch (color) {
+    case 'blue':
+      return 'bg-blue-500/20 border-blue-400/30 text-blue-200'
+    case 'green':
+      return 'bg-green-500/20 border-green-400/30 text-green-200'
+    case 'orange':
+      return 'bg-orange-500/20 border-orange-400/30 text-orange-200'
+    default:
+      return 'bg-gray-500/20 border-gray-400/30 text-gray-200'
+  }
 }
 
 // Fonction helper pour extraire les joueurs sélectionnés
@@ -1654,6 +1780,12 @@ async function handleFillCast() {
 async function saveEmptySlotSelection() {
   if (!props.event?.id || !props.seasonId) return
   
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [saveEmptySlotSelection] Sauvegarde bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   try {
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}
@@ -1696,6 +1828,12 @@ async function autoSaveSelection() {
   
   // Ne pas sauvegarder automatiquement si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
+  
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [autoSaveSelection] Sauvegarde bloquée : simulation en cours (non persistante)')
+    return
+  }
   
   try {
     // Construire la structure par rôle à partir de teamSlots
@@ -1740,6 +1878,10 @@ function close() {
 
 function openAnnounce() {
   showAnnounce.value = true
+}
+
+function openDrawAnnounce() {
+  showDrawAnnounce.value = true
 }
 
 function openHowItWorks() {
@@ -1945,6 +2087,12 @@ function hasEmptySlotForRole(role) {
 }
 
 async function moveDeclinedToComposition(declinedPlayer) {
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [moveDeclinedToComposition] Action bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   try {
     // Trouver un slot vide pour ce rôle
     const emptySlot = teamSlots.value.find(slot => 
@@ -2025,6 +2173,12 @@ async function moveDeclinedToComposition(declinedPlayer) {
 }
 
 async function movePlayerToDeclined(playerName, role) {
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [movePlayerToDeclined] Action bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   const playerId = getPlayerIdFromName(playerName)
   if (!playerId) return
   
@@ -2049,6 +2203,12 @@ async function movePlayerToDeclined(playerName, role) {
 }
 
 async function removeFromDeclined(playerName, role) {
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [removeFromDeclined] Action bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   if (!props.currentSelection || !props.currentSelection.declined) {
     return
   }
@@ -2253,7 +2413,15 @@ function handleDrawComplete() {
 
 // Nouvelles fonctions pour le tirage complet
 function startDraw(persistResults = false) {
-  console.log('🎬 Starting draw...', { persistResults })
+  console.log('🎬 Starting draw...', { persistResults, isAutoComposition: isAutoComposition.value })
+  
+  // Log de sécurité : vérifier que persistResults est false pour les simulations
+  if (!persistResults && isSimulating.value) {
+    logger.debug('✅ [startDraw] Simulation démarrée en mode non-persistant (persistResults=false)')
+  } else if (persistResults) {
+    logger.debug('✅ [startDraw] Composition auto démarrée en mode persistant (persistResults=true)')
+  }
+  
   isSimulating.value = true
   simulationComplete.value = false
   showDrawVisualization.value = true
@@ -2265,12 +2433,15 @@ function startDraw(persistResults = false) {
     
     // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
     if (persistResults) {
+      logger.debug('✅ [startDraw] Watcher de persistance activé pour composition auto')
       const stopWatcher = watch(simulationComplete, async (isComplete) => {
         if (isComplete) {
           stopWatcher() // Arrêter le watcher
           await persistDrawResults()
         }
       })
+    } else {
+      logger.debug('✅ [startDraw] Aucun watcher de persistance (simulation non-persistante)')
     }
     
     if (currentDrawCandidates.value.length > 0) {
@@ -2344,7 +2515,16 @@ function cleanUndefinedValues(obj) {
 
 async function persistDrawResults() {
   try {
-    console.log('💾 Persisting draw results...')
+    // Vérification de sécurité : cette fonction ne doit être appelée que pour les compositions auto
+    if (isSimulating.value && !isAutoComposition.value) {
+      logger.warn('🚨 [persistDrawResults] ATTENTION : Tentative de persistance pendant une simulation ! Cette fonction ne devrait jamais être appelée pour une simulation.')
+      return
+    }
+    
+    console.log('💾 Persisting draw results...', { 
+      isSimulating: isSimulating.value, 
+      isAutoComposition: isAutoComposition.value 
+    })
     
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}

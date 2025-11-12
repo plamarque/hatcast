@@ -598,10 +598,10 @@
     </div>
   </div>
   <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
+  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 sm:p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-[calc(100vw-2rem)] sm:max-w-lg md:max-w-6xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-4rem)] md:max-h-[92vh] flex flex-col mb-4 md:mb-0" @click.stop>
       <!-- Header -->
-      <div class="relative p-1 sm:p-2 md:p-3">
+      <div class="relative p-1 sm:p-2 md:p-3 pb-1 sm:pb-2">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-2 top-2 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
         <!-- Titre avec pastille intégrée et icône 3-dots pour actions - Pleine largeur -->
@@ -705,19 +705,8 @@
             </div>
           </div>
           
-          <!-- Badge pour afficher/masquer les détails -->
-          <div class="flex items-center pl-1">
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
-            </button>
-          </div>
-          
-          <!-- Status de l'événement - Nouvelle ligne -->
-          <div v-if="selectedEvent && eventStatus" class="flex items-center pl-1">
+          <!-- Status de l'événement et bouton pour afficher/masquer les détails - Même ligne -->
+          <div v-if="selectedEvent && eventStatus" class="flex items-center justify-between pl-1">
             <SelectionStatusBadge
               :status="eventStatus.type"
               :show="true"
@@ -725,11 +714,146 @@
               :reason="eventWarningText"
               class="text-xs"
             />
+            <button
+              @click="showEventDetailsSection = !showEventDetailsSection"
+              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
+              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+            >
+              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
+              <svg 
+                class="w-3 h-3 transition-transform duration-200" 
+                :class="{ 'rotate-180': showEventDetailsSection }"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          </div>
+          <!-- Si pas de badge d'état, afficher seulement le bouton -->
+          <div v-else class="flex items-center justify-end pl-1">
+            <button
+              @click="showEventDetailsSection = !showEventDetailsSection"
+              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
+              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
+            >
+              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
+              <svg 
+                class="w-3 h-3 transition-transform duration-200" 
+                :class="{ 'rotate-180': showEventDetailsSection }"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Ligne Date et Lieu alignées avec badge/bouton (desktop uniquement) -->
+          <div v-if="showEventDetailsSection" class="hidden md:flex items-center justify-between pl-1 mt-2">
+            <!-- Date alignée à gauche -->
+            <div class="relative">
+              <button
+                @click="showCalendarDropdown = !showCalendarDropdown"
+                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
+                title="Ajouter à votre agenda"
+              >
+                <span>📆</span>
+                <span>{{ formatDateFull(selectedEvent?.date) }}</span>
+                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              
+              <!-- Menu déroulant d'agenda -->
+              <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
+                <div class="p-2">
+                  <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
+                  <button
+                    @click="addToGoogleCalendar(selectedEvent)"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>📅</span>
+                    <span>Google</span>
+                  </button>
+                  <button
+                    @click="addToOutlookCalendar(selectedEvent)"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>📧</span>
+                    <span>Outlook</span>
+                  </button>
+                  <button
+                    @click="addToAppleCalendar(selectedEvent)"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <span>🍎</span>
+                    <span>Apple</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Lieu aligné à droite -->
+            <div v-if="selectedEvent?.location" class="relative">
+              <button
+                @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
+                :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+              >
+                <span>📍</span>
+                <span>{{ selectedEvent.location }}</span>
+                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              
+              <!-- Tooltip avec l'adresse complète -->
+              <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-600 z-50 max-w-xs">
+                <div class="whitespace-normal">{{ selectedEvent.location }}</div>
+                <div class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
+              
+              <!-- Dropdown Navigation -->
+              <div v-if="showGoogleMapsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
+                <div class="p-2">
+                  <!-- Option Google Maps -->
+                  <a 
+                    :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    @click="showGoogleMapsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
+                    </svg>
+                    <span>Ouvrir dans Google Maps</span>
+                  </a>
+                  
+                  <!-- Option Waze -->
+                  <a 
+                    :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    @click="showGoogleMapsDropdown = false"
+                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#33CCFF"/>
+                    </svg>
+                    <span>Ouvrir dans Waze</span>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
         <!-- Layout horizontal compact -->
-        <div v-if="showEventDetailsSection" class="w-full px-3 sm:px-4 md:px-6">
+        <div v-if="showEventDetailsSection" class="w-full px-2 sm:px-4 md:px-6">
           <!-- Layout mobile: vertical -->
           <div class="md:hidden space-y-4">
             <!-- Layout horizontal pour écrans plus larges en mobile -->
@@ -842,116 +966,17 @@
           </div>
           
           <!-- Layout desktop en 2 colonnes égales avec flexbox -->
-          <div class="hidden md:flex md:gap-6 w-full">
-            <!-- Colonne gauche: Date + Description -->
+          <div class="hidden md:flex md:gap-6 w-full mt-4">
+            <!-- Colonne gauche: Description -->
             <div class="flex-1 space-y-2 min-w-0">
-              
-              <!-- Date avec dropdown -->
-              <div class="relative">
-                <button
-                  @click="showCalendarDropdown = !showCalendarDropdown"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                  title="Ajouter à votre agenda"
-                >
-                  <span>📆</span>
-                  <span>{{ formatDateFull(selectedEvent?.date) }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Menu déroulant d'agenda -->
-                <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
-                  <div class="p-2">
-                    <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
-                    <button
-                      @click="addToGoogleCalendar(selectedEvent)"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>📅</span>
-                      <span>Google</span>
-                    </button>
-                    <button
-                      @click="addToOutlookCalendar(selectedEvent)"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>📧</span>
-                      <span>Outlook</span>
-                    </button>
-                    <button
-                      @click="addToAppleCalendar(selectedEvent)"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <span>🍎</span>
-                      <span>Apple</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
               <!-- Description -->
               <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30 h-44 overflow-hidden">
                 <div class="line-clamp-6">{{ selectedEvent.description }}</div>
               </div>
             </div>
             
-            <!-- Colonne droite: Status + Lieu + Carte -->
+            <!-- Colonne droite: Carte -->
             <div class="flex-1 min-w-0">
-              
-              <!-- Lieu avec dropdown -->
-              <div v-if="selectedEvent?.location" class="relative mb-2">
-                <button
-                  @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                  :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
-                >
-                  <span>📍</span>
-                  <span>{{ selectedEvent.location }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Tooltip avec l'adresse complète -->
-                <div class="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-600 z-50 max-w-xs">
-                  <div class="whitespace-normal">{{ selectedEvent.location }}</div>
-                  <div class="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                </div>
-                
-                <!-- Dropdown Navigation -->
-                <div v-if="showGoogleMapsDropdown" class="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
-                  <div class="p-2">
-                    <!-- Option Google Maps -->
-                    <a 
-                      :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click="showGoogleMapsDropdown = false"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
-                      </svg>
-                      <span>Ouvrir dans Google Maps</span>
-                    </a>
-                    
-                    <!-- Option Waze -->
-                    <a 
-                      :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click="showGoogleMapsDropdown = false"
-                      class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                    >
-                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#33CCFF"/>
-                      </svg>
-                      <span>Ouvrir dans Waze</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-              
               <!-- Carte -->
               <div v-if="selectedEvent?.location" class="relative group h-44 w-full overflow-hidden mt-2">
                 <iframe 
@@ -980,7 +1005,7 @@
       </div>
       
       <!-- Content scrollable -->
-      <div class="px-3 sm:px-4 md:px-6 py-2 md:py-3 space-y-4 overflow-y-auto flex-1 min-h-0">
+      <div class="px-2 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
         <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
@@ -1016,7 +1041,7 @@
           </div>
           
           <!-- Contenu des onglets -->
-          <div class="p-3">
+          <div class="p-2 sm:p-3">
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
@@ -1075,7 +1100,7 @@
             <!-- Onglet Disponibilités -->
             <div v-if="eventDetailsActiveTab === 'team'">
               <!-- Header des disponibilités -->
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-2 sm:mb-4">
                 <div class="flex items-center gap-2">
                   <!-- Sélecteur de joueur avec PlayerSelectorModal -->
                   <div class="relative flex-shrink-0">

@@ -203,6 +203,21 @@ Un petit 👍 habituel pour confirmer que c'est OK pour vous.`
 }
 
 /**
+ * Construit le message d'annonce de tirage/présélection (à copier-coller pour WhatsApp)
+ * Similaire à buildGlobalCastAnnouncementMessage mais pour le tirage (pré-compo)
+ */
+export function buildGlobalDrawAnnouncementMessage({ eventTitle, eventDate, selectedPlayersByRole, players }) {
+  // Construire la liste des rôles avec la fonction utilitaire
+  const roleLines = buildRoleListText(selectedPlayersByRole, players)
+  
+  return `🎲 🎲 🎲  TIRAGE 🎲 🎲 🎲 
+
+📆 ${eventTitle} du ${eventDate}
+
+${roleLines.join('\n')}`
+}
+
+/**
  * Template pour l'activation des notifications
  */
 export function buildNotificationActivationMessage({ playerName, eventTitle, eventUrl, activationUrl, seasonTitle }) {
