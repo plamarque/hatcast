@@ -52,61 +52,70 @@
       
       <!-- Pas sélectionné OU sélectionné mais non validé -->
       <template v-else>
-        <!-- Si le joueur a décliné, afficher "Décliné" -->
-        <template v-if="playerSelectionStatus === 'declined'">
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-sm font-medium text-orange-300">Décliné</span>
-            <span class="text-lg">❌</span>
-          </div>
-        </template>
-        <!-- Afficher les rôles et chances si disponibles -->
-        <template v-else-if="rolesAndChances && rolesAndChances.length > 0">
-          <div class="text-center text-xs">
-            <span class="text-white">Dispo pour : </span>
-            <template v-for="(roleChance, index) in rolesAndChances" :key="roleChance.role">
-              <span :class="getChanceTextClass(roleChance.chance)">
-                <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
-                  {{ roleChance.label }} ({{ roleChance.chance }}%)
-                </template>
-                <template v-else>
-                  {{ roleChance.label }}
-                </template>
-              </span>
-              <template v-if="index < rolesAndChances.length - 1">
-                <span class="text-white">, </span>
-              </template>
-            </template>
-          </div>
-        </template>
-        <!-- Sinon, afficher les disponibilités depuis availabilityData -->
-        <template v-else-if="availabilityData && availabilityData.available && availabilityData.roles && availabilityData.roles.length > 0">
-          <div class="flex flex-col space-y-1 text-xs">
-            <div 
-              v-for="role in availabilityData.roles" 
-              :key="role"
-              class="text-center text-green-400"
-            >
-              {{ getRoleLabel(role) }}
-            </div>
-          </div>
-        </template>
-        <!-- Afficher "Pas dispo" si indisponible -->
-        <template v-else-if="availabilityData && availabilityData.available === false">
-          <span class="text-center text-red-300">
-            Pas dispo
-          </span>
-        </template>
-        <!-- Afficher "Non renseigné" si pas de données -->
-        <template v-else-if="!availabilityData || availabilityData.available === null || availabilityData.available === undefined">
-          <span class="text-center text-gray-400">
-            Non renseigné
-          </span>
-        </template>
-        <!-- Sinon afficher un tiret -->
-        <template v-else>
+        <!-- Pour les événements avec équipe confirmée (mais non passés), afficher un tiret gris pour tous les non-sélectionnés -->
+        <template v-if="!isPastEvent && isSelectionConfirmedByOrganizer && !isSelected">
           <span class="text-center text-gray-400">
             -
           </span>
+        </template>
+        <!-- Affichage détaillé pour les événements sans équipe confirmée ou passés -->
+        <template v-else>
+          <!-- Si le joueur a décliné, afficher "Décliné" -->
+          <template v-if="playerSelectionStatus === 'declined'">
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-sm font-medium text-orange-300">Décliné</span>
+              <span class="text-lg">❌</span>
+            </div>
+          </template>
+          <!-- Afficher les rôles et chances si disponibles -->
+          <template v-else-if="rolesAndChances && rolesAndChances.length > 0">
+            <div class="text-center text-xs">
+              <span class="text-white">Dispo pour : </span>
+              <template v-for="(roleChance, index) in rolesAndChances" :key="roleChance.role">
+                <span :class="getChanceTextClass(roleChance.chance)">
+                  <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
+                    {{ roleChance.label }} ({{ roleChance.chance }}%)
+                  </template>
+                  <template v-else>
+                    {{ roleChance.label }}
+                  </template>
+                </span>
+                <template v-if="index < rolesAndChances.length - 1">
+                  <span class="text-white">, </span>
+                </template>
+              </template>
+            </div>
+          </template>
+          <!-- Sinon, afficher les disponibilités depuis availabilityData -->
+          <template v-else-if="availabilityData && availabilityData.available && availabilityData.roles && availabilityData.roles.length > 0">
+            <div class="flex flex-col space-y-1 text-xs">
+              <div 
+                v-for="role in availabilityData.roles" 
+                :key="role"
+                class="text-center text-green-400"
+              >
+                {{ getRoleLabel(role) }}
+              </div>
+            </div>
+          </template>
+          <!-- Afficher "Pas dispo" si indisponible -->
+          <template v-else-if="availabilityData && availabilityData.available === false">
+            <span class="text-center text-red-300">
+              Pas dispo
+            </span>
+          </template>
+          <!-- Afficher "Non renseigné" si pas de données -->
+          <template v-else-if="!availabilityData || availabilityData.available === null || availabilityData.available === undefined">
+            <span class="text-center text-gray-400">
+              Non renseigné
+            </span>
+          </template>
+          <!-- Sinon afficher un tiret -->
+          <template v-else>
+            <span class="text-center text-gray-400">
+              -
+            </span>
+          </template>
         </template>
       </template>
     </div>
@@ -307,6 +316,13 @@ function getCellStatusClass() {
       return 'status-undefined' // Gris pour tous les autres cas
     }
     // Si c'est un membre confirmé, continuer avec la logique normale pour avoir le violet
+  }
+  
+  // Pour les événements avec équipe confirmée (mais non passés) : simplifier l'affichage
+  // Seuls les membres sélectionnés gardent leur style (violet/orange selon statut)
+  // Tous les autres états (non sélectionnés) deviennent gris (status-undefined)
+  if (!props.isPastEvent && props.isSelectionConfirmedByOrganizer && !props.isSelected) {
+    return 'status-undefined' // Gris pour tous les non-sélectionnés
   }
   
   // Si le joueur a décliné, toujours afficher le statut declined (orange)
