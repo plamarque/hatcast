@@ -1095,6 +1095,12 @@ async function saveSlotChanges() {
     return
   }
   
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [saveSlotChanges] Sauvegarde bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   try {
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}
@@ -1654,6 +1660,12 @@ async function handleFillCast() {
 async function saveEmptySlotSelection() {
   if (!props.event?.id || !props.seasonId) return
   
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [saveEmptySlotSelection] Sauvegarde bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   try {
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}
@@ -1696,6 +1708,12 @@ async function autoSaveSelection() {
   
   // Ne pas sauvegarder automatiquement si l'organisateur a validé la composition
   if (props.isSelectionConfirmedByOrganizer) return
+  
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [autoSaveSelection] Sauvegarde bloquée : simulation en cours (non persistante)')
+    return
+  }
   
   try {
     // Construire la structure par rôle à partir de teamSlots
@@ -1945,6 +1963,12 @@ function hasEmptySlotForRole(role) {
 }
 
 async function moveDeclinedToComposition(declinedPlayer) {
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [moveDeclinedToComposition] Action bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   try {
     // Trouver un slot vide pour ce rôle
     const emptySlot = teamSlots.value.find(slot => 
@@ -2025,6 +2049,12 @@ async function moveDeclinedToComposition(declinedPlayer) {
 }
 
 async function movePlayerToDeclined(playerName, role) {
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [movePlayerToDeclined] Action bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   const playerId = getPlayerIdFromName(playerName)
   if (!playerId) return
   
@@ -2049,6 +2079,12 @@ async function movePlayerToDeclined(playerName, role) {
 }
 
 async function removeFromDeclined(playerName, role) {
+  // Protection : ne jamais sauvegarder pendant une simulation (seulement visuelle)
+  if (isSimulating.value && !isAutoComposition.value) {
+    logger.debug('🚫 [removeFromDeclined] Action bloquée : simulation en cours (non persistante)')
+    return
+  }
+  
   if (!props.currentSelection || !props.currentSelection.declined) {
     return
   }
@@ -2253,7 +2289,15 @@ function handleDrawComplete() {
 
 // Nouvelles fonctions pour le tirage complet
 function startDraw(persistResults = false) {
-  console.log('🎬 Starting draw...', { persistResults })
+  console.log('🎬 Starting draw...', { persistResults, isAutoComposition: isAutoComposition.value })
+  
+  // Log de sécurité : vérifier que persistResults est false pour les simulations
+  if (!persistResults && isSimulating.value) {
+    logger.debug('✅ [startDraw] Simulation démarrée en mode non-persistant (persistResults=false)')
+  } else if (persistResults) {
+    logger.debug('✅ [startDraw] Composition auto démarrée en mode persistant (persistResults=true)')
+  }
+  
   isSimulating.value = true
   simulationComplete.value = false
   showDrawVisualization.value = true
@@ -2265,12 +2309,15 @@ function startDraw(persistResults = false) {
     
     // Si on doit persister les résultats, ajouter un watcher sur simulationComplete
     if (persistResults) {
+      logger.debug('✅ [startDraw] Watcher de persistance activé pour composition auto')
       const stopWatcher = watch(simulationComplete, async (isComplete) => {
         if (isComplete) {
           stopWatcher() // Arrêter le watcher
           await persistDrawResults()
         }
       })
+    } else {
+      logger.debug('✅ [startDraw] Aucun watcher de persistance (simulation non-persistante)')
     }
     
     if (currentDrawCandidates.value.length > 0) {
@@ -2344,7 +2391,16 @@ function cleanUndefinedValues(obj) {
 
 async function persistDrawResults() {
   try {
-    console.log('💾 Persisting draw results...')
+    // Vérification de sécurité : cette fonction ne doit être appelée que pour les compositions auto
+    if (isSimulating.value && !isAutoComposition.value) {
+      logger.warn('🚨 [persistDrawResults] ATTENTION : Tentative de persistance pendant une simulation ! Cette fonction ne devrait jamais être appelée pour une simulation.')
+      return
+    }
+    
+    console.log('💾 Persisting draw results...', { 
+      isSimulating: isSimulating.value, 
+      isAutoComposition: isAutoComposition.value 
+    })
     
     // Construire la structure par rôle à partir de teamSlots
     const roles = {}
