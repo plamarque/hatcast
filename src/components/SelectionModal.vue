@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1390] p-0 md:p-4" @click="close">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl h-screen md:max-h-[92vh] flex flex-col" @click.stop>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col" @click.stop>
       <div class="relative p-4 md:p-6 border-b border-white/10 pt-[calc(1rem+env(safe-area-inset-top))] md:pt-6">
         <button @click="close" title="Fermer" class="absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] md:top-3 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
         
@@ -259,17 +259,19 @@
         </div>
         
         <!-- Section des joueurs déclinés -->
-        <div v-if="hasDeclinedPlayers" class="mb-4">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <span>❌</span>
-            <span>Personnes ayant décliné</span>
-            <span class="text-sm text-gray-400">(ne comptent pas dans la composition)</span>
-          </h3>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div v-if="hasDeclinedPlayers" class="mt-6 mb-4 pt-6 border-t border-white/20">
+          <div class="mb-2">
+            <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
+              <span>❌</span>
+              <span>Personnes ayant décliné</span>
+            </h3>
+            <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
             <div
               v-for="declinedPlayer in getDeclinedPlayers()"
               :key="'declined-'+declinedPlayer.name"
-              class="p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
+              class="p-2 md:p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
             >
               <div class="flex items-center justify-between gap-2">
                 <div class="flex-1 flex items-center gap-2 min-w-0">
@@ -287,7 +289,7 @@
                   <!-- Nom du joueur + emoji du rôle -->
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-1">
-                      <span class="text-white font-medium truncate">{{ declinedPlayer.name }}</span>
+                      <span class="text-white font-medium truncate text-sm md:text-base">{{ declinedPlayer.name }}</span>
                       <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
                     </div>
                   </div>
