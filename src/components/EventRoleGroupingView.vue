@@ -100,21 +100,39 @@
               ({{ getAvailableCountForRole(role) }}/{{ getRequiredCountForRole(role) }})
             </span>
           </div>
-          <div v-if="showRoleStatus" class="flex items-center gap-2">
-            <!-- Indicateur de statut du rôle -->
-            <div 
-              class="w-3 h-3 rounded-full"
-              :class="getRoleStatusClass(role)"
-              :title="getRoleStatusTooltip(role)"
-            ></div>
-            <span class="text-xs text-gray-400">
-              {{ getRoleStatusText(role) }}
-            </span>
+          <div class="flex items-center gap-2">
+            <div v-if="showRoleStatus" class="flex items-center gap-2">
+              <!-- Indicateur de statut du rôle -->
+              <div 
+                class="w-3 h-3 rounded-full"
+                :class="getRoleStatusClass(role)"
+                :title="getRoleStatusTooltip(role)"
+              ></div>
+              <span class="text-xs text-gray-400">
+                {{ getRoleStatusText(role) }}
+              </span>
+            </div>
+            <!-- Chevron pour collapse/expand -->
+            <button
+              @click="toggleRoleExpanded(role)"
+              class="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-white/10"
+              :title="isRoleExpanded(role) ? 'Réduire la section' : 'Agrandir la section'"
+            >
+              <svg 
+                class="w-4 h-4 transition-transform duration-200" 
+                :class="{ 'rotate-180': !isRoleExpanded(role) }"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
         <!-- Liste des joueurs disponibles pour ce rôle -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-0.5 sm:gap-1.5">
+        <div v-if="isRoleExpanded(role)" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-0.5 sm:gap-1.5">
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
@@ -433,7 +451,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import CompositionSlot from './CompositionSlot.vue'
@@ -585,6 +603,9 @@ const explanationData = ref(null)
 const explanationPosition = ref({ x: 0, y: 0 })
 const isMobile = ref(window.innerWidth < 640)
 
+// État pour suivre quelles sections de rôle sont ouvertes/fermées
+const expandedRoles = ref(new Set())
+
 // Computed pour afficher l'algorithme Bruno seulement en dev/staging
 const showBrunoAlgorithm = computed(() => {
   const environment = configService.getEnvironment()
@@ -606,6 +627,40 @@ const availableRoles = computed(() => {
     return count > 0
   })
 })
+
+// Initialiser expandedRoles avec tous les rôles disponibles (par défaut tous ouverts)
+watch(availableRoles, (newRoles) => {
+  if (newRoles.length > 0) {
+    // Ajouter les nouveaux rôles qui ne sont pas déjà dans le Set
+    newRoles.forEach(role => {
+      if (!expandedRoles.value.has(role)) {
+        expandedRoles.value.add(role)
+      }
+    })
+    // Retirer les rôles qui ne sont plus disponibles
+    const rolesToRemove = []
+    expandedRoles.value.forEach(role => {
+      if (!newRoles.includes(role)) {
+        rolesToRemove.push(role)
+      }
+    })
+    rolesToRemove.forEach(role => expandedRoles.value.delete(role))
+  }
+}, { immediate: true })
+
+// Fonction pour toggle l'état expanded d'un rôle
+function toggleRoleExpanded(role) {
+  if (expandedRoles.value.has(role)) {
+    expandedRoles.value.delete(role)
+  } else {
+    expandedRoles.value.add(role)
+  }
+}
+
+// Fonction pour vérifier si un rôle est expanded
+function isRoleExpanded(role) {
+  return expandedRoles.value.has(role)
+}
 
 
 const eventStatus = computed(() => {
