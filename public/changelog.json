@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.37.2",
+    "date": "2025-11-12",
+    "changes": [
+      "✨ La table des statistiques est maintenant compacte avec des détails extensibles, ce qui te permet de voir plus d'infos sans encombrer l'écran."
+    ]
+  },
+  {
     "version": "0.37.1",
     "date": "2025-11-12",
     "changes": [

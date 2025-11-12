@@ -1,20 +1,17 @@
-## [0.37.1] - 2025-11-12
+## [0.37.2] - 2025-11-12
 
 ### ✨ New Features
 
-- feat: add 'JEU AUTRE' column to composition stats
-
-### 🐛 Bug Fixes
-
-- fix: correct composition stats to count only confirmed selections
+- feat: make stats table compact with expandable details
 
 ### 📝 Other Changes
 
-- release: version 0.37.0
+- release: version 0.37.1
 
 
 # Changelog
 
+## [0.37.2] - 2025-11-12
 ## [0.37.1] - 2025-11-12
 ## [0.37.0] - 2025-11-10
 ## [0.36.0] - 2025-11-10
