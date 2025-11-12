@@ -34,9 +34,12 @@
             </span>
           </div>
           <!-- Ligne 2: emoji avec espacement cohérent -->
-          <div class="flex items-center justify-center mt-1">
+          <div class="flex items-center justify-center gap-1 mt-1">
             <span class="text-lg">
               {{ playerSelectionStatus === 'pending' ? '⏳' : getRoleEmoji() }}
+            </span>
+            <span v-if="playerSelectionStatus === 'pending'" class="text-xs text-gray-400">
+              {{ isSelectionConfirmedByOrganizer ? 'à confirmer' : getPreselectedLabel() }}
             </span>
           </div>
         </template>
@@ -302,6 +305,18 @@ function getRoleEmoji() {
   }
   
   return '🎭' // Fallback si pas de rôle
+}
+
+function getPreselectedLabel() {
+  // Accorder "présélectionné" selon le genre du joueur
+  if (props.playerGender === 'female') {
+    return 'pré-sélectionnée'
+  }
+  if (props.playerGender === 'non-specified') {
+    return 'pré-sélectionné·e'
+  }
+  // Pour 'male', utiliser la forme masculine
+  return 'pré-sélectionné'
 }
 
 function getChanceTextClass(chance) {
