@@ -61,20 +61,21 @@
         </template>
         <!-- Afficher les rôles et chances si disponibles -->
         <template v-else-if="rolesAndChances && rolesAndChances.length > 0">
-          <div class="flex flex-col space-y-1 text-xs">
-            <div 
-              v-for="roleChance in rolesAndChances" 
-              :key="roleChance.role"
-              class="text-center"
-              :class="getChanceTextClass(roleChance.chance)"
-            >
-              <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
-                {{ roleChance.label }} ({{ roleChance.chance }}%)
+          <div class="text-center text-xs">
+            <span class="text-white">Dispo pour : </span>
+            <template v-for="(roleChance, index) in rolesAndChances" :key="roleChance.role">
+              <span :class="getChanceTextClass(roleChance.chance)">
+                <template v-if="roleChance.chance !== null && roleChance.chance !== undefined">
+                  {{ roleChance.label }} ({{ roleChance.chance }}%)
+                </template>
+                <template v-else>
+                  {{ roleChance.label }}
+                </template>
+              </span>
+              <template v-if="index < rolesAndChances.length - 1">
+                <span class="text-white">, </span>
               </template>
-              <template v-else>
-                {{ roleChance.label }}
-              </template>
-            </div>
+            </template>
           </div>
         </template>
         <!-- Sinon, afficher les disponibilités depuis availabilityData -->
