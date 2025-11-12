@@ -1,11 +1,11 @@
 <template>
-  <div v-if="selectedEvent" class="space-y-4">
+  <div v-if="selectedEvent" class="space-y-2 sm:space-y-4">
 
     <!-- Affichage de tous les joueurs si pas de rôles définis -->
     <div v-if="availableRoles.length === 0" class="space-y-2">
-      <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
+      <div class="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50">
         <!-- En-tête -->
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between mb-1 sm:mb-2">
           <div class="flex items-center gap-2">
             <span class="text-lg">👥</span>
             <span class="font-medium text-white">Tous les joueurs</span>
@@ -16,11 +16,11 @@
         </div>
 
         <!-- Liste de tous les joueurs -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 sm:gap-1.5">
+        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-0.5 sm:gap-1.5">
           <div
             v-for="player in props.players"
             :key="player.id"
-            class="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent"
+            class="flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent"
           >
             <!-- Avatar du joueur -->
             <div class="relative flex-shrink-0">
@@ -47,7 +47,7 @@
             </span>
 
             <!-- Disponibilité du joueur -->
-            <div class="flex-shrink-0">
+            <div class="flex-shrink-0 w-20 h-20 aspect-square">
               <AvailabilityCell
                 :player-name="player.name"
                 :event-id="selectedEvent.id"
@@ -66,7 +66,6 @@
                 :is-protected="isPlayerProtectedInGrid(player.id)"
                 :compact="true"
                 :simplified-display="true"
-                class="w-16 h-8"
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handlePlayerSelectionStatusToggle"
                 @show-availability-modal="openAvailabilityModal"
@@ -86,14 +85,14 @@
     </div>
 
     <!-- Affichage par rôles -->
-    <div v-else class="space-y-2">
+    <div v-else class="space-y-1 sm:space-y-2">
       <div 
         v-for="role in availableRoles" 
         :key="role"
-        class="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50"
+        class="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50"
       >
         <!-- En-tête du rôle -->
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between mb-1 sm:mb-2">
           <div class="flex items-center gap-2">
             <span class="text-lg">{{ ROLE_EMOJIS[role] }}</span>
             <span class="font-medium text-white">{{ getRoleLabel(role) }}</span>
@@ -115,7 +114,7 @@
         </div>
 
         <!-- Liste des joueurs disponibles pour ce rôle -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 sm:gap-1.5">
+        <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-0.5 sm:gap-1.5">
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
@@ -152,7 +151,7 @@
 
             <!-- Design classique pour joueurs non sélectionnés OU sélectionnés mais non validés -->
             <template v-else>
-              <div class="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent">
+              <div class="flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent">
                 <!-- Avatar du joueur -->
                 <div class="relative flex-shrink-0">
                   <PlayerAvatar 
@@ -212,7 +211,7 @@
                 </div>
 
                 <!-- Disponibilité du joueur -->
-                <div class="flex-shrink-0">
+                <div class="flex-shrink-0 w-20 h-20 aspect-square">
                   <AvailabilityCell
                     :player-name="player.name"
                     :event-id="selectedEvent.id"
@@ -233,7 +232,6 @@
                     :compact="true"
                     :simplified-display="true"
                     :assigned-role="role"
-                    class="w-16 h-8"
                     @toggle="handleAvailabilityToggle"
                     @toggle-selection-status="handlePlayerSelectionStatusToggle"
                     @show-availability-modal="openAvailabilityModal"
