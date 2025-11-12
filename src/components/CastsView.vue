@@ -47,22 +47,26 @@
             style="border: none; padding: 0;"
           ></th>
           
-          <!-- En-tête de groupe DECORUM -->
-          <template v-if="showStatsColumns">
-            <th 
-              colspan="6" 
-              class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-1.5 text-center rounded-tl"
-              style="border: none; margin: 0;"
-            >
-              DECORUM
-            </th>
+          <!-- En-tête de groupe (affiché seulement quand les détails sont visibles) -->
+          <template v-if="showStatsColumns && (showJeuDetails || showDecorumDetails)">
             <!-- En-tête de groupe JEU -->
             <th 
-              colspan="5" 
-              class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1.5 text-center rounded-tr"
+              v-if="showJeuDetails"
+              :colspan="jeuColumnsCount" 
+              class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1.5 text-center rounded-tl"
               style="border: none; margin: 0;"
             >
               JEU
+            </th>
+            <!-- En-tête de groupe DECORUM -->
+            <th 
+              v-if="showDecorumDetails"
+              :colspan="decorumColumnsCount" 
+              class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-1.5 text-center"
+              :class="showJeuDetails ? '' : 'rounded-tl'"
+              style="border: none; margin: 0;"
+            >
+              DECORUM
             </th>
             <!-- Cellule vide pour BÉNÉVOLE -->
             <th colspan="1" class="rounded-tr" style="border: none; padding: 0; margin: 0;"></th>
@@ -110,78 +114,132 @@
           
           <!-- Colonnes de comptage des rôles -->
           <template v-if="showStatsColumns">
-            <!-- DÉCORUM -->
-            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+            <!-- JEU - Colonnes de détails (affichées conditionnellement) -->
+            <template v-if="showJeuDetails">
+              <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎭</span>
+                  <span>JEU MATCH</span>
+                </div>
+              </th>
+              <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 85px; min-width: 85px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎭</span>
+                  <span>JEU CAB</span>
+                </div>
+              </th>
+              <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎭</span>
+                  <span>JEU LONG</span>
+                </div>
+              </th>
+              <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎭</span>
+                  <span>JEU AUTRE</span>
+                </div>
+              </th>
+            </template>
+            <!-- Total Jeu avec lien toggle -->
+            <th 
+              class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-amber-200"
+              :class="!showJeuDetails && !showDecorumDetails ? 'rounded-tl' : ''"
+              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
+            >
               <div class="flex flex-col items-center space-y-0.5">
-                <span>🎤</span>
-                <span>MC</span>
-              </div>
-            </th>
-            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>🎧</span>
-                <span>DJ</span>
-              </div>
-            </th>
-            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 80px; min-width: 80px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>🙅</span>
-                <span>ARBITRE</span>
-              </div>
-            </th>
-            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 75px; min-width: 75px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>💁</span>
-                <span>ASSIST.</span>
-              </div>
-            </th>
-            <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 70px; min-width: 70px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>🧢</span>
-                <span>COACH</span>
-              </div>
-            </th>
-            <th class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-violet-200" style="width: 100px; min-width: 100px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>TOTAL</span>
-                <span>DECORUM</span>
+                <template v-if="showJeuDetails">
+                  <span>TOTAL</span>
+                  <span>JEU</span>
+                  <button
+                    @click.stop="toggleJeuDetails"
+                    class="text-amber-600 hover:text-amber-800 text-xs underline font-normal mt-0.5"
+                    title="Masquer les détails"
+                  >
+                    masquer les détails
+                  </button>
+                </template>
+                <template v-else>
+                  <span>JEU</span>
+                  <button
+                    @click.stop="toggleJeuDetails"
+                    class="text-amber-600 hover:text-amber-800 text-xs underline font-normal"
+                    title="Voir les détails"
+                  >
+                    voir les détails
+                  </button>
+                </template>
               </div>
             </th>
             
-            <!-- JEU -->
-            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+            <!-- DÉCORUM - Colonnes de détails (affichées conditionnellement) -->
+            <template v-if="showDecorumDetails">
+              <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎤</span>
+                  <span>MC</span>
+                </div>
+              </th>
+              <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎧</span>
+                  <span>DJ</span>
+                </div>
+              </th>
+              <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 80px; min-width: 80px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🙅</span>
+                  <span>ARBITRE</span>
+                </div>
+              </th>
+              <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 75px; min-width: 75px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>💁</span>
+                  <span>ASSIST.</span>
+                </div>
+              </th>
+              <th class="bg-violet-50 text-violet-700 text-xs px-2 py-2 text-center border-r border-b border-violet-200" style="width: 70px; min-width: 70px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🧢</span>
+                  <span>COACH</span>
+                </div>
+              </th>
+            </template>
+            <!-- Total Decorum avec lien toggle -->
+            <th 
+              class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-violet-200"
+              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
+            >
               <div class="flex flex-col items-center space-y-0.5">
-                <span>🎭</span>
-                <span>JEU MATCH</span>
-              </div>
-            </th>
-            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 85px; min-width: 85px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>🎭</span>
-                <span>JEU CAB</span>
-              </div>
-            </th>
-            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>🎭</span>
-                <span>JEU LONG</span>
-              </div>
-            </th>
-            <th class="bg-amber-50 text-amber-700 text-xs px-2 py-2 text-center border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>🎭</span>
-                <span>JEU AUTRE</span>
-              </div>
-            </th>
-            <th class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-amber-200" style="width: 80px; min-width: 80px;">
-              <div class="flex flex-col items-center space-y-0.5">
-                <span>TOTAL</span>
-                <span>JEU</span>
+                <template v-if="showDecorumDetails">
+                  <span>TOTAL</span>
+                  <span>DECORUM</span>
+                  <button
+                    @click.stop="toggleDecorumDetails"
+                    class="text-violet-600 hover:text-violet-800 text-xs underline font-normal mt-0.5"
+                    title="Masquer les détails"
+                  >
+                    masquer les détails
+                  </button>
+                </template>
+                <template v-else>
+                  <span>DECORUM</span>
+                  <button
+                    @click.stop="toggleDecorumDetails"
+                    class="text-violet-600 hover:text-violet-800 text-xs underline font-normal"
+                    title="Voir les détails"
+                  >
+                    voir les détails
+                  </button>
+                </template>
               </div>
             </th>
             
             <!-- BÉNÉVOLES -->
-            <th class="bg-slate-100 text-slate-700 text-xs px-2 py-2 text-center border-l-2 border-r border-b border-slate-200 rounded-tr" style="width: 85px; min-width: 85px;">
+            <th 
+              class="bg-slate-100 text-slate-700 text-xs px-2 py-2 text-center border-l-2 border-r border-b border-slate-200 rounded-tr"
+              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
+            >
               <div class="flex flex-col items-center space-y-0.5">
                 <span>🤝</span>
                 <span>BÉNÉVOLE</span>
@@ -286,45 +344,60 @@
           
           <!-- Cellules de comptage des rôles -->
           <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
-            <!-- Colonnes de décorum -->
-            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
-              {{ stats.mc || '' }}
-            </td>
-            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
-              {{ stats.dj || '' }}
-            </td>
-            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 80px; min-width: 80px;">
-              {{ stats.referee || '' }}
-            </td>
-            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 75px; min-width: 75px;">
-              {{ stats.assistantReferee || '' }}
-            </td>
-            <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 70px; min-width: 70px;">
-              {{ stats.coach || '' }}
-            </td>
-            <td class="bg-violet-100 text-violet-800 text-center text-sm font-bold border-l-2 border-r border-b border-violet-200" style="width: 100px; min-width: 100px;">
-              {{ (stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || '' }}
-            </td>
-            
-            <!-- Colonnes de jeu -->
-            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
-              {{ stats.jeuMatch || '' }}
-            </td>
-            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 85px; min-width: 85px;">
-              {{ stats.jeuCab || '' }}
-            </td>
-            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
-              {{ stats.jeuLong || '' }}
-            </td>
-            <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
-              {{ stats.jeuAutre || '' }}
-            </td>
-            <td class="bg-amber-100 text-amber-800 text-center text-sm font-bold border-l-2 border-r border-b border-amber-200" style="width: 80px; min-width: 80px;">
+            <!-- Colonnes de jeu - Détails (affichées conditionnellement) -->
+            <template v-if="showJeuDetails">
+              <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+                {{ stats.jeuMatch || '' }}
+              </td>
+              <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 85px; min-width: 85px;">
+                {{ stats.jeuCab || '' }}
+              </td>
+              <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+                {{ stats.jeuLong || '' }}
+              </td>
+              <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
+                {{ stats.jeuAutre || '' }}
+              </td>
+            </template>
+            <!-- Total Jeu -->
+            <td 
+              class="bg-amber-100 text-amber-800 text-center text-sm font-bold border-l-2 border-r border-b border-amber-200"
+              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
+            >
               {{ stats.totalJeu || '' }}
             </td>
             
+            <!-- Colonnes de décorum - Détails (affichées conditionnellement) -->
+            <template v-if="showDecorumDetails">
+              <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+                {{ stats.mc || '' }}
+              </td>
+              <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 60px; min-width: 60px;">
+                {{ stats.dj || '' }}
+              </td>
+              <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 80px; min-width: 80px;">
+                {{ stats.referee || '' }}
+              </td>
+              <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 75px; min-width: 75px;">
+                {{ stats.assistantReferee || '' }}
+              </td>
+              <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200" style="width: 70px; min-width: 70px;">
+                {{ stats.coach || '' }}
+              </td>
+            </template>
+            <!-- Total Decorum -->
+            <td 
+              class="bg-violet-100 text-violet-800 text-center text-sm font-bold border-l-2 border-r border-b border-violet-200"
+              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
+            >
+              {{ (stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || '' }}
+            </td>
+            
             <!-- Colonne bénévoles -->
-            <td class="bg-slate-100 text-slate-700 text-center text-sm border-l-2 border-r border-b border-slate-200" style="width: 85px; min-width: 85px;">
+            <td 
+              class="bg-slate-100 text-slate-700 text-center text-sm border-l-2 border-r border-b border-slate-200"
+              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
+            >
               {{ stats.volunteer || '' }}
             </td>
           </template>
@@ -535,6 +608,12 @@ const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024
 
 // State pour contrôler l'affichage des colonnes de statistiques
 const showStatsColumns = ref(true)
+
+// State pour contrôler l'affichage des détails du décorum
+const showDecorumDetails = ref(false)
+
+// State pour contrôler l'affichage des détails du jeu
+const showJeuDetails = ref(false)
 
 // State pour contrôler l'affichage de l'avertissement
 const showWarning = ref((() => {
@@ -801,11 +880,29 @@ const playersRoleStats = computed(() => {
   return statsMap
 })
 
+// Computed property pour calculer le nombre de colonnes de décorum visibles
+const decorumColumnsCount = computed(() => {
+  if (!showStatsColumns.value) return 0
+  // Total Decorum est toujours visible (1 colonne)
+  // + 5 colonnes de détails si showDecorumDetails est true
+  return 1 + (showDecorumDetails.value ? 5 : 0)
+})
+
+// Computed property pour calculer le nombre de colonnes de jeu visibles
+const jeuColumnsCount = computed(() => {
+  if (!showStatsColumns.value) return 0
+  // Total Jeu est toujours visible (1 colonne)
+  // + 4 colonnes de détails si showJeuDetails est true
+  return 1 + (showJeuDetails.value ? 4 : 0)
+})
+
 // Computed property pour le colspan de la ligne "Afficher Plus"
 const showMoreColspan = computed(() => {
-  // 1 pour la colonne joueur + 11 colonnes de stats (si affichées) + nombre d'événements
+  // 1 pour la colonne joueur + colonnes de stats (si affichées) + nombre d'événements
   const baseColumns = 1 // colonne joueur
-  const statsColumns = showStatsColumns.value ? 11 : 0 // colonnes de statistiques
+  const statsColumns = showStatsColumns.value 
+    ? jeuColumnsCount.value + decorumColumnsCount.value + 1 // JEU + DÉCORUM + Bénévol
+    : 0
   const eventColumns = props.events.length // colonnes d'événements
   return baseColumns + statsColumns + eventColumns
 })
@@ -813,6 +910,16 @@ const showMoreColspan = computed(() => {
 // Fonction pour basculer l'affichage des colonnes de statistiques
 function toggleStatsColumns() {
   showStatsColumns.value = !showStatsColumns.value
+}
+
+// Fonction pour basculer l'affichage des détails du décorum
+function toggleDecorumDetails() {
+  showDecorumDetails.value = !showDecorumDetails.value
+}
+
+// Fonction pour basculer l'affichage des détails du jeu
+function toggleJeuDetails() {
+  showJeuDetails.value = !showJeuDetails.value
 }
 
 // Fonction d'export vers Excel/Google Sheets
@@ -824,17 +931,17 @@ function exportToExcel() {
     // En-têtes
     const headers = [
       'Joueur',
+      'JEU MATCH',
+      'JEU CAB',
+      'JEU LONG',
+      'JEU AUTRE',
+      'TOTAL JEU',
       'MC',
       'DJ', 
       'ARBITRE',
       'ASSIST.',
       'COACH',
       'TOTAL DECORUM',
-      'JEU MATCH',
-      'JEU CAB',
-      'JEU LONG',
-      'JEU AUTRE',
-      'TOTAL JEU',
       'BÉNÉVOLE',
       ...props.events.map(event => event.title)
     ]
@@ -845,17 +952,17 @@ function exportToExcel() {
       const stats = playersRoleStats.value.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0}
       const playerRow = [
         player.name,
+        stats.jeuMatch,
+        stats.jeuCab,
+        stats.jeuLong,
+        stats.jeuAutre,
+        stats.totalJeu,
         stats.mc,
         stats.dj,
         stats.referee,
         stats.assistantReferee,
         stats.coach,
         stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach,
-        stats.jeuMatch,
-        stats.jeuCab,
-        stats.jeuLong,
-        stats.jeuAutre,
-        stats.totalJeu,
         stats.volunteer,
         ...props.events.map(event => {
           const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
