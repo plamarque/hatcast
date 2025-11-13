@@ -23,6 +23,7 @@
       <div class="flex-shrink-0 flex flex-col items-center gap-1">
         <div v-if="rightText" class="flex items-center gap-1">
           <button
+            data-chance-element
             class="px-2 py-1 rounded text-xs font-medium text-white bg-gray-800/50 hover:bg-gray-700/70"
             :title="rightTitle || ''"
             @click.stop="$emit('right-click', $event)"
@@ -31,6 +32,7 @@
           </button>
           <span
             v-if="rightBrunoText"
+            data-chance-element
             class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors"
             title="Algorithme Bruno - Cliquer pour voir le détail"
             @click.stop="$emit('right-bruno-click', $event)"
