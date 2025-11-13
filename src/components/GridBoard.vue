@@ -3306,6 +3306,7 @@ const isEventHeaderExpanded = ref(false)
 const showConfirmationModal = ref(false)
 const confirmationModalData = ref({
   playerName: '',
+  playerId: '',
   playerGender: 'non-specified',
   eventId: '',
   eventTitle: '',
@@ -3974,10 +3975,12 @@ onMounted(async () => {
     if (urlParams.get('modal') === 'event_details' && urlParams.get('event')) {
       const eventId = urlParams.get('event')
       const showAvailability = urlParams.get('showAvailability') === 'true'
+      const tabParam = urlParams.get('tab')
+      const showConfirm = urlParams.get('showConfirm') === 'true'
       const targetEvent = events.value.find(e => e.id === eventId)
       if (targetEvent) {
         nextTick(() => {
-          showEventDetails(targetEvent, showAvailability, false) // Ne pas mettre à jour l'URL
+          showEventDetails(targetEvent, showAvailability, false, false, tabParam, showConfirm) // Ne pas mettre à jour l'URL
         })
       }
     }
@@ -5856,7 +5859,10 @@ onMounted(async () => {
 
               // Si modal=event_details est demandé, ouvrir automatiquement la modal
         if (route.query.modal === 'event_details') {
-          showEventDetails(targetEvent)
+          const tabParam = route.query.tab || null
+          const showConfirm = route.query.showConfirm === 'true'
+          const showAvailability = route.query.showAvailability === 'true'
+          showEventDetails(targetEvent, showAvailability, false, false, tabParam, showConfirm)
         }
     } else {
       // eslint-disable-next-line no-console
@@ -8841,12 +8847,14 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false) {
+async function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false, forceTab = null, showConfirm = false) {
   console.log('📋 DEBUG showEventDetails appelée:', {
     event: event ? { id: event.id, title: event.title } : null,
     showAvailability,
     updateUrl,
-    fromAllPlayersFilter
+    fromAllPlayersFilter,
+    forceTab,
+    showConfirm
   })
 
   // Démarrer la mesure de performance pour l'écran détail événement
@@ -8871,7 +8879,8 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     fromAllPlayersFilter,
     defaultTab,
     currentUserPlayer: currentUserPlayer.value?.name,
-    showAvailability
+    showAvailability,
+    forceTab
   })
   
   // IMPORTANT: Définir selectedTeamPlayer AVANT de changer selectedEvent pour éviter que le watcher l'écrase
@@ -8880,6 +8889,11 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
     eventDetailsActiveTab.value = 'team' // Forcer l'onglet Disponibilités
     console.log('✅ DEBUG showEventDetails - Mode "Tous" activé depuis filtre')
+  }
+  // Si un onglet est forcé depuis l'URL (tab=compo)
+  else if (forceTab === 'composition' || forceTab === 'compo') {
+    eventDetailsActiveTab.value = 'composition'
+    // Sélection par défaut sera gérée par le watcher
   }
   // If we tried to show availability but there is no player, default to computed tab
   else if (showAvailability && !currentUserPlayer.value) {
@@ -8909,7 +8923,17 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
 
   // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
   if (updateUrl) {
-    const newUrl = `/season/${props.slug}?event=${event.id}&modal=event_details${showAvailability ? '&showAvailability=true' : ''}`
+    let urlParams = `event=${event.id}&modal=event_details`
+    if (showAvailability) {
+      urlParams += '&showAvailability=true'
+    }
+    if (forceTab === 'composition' || forceTab === 'compo') {
+      urlParams += '&tab=compo'
+    }
+    if (showConfirm) {
+      urlParams += '&showConfirm=true'
+    }
+    const newUrl = `/season/${props.slug}?${urlParams}`
     router.push(newUrl)
   }
 
@@ -8947,6 +8971,15 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
   // S'assurer que la modale s'ouvre après que les données soient assignées
   await nextTick()
   showEventDetailsModal.value = true
+
+  // Si showConfirm est true, vérifier et ouvrir automatiquement la modale de confirmation
+  if (showConfirm) {
+    // Attendre un peu pour que les données de composition soient chargées
+    await nextTick()
+    setTimeout(async () => {
+      await checkAndOpenConfirmationModal(event.id)
+    }, 300)
+  }
 
   // Terminer la mesure de performance pour l'écran détail événement
   const eventDetailLoadingTime = performanceService.end('event_detail_loading', {
@@ -11125,6 +11158,8 @@ watch(events, (list) => {
     const modal = params.get('modal')
     const eventId = params.get('event')
     const showAvailability = params.get('showAvailability') === 'true'
+    const tabParam = params.get('tab')
+    const showConfirm = params.get('showConfirm') === 'true'
     if (eventId) {
       const t = list.find(e => e.id === eventId)
       if (t) {
@@ -11138,6 +11173,9 @@ watch(events, (list) => {
     if (!t) return
     if (modal === 'announce') openEventAnnounceModal(t, showAvailability)
     if (modal === 'selection') openSelectionModal(t)
+    if (modal === 'event_details') {
+      showEventDetails(t, showAvailability, false, false, tabParam, showConfirm)
+    }
   } catch {}
 }, { immediate: true })
 
@@ -11704,14 +11742,20 @@ async function handleAvailabilityClear(availabilityData) {
 // Handlers pour la modal de confirmation
 async function handleConfirmationConfirm(data) {
   try {
-    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
-    const isUserConnected = !!currentUser.value?.email;
-    const isPlayerProtected = data?.isProtected || false;
+    // Récupérer playerId depuis confirmationModalData si non présent dans data
+    const playerId = data.playerId || confirmationModalData.value.playerId
     
-    if (!isUserConnected && isPlayerProtected) {
-      console.error('❌ Tentative de confirmation d\'un joueur protégé sans authentification');
+    // Vérification de sécurité : vérifier que l'utilisateur peut modifier ce statut
+    const canModify = await canModifyConfirmationStatus(
+      data.playerName, 
+      playerId, 
+      data.eventId
+    );
+    
+    if (!canModify) {
+      console.error('❌ Tentative de confirmation non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11768,14 +11812,20 @@ async function handleConfirmationConfirm(data) {
 
 async function handleConfirmationDecline(data) {
   try {
-    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
-    const isUserConnected = !!currentUser.value?.email;
-    const isPlayerProtected = data?.isProtected || false;
+    // Récupérer playerId depuis confirmationModalData si non présent dans data
+    const playerId = data.playerId || confirmationModalData.value.playerId
     
-    if (!isUserConnected && isPlayerProtected) {
-      console.error('❌ Tentative de déclin d\'un joueur protégé sans authentification');
+    // Vérification de sécurité : vérifier que l'utilisateur peut modifier ce statut
+    const canModify = await canModifyConfirmationStatus(
+      data.playerName, 
+      playerId, 
+      data.eventId
+    );
+    
+    if (!canModify) {
+      console.error('❌ Tentative de déclin non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11826,14 +11876,20 @@ async function handleConfirmationDecline(data) {
 
 async function handleConfirmationPending(data) {
   try {
-    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
-    const isUserConnected = !!currentUser.value?.email;
-    const isPlayerProtected = data?.isProtected || false;
+    // Récupérer playerId depuis confirmationModalData si non présent dans data
+    const playerId = data.playerId || confirmationModalData.value.playerId
     
-    if (!isUserConnected && isPlayerProtected) {
-      console.error('❌ Tentative de mise en attente d\'un joueur protégé sans authentification');
+    // Vérification de sécurité : vérifier que l'utilisateur peut modifier ce statut
+    const canModify = await canModifyConfirmationStatus(
+      data.playerName, 
+      playerId, 
+      data.eventId
+    );
+    
+    if (!canModify) {
+      console.error('❌ Tentative de mise en attente non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté pour modifier la confirmation d\'un joueur protégé.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11889,6 +11945,75 @@ function openConfirmationModal(data) {
   showConfirmationModal.value = true
 }
 
+// Fonction pour vérifier si l'utilisateur peut modifier le statut de confirmation d'un joueur
+async function canModifyConfirmationStatus(playerName, playerId, eventId) {
+  // Vérifier si l'utilisateur est connecté
+  if (!currentUser.value?.email) {
+    return false
+  }
+
+  // Vérifier si c'est le slot de l'utilisateur connecté
+  if (currentUserPlayer.value) {
+    const isOwnSlot = currentUserPlayer.value.id === playerId || 
+                      currentUserPlayer.value.name === playerName
+    if (isOwnSlot) {
+      return true
+    }
+  }
+
+  // Si ce n'est pas son propre slot, vérifier si l'utilisateur est admin
+  if (eventId && seasonId.value) {
+    const canEdit = await canEditSpecificEvent(eventId, false)
+    if (canEdit) {
+      return true
+    }
+  }
+
+  return false
+}
+
+// Fonction pour vérifier et ouvrir automatiquement la modale de confirmation
+// si l'utilisateur est logué et présent dans la composition
+async function checkAndOpenConfirmationModal(eventId) {
+  // Vérifier si l'utilisateur est logué
+  if (!currentUser.value || !currentUserPlayer.value) {
+    return false
+  }
+
+  // Vérifier que l'événement sélectionné correspond bien
+  if (!selectedEvent.value || selectedEvent.value.id !== eventId) {
+    return false
+  }
+
+  // Attendre que les données soient chargées
+  await nextTick()
+  
+  // Vérifier si l'utilisateur est dans la composition
+  const userSlot = compositionSlots.value.find(slot => 
+    slot.playerId === currentUserPlayer.value.id || 
+    slot.playerName === currentUserPlayer.value.name
+  )
+
+  if (!userSlot) {
+    return false
+  }
+
+  // Vérifier les permissions avant d'ouvrir la modale
+  const canModify = await canModifyConfirmationStatus(
+    userSlot.playerName, 
+    userSlot.playerId, 
+    eventId
+  )
+  
+  if (!canModify) {
+    return false
+  }
+
+  // Ouvrir la modale de confirmation pour l'utilisateur
+  await handleCompositionSlotClick(userSlot)
+  return true
+}
+
 // Handle composition slot click from composition tab
 async function handleCompositionSlotClick(slot) {
   if (!selectedEvent.value || !slot.playerName) return
@@ -11897,6 +12022,19 @@ async function handleCompositionSlotClick(slot) {
   const eventId = event.id
   const playerName = slot.playerName
   const playerId = slot.playerId
+
+  // Vérifier les permissions avant d'ouvrir la modale
+  const canModify = await canModifyConfirmationStatus(playerName, playerId, eventId)
+  
+  if (!canModify) {
+    // Afficher un message d'erreur si l'utilisateur n'est pas autorisé
+    showErrorMessage.value = true
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+    return
+  }
 
   // Get current availability data to pass the comment
   const availabilityData = getAvailabilityData(playerName, eventId)
