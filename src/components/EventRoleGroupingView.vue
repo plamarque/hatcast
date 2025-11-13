@@ -276,13 +276,13 @@
   <!-- Mini-popup des explications de chances (algorithme par défaut) -->
   <div v-if="showChanceExplanation && explanationData && !showBrunoExplanation" 
        data-explanation-popup
-       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 w-[calc(100%-32px)] max-w-xs sm:max-w-xs sm:w-auto mx-4 sm:mx-0"
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 sm:p-4 w-[calc(100%-32px)] max-w-xs sm:max-w-md sm:w-auto mx-4 sm:mx-0"
        :style="{
-         left: `${explanationPosition.x}px`,
-         top: `${explanationPosition.y}px`,
-         transform: isMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
-         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'none',
-         overflowY: isMobile ? 'auto' : 'visible'
+         left: isMobile ? `${explanationPosition.x}px` : '50%',
+         top: isMobile ? `${explanationPosition.y}px` : '50%',
+         transform: 'translate(-50%, -50%)',
+         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 64px)',
+         overflowY: 'auto'
        }"
        @click.stop>
     <div class="text-sm sm:text-xs">
@@ -297,54 +297,58 @@
           <span class="text-gray-300"> candidats</span>
         </div>
         
-        <!-- Probabilités théoriques (avant malus) -->
-        <div v-if="explanationData.requiredCount === 1">
-          <span class="text-gray-300">Au hasard pur tu aurais eu </span>
-          <span class="text-blue-400">1</span>
+        <!-- Probabilité théorique sans pondération -->
+        <div>
+          <span class="text-gray-300">Au hasard pur (sans rééquilibrage), avec </span>
+          <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} parmi </span>
+          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
+          <span class="text-gray-300"> candidats, tu aurais </span>
+          <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
           <span class="text-gray-400">/</span>
-          <span class="text-green-400">{{ explanationData.availableCount }}</span>
+          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
           <span class="text-gray-400"> = </span>
           <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
-          <span class="text-gray-300"> de chances</span>
-        </div>
-        <div v-else>
-          <div class="mb-2">
-            <span class="text-gray-300">Avec </span>
-            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
-            <span class="text-gray-300"> tirages successifs sans remise, tu aurais eu en moyenne : </span>
-            <span class="text-gray-400">(</span>
-            <template v-for="(denominator, index) in Array.from({ length: explanationData.requiredCount }, (_, i) => explanationData.availableCount - i)" :key="index">
-              <span class="text-gray-400">1/</span>
-              <span class="text-green-400">{{ denominator }}</span>
-              <span v-if="index < explanationData.requiredCount - 1" class="text-gray-400"> + </span>
-            </template>
-            <span class="text-gray-400">) / </span>
-            <span class="text-blue-400">{{ explanationData.requiredCount }}</span>
-            <span class="text-gray-400"> ≈ </span>
-            <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
-            <span class="text-gray-300"> de chances</span>
-          </div>
+          <span class="text-gray-300"> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}</span>
         </div>
         
-        <!-- Application du malus -->
-        <div>
-          <span class="text-gray-300">En pondérant tes </span>
+        <!-- Application du rééquilibrage d'équité -->
+        <div class="mt-2">
+          <span class="text-gray-300">Avec le </span>
+          <span class="text-purple-400 font-semibold">rééquilibrage d'équité</span>
+          <span class="text-gray-300"> basé sur tes </span>
           <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span>
-          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }} avec celles des autres candidats on ramène tes chances à </span>
+          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}, tes chances sont de </span>
           <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
         </div>
         
-        <!-- Explication du calcul -->
+        <!-- Explication détaillée du calcul -->
         <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
-          <div class="mb-1"><strong>Calcul de la pondération :</strong></div>
-          <div class="mb-2 text-gray-300">On rééquilibre en réduisant tes chances pour chacune des sélections passées.</div>
-          <div>• Rééquilibrage d'équité = 1/(1+<span class="text-purple-400">{{ Math.round(explanationData.pastSelections) }}</span>) = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span></div>
-          <div>• Ton poids = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span></div>
-          <div>• Poids total des autres = <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span></div>
+          <div class="mb-2 text-gray-300 font-medium">Comment ça fonctionne ?</div>
           
-          <div>Tu as donc <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span> chances sur <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> soit <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span>/<span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> environ</div>
+          <div class="mb-2 text-gray-300">
+            Le rééquilibrage d'équité réduit tes chances proportionnellement à tes sélections passées pour donner plus de chances aux autres.
+          </div>
           
-          <div class="mt-2"></div>
+          <div class="mb-1"><strong>1. Calcul du coefficient de rééquilibrage :</strong></div>
+          <div class="mb-2 text-gray-300">
+            Coefficient = 1 / (1 + sélections passées) = 1 / (1 + <span class="text-purple-400">{{ explanationData.pastSelections }}</span>) = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span>
+          </div>
+          
+          <div class="mb-1"><strong>2. Calcul de ton poids :</strong></div>
+          <div class="mb-2 text-gray-300">
+            Ton poids = coefficient × nombre de places = <span class="text-orange-400">{{ formatNumber(explanationData.malus) }}</span> × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span>
+          </div>
+          
+          <div class="mb-1"><strong>3. Calcul de la probabilité finale :</strong></div>
+          <div class="mb-2 text-gray-300">
+            Sur les <span class="text-blue-400">{{ explanationData.requiredCount }}</span> tirages successifs, le système calcule la probabilité exacte que tu sois sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }} en tenant compte de ton poids et de ceux des autres candidats.
+          </div>
+          
+          <div class="text-gray-300">
+            <span class="font-semibold">Résultat :</span> <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}
+            <span v-if="explanationData.pastSelections > 0" class="text-purple-400"> (réduit de {{ Math.round(explanationData.theoreticalChance - explanationData.chance) }}% par rapport au hasard pur)</span>
+          </div>
         </div>
       </div>
     </div>
@@ -359,13 +363,13 @@
   <!-- Mini-popup des explications de chances (algorithme Bruno) -->
   <div v-if="showChanceExplanation && explanationData && showBrunoExplanation" 
        data-explanation-popup
-       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 w-[calc(100%-32px)] max-w-sm sm:w-auto mx-4 sm:mx-0"
+       class="fixed z-[1600] bg-gray-900 border border-gray-600 rounded-lg shadow-xl p-3 sm:p-4 w-[calc(100%-32px)] max-w-xs sm:max-w-md sm:w-auto mx-4 sm:mx-0"
        :style="{
-         left: `${explanationPosition.x}px`,
-         top: `${explanationPosition.y}px`,
-         transform: isMobile ? 'translate(-50%, -50%)' : 'translateX(-50%)',
-         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'none',
-         overflowY: isMobile ? 'auto' : 'visible'
+         left: isMobile ? `${explanationPosition.x}px` : '50%',
+         top: isMobile ? `${explanationPosition.y}px` : '50%',
+         transform: 'translate(-50%, -50%)',
+         maxHeight: isMobile ? 'calc(100vh - 32px)' : 'calc(100vh - 64px)',
+         overflowY: 'auto'
        }"
        @click.stop>
     <div class="text-sm sm:text-xs">
@@ -858,37 +862,20 @@ const showBrunoExplanation = ref(false)
 function showChanceDetails(event, playerName, role, isBruno = false) {
   console.log('🖱️ Click on percentage:', { playerName, role, event, isBruno })
   
+  // En mobile, centrer la popup sur l'écran
+  // En desktop, la popup sera centrée via CSS (50% avec transform)
   if (isMobile.value) {
-    // En mobile, centrer la popup sur l'écran
     explanationPosition.value = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2
     }
   } else {
-    // En desktop, positionner relativement au clic mais s'assurer qu'elle ne déborde pas
-    const rect = event.target.getBoundingClientRect()
-    const popupWidth = 320 // max-w-xs = 20rem = 320px
-    const popupHeight = 400 // Estimation de la hauteur maximale
-    const padding = 16 // Padding de sécurité
-    
-    let x = rect.left + rect.width / 2
-    let y = rect.top - 10
-    
-    // Ajuster horizontalement si nécessaire
-    if (x - popupWidth / 2 < padding) {
-      x = popupWidth / 2 + padding
-    } else if (x + popupWidth / 2 > window.innerWidth - padding) {
-      x = window.innerWidth - popupWidth / 2 - padding
+    // En desktop, on centre toujours sur l'écran, donc on n'a pas besoin de calculer la position
+    // On garde juste des valeurs par défaut pour éviter les erreurs
+    explanationPosition.value = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2
     }
-    
-    // Ajuster verticalement si nécessaire
-    if (y - popupHeight < padding) {
-      y = rect.bottom + 10 + padding
-    } else if (y > window.innerHeight - padding) {
-      y = window.innerHeight - popupHeight - padding
-    }
-    
-    explanationPosition.value = { x, y }
   }
   
   // Récupérer les données d'explication selon l'algorithme
@@ -970,26 +957,19 @@ function getChanceExplanation(playerName, role) {
     return null
   }
   
-  // Calculer les probabilités théoriques avant malus
-  // Pour requiredCount places et availableCount candidats :
-  // Probabilité = [Σ(i=1 à requiredCount) (1 / (availableCount - i + 1))] / requiredCount
-  // C'est la moyenne des probabilités d'être sélectionné à chaque tirage
+  // Calculer la probabilité théorique sans pondération
+  // Pour requiredCount places et availableCount candidats, la probabilité d'être sélectionné
+  // sur tous les tirages est simplement : requiredCount / availableCount
   let theoreticalChance = 0
-  let withReplacementChance = 0 // Probabilité si on faisait des tirages avec remise
   if (roleData.availableCount > 0 && roleData.requiredCount > 0) {
-    // Calculer la somme des probabilités individuelles pour chaque tirage (sans remise)
-    let sum = 0
-    for (let i = 1; i <= roleData.requiredCount; i++) {
-      const remainingCandidates = roleData.availableCount - i + 1
-      sum += 1 / remainingCandidates
-    }
-    // Diviser par le nombre de places pour obtenir la moyenne
-    theoreticalChance = (sum / roleData.requiredCount) * 100
-    
-    // Calculer la probabilité avec remise (tirages indépendants) : (1/availableCount)^requiredCount
-    const singleDrawChance = 1 / roleData.availableCount
-    withReplacementChance = Math.pow(singleDrawChance, roleData.requiredCount) * 100
+    // Probabilité théorique = nombre de places / nombre de candidats
+    theoreticalChance = (roleData.requiredCount / roleData.availableCount) * 100
   }
+  
+  // Calculer les informations pour l'explication détaillée
+  const otherCandidates = roleData.candidates.filter(c => c.name !== playerName)
+  const otherCandidatesTotalWeight = otherCandidates.reduce((sum, c) => sum + c.weight, 0)
+  const averageOtherWeight = otherCandidates.length > 0 ? otherCandidatesTotalWeight / otherCandidates.length : 0
   
   const explanation = {
     playerName,
@@ -1002,8 +982,11 @@ function getChanceExplanation(playerName, role) {
     weightedChances: candidate.weightedChances || 0,
     totalWeight: roleData.totalWeight || 0,
     theoreticalChance: theoreticalChance,
-    withReplacementChance: withReplacementChance,
-    singleDrawChancePercent: roleData.availableCount > 0 ? (1 / roleData.availableCount) * 100 : 0
+    // Informations supplémentaires pour l'explication
+    playerWeight: candidate.weight || 0,
+    otherCandidatesCount: otherCandidates.length,
+    otherCandidatesTotalWeight: otherCandidatesTotalWeight,
+    averageOtherWeight: averageOtherWeight
   }
   
   console.log('✅ Explanation data:', explanation)
