@@ -1,37 +1,17 @@
-## [0.39.0] - 2025-11-12
+## [0.40.0] - 2025-11-13
 
 ### ✨ New Features
 
-- feat: add collapse/expand for role sections in EventRoleGroupingView
-- feat: simplify availability display in role-grouped view
-
-### 🐛 Bug Fixes
-
-- fix: correct chevron direction on show/hide details button
-- fix: display assigned role instead of availability role in EventRoleGroupingView
-- fix: send confirmed team notifications to confirmed players instead of pending
-- fix: prevent simulation from persisting to database
+- feat: improve chance explanation popup with paper size metaphor
 
 ### 🔧 Improvements
 
-- refactor: align date and location with badge/button in desktop view
-- refactor: move hide details button to same line as status badge
-- refactor: reduce margins and padding for mobile in event modal
-- refactor: reorder notification preferences and update text
-- refactor: remove technical token refresh message from notifications preferences
-
-### 📝 Other Changes
-
-- feat(ui): Add WhatsApp button to send draw/preselection to PEDA
-- feat(ui): Replace status badge with precise composition statuses
-- feat(ui): Improve declined players section in Composition modal
-- fix(ui): Improve mobile Composition modal height and safe areas
-- fix(ui): Prevent close button overlap and add safe areas in Composition modal
-- feat(ui): Improve mobile display of Composition modal
+- perf: optimize probability calculation for selection chances
 
 
 # Changelog
 
+## [0.40.0] - 2025-11-13
 ## [0.39.0] - 2025-11-12
 ## [0.38.0] - 2025-11-12
 ## [0.37.4] - 2025-11-12

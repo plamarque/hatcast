@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.40.0",
+    "date": "2025-11-13",
+    "changes": [
+      "✨ Amélioration de la fenêtre d'explication des chances avec une métaphore de taille de papier.",
+      "🔧 Optimisation du calcul des probabilités pour les chances de sélection."
+    ]
+  },
+  {
     "version": "0.39.0",
     "date": "2025-11-12",
     "changes": [
