@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.40.1",
+    "date": "2025-11-13",
+    "changes": [
+      "✨ On a simplifié les explications de chance pour que ce soit plus clair.",
+      "🐛 On a corrigé les sélections historiques pour qu'elles fonctionnent correctement."
+    ]
+  },
+  {
     "version": "0.40.0",
     "date": "2025-11-13",
     "changes": [

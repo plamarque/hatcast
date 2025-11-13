@@ -1,16 +1,13 @@
-## [0.40.0] - 2025-11-13
+## [0.40.1] - 2025-11-13
 
 ### ✨ New Features
 
-- feat: improve chance explanation popup with paper size metaphor
-
-### 🔧 Improvements
-
-- perf: optimize probability calculation for selection chances
+- feat: simplify chance explanations and fix historical selections
 
 
 # Changelog
 
+## [0.40.1] - 2025-11-13
 ## [0.40.0] - 2025-11-13
 ## [0.39.0] - 2025-11-12
 ## [0.38.0] - 2025-11-12
