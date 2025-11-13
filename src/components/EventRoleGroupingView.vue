@@ -290,81 +290,168 @@
     <div class="text-sm sm:text-xs">
       <div class="font-medium text-white mb-2">Comment sont estimées les chances ?</div>
       <div class="space-y-2">
-        <!-- Probabilité théorique si tous avaient le même nombre de sélections -->
-        <div>
-          <span class="text-gray-300">Il y a </span>
-          <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
-          <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} pour </span>
-          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
-          <span class="text-gray-300"> candidats et tu as </span>
-          <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span>
-          <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}.</span>
-        </div>
-        <div class="mt-1">
-          <span v-if="explanationData.pastSelections === 0" class="text-gray-300">
-            Si personne n'avait eu de sélections passées, vous auriez tous 
-          </span>
-          <span v-else class="text-gray-300">
-            Si tout le monde avait eu <span class="text-purple-400">{{ explanationData.pastSelections }}</span> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}, vous auriez tous 
-          </span>
-          <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
-          <span class="text-gray-400">/</span>
-          <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
-          <span class="text-gray-400"> = </span>
-          <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
-          <span class="text-gray-300"> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s.</span>
-        </div>
+        <!-- Version ultra-simplifiée : un seul candidat -->
+        <template v-if="explanationData.onlyOneCandidate">
+          <div>
+            <span class="text-gray-300">Il y a </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} pour </span>
+            <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
+            <span class="text-gray-300"> candidat.</span>
+          </div>
+          
+          <div class="mt-2">
+            <span class="text-gray-300">Comme tu es le seul candidat, il n'y a pas de tirage au sort. Tu es automatiquement sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}.</span>
+          </div>
+          
+          <div class="mt-2">
+            <span class="text-gray-300 font-semibold">Tes chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s sont de </span>
+            <span class="font-semibold text-emerald-400">100%</span>
+            <span class="text-gray-300">.</span>
+          </div>
+        </template>
         
-        <!-- Application du rééquilibrage d'équité -->
-        <div class="mt-2">
-          <span class="text-gray-300">Par souci d'équité, on réalise un rééquilibrage en se basant sur les sélections passées de tout le monde. Après rééquilibrage, tes chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s sont de </span>
-          <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
-          <span class="text-gray-300">.</span>
-        </div>
+        <!-- Version ultra-simplifiée : autant de places que de candidats -->
+        <template v-else-if="explanationData.allCandidatesSelected">
+          <div>
+            <span class="text-gray-300">Il y a </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} pour </span>
+            <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
+            <span class="text-gray-300"> candidat{{ explanationData.availableCount > 1 ? 's' : '' }}.</span>
+          </div>
+          
+          <div class="mt-2">
+            <span class="text-gray-300">Comme il y a une place pour chaque candidat, il n'y a pas de tirage au sort. Tous les candidats sont automatiquement sélectionnés.</span>
+          </div>
+          
+          <div class="mt-2">
+            <span class="text-gray-300 font-semibold">Tes chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s sont de </span>
+            <span class="font-semibold text-emerald-400">100%</span>
+            <span class="text-gray-300">.</span>
+          </div>
+        </template>
         
-        <!-- Explication détaillée du calcul -->
-        <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
-          <div class="mb-2 text-gray-300 font-medium">Comment ça fonctionne ?</div>
-          
-          <div class="mb-2 text-gray-300">
-            Imagine qu'on tire à l'aveugle des noms écrits sur des bouts de papier dans un chapeau. La taille de ces bouts de papier diminue pour chaque sélection passée. On a donc plus de chances d'attraper un papier plus grand qu'un papier plus petit. La taille de ton bout de papier est calculée comme suit :
+        <!-- Version simplifiée : tous les candidats ont le même nombre de sélections -->
+        <template v-else-if="explanationData.allCandidatesHaveSameSelections">
+          <div>
+            <span class="text-gray-300">Il y a </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} pour </span>
+            <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
+            <span class="text-gray-300"> candidats.</span>
           </div>
-          
-          <div class="mb-1"><strong>1. Calcul de la taille de ton bout de papier :</strong></div>
-          <div class="mb-2 text-gray-300">
-            Taille = (1 / (1 + sélections passées)) × nombre de places = (1 / (1 + <span class="text-purple-400">{{ explanationData.pastSelections }}</span>)) × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span> cm de côté
-          </div>
-          <div class="mb-2 text-gray-300">
-            Remarque qu'au fil des sélections, la taille du papier diminue, donc plus difficile à attraper ! Ça diminue donc les chances. Mais c'est pareil pour tout le monde !
-          </div>
-          
-          <div class="mb-1"><strong>2. Tirages :</strong></div>
-          <div class="mb-2 text-gray-300">
-            Dans le sac, on trouve donc autant de bouts de papier que de candidats (<span class="text-green-400">{{ explanationData.availableCount }}</span>). On réalise <span class="text-blue-400">{{ explanationData.requiredCount }}</span> tirages successifs à l'aveugle dans le sac. Après chaque tirage, on ne remet pas le bout de papier de la personne sélectionnée. Donc, proportionnellement, chaque tirage augmente la probabilité de chacun d'être tiré.
-          </div>
-          <div class="mb-2 text-gray-300">
-            Ainsi, comme ton bout de papier a une taille de <span class="text-cyan-400">{{ formatNumber(explanationData.playerWeight) }}</span> cm de côté, et celle des autres candidats de 
-            <template v-for="(other, index) in explanationData.otherCandidatesWeights" :key="other.name">
-              <span class="text-cyan-400">{{ formatNumber(other.weight) }}</span> cm<span v-if="index < explanationData.otherCandidatesWeights.length - 1">, </span>
-            </template>
-            , la taille totale de tous les papiers est de <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> cm.
-          </div>
-          <div class="mb-2 text-gray-300">
-            En considérant ces tailles et les probabilités réajustées à chaque tirage, on évalue à <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>. C'est une approximation, bien sûr, car c'est un tirage fait au hasard.
-          </div>
-          
-          <div class="text-gray-300">
-            <span class="font-semibold">Résultat :</span> <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s
-            <span v-if="explanationData.pastSelections > 0 && Math.abs(explanationData.theoreticalChance - explanationData.chance) >= 1">
-              <span v-if="explanationData.chance > explanationData.theoreticalChance" class="text-emerald-400">
-                (+{{ Math.round(explanationData.chance - explanationData.theoreticalChance) }}% par rapport au scénario où tout le monde aurait eu {{ explanationData.pastSelections }} sélection{{ explanationData.pastSelections > 1 ? 's' : '' }})
-              </span>
-              <span v-else class="text-purple-400">
-                (-{{ Math.round(explanationData.theoreticalChance - explanationData.chance) }}% par rapport au scénario où tout le monde aurait eu {{ explanationData.pastSelections }} sélection{{ explanationData.pastSelections > 1 ? 's' : '' }})
-              </span>
+          <div class="mt-1">
+            <span v-if="explanationData.pastSelections === 0" class="text-gray-300">
+              Comme personne n'a de sélections passées, il n'y a pas de rééquilibrage. Tout le monde a les mêmes chances.
+            </span>
+            <span v-else class="text-gray-300">
+              Comme tout le monde a <span class="text-purple-400">{{ explanationData.pastSelections }}</span> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}, il n'y a pas de rééquilibrage. Tout le monde a les mêmes chances.
             </span>
           </div>
-        </div>
+          
+          <div class="mt-2">
+            <span class="text-gray-300 font-semibold">Tes chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s sont de </span>
+            <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
+            <span class="text-gray-300">.</span>
+          </div>
+          
+          <!-- Explication simplifiée avec la métaphore -->
+          <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
+            <div class="mb-2 text-gray-300 font-medium">Comment ça fonctionne ?</div>
+            
+            <div class="mb-2 text-gray-300">
+              Imagine qu'on tire à l'aveugle des noms écrits sur des bouts de papier dans un chapeau. Comme tout le monde a le même nombre de sélections passées, tous les bouts de papier ont la même taille.
+            </div>
+            
+            <div class="mb-2 text-gray-300">
+              On réalise <span class="text-blue-400">{{ explanationData.requiredCount }}</span> tirages successifs à l'aveugle dans le sac. Après chaque tirage, on ne remet pas le bout de papier de la personne sélectionnée. Donc, proportionnellement, chaque tirage augmente la probabilité de chacun d'être tiré.
+            </div>
+            
+            <div class="text-gray-300">
+              <span class="font-semibold">Résultat :</span> Avec <span class="text-blue-400">{{ explanationData.requiredCount }}</span> places parmi <span class="text-green-400">{{ explanationData.availableCount }}</span> candidats, tu as <span class="text-blue-400">{{ explanationData.requiredCount }}</span>/<span class="text-green-400">{{ explanationData.availableCount }}</span> = <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s.
+            </div>
+          </div>
+        </template>
+        
+        <!-- Version complète : rééquilibrage nécessaire -->
+        <template v-else>
+          <!-- Probabilité théorique si tous avaient le même nombre de sélections -->
+          <div>
+            <span class="text-gray-300">Il y a </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-300"> place{{ explanationData.requiredCount > 1 ? 's' : '' }} pour </span>
+            <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
+            <span class="text-gray-300"> candidats et tu as </span>
+            <span class="text-purple-400 font-semibold">{{ explanationData.pastSelections }}</span>
+            <span class="text-gray-300"> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}.</span>
+          </div>
+          <div class="mt-1">
+            <span v-if="explanationData.pastSelections === 0" class="text-gray-300">
+              Si personne n'avait eu de sélections passées, vous auriez tous 
+            </span>
+            <span v-else class="text-gray-300">
+              Si tout le monde avait eu <span class="text-purple-400">{{ explanationData.pastSelections }}</span> sélection{{ explanationData.pastSelections > 1 ? 's' : '' }} passée{{ explanationData.pastSelections > 1 ? 's' : '' }}, vous auriez tous 
+            </span>
+            <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span>
+            <span class="text-gray-400">/</span>
+            <span class="text-green-400 font-semibold">{{ explanationData.availableCount }}</span>
+            <span class="text-gray-400"> = </span>
+            <span class="text-gray-300 font-semibold">{{ Math.round(explanationData.theoreticalChance) }}%</span>
+            <span class="text-gray-300"> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s.</span>
+          </div>
+          
+          <!-- Application du rééquilibrage d'équité -->
+          <div class="mt-2">
+            <span class="text-gray-300">Par souci d'équité, on réalise un rééquilibrage en se basant sur les sélections passées de tout le monde. Après rééquilibrage, tes chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s sont de </span>
+            <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>
+            <span class="text-gray-300">.</span>
+          </div>
+          
+          <!-- Explication détaillée du calcul -->
+          <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
+            <div class="mb-2 text-gray-300 font-medium">Comment ça fonctionne ?</div>
+            
+            <div class="mb-2 text-gray-300">
+              Imagine qu'on tire à l'aveugle des noms écrits sur des bouts de papier dans un chapeau. La taille de ces bouts de papier diminue pour chaque sélection passée. On a donc plus de chances d'attraper un papier plus grand qu'un papier plus petit. La taille de ton bout de papier est calculée comme suit :
+            </div>
+            
+            <div class="mb-1"><strong>1. Calcul de la taille de ton bout de papier :</strong></div>
+            <div class="mb-2 text-gray-300">
+              Taille = (1 / (1 + sélections passées)) × nombre de places = (1 / (1 + <span class="text-purple-400">{{ explanationData.pastSelections }}</span>)) × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span> cm de côté
+            </div>
+            <div class="mb-2 text-gray-300">
+              Remarque qu'au fil des sélections, la taille du papier diminue, donc plus difficile à attraper ! Ça diminue donc les chances. Mais c'est pareil pour tout le monde !
+            </div>
+            
+            <div class="mb-1"><strong>2. Tirages :</strong></div>
+            <div class="mb-2 text-gray-300">
+              Dans le sac, on trouve donc autant de bouts de papier que de candidats (<span class="text-green-400">{{ explanationData.availableCount }}</span>). On réalise <span class="text-blue-400">{{ explanationData.requiredCount }}</span> tirages successifs à l'aveugle dans le sac. Après chaque tirage, on ne remet pas le bout de papier de la personne sélectionnée. Donc, proportionnellement, chaque tirage augmente la probabilité de chacun d'être tiré.
+            </div>
+            <div class="mb-2 text-gray-300">
+              Ainsi, comme ton bout de papier a une taille de <span class="text-cyan-400">{{ formatNumber(explanationData.playerWeight) }}</span> cm de côté, et celle des autres candidats de 
+              <template v-for="(other, index) in explanationData.otherCandidatesWeights" :key="other.name">
+                <span class="text-cyan-400">{{ formatNumber(other.weight) }}</span> cm<span v-if="index < explanationData.otherCandidatesWeights.length - 1">, </span>
+              </template>
+              , la taille totale de tous les papiers est de <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> cm.
+            </div>
+            <div class="mb-2 text-gray-300">
+              En considérant ces tailles et les probabilités réajustées à chaque tirage, on évalue à <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>. C'est une approximation, bien sûr, car c'est un tirage fait au hasard.
+            </div>
+            
+            <div class="text-gray-300">
+              <span class="font-semibold">Résultat :</span> <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s
+              <span v-if="explanationData.pastSelections > 0 && Math.abs(explanationData.theoreticalChance - explanationData.chance) >= 1">
+                <span v-if="explanationData.chance > explanationData.theoreticalChance" class="text-emerald-400">
+                  (+{{ Math.round(explanationData.chance - explanationData.theoreticalChance) }}% par rapport au scénario où tout le monde aurait eu {{ explanationData.pastSelections }} sélection{{ explanationData.pastSelections > 1 ? 's' : '' }})
+                </span>
+                <span v-else class="text-purple-400">
+                  (-{{ Math.round(explanationData.theoreticalChance - explanationData.chance) }}% par rapport au scénario où tout le monde aurait eu {{ explanationData.pastSelections }} sélection{{ explanationData.pastSelections > 1 ? 's' : '' }})
+                </span>
+              </span>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
     
@@ -939,12 +1026,19 @@ function getChanceExplanation(playerName, role) {
   const event = props.selectedEvent
   const eventId = event.id
   
+  // Créer une fonction countSelections qui exclut l'événement en cours
+  // pour utiliser les sélections historiques au moment du tirage
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, eventId, event?.templateType)
+  }
+  
   // Calculer les chances pour tous les rôles (même logique que GridBoard)
   const allRoleChances = calculateAllRoleChances(
     event, 
     props.players, 
     props.availability, 
-    props.countSelections || (() => 0),
+    countSelectionsExcludingCurrentEvent,
     props.isAvailableForRole
   )
   
@@ -1019,6 +1113,17 @@ function getChanceExplanation(playerName, role) {
     pastSelections: c.pastSelections
   })).sort((a, b) => b.weight - a.weight) // Trier par poids décroissant
   
+  // Vérifier si tous les candidats ont le même nombre de sélections passées
+  const allCandidatesHaveSameSelections = roleData.candidates.every(c => 
+    c.pastSelections === candidate.pastSelections
+  )
+  
+  // Vérifier s'il n'y a qu'un seul candidat
+  const onlyOneCandidate = roleData.availableCount === 1
+  
+  // Vérifier s'il y a autant de places que de candidats (tous sont automatiquement sélectionnés)
+  const allCandidatesSelected = roleData.requiredCount === roleData.availableCount && roleData.availableCount > 0
+  
   const explanation = {
     playerName,
     role,
@@ -1035,7 +1140,10 @@ function getChanceExplanation(playerName, role) {
     otherCandidatesCount: otherCandidates.length,
     otherCandidatesTotalWeight: otherCandidatesTotalWeight,
     averageOtherWeight: averageOtherWeight,
-    otherCandidatesWeights: otherCandidatesWeights // Liste des poids des autres candidats
+    otherCandidatesWeights: otherCandidatesWeights, // Liste des poids des autres candidats
+    allCandidatesHaveSameSelections: allCandidatesHaveSameSelections, // Flag pour simplifier l'explication
+    onlyOneCandidate: onlyOneCandidate, // Flag pour le cas d'un seul candidat
+    allCandidatesSelected: allCandidatesSelected // Flag pour le cas où tous les candidats sont sélectionnés
   }
   
   console.log('✅ Explanation data:', explanation)
