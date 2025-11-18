@@ -408,38 +408,18 @@
             <span class="text-gray-300">.</span>
           </div>
           
-          <!-- Explication détaillée du calcul -->
+          <!-- Explication détaillée avec slides animées -->
           <div class="text-gray-400 text-sm sm:text-xs mt-2 pt-2 border-t border-gray-600">
             <div class="mb-2 text-gray-300 font-medium">Comment ça fonctionne ?</div>
             
-            <div class="mb-2 text-gray-300">
-              Imagine qu'on tire à l'aveugle des noms écrits sur des bouts de papier dans un chapeau. La taille de ces bouts de papier diminue pour chaque sélection passée. On a donc plus de chances d'attraper un papier plus grand qu'un papier plus petit. La taille de ton bout de papier est calculée comme suit :
-            </div>
+            <ChanceExplanationSlides
+              v-if="explanationData && explanationData.candidates"
+              :explanation-data="explanationData"
+              :season-id="seasonId"
+            />
             
-            <div class="mb-1"><strong>1. Calcul de la taille de ton bout de papier :</strong></div>
-            <div class="mb-2 text-gray-300">
-              Taille = (1 / (1 + sélections passées)) × nombre de places = (1 / (1 + <span class="text-purple-400">{{ explanationData.pastSelections }}</span>)) × <span class="text-blue-400">{{ explanationData.requiredCount }}</span> = <span class="text-cyan-400">{{ formatNumber(explanationData.weightedChances) }}</span> cm de côté
-            </div>
-            <div class="mb-2 text-gray-300">
-              Remarque qu'au fil des sélections, la taille du papier diminue, donc plus difficile à attraper ! Ça diminue donc les chances. Mais c'est pareil pour tout le monde !
-            </div>
-            
-            <div class="mb-1"><strong>2. Tirages :</strong></div>
-            <div class="mb-2 text-gray-300">
-              Dans le sac, on trouve donc autant de bouts de papier que de candidats (<span class="text-green-400">{{ explanationData.availableCount }}</span>). On réalise <span class="text-blue-400">{{ explanationData.requiredCount }}</span> tirages successifs à l'aveugle dans le sac. Après chaque tirage, on ne remet pas le bout de papier de la personne sélectionnée. Donc, proportionnellement, chaque tirage augmente la probabilité de chacun d'être tiré.
-            </div>
-            <div class="mb-2 text-gray-300">
-              Ainsi, comme ton bout de papier a une taille de <span class="text-cyan-400">{{ formatNumber(explanationData.playerWeight) }}</span> cm de côté, et celle des autres candidats de 
-              <template v-for="(other, index) in explanationData.otherCandidatesWeights" :key="other.name">
-                <span class="text-cyan-400">{{ formatNumber(other.weight) }}</span> cm<span v-if="index < explanationData.otherCandidatesWeights.length - 1">, </span>
-              </template>
-              , la taille totale de tous les papiers est de <span class="text-indigo-400">{{ formatNumber(explanationData.totalWeight) }}</span> cm.
-            </div>
-            <div class="mb-2 text-gray-300">
-              En considérant ces tailles et les probabilités réajustées à chaque tirage, on évalue à <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span>. C'est une approximation, bien sûr, car c'est un tirage fait au hasard.
-            </div>
-            
-            <div class="text-gray-300">
+            <!-- Résultat final -->
+            <div class="text-gray-300 mt-4 pt-4 border-t border-gray-600">
               <span class="font-semibold">Résultat :</span> <span class="font-semibold" :class="explanationData.chance >= 20 ? 'text-emerald-400' : explanationData.chance >= 10 ? 'text-amber-400' : 'text-rose-400'">{{ Math.round(explanationData.chance) }}%</span> de chances d'être sélectionné{{ explanationData.requiredCount > 1 ? 'e' : '' }}s
               <span v-if="explanationData.pastSelections > 0 && Math.abs(explanationData.theoreticalChance - explanationData.chance) >= 1">
                 <span v-if="explanationData.chance > explanationData.theoreticalChance" class="text-emerald-400">
@@ -457,7 +437,7 @@
     
     <!-- Bouton de fermeture -->
     <button @click="hideChanceExplanation" 
-            class="absolute top-1 right-1 text-gray-400 hover:text-white text-xs">
+            class="absolute top-2 right-2 sm:top-1 sm:right-1 text-gray-400 hover:text-white text-2xl sm:text-lg p-2 sm:p-1 min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-[32px] flex items-center justify-center">
       ×
     </button>
   </div>
@@ -550,7 +530,7 @@
     
     <!-- Bouton de fermeture -->
     <button @click="hideChanceExplanation" 
-            class="absolute top-1 right-1 text-gray-400 hover:text-white text-xs">
+            class="absolute top-2 right-2 sm:top-1 sm:right-1 text-gray-400 hover:text-white text-2xl sm:text-lg p-2 sm:p-1 min-w-[44px] min-h-[44px] sm:min-w-[32px] sm:min-h-[32px] flex items-center justify-center">
       ×
     </button>
   </div>
@@ -562,6 +542,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
 import CompositionSlot from './CompositionSlot.vue'
 import CustomTooltip from './CustomTooltip.vue'
+import ChanceExplanationSlides from './ChanceExplanationSlides.vue'
 import { 
   ROLES, 
   ROLE_EMOJIS, 
@@ -1124,6 +1105,25 @@ function getChanceExplanation(playerName, role) {
   // Vérifier s'il y a autant de places que de candidats (tous sont automatiquement sélectionnés)
   const allCandidatesSelected = roleData.requiredCount === roleData.availableCount && roleData.availableCount > 0
   
+  // Calculer la probabilité théorique simple (Y/X)
+  const theoreticalSimpleChance = roleData.availableCount > 0 
+    ? (roleData.requiredCount / roleData.availableCount) * 100 
+    : 0
+  
+  // Liste complète des candidats avec toutes leurs informations pour les animations
+  const candidates = roleData.candidates.map(c => {
+    // Trouver le joueur correspondant dans props.players pour obtenir l'ID
+    const player = props.players.find(p => p.name === c.name)
+    return {
+      name: c.name,
+      id: player?.id || c.id || '',
+      weight: c.weight || 0,
+      pastSelections: c.pastSelections || 0,
+      malus: c.malus || 0,
+      practicalChance: c.practicalChance || 0
+    }
+  })
+  
   const explanation = {
     playerName,
     role,
@@ -1135,12 +1135,14 @@ function getChanceExplanation(playerName, role) {
     weightedChances: candidate.weightedChances || 0,
     totalWeight: roleData.totalWeight || 0,
     theoreticalChance: theoreticalChance,
+    theoreticalSimpleChance: theoreticalSimpleChance, // Probabilité simple Y/X
     // Informations supplémentaires pour l'explication
     playerWeight: candidate.weight || 0,
     otherCandidatesCount: otherCandidates.length,
     otherCandidatesTotalWeight: otherCandidatesTotalWeight,
     averageOtherWeight: averageOtherWeight,
     otherCandidatesWeights: otherCandidatesWeights, // Liste des poids des autres candidats
+    candidates: candidates, // Liste complète des candidats pour les animations
     allCandidatesHaveSameSelections: allCandidatesHaveSameSelections, // Flag pour simplifier l'explication
     onlyOneCandidate: onlyOneCandidate, // Flag pour le cas d'un seul candidat
     allCandidatesSelected: allCandidatesSelected // Flag pour le cas où tous les candidats sont sélectionnés
