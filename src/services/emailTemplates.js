@@ -97,9 +97,12 @@ export function buildCastEmailMessage({ playerName, eventTitle, eventDate, event
   const roleLines = buildRoleListText(selectedPlayersByRole, players)
   const compositionText = roleLines.length > 0 ? roleLines.join('<br>') : 'Composition en cours...'
   
+  // Utiliser confirmUrl pour le lien principal si disponible, sinon eventUrl
+  const mainLink = confirmUrl || eventUrl
+  
   return `
     <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.5;">
-      <p>${greeting}, tu es <strong>${selectedText}</strong> pour faire partie de l'équipe pour <a href="${eventUrl}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
+      <p>${greeting}, tu es <strong>${selectedText}</strong> pour faire partie de l'équipe pour <a href="${mainLink}" style="color:#8b5cf6;text-decoration:underline;font-weight:600;">${eventTitle}</a> le ${eventDate}!</p>
       
       <p>Voici la <strong>composition temporaire</strong> :</p>
       <div style="margin: 10px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px; font-family: monospace; font-size: 14px;">
@@ -188,9 +191,16 @@ Pas de souci, signales vite ton indisponibilité ici pour qu'on relance la séle
 /**
  * Construit le message d'annonce globale de cast (à copier-coller pour WhatsApp)
  */
-export function buildGlobalCastAnnouncementMessage({ eventTitle, eventDate, selectedPlayersByRole, players }) {
+export function buildGlobalCastAnnouncementMessage({ eventTitle, eventDate, selectedPlayersByRole, players, confirmUrl }) {
   // Construire la liste des rôles avec la fonction utilitaire
   const roleLines = buildRoleListText(selectedPlayersByRole, players)
+  
+  let confirmText = 'Un petit 👍 habituel pour confirmer que c\'est OK pour vous.'
+  
+  // Ajouter le lien de confirmation directe si fourni
+  if (confirmUrl) {
+    confirmText += ` OU mieux directement sur l'appli ici : ${confirmUrl}`
+  }
   
   return `🎊 🎊 🎊  COMPO 🎊 🎊 🎊 
 
@@ -199,7 +209,7 @@ export function buildGlobalCastAnnouncementMessage({ eventTitle, eventDate, sele
 ${roleLines.join('\n')}
 
 
-Un petit 👍 habituel pour confirmer que c'est OK pour vous.`
+${confirmText}`
 }
 
 /**

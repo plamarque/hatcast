@@ -1,12 +1,22 @@
-## [0.40.1] - 2025-11-13
+## [0.41.0] - 2025-11-18
 
 ### ✨ New Features
 
-- feat: simplify chance explanations and fix historical selections
+- feat: integrate animated explanation slides in chance explanation popup
+- feat: add direct confirmation link in composition announcement
+
+### 🐛 Bug Fixes
+
+- fix: improve pincer animation depth and paper display in slide 2
+
+### 📝 Other Changes
+
+- Mise à jour de l'urne : nouvelle forme avec base plate et application à toutes les slides
 
 
 # Changelog
 
+## [0.41.0] - 2025-11-18
 ## [0.40.1] - 2025-11-13
 ## [0.40.0] - 2025-11-13
 ## [0.39.0] - 2025-11-12

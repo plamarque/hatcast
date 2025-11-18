@@ -212,6 +212,12 @@ const eventDirectLink = computed(() => {
   return `${window.location.origin}/season/${props.seasonSlug}/event/${props.event.id}`
 })
 
+// URL de confirmation directe pour la composition
+const confirmUrl = computed(() => {
+  if (!props.event || !props.seasonSlug) return ''
+  return `${window.location.origin}/season/${props.seasonSlug}?event=${props.event.id}&modal=event_details&tab=compo&showConfirm=true`
+})
+
 
 
 // Computed properties
@@ -256,7 +262,8 @@ const unifiedMessage = computed(() => {
         eventTitle,
         eventDate: dateStr,
         selectedPlayersByRole: props.selectedPlayersByRole,
-        players: props.players
+        players: props.players,
+        confirmUrl: confirmUrl.value
       })
     }
   }

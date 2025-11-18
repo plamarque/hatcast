@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.41.0",
+    "date": "2025-11-18",
+    "changes": [
+      "✨ Intégration de diapositives explicatives animées dans la fenêtre d'explication de chance.",
+      "✨ Ajout d'un lien de confirmation direct dans l'annonce de composition.",
+      "🐛 Amélioration de la profondeur de l'animation de pincement et de l'affichage du papier dans la diapositive 2.",
+      "✨ Mise à jour de l'urne : nouvelle forme avec base plate appliquée à toutes les diapositives."
+    ]
+  },
+  {
     "version": "0.40.1",
     "date": "2025-11-13",
     "changes": [

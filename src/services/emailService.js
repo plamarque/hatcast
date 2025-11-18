@@ -584,6 +584,9 @@ export async function sendCastEmailsForEvent({ eventId, eventData, selectedPlaye
       })
       const confirmUrl = `${confirmMagicLink.url}&slug=${encodeURIComponent(seasonSlug)}`
       
+      // Créer l'URL de confirmation directe (comme pour WhatsApp)
+      const directConfirmUrl = `${window.location.origin}/season/${seasonSlug}?event=${eventId}&modal=event_details&tab=compo&showConfirm=true`
+      
       try {
         const { buildCastEmailMessage, buildConfirmedTeamEmailMessage } = await import('./emailTemplates.js')
         
@@ -609,7 +612,7 @@ export async function sendCastEmailsForEvent({ eventId, eventData, selectedPlaye
             eventDate: formatDateFull(eventData.date),
             eventUrl,
             declineUrl: declineUrl, // Magic link de déclin
-            confirmUrl: confirmUrl, // Magic link de confirmation
+            confirmUrl: directConfirmUrl, // URL de confirmation directe
             selectedPlayersByRole: selectedPlayersByRole, // Structure par rôles
             players: players // Liste des joueurs pour conversion ID -> nom
           })
