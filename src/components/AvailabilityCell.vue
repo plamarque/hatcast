@@ -2,7 +2,7 @@
   <div 
     class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1 z-10"
     :class="[
-      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
+      (disabled || (isProtected && !currentUser?.email)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
       // Utilisation des classes CSS centralisées pour les statuts
       getStatusClass({
@@ -170,6 +170,7 @@
 import { computed, ref } from 'vue'
 import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
 import { getStatusClass } from '../utils/statusUtils.js'
+import { currentUser } from '../services/authState.js'
 
 const props = defineProps({
   playerName: {
@@ -401,9 +402,17 @@ function toggleAvailability() {
   console.log('  - playerSelectionStatus:', props.playerSelectionStatus)
   console.log('  - isAvailable:', props.isAvailable)
   console.log('  - disabled:', props.disabled)
+  console.log('  - isProtected:', props.isProtected)
   
   if (props.disabled) {
     console.log('❌ DEBUG toggleAvailability: disabled, sortie')
+    return
+  }
+  
+  // Bloquer le clic si le joueur est protégé et que l'utilisateur n'est pas connecté
+  // (les vérifications de propriétaire/admin se feront dans openAvailabilityModalForPlayer)
+  if (props.isProtected && !currentUser.value?.email) {
+    console.log('❌ DEBUG toggleAvailability: joueur protégé et utilisateur non connecté, sortie')
     return
   }
   
