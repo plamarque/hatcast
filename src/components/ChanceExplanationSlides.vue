@@ -98,90 +98,144 @@
 
       <!-- Slide 2 : Tirage simple théorique -->
       <div v-if="currentSlide === 1" class="w-full">
-        <div class="text-center">
-          <div class="relative inline-block">
-            <!-- Urne avec papiers -->
-            <svg 
-              viewBox="0 0 200 280" 
-              class="w-32 h-44 sm:w-48 sm:h-64 mx-auto mb-4"
+        <div class="flex flex-col items-center justify-center gap-4 sm:gap-6">
+          <!-- Pince qui plonge (au-dessus, alignée avec l'ouverture) -->
+          <div class="relative flex items-center justify-center">
+            <svg
+              viewBox="0 0 200 300"
+              class="w-32 h-48 sm:w-48 sm:h-72"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <!-- Cordelette (ligne qui resserre le haut) -->
-              <path
-                d="M 50 50 Q 50 40 100 40 Q 150 40 150 50"
-                fill="none"
-                stroke="#9CA3AF"
-                stroke-width="2"
-                stroke-linecap="round"
+              <!-- Manche/Bras -->
+              <rect
+                x="95"
+                y="20"
+                width="10"
+                height="50"
+                rx="5"
+                fill="#D97706"
+                :style="getHandTransform('arm')"
               />
               
-              <!-- Corps de l'urne (se termine sur un plat horizontal, base légèrement plus petite) -->
-              <path
-                d="M 50 50 Q 30 50 30 80 Q 30 200 60 220 L 140 220 Q 170 200 170 80 Q 170 50 150 50"
-                fill="#4B5563"
-                stroke="#6B7280"
-                stroke-width="2"
-              />
-              
-              <!-- Ouverture de l'urne (légèrement ouverte pour y mettre les papiers) -->
-              <ellipse
-                cx="100"
-                cy="55"
-                rx="45"
-                ry="8"
-                fill="#374151"
-              />
-              
-              <!-- Papiers dans l'urne -->
-              <circle cx="80" cy="120" r="8" fill="#9CA3AF" opacity="0.6" />
-              <circle cx="100" cy="130" r="8" fill="#9CA3AF" opacity="0.6" />
-              <circle cx="120" cy="125" r="8" fill="#9CA3AF" opacity="0.6" />
-            </svg>
-            
-            <!-- Main qui plonge -->
-            <div class="relative">
-              <svg
-                viewBox="0 0 200 200"
-                class="w-24 h-24 sm:w-32 sm:h-32 mx-auto"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <!-- Bras -->
+              <!-- Pince/Tongs (deux branches qui s'ouvrent et se ferment) -->
+              <g :style="getHandTransform('hand')">
+                <!-- Branche gauche (forme plus reconnaissable) -->
                 <path
-                  d="M 100 20 L 100 60 L 90 70 L 100 80 L 110 70 L 100 60 Z"
-                  fill="#D97706"
-                  :style="{ 
-                    transform: handAnimating ? 'translateY(40px)' : 'translateY(0)',
-                    transition: 'transform 1s ease-in-out'
-                  }"
+                  d="M 100 70 L 85 75 L 75 95 L 70 120 L 75 140 L 85 135 L 90 115 L 95 90 Z"
+                  fill="#F59E0B"
+                  stroke="#D97706"
+                  stroke-width="2"
+                  :transform="getPincerTransform('left')"
                 />
-                <!-- Main -->
-                <ellipse
+                
+                <!-- Branche droite (forme plus reconnaissable) -->
+                <path
+                  d="M 100 70 L 115 75 L 125 95 L 130 120 L 125 140 L 115 135 L 110 115 L 105 90 Z"
+                  fill="#F59E0B"
+                  stroke="#D97706"
+                  stroke-width="2"
+                  :transform="getPincerTransform('right')"
+                />
+                
+                <!-- Point de pivot (centre, plus visible) -->
+                <circle
                   cx="100"
                   cy="75"
-                  rx="15"
-                  ry="20"
-                  fill="#F59E0B"
-                  :style="{ 
-                    transform: handAnimating ? 'translateY(40px) rotate(10deg)' : 'translateY(0) rotate(0deg)',
-                    transition: 'transform 1s ease-in-out'
-                  }"
+                  r="5"
+                  fill="#D97706"
+                  stroke="#B45309"
+                  stroke-width="1"
                 />
-                <!-- Papier saisi -->
-                <rect
-                  v-if="handAnimating"
-                  x="85"
-                  y="95"
-                  width="30"
-                  height="20"
-                  rx="2"
-                  fill="#FFFFFF"
-                  :style="{ 
-                    transform: handAnimating ? 'translateY(40px)' : 'translateY(0)',
-                    transition: 'transform 1s ease-in-out'
-                  }"
+              </g>
+              
+            </svg>
+            
+            <!-- Papier saisi (vrai papier avec avatar, visible pendant la remontée) -->
+            <div
+              v-if="(handPhase === 'ascending' || handPhase === 'depositing') && drawnPaper"
+              class="absolute"
+              :style="getPaperInPincerStyle()"
+            >
+              <div
+                class="bg-white rounded shadow-lg p-1"
+                :style="{
+                  width: '48px',
+                  height: '48px'
+                }"
+              >
+                <PlayerAvatar
+                  v-if="drawnPaper.id"
+                  :player-id="drawnPaper.id"
+                  :season-id="seasonId"
+                  :player-name="drawnPaper.name"
+                  size="xs"
+                  class="w-full h-full"
                 />
+              </div>
+            </div>
+          </div>
+          
+          <!-- Urne avec papiers (en bas) -->
+          <div class="flex items-end justify-center gap-4">
+            <div class="relative">
+              <svg 
+                viewBox="0 0 200 280" 
+                class="w-32 h-44 sm:w-48 sm:h-64"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <!-- Cordelette (ligne qui resserre le haut) -->
+                <path
+                  d="M 50 50 Q 50 40 100 40 Q 150 40 150 50"
+                  fill="none"
+                  stroke="#9CA3AF"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                
+                <!-- Corps de l'urne (se termine sur un plat horizontal, base légèrement plus petite) -->
+                <path
+                  d="M 50 50 Q 30 50 30 80 Q 30 200 60 220 L 140 220 Q 170 200 170 80 Q 170 50 150 50"
+                  fill="#4B5563"
+                  stroke="#6B7280"
+                  stroke-width="2"
+                />
+                
+                <!-- Ouverture de l'urne (légèrement ouverte pour y mettre les papiers) -->
+                <ellipse
+                  cx="100"
+                  cy="55"
+                  rx="45"
+                  ry="8"
+                  fill="#374151"
+                />
+                
+                <!-- Papiers dans l'urne -->
+                <circle cx="80" cy="120" r="8" fill="#9CA3AF" opacity="0.6" />
+                <circle cx="100" cy="130" r="8" fill="#9CA3AF" opacity="0.6" />
+                <circle cx="120" cy="125" r="8" fill="#9CA3AF" opacity="0.6" />
               </svg>
             </div>
+            
+            <!-- Papier déposé à côté de l'urne -->
+            <transition name="paper-appear">
+              <div
+                v-if="drawnPaper"
+                class="bg-white rounded shadow-lg p-1"
+                :style="{
+                  width: '48px',
+                  height: '48px'
+                }"
+              >
+                <PlayerAvatar
+                  v-if="drawnPaper.id"
+                  :player-id="drawnPaper.id"
+                  :season-id="seasonId"
+                  :player-name="drawnPaper.name"
+                  size="xs"
+                  class="w-full h-full"
+                />
+              </div>
+            </transition>
           </div>
         </div>
       </div>
@@ -464,6 +518,9 @@ const largePaperHighlighted = ref(false)
 const drawingHand = ref(false)
 const drawCount = ref(0)
 const remainingPapers = ref([])
+const drawnPaper = ref(null) // Papier tiré de l'urne
+const handPhase = ref('idle') // 'idle', 'descending', 'grabbing', 'ascending', 'depositing'
+const handProgress = ref(0) // 0-1 pour l'animation de la main
 
 // Candidats triés par poids (décroissant) pour la slide 3
 const sortedCandidates = computed(() => {
@@ -645,6 +702,117 @@ function getPaperTransform(index) {
   return 'translate(0, 0) scale(1) rotate(0deg)'
 }
 
+// Fonction pour obtenir la transformation de la pince selon la phase
+function getHandTransform(part) {
+  const progress = handProgress.value
+  
+  if (handPhase.value === 'idle') {
+    return {
+      transform: 'translateY(0) rotate(0deg)',
+      transition: 'none'
+    }
+  }
+  
+  if (handPhase.value === 'descending') {
+    // La pince descend vers l'ouverture puis dans l'urne
+    // L'ouverture est à cy="55" dans le viewBox 200x280 de l'urne
+    // Il faut descendre jusqu'à l'intérieur de l'urne (environ cy="120" pour être vraiment dedans)
+    // Distance totale : environ 180px pour pénétrer vraiment dans l'urne
+    const translateY = progress * 180 // Distance jusqu'à l'intérieur de l'urne
+    const rotation = 0 // Pas de rotation pour la pince
+    
+    return {
+      transform: `translateY(${translateY}px) rotate(${rotation}deg)`,
+      transition: 'transform 0.1s linear'
+    }
+  }
+  
+  if (handPhase.value === 'grabbing') {
+    // La pince est dans l'urne, elle se ferme pour saisir
+    const translateY = 180 // Position dans l'urne (bien à l'intérieur)
+    const rotation = 0
+    
+    return {
+      transform: `translateY(${translateY}px) rotate(${rotation}deg)`,
+      transition: 'transform 0.1s linear'
+    }
+  }
+  
+  if (handPhase.value === 'ascending') {
+    // La pince remonte avec le papier
+    const translateY = 180 - (progress * 180)
+    const rotation = 0
+    
+    return {
+      transform: `translateY(${translateY}px) rotate(${rotation}deg)`,
+      transition: 'transform 0.1s linear'
+    }
+  }
+  
+  if (handPhase.value === 'depositing') {
+    // La pince dépose le papier à côté
+    const translateY = 0
+    const translateX = part === 'paper' ? progress * 60 : 0 // Le papier se déplace à côté
+    const rotation = 0
+    
+    return {
+      transform: `translateY(${translateY}px) translateX(${translateX}px) rotate(${rotation}deg)`,
+      transition: 'transform 0.1s linear'
+    }
+  }
+  
+  return {
+    transform: 'translateY(0) rotate(0deg)',
+    transition: 'none'
+  }
+}
+
+// Fonction pour obtenir la transformation des branches de la pince (ouverture/fermeture)
+function getPincerTransform(side) {
+  const progress = handProgress.value
+  const isOpen = handPhase.value === 'idle' || handPhase.value === 'descending' || handPhase.value === 'depositing'
+  const isGrabbing = handPhase.value === 'grabbing'
+  const isClosed = handPhase.value === 'ascending'
+  
+  if (isOpen) {
+    // Pince ouverte
+    const angle = side === 'left' ? -15 : 15
+    return `rotate(${angle} 100 75)`
+  }
+  
+  if (isGrabbing) {
+    // Pince se ferme progressivement
+    const openAngle = side === 'left' ? -15 : 15
+    const closedAngle = side === 'left' ? -5 : 5
+    const currentAngle = openAngle + (closedAngle - openAngle) * progress
+    return `rotate(${currentAngle} 100 75)`
+  }
+  
+  if (isClosed) {
+    // Pince fermée (avec le papier)
+    const angle = side === 'left' ? -5 : 5
+    return `rotate(${angle} 100 75)`
+  }
+  
+  return 'rotate(0 100 75)'
+}
+
+// Fonction pour obtenir le style du papier dans la pince
+function getPaperInPincerStyle() {
+  const progress = handProgress.value
+  const paperTransform = getHandTransform('paper')
+  
+  // Positionner le papier entre les branches de la pince
+  // La pince est centrée, le papier doit être positionné au niveau des branches (environ 70% du SVG)
+  // Le SVG fait w-32 h-48 (128px x 192px) sur mobile, w-48 h-72 (192px x 288px) sur desktop
+  // Le papier doit suivre le mouvement de la pince
+  return {
+    left: '50%',
+    top: '70%',
+    transform: `translate(-50%, -50%) ${paperTransform.transform}`
+  }
+}
+
 // Fonction pour obtenir l'opacité d'un papier (pour masquer progressivement quand il entre dans l'urne)
 function getPaperOpacity(index) {
   if (!visiblePapers.value || !visiblePapers.value[index]) {
@@ -704,6 +872,9 @@ function resetAnimations() {
   drawingHand.value = false
   drawCount.value = 0
   remainingPapers.value = []
+  drawnPaper.value = null
+  handPhase.value = 'idle'
+  handProgress.value = 0
 }
 
 function triggerSlideAnimation() {
@@ -741,10 +912,16 @@ function triggerSlideAnimation() {
     }
   }
   
-  // Slide 2 : Animation de la main
+  // Slide 2 : Animation cyclique de la main
   if (currentSlide.value === 1) {
+    drawnPaper.value = null
+    handPhase.value = 'idle'
+    handProgress.value = 0
+    handAnimating.value = false
+    
+    // Démarrer l'animation après un court délai
     setTimeout(() => {
-      handAnimating.value = true
+      animateHandDrawing()
     }, 300)
   }
   
@@ -924,6 +1101,132 @@ function animateEntering() {
   requestAnimationFrame(animate)
 }
 
+// Fonction pour animer le tirage de la main (cyclique)
+function animateHandDrawing() {
+  // Vérifier si on est toujours sur la slide 2
+  if (currentSlide.value !== 1) {
+    return
+  }
+  
+  // Sélectionner un candidat aléatoire
+  if (props.explanationData?.candidates && props.explanationData.candidates.length > 0) {
+    const candidates = props.explanationData.candidates
+    const randomIndex = Math.floor(Math.random() * candidates.length)
+    const selectedCandidate = candidates[randomIndex]
+    
+    // Phase 1 : Descente
+    handPhase.value = 'descending'
+    handProgress.value = 0
+    const descentDuration = 800
+    const startTime = Date.now()
+    
+    const animateDescent = () => {
+      if (currentSlide.value !== 1) return
+      
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / descentDuration, 1)
+      handProgress.value = progress
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateDescent)
+      } else {
+        handProgress.value = 1
+        // Phase 2 : Saisie
+        setTimeout(() => {
+          if (currentSlide.value !== 1) return
+          handPhase.value = 'grabbing'
+          handProgress.value = 0
+          const grabDuration = 400
+          const grabStartTime = Date.now()
+          
+          const animateGrab = () => {
+            if (currentSlide.value !== 1) return
+            
+            const grabElapsed = Date.now() - grabStartTime
+            const grabProgress = Math.min(grabElapsed / grabDuration, 1)
+            handProgress.value = grabProgress
+            
+            if (grabProgress < 1) {
+              requestAnimationFrame(animateGrab)
+            } else {
+              handProgress.value = 1
+              // Phase 3 : Remontée
+              setTimeout(() => {
+                if (currentSlide.value !== 1) return
+                handPhase.value = 'ascending'
+                handProgress.value = 0
+                // Définir le papier dès la remontée pour qu'il soit visible
+                drawnPaper.value = selectedCandidate
+                const ascendDuration = 800
+                const ascendStartTime = Date.now()
+                
+                const animateAscend = () => {
+                  if (currentSlide.value !== 1) return
+                  
+                  const ascendElapsed = Date.now() - ascendStartTime
+                  const ascendProgress = Math.min(ascendElapsed / ascendDuration, 1)
+                  handProgress.value = ascendProgress
+                  
+                  if (ascendProgress < 1) {
+                    requestAnimationFrame(animateAscend)
+                  } else {
+                    handProgress.value = 1
+                    // Phase 4 : Dépôt
+                    setTimeout(() => {
+                      if (currentSlide.value !== 1) return
+                      handPhase.value = 'depositing'
+                      handProgress.value = 0
+                      // Le papier est déjà défini lors de la remontée pour qu'il soit visible
+                      if (!drawnPaper.value) {
+                        drawnPaper.value = selectedCandidate
+                      }
+                      const depositDuration = 500
+                      const depositStartTime = Date.now()
+                      
+                      const animateDeposit = () => {
+                        if (currentSlide.value !== 1) return
+                        
+                        const depositElapsed = Date.now() - depositStartTime
+                        const depositProgress = Math.min(depositElapsed / depositDuration, 1)
+                        handProgress.value = depositProgress
+                        
+                        if (depositProgress < 1) {
+                          requestAnimationFrame(animateDeposit)
+                        } else {
+                          handProgress.value = 1
+                          // Retour à l'état initial et relancer après un délai
+                          setTimeout(() => {
+                            if (currentSlide.value === 1) {
+                              handPhase.value = 'idle'
+                              handProgress.value = 0
+                              // Relancer l'animation
+                              setTimeout(() => {
+                                animateHandDrawing()
+                              }, 500)
+                            }
+                          }, 300)
+                        }
+                      }
+                      
+                      requestAnimationFrame(animateDeposit)
+                    }, 200)
+                  }
+                }
+                
+                requestAnimationFrame(animateAscend)
+              }, 200)
+            }
+          }
+          
+          requestAnimationFrame(animateGrab)
+        }, 200)
+      }
+    }
+    
+    requestAnimationFrame(animateDescent)
+  }
+}
+
 // Déclencher l'animation au montage et quand on change de slide
 watch(currentSlide, () => {
   triggerSlideAnimation()
@@ -967,6 +1270,20 @@ onMounted(() => {
 .paper-item.hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+.paper-appear-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.paper-appear-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.paper-appear-enter-to {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .paper-resize-enter-active,
