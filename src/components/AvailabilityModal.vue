@@ -5,7 +5,7 @@
       <div class="p-4 border-b border-gray-700">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-white">
-            {{ isReadOnly ? 'Détails de disponibilité' : 'Préciser ma disponibilité' }}
+            Disponibilité de {{ playerName }}
           </h2>
           <button 
             @click="$emit('close')"

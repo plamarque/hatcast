@@ -11,6 +11,7 @@
  * @param {boolean} options.isUnavailable - Si le joueur est indisponible (déjà pris)
  * @param {boolean} options.isLoading - Si en cours de chargement
  * @param {boolean} options.isError - Si en erreur
+ * @param {boolean} options.hideSelectionStatus - Si true, ignorer le statut de sélection et afficher uniquement la disponibilité
  * @returns {string} Classe CSS appropriée
  */
 export function getStatusClass({
@@ -19,14 +20,15 @@ export function getStatusClass({
   isAvailable = null,
   isUnavailable = false,
   isLoading = false,
-  isError = false
+  isError = false,
+  hideSelectionStatus = false
 }) {
   // Priorité 1: États spéciaux (chargement, erreur)
   if (isLoading) return 'status-loading'
   if (isError) return 'status-error'
   
-  // Priorité 2: Statut de sélection/confirmation
-  if (isSelected && playerSelectionStatus) {
+  // Priorité 2: Statut de sélection/confirmation (ignoré si hideSelectionStatus est true)
+  if (!hideSelectionStatus && isSelected && playerSelectionStatus) {
     switch (playerSelectionStatus) {
       case 'confirmed':
         return 'status-confirmed'

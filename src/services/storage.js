@@ -680,8 +680,8 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
       await firestoreService.setDocument('seasons', seasonId, availabilityData, false, 'players', playerId, 'availability', eventId)
     }
     
-    // If player set availability to false, check if they're in the cast and auto-decline
-    if (available === false) {
+    // If player set availability to false or removed it (null/undefined), check if they're in the cast and auto-decline
+    if (available === false || available === null || available === undefined) {
       try {
         const { movePlayerToDeclined } = await import('./castService.js')
         const result = await movePlayerToDeclined(playerId, eventId, seasonId, {
@@ -701,8 +701,8 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
     // Logger l'audit APRÈS la sauvegarde réussie
     try {
       await AuditClient.logAvailabilityChange({
-        userId: playerName,
         seasonId: seasonId,
+        playerName: playerName, // Le joueur pour qui le changement a été fait
         availability: available,
         previousAvailability: null, // On n'a pas l'ancienne valeur ici
         timestamp: new Date().toISOString(),

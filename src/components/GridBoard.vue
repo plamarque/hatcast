@@ -1177,11 +1177,11 @@
                   :player-gender="selectedTeamPlayer.gender"
                   :player-id="selectedTeamPlayer.id"
                   :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
-                  :is-read-only="selectedTeamPlayer.id !== currentUserPlayer?.id"
+                  :is-read-only="!(selectedTeamPlayer.id === currentUserPlayer?.id || canEditSelectedEvent)"
                   :season-id="seasonId"
                   :event-roles="selectedEvent?.roles || {}"
                   :available-roles="getEventAvailableRoles()"
-                  :self-persist="selectedTeamPlayer.id === currentUserPlayer?.id"
+                  :self-persist="selectedTeamPlayer.id === currentUserPlayer?.id || canEditSelectedEvent"
                   :player-name="selectedTeamPlayer.name"
                   :event-id="selectedEvent?.id"
                   @update:availability="handleAvailabilityFormUpdate"
@@ -6773,16 +6773,42 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   const currentAvailabilityData = getAvailabilityData(player.name, eventItem.id)
   const playerChancePercent = chances.value[player.name]?.[eventItem.id] ?? null
   const isProtected = isPlayerProtectedInGrid(player.id)
+  
+  // Si le joueur n'est pas protégé, toujours permettre l'ouverture
+  if (!isProtected) {
+    openAvailabilityModal({
+      playerName: player.name,
+      playerId: player.id,
+      playerGender: player.gender || 'non-specified',
+      eventId: eventItem.id,
+      eventTitle: eventItem.title,
+      eventDate: eventItem.date,
+      availabilityData: currentAvailabilityData,
+      isReadOnly: false,
+      chancePercent: playerChancePercent,
+      isProtected: false
+    })
+    return
+  }
+  
+  // Si le joueur est protégé, vérifier les permissions
   const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
-  
-  // Vérifier si l'utilisateur est connecté
   const isUserConnected = !!currentUser.value?.email
+  const canEditThisEvent = getCanEditEvent(eventItem.id)
   
-  // Logique de protection :
-  // - Si c'est le joueur de l'utilisateur connecté ET que l'utilisateur est connecté → mode édition
-  // - Sinon → mode lecture seule (permettra la vérification par mot de passe/PIN)
-  const shouldBeReadOnly = isProtected && (!isUserConnected || !isOwnedByCurrentUser)
+  // Si l'utilisateur n'est pas connecté, ne pas ouvrir la modale
+  if (!isUserConnected) {
+    console.log('❌ Tentative d\'ouverture de modale pour joueur protégé sans authentification')
+    return
+  }
   
+  // Si ce n'est pas le joueur de l'utilisateur ET que l'utilisateur n'est pas admin, ne pas ouvrir la modale
+  if (!isOwnedByCurrentUser && !canEditThisEvent) {
+    console.log('❌ Tentative d\'ouverture de modale pour joueur protégé sans permission')
+    return
+  }
+  
+  // L'utilisateur a les permissions, ouvrir la modale en mode édition
   openAvailabilityModal({
     playerName: player.name,
     playerId: player.id,
@@ -6791,7 +6817,7 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
     eventTitle: eventItem.title,
     eventDate: eventItem.date,
     availabilityData: currentAvailabilityData,
-    isReadOnly: shouldBeReadOnly,
+    isReadOnly: false,
     chancePercent: playerChancePercent,
     isProtected: isProtected
   })
@@ -11521,7 +11547,20 @@ function handlePlayerClaimUpdate(data) {
 }
 
 // Fonctions pour la modale de disponibilité avec rôles
-function openAvailabilityModal(data) {
+async function openAvailabilityModal(data) {
+  // Si les données contiennent isProtected, vérifier les permissions avant d'ouvrir
+  if (data.isProtected && data.playerId && data.eventId) {
+    const player = allSeasonPlayers.value.find(p => p.id === data.playerId)
+    const eventItem = events.value.find(e => e.id === data.eventId)
+    
+    if (player && eventItem) {
+      // Utiliser la fonction qui vérifie les permissions
+      await openAvailabilityModalForPlayer(player, eventItem)
+      return
+    }
+  }
+  
+  // Sinon, ouvrir directement la modale (pour les joueurs non protégés ou si les données sont incomplètes)
   // Récupérer les rôles attendus pour cet événement
   let eventRoles = {}
   if (data.eventId) {
@@ -11555,18 +11594,40 @@ function openEventModal(event, fromAllPlayersFilter = false) {
 
 async function handleAvailabilitySave(availabilityData) {
   try {
-    // Vérification de sécurité : bloquer seulement si utilisateur non connecté ET joueur protégé
+    // Vérification de sécurité : vérifier les permissions avant de sauvegarder
     const isUserConnected = !!currentUser.value?.email;
     const isPlayerProtected = availabilityModalData.value?.isProtected || false;
+    const eventId = availabilityModalData.value?.eventId;
     
-    if (!isUserConnected && isPlayerProtected) {
-      console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
-      showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
-      setTimeout(() => {
-        showErrorMessage.value = false;
-      }, 5000);
-      return;
+    // Si le joueur est protégé, vérifier les permissions
+    if (isPlayerProtected) {
+      if (!isUserConnected) {
+        console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
+        showErrorMessage.value = true;
+        errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
+        setTimeout(() => {
+          showErrorMessage.value = false;
+        }, 5000);
+        return;
+      }
+      
+      // Vérifier si c'est le joueur de l'utilisateur connecté
+      const playerId = availabilityModalData.value?.playerId;
+      const isOwnedByCurrentUser = playerId ? await isPlayerOwnedByCurrentUser(playerId) : false;
+      
+      // Vérifier si l'utilisateur est admin (super admin, season admin, ou event admin)
+      const canEditThisEvent = eventId ? getCanEditEvent(eventId) : false;
+      
+      // Si ce n'est pas le joueur de l'utilisateur ET que l'utilisateur n'est pas admin, bloquer
+      if (!isOwnedByCurrentUser && !canEditThisEvent) {
+        console.error('❌ Tentative de modification d\'un joueur protégé sans permission');
+        showErrorMessage.value = true;
+        errorMessage.value = 'Vous n\'avez pas la permission de modifier la disponibilité de ce joueur protégé.';
+        setTimeout(() => {
+          showErrorMessage.value = false;
+        }, 5000);
+        return;
+      }
     }
     
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')

@@ -689,17 +689,33 @@ class AuditClient {
 
   /**
    * Logger le changement de disponibilité d'un joueur
+   * @param {Object} data - Données du changement
+   * @param {string} data.playerName - Nom du joueur pour qui le changement a été fait
+   * @param {string} data.seasonId - ID de la saison
+   * @param {boolean} data.availability - Nouvelle disponibilité
+   * @param {boolean} data.previousAvailability - Ancienne disponibilité
+   * @param {string} data.eventId - ID de l'événement
+   * @param {string} data.eventTitle - Titre de l'événement
+   * @param {Array} data.roles - Rôles sélectionnés
+   * @param {string} data.comment - Commentaire
    */
   static async logAvailabilityChange(data) {
     try {
-      const { userId, seasonId, availability, previousAvailability, eventId, eventTitle, roles, comment } = data
+      const { playerName, seasonId, availability, previousAvailability, eventId, eventTitle, roles, comment } = data
       
+      // Récupérer l'utilisateur connecté (celui qui fait l'action)
+      const user = auth?.currentUser
+      const userId = user?.uid || 'anonymous'
+      
+      // L'utilisateur connecté (auteur du changement) est aussi automatiquement récupéré par logUserAction
+      // au niveau du document d'audit (userId, userEmail), mais on le met aussi dans les data pour clarté
       await this.logUserAction({
         type: 'availability_change',
         category: 'availability',
         severity: 'info',
         data: {
-          userId,
+          userId, // L'utilisateur qui a fait l'action (l'admin ou le joueur lui-même)
+          playerName, // Le joueur pour qui le changement a été fait
           seasonId,
           availability,
           previousAvailability,

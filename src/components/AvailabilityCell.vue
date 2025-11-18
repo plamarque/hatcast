@@ -2,7 +2,7 @@
   <div 
     class="flex items-center justify-center transition-all duration-200 font-medium text-white relative w-full h-full rounded-lg px-2 py-1 z-10"
     :class="[
-      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
+      (disabled || (isProtected && !currentUser?.email)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105',
       compact ? 'p-1 md:p-2 text-xs' : 'text-sm',
       // Utilisation des classes CSS centralisées pour les statuts
       getStatusClass({
@@ -11,7 +11,8 @@
         isAvailable,
         isUnavailable: false, // TODO: ajouter cette prop si nécessaire
         isLoading,
-        isError
+        isError,
+        hideSelectionStatus
       })
     ]"
     @click.stop="toggleAvailability"
@@ -35,7 +36,8 @@
       <template v-else>
         
         <!-- Affichage avec confirmation (2 lignes) - seulement si la composition est validée par l'organisateur OU si admin (playerSelectionStatus est déjà filtré par getPlayerSelectionStatus qui inclut les admins d'événement) -->
-        <template v-if="isSelected && playerSelectionStatus">
+        <!-- Ne pas afficher le slot de confirmation si hideSelectionStatus est true -->
+        <template v-if="isSelected && playerSelectionStatus && !hideSelectionStatus">
           <!-- Ligne 1: nom du rôle -->
           <div class="text-center">
             <span class="text-sm font-medium">
@@ -67,9 +69,9 @@
       <!-- Afficher le pourcentage de chances en permanence sous "Disponible" -->
       <!-- Supprimé : déplacé dans la modale de disponibilité -->
       
-      <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation OU si composition non validée) -->
+      <!-- Afficher tous les rôles et l'icône de commentaire (seulement si pas de confirmation OU si composition non validée OU si hideSelectionStatus est true) -->
       <!-- Masquer les emojis de rôles si simplifiedDisplay est activé -->
-      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus) && !simplifiedDisplay">
+      <template v-if="isAvailable === true && hasSpecificRoles && !(isSelected && playerSelectionStatus && !hideSelectionStatus) && !simplifiedDisplay">
         <div class="flex items-center gap-1 mt-1">
           <!-- Rôles (soit tous les rôles de disponibilité, soit le rôle de composition) -->
           <div class="flex items-center gap-0.5">
@@ -105,7 +107,7 @@
       </template>
       
       <!-- Icône commentaire seule (quand pas de rôles spécifiques) -->
-      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus)">
+      <template v-if="isAvailable === true && !hasSpecificRoles && hasComment && !(isSelected && playerSelectionStatus && !hideSelectionStatus)">
         <div class="flex items-center justify-center mt-1">
           <span 
             :class="compact ? 'text-xs' : 'text-base md:text-sm'"
@@ -168,6 +170,7 @@
 import { computed, ref } from 'vue'
 import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
 import { getStatusClass } from '../utils/statusUtils.js'
+import { currentUser } from '../services/authState.js'
 
 const props = defineProps({
   playerName: {
@@ -270,6 +273,11 @@ const props = defineProps({
   assignedRole: {
     type: String,
     default: null
+  },
+  // Prop pour forcer l'affichage de la disponibilité uniquement, sans le slot de confirmation
+  hideSelectionStatus: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -394,28 +402,24 @@ function toggleAvailability() {
   console.log('  - playerSelectionStatus:', props.playerSelectionStatus)
   console.log('  - isAvailable:', props.isAvailable)
   console.log('  - disabled:', props.disabled)
+  console.log('  - isProtected:', props.isProtected)
   
   if (props.disabled) {
     console.log('❌ DEBUG toggleAvailability: disabled, sortie')
     return
   }
   
-  // Si le joueur est sélectionné (peu importe si la sélection est confirmée par l'organisateur ou pas), ouvrir la modal de confirmation
-  if (props.isSelected) {
-    // Ouvrir la modal de confirmation au lieu de cycler directement
-    console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
-    emit('show-confirmation-modal', {
-      playerName: props.playerName,
-      playerGender: props.playerGender,
-      eventId: props.eventId,
-      eventTitle: props.eventTitle,
-      eventDate: props.eventDate,
-      assignedRole: props.availabilityData?.roles?.[0] || 'player',
-      availabilityComment: props.availabilityData?.comment || null,
-      currentStatus: props.playerSelectionStatus
-    })
-  } else {
-    // Si pas sélectionné, ouvrir la modal de disponibilité
+  // Bloquer le clic si le joueur est protégé et que l'utilisateur n'est pas connecté
+  // (les vérifications de propriétaire/admin se feront dans openAvailabilityModalForPlayer)
+  if (props.isProtected && !currentUser.value?.email) {
+    console.log('❌ DEBUG toggleAvailability: joueur protégé et utilisateur non connecté, sortie')
+    return
+  }
+  
+  // Si hideSelectionStatus est true, toujours ouvrir la modale de disponibilité
+  // Sinon, si le joueur est sélectionné, ouvrir la modale de confirmation
+  if (props.hideSelectionStatus || !props.isSelected) {
+    // Ouvrir la modal de disponibilité
     console.log('🎯 DEBUG toggleAvailability: branche disponibilité, émission show-availability-modal')
     emit('show-availability-modal', {
       playerName: props.playerName,
@@ -427,6 +431,19 @@ function toggleAvailability() {
       chancePercent: props.chancePercent,
       isProtected: props.isProtected,
       eventRoles: props.eventRoles
+    })
+  } else {
+    // Si le joueur est sélectionné et hideSelectionStatus est false, ouvrir la modal de confirmation
+    console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
+    emit('show-confirmation-modal', {
+      playerName: props.playerName,
+      playerGender: props.playerGender,
+      eventId: props.eventId,
+      eventTitle: props.eventTitle,
+      eventDate: props.eventDate,
+      assignedRole: props.availabilityData?.roles?.[0] || 'player',
+      availabilityComment: props.availabilityData?.comment || null,
+      currentStatus: props.playerSelectionStatus
     })
   }
 }
