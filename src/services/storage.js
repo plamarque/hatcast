@@ -701,8 +701,8 @@ export async function saveAvailabilityWithRoles({ seasonId, playerName, eventId,
     // Logger l'audit APRÈS la sauvegarde réussie
     try {
       await AuditClient.logAvailabilityChange({
-        userId: playerName,
         seasonId: seasonId,
+        playerName: playerName, // Le joueur pour qui le changement a été fait
         availability: available,
         previousAvailability: null, // On n'a pas l'ancienne valeur ici
         timestamp: new Date().toISOString(),
