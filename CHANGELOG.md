@@ -1,21 +1,20 @@
-## [0.41.0] - 2025-11-18
+## [0.42.0] - 2025-11-18
 
 ### ✨ New Features
 
-- feat: integrate animated explanation slides in chance explanation popup
-- feat: add direct confirmation link in composition announcement
+- feat: modifier le titre de la modale de disponibilité pour inclure le nom du joueur
+- feat: afficher uniquement les cellules de disponibilité dans l'onglet Disponibilités
+- feat: étendre le déclin automatique lors de la suppression de disponibilité
+- feat: Allow admins to edit player availability
 
 ### 🐛 Bug Fixes
 
-- fix: improve pincer animation depth and paper display in slide 2
-
-### 📝 Other Changes
-
-- Mise à jour de l'urne : nouvelle forme avec base plate et application à toutes les slides
+- fix: bloquer le clic sur les cellules de disponibilité des joueurs protégés
 
 
 # Changelog
 
+## [0.42.0] - 2025-11-18
 ## [0.41.0] - 2025-11-18
 ## [0.40.1] - 2025-11-13
 ## [0.40.0] - 2025-11-13

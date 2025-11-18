@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.42.0",
+    "date": "2025-11-18",
+    "changes": [
+      "✨ Le titre de la fenêtre de disponibilité affiche maintenant le nom du joueur.",
+      "✨ On affiche uniquement les cellules de disponibilité dans l'onglet Disponibilités.",
+      "✨ Le déclin automatique s'étend maintenant lors de la suppression de disponibilité.",
+      "✨ Les admins peuvent maintenant modifier la disponibilité des joueurs.",
+      "🐛 On bloque le clic sur les cellules de disponibilité des joueurs protégés."
+    ]
+  },
+  {
     "version": "0.41.0",
     "date": "2025-11-18",
     "changes": [
