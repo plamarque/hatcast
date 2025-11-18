@@ -66,6 +66,7 @@
                 :is-protected="isPlayerProtectedInGrid(player.id)"
                 :compact="true"
                 :simplified-display="true"
+                :hide-selection-status="true"
                 @toggle="handleAvailabilityToggle"
                 @toggle-selection-status="handlePlayerSelectionStatusToggle"
                 @show-availability-modal="openAvailabilityModal"
@@ -136,41 +137,10 @@
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
-            :class="[
-              isPlayerSelectedForRole(player.name, role, selectedEvent.id) && isSelectionConfirmedByOrganizer(selectedEvent.id)
-                ? 'rounded-lg transition-all duration-200 p-0 bg-transparent border-transparent'
-                : 'p-3 rounded-lg border transition-all duration-200 flex items-center gap-3 rounded-md hover:bg-gray-700/50 border-transparent'
-            ]"
+            class="flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent"
           >
-            <!-- Use CompositionSlot for selected players only if composition is validated by organizer -->
-            <div v-if="isPlayerSelectedForRole(player.name, role, selectedEvent.id) && isSelectionConfirmedByOrganizer(selectedEvent.id)">
-              <CompositionSlot
-                :player-id="player.id"
-                :player-name="player.name"
-                :player-gender="player.gender || 'non-specified'"
-                :role-key="role"
-                :role-label="getRoleLabel(role)"
-                :role-emoji="ROLE_EMOJIS[role]"
-                :selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                :available="isAvailable(player.name, selectedEvent.id)"
-                :unavailable="isAvailable(player.name, selectedEvent.id) === false"
-                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                :season-id="seasonId"
-                :right-text="getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0"
-                :right-bruno-text="showBrunoAlgorithm ? getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 : null"
-                :right-class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                :right-title="'Cliquer pour voir le détail du calcul'"
-                :show-role-info="false"
-                @right-click="(e) => showChanceDetails(e, player.name, role, false)"
-                @right-bruno-click="(e) => showChanceDetails(e, player.name, role, true)"
-                @slot-click="() => handleSlotClick(player, role)"
-              />
-            </div>
-
-            <!-- Design classique pour joueurs non sélectionnés OU sélectionnés mais non validés -->
-            <template v-else>
-              <div class="flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent">
-                <!-- Avatar du joueur -->
+            <!-- Design classique pour tous les joueurs (disponibilité uniquement) -->
+            <!-- Avatar du joueur -->
                 <div class="relative flex-shrink-0">
                   <PlayerAvatar 
                     :player-id="player.id"
@@ -252,14 +222,13 @@
                     :compact="true"
                     :simplified-display="true"
                     :assigned-role="role"
+                    :hide-selection-status="true"
                     @toggle="handleAvailabilityToggle"
                     @toggle-selection-status="handlePlayerSelectionStatusToggle"
                     @show-availability-modal="openAvailabilityModal"
                     @show-confirmation-modal="openConfirmationModal"
                   />
                 </div>
-              </div>
-            </template>
           </div>
 
           <!-- Message si aucun joueur disponible -->
@@ -540,7 +509,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import AvailabilityCell from './AvailabilityCell.vue'
-import CompositionSlot from './CompositionSlot.vue'
 import CustomTooltip from './CustomTooltip.vue'
 import ChanceExplanationSlides from './ChanceExplanationSlides.vue'
 import { 
@@ -1225,39 +1193,6 @@ function getRoleStatusText(role) {
   }
 }
 
-// Handle slot click to open confirmation modal
-async function handleSlotClick(player, role) {
-  if (!props.selectedEvent) return
-  
-  const event = props.selectedEvent
-  const eventId = event.id
-  const playerName = player.name
-  const playerId = player.id
-
-  // Get current availability data to pass the comment
-  const availabilityData = props.getAvailabilityData(playerName, eventId)
-  
-  // Build confirmation modal data similar to AvailabilityCell
-  const data = {
-    playerName,
-    playerId,
-    playerGender: player.gender || 'non-specified',
-    eventId,
-    eventTitle: event.title,
-    eventDate: event.date,
-    assignedRole: role,
-    availabilityComment: availabilityData?.comment || null,
-    currentStatus: props.getPlayerSelectionStatus(playerName, eventId),
-    seasonId: props.seasonId
-  }
-
-  // Use the openConfirmationModal function passed from parent
-  if (typeof props.openConfirmationModal === 'function') {
-    props.openConfirmationModal(data)
-  } else {
-    console.warn('openConfirmationModal function not available')
-  }
-}
 
 // Fonction pour générer le tooltip d'avertissement pour les joueurs non-protégés
 function getUnprotectedPlayerTooltip(player) {
