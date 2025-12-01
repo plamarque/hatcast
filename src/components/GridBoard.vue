@@ -10170,7 +10170,7 @@ function handleAvailabilityChangedFromEventModal(data) {
 
 
 // Fonction pour ouvrir la modale de disponibilité depuis les détails d'événement
-function openAvailabilityModalFromEventDetails() {
+async function openAvailabilityModalFromEventDetails() {
   console.log('🎭 DEBUG openAvailabilityModalFromEventDetails appelée:', {
     currentUserPlayer: currentUserPlayer.value ? { id: currentUserPlayer.value.id, name: currentUserPlayer.value.name } : null,
     selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null
@@ -10181,29 +10181,10 @@ function openAvailabilityModalFromEventDetails() {
     return
   }
   
-  availabilityModalData.value = {
-    playerName: currentUserPlayer.value.name,
-    playerId: currentUserPlayer.value.id,
-    playerGender: currentUserPlayer.value.gender || 'non-specified',
-    eventId: selectedEvent.value.id,
-    eventTitle: selectedEvent.value.title,
-    eventDate: selectedEvent.value.date,
-    availabilityData: getCurrentUserAvailabilityForEvent(),
-    isReadOnly: false,
-    chancePercent: null,
-    isProtected: false,
-    eventRoles: selectedEvent.value.roles || {}
-  }
-  
-  console.log('🎭 DEBUG openAvailabilityModalFromEventDetails: ouverture de la modale avec:', {
-    availabilityModalData: {
-      playerName: availabilityModalData.value.playerName,
-      eventId: availabilityModalData.value.eventId,
-      eventTitle: availabilityModalData.value.eventTitle
-    }
-  })
-  
-  showAvailabilityModal.value = true
+  // Utiliser openAvailabilityModalForPlayer qui vérifie correctement les permissions
+  // au lieu de définir directement availabilityModalData avec isProtected: false
+  // Cela garantit que les permissions sont vérifiées même quand l'utilisateur arrive via les URLs avec &modal=event_details
+  await openAvailabilityModalForPlayer(currentUserPlayer.value, selectedEvent.value)
 }
 
 const isSendingNotifications = ref(false)
