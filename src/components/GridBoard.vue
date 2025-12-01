@@ -1172,16 +1172,28 @@
 
               <!-- Vue individuelle : disponibilités de la personne sélectionnée -->
               <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="space-y-3 p-3">
+                <!-- Message d'attente pendant la vérification des permissions -->
+                <div v-if="canModifySelectedPlayerAvailability === null" class="bg-gray-800/50 rounded-lg p-4 border border-gray-600/50">
+                  <div class="flex items-center justify-center gap-3">
+                    <svg class="animate-spin h-5 w-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-sm text-gray-300">Vérification des permissions...</span>
+                  </div>
+                </div>
+                
                 <!-- Toujours afficher le formulaire de disponibilités (onglet dédié aux dispos uniquement) -->
                 <AvailabilityForm
+                  v-else
                   :player-gender="selectedTeamPlayer.gender"
                   :player-id="selectedTeamPlayer.id"
                   :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)"
-                  :is-read-only="!(selectedTeamPlayer.id === currentUserPlayer?.id || canEditSelectedEvent)"
+                  :is-read-only="!canModifySelectedPlayerAvailability"
                   :season-id="seasonId"
                   :event-roles="selectedEvent?.roles || {}"
                   :available-roles="getEventAvailableRoles()"
-                  :self-persist="selectedTeamPlayer.id === currentUserPlayer?.id || canEditSelectedEvent"
+                  :self-persist="canModifySelectedPlayerAvailability"
                   :player-name="selectedTeamPlayer.name"
                   :event-id="selectedEvent?.id"
                   @update:availability="handleAvailabilityFormUpdate"
@@ -3097,6 +3109,14 @@ const availabilityCellRefreshKey = ref(0)
 // Onglet actif dans la modale de détails d'événement
 const eventDetailsActiveTab = ref('team') // Sera mis à jour dynamiquement selon l'état du tirage
 
+// État du modal de sélection de joueur pour l'onglet Disponibilités
+const selectedTeamPlayer = ref(null)
+
+// Refs réactifs pour l'état des permissions de modification des disponibilités
+const canModifyCurrentUserAvailability = ref(null) // null = vérification en cours, true/false = résultat
+const canModifySelectedPlayerAvailability = ref(null) // null = vérification en cours, true/false = résultat
+const isCheckingPermissions = ref(false)
+
 
 // Fonction pour déterminer l'onglet par défaut selon l'état du tirage
 function getDefaultTabForEvent(event) {
@@ -3281,6 +3301,44 @@ watch([selectedEvent, currentUserPlayer], () => {
   }
 })
 
+// Watcher pour mettre à jour les permissions de modification pour l'utilisateur courant
+watch([currentUserPlayer, selectedEvent], async () => {
+  if (currentUserPlayer.value && selectedEvent.value) {
+    isCheckingPermissions.value = true
+    canModifyCurrentUserAvailability.value = null
+    try {
+    const canModify = await canModifyPlayerAvailability(currentUserPlayer.value.id, selectedEvent.value.id)
+      canModifyCurrentUserAvailability.value = canModify
+    } catch (error) {
+      logger.error('Erreur lors de la vérification des permissions pour currentUserPlayer:', error)
+      canModifyCurrentUserAvailability.value = false
+    } finally {
+      isCheckingPermissions.value = false
+    }
+  } else {
+    canModifyCurrentUserAvailability.value = null
+  }
+})
+
+// Watcher pour mettre à jour les permissions de modification pour le joueur sélectionné
+watch([selectedTeamPlayer, selectedEvent], async () => {
+  if (selectedTeamPlayer.value && selectedTeamPlayer.value.id !== 'all' && selectedEvent.value) {
+    isCheckingPermissions.value = true
+    canModifySelectedPlayerAvailability.value = null
+    try {
+    const canModify = await canModifyPlayerAvailability(selectedTeamPlayer.value.id, selectedEvent.value.id)
+      canModifySelectedPlayerAvailability.value = canModify
+    } catch (error) {
+      logger.error('Erreur lors de la vérification des permissions pour selectedTeamPlayer:', error)
+      canModifySelectedPlayerAvailability.value = false
+    } finally {
+      isCheckingPermissions.value = false
+    }
+  } else {
+    canModifySelectedPlayerAvailability.value = null
+  }
+})
+
 // État du menu déroulant d'agenda
 const showCalendarDropdown = ref(false)
 
@@ -3292,9 +3350,6 @@ const showEventDetailsSection = ref(true)
 
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
-
-// État du sélecteur de joueur dans l'onglet équipe
-const selectedTeamPlayer = ref(null)
 
 // État du modal de sélection de joueur pour l'onglet Disponibilités
 const showAvailabilityPlayerSelector = ref(false)
@@ -6578,6 +6633,53 @@ async function isPlayerOwnedByCurrentUser(playerId) {
   }
 }
 
+// Fonction générique pour vérifier si l'utilisateur courant peut modifier les disponibilités d'un joueur
+async function canModifyPlayerAvailability(playerId, eventId) {
+  try {
+    // Si le joueur n'est pas protégé, toujours permettre la modification
+    const isProtected = isPlayerProtectedInGrid(playerId)
+    if (!isProtected) {
+      return true
+    }
+    
+    // Si le joueur est protégé, vérifier les permissions
+    const userEmail = currentUser.value?.email
+    if (!userEmail) {
+      logger.warn('🔐 canModifyPlayerAvailability: pas d\'email utilisateur')
+      return false
+    }
+    
+    logger.debug('🔐 canModifyPlayerAvailability: vérification permissions:', {
+      playerId,
+      eventId,
+      userEmail,
+      isProtected
+    })
+    
+    // Vérifier si l'utilisateur est le propriétaire
+    const isOwned = await isPlayerOwnedByCurrentUser(playerId)
+    if (isOwned) {
+      return true
+    }
+    
+    // Vérifier si l'utilisateur est admin
+    if (!permissionService.isInitialized) {
+      await permissionService.initialize()
+    }
+    
+    const isAdmin = await permissionService.isUserAdmin(userEmail, seasonId.value, eventId)
+    if (isAdmin) {
+      return true
+    }
+    
+    logger.debug('🔐 canModifyPlayerAvailability: aucune permission trouvée')
+    return false
+  } catch (error) {
+    logger.error('Erreur lors de la vérification des permissions de modification:', error)
+    return false
+  }
+}
+
 
 const sortedEvents = computed(() => {
   // Tri chronologique gauche→droite, puis titre en cas d'égalité
@@ -6747,6 +6849,20 @@ async function toggleAvailability(playerName, eventId) {
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
+  // Si le joueur est protégé, vérifier les permissions AVANT d'ouvrir la modale
+  if (isProtected) {
+    const canModify = await canModifyPlayerAvailability(player.id, eventItem.id)
+    if (!canModify) {
+      // Afficher un message d'erreur si l'utilisateur n'a pas les permissions
+      showErrorMessage.value = true
+      errorMessage.value = `Vous n'avez pas les permissions de modifier les disponibilités de ${player.name}.`
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
+    }
+  }
+  
   // Vérifier si le joueur est compositionné ET la composition est confirmée par l'organisateur
   const playerIsSelected = isSelected(playerName, eventId)
   const playerIsAvailable = isAvailable(playerName, eventId)
@@ -6770,7 +6886,7 @@ async function toggleAvailability(playerName, eventId) {
   // Sinon, gérer la disponibilité normale
   if (isProtected) {
     // Joueur protégé : toujours ouvrir la modale en lecture seule
-    openAvailabilityModalForPlayer(player, eventItem);
+    await openAvailabilityModalForPlayer(player, eventItem);
     return;
   } else {
     // Joueur non protégé, ouvrir directement la modale
@@ -6783,46 +6899,14 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   const playerChancePercent = chances.value[player.name]?.[eventItem.id] ?? null
   const isProtected = isPlayerProtectedInGrid(player.id)
   
-  // Si le joueur n'est pas protégé, toujours permettre l'ouverture
-  if (!isProtected) {
-    openAvailabilityModal({
-      playerName: player.name,
-      playerId: player.id,
-      playerGender: player.gender || 'non-specified',
-      eventId: eventItem.id,
-      eventTitle: eventItem.title,
-      eventDate: eventItem.date,
-      availabilityData: currentAvailabilityData,
-      isReadOnly: false,
-      chancePercent: playerChancePercent,
-      isProtected: false
-    })
-    return
+  // Récupérer les rôles attendus pour cet événement
+  let eventRoles = {}
+  if (eventItem && eventItem.roles) {
+    eventRoles = eventItem.roles
   }
   
-  // Si le joueur est protégé, vérifier les permissions
-  const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
-  const isUserConnected = !!currentUser.value?.email
-  // Utiliser canEditEvent (pas canManageComposition) car les casters ne doivent pas modifier les disponibilités
-  if (!permissionService.isInitialized) {
-    await permissionService.initialize();
-  }
-  const canEditThisEvent = await permissionService.canEditEvent(eventItem.id, seasonId.value)
-  
-  // Si l'utilisateur n'est pas connecté, ne pas ouvrir la modale
-  if (!isUserConnected) {
-    console.log('❌ Tentative d\'ouverture de modale pour joueur protégé sans authentification')
-    return
-  }
-  
-  // Si ce n'est pas le joueur de l'utilisateur ET que l'utilisateur n'est pas admin, ne pas ouvrir la modale
-  if (!isOwnedByCurrentUser && !canEditThisEvent) {
-    console.log('❌ Tentative d\'ouverture de modale pour joueur protégé sans permission')
-    return
-  }
-  
-  // L'utilisateur a les permissions, ouvrir la modale en mode édition
-  openAvailabilityModal({
+  // Ouvrir directement la modale sans passer par openAvailabilityModal pour éviter la boucle infinie
+  availabilityModalData.value = {
     playerName: player.name,
     playerId: player.id,
     playerGender: player.gender || 'non-specified',
@@ -6832,8 +6916,11 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
     availabilityData: currentAvailabilityData,
     isReadOnly: false,
     chancePercent: playerChancePercent,
-    isProtected: isProtected
-  })
+    isProtected: isProtected,
+    eventRoles: eventRoles
+  }
+  
+  showAvailabilityModal.value = true
 }
 
 // Fonction performToggleAvailability supprimée - toutes les disponibilités passent maintenant par la modale
@@ -9144,6 +9231,20 @@ async function handleAvailabilityToggle(playerName, eventId) {
   // Vérifier si le joueur est protégé (utiliser la même logique que la grille)
   const isProtected = isPlayerProtectedInGrid(player.id);
   
+  // Si le joueur est protégé, vérifier les permissions AVANT d'ouvrir la modale
+  if (isProtected) {
+    const canModify = await canModifyPlayerAvailability(player.id, evt.id)
+    if (!canModify) {
+      // Afficher un message d'erreur si l'utilisateur n'a pas les permissions
+      showErrorMessage.value = true
+      errorMessage.value = `Vous n'avez pas les permissions de modifier les disponibilités de ${player.name}.`
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
+    }
+  }
+  
   // Vérifier si le joueur est compositionné ET la composition est confirmée par l'organisateur
   const playerIsSelected = isSelected(playerName, eventId)
   const playerIsAvailable = isAvailable(playerName, eventId)
@@ -9167,7 +9268,7 @@ async function handleAvailabilityToggle(playerName, eventId) {
   // Sinon, gérer la disponibilité normale
   if (isProtected) {
     // Joueur protégé : toujours ouvrir la modale en lecture seule
-    openAvailabilityModalForPlayer(player, evt);
+    await openAvailabilityModalForPlayer(player, evt);
     return;
   } else {
     // Joueur non protégé, ouvrir directement la modale
@@ -10178,6 +10279,13 @@ async function openAvailabilityModalFromEventDetails() {
   
   if (!currentUserPlayer.value || !selectedEvent.value) {
     console.log('❌ DEBUG openAvailabilityModalFromEventDetails: conditions non remplies, sortie')
+    return
+  }
+  
+  // Vérifier les permissions AVANT d'ouvrir la modale
+  const canModify = await canModifyPlayerAvailability(currentUserPlayer.value.id, selectedEvent.value.id)
+  if (!canModify) {
+    console.log('❌ DEBUG openAvailabilityModalFromEventDetails: permissions insuffisantes, sortie silencieuse')
     return
   }
   
@@ -11543,15 +11651,46 @@ function handlePlayerClaimUpdate(data) {
 // Fonctions pour la modale de disponibilité avec rôles
 async function openAvailabilityModal(data) {
   // Si les données contiennent isProtected, vérifier les permissions avant d'ouvrir
-  if (data.isProtected && data.playerId && data.eventId) {
-    const player = allSeasonPlayers.value.find(p => p.id === data.playerId)
+  if (data.isProtected && data.eventId) {
+    // Récupérer le joueur depuis playerId si présent, sinon depuis playerName
+    // Chercher dans players.value d'abord (liste actuelle), puis dans allSeasonPlayers.value (liste complète)
+    let player = null
+    if (data.playerId) {
+      player = players.value.find(p => p.id === data.playerId) || allSeasonPlayers.value.find(p => p.id === data.playerId)
+    } else if (data.playerName) {
+      player = players.value.find(p => p.name === data.playerName) || allSeasonPlayers.value.find(p => p.name === data.playerName)
+    }
+    
     const eventItem = events.value.find(e => e.id === data.eventId)
     
-    if (player && eventItem) {
-      // Utiliser la fonction qui vérifie les permissions
-      await openAvailabilityModalForPlayer(player, eventItem)
+    if (!player) {
+      // Si le joueur n'est pas trouvé mais qu'il est protégé, ne pas ouvrir la modale
+      showErrorMessage.value = true
+      errorMessage.value = `Impossible de vérifier les permissions pour ${data.playerName || 'ce joueur'}.`
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
       return
     }
+    
+    if (!eventItem) {
+      return
+    }
+    
+    // Vérifier les permissions avant d'ouvrir la modale
+    const canModify = await canModifyPlayerAvailability(player.id, eventItem.id)
+    if (!canModify) {
+      // Afficher un message d'erreur si l'utilisateur n'a pas les permissions
+      showErrorMessage.value = true
+      errorMessage.value = `Vous n'avez pas les permissions de modifier les disponibilités de ${player.name}.`
+      setTimeout(() => {
+        showErrorMessage.value = false
+      }, 5000)
+      return
+    }
+    // Utiliser la fonction qui vérifie les permissions
+    await openAvailabilityModalForPlayer(player, eventItem)
+    return
   }
   
   // Sinon, ouvrir directement la modale (pour les joueurs non protégés ou si les données sont incomplètes)
@@ -11564,9 +11703,18 @@ async function openAvailabilityModal(data) {
     }
   }
   
+  // Récupérer playerId si non présent mais playerName est présent
+  let playerId = data.playerId
+  if (!playerId && data.playerName) {
+    const player = allSeasonPlayers.value.find(p => p.name === data.playerName)
+    if (player) {
+      playerId = player.id
+    }
+  }
+  
   availabilityModalData.value = {
     playerName: data.playerName,
-    playerId: data.playerId,
+    playerId: playerId,
     playerGender: data.playerGender || 'non-specified',
     eventId: data.eventId,
     eventTitle: data.eventTitle,
@@ -11588,48 +11736,20 @@ function openEventModal(event, fromAllPlayersFilter = false) {
 
 async function handleAvailabilitySave(availabilityData) {
   try {
-    // Vérification de sécurité : vérifier les permissions avant de sauvegarder
+    // Vérification de sécurité minimale : vérifier que l'utilisateur est connecté
     const isUserConnected = !!currentUser.value?.email;
-    const isPlayerProtected = availabilityModalData.value?.isProtected || false;
-    const eventId = availabilityModalData.value?.eventId;
-    
-    // Si le joueur est protégé, vérifier les permissions
-    if (isPlayerProtected) {
-      if (!isUserConnected) {
-        console.error('❌ Tentative de modification d\'un joueur protégé sans authentification');
-        showErrorMessage.value = true;
-        errorMessage.value = 'Vous devez être connecté pour modifier la disponibilité d\'un joueur protégé.';
-        setTimeout(() => {
-          showErrorMessage.value = false;
-        }, 5000);
-        return;
-      }
-      
-      // Vérifier si c'est le joueur de l'utilisateur connecté
-      const playerId = availabilityModalData.value?.playerId;
-      const isOwnedByCurrentUser = playerId ? await isPlayerOwnedByCurrentUser(playerId) : false;
-      
-      // Vérifier si l'utilisateur est admin (super admin, season admin, ou event admin)
-      // Utiliser canEditEvent (pas canManageComposition) car les casters ne doivent pas modifier les disponibilités
-      let canEditThisEvent = false;
-      if (eventId) {
-        if (!permissionService.isInitialized) {
-          await permissionService.initialize();
-        }
-        canEditThisEvent = await permissionService.canEditEvent(eventId, seasonId.value);
-      }
-      
-      // Si ce n'est pas le joueur de l'utilisateur ET que l'utilisateur n'est pas admin, bloquer
-      if (!isOwnedByCurrentUser && !canEditThisEvent) {
-        console.error('❌ Tentative de modification d\'un joueur protégé sans permission');
-        showErrorMessage.value = true;
-        errorMessage.value = 'Vous n\'avez pas la permission de modifier la disponibilité de ce joueur protégé.';
-        setTimeout(() => {
-          showErrorMessage.value = false;
-        }, 5000);
-        return;
-      }
+    if (!isUserConnected) {
+      console.error('❌ Tentative de sauvegarde sans authentification');
+      showErrorMessage.value = true;
+      errorMessage.value = 'Vous devez être connecté pour modifier les disponibilités.';
+      setTimeout(() => {
+        showErrorMessage.value = false;
+      }, 5000);
+      return;
     }
+    
+    // Les permissions ont déjà été vérifiées avant d'autoriser la modification
+    // via canModifyPlayerAvailability() dans les watchers et openAvailabilityModalFromEventDetails()
     
     const { saveAvailabilityWithRoles } = await import('../services/storage.js')
     await saveAvailabilityWithRoles({

@@ -1411,7 +1411,13 @@ export async function addEventAdmin(eventId, userEmail, seasonId) {
       throw new Error('Vous n\'avez pas les permissions pour gérer les admins d\'événement')
     }
     
-    logger.info(`🔐 Ajout de l'admin ${userEmail} à l'événement ${eventId}`)
+    // Normaliser l'email avant de l'ajouter (lowercase + trim)
+    const normalizedEmail = userEmail?.toLowerCase().trim() || ''
+    if (!normalizedEmail) {
+      throw new Error('Email invalide')
+    }
+    
+    logger.info(`🔐 Ajout de l'admin ${normalizedEmail} à l'événement ${eventId}`)
     
     // Récupérer le document événement
     const eventDoc = await firestoreService.getDocument('seasons', seasonId, 'events', eventId)
@@ -1419,17 +1425,17 @@ export async function addEventAdmin(eventId, userEmail, seasonId) {
       throw new Error(`Événement ${eventId} non trouvé`)
     }
     
-    // Gérer l'absence du champ eventAdmins
-    const eventAdmins = eventDoc.eventAdmins || []
+    // Gérer l'absence du champ eventAdmins et normaliser les emails existants
+    const eventAdmins = (eventDoc.eventAdmins || []).map(email => email?.toLowerCase().trim() || '')
     
-    // Vérifier si l'email n'est pas déjà dans la liste
-    if (eventAdmins.includes(userEmail)) {
-      logger.info(`ℹ️ ${userEmail} est déjà admin de l'événement ${eventId}`)
+    // Vérifier si l'email n'est pas déjà dans la liste (comparaison normalisée)
+    if (eventAdmins.includes(normalizedEmail)) {
+      logger.info(`ℹ️ ${normalizedEmail} est déjà admin de l'événement ${eventId}`)
       return true
     }
     
-    // Ajouter l'email
-    eventAdmins.push(userEmail)
+    // Ajouter l'email normalisé
+    eventAdmins.push(normalizedEmail)
     
     // Mettre à jour le document
     await firestoreService.updateDocument('seasons', seasonId, {
@@ -1441,7 +1447,7 @@ export async function addEventAdmin(eventId, userEmail, seasonId) {
     // Invalider aussi le cache global pour forcer le rechargement des permissions
     permissionService.invalidateAllCache()
     
-    logger.info(`✅ Admin ${userEmail} ajouté à l'événement ${eventId}`)
+    logger.info(`✅ Admin ${normalizedEmail} ajouté à l'événement ${eventId}`)
     return true
   } catch (error) {
     logger.error(`❌ Erreur lors de l'ajout de l'admin ${userEmail} à l'événement ${eventId}:`, error)

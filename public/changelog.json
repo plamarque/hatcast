@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.42.3",
+    "date": "2025-12-02",
+    "changes": [
+      "🐛 Vérifie les permissions avant de permettre les modifications de disponibilité"
+    ]
+  },
+  {
     "version": "0.42.2",
     "date": "2025-12-01",
     "changes": [

@@ -1,12 +1,13 @@
-## [0.42.2] - 2025-12-01
+## [0.42.3] - 2025-12-02
 
 ### 🐛 Bug Fixes
 
-- fix: utiliser openAvailabilityModalForPlayer dans openAvailabilityModalFromEventDetails
+- fix: verify permissions before allowing availability modifications
 
 
 # Changelog
 
+## [0.42.3] - 2025-12-02
 ## [0.42.2] - 2025-12-01
 ## [0.42.1] - 2025-12-01
 ## [0.42.0] - 2025-11-18

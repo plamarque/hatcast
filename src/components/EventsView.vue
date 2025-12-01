@@ -118,6 +118,7 @@
           :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
         >
           <AvailabilityCell
+            :player-id="player.id"
             :player-name="player.name"
             :event-id="event.id"
             :is-available="isAvailable(player.name, event.id)"

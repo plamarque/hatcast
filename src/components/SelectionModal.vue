@@ -661,9 +661,7 @@ watch([() => props.event?.id, () => props.seasonId, () => props.canEditEvents, (
       const userChanged = currentEmail !== previousUserEmail
       previousUserEmail = currentEmail
       const force = userChanged
-      logger.info(`🔐 [SelectionModal] Vérification permissions composition pour événement ${props.event.id}, saison ${props.seasonId}, utilisateur: ${currentEmail || 'non connecté'}, force: ${force}, userChanged: ${userChanged}`)
       canManageCompositionValue.value = await permissionService.canManageComposition(props.event.id, props.seasonId, force)
-      logger.info(`🔐 [SelectionModal] Résultat canManageComposition: ${canManageCompositionValue.value ? '✅ OUI' : '❌ NON'}`)
     } catch (error) {
       logger.warn(`⚠️ Erreur lors de la vérification des permissions de composition:`, error)
       canManageCompositionValue.value = props.canEditEvents
@@ -717,16 +715,13 @@ const canCasterEditManually = computed(() => {
 
 // Watcher pour vérifier le statut caster et l'existence d'un cast
 watch([() => props.event?.id, () => props.seasonId, () => props.currentSelection, () => canManageCompositionValue.value], async () => {
-  logger.info(`🔐 [SelectionModal] Watcher caster déclenché: eventId=${props.event?.id}, seasonId=${props.seasonId}, canManageComposition=${canManageCompositionValue.value}`)
   if (props.event?.id && props.seasonId && canManageCompositionValue.value) {
     try {
       // Vérifier si admin d'événement
       const eventAdminStatus = await permissionService.isEventAdmin(props.event.id, props.seasonId)
       isEventAdmin.value = eventAdminStatus
-      logger.info(`🔐 [SelectionModal] Statut admin d'événement pour ${props.event.id}: ${eventAdminStatus ? '✅ OUI' : '❌ NON'}`)
       
       const casterStatus = await permissionService.isSeasonCaster(props.seasonId)
-      logger.info(`🔐 [SelectionModal] Statut caster pour saison ${props.seasonId}: ${casterStatus ? '✅ OUI' : '❌ NON'}`)
       isCaster.value = casterStatus
       
       if (casterStatus) {
@@ -737,15 +732,9 @@ watch([() => props.event?.id, () => props.seasonId, () => props.currentSelection
         // Vérifier que le cast existe ET qu'il a au moins un joueur assigné
         const playersInCast = cast ? getAllPlayersFromCast(cast) : []
         castExists.value = playersInCast.length > 0
-        logger.info(`🔐 [SelectionModal] Cast existe pour événement ${props.event.id}: ${castExists.value ? '✅ OUI' : '❌ NON'}`, {
-          castExists: !!cast,
-          playersCount: playersInCast.length,
-          players: playersInCast
-        })
       } else {
         castExists.value = false
       }
-      logger.info(`🔐 [SelectionModal] État final: isEventAdmin=${isEventAdmin.value}, isCaster=${isCaster.value}, castExists=${castExists.value}, canCasterEditManually=${canCasterEditManually.value}`)
     } catch (error) {
       logger.warn('🔐 [SelectionModal] Erreur lors de la vérification du statut caster:', error)
       isCaster.value = false
@@ -753,7 +742,6 @@ watch([() => props.event?.id, () => props.seasonId, () => props.currentSelection
       isEventAdmin.value = false
     }
   } else {
-    logger.info(`🔐 [SelectionModal] Conditions non remplies, réinitialisation: eventId=${props.event?.id}, seasonId=${props.seasonId}, canManageComposition=${canManageCompositionValue.value}`)
     isCaster.value = false
     castExists.value = false
     isEventAdmin.value = false
@@ -2561,10 +2549,6 @@ async function persistDrawResults() {
         const cast = casts && casts[props.event.id]
         // Vérifier que le cast existe ET qu'il a au moins un joueur assigné
         castExists.value = cast && getAllPlayersFromCast(cast).length > 0
-        logger.info(`🔐 [SelectionModal] Cast re-vérifié après sauvegarde pour événement ${props.event.id}: ${castExists.value ? '✅ OUI' : '❌ NON'}`, {
-          castExists: !!cast,
-          playersCount: cast ? getAllPlayersFromCast(cast).length : 0
-        })
       } catch (error) {
         logger.warn('Erreur lors de la re-vérification du cast après sauvegarde:', error)
       }

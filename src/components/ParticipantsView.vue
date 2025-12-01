@@ -128,6 +128,7 @@
           :style="{ width: `${itemWidth}px`, minWidth: `${itemWidth}px`, height: '4rem' }"
         >
           <AvailabilityCell
+            :player-id="player.id"
             :player-name="player.name"
             :event-id="event.id"
             :is-available="isAvailable(player.name, event.id)"
@@ -219,6 +220,7 @@ import { formatEventDate } from '../utils/dateUtils.js'
 import { EVENT_TYPE_ICONS, ROLE_TEMPLATES } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import { loadPlayers, loadAvailability } from '../services/storage.js'
+import { currentUser } from '../services/authState.js'
 import logger from '../services/logger.js'
 
 // Props
@@ -485,8 +487,64 @@ const getEventStatus = (event) => {
 }
 
 
+// Fonction helper pour normaliser un email (lowercase + trim)
+function normalizeEmail(email) {
+  return email?.toLowerCase().trim() || ''
+}
+
+// Fonction pour vérifier si un joueur appartient à l'utilisateur connecté
+async function isPlayerOwnedByCurrentUser(playerId) {
+  // Si pas d'utilisateur connecté, retourner false
+  if (!currentUser.value?.email) return false
+  
+  try {
+    // Vérifier directement si ce joueur est protégé par l'utilisateur connecté
+    const { getPlayerData } = await import('../services/players.js')
+    const protectionData = await getPlayerData(playerId, props.seasonId)
+    
+    // Le joueur appartient à l'utilisateur si :
+    // 1. Il est protégé
+    // 2. L'email de protection correspond à l'email de l'utilisateur connecté
+    // Normaliser les emails avant comparaison pour éviter les problèmes de casse
+    const currentEmail = normalizeEmail(currentUser.value.email)
+    const protectionEmail = normalizeEmail(protectionData?.email)
+    return protectionData?.isProtected && protectionEmail === currentEmail
+  } catch (error) {
+    logger.warn('Erreur lors de la vérification de propriété du joueur:', error)
+    return false
+  }
+}
+
 // Methods
-const showPlayerDetails = (player) => {
+const showPlayerDetails = async (player) => {
+  // Vérifier si le joueur est protégé et appartient à l'utilisateur connecté
+  const isProtected = props.isPlayerProtectedInGrid(player.id)
+  if (isProtected && currentUser.value?.email) {
+    const isOwned = await isPlayerOwnedByCurrentUser(player.id)
+    
+    if (isOwned) {
+      // Trouver le premier événement non archivé pour ouvrir la modale de disponibilité
+      const firstEvent = props.events.find(e => !e.archived && !e._isArchived)
+      if (firstEvent) {
+        // Ouvrir la modale de disponibilité au lieu de la modale de détails
+        emit('show-availability-modal', {
+          playerName: player.name,
+          playerId: player.id,
+          eventId: firstEvent.id,
+          eventTitle: firstEvent.title,
+          eventDate: firstEvent.date,
+          availabilityData: props.getAvailabilityData(player.name, firstEvent.id),
+          isReadOnly: false,
+          chancePercent: props.chances[player.name]?.[firstEvent.id] ?? null,
+          isProtected: true,
+          eventRoles: firstEvent.roles || {}
+        })
+        return
+      }
+    }
+  }
+  
+  // Comportement par défaut : ouvrir la modale de détails du joueur
   emit('player-selected', player)
 }
 

@@ -70,6 +70,32 @@ class PermissionService {
 
 
   /**
+   * Vérifie si un utilisateur donné (par email) est Super Admin
+   * @param {string} userEmail - Email de l'utilisateur à vérifier
+   * @returns {Promise<boolean>} - true si l'utilisateur est Super Admin
+   */
+  async isUserSuperAdmin(userEmail) {
+    try {
+      if (!userEmail) {
+        return false;
+      }
+
+      const normalizedEmail = this.normalizeEmail(userEmail);
+      logger.info(`🔐 Vérification du statut Super Admin pour ${normalizedEmail} via Cloud Functions...`);
+      
+      // Appeler la Cloud Function avec l'email normalisé en paramètre
+      const result = await callCloudFunction('checkSuperAdminStatus', { userEmail: normalizedEmail });
+      const isAdmin = result.isSuperAdmin || false;
+      
+      logger.info(`🔐 Statut Super Admin pour ${normalizedEmail}: ${isAdmin ? '✅ OUI' : '❌ NON'}`);
+      return isAdmin;
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification Super Admin pour ${userEmail}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Vérifie si l'utilisateur actuel est Super Admin
    * Gère directement le cache et la vérification Cloud Function
    */
@@ -259,14 +285,73 @@ class PermissionService {
         return false;
       }
       
+      const normalizedUserEmail = this.normalizeEmail(userEmail);
       const eventAdmins = await this.getEventAdmins(eventId, seasonId, force);
-      const isAdmin = eventAdmins.includes(userEmail);
+      // Normaliser tous les emails de la liste avant comparaison
+      const normalizedEventAdmins = eventAdmins.map(email => this.normalizeEmail(email));
+      const isAdmin = normalizedEventAdmins.includes(normalizedUserEmail);
       
-      logger.info(`🔐 Statut Admin d'événement ${eventId}: ${isAdmin ? '✅ OUI' : '❌ NON'}`);
+      logger.info(`🔐 Statut Admin d'événement ${eventId}: ${isAdmin ? '✅ OUI' : '❌ NON'}`, {
+        userEmail: normalizedUserEmail,
+        eventAdminsRaw: eventAdmins,
+        eventAdminsNormalized: normalizedEventAdmins
+      });
       
       return isAdmin;
     } catch (error) {
       logger.error(`❌ Erreur lors de la vérification Admin d'événement ${eventId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Normalise un email (lowercase + trim)
+   * @param {string} email - Email à normaliser
+   * @returns {string} - Email normalisé
+   */
+  normalizeEmail(email) {
+    return email?.toLowerCase().trim() || '';
+  }
+
+  /**
+   * Vérifie si un utilisateur donné est admin (Super Admin OU Admin de saison OU Admin d'événement)
+   * @param {string} userEmail - Email de l'utilisateur à vérifier
+   * @param {string} seasonId - ID de la saison
+   * @param {string} eventId - ID de l'événement
+   * @returns {Promise<boolean>} - true si l'utilisateur est admin
+   */
+  async isUserAdmin(userEmail, seasonId, eventId) {
+    try {
+      if (!userEmail) {
+        return false;
+      }
+
+      const normalizedUserEmail = this.normalizeEmail(userEmail);
+
+      // Vérifier si Super Admin
+      if (await this.isUserSuperAdmin(normalizedUserEmail)) {
+        return true;
+      }
+      
+      // Vérifier si Admin de saison
+      if (await this.isUserSeasonAdmin(seasonId, normalizedUserEmail)) {
+        return true;
+      }
+      
+      // Vérifier si Admin d'événement
+      // Forcer le rechargement pour éviter les problèmes de cache
+      const eventAdmins = await this.getEventAdmins(eventId, seasonId, true);
+      
+      // Normaliser tous les emails de la liste avant comparaison
+      const normalizedEventAdmins = eventAdmins.map(email => this.normalizeEmail(email));
+      
+      if (normalizedEventAdmins.includes(normalizedUserEmail)) {
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      logger.error(`❌ Erreur lors de la vérification isUserAdmin pour ${userEmail} sur événement ${eventId}:`, error);
       return false;
     }
   }

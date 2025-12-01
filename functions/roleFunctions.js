@@ -34,6 +34,7 @@ async function authenticateRequest(req, res, callback) {
 
 /**
  * Vérifier le statut Super Admin d'un utilisateur
+ * Accepte un email optionnel dans data.userEmail, sinon utilise l'utilisateur authentifié
  */
 exports.checkSuperAdminStatus = functions
   .runWith({ secrets: [superAdminEmailsSecret] })
@@ -44,13 +45,14 @@ exports.checkSuperAdminStatus = functions
         throw new functions.https.HttpsError('unauthenticated', 'Authentification requise');
       }
       
-      const user = context.auth;
-      const isSuperAdmin = roleService.isSuperAdmin(user.token.email);
+      // Utiliser l'email fourni en paramètre ou celui de l'utilisateur authentifié
+      const userEmail = data?.userEmail || context.auth.token.email;
+      const isSuperAdmin = roleService.isSuperAdmin(userEmail);
       
       return {
         isSuperAdmin,
-        email: user.token.email,
-        uid: user.uid,
+        email: userEmail,
+        uid: context.auth.uid,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
