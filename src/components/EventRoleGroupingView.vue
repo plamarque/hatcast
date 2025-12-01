@@ -49,6 +49,7 @@
             <!-- Disponibilité du joueur -->
             <div class="flex-shrink-0 w-20 h-20 aspect-square">
               <AvailabilityCell
+                :player-id="player.id"
                 :player-name="player.name"
                 :event-id="selectedEvent.id"
                 :is-available="isAvailable(player.name, selectedEvent.id)"

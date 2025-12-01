@@ -95,6 +95,7 @@
               <!-- Affichage pour un joueur spécifique (quand un joueur est sélectionné dans le dropdown) -->
               <AvailabilityCell
                 v-if="selectedPlayerId"
+                :player-id="selectedPlayer.id"
                 :player-name="selectedPlayer.name"
                 :event-id="event.id"
                 :is-available="isAvailable(selectedPlayer.name, event.id)"

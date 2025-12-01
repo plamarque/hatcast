@@ -15,7 +15,7 @@
         hideSelectionStatus
       })
     ]"
-    @click.stop="toggleAvailability"
+    @click.stop.prevent="handleClick"
     @mouseenter="hover = true"
     @mouseleave="hover = false"
   >
@@ -167,12 +167,16 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { ROLE_EMOJIS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, getRoleLabel } from '../services/storage.js'
 import { getStatusClass } from '../utils/statusUtils.js'
 import { currentUser } from '../services/authState.js'
 
 const props = defineProps({
+  playerId: {
+    type: String,
+    required: false
+  },
   playerName: {
     type: String,
     required: true
@@ -287,6 +291,8 @@ const emit = defineEmits(['toggle', 'toggleSelectionStatus', 'show-availability-
 
 const hover = ref(false)
 
+// Debug logs removed for performance
+
 // Computed properties pour le nouveau format
 const allRoles = computed(() => {
   // Vérifier si on a des données de disponibilité avec rôles
@@ -395,34 +401,36 @@ const tooltipText = computed(() => {
   }
 })
 
-function toggleAvailability() {
-  console.log('🖱️ DEBUG toggleAvailability appelée:')
-  console.log('  - playerName:', props.playerName)
-  console.log('  - isSelected:', props.isSelected)
-  console.log('  - playerSelectionStatus:', props.playerSelectionStatus)
-  console.log('  - isAvailable:', props.isAvailable)
-  console.log('  - disabled:', props.disabled)
-  console.log('  - isProtected:', props.isProtected)
+function handleClick(event) {
+  // Empêcher la propagation pour éviter que d'autres éléments capturent le clic
+  event.stopPropagation()
+  event.preventDefault()
   
+  toggleAvailability()
+}
+
+function toggleAvailability() {
   if (props.disabled) {
-    console.log('❌ DEBUG toggleAvailability: disabled, sortie')
     return
   }
   
   // Bloquer le clic si le joueur est protégé et que l'utilisateur n'est pas connecté
   // (les vérifications de propriétaire/admin se feront dans openAvailabilityModalForPlayer)
   if (props.isProtected && !currentUser.value?.email) {
-    console.log('❌ DEBUG toggleAvailability: joueur protégé et utilisateur non connecté, sortie')
     return
   }
   
-  // Si hideSelectionStatus est true, toujours ouvrir la modale de disponibilité
+  // Pour les joueurs protégés connectés, toujours permettre d'ouvrir la modale de disponibilité
+  // (la vérification des permissions se fera dans openAvailabilityModal)
+  // Pour les joueurs non protégés ou si hideSelectionStatus est true, toujours ouvrir la modale de disponibilité
   // Sinon, si le joueur est sélectionné, ouvrir la modale de confirmation
-  if (props.hideSelectionStatus || !props.isSelected) {
+  const shouldOpenAvailabilityModal = props.hideSelectionStatus || !props.isSelected || (props.isProtected && currentUser.value?.email)
+  
+  if (shouldOpenAvailabilityModal) {
     // Ouvrir la modal de disponibilité
-    console.log('🎯 DEBUG toggleAvailability: branche disponibilité, émission show-availability-modal')
     emit('show-availability-modal', {
       playerName: props.playerName,
+      playerId: props.playerId, // Inclure playerId si disponible
       eventId: props.eventId,
       eventTitle: props.eventTitle,
       eventDate: props.eventDate,
@@ -434,7 +442,6 @@ function toggleAvailability() {
     })
   } else {
     // Si le joueur est sélectionné et hideSelectionStatus est false, ouvrir la modal de confirmation
-    console.log('🎯 DEBUG toggleAvailability: branche confirmation, émission show-confirmation-modal')
     emit('show-confirmation-modal', {
       playerName: props.playerName,
       playerGender: props.playerGender,
@@ -462,9 +469,9 @@ function getNextSelectionStatus(currentStatus) {
 }
 
 function showCommentModal() {
-  console.log('🔍 showCommentModal - isProtected:', props.isProtected, 'playerName:', props.playerName)
   emit('show-availability-modal', {
     playerName: props.playerName,
+    playerId: props.playerId, // Inclure playerId si disponible
     eventId: props.eventId,
     eventTitle: props.eventTitle,
     eventDate: props.eventDate,
