@@ -6803,7 +6803,11 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   // Si le joueur est protégé, vérifier les permissions
   const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
   const isUserConnected = !!currentUser.value?.email
-  const canEditThisEvent = getCanEditEvent(eventItem.id)
+  // Utiliser canEditEvent (pas canManageComposition) car les casters ne doivent pas modifier les disponibilités
+  if (!permissionService.isInitialized) {
+    await permissionService.initialize();
+  }
+  const canEditThisEvent = await permissionService.canEditEvent(eventItem.id, seasonId.value)
   
   // Si l'utilisateur n'est pas connecté, ne pas ouvrir la modale
   if (!isUserConnected) {
@@ -11625,7 +11629,14 @@ async function handleAvailabilitySave(availabilityData) {
       const isOwnedByCurrentUser = playerId ? await isPlayerOwnedByCurrentUser(playerId) : false;
       
       // Vérifier si l'utilisateur est admin (super admin, season admin, ou event admin)
-      const canEditThisEvent = eventId ? getCanEditEvent(eventId) : false;
+      // Utiliser canEditEvent (pas canManageComposition) car les casters ne doivent pas modifier les disponibilités
+      let canEditThisEvent = false;
+      if (eventId) {
+        if (!permissionService.isInitialized) {
+          await permissionService.initialize();
+        }
+        canEditThisEvent = await permissionService.canEditEvent(eventId, seasonId.value);
+      }
       
       // Si ce n'est pas le joueur de l'utilisateur ET que l'utilisateur n'est pas admin, bloquer
       if (!isOwnedByCurrentUser && !canEditThisEvent) {
