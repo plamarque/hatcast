@@ -6313,7 +6313,7 @@ async function loadAvailabilityProgressively(players, events, seasonId) {
     logger.debug('🚀 PHASE 1: Recherche du joueur connecté')
     // Phase 1: Charger le joueur connecté en priorité absolue
     const currentPlayer = currentUser.value?.email 
-      ? players.find(p => p.email === currentUser.value.email)
+      ? players.find(p => normalizeEmail(p.email) === normalizeEmail(currentUser.value.email))
       : null
     
     if (currentPlayer) {
@@ -6340,8 +6340,9 @@ async function loadAvailabilityProgressively(players, events, seasonId) {
     
     logger.debug('🚀 PHASE 2: Recherche des joueurs favoris')
     // Phase 2: Charger les joueurs favoris (si connecté et différents du joueur courant)
+    const currentEmailNormalized = normalizeEmail(currentUser.value?.email)
     const favoritePlayers = currentUser.value?.email && preferredPlayerIdsSet.value.size > 0
-      ? players.filter(p => preferredPlayerIdsSet.value.has(p.id) && p.email !== currentUser.value.email)
+      ? players.filter(p => preferredPlayerIdsSet.value.has(p.id) && normalizeEmail(p.email) !== currentEmailNormalized)
       : []
     
     if (favoritePlayers.length > 0) {
@@ -6372,7 +6373,7 @@ async function loadAvailabilityProgressively(players, events, seasonId) {
     // Phase 3: Charger les autres joueurs par petits batches
     const remainingPlayers = players.filter(p => {
       // Exclure le joueur connecté et les favoris déjà chargés
-      const isCurrentPlayer = currentUser.value?.email && p.email === currentUser.value.email
+      const isCurrentPlayer = currentUser.value?.email && normalizeEmail(p.email) === normalizeEmail(currentUser.value.email)
       const isFavorite = preferredPlayerIdsSet.value.has(p.id)
       return !isCurrentPlayer && !isFavorite
     })
@@ -6549,6 +6550,11 @@ function isUserConnected() {
       return !!getFirebaseAuth()?.currentUser?.email || !!localStorage.getItem('userEmail')
 }
 
+// Fonction helper pour normaliser un email (lowercase + trim)
+function normalizeEmail(email) {
+  return email?.toLowerCase().trim() || ''
+}
+
 // Fonction helper pour vérifier si un joueur appartient à l'utilisateur connecté
 async function isPlayerOwnedByCurrentUser(playerId) {
   // Si pas d'utilisateur connecté, retourner false
@@ -6562,7 +6568,10 @@ async function isPlayerOwnedByCurrentUser(playerId) {
     // Le joueur appartient à l'utilisateur si :
     // 1. Il est protégé
     // 2. L'email de protection correspond à l'email de l'utilisateur connecté
-    return protectionData?.isProtected && protectionData?.email === currentUser.value.email
+    // Normaliser les emails avant comparaison pour éviter les problèmes de casse
+    const currentEmail = normalizeEmail(currentUser.value.email)
+    const protectionEmail = normalizeEmail(protectionData?.email)
+    return protectionData?.isProtected && protectionEmail === currentEmail
   } catch (error) {
     logger.warn('Erreur lors de la vérification de propriété du joueur:', error)
     return false
@@ -6794,7 +6803,11 @@ async function openAvailabilityModalForPlayer(player, eventItem) {
   // Si le joueur est protégé, vérifier les permissions
   const isOwnedByCurrentUser = await isPlayerOwnedByCurrentUser(player.id)
   const isUserConnected = !!currentUser.value?.email
-  const canEditThisEvent = getCanEditEvent(eventItem.id)
+  // Utiliser canEditEvent (pas canManageComposition) car les casters ne doivent pas modifier les disponibilités
+  if (!permissionService.isInitialized) {
+    await permissionService.initialize();
+  }
+  const canEditThisEvent = await permissionService.canEditEvent(eventItem.id, seasonId.value)
   
   // Si l'utilisateur n'est pas connecté, ne pas ouvrir la modale
   if (!isUserConnected) {
@@ -11616,7 +11629,14 @@ async function handleAvailabilitySave(availabilityData) {
       const isOwnedByCurrentUser = playerId ? await isPlayerOwnedByCurrentUser(playerId) : false;
       
       // Vérifier si l'utilisateur est admin (super admin, season admin, ou event admin)
-      const canEditThisEvent = eventId ? getCanEditEvent(eventId) : false;
+      // Utiliser canEditEvent (pas canManageComposition) car les casters ne doivent pas modifier les disponibilités
+      let canEditThisEvent = false;
+      if (eventId) {
+        if (!permissionService.isInitialized) {
+          await permissionService.initialize();
+        }
+        canEditThisEvent = await permissionService.canEditEvent(eventId, seasonId.value);
+      }
       
       // Si ce n'est pas le joueur de l'utilisateur ET que l'utilisateur n'est pas admin, bloquer
       if (!isOwnedByCurrentUser && !canEditThisEvent) {

@@ -1,4 +1,4 @@
-0.42.0
-Production build - 2025-11-18
-Git: b110e93
-Build: 2025-11-18T12:04:58+0100
+0.42.1
+Production build - 2025-12-01
+Git: a69a901
+Build: 2025-12-01T09:42:56+0100

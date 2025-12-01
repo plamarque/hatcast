@@ -729,6 +729,11 @@ const isOwnerForPlayer = ref(false)
 // Coachmark simple sur le bouton Protection quand onboardingStep === 4
 const protectionCoachmark = ref({ position: null })
 
+// Fonction helper pour normaliser un email (lowercase + trim)
+function normalizeEmail(email) {
+  return email?.toLowerCase().trim() || ''
+}
+
 // Fonction pour vérifier si le joueur appartient à l'utilisateur courant
 async function isPlayerOwnedByCurrentUser() {
   if (!currentUser.value?.email || !props.player?.id || !props.seasonId) {
@@ -740,7 +745,10 @@ async function isPlayerOwnedByCurrentUser() {
     // Le joueur appartient à l'utilisateur si :
     // 1. Il est protégé
     // 2. L'email de protection correspond à l'email de l'utilisateur connecté
-    return protectionData?.isProtected && protectionData?.email === currentUser.value.email
+    // Normaliser les emails avant comparaison pour éviter les problèmes de casse
+    const currentEmail = normalizeEmail(currentUser.value.email)
+    const protectionEmail = normalizeEmail(protectionData?.email)
+    return protectionData?.isProtected && protectionEmail === currentEmail
   } catch (error) {
     console.warn('Erreur lors de la vérification de propriété du joueur:', error)
     return false

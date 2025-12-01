@@ -1,19 +1,14 @@
-## [0.42.0] - 2025-11-18
-
-### ✨ New Features
-
-- feat: modifier le titre de la modale de disponibilité pour inclure le nom du joueur
-- feat: afficher uniquement les cellules de disponibilité dans l'onglet Disponibilités
-- feat: étendre le déclin automatique lors de la suppression de disponibilité
-- feat: Allow admins to edit player availability
+## [0.42.1] - 2025-12-01
 
 ### 🐛 Bug Fixes
 
-- fix: bloquer le clic sur les cellules de disponibilité des joueurs protégés
+- fix: utiliser canEditEvent au lieu de canManageComposition pour les disponibilités
+- fix: normaliser les emails avant comparaison pour éviter les problèmes de casse
 
 
 # Changelog
 
+## [0.42.1] - 2025-12-01
 ## [0.42.0] - 2025-11-18
 ## [0.41.0] - 2025-11-18
 ## [0.40.1] - 2025-11-13
