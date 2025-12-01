@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.42.1",
+    "date": "2025-12-01",
+    "changes": [
+      "🐛 On utilise maintenant la bonne option pour gérer les disponibilités, c'est plus simple !",
+      "🐛 Les emails sont maintenant normalisés avant d'être comparés, donc plus de soucis de casse !"
+    ]
+  },
+  {
     "version": "0.42.0",
     "date": "2025-11-18",
     "changes": [
