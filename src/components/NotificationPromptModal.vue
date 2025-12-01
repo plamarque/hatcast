@@ -181,7 +181,9 @@ async function sendMagicLink() {
     // Vérifier si l'utilisateur est déjà connecté
     const auth = getFirebaseAuth()
     
-    const isAlreadyConnected = auth?.currentUser?.email === email.value
+    // Normaliser les emails avant comparaison pour éviter les problèmes de casse
+    const normalizeEmail = (e) => e?.toLowerCase().trim() || ''
+    const isAlreadyConnected = normalizeEmail(auth?.currentUser?.email) === normalizeEmail(email.value)
     
     if (isAlreadyConnected) {
       logger.info('✅ Utilisateur déjà connecté, activation directe...')
