@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.42.2",
+    "date": "2025-12-01",
+    "changes": [
+      "🐛 Correction d'un problème où la fenêtre de disponibilité ne s'ouvrait pas correctement depuis la fenêtre de détail d'événement."
+    ]
+  },
+  {
     "version": "0.42.1",
     "date": "2025-12-01",
     "changes": [

@@ -1,13 +1,13 @@
-## [0.42.1] - 2025-12-01
+## [0.42.2] - 2025-12-01
 
 ### 🐛 Bug Fixes
 
-- fix: utiliser canEditEvent au lieu de canManageComposition pour les disponibilités
-- fix: normaliser les emails avant comparaison pour éviter les problèmes de casse
+- fix: utiliser openAvailabilityModalForPlayer dans openAvailabilityModalFromEventDetails
 
 
 # Changelog
 
+## [0.42.2] - 2025-12-01
 ## [0.42.1] - 2025-12-01
 ## [0.42.0] - 2025-11-18
 ## [0.41.0] - 2025-11-18
