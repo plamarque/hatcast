@@ -187,17 +187,16 @@ export function calculateExactSelectionProbability(places, candidates, targetInd
     return places / candidates.length
   }
   
-  // Pour les cas avec pondération, utiliser une approximation itérative plus rapide
+  // Pour les cas avec pondération, utiliser une approximation améliorée
   // qui calcule la probabilité de ne pas être sélectionné sur tous les tirages
   let probNotSelected = 1
-  let remainingCandidates = candidates.length
+  let remainingCandidates = [...candidates] // Copie pour ne pas modifier l'original
   let remainingTotalWeight = totalWeight
-  const otherCandidatesWeight = totalWeight - targetWeight
   
-  // Approximation : à chaque tirage, on estime la probabilité de ne pas être sélectionné
-  // en supposant qu'en moyenne, un candidat avec un poids proportionnel est sélectionné
+  // Approximation améliorée : à chaque tirage, on calcule la probabilité
+  // en tenant compte de la distribution réelle des poids
   for (let tirage = 1; tirage <= places; tirage++) {
-    if (remainingCandidates <= 1) break
+    if (remainingCandidates.length <= 1) break
     
     // Probabilité d'être sélectionné à ce tirage
     const probSelectedThisTirage = targetWeight / remainingTotalWeight
@@ -208,11 +207,43 @@ export function calculateExactSelectionProbability(places, candidates, targetInd
     // Mettre à jour la probabilité globale
     probNotSelected *= probNotSelectedThisTirage
     
-    // Estimer le poids moyen des autres candidats qui seront sélectionnés
-    // On retire en moyenne un candidat avec un poids proportionnel
-    const avgOtherWeight = otherCandidatesWeight / (remainingCandidates - 1)
-    remainingTotalWeight -= avgOtherWeight
-    remainingCandidates--
+    // Calculer le poids attendu du candidat qui sera sélectionné
+    // en utilisant la moyenne pondérée des autres candidats
+    let expectedWeightRemoved = 0
+    const targetCandidate = remainingCandidates.find(c => c === candidates[targetIndex])
+    const otherCandidates = remainingCandidates.filter(c => c !== targetCandidate)
+    const otherTotalWeight = remainingTotalWeight - targetWeight
+    
+    if (otherCandidates.length > 0 && otherTotalWeight > 0) {
+      // Le poids attendu est la moyenne pondérée des poids des autres candidats
+      // Chaque candidat a une probabilité d'être sélectionné proportionnelle à son poids
+      for (const candidate of otherCandidates) {
+        const probCandidateSelected = candidate.weight / remainingTotalWeight
+        expectedWeightRemoved += probCandidateSelected * candidate.weight
+      }
+    } else {
+      // Fallback si pas d'autres candidats
+      expectedWeightRemoved = otherTotalWeight / Math.max(1, otherCandidates.length)
+    }
+    
+    // Mettre à jour les valeurs pour le prochain tirage
+    remainingTotalWeight -= expectedWeightRemoved
+    // Retirer un candidat autre que le candidat cible (approximation)
+    // On retire le candidat avec le poids le plus proche du poids attendu
+    if (remainingCandidates.length > 1 && otherCandidates.length > 0) {
+      // Trouver le candidat avec le poids le plus proche du poids attendu
+      let closestCandidate = otherCandidates[0]
+      let minDiff = Math.abs(closestCandidate.weight - expectedWeightRemoved)
+      for (const candidate of otherCandidates) {
+        const diff = Math.abs(candidate.weight - expectedWeightRemoved)
+        if (diff < minDiff) {
+          minDiff = diff
+          closestCandidate = candidate
+        }
+      }
+      // Retirer ce candidat de la liste, mais garder le candidat cible
+      remainingCandidates = remainingCandidates.filter(c => c !== closestCandidate)
+    }
   }
   
   // Probabilité d'être sélectionné = 1 - probabilité de ne pas être sélectionné
