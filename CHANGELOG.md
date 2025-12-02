@@ -1,12 +1,13 @@
-## [0.42.3] - 2025-12-02
+## [0.42.4] - 2025-12-02
 
 ### 🐛 Bug Fixes
 
-- fix: verify permissions before allowing availability modifications
+- fix: improve selection probability calculation accuracy
 
 
 # Changelog
 
+## [0.42.4] - 2025-12-02
 ## [0.42.3] - 2025-12-02
 ## [0.42.2] - 2025-12-01
 ## [0.42.1] - 2025-12-01
