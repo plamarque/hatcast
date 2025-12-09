@@ -113,27 +113,23 @@
       <label class="block text-sm font-medium text-gray-300 mb-2">
         Commentaire (optionnel)
       </label>
-      <textarea
-        v-model="comment"
-        :disabled="isReadOnly"
-        placeholder="Ex: Dispo à partir de 16H pour monter le plateau..."
-        class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white resize-none"
-        :class="{ 'opacity-50 cursor-not-allowed': isReadOnly }"
-        rows="2"
-      ></textarea>
-    </div>
-    <!-- Actions: bouton Enregistrer intégré -->
-    <div class="flex justify-end mt-4">
-      <button
-        @click="onSaveClick"
-        :disabled="isReadOnly || !canSave"
-        :class="[
-          'px-6 py-2 text-white rounded-lg transition-colors font-medium',
-          (!isReadOnly && canSave) ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 text-gray-300 cursor-not-allowed'
-        ]"
-      >
-        Enregistrer
-      </button>
+      <div class="flex gap-3 items-start">
+        <textarea
+          v-model="comment"
+          :disabled="isReadOnly"
+          placeholder="Ex: Dispo à partir de 16H pour monter le plateau..."
+          class="flex-1 p-3 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white resize-none"
+          :class="{ 'opacity-50 cursor-not-allowed': isReadOnly }"
+          rows="2"
+        ></textarea>
+        <button
+          v-if="canSave && !isReadOnly"
+          @click="onSaveClick"
+          class="px-6 py-2 text-white rounded-lg transition-colors font-medium bg-purple-600 hover:bg-purple-700 flex-shrink-0"
+        >
+          Enregistrer
+        </button>
+      </div>
     </div>
   </div>
 </template>

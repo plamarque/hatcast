@@ -3346,7 +3346,7 @@ const showCalendarDropdown = ref(false)
 const showEventActionsDropdown = ref(false)
 
 // État de l'affichage des détails de l'événement
-const showEventDetailsSection = ref(true)
+const showEventDetailsSection = ref(false)
 
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
@@ -9133,9 +9133,6 @@ function closeEventDetails() {
   
   // Fermer le dropdown des actions d'événement
   showEventActionsDropdown.value = false;
-  
-  // Remettre les détails de l'événement visibles par défaut
-  showEventDetailsSection.value = true;
   
   // Fermer le dropdown Google Maps
   showGoogleMapsDropdown.value = false;
