@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.42.5",
+    "date": "2025-12-09",
+    "changes": [
+      "🐛 On a amélioré l'expérience utilisateur du bouton de sauvegarde dans la fenêtre de disponibilité.",
+      "🐛 Les panneaux de détail d'événement se replient par défaut maintenant."
+    ]
+  },
+  {
     "version": "0.42.4",
     "date": "2025-12-02",
     "changes": [

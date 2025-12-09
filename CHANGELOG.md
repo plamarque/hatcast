@@ -1,12 +1,14 @@
-## [0.42.4] - 2025-12-02
+## [0.42.5] - 2025-12-09
 
 ### 🐛 Bug Fixes
 
-- fix: improve selection probability calculation accuracy
+- fix: improve save button UX in availability modal
+- fix: collapse event details panels by default
 
 
 # Changelog
 
+## [0.42.5] - 2025-12-09
 ## [0.42.4] - 2025-12-02
 ## [0.42.3] - 2025-12-02
 ## [0.42.2] - 2025-12-01
