@@ -1,13 +1,13 @@
-## [0.42.5] - 2025-12-09
+## [0.43.0] - 2025-12-10
 
-### 🐛 Bug Fixes
+### ✨ New Features
 
-- fix: improve save button UX in availability modal
-- fix: collapse event details panels by default
+- feat: agenda view default on mobile with simplified dropdown
 
 
 # Changelog
 
+## [0.43.0] - 2025-12-10
 ## [0.42.5] - 2025-12-09
 ## [0.42.4] - 2025-12-02
 ## [0.42.3] - 2025-12-02

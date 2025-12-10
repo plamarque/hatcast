@@ -2045,6 +2045,7 @@ import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
 import { getTruncatedLocation } from '../utils/locationUtils.js'
+import { isMobileOrPWA } from '../utils/deviceDetection.js'
 import { getPlayerCastStatus, getPlayerCastRole, movePlayerToDeclined } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
 import { calculateAllRoleChances, calculateRoleChances, performWeightedDraw, calculatePlayerChanceForRole, formatChancePercentage, getChanceColorClass, getMalusColorClass } from '../services/chancesService.js'
@@ -2434,12 +2435,23 @@ const isScrolled = ref(false)
 const VALID_VIEWS = ['events', 'participants', 'timeline', 'casts']
 const DEFAULT_VIEW = 'events'
 
+// Clé de migration pour marquer la migration vers agenda sur mobile/PWA
+const MIGRATION_KEY = 'hatcast-view-migrated-to-agenda-mobile-v1'
+
+// Fonction pour obtenir la vue par défaut selon le contexte
+function getDefaultView() {
+  if (isMobileOrPWA()) {
+    return 'timeline' // Agenda sur mobile/PWA
+  }
+  return 'events' // Spectacles sur desktop
+}
+
 // Fonction utilitaire pour valider et obtenir une vue valide
 const getValidView = (view) => {
   if (VALID_VIEWS.includes(view)) {
     return view
   }
-  return DEFAULT_VIEW
+  return getDefaultView()
 }
 
 // Supprimé - on utilise directement validCurrentView maintenant
@@ -2447,11 +2459,26 @@ const showViewToggle = ref(false)
 
 // État de la vue (lignes, colonnes, chronologique)
 const currentView = ref((() => {
-  // Charger la préférence depuis le localStorage
+  // Logique de migration ponctuelle pour mobile/PWA
+  const isMobile = isMobileOrPWA()
+  const migrationDone = localStorage.getItem(MIGRATION_KEY) === 'true'
   const savedView = localStorage.getItem('hatcast-view-preference')
   
-  // Valider et retourner une vue valide
-  return getValidView(savedView)
+  if (isMobile && !migrationDone) {
+    // Migration ponctuelle : forcer 'timeline' sur mobile/PWA une seule fois
+    const migratedView = 'timeline'
+    localStorage.setItem('hatcast-view-preference', migratedView)
+    localStorage.setItem(MIGRATION_KEY, 'true')
+    logger.debug('✅ Migration vers vue agenda effectuée sur mobile/PWA')
+    return migratedView
+  }
+  
+  // Comportement normal : charger la préférence sauvegardée ou utiliser la vue par défaut
+  if (savedView && VALID_VIEWS.includes(savedView)) {
+    return savedView
+  }
+  
+  return getDefaultView()
 })())
 
 // Computed pour s'assurer qu'on a toujours une vue valide
@@ -3422,15 +3449,25 @@ async function openPreferences() {
 
 // Fonction d'initialisation du mode de vue
 function initializeViewMode() {
-  // Toujours charger la préférence sauvegardée, ne pas l'écraser
+  // Logique de migration ponctuelle pour mobile/PWA
+  const isMobile = isMobileOrPWA()
+  const migrationDone = localStorage.getItem(MIGRATION_KEY) === 'true'
   const savedView = localStorage.getItem('hatcast-view-preference')
-  if (savedView && VALID_VIEWS.includes(savedView)) {
+  
+  if (isMobile && !migrationDone) {
+    // Migration ponctuelle : forcer 'timeline' sur mobile/PWA une seule fois
+    currentView.value = 'timeline'
+    localStorage.setItem('hatcast-view-preference', 'timeline')
+    localStorage.setItem(MIGRATION_KEY, 'true')
+    logger.debug('✅ Migration vers vue agenda effectuée sur mobile/PWA')
+  } else if (savedView && VALID_VIEWS.includes(savedView)) {
+    // Charger la préférence sauvegardée
     currentView.value = savedView
     logger.debug('✅ Mode de vue restauré depuis localStorage:', savedView)
   } else {
-    // Vue par défaut pour tous les utilisateurs (connectés ou non)
-    currentView.value = 'timeline'
-    logger.debug('✅ Mode de vue par défaut: timeline (tous les utilisateurs)')
+    // Vue par défaut selon le contexte (mobile/PWA ou desktop)
+    currentView.value = getDefaultView()
+    logger.debug(`✅ Mode de vue par défaut: ${getDefaultView()} (${isMobile ? 'mobile/PWA' : 'desktop'})`)
   }
   
   showViewToggle.value = true
