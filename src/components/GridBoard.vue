@@ -11987,22 +11987,27 @@ async function handleConfirmationConfirm(data) {
       // Get the selection role for this player
       const selectionRole = getPlayerSelectionRole(data.playerName, data.eventId)
       
+      // PRESERVE all existing roles and ensure selection role is included
+      // Don't overwrite existing roles with only the selection role
+      const existingRoles = availability.value?.[data.playerName]?.[data.eventId]?.roles || []
+      const rolesToSave = [...new Set([...existingRoles, ...(selectionRole ? [selectionRole] : [])])]
+      
       await saveAvailabilityWithRoles({
         seasonId: seasonId.value,
         playerName: data.playerName,
         eventId: data.eventId,
         available: true,
-        roles: selectionRole ? [selectionRole] : (availability.value?.[data.playerName]?.[data.eventId]?.roles || []),
+        roles: rolesToSave,
         comment: data.comment || null
       })
 
-      // Update local cache with selection role
+      // Update local cache preserving all roles
       if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
       const prev = availability.value[data.playerName][data.eventId] || { available: true, roles: [], comment: null }
       availability.value[data.playerName][data.eventId] = { 
         ...prev, 
         available: true, 
-        roles: selectionRole ? [selectionRole] : prev.roles,
+        roles: rolesToSave, // Use the same preserved roles
         comment: data.comment || null 
       }
     }
@@ -12051,22 +12056,31 @@ async function handleConfirmationDecline(data) {
     await handlePlayerSelectionStatusToggle(data.playerName, data.eventId, 'declined', seasonId.value)
 
     // Save/update availability comment when declining
+    // IMPORTANT: Preserve existing availability roles - declining a selection should NOT delete availability data
+    // The player is still available for other roles, they just declined THIS specific selection
     if (typeof data.comment === 'string') {
       const { saveAvailabilityWithRoles } = await import('../services/storage.js')
+      
+      // PRESERVE all existing roles - don't delete them when declining
+      const existingRoles = availability.value?.[data.playerName]?.[data.eventId]?.roles || []
+      const existingAvailable = availability.value?.[data.playerName]?.[data.eventId]?.available ?? true
+      
+      // Save availability with preserved roles and availability status
+      // Only update the comment, don't change availability or roles
       await saveAvailabilityWithRoles({
         seasonId: seasonId.value,
         playerName: data.playerName,
         eventId: data.eventId,
-        available: false,
-        roles: [],
+        available: existingAvailable, // Preserve existing availability status
+        roles: existingRoles, // Preserve all existing roles
         comment: data.comment || null
       })
 
-      // Update local cache
+      // Update local cache preserving all roles
       if (!availability.value[data.playerName]) availability.value[data.playerName] = {}
       availability.value[data.playerName][data.eventId] = {
-        available: false,
-        roles: [],
+        available: existingAvailable, // Preserve existing availability status
+        roles: existingRoles, // Preserve all existing roles
         comment: data.comment || null
       }
     }
