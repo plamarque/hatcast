@@ -1534,12 +1534,28 @@ const selectionMessage = computed(() => {
 })
 
 // Watchers
-watch(() => props.show, (newValue) => {
+watch(() => props.show, async (newValue) => {
   if (newValue) {
     // Arrêter tout tirage en cours au cas où (protection contre les rafraîchissements)
     if (isSimulating.value) {
       console.log('🛑 Aborting any running draw when opening modal')
       abortDraw()
+    }
+    
+    // Forcer le rechargement des permissions lors de l'ouverture de la modale
+    // pour s'assurer que les permissions d'admin d'événement sont à jour
+    if (props.event?.id && props.seasonId) {
+      try {
+        if (!permissionService.isInitialized) {
+          await permissionService.initialize()
+        }
+        // Forcer le rechargement (ignorer le cache) pour détecter les nouvelles permissions
+        canManageCompositionValue.value = await permissionService.canManageComposition(props.event.id, props.seasonId, true)
+        logger.debug(`🔐 Permissions rechargées lors de l'ouverture de la modale pour l'événement ${props.event.id}`)
+      } catch (error) {
+        logger.warn(`⚠️ Erreur lors de la vérification des permissions de composition lors de l'ouverture:`, error)
+        canManageCompositionValue.value = props.canEditEvents
+      }
     }
     
     copied.value = false

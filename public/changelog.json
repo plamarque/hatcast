@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.43.1",
+    "date": "2026-01-07",
+    "changes": [
+      "🐛 On a corrigé un problème qui faisait perdre les rôles de disponibilité des joueurs quand on confirmait ou déclinait une sélection."
+    ]
+  },
+  {
     "version": "0.43.0",
     "date": "2025-12-10",
     "changes": [

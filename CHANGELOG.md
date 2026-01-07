@@ -1,12 +1,13 @@
-## [0.43.0] - 2025-12-10
+## [0.43.1] - 2026-01-07
 
-### ✨ New Features
+### 🐛 Bug Fixes
 
-- feat: agenda view default on mobile with simplified dropdown
+- fix: preserve player availability roles when confirming or declining selection
 
 
 # Changelog
 
+## [0.43.1] - 2026-01-07
 ## [0.43.0] - 2025-12-10
 ## [0.42.5] - 2025-12-09
 ## [0.42.4] - 2025-12-02

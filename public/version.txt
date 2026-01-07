@@ -1,4 +1,4 @@
-0.43.0
-Production build - 2025-12-10
-Git: 7f395e6
-Build: 2025-12-10T11:58:26+0100
+0.43.1
+Production build - 2026-01-07
+Git: 9e36726
+Build: 2026-01-07T18:47:49+0100
