@@ -17,6 +17,7 @@ Treat these as authoritative. When they conflict with code, flag the conflict; d
 | **DOMAIN.md** | Domain language, entities, business rules. |
 | **ARCH.md** | Architecture as-is; topology; data flows; config; testing. |
 | **PLAN.md** | Slices, tasks, order, status. Only place for "when / in which order." |
+| **ISSUES.md** | Issue registry (bugs, defects, limitations). Informational; not normative. |
 | **docs/adr/** | Recorded decisions. Refer to ADRs for "why" and alternatives. |
 | **docs/technical/COMMIT_MESSAGE_GUIDELINES.md** | Commit message format (Conventional Commits). Mandatory when creating or suggesting commits. |
 
@@ -30,6 +31,16 @@ Code and config are the **runtime** source of truth. The docs above describe int
 - **Plan / tracking (WHEN, IN WHICH ORDER):** PLAN.md only. May reference SPEC/DOMAIN for goals; SPEC must not reference PLAN or task lists.
 
 When adding or editing content, keep this separation. Do not put "Slice 2" or "Phase 3" in SPEC or DOMAIN.
+
+---
+
+## Issue tracking
+
+- **ISSUES.md** is the single place to record all bugs, defects, known limitations, and anomalous behaviors. Agents **must** record these in ISSUES.md when discovered or reported.
+- Agents **must not** add issues (or bug lists) to SPEC.md; SPEC describes required/desired behaviour and scope, not defect lists.
+- Agents **must not** turn an issue into a requirement or spec change without explicit approval; recording in ISSUES is factual, not a decision to implement a fix or change the spec.
+- **PLAN.md** may reference issue IDs (e.g. "Fix BUG-001" in a slice task) to schedule or track fixes, but must **not** duplicate full issue descriptions; the authoritative description stays in ISSUES.md.
+- ISSUES.md is informational (non-normative); it does not override SPEC, PLAN, or ARCH.
 
 ---
 

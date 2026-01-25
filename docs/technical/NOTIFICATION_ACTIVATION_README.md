@@ -2,9 +2,9 @@
 
 ## Vue d'ensemble
 
-Cette fonctionnalité incite les utilisateurs non connectés à activer les notifications lorsqu'ils consultent un événement via un lien direct (partagé par email/message) et cliquent sur une cellule de disponibilité dans la modal de détails de l'événement. Elle suit le flow suivant :
+Cette fonctionnalité incite les utilisateurs non connectés à activer les notifications lorsqu'ils consultent un événement via un lien direct (partagé par email/message) et cliquent sur un joueur (nom, avatar ou ligne) dans l'onglet Disponibilités de la modal de détails de l'événement pour modifier sa disponibilité. Elle suit le flow suivant :
 
-1. **Détection** : L'utilisateur non connecté clique sur une cellule de disponibilité dans la modal de détails d'événement
+1. **Détection** : L'utilisateur non connecté clique sur un joueur (nom, avatar ou ligne) dans l'onglet Disponibilités de la modal de détails d'événement
 2. **Proposition** : Affichage d'une modal avec le message "Joueur, ne rates rien à propos de [événement]. Reçois des notifs."
 3. **Activation** : Email + magic link + association du joueur + activation des préférences de notification
 
@@ -53,7 +53,7 @@ Cette fonctionnalité incite les utilisateurs non connectés à activer les noti
    ↓
 2. Clic sur le lien → ouverture de la modal de détails de l'événement
    ↓
-3. Clic sur une cellule de disponibilité dans la modal
+3. Clic sur un joueur (nom, avatar ou ligne) dans l'onglet Disponibilités de la modal
    ↓
 4. Détection : shouldPromptForNotifications() + utilisateur non connecté
    ↓
@@ -112,7 +112,7 @@ Cette hiérarchie garantit une expérience utilisateur cohérente sans problème
 ### Pour les utilisateurs
 1. Recevoir un lien vers le détail d'un événement (par email/message)
 2. Cliquer sur le lien et ouvrir la modal de détails
-3. Cliquer sur une cellule de disponibilité sans être connecté
+3. Cliquer sur un joueur (nom, avatar ou ligne) dans l'onglet Disponibilités sans être connecté
 4. Saisir son email dans la modal d'incitation
 5. Vérifier sa boîte mail et cliquer sur le lien d'activation
 6. Les notifications sont automatiquement activées
@@ -136,7 +136,7 @@ Cette hiérarchie garantit une expérience utilisateur cohérente sans problème
 ### Test manuel
 1. Ouvrir l'application sans être connecté
 2. Ouvrir la modal de détails d'un événement
-3. Cliquer sur une cellule de disponibilité dans la modal
+3. Cliquer sur un joueur (nom, avatar ou ligne) dans l'onglet Disponibilités de la modal
 4. Vérifier l'affichage de la modal d'incitation
 5. Tester le processus complet d'activation
 

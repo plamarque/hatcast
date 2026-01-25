@@ -3,7 +3,7 @@
 
     <!-- Affichage de tous les joueurs si pas de rôles définis -->
     <div v-if="availableRoles.length === 0" class="space-y-2">
-      <div class="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50">
+      <div class="bg-gray-800/50 rounded-lg p-1 sm:p-2 md:p-3 border border-gray-700/50">
         <!-- En-tête -->
         <div class="flex items-center justify-between mb-1 sm:mb-2">
           <div class="flex items-center gap-2">
@@ -15,12 +15,19 @@
           </div>
         </div>
 
-        <!-- Liste de tous les joueurs -->
+        <!-- Liste de tous les joueurs (padding/gap réduits sur mobile) -->
         <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-0.5 sm:gap-1.5">
           <div
             v-for="player in props.players"
             :key="player.id"
-            class="flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent"
+            role="button"
+            tabindex="0"
+            class="flex items-center gap-1 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent cursor-pointer"
+            :class="{ 'cursor-not-allowed opacity-60': selectedEvent.archived }"
+            :title="selectedEvent.archived ? '' : 'Cliquer pour modifier la disponibilité'"
+            @click="!selectedEvent.archived && openAvailabilityForPlayer(player)"
+            @keydown.enter.prevent="!selectedEvent.archived && openAvailabilityForPlayer(player)"
+            @keydown.space.prevent="!selectedEvent.archived && openAvailabilityForPlayer(player)"
           >
             <!-- Avatar du joueur -->
             <div class="relative flex-shrink-0">
@@ -45,35 +52,6 @@
             <span class="text-white text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
               {{ player.name }}
             </span>
-
-            <!-- Disponibilité du joueur -->
-            <div class="flex-shrink-0 w-20 h-20 aspect-square">
-              <AvailabilityCell
-                :player-id="player.id"
-                :player-name="player.name"
-                :event-id="selectedEvent.id"
-                :is-available="isAvailable(player.name, selectedEvent.id)"
-                :is-selected="isPlayerSelected(player.name, selectedEvent.id)"
-                :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                :player-selection-status="getPlayerSelectionStatus(player.name, selectedEvent.id)"
-                :season-id="seasonId"
-                :player-gender="player.gender || 'non-specified'"
-                :show-selected-chance="false"
-                :disabled="selectedEvent.archived === true"
-                :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                :event-title="selectedEvent.title"
-                :event-date="selectedEvent.date"
-                :is-protected="isPlayerProtectedInGrid(player.id)"
-                :compact="true"
-                :simplified-display="true"
-                :hide-selection-status="true"
-                @toggle="handleAvailabilityToggle"
-                @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                @show-availability-modal="openAvailabilityModal"
-                @show-confirmation-modal="openConfirmationModal"
-              />
-            </div>
           </div>
         </div>
         
@@ -91,7 +69,7 @@
       <div 
         v-for="role in availableRoles" 
         :key="role"
-        class="bg-gray-800/50 rounded-lg p-2 sm:p-3 border border-gray-700/50"
+        class="bg-gray-800/50 rounded-lg p-1 sm:p-2 md:p-3 border border-gray-700/50"
       >
         <!-- En-tête du rôle -->
         <div class="flex items-center justify-between mb-1 sm:mb-2">
@@ -133,103 +111,80 @@
           </div>
         </div>
 
-        <!-- Liste des joueurs disponibles pour ce rôle -->
+        <!-- Liste des joueurs disponibles pour ce rôle (padding/gap réduits sur mobile pour plus de place au nom) -->
         <div v-if="isRoleExpanded(role)" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-0.5 sm:gap-1.5">
           <div
             v-for="player in getPlayersForRole(role)"
             :key="player.id"
-            class="flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent"
+            role="button"
+            tabindex="0"
+            class="flex items-center gap-1 p-1 sm:p-2 rounded-lg border transition-all duration-200 hover:bg-gray-700/50 border-transparent cursor-pointer"
+            :class="{ 'cursor-not-allowed opacity-60': selectedEvent.archived }"
+            :title="selectedEvent.archived ? '' : 'Cliquer pour modifier la disponibilité'"
+            @click="!selectedEvent.archived && openAvailabilityForPlayer(player, role)"
+            @keydown.enter.prevent="!selectedEvent.archived && openAvailabilityForPlayer(player, role)"
+            @keydown.space.prevent="!selectedEvent.archived && openAvailabilityForPlayer(player, role)"
           >
             <!-- Design classique pour tous les joueurs (disponibilité uniquement) -->
             <!-- Avatar du joueur -->
-                <div class="relative flex-shrink-0">
-                  <PlayerAvatar 
-                    :player-id="player.id"
-                    :season-id="seasonId"
-                    :player-name="player.name"
-                    :player-gender="player.gender || 'non-specified'"
-                    size="sm"
-                  />
-                  <!-- Statuts superposés -->
-                  <span
-                    v-if="preferredPlayerIdsSet.has(player.id)"
-                    class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center border border-gray-700"
-                    title="Ma personne"
-                  >
-                    ⭐
+            <div class="relative flex-shrink-0">
+              <PlayerAvatar 
+                :player-id="player.id"
+                :season-id="seasonId"
+                :player-name="player.name"
+                :player-gender="player.gender || 'non-specified'"
+                size="sm"
+              />
+              <!-- Statuts superposés -->
+              <span
+                v-if="preferredPlayerIdsSet.has(player.id)"
+                class="absolute -top-1 -right-1 text-yellow-400 text-xs bg-gray-900 rounded-full w-3 h-3 sm:w-4 sm:h-4 flex items-center justify-center border border-gray-700"
+                title="Ma personne"
+              >
+                ⭐
+              </span>
+              <div class="absolute -top-1 -right-1">
+                <CustomTooltip
+                  v-if="!isPlayerProtectedInGrid(player.id)"
+                  :content="getUnprotectedPlayerTooltip(player)"
+                  position="bottom"
+                >
+                  <span class="text-orange-400 text-xs">
+                    ⚠️
                   </span>
-                  <div class="absolute -top-1 -right-1">
-                    <CustomTooltip
-                      v-if="!isPlayerProtectedInGrid(player.id)"
-                      :content="getUnprotectedPlayerTooltip(player)"
-                      position="bottom"
-                    >
-                      <span class="text-orange-400 text-xs">
-                        ⚠️
-                      </span>
-                    </CustomTooltip>
-                  </div>
-                </div>
+                </CustomTooltip>
+              </div>
+            </div>
 
-                <!-- Conteneur vertical pour nom et pourcentages -->
-                <div class="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <!-- Nom du joueur -->
-                  <span class="text-white text-xs sm:text-sm font-medium truncate">
-                    {{ player.name }}
-                  </span>
+            <!-- Conteneur horizontal : nom à gauche, pourcentages alignés à droite (gap réduit sur mobile) -->
+            <div class="flex-1 min-w-0 flex flex-row items-center justify-between gap-1 sm:gap-2">
+              <!-- Nom du joueur (tronqué si besoin pour laisser la place aux %) -->
+              <span class="text-white text-xs sm:text-sm font-medium truncate min-w-0 flex-1">
+                {{ player.name }}
+              </span>
 
-                  <!-- Pourcentage de chances -->
-                  <div class="flex items-center gap-1">
-                    <span 
-                      @click="showChanceDetails($event, player.name, role, false)"
-                      data-chance-element
-                      class="px-1 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                      :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
-                      :title="`Cliquer pour voir le détail du calcul`"
-                    >
-                      {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
-                    </span>
-                    <span 
-                      v-if="showBrunoAlgorithm" 
-                      @click="showChanceDetails($event, player.name, role, true)"
-                      data-chance-element
-                      class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors hidden sm:inline" 
-                      title="Algorithme Bruno - Cliquer pour voir le détail"
-                    >
-                      ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Disponibilité du joueur -->
-                <div class="flex-shrink-0 w-20 h-20 aspect-square">
-                  <AvailabilityCell
-                    :player-name="player.name"
-                    :event-id="selectedEvent.id"
-                    :is-available="isAvailable(player.name, selectedEvent.id)"
-                    :is-selected="isPlayerSelectedForRole(player.name, role, selectedEvent.id)"
-                    :is-selection-confirmed="isSelectionConfirmed(selectedEvent.id)"
-                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent.id)"
-                    :player-selection-status="getPlayerSelectionStatusForRole(player.name, role, selectedEvent.id)"
-                    :season-id="seasonId"
-                    :player-gender="player.gender || 'non-specified'"
-                    :chance-percent="getPlayerChanceForRole(player.name, role, selectedEvent.id)"
-                    :show-selected-chance="false"
-                    :disabled="selectedEvent.archived === true"
-                    :availability-data="getAvailabilityData(player.name, selectedEvent.id)"
-                    :event-title="selectedEvent.title"
-                    :event-date="selectedEvent.date"
-                    :is-protected="isPlayerProtectedInGrid(player.id)"
-                    :compact="true"
-                    :simplified-display="true"
-                    :assigned-role="role"
-                    :hide-selection-status="true"
-                    @toggle="handleAvailabilityToggle"
-                    @toggle-selection-status="handlePlayerSelectionStatusToggle"
-                    @show-availability-modal="openAvailabilityModal"
-                    @show-confirmation-modal="openConfirmationModal"
-                  />
-                </div>
+              <!-- Pourcentage de chances, alignés à droite (largeur réduite sur mobile pour laisser plus de place au nom) -->
+              <div class="flex flex-shrink-0 items-center justify-end gap-1 min-w-[2.25rem] sm:min-w-[4.5rem] text-right">
+                <span 
+                  data-chance-element
+                  class="px-1 py-0.5 rounded text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                  :class="getChanceColorClass(getPlayerChanceForRole(player.name, role, selectedEvent.id))"
+                  title="Cliquer pour voir le détail du calcul"
+                  @click.stop="showChanceDetails($event, player.name, role, false)"
+                >
+                  {{ getPlayerChanceForRole(player.name, role, selectedEvent.id) || 0 }}%
+                </span>
+                <span 
+                  v-if="showBrunoAlgorithm"
+                  data-chance-element
+                  class="text-gray-400 text-xs cursor-pointer hover:text-gray-300 transition-colors hidden sm:inline"
+                  title="Algorithme Bruno - Cliquer pour voir le détail"
+                  @click.stop="showChanceDetails($event, player.name, role, true)"
+                >
+                  ({{ getPlayerChanceForRoleBruno(player.name, role, selectedEvent.id) || 0 }}%)
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- Message si aucun joueur disponible -->
@@ -509,7 +464,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
-import AvailabilityCell from './AvailabilityCell.vue'
 import CustomTooltip from './CustomTooltip.vue'
 import ChanceExplanationSlides from './ChanceExplanationSlides.vue'
 import { 
@@ -856,6 +810,24 @@ function getPlayerChanceForRoleBruno(playerName, role, eventId) {
   console.log('🔍 Candidat Bruno trouvé:', candidate)
   
   return candidate ? Math.round(candidate.brunoChance) : null
+}
+
+function openAvailabilityForPlayer(player, role = null) {
+  if (!props.selectedEvent || props.selectedEvent.archived) return
+  const chancePercent = role != null ? getPlayerChanceForRole(player.name, role, props.selectedEvent.id) : null
+  props.openAvailabilityModal({
+    playerName: player.name,
+    playerId: player.id,
+    playerGender: player.gender || 'non-specified',
+    eventId: props.selectedEvent.id,
+    eventTitle: props.selectedEvent.title || '',
+    eventDate: props.selectedEvent.date || '',
+    availabilityData: props.getAvailabilityData(player.name, props.selectedEvent.id),
+    isReadOnly: false,
+    chancePercent,
+    isProtected: props.isPlayerProtectedInGrid(player.id),
+    eventRoles: props.selectedEvent?.roles || {}
+  })
 }
 
 function getChanceExplanationBruno(playerName, role) {

@@ -1009,7 +1009,7 @@ export async function confirmCast(eventId, seasonId) {
 export async function unconfirmCast(eventId, seasonId) {
   try {
     // Préserver TOUS les statuts des joueurs lors du déverrouillage
-    const currentData = await firestoreService.getDocument('seasons', seasonId, 'selections', eventId)
+    const currentData = await firestoreService.getDocument('seasons', seasonId, 'casts', eventId)
     const preservedPlayerStatuses = {}
     
     if (currentData && currentData.playerStatuses) {

@@ -1,16 +1,16 @@
-## [0.44.0] - 2026-01-25
+## [0.44.1] - 2026-01-25
 
 ### 📝 Other Changes
 
-- docs: link commit guidelines to AGENTS and DEVELOPMENT
-- docs: documenter la commande de release dans DEVELOPMENT.md
-- hint for cursor to run dev server
-- Grand ménage + doc normative et slices
-- tri des dispos par %
+- fix(composition): Preserve player statuses on unlock (BUG-001)
+- docs: Plan next developments and add formal issue tracking
+- docs: Align notification docs with availability tab row-click UX
+- feat(ui): Event details Availability tab row-click and mobile layout
 
 
 # Changelog
 
+## [0.44.1] - 2026-01-25
 ## [0.44.0] - 2026-01-25
 ## [0.43.1] - 2026-01-07
 ## [0.43.0] - 2025-12-10

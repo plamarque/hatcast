@@ -50,6 +50,7 @@ HatCast is a web application for organising improvisation shows: managing **seas
 **Must have (in use today):**
 
 - Seasons, events, players; availability per player/event; weighted draw; casts and cast status (pending/confirmed/declined).
+- **Event-details Availability tab (Disponibilités):** When the list of players is shown (all players or grouped by role), the availability status cell is not displayed. The availability-choices popup is opened by clicking the player row (name, avatar, or the full highlighted box). Clicking the chance-percentage numbers (in the by-role view) opens the chance-detail popup(s) only, not the availability popup.
 - Auth (email/password, magic link, Google); password reset; season join and accept invitation; player claim.
 - Season admin (CRUD season, events, players; run draw; invitations); access control via admins + Super Admin.
 - Firestore persistence with current security rules; multi-database support for environments.
@@ -71,6 +72,32 @@ HatCast is a web application for organising improvisation shows: managing **seas
 **Won't (out of scope for this spec):**
 
 - Features not present in the repo or explicitly requested. No inference of future product roadmap.
+
+---
+
+## Recorded slices (planned capabilities)
+
+Slices below describe desired behaviour to be implemented later. Implementation order and tasks will be defined in PLAN.md when a slice is scheduled.
+
+- **Event-details tabs – Info as first tab**
+  - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of a **first tab**, e.g. "Info" or "Détails".
+  - The event-details view has **two or three tabs**: (1) **Info** (first), (2) **Disponibilités**, (3) **Composition** (shown only when a composition exists for the event).
+  - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Info)** is displayed.
+  - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Info, Disponibilités, or Composition.
+  - No other change to existing behaviour (availability popup, composition display, permissions) is specified by this slice.
+
+- **Inline composition in event-details Composition tab (no separate popup)**
+  - Composition management is done **only** in the **Composition** tab of the event-details modal. There is **no separate composition popup** (SelectionModal is no longer opened as an overlay).
+  - The Composition tab is **always available** in event details for the event (e.g. always show the tab, including when there is no cast yet), so users can run a draw or view empty state from the tab. Visibility of the tab may still depend on user role or context where event details are shown (e.g. logged-in only, as today for the tabs block).
+  - The Composition tab contains **all** composition features that currently exist in the composition popup: run draw (Tirage), simulations (Simuler + algorithm choice), validate (Valider), unlock (Déverrouiller), announce (Annoncer la compo), send via WhatsApp (Envoyer), reset (Effacer), fill cast (Remplir), manual slot edit, declined-players handling, status badges, PIN when required, and opening of EventAnnounceModal / DrawAnnounceModal / HowItWorks as needed. Same permission and state rules apply (e.g. `canManageCompositionValue`, `canCasterEditManually`, confirmation/organizer state).
+  - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
+  - Entry points that today open the composition popup instead open or focus **event details with the Composition tab selected**: e.g. "Composition Équipe" in the event-details footer is removed (no button that opens a popup); TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo` (or equivalent). No separate modal layer for composition.
+  - User experience is a single place (event details) with one tab (Composition) where users see and perform only the actions their permissions allow.
+
+- **Slot click in composition modal for participation confirmation**
+  - In the **composition modal** (SelectionModal), clicking on a filled slot (a person in the composition) opens the **participation confirmation** popup (same as in the event-details Composition tab).
+  - **Permissions:** An **administrator** (e.g. can edit the event) can open the confirmation popup for any slot (to confirm, decline, or set to pending for any player). The **concerned player** can open it only for **their own** slot (to confirm or decline their own participation). Other users do not open the popup (or see an error if they try).
+  - Behaviour and UI of the confirmation popup are unchanged (confirm / decline / pending); only the entry point (slot click in the modal) is added.
 
 ---
 

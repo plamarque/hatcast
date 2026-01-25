@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.44.1",
+    "date": "2026-01-25",
+    "changes": [
+      "🐛 On préserve les statuts des joueurs quand on les débloque.",
+      "✨ On a ajouté une nouvelle fonctionnalité pour cliquer sur les lignes de la fenêtre de détail d'événement dans l'onglet de disponibilité, avec une mise en page mobile améliorée."
+    ]
+  },
+  {
     "version": "0.44.0",
     "date": "2026-01-25",
     "changes": [

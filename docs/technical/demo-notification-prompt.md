@@ -23,8 +23,8 @@ Un utilisateur reçoit un email avec un lien vers le détail d'un événement Ha
 
 #### 3. Test de la fonctionnalité
 ```
-1. Dans la modal de détails de l'événement
-2. Cliquer sur une cellule de disponibilité (disponible/indisponible)
+1. Dans la modal de détails de l'événement, onglet Disponibilités
+2. Cliquer sur un joueur (nom, avatar ou ligne) pour ouvrir la modale de disponibilité
 3. Observer l'affichage de la modal d'incitation aux notifications
 4. Vérifier le message : "Joueur, ne rates rien à propos de [événement]. Reçois des notifs."
 ```
