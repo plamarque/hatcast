@@ -2,6 +2,8 @@
  * E2E: Event-details modal – tabs (Infos, Dispos, Équipe) and URL sync.
  * Slice 6 – Info as first tab, default; tab=info|team|compo in URL.
  * Slice 8 – Composition (Équipe) tab always visible; tab=compo stays active with empty state when no draw.
+ * Slice 9 – No composition popup; modal=selection opens event details with Composition tab; footer button switches to Composition tab.
+ * Permissions – Tirage and Simuler are gated by canManageCompositionValue; manual selection is admin-only.
  *
  * Flow: Go to /seasons (season list, title "Saisons") → click first season → season page (any view) →
  * switch to "Agenda" tab → click first event (.event-item) → event-details modal opens, URL gets event= and modal=event_details.
@@ -133,7 +135,8 @@ test.describe('Event-details tabs (Infos, Dispos, Équipe)', () => {
       const hasEmptyState = (await page.getByText('Aucun tirage pour le moment').count()) > 0;
       const hasEmptySubtitle = (await page.getByText(/La composition s'affichera ici une fois le tirage effectué/).count()) > 0;
       const hasCompositionContent = (await page.getByText("La composition n'est pas encore validée par l'organisateur").count()) > 0;
-      expect(hasEmptyState || hasEmptySubtitle || hasCompositionContent).toBeTruthy();
+      const hasCompositionPanel = (await page.getByText(/Composition d'équipe/).count()) > 0;
+      expect(hasEmptyState || hasEmptySubtitle || hasCompositionContent || hasCompositionPanel).toBeTruthy();
     }
   });
 
@@ -163,5 +166,57 @@ test.describe('Event-details tabs (Infos, Dispos, Équipe)', () => {
     await compositionTab.click();
     await page.waitForTimeout(500);
     await expect(page).toHaveURL(/tab=compo/);
+  });
+
+  test('URL modal=selection opens event details with Composition tab (no popup)', async ({ page }) => {
+    test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
+
+    await page.goto(`/season/${seasonSlug}?modal=selection&event=${firstEventId}`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    const url = page.url();
+    expect(url).toMatch(/modal=event_details/);
+    expect(url).toMatch(/tab=compo/);
+    expect(url).toMatch(/event=/);
+
+    const compositionTab = page.locator('button:has-text("Équipe")').first();
+    if ((await compositionTab.count()) > 0) {
+      await expect(compositionTab).toHaveClass(/bg-gray-700/);
+    }
+  });
+
+  test('Footer Composition button switches to Composition tab', async ({ page }) => {
+    test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
+
+    await page.goto(`/season/${seasonSlug}?event=${firstEventId}&modal=event_details`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    const compositionButton = page.getByRole('button', { name: /Composition Équipe|Composition/ });
+    if ((await compositionButton.count()) === 0) {
+      test.skip(true, 'Composition button not visible (e.g. not admin)');
+    }
+
+    await compositionButton.first().click();
+    await page.waitForTimeout(500);
+
+    await expect(page).toHaveURL(/tab=compo/);
+    const compositionTab = page.locator('button:has-text("Équipe")').first();
+    await expect(compositionTab).toHaveClass(/bg-gray-700/);
+  });
+
+  test('Composition tab: Simuler and Tirage visibility match (same permission)', async ({ page }) => {
+    test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
+
+    await page.goto(`/season/${seasonSlug}?event=${firstEventId}&modal=event_details&tab=compo`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    const tirage = page.getByRole('button', { name: /Tirage/ });
+    const simuler = page.getByRole('button', { name: /Simuler/ });
+    const tirageVisible = (await tirage.count()) > 0 && (await tirage.first().isVisible());
+    const simulerVisible = (await simuler.count()) > 0 && (await simuler.first().isVisible());
+    expect(tirageVisible).toBe(simulerVisible);
   });
 });

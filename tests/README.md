@@ -219,6 +219,7 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **Emails** - Interception et extraction de liens
 - ✅ **Protection des joueurs** - 3 cas de figure, icônes, modals, flux complet
 - ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, onglet Équipe toujours visible (état vide si pas de tirage), tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement)
+- ✅ **Permissions composition (onglet Équipe)** - Cohérence Tirage/Simuler (event-details-tabs). Avec `TEST_PARTICIPANT_EMAIL` et `TEST_PARTICIPANT_PASSWORD` dans `.env`, les tests `composition-permissions.spec.js` vérifient : (1) participant non-admin : pas de Tirage/Simuler, slots vides non éditables, clic slot autre n'ouvre pas la modale, clic sur son slot l'ouvre si dans la composition ; (2) utilisateur anonyme : pas de boutons d'action (Tirage, Simuler), slots vides non cliquables, clic sur slots remplis n'ouvre pas la modale de confirmation.
 
 ## 🔧 Configuration
 
@@ -286,6 +287,7 @@ const LOCAL_CONFIG = {
 tests/
 ├── auth.spec.js             # Tests d'authentification
 ├── basic.spec.js            # Tests de base
+├── composition-permissions.spec.js # Permissions composition (participant non-admin) – squelettes à activer avec fixture
 ├── event-details-tabs.spec.js # Onglets détail événement (Infos, Dispos, Équipe) et URL
 ├── pwa.spec.js              # Tests PWA
 ├── summary.spec.js          # Test de vérification complète
