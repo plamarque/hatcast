@@ -169,6 +169,14 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 
 ---
 
+### Slice 14: Event-details Équipe tab – message déclinés compact et liste sur demande
+
+- **Spec:** SPEC.md, slice « Event-details Équipe tab – message déclinés compact et liste sur demande ».
+- **Summary:** When some people have declined, replace the current long message with a shorter one including a "voir qui" link; show the "Personnes ayant décliné" section only when the user clicks "voir qui", for a more compact layout.
+- No development plan yet; to be scheduled later.
+
+---
+
 ## Definition of Done / quality gates (per slice)
 
 - **Doc-only slices:** No production code or config change; only markdown and links. Lint/format markdown if the project has a markdown rule.
