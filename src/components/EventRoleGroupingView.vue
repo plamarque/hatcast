@@ -724,6 +724,22 @@ const eventStatus = computed(() => {
   return props.getEventStatus(props.selectedEvent.id)
 })
 
+// Chances par rôle pour l'événement courant (une seule fois par mise à jour, utilisé pour le tri et getPlayerChanceForRole)
+const allRoleChancesForEvent = computed(() => {
+  if (!props.selectedEvent || !props.players?.length) return {}
+  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
+    if (!props.countSelections) return 0
+    return props.countSelections(playerName, role, props.selectedEvent.id, props.selectedEvent?.templateType)
+  }
+  return calculateAllRoleChances(
+    props.selectedEvent,
+    props.players,
+    props.availability,
+    countSelectionsExcludingCurrentEvent,
+    props.isAvailableForRole
+  )
+})
+
 // Fonctions utilitaires
 function formatEventDate(dateString) {
   if (!dateString) return ''
@@ -754,9 +770,23 @@ function getAvailablePlayersCount() {
 
 function getPlayersForRole(role) {
   if (!props.selectedEvent) return []
-  
-  return props.players.filter(player => {
+
+  const filtered = props.players.filter(player => {
     return props.isAvailableForRole(player.name, role, props.selectedEvent.id)
+  })
+
+  const roleData = allRoleChancesForEvent.value[role]
+  if (!roleData?.candidates?.length) {
+    return filtered
+  }
+
+  const chanceByPlayer = new Map(
+    roleData.candidates.map(c => [c.name, c.practicalChance ?? 0])
+  )
+  return [...filtered].sort((a, b) => {
+    const chanceA = chanceByPlayer.get(a.name) ?? 0
+    const chanceB = chanceByPlayer.get(b.name) ?? 0
+    return chanceB - chanceA // décroissant : plus probable en premier
   })
 }
 
