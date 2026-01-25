@@ -212,4 +212,34 @@ test.describe('Event-details tabs (Infos, Dispos, Équipe)', () => {
     const simulerVisible = (await simuler.count()) > 0 && (await simuler.first().isVisible());
     expect(tirageVisible).toBe(simulerVisible);
   });
+
+  /**
+   * Slice 14 – Declined badge: when there are declined players, a compact badge is shown;
+   * the "Personnes ayant décliné" section is hidden by default and toggles on badge click.
+   * Skipped when no event in this environment has declined players.
+   */
+  test('Composition tab: declined badge toggles "Personnes ayant décliné" section', async ({ page }) => {
+    test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
+
+    await page.goto(`/season/${seasonSlug}/event/${firstEventId}?tab=compo`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    const declinedBadge = page.getByRole('button', { name: /personne(s)? (a|ont) décliné/ });
+    const badgeCount = await declinedBadge.count();
+    if (badgeCount === 0 || !(await declinedBadge.first().isVisible())) {
+      test.skip(true, 'No event with declined players in this environment');
+    }
+
+    const section = page.locator('#declined-players-section');
+    await expect(section).not.toBeVisible();
+
+    await declinedBadge.first().click();
+    await page.waitForTimeout(300);
+    await expect(section).toBeVisible();
+
+    await declinedBadge.first().click();
+    await page.waitForTimeout(300);
+    await expect(section).not.toBeVisible();
+  });
 });

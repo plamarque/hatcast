@@ -173,8 +173,8 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 ### Slice 14: Event-details Équipe tab – message déclinés compact et liste sur demande
 
 - **Spec:** SPEC.md, slice « Event-details Équipe tab – message déclinés compact et liste sur demande ».
-- **Summary:** When some people have declined, replace the current long message with a shorter one including a "voir qui" link; show the "Personnes ayant décliné" section only when the user clicks "voir qui", for a more compact layout.
-- No development plan yet; to be scheduled later.
+- **Summary:** In the Équipe tab, replace the current long message and always-visible "Personnes ayant décliné" block with a **compact clickable badge** below the slots showing the number of people who declined (e.g. "4 personnes ont décliné"). Clicking the badge toggles the "Personnes ayant décliné" section open/closed for a more compact layout.
+- **Implemented:** [SelectionModal.vue](src/components/SelectionModal.vue): badge just below slots (centred), section hidden by default, toggle on click; declined list in 2 columns, no top separator; action buttons in two rows (Simuler/Envoyer, Valider/Effacer) with homogeneous width; when no selection, Tirage and Simuler on one centred row. E2E test in [event-details-tabs.spec.js](tests/event-details-tabs.spec.js) (declined badge toggle, skipped when no declined players).
 
 ---
 

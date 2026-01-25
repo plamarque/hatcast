@@ -214,74 +214,176 @@
             </div>
           </div>
           
-          <!-- Boutons Tirage et Simuler (déplacés dans la modale) -->
-          <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4 flex justify-center gap-3">
-            <!-- Bouton Tirage -->
-            <button 
-              v-if="canManageCompositionValue"
-              @click="handleSelection" 
-              :disabled="availableCount === 0" 
-              class="h-12 px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center" 
-              :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
+          <!-- Badge compact : nombre de déclinés (directement sous les slots, centré) -->
+          <div v-if="hasDeclinedPlayers" class="mt-3 mb-3 flex justify-center">
+            <button
+              type="button"
+              :aria-expanded="showDeclinedSection"
+              aria-controls="declined-players-section"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-md bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/30 transition-colors"
+              @click="showDeclinedSection = !showDeclinedSection"
             >
-              ✨ <span class="ml-1">Tirage</span>
+              <span>{{ declinedCount === 1 ? '1 personne a décliné' : `${declinedCount} personnes ont décliné` }}</span>
+              <span aria-hidden="true">{{ showDeclinedSection ? '▼' : '▶' }}</span>
             </button>
-            
-            <!-- Bouton Simuler (réservé aux utilisateurs pouvant gérer la composition) -->
-            <div v-if="canManageCompositionValue" class="relative algorithm-dropdown-container">
-              <!-- Bouton principal -->
-              <button 
-                v-if="!isSimulating"
-                @click="toggleAlgorithmDropdown" 
-                :disabled="availableCount === 0" 
-                class="h-12 px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
-                :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
+          </div>
+          
+          <!-- Boutons d'action composition : 2 cas selon hasSelection -->
+          <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4">
+            <!-- Sans sélection : une seule ligne Tirage + Simuler (ou Arrêter), centrés, même largeur -->
+            <div
+              v-if="canManageCompositionValue && !hasSelection"
+              class="flex flex-wrap justify-center gap-3"
+            >
+              <button
+                @click="handleSelection"
+                :disabled="availableCount === 0"
+                class="composition-action-btn h-12 min-w-[10rem] flex-1 max-w-[12rem] px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                :title="availableCount === 0 ? 'Aucune personne disponible' : 'Compléter les slots vides'"
               >
-                <span class="flex items-center">
-                  🎲 <span class="ml-1">Simuler</span>
-                </span>
-                <span class="text-xs">▼</span>
+                <span>✨</span>
+                <span>Tirage</span>
               </button>
-              
-              <!-- Bouton Stop -->
-              <button 
-                v-if="isSimulating"
-                @click="abortDraw()" 
-                class="h-12 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center"
-                title="Arrêter le tirage"
-              >
-                ⏹️ <span class="ml-1">Arrêter</span>
-              </button>
-              
-              <!-- Dropdown des algorithmes -->
-              <div 
-                v-if="showAlgorithmDropdown && !isSimulating"
-                class="absolute left-0 right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50"
-                style="bottom: 100%; margin-bottom: 4px;"
-              >
-                <div 
-                  v-for="algorithm in availableAlgorithms" 
-                  :key="algorithm.value"
-                  @click="selectAlgorithm(algorithm.value)"
-                  class="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors"
+              <div class="relative algorithm-dropdown-container min-w-[10rem] flex-1 max-w-[12rem]">
+                <button
+                  v-if="!isSimulating"
+                  @click="toggleAlgorithmDropdown"
+                  :disabled="availableCount === 0"
+                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
                 >
-                  <div class="font-medium text-white">{{ algorithm.label }}</div>
+                  <span>🎲</span>
+                  <span>Simuler</span>
+                  <span class="text-xs">▼</span>
+                </button>
+                <button
+                  v-else
+                  @click="abortDraw()"
+                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5"
+                  title="Arrêter le tirage"
+                >
+                  <span>⏹️</span>
+                  <span>Arrêter</span>
+                </button>
+                <div
+                  v-if="showAlgorithmDropdown && !isSimulating"
+                  class="absolute left-0 right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50"
+                  style="bottom: 100%; margin-bottom: 4px;"
+                >
+                  <div
+                    v-for="algorithm in availableAlgorithms"
+                    :key="algorithm.value"
+                    @click="selectAlgorithm(algorithm.value)"
+                    class="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors"
+                  >
+                    <div class="font-medium text-white">{{ algorithm.label }}</div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <!-- Bouton Envoyer (WhatsApp) - visible seulement si composition en préparation ET permissions d'édition -->
-            <button 
-              v-if="hasSelection && canManageCompositionValue"
-              @click="openDrawAnnounce" 
-              class="h-12 px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
-              title="Envoyer le tirage par WhatsApp à la PEDA"
-            >
-              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-              </svg>
-              <span>Envoyer</span>
-            </button>
+            <!-- Avec sélection : Tirage au-dessus, puis grille 2x2 (Simuler/Envoyer, Valider/Effacer) -->
+            <template v-else-if="hasSelection">
+              <div v-if="canManageCompositionValue" class="flex justify-center mb-3">
+                <button
+                  @click="handleSelection"
+                  :disabled="availableCount === 0"
+                  class="composition-action-btn h-12 min-w-[10rem] px-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
+                >
+                  <span>✨</span>
+                  <span>Tirage</span>
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+                <!-- Ligne 1 : Simuler, Envoyer -->
+                <div v-if="canManageCompositionValue" class="relative algorithm-dropdown-container">
+                  <button
+                    v-if="!isSimulating"
+                    @click="toggleAlgorithmDropdown"
+                    :disabled="availableCount === 0"
+                    class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
+                  >
+                    <span>🎲</span>
+                    <span>Simuler</span>
+                    <span class="text-xs">▼</span>
+                  </button>
+                  <button
+                    v-else
+                    @click="abortDraw()"
+                    class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5"
+                    title="Arrêter le tirage"
+                  >
+                    <span>⏹️</span>
+                    <span>Arrêter</span>
+                  </button>
+                  <div
+                    v-if="showAlgorithmDropdown && !isSimulating"
+                    class="absolute left-0 right-0 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50"
+                    style="bottom: 100%; margin-bottom: 4px;"
+                  >
+                    <div
+                      v-for="algorithm in availableAlgorithms"
+                      :key="algorithm.value"
+                      @click="selectAlgorithm(algorithm.value)"
+                      class="px-4 py-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors"
+                    >
+                      <div class="font-medium text-white">{{ algorithm.label }}</div>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  v-else
+                  class="invisible h-12 w-full rounded-lg"
+                  aria-hidden="true"
+                ></button>
+                <button
+                  v-if="canManageCompositionValue"
+                  @click="openDrawAnnounce"
+                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
+                  title="Envoyer le tirage par WhatsApp à la PEDA"
+                >
+                  <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                  </svg>
+                  <span>Envoyer</span>
+                </button>
+                <button
+                  v-else
+                  class="invisible h-12 w-full rounded-lg"
+                  aria-hidden="true"
+                ></button>
+                <!-- Ligne 2 : Valider, Effacer -->
+                <button
+                  v-if="canManageCompositionValue"
+                  @click="handleConfirmSelection"
+                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  title="Valider la composition et demander confirmation aux personnes"
+                >
+                  <span>⏳</span>
+                  <span>Valider</span>
+                </button>
+                <button
+                  v-else
+                  class="invisible h-12 w-full rounded-lg"
+                  aria-hidden="true"
+                ></button>
+                <button
+                  v-if="canManageCompositionValue"
+                  @click="handleResetSelection"
+                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  title="Supprimer complètement la composition"
+                >
+                  <span>🗑️</span>
+                  <span>Effacer</span>
+                </button>
+                <button
+                  v-else
+                  class="invisible h-12 w-full rounded-lg"
+                  aria-hidden="true"
+                ></button>
+              </div>
+            </template>
           </div>
           
           <!-- Message d'information pour les casters qui ne peuvent pas encore faire de sélections manuelles -->
@@ -297,16 +399,8 @@
           </div>
         </div>
         
-        <!-- Message d'information pour composition avec joueurs déclinés -->
-        <div v-if="isSelectionConfirmedByOrganizer && hasDeclinedPlayers && hasEmptySlots" class="mb-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-          <div class="flex items-center gap-2 text-orange-200 text-sm">
-            <span>⚠️</span>
-            <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Cliquez sur "Compléter" pour compléter les places vides avec de nouvelles personnes</span>
-          </div>
-        </div>
-        
-        <!-- Section des joueurs déclinés -->
-        <div v-if="hasDeclinedPlayers" class="mt-6 mb-4 pt-6 border-t border-white/20">
+        <!-- Section des joueurs déclinés (affichée au clic sur le badge) -->
+        <div id="declined-players-section" v-if="hasDeclinedPlayers && showDeclinedSection" class="mt-4 mb-4">
           <div class="mb-2">
             <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
               <span>❌</span>
@@ -314,7 +408,7 @@
             </h3>
             <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+          <div class="grid grid-cols-2 gap-2 md:gap-3">
             <div
               v-for="declinedPlayer in getDeclinedPlayers()"
               :key="'declined-'+declinedPlayer.name"
@@ -477,9 +571,9 @@
           🔓 <span class="hidden sm:inline">Déverrouiller</span><span class="sm:hidden">Déverrouiller</span>
         </button>
 
-        <!-- Bouton Valider (visible seulement si composition complète et organisateur n'a pas encore validé ET permissions d'édition) -->
+        <!-- Bouton Valider (dans le footer seulement si pas inline ; en inline il est dans la zone boutons au-dessus) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canManageCompositionValue" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canManageCompositionValue && !inline" 
           @click="handleConfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Valider la composition et demander confirmation aux personnes"
@@ -497,9 +591,9 @@
           📢 <span class="hidden sm:inline">Annoncer la compo</span><span class="sm:hidden">Annoncer</span>
         </button>
 
-        <!-- Bouton Réinitialiser (visible seulement si il y a une sélection ET que la composition n'est pas verrouillée ET permissions d'édition) -->
+        <!-- Bouton Réinitialiser (dans le footer seulement si pas inline ; en inline il est dans la zone boutons au-dessus) -->
         <button 
-          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canManageCompositionValue" 
+          v-if="hasSelection && !isSelectionConfirmedByOrganizer && canManageCompositionValue && !inline" 
           @click="handleResetSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Supprimer complètement la composition et remettre le statut à 'Nouveau'"
@@ -704,6 +798,7 @@ const successMessageText = ref('')
 const showErrorMessage = ref(false)
 const errorMessageText = ref('')
 const isReselection = ref(false)
+const showDeclinedSection = ref(false)
 
 // Variables pour vérifier si un caster peut faire des sélections manuelles
 const isCaster = ref(false)
@@ -1420,6 +1515,16 @@ const hasDeclinedPlayers = computed(() => {
   }
   
   return false
+})
+
+// Nombre de déclinés pour le badge (aligné sur la liste affichée ; inclut le fallback playerStatuses)
+const declinedCount = computed(() => {
+  const list = getDeclinedPlayers()
+  if (list.length > 0) return list.length
+  if (props.currentSelection?.playerStatuses) {
+    return Object.values(props.currentSelection.playerStatuses).filter(s => s === 'declined').length
+  }
+  return 0
 })
 
 // Fonction pour vérifier si un joueur spécifique a décliné

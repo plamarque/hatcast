@@ -218,7 +218,7 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **PWA** - Installation, offline, cache, responsive
 - ✅ **Emails** - Interception et extraction de liens
 - ✅ **Protection des joueurs** - 3 cas de figure, icônes, modals, flux complet
-- ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, onglet Équipe toujours visible (état vide si pas de tirage), tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement)
+- ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, onglet Équipe toujours visible (état vide si pas de tirage), tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement). Slice 14 : test « declined badge toggles Personnes ayant décliné » (skip si aucun événement avec joueurs déclinés dans l'env).
 - ✅ **Permissions composition (onglet Équipe)** - Cohérence Tirage/Simuler (event-details-tabs). Avec `TEST_PARTICIPANT_EMAIL` et `TEST_PARTICIPANT_PASSWORD` dans `.env`, les tests `composition-permissions.spec.js` vérifient : (1) participant non-admin : pas de Tirage/Simuler, slots vides non éditables, clic slot autre n'ouvre pas la modale, clic sur son slot l'ouvre si dans la composition ; (2) utilisateur anonyme : pas de boutons d'action (Tirage, Simuler), slots vides non cliquables, clic sur slots remplis n'ouvre pas la modale de confirmation.
 
 ## 🔧 Configuration
