@@ -18,21 +18,25 @@
           </svg>
         </button>
         
-        <!-- Flèche de retour (visible en mode normal) -->
+        <!-- Flèche de retour (visible en mode normal ou écran événement) -->
         <button 
           v-else
           @click="goBack"
           class="text-white hover:text-purple-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 flex-shrink-0"
-          title="Retour aux saisons"
+          :title="isEventScreen ? 'Retour à la saison' : 'Retour aux saisons'"
         >
           <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
           </svg>
         </button>
         
-        <!-- Logo de la saison -->
+        <!-- Mode événement : icône de l'événement -->
+        <div v-if="isEventScreen" class="flex-shrink-0 text-2xl md:text-3xl lg:text-4xl w-10 h-10 md:w-14 md:h-14 lg:w-16 lg:h-16 flex items-center justify-center rounded-lg bg-gray-700/50 border border-gray-600/50">
+          {{ eventIcon || '📋' }}
+        </div>
+        <!-- Logo de la saison (mode saison) -->
         <div 
-          v-if="seasonMeta?.logoUrl"
+          v-else-if="seasonMeta?.logoUrl"
           @click="refreshSeason"
           class="cursor-pointer hover:opacity-80 transition-opacity duration-200 flex-shrink-0"
           :title="`Cliquer pour rafraîchir ${seasonName}`"
@@ -55,10 +59,19 @@
         </div>
       </div>
       
-      <!-- Section centre : titre -->
-      <div class="flex-1 text-center px-4">
+      <!-- Section centre : titre (saison ou événement). min-w-0 pour permettre la troncature et ne pas pousser les icônes droite hors viewport -->
+      <div class="flex-1 min-w-0 overflow-hidden text-center px-4">
+        <!-- Mode événement : titre de l'événement -->
+        <h1 
+          v-if="isEventScreen"
+          class="text-lg sm:text-xl md:text-3xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent truncate block"
+          :title="eventTitle || 'Détail événement'"
+        >
+          {{ eventTitle || 'Détail événement' }}
+        </h1>
         <!-- Titre de la saison - cliquable pour rafraîchir -->
         <h1 
+          v-else
           @click="refreshSeason"
           class="text-lg sm:text-xl md:text-3xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent cursor-pointer hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 transition-all duration-200 truncate"
           :title="seasonSlug ? `Cliquer pour rafraîchir ${seasonName}` : seasonName"
@@ -74,7 +87,7 @@
         </h1>
         
         <!-- Sous-titre pour le mode administration -->
-        <p v-if="isAdminMode" class="text-gray-300 text-xs md:text-sm mt-1">
+        <p v-if="isAdminMode && !isEventScreen" class="text-gray-300 text-xs md:text-sm mt-1">
           Gérer les utilisateurs, spectacles et paramètres
         </p>
       </div>
@@ -182,7 +195,10 @@ const props = defineProps({
   currentViewMode: { type: String, default: 'grid' },
   isAdminMode: { type: Boolean, default: false },
   seasonMeta: { type: Object, default: () => ({}) },
-  isCompositionView: { type: Boolean, default: false }
+  isCompositionView: { type: Boolean, default: false },
+  isEventScreen: { type: Boolean, default: false },
+  eventTitle: { type: String, default: '' },
+  eventIcon: { type: String, default: '' }
 })
 
 const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-preferences', 'open-players', 'logout', 'open-login', 'open-account', 'open-account-creation', 'open-development', 'open-administration', 'toggle-view-mode', 'return-to-full-view'])

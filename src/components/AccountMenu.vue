@@ -232,9 +232,9 @@ async function changePassword() {
       returnToAccountMenu: true,
       modalState: {
         accountMenu: true,
-        eventDetails: currentPath.includes('modal=event_details'),
+        eventDetails: currentPath.includes('modal=event_details') || /\/season\/[^/]+\/event\/[^/]+/.test(window.location.pathname),
         playerDetails: currentPath.includes('modal=player_details'),
-        eventId: new URLSearchParams(window.location.search).get('event'),
+        eventId: (window.location.pathname.match(/\/season\/[^/]+\/event\/([^/]+)/) || [])[1] || new URLSearchParams(window.location.search).get('event'),
         playerId: new URLSearchParams(window.location.search).get('player')
       }
     }

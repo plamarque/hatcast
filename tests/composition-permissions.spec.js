@@ -86,7 +86,7 @@ test.describe('Composition permissions (participant non-admin)', () => {
     test.skip(!HAS_FIXTURE, 'Set TEST_PARTICIPANT_EMAIL and TEST_PARTICIPANT_PASSWORD in .env to run');
     test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
 
-    await page.goto(`/season/${seasonSlug}?event=${firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${seasonSlug}/event/${firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -105,7 +105,7 @@ test.describe('Composition permissions (participant non-admin)', () => {
     test.skip(!HAS_FIXTURE, 'Set TEST_PARTICIPANT_EMAIL and TEST_PARTICIPANT_PASSWORD in .env to run');
     test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
 
-    await page.goto(`/season/${seasonSlug}?event=${firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${seasonSlug}/event/${firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -121,7 +121,7 @@ test.describe('Composition permissions (participant non-admin)', () => {
     test.skip(!HAS_FIXTURE, 'Set TEST_PARTICIPANT_EMAIL and TEST_PARTICIPANT_PASSWORD in .env to run');
     test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
 
-    await page.goto(`/season/${seasonSlug}?event=${firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${seasonSlug}/event/${firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -151,7 +151,7 @@ test.describe('Composition permissions (participant non-admin)', () => {
     test.skip(!HAS_FIXTURE, 'Set TEST_PARTICIPANT_EMAIL and TEST_PARTICIPANT_PASSWORD in .env to run');
     test.skip(!seasonSlug || !firstEventId, 'No season or event in this environment');
 
-    await page.goto(`/season/${seasonSlug}?event=${firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${seasonSlug}/event/${firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -250,7 +250,7 @@ test.describe('Composition permissions (anonymous user)', () => {
   test('Anonymous: Tirage and Simuler buttons are not visible on Équipe tab', async ({ page }) => {
     test.skip(!nav, 'No season/event or user was already connected');
 
-    await page.goto(`/season/${nav.seasonSlug}?event=${nav.firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${nav.seasonSlug}/event/${nav.firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -263,7 +263,7 @@ test.describe('Composition permissions (anonymous user)', () => {
   test('Anonymous: action buttons below composition are not visible', async ({ page }) => {
     test.skip(!nav, 'No season/event or user was already connected');
 
-    await page.goto(`/season/${nav.seasonSlug}?event=${nav.firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${nav.seasonSlug}/event/${nav.firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -274,7 +274,7 @@ test.describe('Composition permissions (anonymous user)', () => {
   test('Anonymous: empty slots do not allow manual selection', async ({ page }) => {
     test.skip(!nav, 'No season/event or user was already connected');
 
-    await page.goto(`/season/${nav.seasonSlug}?event=${nav.firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${nav.seasonSlug}/event/${nav.firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
@@ -289,7 +289,7 @@ test.describe('Composition permissions (anonymous user)', () => {
   test('Anonymous: clicking on filled slots does not open confirmation modal', async ({ page }) => {
     test.skip(!nav, 'No season/event or user was already connected');
 
-    await page.goto(`/season/${nav.seasonSlug}?event=${nav.firstEventId}&modal=event_details&tab=compo`);
+    await page.goto(`/season/${nav.seasonSlug}/event/${nav.firstEventId}?tab=compo`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 

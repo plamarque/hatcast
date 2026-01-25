@@ -215,7 +215,7 @@ const eventDirectLink = computed(() => {
 // URL de confirmation directe pour la composition
 const confirmUrl = computed(() => {
   if (!props.event || !props.seasonSlug) return ''
-  return `${window.location.origin}/season/${props.seasonSlug}?event=${props.event.id}&modal=event_details&tab=compo&showConfirm=true`
+  return `${window.location.origin}/season/${props.seasonSlug}/event/${props.event.id}?tab=compo&showConfirm=true`
 })
 
 

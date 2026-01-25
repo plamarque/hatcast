@@ -1,7 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 pb-20">
+  <div
+      class="min-h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+      :class="[
+        { 'h-screen': isEventFullScreen },
+        isEventFullScreen ? '' : 'pb-20'
+      ]"
+    >
     <!-- Contenu principal -->
-    <div class="w-full">
+    <div class="w-full flex-1 flex flex-col min-h-0">
       <!-- Header de saison partagé -->
     <SeasonHeader 
       :season-name="seasonName"
@@ -13,6 +19,9 @@
       :current-view-mode="validCurrentView"
       :season-meta="seasonMeta"
       :is-composition-view="isCompositionView"
+      :is-event-screen="!!isEventFullScreen"
+      :event-title="selectedEvent?.title"
+      :event-icon="getEventTypeIcon(selectedEvent)"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -27,7 +36,8 @@
       @return-to-full-view="returnToFullView"
     />
 
-    <!-- Header sticky avec dropdown de vue et sélecteurs -->
+    <!-- Season grid / timeline (hidden when on event full-screen) -->
+    <template v-if="!isEventFullScreen">
     <ViewHeader
       v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline' || validCurrentView === 'casts'"
       :current-view="validCurrentView"
@@ -42,6 +52,7 @@
       @player-modal-toggle="togglePlayerModal"
       @event-modal-toggle="toggleEventModal"
     />
+    </template>
 
     <!-- Modal de sélection de joueur (global pour toutes les vues) -->
     <PlayerSelectorModal
@@ -99,6 +110,7 @@
       @all-events-selected="handleAllEventsSelected"
     />
 
+    <template v-if="!isEventFullScreen">
     <!-- Vue grille (lignes ou colonnes) -->
     <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
       
@@ -288,6 +300,72 @@
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <div class="text-white text-lg">Chargement des événements...</div>
   </div>
+    </template>
+
+    <!-- Event full-screen (canonical URL /season/:slug/event/:eventId). flex-1 pour occuper toute la hauteur sous le header. -->
+    <div v-if="isEventFullScreen" class="w-full flex-1 min-h-0 flex flex-col bg-gray-900">
+      <div v-if="events.length === 0" class="flex-1 flex items-center justify-center p-8">
+        <div class="text-white/80">Chargement…</div>
+      </div>
+      <div v-else-if="!selectedEvent" class="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+        <p class="text-white/80">Événement introuvable</p>
+        <a :href="`/season/${props.slug}`" class="text-purple-300 hover:text-purple-200 underline">Retour à la saison</a>
+      </div>
+      <!-- Same content as event-details modal, in-page (no overlay), full-width black like participants/agenda -->
+      <div v-else class="flex flex-col flex-1 min-h-0 w-full bg-gray-900">
+        <div class="px-2 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-5 pb-1 sm:pb-2 md:pb-2 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0 max-w-6xl mx-auto w-full">
+          <div v-if="currentUser" class="mt-0">
+            <div class="flex justify-center mb-1">
+              <div class="inline-flex bg-gray-800/50 rounded-lg p-1 gap-0.5">
+                <button @click="setEventDetailsTab('info')" :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors', eventDetailsActiveTab === 'info' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50']"><span>ℹ️</span><span>Infos</span></button>
+                <button @click="setEventDetailsTab('team')" :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors', eventDetailsActiveTab === 'team' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50']"><span>🧩</span><span>Dispos</span></button>
+                <button @click="setEventDetailsTab('composition')" :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors', eventDetailsActiveTab === 'composition' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50']"><span>🎭</span><span>Équipe</span></button>
+              </div>
+            </div>
+            <div class="pt-2 px-1 pb-1 sm:p-2 md:p-3">
+              <div v-if="eventDetailsActiveTab === 'info'" class="w-full space-y-6">
+                <div class="flex items-center justify-between gap-2 mb-4">
+                  <div class="flex-none">
+                    <SelectionStatusBadge v-if="selectedEvent && eventStatus" :status="eventStatus.type" :show="true" :clickable="false" :reason="eventWarningText" class="text-xs" />
+                  </div>
+                  <div class="relative flex-shrink-0">
+                    <button @click="showEventActionsDropdown = !showEventActionsDropdown" class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10" title="Actions de l'événement">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                    </button>
+                    <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                      <button @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🔗</span><span>Partager</span></button>
+                      <button @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm rounded flex items-center gap-2" :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"><span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span><span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span></button>
+                      <template v-if="canEditEvents">
+                        <div class="border-t border-gray-600 my-1"></div>
+                        <div class="px-3 py-1 text-xs text-gray-400 font-medium">Actions administrateur</div>
+                        <button @click="openEventAnnounceModal(selectedEvent); showEventActionsDropdown = false" :disabled="selectedEvent?.archived" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2 disabled:opacity-50"><span>📢</span><span>Annoncer</span></button>
+                        <button @click="startEditingFromDetails(); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>✏️</span><span>Modifier</span></button>
+                        <button @click="toggleEventArchived(); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"><span>📁</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span></button>
+                        <button @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"><span>🗑️</span><span>Supprimer</span></button>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</h3><div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30"><div class="whitespace-pre-wrap">{{ selectedEvent.description }}</div></div><p v-else class="text-sm text-gray-500 italic">Aucune description</p></section>
+                <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h3><div class="relative inline-block"><button @click="showCalendarDropdown = !showCalendarDropdown" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30" title="Ajouter à votre agenda"><span>📆</span><span>{{ formatDateFull(selectedEvent?.date) }}</span><svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px] left-0"><div class="p-2"><div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div><button @click="addToGoogleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📅</span><span>Google</span></button><button @click="addToOutlookCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📧</span><span>Outlook</span></button><button @click="addToAppleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🍎</span><span>Apple</span></button></div></div></div></section>
+                <section class="space-y-2"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lieu</h3><div v-if="selectedEvent?.location" class="space-y-3"><div class="relative inline-block min-w-0 max-w-full"><button @click="showGoogleMapsDropdown = !showGoogleMapsDropdown" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30 min-w-0" :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"><span>📍</span><span class="truncate">{{ selectedEvent.location }}</span><svg class="w-3 h-3 flex-shrink-0 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div v-if="showGoogleMapsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]"><div class="p-2"><a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2">Ouvrir dans Google Maps</a><a :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2">Ouvrir dans Waze</a></div></div></div><div class="w-full overflow-hidden rounded-lg border border-gray-600/30 h-48"><iframe :src="getGoogleMapsEmbedUrl(selectedEvent.location)" width="100%" height="100%" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="rounded-lg w-full h-full" title="Carte" /></div></div><p v-else class="text-sm text-gray-500 italic">Aucun lieu renseigné</p></section>
+              </div>
+              <div v-if="eventDetailsActiveTab === 'composition'" class="min-h-0 flex flex-col">
+                <div v-if="!hasCompositionForSelectedEvent && !canEditSelectedEvent" class="text-center py-8"><div class="text-gray-400 text-lg mb-2">🎭</div><div class="text-gray-300 text-sm">Aucun tirage pour le moment</div><div class="text-gray-500 text-xs mt-1">La composition s'affichera ici une fois le tirage effectué</div></div>
+                <SelectionModal v-else-if="selectedEvent" ref="inlineSelectionModalRef" :inline="true" :show="true" :event="selectedEvent" :current-selection="casts[selectedEvent?.id] || []" :available-count="countAvailablePlayers(selectedEvent?.id)" :selected-count="countSelectedPlayers(selectedEvent?.id)" :availability="availability" :is-available-for-role="isAvailableForRole" :count-selections="countSelections" :season-id="seasonId" :season-slug="seasonSlug" :players="enrichedAllSeasonPlayers" :all-season-players="allSeasonPlayers" :sending="isSendingNotifications" :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)" :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)" :can-edit-events="canEditEvents" @selection="handleSelectionFromModal" @perfect="handlePerfectFromModal" @send-notifications="handleSendNotifications" @updateCast="handleUpdateCastFromModal" @confirm-selection="handleConfirmSelectionFromModal" @unconfirm-selection="handleUnconfirmCastFromModal" @reset-selection="handleResetSelectionFromModal" @confirm-reselect="handleConfirmReselectFromModal" @fill-cast="handleFillCastFromModal" @slot-confirmation-click="handleSelectionModalSlotConfirmationClick" />
+              </div>
+              <div v-if="eventDetailsActiveTab === 'team'">
+                <div class="flex items-center justify-between mb-2 sm:mb-4"><div class="flex items-center gap-2"><div class="relative flex-shrink-0"><button @click="toggleAvailabilityPlayerSelector" class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"><div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="flex-shrink-0"><PlayerAvatar :player-id="selectedTeamPlayer.id" :player-name="selectedTeamPlayer.name" :season-id="seasonId" :player-gender="selectedTeamPlayer.gender || 'non-specified'" size="sm" class="w-5 h-5" /></div><div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full"><span class="text-xs">👥</span></div><span class="flex-1 text-left text-xs md:text-sm truncate">{{ selectedTeamPlayer && selectedTeamPlayer.id !== 'all' ? selectedTeamPlayer.name : 'Tous' }}</span><svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button></div><div class="flex items-center gap-1.5"><button @click="selectAllAvailabilityPlayers" :class="['px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors', selectedTeamPlayer?.id === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white']" title="Afficher tous les joueurs">👥 Tous</button><button v-if="currentUserPlayer || (preferredPlayerIdsSet.size > 0)" @click="selectFirstFavoriteAvailabilityPlayer" :class="['px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors', (selectedTeamPlayer?.id === currentUserPlayer?.id || selectedTeamPlayer?.id === getFirstFavoritePlayerId()) ? 'bg-purple-600 text-white' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white']" title="Afficher mes disponibilités">👤 Moi</button></div></div></div>
+                <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="space-y-3 p-3"><div v-if="canModifySelectedPlayerAvailability === null" class="bg-gray-800/50 rounded-lg p-4 border border-gray-600/50"><div class="flex items-center justify-center gap-3"><svg class="animate-spin h-5 w-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-sm text-gray-300">Vérification des permissions...</span></div></div><AvailabilityForm v-else :player-gender="selectedTeamPlayer.gender" :player-id="selectedTeamPlayer.id" :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)" :is-read-only="!canModifySelectedPlayerAvailability" :season-id="seasonId" :event-roles="selectedEvent?.roles || {}" :available-roles="getEventAvailableRoles()" :self-persist="canModifySelectedPlayerAvailability" :player-name="selectedTeamPlayer.name" :event-id="selectedEvent?.id" @update:availability="handleAvailabilityFormUpdate" @availability-saved="handleAvailabilitySaved" /><div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4"><div class="text-center"><div class="text-2xl mb-2">🎯</div><p class="text-sm text-gray-300">Événement sans rôles spécifiques</p><p class="text-xs text-gray-400 mt-1">Vous serez assigné selon les besoins de l'équipe</p></div></div></div>
+                <div v-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && allSeasonPlayers.length === 0" class="text-center py-8 text-gray-400"><div class="text-lg mb-2">⏳</div><div class="text-sm">Chargement des joueurs...</div></div>
+                <div v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && (!selectedEvent.roles || Object.keys(selectedEvent.roles).length === 0)" class="text-center py-8 text-gray-400"><div class="text-lg mb-2">🎯</div><div class="text-sm">Aucun rôle défini pour cet événement</div></div>
+                <EventRoleGroupingView v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer)" :selected-event="selectedEvent" :season-id="seasonId" :players="allSeasonPlayers" :show-role-status="!selectedTeamPlayer" :availability="availability" :casts="casts" :chances="chances" :preferred-player-ids-set="preferredPlayerIdsSet" :is-available="isAvailable" :is-player-selected="isPlayerSelected" :is-player-selected-for-role="isPlayerSelectedForRole" :is-selection-confirmed="isSelectionConfirmed" :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer" :get-player-selection-status="getPlayerSelectionStatus" :get-availability-data="getAvailabilityData" :is-player-protected-in-grid="isPlayerProtectedInGrid" :is-player-loading="isPlayerLoading" :is-player-availability-loaded="isPlayerAvailabilityLoaded" :is-player-error="isPlayerError" :get-event-status="getEventStatus" :get-event-tooltip="getEventTooltip" :handle-availability-toggle="handleAvailabilityToggle" :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle" :open-availability-modal="openAvailabilityModal" :is-available-for-role="isAvailableForRole" :is-selection-complete="isSelectionComplete" :get-player-role-chances="getPlayerRoleChances" :count-selections="countSelections" :open-confirmation-modal="openConfirmationModal" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   <!-- Overlay de chargement pleine page -->
   <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
@@ -597,8 +675,8 @@
       </div>
     </div>
   </div>
-  <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 sm:p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
+  <!-- Popin de détails de l'événement (masquée quand on est sur l'URL canonique /event/:id) -->
+  <div v-if="showEventDetailsModal && !isEventFullScreen" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 sm:p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-[100vw] sm:max-w-lg md:max-w-6xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] sm:h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-4rem)] md:max-h-[92vh] flex flex-col mb-0 sm:mb-4 md:mb-0" @click.stop>
       <!-- Header -->
       <div class="relative p-1 sm:p-2 md:p-3 pb-1 sm:pb-2">
@@ -1354,6 +1432,7 @@
     :stats="getPlayerStats(selectedPlayerForDetails)"
     :availability="availability"
     :season-id="seasonId"
+    :season-slug="props.slug"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
     :is-protected="selectedPlayerForDetails ? protectedPlayers.has(selectedPlayerForDetails.id) : false"
@@ -1921,6 +2000,25 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+
+// Redirect old event URL (?event=...&modal=event_details|selection) to canonical /season/:slug/event/:eventId
+watch(
+  () => ({ path: route.path, query: route.query }),
+  ({ path, query }) => {
+    if (route.params.eventId) return // already on canonical event path
+    const eventId = query.event
+    const modal = query.modal
+    if (!eventId || (modal !== 'event_details' && modal !== 'selection')) return
+    const slug = route.params.slug
+    if (!slug) return
+    const preserved = { ...query }
+    delete preserved.event
+    delete preserved.modal
+    if (modal === 'selection') preserved.tab = 'compo'
+    router.replace({ path: `/season/${slug}/event/${eventId}`, query: preserved })
+  },
+  { immediate: true }
+)
 
 // Initialiser Firebase Auth
 const auth = getFirebaseAuth()
@@ -2746,7 +2844,7 @@ async function copyEventLinkToClipboard(event) {
   
   try {
     // Générer le lien direct vers l'événement
-    const eventUrl = `${window.location.origin}/season/${props.slug}?event=${event.id}&modal=event_details`;
+    const eventUrl = `${window.location.origin}/season/${props.slug}/event/${event.id}`;
     
     // Copier dans le presse-papiers
     await navigator.clipboard.writeText(eventUrl);
@@ -2765,7 +2863,7 @@ async function copyEventLinkToClipboard(event) {
     // Fallback pour les navigateurs qui ne supportent pas l'API Clipboard
     try {
       const textArea = document.createElement('textarea');
-      textArea.value = `${window.location.origin}/season/${props.slug}?event=${event.id}&modal=event_details`;
+      textArea.value = `${window.location.origin}/season/${props.slug}/event/${event.id}`;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
@@ -5853,28 +5951,72 @@ watch(() => currentUser.value?.email, async (newEmail, oldEmail) => {
     closeSelectionModal()
   }
 }, { immediate: false })
-// Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
-watch(() => route.params.eventId, (newEventId) => {
-  if (newEventId) {
-    const openWhenReady = () => {
-      const targetEvent = events.value.find(e => e.id === newEventId)
-      if (targetEvent) {
-        showEventDetails(targetEvent)
-        return true
-      }
-      return false
-    }
+// Full-screen event view: when route is /season/:slug/event/:eventId, show event details in-page (no modal)
+const isEventFullScreen = computed(() => !!route.params.eventId)
 
-    if (events.value.length > 0) {
-      openWhenReady()
-    } else {
-      const unwatch = watch(events, (newEvents) => {
-        if (newEvents.length > 0) {
-          const done = openWhenReady()
-          if (done) unwatch()
-        }
-      }, { immediate: true })
+// Sync state from event route (selectedEvent, tab, etc.) without opening modal or pushing URL
+async function syncStateFromEventRoute(event, { showAvailability = false, forceTab = null, showConfirm = false, fromAllPlayersFilter = false } = {}) {
+  if (!event) return
+  if (currentUser.value) currentUserPlayer.value = getCurrentUserPlayer()
+  const defaultTab = getDefaultTabForEvent(event)
+  const normalizedForceTab = forceTab == null ? null : String(forceTab).toLowerCase() === 'compo' ? 'composition' : String(forceTab).toLowerCase()
+  if (fromAllPlayersFilter) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = 'team'
+  } else if (normalizedForceTab === 'info') {
+    eventDetailsActiveTab.value = 'info'
+  } else if (normalizedForceTab === 'team') {
+    eventDetailsActiveTab.value = 'team'
+    if (showAvailability && currentUserPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value
+    else if (!selectedTeamPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value || { id: 'all', name: 'Tous' }
+  } else if (normalizedForceTab === 'composition') {
+    eventDetailsActiveTab.value = 'composition'
+  } else if (showAvailability && currentUserPlayer.value) {
+    selectedTeamPlayer.value = currentUserPlayer.value
+    eventDetailsActiveTab.value = 'team'
+  } else if (showAvailability && !currentUserPlayer.value) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = defaultTab
+  } else {
+    eventDetailsActiveTab.value = defaultTab
+  }
+  selectedEvent.value = event
+  editingDescription.value = event.description || ''
+  editingArchived.value = !!event.archived
+  showAvailabilityInEventDetails.value = showAvailability
+  try {
+    const [newAvailability, newSelections] = await Promise.all([loadAvailabilityForAllPlayers(), loadCasts(seasonId.value)])
+    availability.value = newAvailability
+    casts.value = newSelections
+  } catch (e) {
+    console.warn('Impossible de rafraîchir les données pour l\'écran événement:', e)
+  }
+  if (showConfirm) {
+    await nextTick()
+    setTimeout(async () => { await checkAndOpenConfirmationModal(event.id) }, 300)
+  }
+}
+
+// When on event route, sync state from route (no modal)
+watch(() => route.params.eventId, (newEventId) => {
+  if (!newEventId) return
+  const apply = () => {
+    const targetEvent = events.value.find(e => e.id === newEventId)
+    if (targetEvent) {
+      const showAvailability = route.query.showAvailability === 'true'
+      const showConfirm = route.query.showConfirm === 'true'
+      const tabParam = route.query.tab || null
+      syncStateFromEventRoute(targetEvent, { showAvailability, forceTab: tabParam, showConfirm })
+      return true
     }
+    return false
+  }
+  if (events.value.length > 0) {
+    apply()
+  } else {
+    const unwatch = watch(events, (newEvents) => {
+      if (newEvents.length > 0 && apply()) unwatch()
+    }, { immediate: true })
   }
 }, { immediate: true })
 // Helpers de tri
@@ -8696,7 +8838,11 @@ async function executePendingOperation(operation) {
 }
 
 function goBack() {
-  router.push('/seasons')
+  if (route.params.eventId) {
+    router.push(`/season/${props.slug}`)
+  } else {
+    router.push('/seasons')
+  }
 }
 
 function refreshSeason() {
@@ -8710,147 +8856,26 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false, forceTab = null, showConfirm = false) {
-  console.log('📋 DEBUG showEventDetails appelée:', {
-    event: event ? { id: event.id, title: event.title } : null,
-    showAvailability,
-    updateUrl,
-    fromAllPlayersFilter,
-    forceTab,
-    showConfirm
-  })
-
-  // Démarrer la mesure de performance pour l'écran détail événement
-  performanceService.start('event_detail_loading', {
-    eventId: event.id,
-    eventTitle: event.title,
-    timestamp: new Date().toISOString()
-  })
-
-  // Toujours récupérer le joueur de l'utilisateur connecté pour l'onglet "Ma Dispo"
-  if (currentUser.value) {
-    currentUserPlayer.value = getCurrentUserPlayer()
-    console.log('👤 DEBUG showEventDetails: currentUserPlayer récupéré:', {
-      currentUserPlayer: currentUserPlayer.value ? { id: currentUserPlayer.value.id, name: currentUserPlayer.value.name } : null
-    })
-  }
-
+// Navigate to canonical event URL; watch(route.params.eventId) will call syncStateFromEventRoute
+function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false, forceTab = null, showConfirm = false) {
+  if (!event) return
   const defaultTab = getDefaultTabForEvent(event)
-
-  // Normaliser forceTab depuis l'URL : info, team, compo/composition
   const normalizedForceTab = forceTab == null ? null : String(forceTab).toLowerCase() === 'compo' ? 'composition' : String(forceTab).toLowerCase()
-
-  console.log('🔍 DEBUG showEventDetails - choix de l\'onglet:', {
-    fromAllPlayersFilter,
-    defaultTab,
-    currentUserPlayer: currentUserPlayer.value?.name,
-    showAvailability,
-    forceTab,
-    normalizedForceTab
-  })
-
-  // Définir selectedTeamPlayer AVANT selectedEvent pour éviter que le watcher l'écrase
-  if (fromAllPlayersFilter) {
-    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
-    eventDetailsActiveTab.value = 'team'
-    console.log('✅ DEBUG showEventDetails - Mode "Tous" activé depuis filtre')
-  } else if (normalizedForceTab === 'info') {
-    eventDetailsActiveTab.value = 'info'
-  } else if (normalizedForceTab === 'team') {
-    eventDetailsActiveTab.value = 'team'
-    if (showAvailability && currentUserPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value
-    else if (!selectedTeamPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value || { id: 'all', name: 'Tous' }
-  } else if (normalizedForceTab === 'composition') {
-    eventDetailsActiveTab.value = 'composition'
-  } else if (showAvailability && currentUserPlayer.value) {
-    selectedTeamPlayer.value = currentUserPlayer.value
-    eventDetailsActiveTab.value = 'team'
-  } else if (showAvailability && !currentUserPlayer.value) {
-    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
-    eventDetailsActiveTab.value = defaultTab
-  } else {
-    eventDetailsActiveTab.value = defaultTab
-  }
-
-  // Maintenant, définir selectedEvent (ceci déclenche le watcher, mais selectedTeamPlayer est déjà défini)
-  selectedEvent.value = event
-  editingDescription.value = event.description || ''
-  editingArchived.value = !!event.archived
-  showAvailabilityInEventDetails.value = showAvailability
-
-  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
-    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
-    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null,
-    selectedTeamPlayer: selectedTeamPlayer.value
-  })
-
-  // 1. Mettre à jour l'URL (event, modal, tab, showAvailability, showConfirm)
+  let tabForUrl = 'info'
+  if (fromAllPlayersFilter) tabForUrl = 'team'
+  else if (normalizedForceTab === 'info') tabForUrl = 'info'
+  else if (normalizedForceTab === 'team') tabForUrl = 'team'
+  else if (normalizedForceTab === 'composition') tabForUrl = 'compo'
+  else if (showAvailability && currentUser.value) tabForUrl = 'team'
+  else tabForUrl = defaultTab === 'composition' ? 'compo' : defaultTab === 'team' ? 'team' : 'info'
+  const query = { tab: tabForUrl }
+  if (showAvailability) query.showAvailability = 'true'
+  if (showConfirm) query.showConfirm = 'true'
   if (updateUrl) {
-    const tabForUrl = eventDetailsActiveTab.value === 'composition' ? 'compo' : eventDetailsActiveTab.value === 'team' ? 'team' : 'info'
-    let urlParams = `event=${event.id}&modal=event_details&tab=${tabForUrl}`
-    if (showAvailability) urlParams += '&showAvailability=true'
-    if (showConfirm) urlParams += '&showConfirm=true'
-    router.push(`/season/${props.slug}?${urlParams}`)
+    router.push({ path: `/season/${props.slug}/event/${event.id}`, query })
+  } else {
+    router.replace({ path: `/season/${props.slug}/event/${event.id}`, query })
   }
-
-  // 2. Tracker l'état de navigation (pas l'interaction modale)
-  try {
-    const userId = getCurrentUserId()
-    if (userId) {
-      // Navigation tracking supprimé - remplacé par seasonPreferences
-      }
-    } catch (error) {
-      // Log silencieux pour les erreurs de tracking non critiques
-      if (error.code !== 'permission-denied') {
-        logger.error('Erreur lors du tracking de l\'état de navigation:', error)
-      }
-    }
-
-  // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
-  try {
-    const [newAvailability, newSelections] = await performanceService.measureStep('event_detail_data_refresh', async () => {
-      return await Promise.all([
-        loadAvailabilityForAllPlayers(),
-        loadCasts(seasonId.value)
-      ])
-    }, { 
-      eventId: event.id, 
-      playersCount: players.value.length, 
-      eventsCount: events.value.length 
-    })
-    availability.value = newAvailability
-    casts.value = newSelections
-  } catch (e) {
-    console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
-  }
-
-  // S'assurer que la modale s'ouvre après que les données soient assignées
-  await nextTick()
-  showEventDetailsModal.value = true
-
-  // Si showConfirm est true, vérifier et ouvrir automatiquement la modale de confirmation
-  if (showConfirm) {
-    // Attendre un peu pour que les données de composition soient chargées
-    await nextTick()
-    setTimeout(async () => {
-      await checkAndOpenConfirmationModal(event.id)
-    }, 300)
-  }
-
-  // Terminer la mesure de performance pour l'écran détail événement
-  const eventDetailLoadingTime = performanceService.end('event_detail_loading', {
-    eventId: event.id,
-    eventTitle: event.title,
-    playersCount: players.value.length,
-    eventsCount: events.value.length
-  })
-  
-  logger.info(`📋 Détail événement chargé en ${eventDetailLoadingTime.toFixed(2)}ms (${event.title})`)
-  
-  // Mettre à jour l'état de surveillance de l'événement
-  nextTick(() => {
-    updateEventMonitoredState()
-  })
 }
 
 function closeEventDetails() {
@@ -8878,14 +8903,21 @@ function closeEventDetails() {
 // Changer l'onglet des détails événement et synchroniser l'URL (partage / bookmark)
 function setEventDetailsTab(tab) {
   if (!selectedEvent.value) return
+  showEventActionsDropdown.value = false
   const t = tab === 'composition' ? 'composition' : tab === 'team' ? 'team' : 'info'
   eventDetailsActiveTab.value = t
   const tabForUrl = t === 'composition' ? 'compo' : t
-  const params = new URLSearchParams(router.currentRoute.value.query)
-  params.set('event', selectedEvent.value.id)
-  params.set('modal', 'event_details')
-  params.set('tab', tabForUrl)
-  router.replace({ path: router.currentRoute.value.path, query: Object.fromEntries(params) })
+  if (route.params.eventId) {
+    // Full-screen event: update query tab only (canonical URL)
+    const query = { ...route.query, tab: tabForUrl }
+    router.replace({ path: route.path, query })
+  } else {
+    const params = new URLSearchParams(router.currentRoute.value.query)
+    params.set('event', selectedEvent.value.id)
+    params.set('modal', 'event_details')
+    params.set('tab', tabForUrl)
+    router.replace({ path: router.currentRoute.value.path, query: Object.fromEntries(params) })
+  }
 }
 
 // Fonction pour ajouter un événement à l'agenda
@@ -8899,7 +8931,7 @@ async function handleAddToCalendar(type, event = null) {
     console.log('🎭 Données de sélection pour l\'agenda:', castData)
     console.log('👥 Liste des joueurs:', players.value)
     
-    await addToCalendar(type, targetEvent, seasonName.value, castData, players.value, seasonSlug.value)
+    await addToCalendar(type, targetEvent, seasonName.value, castData, players.value, seasonSlug)
     
     // Afficher un message de succès
     showSuccessMessage.value = true
@@ -10606,13 +10638,17 @@ function handleEventClickFromTimeline(event, fromAllPlayersFilter = false) {
 // Passer à l’onglet Composition dans le détail événement (boutons du footer)
 function switchToCompositionTab() {
   eventDetailsActiveTab.value = 'composition'
-  try {
-    const params = new URLSearchParams(window.location.search)
-    params.set('tab', 'compo')
-    if (params.get('modal') !== 'event_details') params.set('modal', 'event_details')
-    if (!params.has('event') && selectedEvent.value?.id) params.set('event', selectedEvent.value.id)
-    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
-  } catch {}
+  if (route.params.eventId) {
+    router.replace({ path: route.path, query: { ...route.query, tab: 'compo' } })
+  } else {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      params.set('tab', 'compo')
+      if (params.get('modal') !== 'event_details') params.set('modal', 'event_details')
+      if (!params.has('event') && selectedEvent.value?.id) params.set('event', selectedEvent.value.id)
+      history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    } catch {}
+  }
 }
 
 // Ouvre le détail événement avec l’onglet Composition (plus de popup de composition)
