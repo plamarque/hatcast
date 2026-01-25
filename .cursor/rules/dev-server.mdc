@@ -1,0 +1,14 @@
+---
+description: Commande pour lancer le serveur de dev (réseau local / HTTPS)
+alwaysApply: true
+---
+
+# Serveur de développement
+
+Lorsque l'utilisateur demande de démarrer, lancer ou tester le serveur de développement en local, utiliser **toujours** :
+
+```bash
+npm run dev -- --host
+```
+
+Cette commande expose l'app sur toutes les interfaces (ex. https://192.168.1.134:5173/) en plus de localhost, pour tester depuis un téléphone ou une autre machine sur le réseau. Le HTTPS est géré par la config Vite si les certificats sont présents.

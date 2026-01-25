@@ -1,5 +1,7 @@
 # Commit Message Guidelines
 
+Referred from [AGENTS.md](../../AGENTS.md) and [DEVELOPMENT.md](../../DEVELOPMENT.md) as the normative source for commit messages in this repo.
+
 ## Overview
 This document outlines the standards for writing clear, consistent, and informative commit messages using the Conventional Commits specification.
 

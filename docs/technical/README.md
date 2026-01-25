@@ -78,7 +78,7 @@ Ce dossier contient la documentation technique et d'implémentation du projet Ha
 - **Functions** : Logique backend
 
 ### Workflows GitHub Actions
-- **[DEPLOYMENT.md](../DEPLOYMENT.md)** - Architecture de déploiement et workflows automatisés
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Architecture de déploiement et workflows automatisés
 
 ## 📚 Ressources
 

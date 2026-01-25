@@ -20,6 +20,7 @@ if (fs.existsSync(localConfigPath)) {
 }
 
 const BASE_URL = process.env.BASE_URL || LOCAL_CONFIG.baseURL || 'http://localhost:5173';
+const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1' || process.env.SKIP_WEBSERVER === 'true';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -88,12 +89,14 @@ module.exports = defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev -- --host',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-    ignoreHTTPSErrors: true,
-  },
+  /* Run your local dev server before starting the tests (désactivé si SKIP_WEBSERVER=1) */
+  ...(SKIP_WEBSERVER ? {} : {
+    webServer: {
+      command: 'npm run dev -- --host',
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      ignoreHTTPSErrors: true,
+    },
+  }),
 });

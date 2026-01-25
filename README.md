@@ -10,7 +10,7 @@ Basée sur Vue 3, Firebase et TailwindCSS.
 - Sélection automatique équitable et pondérée (selon les participations passées)
 - Sauvegarde dans Firebase (Firestore)
 - Interface responsive avec TailwindCSS
-- **Audit trail complet** : Traçabilité de toutes les actions utilisateur ([voir documentation](./AUDIT.md))
+- **Audit trail complet** : Traçabilité de toutes les actions utilisateur ([voir documentation](docs/technical/AUDIT.md))
 
 ## 🚀 Installation
 
@@ -36,6 +36,10 @@ Basée sur Vue 3, Firebase et TailwindCSS.
    ```bash
    npm run dev
    ```
+   Pour tester depuis une autre machine ou un téléphone sur le réseau (ex. https://192.168.x.x:5173/) :
+   ```bash
+   npm run dev -- --host
+   ```
 
 ## 🛠️ Tech stack
 
@@ -45,25 +49,37 @@ Basée sur Vue 3, Firebase et TailwindCSS.
 
 ## 📦 Déploiement
 
-Déployable sur [Netlify](https://netlify.com), [Vercel](https://vercel.com) ou tout autre service supportant un projet Vite.
+Le déploiement est géré par **Firebase Hosting** et les **GitHub Actions** (branches `staging` et `main`). La CI fait un build Vite puis `firebase deploy`. Voir [DEVELOPMENT.md](DEVELOPMENT.md) et `.github/workflows/`.
 
 ## 📁 Structure
 
 ```
 src/
-  components/     # Composants Vue
+  main.js              # Point d'entrée, routes Vue Router
+  App.vue
+  components/          # Composants Vue (dont GridBoard.vue = grille principale)
+  views/               # Pages : HomePage, SeasonsPage, HelpPage, GridBoard, etc.
   services/
-    firebase.js   # Connexion Firebase
-    storage.js    # Accès Firestore abstrait
-  views/
-    Grille.vue    # Vue principale
+    firebase.js        # Connexion Firebase (Auth, Firestore, Functions)
+    firestoreService.js # Accès Firestore centralisé (multi-DB)
+    storage.js         # Abstraction métier Firestore (saisons, events, players, casts)
 functions/
-  auditService.js    # Service d'audit centralisé
-  auditTriggers.js   # Triggers Firestore pour l'audit
-  auditQueries.js    # Fonctions de requête d'audit
+  index.js             # Cloud Functions (auth, audit, mail, push, admin)
+  auditService.js      # Service d'audit
+  auditTriggers.js     # Triggers Firestore pour l'audit
+  auditQueries.js      # Requêtes d'audit
 scripts/
-  audit-cli.js       # CLI pour consulter l'audit trail
+  audit-cli.js         # CLI pour consulter l'audit trail
 ```
+
+## 📄 Docs pour agents et mainteneurs
+
+- [AGENTS.md](AGENTS.md) — Règles pour les agents IA (sources de vérité, spec vs plan, qualité).
+- [SPEC.md](SPEC.md) — Spécification fonctionnelle (vision, acteurs, parcours, critères).
+- [DOMAIN.md](DOMAIN.md) — Modèle de domaine et glossaire.
+- [ARCH.md](ARCH.md) — Architecture (composants, déploiement, config, tests).
+- [PLAN.md](PLAN.md) — Plan de livraison et slices.
+- [DEVELOPMENT.md](DEVELOPMENT.md) — Run local, tests, build, déploiement.
 
 ---
 

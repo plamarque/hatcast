@@ -2,10 +2,14 @@
 
 /**
  * 🔍 Script pour exécuter tous les tests de debugging
- * Usage: node run-all-tests.js
+ * Usage: node scripts/debug/run-all-tests.js (depuis la racine du repo)
  */
 
+const path = require('path')
 const { spawn } = require('child_process')
+
+const DEBUG_DIR = __dirname
+const ROOT_DIR = path.resolve(__dirname, '..', '..')
 
 const tests = [
   'test-production-token.js',
@@ -20,12 +24,14 @@ const tests = [
 
 function runTest(testFile) {
   return new Promise((resolve, reject) => {
+    const testPath = path.join(DEBUG_DIR, testFile)
     console.log(`\n🚀 Running ${testFile}...`)
-    console.log('='='='='='='='='='='='='='='='='='='='='='='='='='='='='='='='='=')
+    console.log('='.repeat(60))
     
-    const child = spawn('node', [testFile], {
+    const child = spawn('node', [testPath], {
       stdio: 'inherit',
-      shell: true
+      shell: true,
+      cwd: ROOT_DIR
     })
     
     child.on('close', (code) => {

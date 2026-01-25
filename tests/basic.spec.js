@@ -59,5 +59,12 @@ test.describe('Tests basiques HatCast', () => {
     
     console.log('✅ Navigation de base fonctionne');
   });
+
+  test('Route critique /seasons se charge', async ({ page }) => {
+    const res = await page.goto('/seasons');
+    await page.waitForLoadState('domcontentloaded');
+    expect(res?.status()).toBe(200);
+    await expect(page.locator('body')).toBeVisible();
+  });
 });
 

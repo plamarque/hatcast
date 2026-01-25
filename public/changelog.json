@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.44.0",
+    "date": "2026-01-25",
+    "changes": [
+      "✨ Ajout d'un lien vers les directives de commit dans AGENTS et DÉVELOPPEMENT",
+      "✨ Documentation de la commande de release dans DEVELOPMENT.md",
+      "✨ Indication pour utiliser le curseur afin de lancer le serveur de développement",
+      "✨ Tri des disponibilités par pourcentage"
+    ]
+  },
+  {
     "version": "0.43.1",
     "date": "2026-01-07",
     "changes": [

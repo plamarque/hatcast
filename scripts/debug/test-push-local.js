@@ -8,13 +8,16 @@
 const fs = require('fs')
 const path = require('path')
 
+// Script may be run from scripts/debug/; resolve repo root
+const ROOT_DIR = path.resolve(__dirname, '..', '..')
+
 console.log('\n🔔 Test local des notifications push\n')
 
 // Test 1: Vérifier que la Cloud Function existe
 console.log('📋 Test 1: Vérification de la Cloud Function')
 console.log('=' .repeat(60))
 
-const functionsIndexPath = path.join(__dirname, 'functions', 'index.js')
+const functionsIndexPath = path.join(ROOT_DIR, 'functions', 'index.js')
 if (fs.existsSync(functionsIndexPath)) {
   const content = fs.readFileSync(functionsIndexPath, 'utf8')
   
@@ -50,7 +53,7 @@ if (fs.existsSync(functionsIndexPath)) {
 console.log('\n📋 Test 2: Vérification du Service Worker')
 console.log('=' .repeat(60))
 
-const swPath = path.join(__dirname, 'src', 'service-worker.js')
+const swPath = path.join(ROOT_DIR, 'src', 'service-worker.js')
 if (fs.existsSync(swPath)) {
   const content = fs.readFileSync(swPath, 'utf8')
   
@@ -79,7 +82,7 @@ if (fs.existsSync(swPath)) {
 console.log('\n📋 Test 3: Vérification du service notifications.js')
 console.log('=' .repeat(60))
 
-const notifServicePath = path.join(__dirname, 'src', 'services', 'notifications.js')
+const notifServicePath = path.join(ROOT_DIR, 'src', 'services', 'notifications.js')
 if (fs.existsSync(notifServicePath)) {
   const content = fs.readFileSync(notifServicePath, 'utf8')
   
@@ -108,7 +111,7 @@ if (fs.existsSync(notifServicePath)) {
 console.log('\n📋 Test 4: Vérification du service pushService.js')
 console.log('=' .repeat(60))
 
-const pushServicePath = path.join(__dirname, 'src', 'services', 'pushService.js')
+const pushServicePath = path.join(ROOT_DIR, 'src', 'services', 'pushService.js')
 if (fs.existsSync(pushServicePath)) {
   const content = fs.readFileSync(pushServicePath, 'utf8')
   
@@ -137,7 +140,7 @@ if (fs.existsSync(pushServicePath)) {
 console.log('\n📋 Test 5: Vérification des règles Firestore')
 console.log('=' .repeat(60))
 
-const rulesPath = path.join(__dirname, 'firestore.rules')
+const rulesPath = path.join(ROOT_DIR, 'firestore.rules')
 if (fs.existsSync(rulesPath)) {
   const content = fs.readFileSync(rulesPath, 'utf8')
   
@@ -164,7 +167,7 @@ if (fs.existsSync(rulesPath)) {
 console.log('\n📋 Test 6: Vérification de la clé VAPID')
 console.log('=' .repeat(60))
 
-const configServicePath = path.join(__dirname, 'src', 'services', 'configService.js')
+const configServicePath = path.join(ROOT_DIR, 'src', 'services', 'configService.js')
 if (fs.existsSync(configServicePath)) {
   const content = fs.readFileSync(configServicePath, 'utf8')
   
@@ -195,7 +198,7 @@ if (fs.existsSync(configServicePath)) {
 console.log('\n📋 Test 7: Vérification de firebase.json')
 console.log('=' .repeat(60))
 
-const firebaseJsonPath = path.join(__dirname, 'firebase.json')
+const firebaseJsonPath = path.join(ROOT_DIR, 'firebase.json')
 if (fs.existsSync(firebaseJsonPath)) {
   const content = fs.readFileSync(firebaseJsonPath, 'utf8')
   const config = JSON.parse(content)
