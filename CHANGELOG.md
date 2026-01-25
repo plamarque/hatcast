@@ -2,6 +2,7 @@
 
 ### 📝 Other Changes
 
+- feat(event): Event details as full screen at canonical URL (Slice 10). Design: full-width black content, no card/close button; status and event actions (three-dots) in Infos tab only; no footer Composition button (Équipe tab only); SeasonHeader title truncation on mobile. E2E tests updated (event-details-tabs).
 - feat(composition): Inline composition in event-details Composition tab; no composition popup (Slice 9). Entry points (footer button, TimelineView, URL `modal=selection`, MagicLink) open event details with Composition tab. SelectionModal used inline in tab only.
 - feat(composition): Slot click in composition modal opens participation confirmation (Slice 7)
 - fix(ui): Confirmation modal z-index above composition modal so it appears on top

@@ -99,7 +99,7 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - The Composition tab contains **all** composition features that currently exist in the composition popup: run draw (Tirage), simulations (Simuler + algorithm choice), validate (Valider), unlock (Déverrouiller), announce (Annoncer la compo), send via WhatsApp (Envoyer), reset (Effacer), fill cast (Remplir), manual slot edit, declined-players handling, status badges, PIN when required, and opening of EventAnnounceModal / DrawAnnounceModal / HowItWorks as needed. Same permission and state rules apply (e.g. `canManageCompositionValue`, `canCasterEditManually`, confirmation/organizer state).
   - **Composition actions** (Tirage, Simuler, Valider, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
   - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
-  - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: the "Composition Équipe" / "Composition" button in the event-details footer switches to the Composition tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.
+  - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.
   - User experience is a single place (event details) with one tab (Composition) where users see and perform only the actions their permissions allow.
 
 - **Slot click in composition (Composition tab) for participation confirmation**
@@ -167,8 +167,8 @@ This section specifies the **event details as full screen** slice in full. It de
 
 ### Content of the event screen
 
-- **Content:** The same functional content as the current event-details **modal** (title, status badge, date/location, description, add-to-calendar, maps, tabs Composition / Disponibilités, composition slots or EventRoleGroupingView, availability list, actions such as Share, Notifications, and for admins: Announce, Edit, Archive, Delete). No reduction or addition of features; only the container changes (in-page instead of modal).
-- **Primary actions:** “Fermer” (or equivalent) must navigate back to the season (`/season/:slug`). “Composition Équipe” (or equivalent) continues to open the composition flow (tab or modal as today); entry point may be in the event screen’s footer or body.
+- **Content:** The same functional content as the current event-details **modal** (event title and icon in the header only — not duplicated in the main area; status badge and event actions menu (three-dots: Share, Notifications, Announce, Edit, Archive, Delete) in the **Infos** tab only; date/location, description, add-to-calendar, maps in Infos; tabs Infos / Dispos / Équipe; composition or EventRoleGroupingView in Équipe/Dispos). No modal chrome: full-width black content area, no close button in content (back is in header).
+- **Primary actions:** Back chevron in the header navigates to the season (`/season/:slug`). There is no "Fermer" button in the event content. Composition is reached only via the **Équipe** tab (no footer "Composition Équipe" button on the full-screen event view).
 - **Tabs and focus:** On load, the active tab and any auto-opened modal (e.g. confirmation) must respect the URL query parameters above.
 
 ### Entry points (opening event details)
@@ -194,7 +194,7 @@ This section specifies the **event details as full screen** slice in full. It de
 - **Given** the same URL with `showAvailability=true`, **when** the page loads, **then** the Disponibilités tab or availability entry is focused as specified by current modal behaviour.
 - **Given** any email or push notification that contains a link to an event, **when** the user follows that link, **then** the link is of the form `/season/:slug/event/:eventId` (and optional query) and the user lands on the event screen with the correct tab/state.
 - **Given** a user on the season grid or timeline, **when** they click to open an event’s details, **then** the app navigates to `/season/:slug/event/:eventId` (no modal).
-- **Given** the user is on the event screen, **when** they click the back chevron or “Fermer”, **then** they are taken to `/season/:slug`.
+- **Given** the user is on the event screen, **when** they click the back chevron in the header, **then** they are taken to `/season/:slug`.
 
 ---
 
