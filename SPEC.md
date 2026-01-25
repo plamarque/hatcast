@@ -79,6 +79,12 @@ HatCast is a web application for organising improvisation shows: managing **seas
 
 Slices below describe desired behaviour to be implemented later. Implementation order and tasks will be defined in PLAN.md when a slice is scheduled.
 
+- **Event details as full screen (canonical URL)**
+  - Event details are shown as a **full screen** (not a modal), at the canonical URL `/season/:slug/event/:eventId`. Layout: same as the grid (header, content, footer). Header in “event mode”: back chevron goes to the season; icon and title are the event’s; admin and account actions unchanged.
+  - **All links that lead to an event** (emails, push notifications, WhatsApp-shared messages, calendar links, in-app share, Cloud Functions sending reminders or cast notifications) **must use this URL format**. No backward compatibility for the old query format (`?event=...&modal=event_details`); old links may redirect to the canonical URL.
+  - **Query parameters** on the event page preserve behaviour: e.g. `tab=compo`, `showConfirm=true`, `showAvailability=true`, `notificationSuccess=1` (+ email, playerName, eventId), and any `action` used by magic links or reminders. The event screen reads these and opens the right tab or modal as today.
+  - **Full specification:** See the dedicated section « Event details as full screen » below in this document.
+
 - **Event-details tabs – Info as first tab**
   - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of a **first tab**, e.g. "Info" or "Détails".
   - The event-details view has **two or three tabs**: (1) **Info** (first), (2) **Disponibilités**, (3) **Composition** (shown only when a composition exists for the event).
@@ -98,6 +104,70 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - In the **composition modal** (SelectionModal), clicking on a filled slot (a person in the composition) opens the **participation confirmation** popup (same as in the event-details Composition tab).
   - **Permissions:** An **administrator** (e.g. can edit the event) can open the confirmation popup for any slot (to confirm, decline, or set to pending for any player). The **concerned player** can open it only for **their own** slot (to confirm or decline their own participation). Other users do not open the popup (or see an error if they try).
   - Behaviour and UI of the confirmation popup are unchanged (confirm / decline / pending); only the entry point (slot click in the modal) is added.
+
+---
+
+## Event details as full screen (specification)
+
+This section specifies the **event details as full screen** slice in full. It describes required behaviour and contracts so that a future development plan can be derived without ambiguity. Implementation order is not defined here (see PLAN.md when the slice is scheduled).
+
+### Purpose and scope
+
+- **Goal:** Replace the current event-details **modal** (popup) with a **full-screen view** at a stable, shareable URL. The same content is shown in-page, with the same global layout as the season grid (header above, footer below). Users and notifications can link directly to an event.
+- **Scope:** Route and URL contract; layout and header behaviour; content and entry points; all producers of event links (in-app, email, push, WhatsApp, calendar, Cloud Functions). **No backward compatibility** for the old URL form (`?event=...&modal=event_details`); old links may redirect to the new URL.
+
+### Route and URL contract
+
+- **Canonical path:** `/season/:slug/event/:eventId` (path only; no required query).
+- **Optional query parameters** (semantics the event screen must honour):
+  - `tab=compo` — open or focus the Composition tab.
+  - `tab=team` (or equivalent) — open or focus the Disponibilités tab.
+  - `showConfirm=true` — when used with composition context: open or emphasise the participation confirmation flow (e.g. for “Confirmer ma participation” links in emails/WhatsApp).
+  - `showAvailability=true` — open or focus the Disponibilités tab and/or availability entry (e.g. from magic link or reminder).
+  - `notificationSuccess=1`, `email`, `playerName`, `eventId` — show the existing “notification activated” success toast when present.
+  - `action=desist&player=...` — if used by reminder or magic flows: handle as specified for that flow (e.g. open event and optionally prefill or open desist action).
+- **Redirection:** If the user reaches `/season/:slug` with `?event=:id&modal=event_details` (or equivalent old form), the app must redirect to `/season/:slug/event/:id`, preserving any other query parameters that still apply.
+
+### Screen layout
+
+- **Structure:** Same as the season grid: one **header** (sticky or fixed as today), one **main content** area (event details), one **footer** (same AppFooter as on the grid). No overlay or modal chrome around the event content.
+- **Header in “event mode”** (when the active route is the event screen):
+  - **Back control (chevron):** Navigates to the **season** (`/season/:slug`), not to the seasons list. One level up in hierarchy.
+  - **Left area (icon):** Shows the **event type icon** (same semantic as the current event-type badge in the modal), not the season logo. Optional: click may navigate to season or do nothing; product decision.
+  - **Center (title):** Shows the **event title**, not the season name.
+  - **Right area:** Unchanged — for admins, the administration entry; for all users, the account/profile entry (same as on the season grid).
+- **Header when not on event route:** Unchanged — current SeasonHeader behaviour (back to seasons list, season logo, season name).
+
+### Content of the event screen
+
+- **Content:** The same functional content as the current event-details **modal** (title, status badge, date/location, description, add-to-calendar, maps, tabs Composition / Disponibilités, composition slots or EventRoleGroupingView, availability list, actions such as Share, Notifications, and for admins: Announce, Edit, Archive, Delete). No reduction or addition of features; only the container changes (in-page instead of modal).
+- **Primary actions:** “Fermer” (or equivalent) must navigate back to the season (`/season/:slug`). “Composition Équipe” (or equivalent) continues to open the composition flow (tab or modal as today); entry point may be in the event screen’s footer or body.
+- **Tabs and focus:** On load, the active tab and any auto-opened modal (e.g. confirmation) must respect the URL query parameters above.
+
+### Entry points (opening event details)
+
+- **In-app:** Any action that currently opens the event-details **modal** (e.g. click on an event in grid/timeline/events list, “See event” from player modal, “Open event” from admin) must instead **navigate** to `/season/:slug/event/:eventId`, with optional query (e.g. `tab=compo`, `showAvailability=true`) when the current UX expects a specific tab or state.
+- **Direct link / share:** Copy-link and share actions must produce the canonical URL (with optional query). No production of the old `?event=...&modal=event_details` form.
+
+### Links sent externally (emails, push, WhatsApp, calendar, Cloud Functions)
+
+- **Requirement:** Every link that is intended to bring the user **directly to an event** must use the canonical form `{origin}/season/{slug}/event/{eventId}` and may append any of the query parameters defined above so that behaviour (tab, confirmation, availability) is preserved.
+- **Channels to cover:**
+  - **Email:** Availability request, reminder, cast/selection notification, confirmed-team notification, notification activation, and any other email that contains an event link. Templates receive `eventUrl` (and where relevant `confirmUrl`) from callers; callers must pass the canonical URL (and e.g. `confirmUrl` = event URL + `?tab=compo&showConfirm=true`).
+  - **Push notifications (FCM):** Payloads that include a URL for the event must use the canonical URL (and query if needed). Decast or other “no” flows that today use a different URL (e.g. magic) remain valid; only the “main” event link must be canonical.
+  - **WhatsApp (and copy-paste) messages:** The pre-filled message (event announcement, availability, cast, confirmed team) must include the canonical event URL; “Confirmer” links must use the event URL with `?tab=compo&showConfirm=true` (or equivalent).
+  - **Calendar (Google, Outlook, Apple):** The “details” or “more info” link in the added calendar event must point to the canonical event URL.
+  - **Cloud Functions:** Any function that sends email, push, or other notification containing an event link (e.g. reminders, availability reminders, cast notifications) must build the URL as `{baseUrl}/season/{slug}/event/{eventId}` (and add query when the template expects it). No use of the old query-based form for the main event link.
+- **Inventory for implementation:** The following areas produce or consume event URLs and must be updated to emit or handle only the new form: GridBoard (share/copy, open-details), MessagePreview (eventDirectLink, confirmUrl, WhatsApp text), SeasonAdminPage (open event), PlayerModal (link to event), emailService (eventUrl, directConfirmUrl, noUrl for push if applicable), calendarService (event link in description), MagicLink (redirect after magic flow), notificationActivation, notificationsService; and in Cloud Functions: `functions/index.js` (reminders, availability reminders, any email/push that includes eventUrl), with templates in `functions/emailTemplates.js` receiving the new URL from callers.
+
+### Acceptance criteria (event details as full screen)
+
+- **Given** a valid season slug and event id, **when** the user opens `/season/:slug/event/:eventId`, **then** the event details are shown in a full screen (header + content + footer), with no modal overlay; the header shows event icon and title, and the back chevron goes to the season.
+- **Given** the same URL with `tab=compo` (or `showConfirm=true`), **when** the page loads, **then** the Composition tab is active (and the confirmation flow is opened or emphasised if `showConfirm=true`).
+- **Given** the same URL with `showAvailability=true`, **when** the page loads, **then** the Disponibilités tab or availability entry is focused as specified by current modal behaviour.
+- **Given** any email or push notification that contains a link to an event, **when** the user follows that link, **then** the link is of the form `/season/:slug/event/:eventId` (and optional query) and the user lands on the event screen with the correct tab/state.
+- **Given** a user on the season grid or timeline, **when** they click to open an event’s details, **then** the app navigates to `/season/:slug/event/:eventId` (no modal).
+- **Given** the user is on the event screen, **when** they click the back chevron or “Fermer”, **then** they are taken to `/season/:slug`.
 
 ---
 
