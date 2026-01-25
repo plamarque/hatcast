@@ -86,11 +86,12 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Full specification:** See the dedicated section « Event details as full screen » below in this document.
 
 - **Event-details tabs – Info as first tab**
-  - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of a **first tab**, e.g. "Info" or "Détails".
-  - The event-details view has **two or three tabs**: (1) **Info** (first), (2) **Disponibilités**, (3) **Composition** (shown only when a composition exists for the event).
-  - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Info)** is displayed.
-  - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Info, Disponibilités, or Composition.
+  - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of the **first tab**, labeled **Infos**. The Infos tab presents this in **three stacked sections** (Description, Date, Lieu with map), same layout on mobile and desktop. Tabs are displayed as centered pill-style buttons (aligned with the main view switcher and Tous/Moi availability selector).
+  - The event-details view has **two or three tabs**, labeled in the UI: (1) **Infos** (first), (2) **Dispos**, (3) **Équipe** (shown only when a composition exists for the event). URL and code still use `tab=info`, `tab=team`, `tab=compo`.
+  - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Infos)** is displayed.
+  - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Infos, Dispos, or Équipe.
   - No other change to existing behaviour (availability popup, composition display, permissions) is specified by this slice.
+  - **Code reference:** Event-details tabs UI → [src/components/GridBoard.vue](src/components/GridBoard.vue).
 
 - **Inline composition in event-details Composition tab (no separate popup)**
   - Composition management is done **only** in the **Composition** tab of the event-details modal. There is **no separate composition popup** (SelectionModal is no longer opened as an overlay).

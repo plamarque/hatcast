@@ -218,6 +218,7 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **PWA** - Installation, offline, cache, responsive
 - ✅ **Emails** - Interception et extraction de liens
 - ✅ **Protection des joueurs** - 3 cas de figure, icônes, modals, flux complet
+- ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement)
 
 ## 🔧 Configuration
 
@@ -285,6 +286,7 @@ const LOCAL_CONFIG = {
 tests/
 ├── auth.spec.js             # Tests d'authentification
 ├── basic.spec.js            # Tests de base
+├── event-details-tabs.spec.js # Onglets détail événement (Infos, Dispos, Équipe) et URL
 ├── pwa.spec.js              # Tests PWA
 ├── summary.spec.js          # Test de vérification complète
 ├── email-interceptor.js     # Intercepteur d'emails

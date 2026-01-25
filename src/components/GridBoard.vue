@@ -705,7 +705,7 @@
             </div>
           </div>
           
-          <!-- Status de l'événement et bouton pour afficher/masquer les détails - Même ligne -->
+          <!-- Status de l'événement (badge seul ; détails dans l'onglet Info) -->
           <div v-if="selectedEvent && eventStatus" class="flex items-center justify-between pl-1">
             <SelectionStatusBadge
               :status="eventStatus.type"
@@ -714,334 +714,135 @@
               :reason="eventWarningText"
               class="text-xs"
             />
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
-              <svg 
-                class="w-3 h-3 transition-transform duration-200" 
-                :class="{ 'rotate-180': showEventDetailsSection }"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          </div>
-          <!-- Si pas de badge d'état, afficher seulement le bouton -->
-          <div v-else class="flex items-center justify-end pl-1">
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
-              <svg 
-                class="w-3 h-3 transition-transform duration-200" 
-                :class="{ 'rotate-180': showEventDetailsSection }"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          </div>
-          
-          <!-- Ligne Date et Lieu alignées avec badge/bouton (desktop uniquement) -->
-          <div v-if="showEventDetailsSection" class="hidden md:flex items-center justify-between pl-1 mt-2">
-            <!-- Date alignée à gauche -->
-            <div class="relative">
-              <button
-                @click="showCalendarDropdown = !showCalendarDropdown"
-                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                title="Ajouter à votre agenda"
-              >
-                <span>📆</span>
-                <span>{{ formatDateFull(selectedEvent?.date) }}</span>
-                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              
-              <!-- Menu déroulant d'agenda -->
-              <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
-                <div class="p-2">
-                  <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
-                  <button
-                    @click="addToGoogleCalendar(selectedEvent)"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <span>📅</span>
-                    <span>Google</span>
-                  </button>
-                  <button
-                    @click="addToOutlookCalendar(selectedEvent)"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <span>📧</span>
-                    <span>Outlook</span>
-                  </button>
-                  <button
-                    @click="addToAppleCalendar(selectedEvent)"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <span>🍎</span>
-                    <span>Apple</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Lieu aligné à droite -->
-            <div v-if="selectedEvent?.location" class="relative">
-              <button
-                @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
-              >
-                <span>📍</span>
-                <span>{{ selectedEvent.location }}</span>
-                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              
-              <!-- Tooltip avec l'adresse complète -->
-              <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-600 z-50 max-w-xs">
-                <div class="whitespace-normal">{{ selectedEvent.location }}</div>
-                <div class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-              </div>
-              
-              <!-- Dropdown Navigation -->
-              <div v-if="showGoogleMapsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
-                <div class="p-2">
-                  <!-- Option Google Maps -->
-                  <a 
-                    :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    @click="showGoogleMapsDropdown = false"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
-                    </svg>
-                    <span>Ouvrir dans Google Maps</span>
-                  </a>
-                  
-                  <!-- Option Waze -->
-                  <a 
-                    :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    @click="showGoogleMapsDropdown = false"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#33CCFF"/>
-                    </svg>
-                    <span>Ouvrir dans Waze</span>
-                  </a>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
         
-        <!-- Layout horizontal compact -->
-        <div v-if="showEventDetailsSection" class="w-full px-2 sm:px-4 md:px-6">
-          <!-- Layout mobile: vertical -->
-          <div class="md:hidden space-y-4">
-            <!-- Layout horizontal pour écrans plus larges en mobile -->
-            <div class="flex gap-4">
-              <!-- Date avec dropdown -->
-              <div class="relative z-10">
-                <button
-                  @click="showCalendarDropdown = !showCalendarDropdown; console.log('📅 Mobile calendar dropdown clicked:', showCalendarDropdown)"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer group"
-                  title="Ajouter à votre agenda"
-                >
-                  <span>📅</span>
-                  <span>{{ formatDateShort(selectedEvent?.date) }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Menu dropdown agenda -->
-                <div v-if="showCalendarDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-[100] min-w-[150px]">
-                  <div class="p-2">
-                    <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
-                    <div class="space-y-1">
-                      <button
-                        @click="handleAddToCalendar('google', selectedEvent); showCalendarDropdown = false"
-                        class="block w-full text-left px-2 py-1 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                      >
-                        <span>📅</span>
-                        <span>Google</span>
-                      </button>
-                      <button
-                        @click="handleAddToCalendar('outlook', selectedEvent); showCalendarDropdown = false"
-                        class="block w-full text-left px-2 py-1 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                      >
-                        <span>📧</span>
-                        <span>Outlook</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Lieu avec dropdown -->
-              <div v-if="selectedEvent?.location" class="relative flex-1">
-                <button
-                  @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer group"
-                  title="Voir sur Google Maps"
-                >
-                  <span>📍</span>
-                  <span class="truncate max-w-[200px]">{{ getTruncatedLocation(selectedEvent.location) }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Menu dropdown Google Maps -->
-                <div v-if="showGoogleMapsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[280px]">
-                  <div class="p-3">
-                    <div class="mb-2">
-                      <span class="text-sm text-gray-300 font-medium">📍 {{ getLocationAddressPart(selectedEvent.location) }}</span>
-                    </div>
-                    <iframe
-                      :src="getMobileGoogleMapsEmbedUrl(selectedEvent.location)"
-                      width="250"
-                      height="150"
-                      style="border:0; border-radius: 8px;"
-                      allowfullscreen=""
-                      loading="lazy"
-                      referrerpolicy="no-referrer-when-downgrade"
-                      class="rounded-lg"
-                    ></iframe>
-                  </div>
-                  
-                  <!-- Séparateur -->
-                  <div class="border-t border-gray-600"></div>
-                  
-                  <!-- Options de navigation -->
-                  <div class="p-2">
-                    <div class="grid grid-cols-2 gap-2">
-                      <a 
-                        :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        @click="showGoogleMapsDropdown = false"
-                        class="flex items-center justify-center gap-1 px-2 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors duration-200"
-                      >
-                        <span>📍</span>
-                        <span>Google Maps</span>
-                      </a>
-                      <a 
-                        :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        @click="showGoogleMapsDropdown = false"
-                        class="flex items-center justify-center gap-1 px-2 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors duration-200"
-                      >
-                        <span>🌐</span>
-                        <span>Waze</span>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Description -->
-            <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
-              {{ selectedEvent.description }}
-            </div>
-          </div>
-          
-          <!-- Layout desktop en 2 colonnes égales avec flexbox -->
-          <div class="hidden md:flex md:gap-6 w-full mt-4">
-            <!-- Colonne gauche: Description -->
-            <div class="flex-1 space-y-2 min-w-0">
-              <!-- Description -->
-              <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30 h-44 overflow-hidden">
-                <div class="line-clamp-6">{{ selectedEvent.description }}</div>
-              </div>
-            </div>
-            
-            <!-- Colonne droite: Carte -->
-            <div class="flex-1 min-w-0">
-              <!-- Carte -->
-              <div v-if="selectedEvent?.location" class="relative group h-44 w-full overflow-hidden mt-2">
-                <iframe 
-                  :src="getGoogleMapsEmbedUrl(selectedEvent.location)"
-                  width="100%" 
-                  height="100%" 
-                  style="border:0; border-radius: 8px;" 
-                  allowfullscreen="" 
-                  loading="lazy" 
-                  referrerpolicy="no-referrer-when-downgrade"
-                  class="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer w-full h-full"
-                  @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                  title="Cliquer pour voir les options de navigation"
-                ></iframe>
-                
-                <!-- Overlay avec icône pour indiquer l'interactivité -->
-                <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100">
-                  <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
       
       <!-- Content scrollable (margins minimisées sur mobile pour maximiser la place, ex. iPhone SE) -->
       <div class="px-1 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
-        <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
-          <!-- Onglets -->
-          <div class="flex border-b border-white/10">
-    <button
-      v-if="hasCompositionForSelectedEvent"
-      @click="eventDetailsActiveTab = 'composition'"
-      :class="[
-        'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-        eventDetailsActiveTab === 'composition'
-          ? 'text-white bg-purple-600/20 border-b-2 border-purple-400'
-          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-      ]"
-    >
-      <span class="flex items-center justify-center gap-2">
-        <span>🎭</span>
-        <span>Composition</span>
-      </span>
-    </button>
-            <button
-              @click="eventDetailsActiveTab = 'team'"
-              :class="[
-                'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-                eventDetailsActiveTab === 'team' 
-                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              ]"
-            >
-              <span class="flex items-center justify-center gap-2">
+        <div v-if="currentUser" class="mt-0">
+          <!-- Onglets style pilules centrées (comme Tous/Moi et ViewHeader) -->
+          <div class="flex justify-center mb-2 sm:mb-3">
+            <div class="inline-flex bg-gray-800/50 rounded-lg p-1 gap-0.5">
+              <button
+                @click="setEventDetailsTab('info')"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
+                  eventDetailsActiveTab === 'info'
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ]"
+              >
+                <span>ℹ️</span>
+                <span>Infos</span>
+              </button>
+              <button
+                @click="setEventDetailsTab('team')"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
+                  eventDetailsActiveTab === 'team'
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ]"
+              >
                 <span>🧩</span>
-                <span>Disponibilités</span>
-              </span>
-            </button>
+                <span>Dispos</span>
+              </button>
+              <button
+                v-if="hasCompositionForSelectedEvent"
+                @click="setEventDetailsTab('composition')"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
+                  eventDetailsActiveTab === 'composition'
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ]"
+              >
+                <span>🎭</span>
+                <span>Équipe</span>
+              </button>
+            </div>
           </div>
           
-          <!-- Contenu des onglets (padding réduit sur mobile) -->
-          <div class="p-1 sm:p-2 md:p-3">
+          <!-- Contenu des onglets (padding réduit sur mobile, plus d’air en haut sur mobile) -->
+          <div class="pt-4 px-1 pb-1 sm:p-2 md:p-3">
+
+            <!-- Onglet Info : trois sections empilées (Description, Date, Lieu) – même layout mobile et desktop -->
+            <div v-if="eventDetailsActiveTab === 'info'" class="w-full space-y-6">
+              <!-- 1. Section Description -->
+              <section class="space-y-1">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</h3>
+                <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
+                  <div class="whitespace-pre-wrap">{{ selectedEvent.description }}</div>
+                </div>
+                <p v-else class="text-sm text-gray-500 italic">Aucune description</p>
+              </section>
+
+              <!-- 2. Section Date -->
+              <section class="space-y-1">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h3>
+                <div class="relative inline-block">
+                  <button
+                    @click="showCalendarDropdown = !showCalendarDropdown"
+                    class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30"
+                    title="Ajouter à votre agenda"
+                  >
+                    <span>📆</span>
+                    <span>{{ formatDateFull(selectedEvent?.date) }}</span>
+                    <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px] left-0">
+                    <div class="p-2">
+                      <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
+                      <button @click="addToGoogleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📅</span><span>Google</span></button>
+                      <button @click="addToOutlookCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📧</span><span>Outlook</span></button>
+                      <button @click="addToAppleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🍎</span><span>Apple</span></button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 3. Section Lieu (adresse + carte) -->
+              <section class="space-y-2">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lieu</h3>
+                <div v-if="selectedEvent?.location" class="space-y-3">
+                  <div class="relative inline-block min-w-0 max-w-full">
+                    <button
+                      @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                      class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30 min-w-0"
+                      :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+                    >
+                      <span>📍</span>
+                      <span class="truncate">{{ selectedEvent.location }}</span>
+                      <svg class="w-3 h-3 flex-shrink-0 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div v-if="showGoogleMapsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
+                      <div class="p-2">
+                        <a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>Ouvrir dans Google Maps</span></a>
+                        <a :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>Ouvrir dans Waze</span></a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="w-full overflow-hidden rounded-lg border border-gray-600/30 h-48">
+                    <iframe
+                      :src="getGoogleMapsEmbedUrl(selectedEvent.location)"
+                      width="100%" height="100%"
+                      style="border:0; border-radius: 8px;"
+                      allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                      class="rounded-lg w-full h-full"
+                      @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                      title="Cliquer pour voir les options de navigation"
+                    ></iframe>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-500 italic">Aucun lieu renseigné</p>
+              </section>
+            </div>
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
@@ -2044,7 +1845,6 @@ import { ref, computed, reactive, onMounted, onUnmounted, nextTick, watch } from
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
-import { getTruncatedLocation } from '../utils/locationUtils.js'
 import { isMobileOrPWA } from '../utils/deviceDetection.js'
 import { getPlayerCastStatus, getPlayerCastRole, movePlayerToDeclined } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
@@ -3133,8 +2933,8 @@ const availabilityModalData = ref({
 // Compteur pour forcer le re-render de AvailabilityCell
 const availabilityCellRefreshKey = ref(0)
 
-// Onglet actif dans la modale de détails d'événement
-const eventDetailsActiveTab = ref('team') // Sera mis à jour dynamiquement selon l'état du tirage
+// Onglet actif dans la modale de détails d'événement (Info par défaut)
+const eventDetailsActiveTab = ref('info')
 
 // État du modal de sélection de joueur pour l'onglet Disponibilités
 const selectedTeamPlayer = ref(null)
@@ -3145,17 +2945,10 @@ const canModifySelectedPlayerAvailability = ref(null) // null = vérification en
 const isCheckingPermissions = ref(false)
 
 
-// Fonction pour déterminer l'onglet par défaut selon l'état du tirage
+// Onglet par défaut à l'ouverture des détails (sans paramètre tab dans l'URL)
 function getDefaultTabForEvent(event) {
-  if (!event) return 'team'
-  
-  // Si il y a une composition (tirage effectué), onglet Composition par défaut
-  if (hasCompositionForSelectedEvent.value) {
-    return 'composition'
-  }
-  
-  // Sinon, onglet Disponibilités par défaut
-  return 'team'
+  if (!event) return 'info'
+  return 'info'
 }
 
 
@@ -3306,14 +3099,6 @@ watch(currentUserPlayer, (player) => {
   }
 })
 
-// Watcher pour changer d'onglet quand l'état de la composition change
-watch(hasCompositionForSelectedEvent, (hasComposition) => {
-  if (selectedEvent.value) {
-    const defaultTab = getDefaultTabForEvent(selectedEvent.value)
-    eventDetailsActiveTab.value = defaultTab
-  }
-})
-
 // Watcher pour initialiser la sélection de joueur par défaut
 watch([selectedEvent, currentUserPlayer], () => {
   if (selectedEvent.value && eventDetailsActiveTab.value === 'team') {
@@ -3373,8 +3158,6 @@ const showCalendarDropdown = ref(false)
 const showEventActionsDropdown = ref(false)
 
 // État de l'affichage des détails de l'événement
-const showEventDetailsSection = ref(false)
-
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
 
@@ -7820,19 +7603,6 @@ function getGoogleMapsEmbedUrl(location) {
   return mapEmbedUrl.value
 }
 
-function getMobileGoogleMapsEmbedUrl(location) {
-  return mobileMapEmbedUrl.value
-}
-
-function getLocationAddressPart(location) {
-  if (!location) return ''
-  const commaIndex = location.indexOf(',')
-  if (commaIndex > 0) {
-    return location.substring(commaIndex + 1).trim()
-  }
-  return location
-}
-
 function countSelections(playerName, role = 'player', excludeEventId = null, currentEventType = null) {
   // Trouver l'ID du joueur à partir de son nom
   const player = allSeasonPlayers.value.find(p => p.name === playerName)
@@ -9035,41 +8805,41 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     })
   }
 
-  // Déterminer l'onglet par défaut selon l'état du tirage
   const defaultTab = getDefaultTabForEvent(event)
-  
+
+  // Normaliser forceTab depuis l'URL : info, team, compo/composition
+  const normalizedForceTab = forceTab == null ? null : String(forceTab).toLowerCase() === 'compo' ? 'composition' : String(forceTab).toLowerCase()
+
   console.log('🔍 DEBUG showEventDetails - choix de l\'onglet:', {
     fromAllPlayersFilter,
     defaultTab,
     currentUserPlayer: currentUserPlayer.value?.name,
     showAvailability,
-    forceTab
+    forceTab,
+    normalizedForceTab
   })
-  
-  // IMPORTANT: Définir selectedTeamPlayer AVANT de changer selectedEvent pour éviter que le watcher l'écrase
-  // Si on arrive depuis le filtre "Tous", toujours afficher "Tous" dans l'onglet Disponibilités
+
+  // Définir selectedTeamPlayer AVANT selectedEvent pour éviter que le watcher l'écrase
   if (fromAllPlayersFilter) {
     selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
-    eventDetailsActiveTab.value = 'team' // Forcer l'onglet Disponibilités
+    eventDetailsActiveTab.value = 'team'
     console.log('✅ DEBUG showEventDetails - Mode "Tous" activé depuis filtre')
-  }
-  // Si un onglet est forcé depuis l'URL (tab=compo)
-  else if (forceTab === 'composition' || forceTab === 'compo') {
+  } else if (normalizedForceTab === 'info') {
+    eventDetailsActiveTab.value = 'info'
+  } else if (normalizedForceTab === 'team') {
+    eventDetailsActiveTab.value = 'team'
+    if (showAvailability && currentUserPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value
+    else if (!selectedTeamPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value || { id: 'all', name: 'Tous' }
+  } else if (normalizedForceTab === 'composition') {
     eventDetailsActiveTab.value = 'composition'
-    // Sélection par défaut sera gérée par le watcher
-  }
-  // If we tried to show availability but there is no player, default to computed tab
-  else if (showAvailability && !currentUserPlayer.value) {
-    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
-    eventDetailsActiveTab.value = defaultTab
-  } else if (showAvailability) {
-    // Si on demande à voir la disponibilité, aller sur l'onglet team et sélectionner l'utilisateur
+  } else if (showAvailability && currentUserPlayer.value) {
     selectedTeamPlayer.value = currentUserPlayer.value
     eventDetailsActiveTab.value = 'team'
-  } else {
-    // Utiliser l'onglet par défaut selon l'état du tirage
+  } else if (showAvailability && !currentUserPlayer.value) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
     eventDetailsActiveTab.value = defaultTab
-    // Sélection par défaut sera gérée par le watcher (donc on ne touche pas selectedTeamPlayer ici)
+  } else {
+    eventDetailsActiveTab.value = defaultTab
   }
 
   // Maintenant, définir selectedEvent (ceci déclenche le watcher, mais selectedTeamPlayer est déjà défini)
@@ -9084,20 +8854,13 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     selectedTeamPlayer: selectedTeamPlayer.value
   })
 
-  // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
+  // 1. Mettre à jour l'URL (event, modal, tab, showAvailability, showConfirm)
   if (updateUrl) {
-    let urlParams = `event=${event.id}&modal=event_details`
-    if (showAvailability) {
-      urlParams += '&showAvailability=true'
-    }
-    if (forceTab === 'composition' || forceTab === 'compo') {
-      urlParams += '&tab=compo'
-    }
-    if (showConfirm) {
-      urlParams += '&showConfirm=true'
-    }
-    const newUrl = `/season/${props.slug}?${urlParams}`
-    router.push(newUrl)
+    const tabForUrl = eventDetailsActiveTab.value === 'composition' ? 'compo' : eventDetailsActiveTab.value === 'team' ? 'team' : 'info'
+    let urlParams = `event=${event.id}&modal=event_details&tab=${tabForUrl}`
+    if (showAvailability) urlParams += '&showAvailability=true'
+    if (showConfirm) urlParams += '&showConfirm=true'
+    router.push(`/season/${props.slug}?${urlParams}`)
   }
 
   // 2. Tracker l'état de navigation (pas l'interaction modale)
@@ -9129,6 +8892,16 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     casts.value = newSelections
   } catch (e) {
     console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
+  }
+
+  // Si on avait demandé l'onglet Composition mais qu'il n'y a pas de tirage, afficher Info
+  if (eventDetailsActiveTab.value === 'composition' && !hasCompositionForSelectedEvent.value) {
+    eventDetailsActiveTab.value = 'info'
+    if (updateUrl) {
+      const params = new URLSearchParams(router.currentRoute.value.query)
+      params.set('tab', 'info')
+      router.replace({ path: router.currentRoute.value.path, query: Object.fromEntries(params) })
+    }
   }
 
   // S'assurer que la modale s'ouvre après que les données soient assignées
@@ -9181,6 +8954,20 @@ function closeEventDetails() {
   showShareLinkCopied.value = false;
   // Cache fix: removed eventMoreActionsStyle references
 }
+
+// Changer l'onglet des détails événement et synchroniser l'URL (partage / bookmark)
+function setEventDetailsTab(tab) {
+  if (!selectedEvent.value) return
+  const t = tab === 'composition' ? 'composition' : tab === 'team' ? 'team' : 'info'
+  eventDetailsActiveTab.value = t
+  const tabForUrl = t === 'composition' ? 'compo' : t
+  const params = new URLSearchParams(router.currentRoute.value.query)
+  params.set('event', selectedEvent.value.id)
+  params.set('modal', 'event_details')
+  params.set('tab', tabForUrl)
+  router.replace({ path: router.currentRoute.value.path, query: Object.fromEntries(params) })
+}
+
 // Fonction pour ajouter un événement à l'agenda
 async function handleAddToCalendar(type, event = null) {
   const targetEvent = event || selectedEvent.value
