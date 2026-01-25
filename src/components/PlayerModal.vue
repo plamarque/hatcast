@@ -480,8 +480,9 @@
             <div>
               <div class="text-sm text-gray-400">Événement</div>
               <a 
-                :href="`?event=${selectedSelection.eventId}&modal=event_details`"
+                :href="seasonSlug ? `/season/${seasonSlug}/event/${selectedSelection.eventId}` : '#'"
                 class="text-white font-medium hover:text-purple-300 transition-colors cursor-pointer text-left"
+                @click.prevent="seasonSlug && router.push(`/season/${seasonSlug}/event/${selectedSelection.eventId}`)"
               >
                 {{ selectedSelection.eventTitle }}
               </a>
@@ -516,6 +517,9 @@
 
 <script setup>
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 import PlayerClaimModal from './PlayerClaimModal.vue'
 import PasswordVerificationModal from './PasswordVerificationModal.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
@@ -544,6 +548,10 @@ const props = defineProps({
   seasonId: {
     type: String,
     default: null
+  },
+  seasonSlug: {
+    type: String,
+    default: ''
   },
   onboardingStep: {
     type: Number,

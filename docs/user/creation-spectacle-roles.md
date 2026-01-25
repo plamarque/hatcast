@@ -208,7 +208,7 @@ props.eventRoles = {}  // ❌ Vide à cause de la prop manquante !
 - ✅ Gestion des compositions existantes et complétion
 
 ### **Étape 3 : Interface utilisateur ✅**
-- ✅ Modification de `SelectionModal.vue` pour afficher par rôle
+- ✅ Affichage par rôle dans l’onglet Équipe du détail événement (SelectionModal.vue utilisé en inline)
 - ✅ Affichage des slots avec emojis et libellés de rôle
 - ✅ Gestion des slots vides avec tooltips informatifs
 - ✅ Sauvegarde automatique de la structure par rôle

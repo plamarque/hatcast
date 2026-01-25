@@ -175,8 +175,8 @@ Bénévoles (2/2) :
    - Fonctions de sauvegarde des compositions
    - Structure des données
 
-3. **`src/components/SelectionModal.vue`** (si existe)
-   - Affichage de la composition par rôle
+3. **`src/components/SelectionModal.vue`**
+   - Affichage de la composition par rôle (utilisé en inline dans l’onglet Équipe du détail événement, voir GridBoard.vue)
 
 ### **Fonctions à créer/modifier**
 1. **`drawMultiRoles(event)`** - Composition automatique complète ✅
@@ -214,7 +214,7 @@ Bénévoles (2/2) :
 ### **✅ Implémenté et testé**
 - Structure des données par rôle dans `storage.js`
 - Logique de composition multi-rôles dans `GridBoard.vue`
-- Interface utilisateur avec emojis et libellés dans `SelectionModal.vue`
+- Interface utilisateur avec emojis et libellés dans l’onglet Équipe (SelectionModal.vue en mode inline)
 - Sauvegarde et chargement des compositions par rôle
 - Rétrocompatibilité avec l'ancien système
 - Fonctions helper pour manipulation des données

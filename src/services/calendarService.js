@@ -94,7 +94,8 @@ export async function generateICSFile(event, seasonName = '', castData = null, p
   const eventType = event.templateType
   const eventTypeIcon = EVENT_TYPE_ICONS[eventType] || '❓'
   const eventTypeName = ROLE_TEMPLATES[eventType]?.name || 'Autre'
-  const eventUrl = `https://selections.la-malice.fr/season/${seasonSlug}?event=${event.id}&modal=event_details`
+  const origin = (typeof window !== 'undefined' && window.location?.origin) || 'https://selections.la-malice.fr'
+  const eventUrl = `${origin}/season/${seasonSlug}/event/${event.id}`
   description += `\\n\\nType : ${eventTypeIcon} ${eventTypeName}\\n🔗 Détails : ${eventUrl}`
 
   const icsContent = [
@@ -172,7 +173,8 @@ export async function generateGoogleCalendarLink(event, seasonName = '', castDat
   const eventType = event.templateType
   const eventTypeIcon = EVENT_TYPE_ICONS[eventType] || '❓'
   const eventTypeName = ROLE_TEMPLATES[eventType]?.name || 'Autre'
-  const eventUrl = `https://selections.la-malice.fr/season/${seasonSlug}?event=${event.id}&modal=event_details`
+  const origin = (typeof window !== 'undefined' && window.location?.origin) || 'https://selections.la-malice.fr'
+  const eventUrl = `${origin}/season/${seasonSlug}/event/${event.id}`
   description += `\n\nType : ${eventTypeIcon} ${eventTypeName}\n🔗 Détails : ${eventUrl}`
 
   const params = new URLSearchParams({
@@ -210,7 +212,8 @@ export async function generateOutlookLink(event, seasonName = '', castData = nul
   const eventType = event.templateType
   const eventTypeIcon = EVENT_TYPE_ICONS[eventType] || '❓'
   const eventTypeName = ROLE_TEMPLATES[eventType]?.name || 'Autre'
-  const eventUrl = `https://selections.la-malice.fr/season/${seasonSlug}?event=${event.id}&modal=event_details`
+  const origin = (typeof window !== 'undefined' && window.location?.origin) || 'https://selections.la-malice.fr'
+  const eventUrl = `${origin}/season/${seasonSlug}/event/${event.id}`
   description += `\n\nType : ${eventTypeIcon} ${eventTypeName}\n🔗 Détails : ${eventUrl}`
 
   const params = new URLSearchParams({

@@ -2792,8 +2792,7 @@ function editEvent(event) {
 }
 
 function openEventDetails(event) {
-  // Ouvrir la page du spectacle dans un nouvel onglet
-  const eventUrl = `/season/${seasonSlug.value}?event=${event.id}&modal=event_details`
+  const eventUrl = `/season/${seasonSlug.value}/event/${event.id}`
   window.open(eventUrl, '_blank')
 }
 

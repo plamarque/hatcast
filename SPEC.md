@@ -79,25 +79,118 @@ HatCast is a web application for organising improvisation shows: managing **seas
 
 Slices below describe desired behaviour to be implemented later. Implementation order and tasks will be defined in PLAN.md when a slice is scheduled.
 
+- **Event details as full screen (canonical URL)**
+  - Event details are shown as a **full screen** (not a modal), at the canonical URL `/season/:slug/event/:eventId`. Layout: same as the grid (header, content, footer). Header in “event mode”: back chevron goes to the season; icon and title are the event’s; admin and account actions unchanged.
+  - **All links that lead to an event** (emails, push notifications, WhatsApp-shared messages, calendar links, in-app share, Cloud Functions sending reminders or cast notifications) **must use this URL format**. No backward compatibility for the old query format (`?event=...&modal=event_details`); old links may redirect to the canonical URL.
+  - **Query parameters** on the event page preserve behaviour: e.g. `tab=compo`, `showConfirm=true`, `showAvailability=true`, `notificationSuccess=1` (+ email, playerName, eventId), and any `action` used by magic links or reminders. The event screen reads these and opens the right tab or modal as today.
+  - **Full specification:** See the dedicated section « Event details as full screen » below in this document.
+
 - **Event-details tabs – Info as first tab**
-  - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of a **first tab**, e.g. "Info" or "Détails".
-  - The event-details view has **two or three tabs**: (1) **Info** (first), (2) **Disponibilités**, (3) **Composition** (shown only when a composition exists for the event).
-  - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Info)** is displayed.
-  - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Info, Disponibilités, or Composition.
+  - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of the **first tab**, labeled **Infos**. The Infos tab presents this in **three stacked sections** (Description, Date, Lieu with map), same layout on mobile and desktop. Tabs are displayed as centered pill-style buttons (aligned with the main view switcher and Tous/Moi availability selector).
+  - The event-details view has **three tabs**, labeled in the UI: (1) **Infos** (first), (2) **Dispos**, (3) **Équipe**. The Équipe tab is always visible for logged-in users; when there is no draw yet it shows an empty state (e.g. “Aucun tirage pour le moment”). URL and code use `tab=info`, `tab=team`, `tab=compo`.
+  - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Infos)** is displayed.
+  - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Infos, Dispos, or Équipe.
   - No other change to existing behaviour (availability popup, composition display, permissions) is specified by this slice.
+  - **Code reference:** Event-details tabs UI → [src/components/GridBoard.vue](src/components/GridBoard.vue).
 
 - **Inline composition in event-details Composition tab (no separate popup)**
   - Composition management is done **only** in the **Composition** tab of the event-details modal. There is **no separate composition popup** (SelectionModal is no longer opened as an overlay).
   - The Composition tab is **always available** in event details for the event (e.g. always show the tab, including when there is no cast yet), so users can run a draw or view empty state from the tab. Visibility of the tab may still depend on user role or context where event details are shown (e.g. logged-in only, as today for the tabs block).
   - The Composition tab contains **all** composition features that currently exist in the composition popup: run draw (Tirage), simulations (Simuler + algorithm choice), validate (Valider), unlock (Déverrouiller), announce (Annoncer la compo), send via WhatsApp (Envoyer), reset (Effacer), fill cast (Remplir), manual slot edit, declined-players handling, status badges, PIN when required, and opening of EventAnnounceModal / DrawAnnounceModal / HowItWorks as needed. Same permission and state rules apply (e.g. `canManageCompositionValue`, `canCasterEditManually`, confirmation/organizer state).
+  - **Composition actions** (Tirage, Simuler, Valider, Déverrouiller, Annoncer, Effacer, Remplir, Envoyer, clear slot) are visible and usable only for users who can manage composition (Super Admin, Season Admin, Event Admin, or Caster). **Manual selection** (click on an empty slot to choose a player) is reserved for **administrators only** (Season Admin, Event Admin, Super Admin); casters cannot fill slots manually.
   - Slot click in the Composition tab continues to open the confirmation flow (confirm/decline) for the selected player as today; no change to that behaviour.
-  - Entry points that today open the composition popup instead open or focus **event details with the Composition tab selected**: e.g. "Composition Équipe" in the event-details footer is removed (no button that opens a popup); TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo` (or equivalent). No separate modal layer for composition.
+  - Entry points that previously opened a composition popup now open or focus **event details with the Composition tab selected**: on the full-screen event view there is no footer "Composition Équipe" button — users open the Composition tab via the **Équipe** tab; TimelineView and similar triggers open event details on the Composition tab; URL `modal=selection` is treated like opening event details with `tab=compo`. No separate modal layer for composition.
   - User experience is a single place (event details) with one tab (Composition) where users see and perform only the actions their permissions allow.
 
-- **Slot click in composition modal for participation confirmation**
-  - In the **composition modal** (SelectionModal), clicking on a filled slot (a person in the composition) opens the **participation confirmation** popup (same as in the event-details Composition tab).
+- **Slot click in composition (Composition tab) for participation confirmation**
+  - In the **Composition tab** of event details (inline composition UI), clicking on a filled slot (a person in the composition) opens the **participation confirmation** popup.
   - **Permissions:** An **administrator** (e.g. can edit the event) can open the confirmation popup for any slot (to confirm, decline, or set to pending for any player). The **concerned player** can open it only for **their own** slot (to confirm or decline their own participation). Other users do not open the popup (or see an error if they try).
-  - Behaviour and UI of the confirmation popup are unchanged (confirm / decline / pending); only the entry point (slot click in the modal) is added.
+  - Behaviour and UI of the confirmation popup are unchanged (confirm / decline / pending); the entry point is slot click in the Composition tab.
+
+- **Event-details Équipe tab – compact layout on mobile**
+  - In the event-details **Équipe** (Composition) tab, the list of composition slots is displayed in a **more compact layout on mobile**: **two slots per line** instead of one slot per line.
+  - Behaviour and information shown for each slot are unchanged (avatar, player name, role, status, click for confirmation, etc.). Only the grid/layout is adjusted so that on small viewports (mobile), two slots sit side by side per row, similar to the Dispos tab.
+  - Reference: the Dispos tab already uses this pattern in `EventRoleGroupingView` (e.g. `grid-cols-2` at base); the Composition slots grid in GridBoard currently uses `grid-cols-1` for the smallest breakpoint.
+
+- **Event-details Équipe tab – message déclinés compact et liste sur demande**
+  - In the event-details **Équipe** (Composition) tab, do **not** display a large always-visible message or "Personnes ayant décliné" block. **Evolution:** Show a **compact clickable badge** just below the composition slots that indicates how many people have declined (e.g. "4 personnes ont décliné" or "1 personne a décliné"). When the user **clicks** the badge, the "Personnes ayant décliné" section (heading, subtitle, list with avatars, roles, "Remettre en composition" where applicable) is shown below; clicking the badge again (or an equivalent control) closes it. The badge is the only always-visible element for declined; the list is on demand. Scope and display conditions unchanged (composition validated, declined players, empty slots where relevant); no change to business behaviour. Code reference: [SelectionModal.vue](src/components/SelectionModal.vue) (inline in Équipe tab via [GridBoard.vue](src/components/GridBoard.vue)).
+
+- **Composition history statistics – selected vs available (Play, Decorum, Volunteer)**
+  - In the **composition history view** (CastsView: table of players × events with optional stats columns), the **Play (Jeu)**, **Decorum**, and **Volunteer** stats columns today show only the **number of times** the player was selected in each category.
+  - **Evolution:** Each of these columns will also show the **number of times the player was available** for that category, in the form **selected/available** (e.g. `2/7`). Example: "2/7" = selected twice out of 7 times they were available for play.
+  - **Optional:** When space allows, display below the fraction a **rounded percentage** (e.g. ~29%) so users can compare how often expectations (game, decorum, or volunteer) were met relative to availability.
+  - **Denominator (available):** For each category, "available" is the number of (non-archived) events where the player had indicated availability for that category: for **Play**, availability for role `player`; for **Decorum**, availability for at least one of mc, dj, referee, assistant_referee, coach; for **Volunteer**, availability for role `volunteer`. Event scope (e.g. only events with a confirmed cast, or all non-archived) must align with the current selection-count scope when implemented.
+  - **Code reference:** Stats table and `calculatePlayerRoleStats` → [src/components/CastsView.vue](src/components/CastsView.vue). Availability and roles → [src/services/playerAvailabilityService.js](src/services/playerAvailabilityService.js).
+
+- **Composition history – availability cells with role emojis (upcoming events)**
+  - In the **composition history view** (CastsView), the **availability cells** for **upcoming events** ("Spectacle à venir") currently show dispos in a **purely textual** summary: e.g. "Dispo pour : Bénévole (34%), Assistant.e (11%), Régisseur.euse (33%)" (role labels and percentages).
+  - **Evolution:** Use a **mix of text and emojis**. For each role, display the **emoji** that corresponds to that role (e.g. 🎭 for player, 🤝 for volunteer, 🎤 for MC, 🎧 for DJ, etc.) instead of the full role label in text; keep the **percentages** (chances). The result is more **compact**, **easier to read**, and **visually recognizable** while still showing availability roles and percentages.
+  - Exact format (e.g. "Dispo pour : 🤝 34% 💁 11% 🎬 33%" or emoji + short label where space allows) and accessibility (tooltip with role names) to be defined at implementation time; the intent is a more visual and compact display than the current all-text line.
+  - **Code reference:** Availability cell content for roles and chances → [src/components/SelectionCell.vue](src/components/SelectionCell.vue) (block "Dispo pour :" with `rolesAndChances`). Role → emoji mapping → [src/services/storage.js](src/services/storage.js) (`ROLE_EMOJIS`).
+
+---
+
+## Event details as full screen (specification)
+
+This section specifies the **event details as full screen** slice in full. It describes required behaviour and contracts so that a future development plan can be derived without ambiguity. Implementation order is not defined here (see PLAN.md when the slice is scheduled).
+
+### Purpose and scope
+
+- **Goal:** Replace the current event-details **modal** (popup) with a **full-screen view** at a stable, shareable URL. The same content is shown in-page, with the same global layout as the season grid (header above, footer below). Users and notifications can link directly to an event.
+- **Scope:** Route and URL contract; layout and header behaviour; content and entry points; all producers of event links (in-app, email, push, WhatsApp, calendar, Cloud Functions). **No backward compatibility** for the old URL form (`?event=...&modal=event_details`); old links may redirect to the new URL.
+
+### Route and URL contract
+
+- **Canonical path:** `/season/:slug/event/:eventId` (path only; no required query).
+- **Optional query parameters** (semantics the event screen must honour):
+  - `tab=compo` — open or focus the Composition tab.
+  - `tab=team` (or equivalent) — open or focus the Disponibilités tab.
+  - `showConfirm=true` — when used with composition context: open or emphasise the participation confirmation flow (e.g. for “Confirmer ma participation” links in emails/WhatsApp).
+  - `showAvailability=true` — open or focus the Disponibilités tab and/or availability entry (e.g. from magic link or reminder).
+  - `notificationSuccess=1`, `email`, `playerName`, `eventId` — show the existing “notification activated” success toast when present.
+  - `action=desist&player=...` — if used by reminder or magic flows: handle as specified for that flow (e.g. open event and optionally prefill or open desist action).
+- **Redirection:** If the user reaches `/season/:slug` with `?event=:id&modal=event_details` (or equivalent old form), the app must redirect to `/season/:slug/event/:id`, preserving any other query parameters that still apply.
+
+### Screen layout
+
+- **Structure:** Same as the season grid: one **header** (sticky or fixed as today), one **main content** area (event details), one **footer** (same AppFooter as on the grid). No overlay or modal chrome around the event content.
+- **Header in “event mode”** (when the active route is the event screen):
+  - **Back control (chevron):** Navigates to the **season** (`/season/:slug`), not to the seasons list. One level up in hierarchy.
+  - **Left area (icon):** Shows the **event type icon** (same semantic as the current event-type badge in the modal), not the season logo. Optional: click may navigate to season or do nothing; product decision.
+  - **Center (title):** Shows the **event title**, not the season name.
+  - **Right area:** Unchanged — for admins, the administration entry; for all users, the account/profile entry (same as on the season grid).
+- **Header when not on event route:** Unchanged — current SeasonHeader behaviour (back to seasons list, season logo, season name).
+
+### Content of the event screen
+
+- **Content:** The same functional content as the current event-details **modal** (event title and icon in the header only — not duplicated in the main area; status badge and event actions menu (three-dots: Share, Notifications, Announce, Edit, Archive, Delete) in the **Infos** tab only; date/location, description, add-to-calendar, maps in Infos; tabs Infos / Dispos / Équipe; composition or EventRoleGroupingView in Équipe/Dispos). No modal chrome: full-width black content area, no close button in content (back is in header).
+- **Primary actions:** Back chevron in the header navigates to the season (`/season/:slug`). There is no "Fermer" button in the event content. Composition is reached only via the **Équipe** tab (no footer "Composition Équipe" button on the full-screen event view).
+- **Tabs and focus:** On load, the active tab and any auto-opened modal (e.g. confirmation) must respect the URL query parameters above.
+
+### Entry points (opening event details)
+
+- **In-app:** Any action that currently opens the event-details **modal** (e.g. click on an event in grid/timeline/events list, “See event” from player modal, “Open event” from admin) must instead **navigate** to `/season/:slug/event/:eventId`, with optional query (e.g. `tab=compo`, `showAvailability=true`) when the current UX expects a specific tab or state.
+- **Direct link / share:** Copy-link and share actions must produce the canonical URL (with optional query). No production of the old `?event=...&modal=event_details` form.
+
+### Links sent externally (emails, push, WhatsApp, calendar, Cloud Functions)
+
+- **Requirement:** Every link that is intended to bring the user **directly to an event** must use the canonical form `{origin}/season/{slug}/event/{eventId}` and may append any of the query parameters defined above so that behaviour (tab, confirmation, availability) is preserved.
+- **Channels to cover:**
+  - **Email:** Availability request, reminder, cast/selection notification, confirmed-team notification, notification activation, and any other email that contains an event link. Templates receive `eventUrl` (and where relevant `confirmUrl`) from callers; callers must pass the canonical URL (and e.g. `confirmUrl` = event URL + `?tab=compo&showConfirm=true`).
+  - **Push notifications (FCM):** Payloads that include a URL for the event must use the canonical URL (and query if needed). Decast or other “no” flows that today use a different URL (e.g. magic) remain valid; only the “main” event link must be canonical.
+  - **WhatsApp (and copy-paste) messages:** The pre-filled message (event announcement, availability, cast, confirmed team) must include the canonical event URL; “Confirmer” links must use the event URL with `?tab=compo&showConfirm=true` (or equivalent).
+  - **Calendar (Google, Outlook, Apple):** The “details” or “more info” link in the added calendar event must point to the canonical event URL.
+  - **Cloud Functions:** Any function that sends email, push, or other notification containing an event link (e.g. reminders, availability reminders, cast notifications) must build the URL as `{baseUrl}/season/{slug}/event/{eventId}` (and add query when the template expects it). No use of the old query-based form for the main event link.
+- **Inventory for implementation:** The following areas produce or consume event URLs and must be updated to emit or handle only the new form: GridBoard (share/copy, open-details), MessagePreview (eventDirectLink, confirmUrl, WhatsApp text), SeasonAdminPage (open event), PlayerModal (link to event), emailService (eventUrl, directConfirmUrl, noUrl for push if applicable), calendarService (event link in description), MagicLink (redirect after magic flow), notificationActivation, notificationsService; and in Cloud Functions: `functions/index.js` (reminders, availability reminders, any email/push that includes eventUrl), with templates in `functions/emailTemplates.js` receiving the new URL from callers.
+
+### Acceptance criteria (event details as full screen)
+
+- **Given** a valid season slug and event id, **when** the user opens `/season/:slug/event/:eventId`, **then** the event details are shown in a full screen (header + content + footer), with no modal overlay; the header shows event icon and title, and the back chevron goes to the season.
+- **Given** the same URL with `tab=compo` (or `showConfirm=true`), **when** the page loads, **then** the Composition tab is active (and the confirmation flow is opened or emphasised if `showConfirm=true`).
+- **Given** the same URL with `showAvailability=true`, **when** the page loads, **then** the Disponibilités tab or availability entry is focused as specified by current modal behaviour.
+- **Given** any email or push notification that contains a link to an event, **when** the user follows that link, **then** the link is of the form `/season/:slug/event/:eventId` (and optional query) and the user lands on the event screen with the correct tab/state.
+- **Given** a user on the season grid or timeline, **when** they click to open an event’s details, **then** the app navigates to `/season/:slug/event/:eventId` (no modal).
+- **Given** the user is on the event screen, **when** they click the back chevron in the header, **then** they are taken to `/season/:slug`.
 
 ---
 

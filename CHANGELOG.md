@@ -1,15 +1,24 @@
-## [0.44.1] - 2026-01-25
+## [0.45.0] - 2026-01-25
 
 ### 📝 Other Changes
 
-- fix(composition): Preserve player statuses on unlock (BUG-001)
-- docs: Plan next developments and add formal issue tracking
-- docs: Align notification docs with availability tab row-click UX
-- feat(ui): Event details Availability tab row-click and mobile layout
+- feat(équipe): Slice 14 compact declined badge and harmonized buttons
+- feat(event): Event details full screen at canonical URL (Slice 10)
+- docs: Align SPEC, PLAN and CHANGELOG with event full-screen (Slice 10)
+- planning improvement to reduce height when casts has declined
+- feat(composition): Inline composition in event-details tab, no popup (Slice 9)
+- test(composition): Add E2E for composition permissions (participant + anonymous)
+- feat(event-details): Always show Composition tab in event details
+- feat(composition): Slot click in composition modal opens confirmation
+- specfied next changes on casts view
+- feat(event-details): Compact Équipe tab on mobile (2 slots per line)
+- feat(event-details): Pill tabs, Info in 3 sections, tab labels Infos/Dispos/Équipe
+- plan to move event details from modal to full page
 
 
 # Changelog
 
+## [0.45.0] - 2026-01-25
 ## [0.44.1] - 2026-01-25
 ## [0.44.0] - 2026-01-25
 ## [0.43.1] - 2026-01-07

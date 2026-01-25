@@ -334,7 +334,7 @@ onMounted(async () => {
             
             // Nouvel utilisateur : afficher la modal de succès avec proposition de mot de passe
             if (slug && eventId) {
-              const redirectUrl = `/season/${slug}?event=${eventId}&modal=event_details&notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`
+              const redirectUrl = `/season/${slug}/event/${eventId}?notificationSuccess=1&email=${encodeURIComponent(result.email)}&playerName=${encodeURIComponent(result.playerName)}&eventId=${eventId}`
               console.log('🔗 Redirection vers:', redirectUrl)
               router.push(redirectUrl)
             } else if (slug) {
@@ -348,7 +348,7 @@ onMounted(async () => {
           } else {
             // Utilisateur existant : redirection directe vers l'événement (pas de modal de succès)
             if (slug && eventId) {
-              router.push(`/season/${slug}?event=${eventId}&modal=event_details`)
+              router.push(`/season/${slug}/event/${eventId}`)
             } else if (slug) {
               router.push(`/season/${slug}`)
             } else {
@@ -511,7 +511,7 @@ onMounted(async () => {
 
       // Redirection vers la modal de composition pour voir l'état de l'équipe
       if (slug) {
-        setTimeout(() => router.push(`/season/${slug}?modal=selection&event=${eventId}`), 1200)
+        setTimeout(() => router.push(`/season/${slug}/event/${eventId}?tab=compo`), 1200)
       } else {
         setTimeout(() => router.push('/seasons'), 1200)
       }

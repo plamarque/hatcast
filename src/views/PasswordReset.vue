@@ -405,23 +405,30 @@ async function goHome() {
             // Restaurer l'état des modales
             if (navigationData.modalState) {
               const { modalState } = navigationData
-              
-              // Restaurer les paramètres d'événement si nécessaire
+              const pathMatch = baseUrl.pathname.match(/\/season\/([^/]+)/)
+              const seasonSlug = pathMatch ? pathMatch[1] : null
+
+              // Événement : utiliser l'URL canonique /season/:slug/event/:eventId
+              if (modalState.eventId && seasonSlug) {
+                const eventPath = `/season/${seasonSlug}/event/${modalState.eventId}`
+                const eventParams = new URLSearchParams()
+                eventParams.set('open', 'account')
+                if (modalState.playerId) eventParams.set('player', modalState.playerId)
+                const redirectUrl = eventParams.toString() ? `${eventPath}?${eventParams.toString()}` : eventPath
+                logger.info('🔄 Redirection vers "Mon Compte" avec état complet:', redirectUrl)
+                router.push(redirectUrl)
+                return
+              }
               if (modalState.eventId) {
                 searchParams.set('event', modalState.eventId)
                 searchParams.set('modal', 'event_details')
               }
-              
-              // Restaurer les paramètres de joueur si nécessaire
               if (modalState.playerId) {
                 searchParams.set('player', modalState.playerId)
                 searchParams.set('modal', 'player_details')
               }
-              
-              // Ajouter le paramètre pour ouvrir "Mon Compte"
               searchParams.set('open', 'account')
             }
-            
             const redirectUrl = `${baseUrl.pathname}?${searchParams.toString()}`
             logger.info('🔄 Redirection vers "Mon Compte" avec état complet:', redirectUrl)
             router.push(redirectUrl)

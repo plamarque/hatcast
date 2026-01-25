@@ -1,4 +1,5 @@
 // @ts-check
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const { defineConfig, devices } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');

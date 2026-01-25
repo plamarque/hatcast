@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.45.0",
+    "date": "2026-01-25",
+    "changes": [
+      "✨ Nouveau badge compact pour les équipes et boutons harmonisés",
+      "✨ Fenêtre de détail d'événement en plein écran à l'URL canonique",
+      "🔧 Réduction de la hauteur lorsque les casts sont déclinés",
+      "✨ Composition intégrée dans l'onglet de détail d'événement, sans fenêtre pop-up",
+      "✨ Onglet Composition toujours visible dans les détails de l'événement",
+      "✨ Onglet Équipe compact sur mobile (2 slots par ligne)",
+      "✨ Onglets en forme de pilule, Infos réparties en 3 sections : Infos/Dispos/Équipe",
+      "🔧 Plan pour déplacer les détails de l'événement d'une fenêtre à une page complète"
+    ]
+  },
+  {
     "version": "0.44.1",
     "date": "2026-01-25",
     "changes": [

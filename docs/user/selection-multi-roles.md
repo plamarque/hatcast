@@ -138,7 +138,7 @@ Alice - DJ :
 ## 🔧 **Utilisation pratique**
 
 ### **Voir l'équipe compositionnée**
-1. Clique sur le bouton **"Composition Équipe"** d'un spectacle
+1. Ouvre le détail d'un spectacle, puis l’onglet **Équipe** (ou clique sur le bouton **Composition Équipe** / **Composition** dans le pied de page du détail pour afficher cet onglet)
 2. L'équipe s'affiche avec les emojis des rôles
 3. Les slots vides montrent les rôles manquants
 

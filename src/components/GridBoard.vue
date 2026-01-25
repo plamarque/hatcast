@@ -1,7 +1,13 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 pb-20">
+  <div
+      class="min-h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+      :class="[
+        { 'h-screen': isEventFullScreen },
+        isEventFullScreen ? '' : 'pb-20'
+      ]"
+    >
     <!-- Contenu principal -->
-    <div class="w-full">
+    <div class="w-full flex-1 flex flex-col min-h-0">
       <!-- Header de saison partagé -->
     <SeasonHeader 
       :season-name="seasonName"
@@ -13,6 +19,9 @@
       :current-view-mode="validCurrentView"
       :season-meta="seasonMeta"
       :is-composition-view="isCompositionView"
+      :is-event-screen="!!isEventFullScreen"
+      :event-title="selectedEvent?.title"
+      :event-icon="getEventTypeIcon(selectedEvent)"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
       @open-help="() => {}"
@@ -27,7 +36,8 @@
       @return-to-full-view="returnToFullView"
     />
 
-    <!-- Header sticky avec dropdown de vue et sélecteurs -->
+    <!-- Season grid / timeline (hidden when on event full-screen) -->
+    <template v-if="!isEventFullScreen">
     <ViewHeader
       v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline' || validCurrentView === 'casts'"
       :current-view="validCurrentView"
@@ -42,6 +52,7 @@
       @player-modal-toggle="togglePlayerModal"
       @event-modal-toggle="toggleEventModal"
     />
+    </template>
 
     <!-- Modal de sélection de joueur (global pour toutes les vues) -->
     <PlayerSelectorModal
@@ -99,6 +110,7 @@
       @all-events-selected="handleAllEventsSelected"
     />
 
+    <template v-if="!isEventFullScreen">
     <!-- Vue grille (lignes ou colonnes) -->
     <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
       
@@ -288,6 +300,72 @@
          style="padding-top: calc(max(64px, env(safe-area-inset-top) + 32px)); margin-top: calc(-1 * max(64px, env(safe-area-inset-top) + 32px));">
       <div class="text-white text-lg">Chargement des événements...</div>
   </div>
+    </template>
+
+    <!-- Event full-screen (canonical URL /season/:slug/event/:eventId). flex-1 pour occuper toute la hauteur sous le header. -->
+    <div v-if="isEventFullScreen" class="w-full flex-1 min-h-0 flex flex-col bg-gray-900">
+      <div v-if="events.length === 0" class="flex-1 flex items-center justify-center p-8">
+        <div class="text-white/80">Chargement…</div>
+      </div>
+      <div v-else-if="!selectedEvent" class="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+        <p class="text-white/80">Événement introuvable</p>
+        <a :href="`/season/${props.slug}`" class="text-purple-300 hover:text-purple-200 underline">Retour à la saison</a>
+      </div>
+      <!-- Same content as event-details modal, in-page (no overlay), full-width black like participants/agenda -->
+      <div v-else class="flex flex-col flex-1 min-h-0 w-full bg-gray-900">
+        <div class="px-2 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-5 pb-1 sm:pb-2 md:pb-2 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0 max-w-6xl mx-auto w-full">
+          <div v-if="currentUser" class="mt-0">
+            <div class="flex justify-center mb-1">
+              <div class="inline-flex bg-gray-800/50 rounded-lg p-1 gap-0.5">
+                <button @click="setEventDetailsTab('info')" :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors', eventDetailsActiveTab === 'info' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50']"><span>ℹ️</span><span>Infos</span></button>
+                <button @click="setEventDetailsTab('team')" :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors', eventDetailsActiveTab === 'team' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50']"><span>🧩</span><span>Dispos</span></button>
+                <button @click="setEventDetailsTab('composition')" :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors', eventDetailsActiveTab === 'composition' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-700/50']"><span>🎭</span><span>Équipe</span></button>
+              </div>
+            </div>
+            <div class="pt-2 px-1 pb-1 sm:p-2 md:p-3">
+              <div v-if="eventDetailsActiveTab === 'info'" class="w-full space-y-6">
+                <div class="flex items-center justify-between gap-2 mb-4">
+                  <div class="flex-none">
+                    <SelectionStatusBadge v-if="selectedEvent && eventStatus" :status="eventStatus.type" :show="true" :clickable="false" :reason="eventWarningText" class="text-xs" />
+                  </div>
+                  <div class="relative flex-shrink-0">
+                    <button @click="showEventActionsDropdown = !showEventActionsDropdown" class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10" title="Actions de l'événement">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                    </button>
+                    <div v-if="showEventActionsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                      <button @click="copyEventLinkToClipboard(selectedEvent); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🔗</span><span>Partager</span></button>
+                      <button @click="isEventMonitoredState ? disableEventNotifications(selectedEvent) : promptForNotifications(selectedEvent); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm rounded flex items-center gap-2" :class="isEventMonitoredState ? 'text-green-400' : 'text-purple-400'"><span>{{ isEventMonitoredState ? '🔕' : '🔔' }}</span><span>{{ isEventMonitoredState ? 'Désactiver les notifications' : 'Activer les notifications' }}</span></button>
+                      <template v-if="canEditEvents">
+                        <div class="border-t border-gray-600 my-1"></div>
+                        <div class="px-3 py-1 text-xs text-gray-400 font-medium">Actions administrateur</div>
+                        <button @click="openEventAnnounceModal(selectedEvent); showEventActionsDropdown = false" :disabled="selectedEvent?.archived" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2 disabled:opacity-50"><span>📢</span><span>Annoncer</span></button>
+                        <button @click="startEditingFromDetails(); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>✏️</span><span>Modifier</span></button>
+                        <button @click="toggleEventArchived(); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:bg-gray-700 rounded flex items-center gap-2"><span>📁</span><span>{{ selectedEvent?.archived ? 'Désarchiver' : 'Archiver' }}</span></button>
+                        <button @click="confirmDeleteEvent(selectedEvent?.id); showEventActionsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded flex items-center gap-2"><span>🗑️</span><span>Supprimer</span></button>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</h3><div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30"><div class="whitespace-pre-wrap">{{ selectedEvent.description }}</div></div><p v-else class="text-sm text-gray-500 italic">Aucune description</p></section>
+                <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h3><div class="relative inline-block"><button @click="showCalendarDropdown = !showCalendarDropdown" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30" title="Ajouter à votre agenda"><span>📆</span><span>{{ formatDateFull(selectedEvent?.date) }}</span><svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px] left-0"><div class="p-2"><div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div><button @click="addToGoogleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📅</span><span>Google</span></button><button @click="addToOutlookCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📧</span><span>Outlook</span></button><button @click="addToAppleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🍎</span><span>Apple</span></button></div></div></div></section>
+                <section class="space-y-2"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lieu</h3><div v-if="selectedEvent?.location" class="space-y-3"><div class="relative inline-block min-w-0 max-w-full"><button @click="showGoogleMapsDropdown = !showGoogleMapsDropdown" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30 min-w-0" :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"><span>📍</span><span class="truncate">{{ selectedEvent.location }}</span><svg class="w-3 h-3 flex-shrink-0 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div v-if="showGoogleMapsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]"><div class="p-2"><a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2">Ouvrir dans Google Maps</a><a :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2">Ouvrir dans Waze</a></div></div></div><div class="w-full overflow-hidden rounded-lg border border-gray-600/30 h-48"><iframe :src="getGoogleMapsEmbedUrl(selectedEvent.location)" width="100%" height="100%" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="rounded-lg w-full h-full" title="Carte" /></div></div><p v-else class="text-sm text-gray-500 italic">Aucun lieu renseigné</p></section>
+              </div>
+              <div v-if="eventDetailsActiveTab === 'composition'" class="min-h-0 flex flex-col">
+                <div v-if="!hasCompositionForSelectedEvent && !canEditSelectedEvent" class="text-center py-8"><div class="text-gray-400 text-lg mb-2">🎭</div><div class="text-gray-300 text-sm">Aucun tirage pour le moment</div><div class="text-gray-500 text-xs mt-1">La composition s'affichera ici une fois le tirage effectué</div></div>
+                <SelectionModal v-else-if="selectedEvent" ref="inlineSelectionModalRef" :inline="true" :show="true" :event="selectedEvent" :current-selection="casts[selectedEvent?.id] || []" :available-count="countAvailablePlayers(selectedEvent?.id)" :selected-count="countSelectedPlayers(selectedEvent?.id)" :availability="availability" :is-available-for-role="isAvailableForRole" :count-selections="countSelections" :season-id="seasonId" :season-slug="seasonSlug" :players="enrichedAllSeasonPlayers" :all-season-players="allSeasonPlayers" :sending="isSendingNotifications" :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)" :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)" :can-edit-events="canEditEvents" @selection="handleSelectionFromModal" @perfect="handlePerfectFromModal" @send-notifications="handleSendNotifications" @updateCast="handleUpdateCastFromModal" @confirm-selection="handleConfirmSelectionFromModal" @unconfirm-selection="handleUnconfirmCastFromModal" @reset-selection="handleResetSelectionFromModal" @confirm-reselect="handleConfirmReselectFromModal" @fill-cast="handleFillCastFromModal" @slot-confirmation-click="handleSelectionModalSlotConfirmationClick" />
+              </div>
+              <div v-if="eventDetailsActiveTab === 'team'">
+                <div class="flex items-center justify-between mb-2 sm:mb-4"><div class="flex items-center gap-2"><div class="relative flex-shrink-0"><button @click="toggleAvailabilityPlayerSelector" class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32"><div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="flex-shrink-0"><PlayerAvatar :player-id="selectedTeamPlayer.id" :player-name="selectedTeamPlayer.name" :season-id="seasonId" :player-gender="selectedTeamPlayer.gender || 'non-specified'" size="sm" class="w-5 h-5" /></div><div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full"><span class="text-xs">👥</span></div><span class="flex-1 text-left text-xs md:text-sm truncate">{{ selectedTeamPlayer && selectedTeamPlayer.id !== 'all' ? selectedTeamPlayer.name : 'Tous' }}</span><svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></button></div><div class="flex items-center gap-1.5"><button @click="selectAllAvailabilityPlayers" :class="['px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors', selectedTeamPlayer?.id === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white']" title="Afficher tous les joueurs">👥 Tous</button><button v-if="currentUserPlayer || (preferredPlayerIdsSet.size > 0)" @click="selectFirstFavoriteAvailabilityPlayer" :class="['px-2 md:px-3 py-1.5 text-xs md:text-sm rounded-lg transition-colors', (selectedTeamPlayer?.id === currentUserPlayer?.id || selectedTeamPlayer?.id === getFirstFavoritePlayerId()) ? 'bg-purple-600 text-white' : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white']" title="Afficher mes disponibilités">👤 Moi</button></div></div></div>
+                <div v-if="selectedTeamPlayer && selectedTeamPlayer.id !== 'all'" class="space-y-3 p-3"><div v-if="canModifySelectedPlayerAvailability === null" class="bg-gray-800/50 rounded-lg p-4 border border-gray-600/50"><div class="flex items-center justify-center gap-3"><svg class="animate-spin h-5 w-5 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-sm text-gray-300">Vérification des permissions...</span></div></div><AvailabilityForm v-else :player-gender="selectedTeamPlayer.gender" :player-id="selectedTeamPlayer.id" :current-availability="getAvailabilityData(selectedTeamPlayer.name, selectedEvent?.id)" :is-read-only="!canModifySelectedPlayerAvailability" :season-id="seasonId" :event-roles="selectedEvent?.roles || {}" :available-roles="getEventAvailableRoles()" :self-persist="canModifySelectedPlayerAvailability" :player-name="selectedTeamPlayer.name" :event-id="selectedEvent?.id" @update:availability="handleAvailabilityFormUpdate" @availability-saved="handleAvailabilitySaved" /><div v-if="!selectedEvent?.roles || Object.keys(selectedEvent.roles).length === 0" class="bg-gray-700/30 rounded-lg p-4"><div class="text-center"><div class="text-2xl mb-2">🎯</div><p class="text-sm text-gray-300">Événement sans rôles spécifiques</p><p class="text-xs text-gray-400 mt-1">Vous serez assigné selon les besoins de l'équipe</p></div></div></div>
+                <div v-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && allSeasonPlayers.length === 0" class="text-center py-8 text-gray-400"><div class="text-lg mb-2">⏳</div><div class="text-sm">Chargement des joueurs...</div></div>
+                <div v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer) && (!selectedEvent.roles || Object.keys(selectedEvent.roles).length === 0)" class="text-center py-8 text-gray-400"><div class="text-lg mb-2">🎯</div><div class="text-sm">Aucun rôle défini pour cet événement</div></div>
+                <EventRoleGroupingView v-else-if="selectedEvent && (selectedTeamPlayer?.id === 'all' || !selectedTeamPlayer)" :selected-event="selectedEvent" :season-id="seasonId" :players="allSeasonPlayers" :show-role-status="!selectedTeamPlayer" :availability="availability" :casts="casts" :chances="chances" :preferred-player-ids-set="preferredPlayerIdsSet" :is-available="isAvailable" :is-player-selected="isPlayerSelected" :is-player-selected-for-role="isPlayerSelectedForRole" :is-selection-confirmed="isSelectionConfirmed" :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer" :get-player-selection-status="getPlayerSelectionStatus" :get-availability-data="getAvailabilityData" :is-player-protected-in-grid="isPlayerProtectedInGrid" :is-player-loading="isPlayerLoading" :is-player-availability-loaded="isPlayerAvailabilityLoaded" :is-player-error="isPlayerError" :get-event-status="getEventStatus" :get-event-tooltip="getEventTooltip" :handle-availability-toggle="handleAvailabilityToggle" :handle-player-selection-status-toggle="handlePlayerSelectionStatusToggle" :open-availability-modal="openAvailabilityModal" :is-available-for-role="isAvailableForRole" :is-selection-complete="isSelectionComplete" :get-player-role-chances="getPlayerRoleChances" :count-selections="countSelections" :open-confirmation-modal="openConfirmationModal" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
   <!-- Overlay de chargement pleine page -->
   <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
@@ -597,8 +675,8 @@
       </div>
     </div>
   </div>
-  <!-- Popin de détails de l'événement -->
-  <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 sm:p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
+  <!-- Popin de détails de l'événement (masquée quand on est sur l'URL canonique /event/:id) -->
+  <div v-if="showEventDetailsModal && !isEventFullScreen" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 sm:p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
     <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-[100vw] sm:max-w-lg md:max-w-6xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] sm:h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-4rem)] md:max-h-[92vh] flex flex-col mb-0 sm:mb-4 md:mb-0" @click.stop>
       <!-- Header -->
       <div class="relative p-1 sm:p-2 md:p-3 pb-1 sm:pb-2">
@@ -705,7 +783,7 @@
             </div>
           </div>
           
-          <!-- Status de l'événement et bouton pour afficher/masquer les détails - Même ligne -->
+          <!-- Status de l'événement (badge seul ; détails dans l'onglet Info) -->
           <div v-if="selectedEvent && eventStatus" class="flex items-center justify-between pl-1">
             <SelectionStatusBadge
               :status="eventStatus.type"
@@ -714,387 +792,180 @@
               :reason="eventWarningText"
               class="text-xs"
             />
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
-              <svg 
-                class="w-3 h-3 transition-transform duration-200" 
-                :class="{ 'rotate-180': showEventDetailsSection }"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          </div>
-          <!-- Si pas de badge d'état, afficher seulement le bouton -->
-          <div v-else class="flex items-center justify-end pl-1">
-            <button
-              @click="showEventDetailsSection = !showEventDetailsSection"
-              class="text-xs text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700/70 px-2 py-1 rounded-md border border-gray-600/50 transition-colors flex items-center gap-1"
-              :title="showEventDetailsSection ? 'Masquer les détails' : 'Afficher les détails'"
-            >
-              {{ showEventDetailsSection ? 'Masquer les détails' : 'Plus de détails' }}
-              <svg 
-                class="w-3 h-3 transition-transform duration-200" 
-                :class="{ 'rotate-180': showEventDetailsSection }"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </button>
-          </div>
-          
-          <!-- Ligne Date et Lieu alignées avec badge/bouton (desktop uniquement) -->
-          <div v-if="showEventDetailsSection" class="hidden md:flex items-center justify-between pl-1 mt-2">
-            <!-- Date alignée à gauche -->
-            <div class="relative">
-              <button
-                @click="showCalendarDropdown = !showCalendarDropdown"
-                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                title="Ajouter à votre agenda"
-              >
-                <span>📆</span>
-                <span>{{ formatDateFull(selectedEvent?.date) }}</span>
-                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              
-              <!-- Menu déroulant d'agenda -->
-              <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px]">
-                <div class="p-2">
-                  <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
-                  <button
-                    @click="addToGoogleCalendar(selectedEvent)"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <span>📅</span>
-                    <span>Google</span>
-                  </button>
-                  <button
-                    @click="addToOutlookCalendar(selectedEvent)"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <span>📧</span>
-                    <span>Outlook</span>
-                  </button>
-                  <button
-                    @click="addToAppleCalendar(selectedEvent)"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <span>🍎</span>
-                    <span>Apple</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Lieu aligné à droite -->
-            <div v-if="selectedEvent?.location" class="relative">
-              <button
-                @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer"
-                :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
-              >
-                <span>📍</span>
-                <span>{{ selectedEvent.location }}</span>
-                <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              
-              <!-- Tooltip avec l'adresse complète -->
-              <div class="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-600 z-50 max-w-xs">
-                <div class="whitespace-normal">{{ selectedEvent.location }}</div>
-                <div class="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-              </div>
-              
-              <!-- Dropdown Navigation -->
-              <div v-if="showGoogleMapsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
-                <div class="p-2">
-                  <!-- Option Google Maps -->
-                  <a 
-                    :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    @click="showGoogleMapsDropdown = false"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#4285F4"/>
-                    </svg>
-                    <span>Ouvrir dans Google Maps</span>
-                  </a>
-                  
-                  <!-- Option Waze -->
-                  <a 
-                    :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    @click="showGoogleMapsDropdown = false"
-                    class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                  >
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#33CCFF"/>
-                    </svg>
-                    <span>Ouvrir dans Waze</span>
-                  </a>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
         
-        <!-- Layout horizontal compact -->
-        <div v-if="showEventDetailsSection" class="w-full px-2 sm:px-4 md:px-6">
-          <!-- Layout mobile: vertical -->
-          <div class="md:hidden space-y-4">
-            <!-- Layout horizontal pour écrans plus larges en mobile -->
-            <div class="flex gap-4">
-              <!-- Date avec dropdown -->
-              <div class="relative z-10">
-                <button
-                  @click="showCalendarDropdown = !showCalendarDropdown; console.log('📅 Mobile calendar dropdown clicked:', showCalendarDropdown)"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer group"
-                  title="Ajouter à votre agenda"
-                >
-                  <span>📅</span>
-                  <span>{{ formatDateShort(selectedEvent?.date) }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Menu dropdown agenda -->
-                <div v-if="showCalendarDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-[100] min-w-[150px]">
-                  <div class="p-2">
-                    <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
-                    <div class="space-y-1">
-                      <button
-                        @click="handleAddToCalendar('google', selectedEvent); showCalendarDropdown = false"
-                        class="block w-full text-left px-2 py-1 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                      >
-                        <span>📅</span>
-                        <span>Google</span>
-                      </button>
-                      <button
-                        @click="handleAddToCalendar('outlook', selectedEvent); showCalendarDropdown = false"
-                        class="block w-full text-left px-2 py-1 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"
-                      >
-                        <span>📧</span>
-                        <span>Outlook</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Lieu avec dropdown -->
-              <div v-if="selectedEvent?.location" class="relative flex-1">
-                <button
-                  @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                  class="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-200 cursor-pointer group"
-                  title="Voir sur Google Maps"
-                >
-                  <span>📍</span>
-                  <span class="truncate max-w-[200px]">{{ getTruncatedLocation(selectedEvent.location) }}</span>
-                  <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                
-                <!-- Menu dropdown Google Maps -->
-                <div v-if="showGoogleMapsDropdown" class="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[280px]">
-                  <div class="p-3">
-                    <div class="mb-2">
-                      <span class="text-sm text-gray-300 font-medium">📍 {{ getLocationAddressPart(selectedEvent.location) }}</span>
-                    </div>
-                    <iframe
-                      :src="getMobileGoogleMapsEmbedUrl(selectedEvent.location)"
-                      width="250"
-                      height="150"
-                      style="border:0; border-radius: 8px;"
-                      allowfullscreen=""
-                      loading="lazy"
-                      referrerpolicy="no-referrer-when-downgrade"
-                      class="rounded-lg"
-                    ></iframe>
-                  </div>
-                  
-                  <!-- Séparateur -->
-                  <div class="border-t border-gray-600"></div>
-                  
-                  <!-- Options de navigation -->
-                  <div class="p-2">
-                    <div class="grid grid-cols-2 gap-2">
-                      <a 
-                        :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        @click="showGoogleMapsDropdown = false"
-                        class="flex items-center justify-center gap-1 px-2 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors duration-200"
-                      >
-                        <span>📍</span>
-                        <span>Google Maps</span>
-                      </a>
-                      <a 
-                        :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        @click="showGoogleMapsDropdown = false"
-                        class="flex items-center justify-center gap-1 px-2 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded transition-colors duration-200"
-                      >
-                        <span>🌐</span>
-                        <span>Waze</span>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- Description -->
-            <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
-              {{ selectedEvent.description }}
-            </div>
-          </div>
-          
-          <!-- Layout desktop en 2 colonnes égales avec flexbox -->
-          <div class="hidden md:flex md:gap-6 w-full mt-4">
-            <!-- Colonne gauche: Description -->
-            <div class="flex-1 space-y-2 min-w-0">
-              <!-- Description -->
-              <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30 h-44 overflow-hidden">
-                <div class="line-clamp-6">{{ selectedEvent.description }}</div>
-              </div>
-            </div>
-            
-            <!-- Colonne droite: Carte -->
-            <div class="flex-1 min-w-0">
-              <!-- Carte -->
-              <div v-if="selectedEvent?.location" class="relative group h-44 w-full overflow-hidden mt-2">
-                <iframe 
-                  :src="getGoogleMapsEmbedUrl(selectedEvent.location)"
-                  width="100%" 
-                  height="100%" 
-                  style="border:0; border-radius: 8px;" 
-                  allowfullscreen="" 
-                  loading="lazy" 
-                  referrerpolicy="no-referrer-when-downgrade"
-                  class="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer w-full h-full"
-                  @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
-                  title="Cliquer pour voir les options de navigation"
-                ></iframe>
-                
-                <!-- Overlay avec icône pour indiquer l'interactivité -->
-                <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100">
-                  <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
       
       <!-- Content scrollable (margins minimisées sur mobile pour maximiser la place, ex. iPhone SE) -->
       <div class="px-1 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
-        <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
-          <!-- Onglets -->
-          <div class="flex border-b border-white/10">
-    <button
-      v-if="hasCompositionForSelectedEvent"
-      @click="eventDetailsActiveTab = 'composition'"
-      :class="[
-        'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-        eventDetailsActiveTab === 'composition'
-          ? 'text-white bg-purple-600/20 border-b-2 border-purple-400'
-          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-      ]"
-    >
-      <span class="flex items-center justify-center gap-2">
-        <span>🎭</span>
-        <span>Composition</span>
-      </span>
-    </button>
-            <button
-              @click="eventDetailsActiveTab = 'team'"
-              :class="[
-                'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-                eventDetailsActiveTab === 'team' 
-                  ? 'text-white bg-purple-600/20 border-b-2 border-purple-400' 
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              ]"
-            >
-              <span class="flex items-center justify-center gap-2">
+        <div v-if="currentUser" class="mt-0">
+          <!-- Onglets style pilules centrées (comme Tous/Moi et ViewHeader) -->
+          <div class="flex justify-center mb-2 sm:mb-3">
+            <div class="inline-flex bg-gray-800/50 rounded-lg p-1 gap-0.5">
+              <button
+                @click="setEventDetailsTab('info')"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
+                  eventDetailsActiveTab === 'info'
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ]"
+              >
+                <span>ℹ️</span>
+                <span>Infos</span>
+              </button>
+              <button
+                @click="setEventDetailsTab('team')"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
+                  eventDetailsActiveTab === 'team'
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ]"
+              >
                 <span>🧩</span>
-                <span>Disponibilités</span>
-              </span>
-            </button>
+                <span>Dispos</span>
+              </button>
+              <button
+                @click="setEventDetailsTab('composition')"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
+                  eventDetailsActiveTab === 'composition'
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ]"
+              >
+                <span>🎭</span>
+                <span>Équipe</span>
+              </button>
+            </div>
           </div>
           
-          <!-- Contenu des onglets (padding réduit sur mobile) -->
-          <div class="p-1 sm:p-2 md:p-3">
+          <!-- Contenu des onglets (padding réduit sur mobile, plus d’air en haut sur mobile) -->
+          <div class="pt-4 px-1 pb-1 sm:p-2 md:p-3">
 
-            <!-- Onglet Composition (lecture seule) -->
-            <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
-              <!-- Message si composition non validée pour utilisateurs normaux -->
-              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditSelectedEvent" class="text-center py-8">
-                <div class="text-gray-400 text-lg mb-2">⏳</div>
+            <!-- Onglet Info : trois sections empilées (Description, Date, Lieu) – même layout mobile et desktop -->
+            <div v-if="eventDetailsActiveTab === 'info'" class="w-full space-y-6">
+              <!-- 1. Section Description -->
+              <section class="space-y-1">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</h3>
+                <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
+                  <div class="whitespace-pre-wrap">{{ selectedEvent.description }}</div>
+                </div>
+                <p v-else class="text-sm text-gray-500 italic">Aucune description</p>
+              </section>
+
+              <!-- 2. Section Date -->
+              <section class="space-y-1">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h3>
+                <div class="relative inline-block">
+                  <button
+                    @click="showCalendarDropdown = !showCalendarDropdown"
+                    class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30"
+                    title="Ajouter à votre agenda"
+                  >
+                    <span>📆</span>
+                    <span>{{ formatDateFull(selectedEvent?.date) }}</span>
+                    <svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px] left-0">
+                    <div class="p-2">
+                      <div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div>
+                      <button @click="addToGoogleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📅</span><span>Google</span></button>
+                      <button @click="addToOutlookCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📧</span><span>Outlook</span></button>
+                      <button @click="addToAppleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🍎</span><span>Apple</span></button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 3. Section Lieu (adresse + carte) -->
+              <section class="space-y-2">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lieu</h3>
+                <div v-if="selectedEvent?.location" class="space-y-3">
+                  <div class="relative inline-block min-w-0 max-w-full">
+                    <button
+                      @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                      class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30 min-w-0"
+                      :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"
+                    >
+                      <span>📍</span>
+                      <span class="truncate">{{ selectedEvent.location }}</span>
+                      <svg class="w-3 h-3 flex-shrink-0 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div v-if="showGoogleMapsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]">
+                      <div class="p-2">
+                        <a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>Ouvrir dans Google Maps</span></a>
+                        <a :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>Ouvrir dans Waze</span></a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="w-full overflow-hidden rounded-lg border border-gray-600/30 h-48">
+                    <iframe
+                      :src="getGoogleMapsEmbedUrl(selectedEvent.location)"
+                      width="100%" height="100%"
+                      style="border:0; border-radius: 8px;"
+                      allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                      class="rounded-lg w-full h-full"
+                      @click="showGoogleMapsDropdown = !showGoogleMapsDropdown"
+                      title="Cliquer pour voir les options de navigation"
+                    ></iframe>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-500 italic">Aucun lieu renseigné</p>
+              </section>
+            </div>
+
+            <!-- Onglet Composition : état vide ou UI complète (inline) -->
+            <div v-if="eventDetailsActiveTab === 'composition'" class="min-h-0 flex flex-col">
+              <!-- État vide : aucun tirage et utilisateur ne peut pas gérer la composition -->
+              <div v-if="!hasCompositionForSelectedEvent && !canEditSelectedEvent" class="text-center py-8">
+                <div class="text-gray-400 text-lg mb-2">🎭</div>
                 <div class="text-gray-300 text-sm">
-                  La composition n'est pas encore validée par l'organisateur
+                  Aucun tirage pour le moment
                 </div>
                 <div class="text-gray-500 text-xs mt-1">
-                  Elle sera visible ici une fois validée
+                  La composition s'affichera ici une fois le tirage effectué
                 </div>
-              </div>
-              
-              <!-- Slots de composition (pour admins ou si validée) -->
-              <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <template v-for="slot in compositionSlots" :key="slot.key">
-                  <CompositionSlot
-                    :player-id="slot.playerId"
-                    :player-name="slot.playerName"
-                    :player-gender="slot.playerGender"
-                    :role-key="slot.roleKey"
-                    :role-label="slot.roleLabel"
-                    :role-emoji="slot.roleEmoji"
-                    :selection-status="slot.selectionStatus"
-                    :available="slot.available"
-                    :unavailable="slot.unavailable"
-                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                    :season-id="seasonId"
-                    @slot-click="() => handleCompositionSlotClick(slot)"
-                  />
-                </template>
               </div>
 
-              <!-- Bandeaux informatifs (lecture seule) -->
-              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && !isSelectionConfirmed(selectedEvent?.id) && !hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div class="flex items-center gap-2 text-blue-200 text-sm">
-                  <span>⏳</span>
-                  <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
-                </div>
-              </div>
-              <div v-if="isSelectionConfirmed(selectedEvent?.id)" class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <div class="flex items-center gap-2 text-green-200 text-sm">
-                  <span>✅</span>
-                  <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
-                </div>
-              </div>
-              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition && hasEmptySlotsInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                <div class="flex items-center gap-2 text-orange-200 text-sm">
-                  <span>⚠️</span>
-                  <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
-                </div>
-              </div>
+              <!-- UI complète de composition (inline, pas de popup) -->
+              <SelectionModal
+                v-else-if="selectedEvent"
+                ref="inlineSelectionModalRef"
+                :inline="true"
+                :show="true"
+                :event="selectedEvent"
+                :current-selection="casts[selectedEvent?.id] || []"
+                :available-count="countAvailablePlayers(selectedEvent?.id)"
+                :selected-count="countSelectedPlayers(selectedEvent?.id)"
+                :availability="availability"
+                :is-available-for-role="isAvailableForRole"
+                :count-selections="countSelections"
+                :season-id="seasonId"
+                :season-slug="seasonSlug"
+                :players="enrichedAllSeasonPlayers"
+                :all-season-players="allSeasonPlayers"
+                :sending="isSendingNotifications"
+                :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
+                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                :can-edit-events="canEditEvents"
+                @selection="handleSelectionFromModal"
+                @perfect="handlePerfectFromModal"
+                @send-notifications="handleSendNotifications"
+                @updateCast="handleUpdateCastFromModal"
+                @confirm-selection="handleConfirmSelectionFromModal"
+                @unconfirm-selection="handleUnconfirmCastFromModal"
+                @reset-selection="handleResetSelectionFromModal"
+                @confirm-reselect="handleConfirmReselectFromModal"
+                @fill-cast="handleFillCastFromModal"
+                @slot-confirmation-click="handleSelectionModalSlotConfirmationClick"
+              />
             </div>
             
             <!-- Onglet Disponibilités -->
@@ -1269,9 +1140,9 @@
           <!-- Boutons principaux -->
           <button 
             v-if="canEditSelectedEvent"
-            @click="openSelectionModal(selectedEvent)" 
+            @click="switchToCompositionTab" 
             class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
-            title="Gérer la composition"
+            title="Ouvrir l’onglet Composition"
           >
             <span>🎭</span><span>Composition Équipe</span>
           </button>
@@ -1286,7 +1157,7 @@
         <div class="flex items-center gap-1 sm:gap-2 min-w-0">
           <button 
             v-if="canEditSelectedEvent"
-            @click="openSelectionModal(selectedEvent)" 
+            @click="switchToCompositionTab" 
             class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm"
           >
             Composition
@@ -1561,6 +1432,7 @@
     :stats="getPlayerStats(selectedPlayerForDetails)"
     :availability="availability"
     :season-id="seasonId"
+    :season-slug="props.slug"
     :onboarding-step="playerTourStep"
     :onboarding-player-id="guidedPlayerId"
     :is-protected="selectedPlayerForDetails ? protectedPlayers.has(selectedPlayerForDetails.id) : false"
@@ -1573,38 +1445,6 @@
     @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
     @show-availability-grid="handleShowAvailabilityGrid"
   />
-
-  <!-- Modal de composition -->
-  <SelectionModal
-    ref="selectionModalRef"
-    :key="selectionModalKey"
-    :show="showSelectionModal"
-    :event="selectionModalEvent"
-    :current-selection="casts[selectionModalEvent?.id] || []"
-    :available-count="countAvailablePlayers(selectionModalEvent?.id)"
-    :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
-    :availability="availability"
-    :is-available-for-role="isAvailableForRole"
-    :count-selections="countSelections"
-    :season-id="seasonId"
-    :season-slug="seasonSlug"
-    :players="enrichedAllSeasonPlayers"
-    :all-season-players="allSeasonPlayers"
-    :sending="isSendingNotifications"
-    :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
-    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
-    :can-edit-events="canEditEvents"
-    @close="closeSelectionModal"
-    @selection="handleSelectionFromModal"
-    @perfect="handlePerfectFromModal"
-    @send-notifications="handleSendNotifications"
-    @updateCast="handleUpdateCastFromModal"
-    @confirm-selection="handleConfirmSelectionFromModal"
-    @unconfirm-selection="handleUnconfirmCastFromModal"
-    @reset-selection="handleResetSelectionFromModal"
-    @confirm-reselect="handleConfirmReselectFromModal"
-    @fill-cast="handleFillCastFromModal"
-        />
 
   <!-- Modal d'annonce d'événement -->
   <EventAnnounceModal
@@ -2044,7 +1884,6 @@ import { ref, computed, reactive, onMounted, onUnmounted, nextTick, watch } from
 import CustomTooltip from './CustomTooltip.vue'
 import { ROLES, ROLE_EMOJIS, ROLE_LABELS, ROLE_LABELS_SINGULAR, ROLE_DISPLAY_ORDER, ROLE_PRIORITY_ORDER, ROLE_TEMPLATES, TEMPLATE_DISPLAY_ORDER, EVENT_TYPE_ICONS, ROLE_LABELS_BY_GENDER, ROLE_LABELS_PLURAL_BY_GENDER } from '../services/storage.js'
 import { canDisableRole } from '../services/rolePreferencesService.js'
-import { getTruncatedLocation } from '../utils/locationUtils.js'
 import { isMobileOrPWA } from '../utils/deviceDetection.js'
 import { getPlayerCastStatus, getPlayerCastRole, movePlayerToDeclined } from '../services/castService.js'
 import { isAvailableForRole as checkAvailableForRole, getAvailabilityData as getAvailabilityDataFromService, countAvailablePlayers as countAvailablePlayersFromService } from '../services/playerAvailabilityService.js'
@@ -2161,6 +2000,25 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+
+// Redirect old event URL (?event=...&modal=event_details|selection) to canonical /season/:slug/event/:eventId
+watch(
+  () => ({ path: route.path, query: route.query }),
+  ({ path, query }) => {
+    if (route.params.eventId) return // already on canonical event path
+    const eventId = query.event
+    const modal = query.modal
+    if (!eventId || (modal !== 'event_details' && modal !== 'selection')) return
+    const slug = route.params.slug
+    if (!slug) return
+    const preserved = { ...query }
+    delete preserved.event
+    delete preserved.modal
+    if (modal === 'selection') preserved.tab = 'compo'
+    router.replace({ path: `/season/${slug}/event/${eventId}`, query: preserved })
+  },
+  { immediate: true }
+)
 
 // Initialiser Firebase Auth
 const auth = getFirebaseAuth()
@@ -2986,7 +2844,7 @@ async function copyEventLinkToClipboard(event) {
   
   try {
     // Générer le lien direct vers l'événement
-    const eventUrl = `${window.location.origin}/season/${props.slug}?event=${event.id}&modal=event_details`;
+    const eventUrl = `${window.location.origin}/season/${props.slug}/event/${event.id}`;
     
     // Copier dans le presse-papiers
     await navigator.clipboard.writeText(eventUrl);
@@ -3005,7 +2863,7 @@ async function copyEventLinkToClipboard(event) {
     // Fallback pour les navigateurs qui ne supportent pas l'API Clipboard
     try {
       const textArea = document.createElement('textarea');
-      textArea.value = `${window.location.origin}/season/${props.slug}?event=${event.id}&modal=event_details`;
+      textArea.value = `${window.location.origin}/season/${props.slug}/event/${event.id}`;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
@@ -3091,6 +2949,7 @@ const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
 const selectionModalRef = ref(null)
 const selectionModalKey = ref(0)
+const inlineSelectionModalRef = ref(null)
 
 // Variables pour le modal d'annonce d'événement
 const showEventAnnounceModal = ref(false)
@@ -3133,8 +2992,8 @@ const availabilityModalData = ref({
 // Compteur pour forcer le re-render de AvailabilityCell
 const availabilityCellRefreshKey = ref(0)
 
-// Onglet actif dans la modale de détails d'événement
-const eventDetailsActiveTab = ref('team') // Sera mis à jour dynamiquement selon l'état du tirage
+// Onglet actif dans la modale de détails d'événement (Info par défaut)
+const eventDetailsActiveTab = ref('info')
 
 // État du modal de sélection de joueur pour l'onglet Disponibilités
 const selectedTeamPlayer = ref(null)
@@ -3145,17 +3004,10 @@ const canModifySelectedPlayerAvailability = ref(null) // null = vérification en
 const isCheckingPermissions = ref(false)
 
 
-// Fonction pour déterminer l'onglet par défaut selon l'état du tirage
+// Onglet par défaut à l'ouverture des détails (sans paramètre tab dans l'URL)
 function getDefaultTabForEvent(event) {
-  if (!event) return 'team'
-  
-  // Si il y a une composition (tirage effectué), onglet Composition par défaut
-  if (hasCompositionForSelectedEvent.value) {
-    return 'composition'
-  }
-  
-  // Sinon, onglet Disponibilités par défaut
-  return 'team'
+  if (!event) return 'info'
+  return 'info'
 }
 
 
@@ -3306,14 +3158,6 @@ watch(currentUserPlayer, (player) => {
   }
 })
 
-// Watcher pour changer d'onglet quand l'état de la composition change
-watch(hasCompositionForSelectedEvent, (hasComposition) => {
-  if (selectedEvent.value) {
-    const defaultTab = getDefaultTabForEvent(selectedEvent.value)
-    eventDetailsActiveTab.value = defaultTab
-  }
-})
-
 // Watcher pour initialiser la sélection de joueur par défaut
 watch([selectedEvent, currentUserPlayer], () => {
   if (selectedEvent.value && eventDetailsActiveTab.value === 'team') {
@@ -3373,8 +3217,6 @@ const showCalendarDropdown = ref(false)
 const showEventActionsDropdown = ref(false)
 
 // État de l'affichage des détails de l'événement
-const showEventDetailsSection = ref(false)
-
 // État du dropdown Google Maps
 const showGoogleMapsDropdown = ref(false)
 
@@ -6104,33 +5946,77 @@ watch(() => currentUser.value?.email, async (newEmail, oldEmail) => {
     }
   }
   
-  // Fermer la modale de sélection si l'utilisateur se déconnecte
-  if (!newEmail && showSelectionModal.value) {
+  // Nettoyer l’URL (ex. modal=selection) à la déconnexion
+  if (!newEmail) {
     closeSelectionModal()
   }
 }, { immediate: false })
-// Surveiller les changements de route pour ouvrir automatiquement la popup d'événement
-watch(() => route.params.eventId, (newEventId) => {
-  if (newEventId) {
-    const openWhenReady = () => {
-      const targetEvent = events.value.find(e => e.id === newEventId)
-      if (targetEvent) {
-        showEventDetails(targetEvent)
-        return true
-      }
-      return false
-    }
+// Full-screen event view: when route is /season/:slug/event/:eventId, show event details in-page (no modal)
+const isEventFullScreen = computed(() => !!route.params.eventId)
 
-    if (events.value.length > 0) {
-      openWhenReady()
-    } else {
-      const unwatch = watch(events, (newEvents) => {
-        if (newEvents.length > 0) {
-          const done = openWhenReady()
-          if (done) unwatch()
-        }
-      }, { immediate: true })
+// Sync state from event route (selectedEvent, tab, etc.) without opening modal or pushing URL
+async function syncStateFromEventRoute(event, { showAvailability = false, forceTab = null, showConfirm = false, fromAllPlayersFilter = false } = {}) {
+  if (!event) return
+  if (currentUser.value) currentUserPlayer.value = getCurrentUserPlayer()
+  const defaultTab = getDefaultTabForEvent(event)
+  const normalizedForceTab = forceTab == null ? null : String(forceTab).toLowerCase() === 'compo' ? 'composition' : String(forceTab).toLowerCase()
+  if (fromAllPlayersFilter) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = 'team'
+  } else if (normalizedForceTab === 'info') {
+    eventDetailsActiveTab.value = 'info'
+  } else if (normalizedForceTab === 'team') {
+    eventDetailsActiveTab.value = 'team'
+    if (showAvailability && currentUserPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value
+    else if (!selectedTeamPlayer.value) selectedTeamPlayer.value = currentUserPlayer.value || { id: 'all', name: 'Tous' }
+  } else if (normalizedForceTab === 'composition') {
+    eventDetailsActiveTab.value = 'composition'
+  } else if (showAvailability && currentUserPlayer.value) {
+    selectedTeamPlayer.value = currentUserPlayer.value
+    eventDetailsActiveTab.value = 'team'
+  } else if (showAvailability && !currentUserPlayer.value) {
+    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
+    eventDetailsActiveTab.value = defaultTab
+  } else {
+    eventDetailsActiveTab.value = defaultTab
+  }
+  selectedEvent.value = event
+  editingDescription.value = event.description || ''
+  editingArchived.value = !!event.archived
+  showAvailabilityInEventDetails.value = showAvailability
+  try {
+    const [newAvailability, newSelections] = await Promise.all([loadAvailabilityForAllPlayers(), loadCasts(seasonId.value)])
+    availability.value = newAvailability
+    casts.value = newSelections
+  } catch (e) {
+    console.warn('Impossible de rafraîchir les données pour l\'écran événement:', e)
+  }
+  if (showConfirm) {
+    await nextTick()
+    setTimeout(async () => { await checkAndOpenConfirmationModal(event.id) }, 300)
+  }
+}
+
+// When on event route, sync state from route (no modal)
+watch(() => route.params.eventId, (newEventId) => {
+  if (!newEventId) return
+  const apply = () => {
+    const targetEvent = events.value.find(e => e.id === newEventId)
+    if (targetEvent) {
+      const showAvailability = route.query.showAvailability === 'true'
+      const showConfirm = route.query.showConfirm === 'true'
+      const tabParam = route.query.tab || null
+      syncStateFromEventRoute(targetEvent, { showAvailability, forceTab: tabParam, showConfirm })
+      return true
     }
+    return false
+  }
+  if (events.value.length > 0) {
+    apply()
+  } else {
+    const unwatch = watch(events, (newEvents) => {
+      if (newEvents.length > 0 && apply()) unwatch()
+    }, { immediate: true })
   }
 }, { immediate: true })
 // Helpers de tri
@@ -7563,61 +7449,28 @@ async function drawForRole(role, count, eventId, excludedPlayers = []) {
 
 async function drawProtected(eventId) {
   logger.debug('🛡️ drawProtected appelé:', { eventId })
-  // Tirage protégé
-  // État de la modal de composition avant
-  
-  // Sauvegarder l'état de la popin avant le tirage
-  const wasSelectionModalOpen = showSelectionModal.value
-  const selectionModalEventId = selectionModalEvent.value?.id
-  
-  // Vérifier si c'est une reselection avant de faire le draw
+
   const wasReselection = getSelectionPlayers(eventId).length > 0
-  
-  // Sauvegarder l'ancienne composition pour comparer
   const oldSelection = wasReselection ? [...getSelectionPlayers(eventId)] : []
-  
+
   logger.debug('🎲 Appel de drawMultiRoles...')
   await drawMultiRoles(eventId)
-  
-  
-  // État de la modal de composition après
-  
-  // S'assurer que la popin de composition reste ouverte si elle était ouverte
-  if (wasSelectionModalOpen && !showSelectionModal.value) {
-    // Restauration de la popin de composition
-    showSelectionModal.value = true
-    selectionModalEvent.value = events.value.find(e => e.id === selectionModalEventId)
-  }
-  
-  // Mettre à jour les données de la popin de composition si elle est ouverte
-  if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
-    // Popin de composition ouverte, mise à jour
-    // Forcer la mise à jour des données
+
+  const isCompositionTabOpen = showEventDetailsModal.value && selectedEvent.value?.id === eventId && eventDetailsActiveTab.value === 'composition'
+
+  if (isCompositionTabOpen && inlineSelectionModalRef.value?.showSuccess) {
     await nextTick()
-    
-    // Afficher le message de succès dans la popin de composition
-    if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
-      // Appel de showSuccess sur la popin de composition
-      const newSelection = getSelectionPlayers(eventId)
-      const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
-      const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
-      selectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
-    } else {
-      // showSuccess indisponible
-    }
+    const newSelection = getSelectionPlayers(eventId)
+    const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
+    const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
+    inlineSelectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
   } else {
-    // Popin de composition fermée, affichage message global
-    // Afficher un message de succès global si la popin n'est pas ouverte
     showSuccessMessage.value = true
-    const event = events.value.find(e => e.id === eventId)
-    const selectedPlayers = getSelectionPlayers(eventId)
-    
     if (wasReselection) {
       successMessage.value = 'Composition mise à jour avec succès !'
     } else {
       successMessage.value = 'Composition effectuée avec succès !'
     }
-    
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -7818,19 +7671,6 @@ async function loadGoogleMapsEmbedUrl(location) {
 // Fonction synchrone pour compatibilité (retourne l'URL mise en cache)
 function getGoogleMapsEmbedUrl(location) {
   return mapEmbedUrl.value
-}
-
-function getMobileGoogleMapsEmbedUrl(location) {
-  return mobileMapEmbedUrl.value
-}
-
-function getLocationAddressPart(location) {
-  if (!location) return ''
-  const commaIndex = location.indexOf(',')
-  if (commaIndex > 0) {
-    return location.substring(commaIndex + 1).trim()
-  }
-  return location
 }
 
 function countSelections(playerName, role = 'player', excludeEventId = null, currentEventType = null) {
@@ -8886,9 +8726,11 @@ async function executePendingOperation(operation) {
               })
             }
           } catch {}
-          // Feedback via la modale de composition si ouverte
+          // Feedback via l’onglet Composition si ouvert pour cet événement
           try {
-            selectionModalRef.value?.showSuccess(true, true)
+            if (showEventDetailsModal.value && selectedEvent.value?.id === eventId && eventDetailsActiveTab.value === 'composition') {
+              inlineSelectionModalRef.value?.showSuccess(true, true)
+            }
           } catch {}
         }
         break
@@ -8996,7 +8838,11 @@ async function executePendingOperation(operation) {
 }
 
 function goBack() {
-  router.push('/seasons')
+  if (route.params.eventId) {
+    router.push(`/season/${props.slug}`)
+  } else {
+    router.push('/seasons')
+  }
 }
 
 function refreshSeason() {
@@ -9010,154 +8856,26 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateScrollHints)
 })
 
-async function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false, forceTab = null, showConfirm = false) {
-  console.log('📋 DEBUG showEventDetails appelée:', {
-    event: event ? { id: event.id, title: event.title } : null,
-    showAvailability,
-    updateUrl,
-    fromAllPlayersFilter,
-    forceTab,
-    showConfirm
-  })
-
-  // Démarrer la mesure de performance pour l'écran détail événement
-  performanceService.start('event_detail_loading', {
-    eventId: event.id,
-    eventTitle: event.title,
-    timestamp: new Date().toISOString()
-  })
-
-  // Toujours récupérer le joueur de l'utilisateur connecté pour l'onglet "Ma Dispo"
-  if (currentUser.value) {
-    currentUserPlayer.value = getCurrentUserPlayer()
-    console.log('👤 DEBUG showEventDetails: currentUserPlayer récupéré:', {
-      currentUserPlayer: currentUserPlayer.value ? { id: currentUserPlayer.value.id, name: currentUserPlayer.value.name } : null
-    })
-  }
-
-  // Déterminer l'onglet par défaut selon l'état du tirage
+// Navigate to canonical event URL; watch(route.params.eventId) will call syncStateFromEventRoute
+function showEventDetails(event, showAvailability = false, updateUrl = true, fromAllPlayersFilter = false, forceTab = null, showConfirm = false) {
+  if (!event) return
   const defaultTab = getDefaultTabForEvent(event)
-  
-  console.log('🔍 DEBUG showEventDetails - choix de l\'onglet:', {
-    fromAllPlayersFilter,
-    defaultTab,
-    currentUserPlayer: currentUserPlayer.value?.name,
-    showAvailability,
-    forceTab
-  })
-  
-  // IMPORTANT: Définir selectedTeamPlayer AVANT de changer selectedEvent pour éviter que le watcher l'écrase
-  // Si on arrive depuis le filtre "Tous", toujours afficher "Tous" dans l'onglet Disponibilités
-  if (fromAllPlayersFilter) {
-    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
-    eventDetailsActiveTab.value = 'team' // Forcer l'onglet Disponibilités
-    console.log('✅ DEBUG showEventDetails - Mode "Tous" activé depuis filtre')
-  }
-  // Si un onglet est forcé depuis l'URL (tab=compo)
-  else if (forceTab === 'composition' || forceTab === 'compo') {
-    eventDetailsActiveTab.value = 'composition'
-    // Sélection par défaut sera gérée par le watcher
-  }
-  // If we tried to show availability but there is no player, default to computed tab
-  else if (showAvailability && !currentUserPlayer.value) {
-    selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
-    eventDetailsActiveTab.value = defaultTab
-  } else if (showAvailability) {
-    // Si on demande à voir la disponibilité, aller sur l'onglet team et sélectionner l'utilisateur
-    selectedTeamPlayer.value = currentUserPlayer.value
-    eventDetailsActiveTab.value = 'team'
-  } else {
-    // Utiliser l'onglet par défaut selon l'état du tirage
-    eventDetailsActiveTab.value = defaultTab
-    // Sélection par défaut sera gérée par le watcher (donc on ne touche pas selectedTeamPlayer ici)
-  }
-
-  // Maintenant, définir selectedEvent (ceci déclenche le watcher, mais selectedTeamPlayer est déjà défini)
-  selectedEvent.value = event
-  editingDescription.value = event.description || ''
-  editingArchived.value = !!event.archived
-  showAvailabilityInEventDetails.value = showAvailability
-
-  console.log('📋 DEBUG showEventDetails: variables mises à jour:', {
-    showAvailabilityInEventDetails: showAvailabilityInEventDetails.value,
-    selectedEvent: selectedEvent.value ? { id: selectedEvent.value.id, title: selectedEvent.value.title } : null,
-    selectedTeamPlayer: selectedTeamPlayer.value
-  })
-
-  // 1. Mettre à jour l'URL pour refléter l'état de navigation (seulement si demandé)
+  const normalizedForceTab = forceTab == null ? null : String(forceTab).toLowerCase() === 'compo' ? 'composition' : String(forceTab).toLowerCase()
+  let tabForUrl = 'info'
+  if (fromAllPlayersFilter) tabForUrl = 'team'
+  else if (normalizedForceTab === 'info') tabForUrl = 'info'
+  else if (normalizedForceTab === 'team') tabForUrl = 'team'
+  else if (normalizedForceTab === 'composition') tabForUrl = 'compo'
+  else if (showAvailability && currentUser.value) tabForUrl = 'team'
+  else tabForUrl = defaultTab === 'composition' ? 'compo' : defaultTab === 'team' ? 'team' : 'info'
+  const query = { tab: tabForUrl }
+  if (showAvailability) query.showAvailability = 'true'
+  if (showConfirm) query.showConfirm = 'true'
   if (updateUrl) {
-    let urlParams = `event=${event.id}&modal=event_details`
-    if (showAvailability) {
-      urlParams += '&showAvailability=true'
-    }
-    if (forceTab === 'composition' || forceTab === 'compo') {
-      urlParams += '&tab=compo'
-    }
-    if (showConfirm) {
-      urlParams += '&showConfirm=true'
-    }
-    const newUrl = `/season/${props.slug}?${urlParams}`
-    router.push(newUrl)
+    router.push({ path: `/season/${props.slug}/event/${event.id}`, query })
+  } else {
+    router.replace({ path: `/season/${props.slug}/event/${event.id}`, query })
   }
-
-  // 2. Tracker l'état de navigation (pas l'interaction modale)
-  try {
-    const userId = getCurrentUserId()
-    if (userId) {
-      // Navigation tracking supprimé - remplacé par seasonPreferences
-      }
-    } catch (error) {
-      // Log silencieux pour les erreurs de tracking non critiques
-      if (error.code !== 'permission-denied') {
-        logger.error('Erreur lors du tracking de l\'état de navigation:', error)
-      }
-    }
-
-  // Rafraîchir les données avant d'afficher pour refléter les changements récents (ex: magic link)
-  try {
-    const [newAvailability, newSelections] = await performanceService.measureStep('event_detail_data_refresh', async () => {
-      return await Promise.all([
-        loadAvailabilityForAllPlayers(),
-        loadCasts(seasonId.value)
-      ])
-    }, { 
-      eventId: event.id, 
-      playersCount: players.value.length, 
-      eventsCount: events.value.length 
-    })
-    availability.value = newAvailability
-    casts.value = newSelections
-  } catch (e) {
-    console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
-  }
-
-  // S'assurer que la modale s'ouvre après que les données soient assignées
-  await nextTick()
-  showEventDetailsModal.value = true
-
-  // Si showConfirm est true, vérifier et ouvrir automatiquement la modale de confirmation
-  if (showConfirm) {
-    // Attendre un peu pour que les données de composition soient chargées
-    await nextTick()
-    setTimeout(async () => {
-      await checkAndOpenConfirmationModal(event.id)
-    }, 300)
-  }
-
-  // Terminer la mesure de performance pour l'écran détail événement
-  const eventDetailLoadingTime = performanceService.end('event_detail_loading', {
-    eventId: event.id,
-    eventTitle: event.title,
-    playersCount: players.value.length,
-    eventsCount: events.value.length
-  })
-  
-  logger.info(`📋 Détail événement chargé en ${eventDetailLoadingTime.toFixed(2)}ms (${event.title})`)
-  
-  // Mettre à jour l'état de surveillance de l'événement
-  nextTick(() => {
-    updateEventMonitoredState()
-  })
 }
 
 function closeEventDetails() {
@@ -9181,6 +8899,27 @@ function closeEventDetails() {
   showShareLinkCopied.value = false;
   // Cache fix: removed eventMoreActionsStyle references
 }
+
+// Changer l'onglet des détails événement et synchroniser l'URL (partage / bookmark)
+function setEventDetailsTab(tab) {
+  if (!selectedEvent.value) return
+  showEventActionsDropdown.value = false
+  const t = tab === 'composition' ? 'composition' : tab === 'team' ? 'team' : 'info'
+  eventDetailsActiveTab.value = t
+  const tabForUrl = t === 'composition' ? 'compo' : t
+  if (route.params.eventId) {
+    // Full-screen event: update query tab only (canonical URL)
+    const query = { ...route.query, tab: tabForUrl }
+    router.replace({ path: route.path, query })
+  } else {
+    const params = new URLSearchParams(router.currentRoute.value.query)
+    params.set('event', selectedEvent.value.id)
+    params.set('modal', 'event_details')
+    params.set('tab', tabForUrl)
+    router.replace({ path: router.currentRoute.value.path, query: Object.fromEntries(params) })
+  }
+}
+
 // Fonction pour ajouter un événement à l'agenda
 async function handleAddToCalendar(type, event = null) {
   const targetEvent = event || selectedEvent.value
@@ -9192,7 +8931,7 @@ async function handleAddToCalendar(type, event = null) {
     console.log('🎭 Données de sélection pour l\'agenda:', castData)
     console.log('👥 Liste des joueurs:', players.value)
     
-    await addToCalendar(type, targetEvent, seasonName.value, castData, players.value, seasonSlug.value)
+    await addToCalendar(type, targetEvent, seasonName.value, castData, players.value, seasonSlug)
     
     // Afficher un message de succès
     showSuccessMessage.value = true
@@ -10879,49 +10618,8 @@ function getPlayerInstruction(playerName, eventId) {
   }
 }
 
-// Fonctions pour la nouvelle popin de composition
-async function openSelectionModal(event) {
-  if (event?.archived) {
-    showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
-    setTimeout(() => { showSuccessMessage.value = false }, 3000)
-    return
-  }
-  
-  // Rafraîchir les données de l'événement pour avoir les dernières informations
-  if (event?.id && seasonId.value) {
-    try {
-      const updatedEvent = await firestoreService.getDocument('seasons', seasonId.value, 'events', event.id)
-      if (updatedEvent) {
-        // Mettre à jour l'événement dans la liste
-        const eventIndex = events.value.findIndex(e => e.id === event.id)
-        if (eventIndex !== -1) {
-          events.value[eventIndex] = updatedEvent
-        }
-        selectionModalEvent.value = updatedEvent
-      } else {
-        selectionModalEvent.value = event
-      }
-    } catch (error) {
-      console.warn('Erreur lors du rafraîchissement de l\'événement:', error)
-      selectionModalEvent.value = event
-    }
-  } else {
-    selectionModalEvent.value = event
-  }
-  
-  showSelectionModal.value = true
-  try {
-    const params = new URLSearchParams(window.location.search)
-    params.set('modal', 'selection')
-    params.set('event', event?.id || '')
-    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
-  } catch {}
- }
-
 function closeSelectionModal() {
-  showSelectionModal.value = false
-  selectionModalEvent.value = null
+  // No-op: composition is now inline in the event-details tab; kept for backward compatibility / URL cleanup
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('modal') === 'selection') {
@@ -10937,11 +10635,36 @@ function handleEventClickFromTimeline(event, fromAllPlayersFilter = false) {
   showEventDetails(event, false, true, fromAllPlayersFilter)
 }
 
-// Fonction pour afficher la modale de composition depuis TimelineView
+// Passer à l’onglet Composition dans le détail événement (boutons du footer)
+function switchToCompositionTab() {
+  eventDetailsActiveTab.value = 'composition'
+  if (route.params.eventId) {
+    router.replace({ path: route.path, query: { ...route.query, tab: 'compo' } })
+  } else {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      params.set('tab', 'compo')
+      if (params.get('modal') !== 'event_details') params.set('modal', 'event_details')
+      if (!params.has('event') && selectedEvent.value?.id) params.set('event', selectedEvent.value.id)
+      history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    } catch {}
+  }
+}
+
+// Ouvre le détail événement avec l’onglet Composition (plus de popup de composition)
+async function openSelectionModal(event) {
+  if (event?.archived) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
+  showEventDetails(event, false, true, false, 'composition')
+}
+
+// Fonction pour afficher la composition depuis TimelineView (ouvre le détail avec onglet Composition)
 function showCompositionModal(event, fromAllPlayersFilter = false) {
-  // Si on vient du filtre "Tous", passer cette info pour qu'elle soit prise en compte
   if (fromAllPlayersFilter) {
-    // Définir explicitement le filtre sur "Tous" avant d'ouvrir la modale
     selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
   }
   openSelectionModal(event)
@@ -11060,10 +10783,11 @@ const availablePlayersForDropdown = computed(() => {
 // Désistement helpers supprimés
 
 async function handleSelectionFromModal() {
-  if (!selectionModalEvent.value) return
+  const event = selectedEvent.value
+  if (!event) return
   
-  const eventId = selectionModalEvent.value.id
-  const count = selectionModalEvent.value.playerCount || 6
+  const eventId = event.id
+  const count = event.playerCount || 6
   
   // Vérifier s'il y a des joueurs disponibles
   const availableCount = countAvailablePlayers(eventId)
@@ -11093,9 +10817,9 @@ async function handlePerfectFromModal() {
 }
 
 async function handleConfirmReselectFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Lancer directement la composition (le PIN a déjà été validé)
@@ -11107,9 +10831,9 @@ async function handleConfirmReselectFromModal() {
 }
 
 async function handleConfirmSelectionFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Confirmer la composition
@@ -11160,9 +10884,9 @@ async function handleConfirmSelectionFromModal() {
 }
 
 async function handleUnconfirmCastFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Demander le PIN code avant de déverrouiller la composition
@@ -11178,7 +10902,7 @@ async function handleUnconfirmCastFromModal() {
 async function handleResetSelectionFromModal() {
   // La logique de réinitialisation est maintenant dans SelectionModal
   // Cette fonction ne fait que gérer la mise à jour de l'interface parent
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
   // Recharger les données pour refléter les changements
   try {
@@ -11194,9 +10918,9 @@ async function handleResetSelectionFromModal() {
 }
 
 async function handleFillCastFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Demander le PIN code avant de remplir la composition
@@ -11221,11 +10945,6 @@ async function handleUpdateCastFromModal() {
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
     const newAvailability = await loadAvailabilityForAllPlayers()
     availability.value = newAvailability
-    
-    // Forcer la mise à jour de la modale en changeant sa clé
-    if (showSelectionModal.value) {
-      selectionModalKey.value++
-    }
   } catch (error) {
     console.error('Erreur lors du rechargement des compositions:', error)
   }
@@ -11334,7 +11053,7 @@ watch(events, (list) => {
     const t = list.find(e => e.id === eventId)
     if (!t) return
     if (modal === 'announce') openEventAnnounceModal(t, showAvailability)
-    if (modal === 'selection') openSelectionModal(t)
+    if (modal === 'selection') showEventDetails(t, false, true, false, 'composition')
     if (modal === 'event_details') {
       showEventDetails(t, showAvailability, false, false, tabParam, showConfirm)
     }
@@ -12242,6 +11961,42 @@ async function checkAndOpenConfirmationModal(eventId) {
   // Ouvrir la modale de confirmation pour l'utilisateur
   await handleCompositionSlotClick(userSlot)
   return true
+}
+
+// Handle slot click from composition modal (SelectionModal overlay or inline tab) – open confirmation popup
+async function handleSelectionModalSlotConfirmationClick(slotData) {
+  const event = selectionModalEvent.value || selectedEvent.value
+  if (!event || !slotData?.playerName) return
+
+  const eventId = event.id
+  const playerName = slotData.playerName
+  const playerId = slotData.playerId
+
+  const canModify = await canModifyConfirmationStatus(playerName, playerId, eventId)
+
+  if (!canModify) {
+    showErrorMessage.value = true
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+    return
+  }
+
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  const data = {
+    playerName,
+    playerId,
+    playerGender: slotData.playerGender || 'non-specified',
+    eventId,
+    eventTitle: event.title,
+    eventDate: event.date,
+    assignedRole: slotData.roleKey,
+    availabilityComment: availabilityData?.comment || null,
+    currentStatus: slotData.selectionStatus,
+    seasonId: seasonId.value
+  }
+  openConfirmationModal(data)
 }
 
 // Handle composition slot click from composition tab
