@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script de vérification PWA pour HatCast
-# Usage: ./check-pwa.sh
+# Usage: ./scripts/check-pwa.sh (depuis la racine du repo)
 
 echo "🔍 Vérification PWA HatCast - https://selections.la-malice.fr"
 echo "=========================================================="

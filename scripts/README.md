@@ -1,6 +1,6 @@
-# Scripts de gestion de la base de données
+# Scripts HatCast
 
-Ce dossier contient les scripts utiles pour gérer les migrations et les opérations sur les bases de données Firebase.
+Ce dossier contient les scripts utiles pour les migrations, le déploiement, la PWA et le débogage.
 
 ## Scripts disponibles
 
@@ -15,6 +15,21 @@ Ce dossier contient les scripts utiles pour gérer les migrations et les opérat
 ### 📦 Gestion des versions
 - **`release-version.sh`** : Script principal pour créer de nouvelles versions
 - **`generate-changelog.js`** : Génère le changelog automatiquement
+
+### 📱 PWA et déploiement
+- **`deploy-pwa.sh`** : Préparation et vérification du déploiement PWA (build optionnel, vérification des assets). Usage : `./scripts/deploy-pwa.sh` depuis la racine.
+- **`check-pwa.sh`** : Vérification de la PWA en production (HTTPS, manifest, service worker). Usage : `./scripts/check-pwa.sh` depuis la racine.
+- **`deploy-simple.sh`** : Script de déploiement simplifié.
+
+### 🖼️ Icônes
+- **`generate-icons.sh`** : Génère les icônes PWA à partir d’une source.
+- **`cleanup-icons.sh`** : Nettoyage des icônes générées.
+
+### 🔍 Debug (scripts de test manuels)
+Le sous-dossier **`debug/`** contient des scripts de diagnostic exécutables à la main (hors suite Playwright dans `tests/`) :
+- **`run-all-tests.js`** : Lance une série de scripts de debug (CORS, email, auth, etc.). Usage : `node scripts/debug/run-all-tests.js` depuis la racine.
+- **`test-cors-config.js`**, **`test-email-system.js`**, **`test-general-config.js`**, **`test-production-token.js`**, **`test-firebase-imports.js`**, **`test-cloud-functions.js`**, **`test-authentication.js`**, **`test-push-notifications.js`**, **`test-push-local.js`**, **`test-audit-logs.js`**, **`test-ethereal.js`** : Tests ciblés (Firebase, email, push, config).
+- **`monitor-password-reset-errors.js`**, **`reproduce-password-reset-issue.js`** : Diagnostic password reset.
 
 ## Utilisation rapide
 

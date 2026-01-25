@@ -2,6 +2,8 @@
 
 Ce dossier contient la documentation technique et utilisateur du projet HatCast.
 
+**Docs normatives (racine du repo)** : [AGENTS.md](../AGENTS.md), [SPEC.md](../SPEC.md), [DOMAIN.md](../DOMAIN.md), [ARCH.md](../ARCH.md), [PLAN.md](../PLAN.md), [DEVELOPMENT.md](../DEVELOPMENT.md). Elles définissent le fonctionnement du projet et les règles pour les agents ; les documents ci-dessous les complètent par thème.
+
 ## 📚 Documentation disponible
 
 ### 🎭 Interface utilisateur
@@ -15,11 +17,12 @@ Ce dossier contient la documentation technique et utilisateur du projet HatCast.
 - **[Référence Rapide Z-Index](technical/Z_INDEX_QUICK_REFERENCE.md)** - Guide rapide pour les développeurs
 - **[Implémentation des Filtres](technical/filters-implementation.md)** - Détails techniques du système de filtres
 - **[Système de Scroll Horizontal](technical/scroll-system.md)** - Architecture et implémentation du système de navigation
-- **[AUDIT.md](../AUDIT.md)** - Système d'audit et de logs
-- **[STORAGE_SETUP.md](../STORAGE_SETUP.md)** - Configuration du stockage
-- **[PWA_TROUBLESHOOTING.md](../PWA_TROUBLESHOOTING.md)** - Résolution des problèmes PWA
-- **[REMINDER_SYSTEM_README.md](../REMINDER_SYSTEM_README.md)** - Système de rappels
-- **[NAVIGATION_TRACKER.md](../NAVIGATION_TRACKER.md)** - Suivi de navigation
+- **[AUDIT.md](technical/AUDIT.md)** - Système d'audit et de logs
+- **[STORAGE_SETUP.md](technical/STORAGE_SETUP.md)** - Configuration du stockage
+- **[PWA_TROUBLESHOOTING.md](technical/PWA_TROUBLESHOOTING.md)** - Résolution des problèmes PWA
+- **[REMINDER_SYSTEM_README.md](technical/REMINDER_SYSTEM_README.md)** - Système de rappels
+- **[NAVIGATION_TRACKER.md](technical/NAVIGATION_TRACKER.md)** - Suivi de navigation
+- **[TODO.md](TODO.md)** - Tâches et suivi
 
 ## 📖 Comment contribuer
 
@@ -42,4 +45,3 @@ docs/
 └── api/                        # Documentation API
     └── ...
 ```
-rai

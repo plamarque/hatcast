@@ -17,6 +17,7 @@
     "test:cleanup-files": "./tests/cleanup-tests.sh",
     "test:cleanup-auto": "CLEANUP_TESTS=true playwright test",
     "test:ci": "BASE_URL=http://localhost:5173 playwright test",
+    "test:with-server": "SKIP_WEBSERVER=1 BASE_URL=https://localhost:5173 playwright test",
     "test:manual": "node tests/run-manual.js",
     "test:local": "playwright test",
     "test:all": "node tests/run-tests.js",

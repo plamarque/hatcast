@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script de déploiement PWA pour HatCast
-# Usage: ./deploy-pwa.sh
+# Usage: ./scripts/deploy-pwa.sh (depuis la racine du repo)
 
 echo "🚀 Déploiement PWA HatCast"
 echo "=========================="
@@ -82,8 +82,8 @@ if [ ! -f "dist/manifest.webmanifest" ]; then
     exit 1
 fi
 
-if [ ! -f "dist/sw.js" ]; then
-    print_error "sw.js non trouvé dans dist/"
+if [ ! -f "dist/service-worker.js" ]; then
+    print_error "service-worker.js non trouvé dans dist/"
     exit 1
 fi
 
@@ -112,7 +112,7 @@ print_step "Préparation du déploiement..."
 echo ""
 echo "📋 Fichiers PWA générés :"
 echo "   ✅ manifest.webmanifest"
-echo "   ✅ sw.js"
+echo "   ✅ service-worker.js"
 echo "   ✅ icons/ (dossier)"
 echo "   ✅ pwa-debug.html"
 echo ""
@@ -129,7 +129,7 @@ echo ""
 echo "2. Attendez le déploiement GitHub Pages (2-5 minutes)"
 echo ""
 echo "3. Vérifiez le déploiement :"
-echo "   ./check-pwa.sh"
+echo "   ./scripts/check-pwa.sh"
 echo ""
 echo "4. Testez l'installation PWA :"
 echo "   - Ouvrez https://selections.la-malice.fr sur Chrome Mobile"
@@ -146,7 +146,7 @@ echo ""
 echo "📋 Points à vérifier après déploiement :"
 echo "   ✅ HTTPS actif sur le site"
 echo "   ✅ Manifest accessible : https://selections.la-malice.fr/manifest.webmanifest"
-echo "   ✅ Service worker accessible : https://selections.la-malice.fr/sw.js"
+echo "   ✅ Service worker accessible : https://selections.la-malice.fr/service-worker.js"
 echo "   ✅ Icônes accessibles dans /icons/"
 echo "   ✅ Page de diagnostic : https://selections.la-malice.fr/pwa-debug.html"
 echo ""
