@@ -50,7 +50,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 │ z-[1050] PlayerModal                                       │
 │ z-[1040] AccountMenu                                       │
 │ z-[1030] EventAnnounceModal                                │
-│ z-[1020] SelectionModal                                    │
+│ (inline) SelectionModal (onglet Équipe, pas d’overlay)     │
 │ z-[1010] EventModal                                        │
 ├─────────────────────────────────────────────────────────────┤
 │                    NIVEAU 1000+ (Onboarding)                │
@@ -96,7 +96,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[1010]` | EventModal | Création/édition d'événement | `src/components/EventModal.vue` |
-| `z-[1020]` | SelectionModal | Composition des joueurs | `src/components/SelectionModal.vue` |
+| — | SelectionModal | Composition des joueurs (utilisé en **inline** dans l’onglet Équipe du détail événement, pas en overlay) | `src/components/SelectionModal.vue` |
 | `z-[1030]` | EventAnnounceModal | Annonce d'événement | `src/components/EventAnnounceModal.vue` |
 | `z-[1040]` | AccountMenu | Menu compte utilisateur | `src/components/AccountMenu.vue` |
 | `z-[1050]` | PlayerModal | Détails du joueur | `src/components/PlayerModal.vue` |

@@ -2,6 +2,7 @@
 
 ### 📝 Other Changes
 
+- feat(composition): Inline composition in event-details Composition tab; no composition popup (Slice 9). Entry points (footer button, TimelineView, URL `modal=selection`, MagicLink) open event details with Composition tab. SelectionModal used inline in tab only.
 - feat(composition): Slot click in composition modal opens participation confirmation (Slice 7)
 - fix(ui): Confirmation modal z-index above composition modal so it appears on top
 - fix(composition): Preserve player statuses on unlock (BUG-001)

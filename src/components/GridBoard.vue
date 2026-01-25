@@ -843,10 +843,10 @@
               </section>
             </div>
 
-            <!-- Onglet Composition (lecture seule) -->
-            <div v-if="eventDetailsActiveTab === 'composition'">
-              <!-- État vide : aucun tirage pour le moment -->
-              <div v-if="!hasCompositionForSelectedEvent" class="text-center py-8">
+            <!-- Onglet Composition : état vide ou UI complète (inline) -->
+            <div v-if="eventDetailsActiveTab === 'composition'" class="min-h-0 flex flex-col">
+              <!-- État vide : aucun tirage et utilisateur ne peut pas gérer la composition -->
+              <div v-if="!hasCompositionForSelectedEvent && !canEditSelectedEvent" class="text-center py-8">
                 <div class="text-gray-400 text-lg mb-2">🎭</div>
                 <div class="text-gray-300 text-sm">
                   Aucun tirage pour le moment
@@ -856,59 +856,38 @@
                 </div>
               </div>
 
-              <!-- Contenu quand une composition existe -->
-              <template v-else>
-                <!-- Message si composition non validée pour utilisateurs normaux -->
-                <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditSelectedEvent" class="text-center py-8">
-                  <div class="text-gray-400 text-lg mb-2">⏳</div>
-                  <div class="text-gray-300 text-sm">
-                    La composition n'est pas encore validée par l'organisateur
-                  </div>
-                  <div class="text-gray-500 text-xs mt-1">
-                    Elle sera visible ici une fois validée
-                  </div>
-                </div>
-
-                <!-- Slots de composition (pour admins ou si validée) -->
-                <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  <template v-for="slot in compositionSlots" :key="slot.key">
-                    <CompositionSlot
-                      :player-id="slot.playerId"
-                      :player-name="slot.playerName"
-                      :player-gender="slot.playerGender"
-                      :role-key="slot.roleKey"
-                      :role-label="slot.roleLabel"
-                      :role-emoji="slot.roleEmoji"
-                      :selection-status="slot.selectionStatus"
-                      :available="slot.available"
-                      :unavailable="slot.unavailable"
-                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                      :season-id="seasonId"
-                      @slot-click="() => handleCompositionSlotClick(slot)"
-                    />
-                  </template>
-                </div>
-
-                <!-- Bandeaux informatifs (lecture seule) -->
-                <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && !isSelectionConfirmed(selectedEvent?.id) && !hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                  <div class="flex items-center gap-2 text-blue-200 text-sm">
-                    <span>⏳</span>
-                    <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
-                  </div>
-                </div>
-                <div v-if="isSelectionConfirmed(selectedEvent?.id)" class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div class="flex items-center gap-2 text-green-200 text-sm">
-                    <span>✅</span>
-                    <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
-                  </div>
-                </div>
-                <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition && hasEmptySlotsInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                  <div class="flex items-center gap-2 text-orange-200 text-sm">
-                    <span>⚠️</span>
-                    <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
-                  </div>
-                </div>
-              </template>
+              <!-- UI complète de composition (inline, pas de popup) -->
+              <SelectionModal
+                v-else-if="selectedEvent"
+                ref="inlineSelectionModalRef"
+                :inline="true"
+                :show="true"
+                :event="selectedEvent"
+                :current-selection="casts[selectedEvent?.id] || []"
+                :available-count="countAvailablePlayers(selectedEvent?.id)"
+                :selected-count="countSelectedPlayers(selectedEvent?.id)"
+                :availability="availability"
+                :is-available-for-role="isAvailableForRole"
+                :count-selections="countSelections"
+                :season-id="seasonId"
+                :season-slug="seasonSlug"
+                :players="enrichedAllSeasonPlayers"
+                :all-season-players="allSeasonPlayers"
+                :sending="isSendingNotifications"
+                :is-selection-confirmed="isSelectionConfirmed(selectedEvent?.id)"
+                :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                :can-edit-events="canEditEvents"
+                @selection="handleSelectionFromModal"
+                @perfect="handlePerfectFromModal"
+                @send-notifications="handleSendNotifications"
+                @updateCast="handleUpdateCastFromModal"
+                @confirm-selection="handleConfirmSelectionFromModal"
+                @unconfirm-selection="handleUnconfirmCastFromModal"
+                @reset-selection="handleResetSelectionFromModal"
+                @confirm-reselect="handleConfirmReselectFromModal"
+                @fill-cast="handleFillCastFromModal"
+                @slot-confirmation-click="handleSelectionModalSlotConfirmationClick"
+              />
             </div>
             
             <!-- Onglet Disponibilités -->
@@ -1083,9 +1062,9 @@
           <!-- Boutons principaux -->
           <button 
             v-if="canEditSelectedEvent"
-            @click="openSelectionModal(selectedEvent)" 
+            @click="switchToCompositionTab" 
             class="px-5 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex items-center gap-2" 
-            title="Gérer la composition"
+            title="Ouvrir l’onglet Composition"
           >
             <span>🎭</span><span>Composition Équipe</span>
           </button>
@@ -1100,7 +1079,7 @@
         <div class="flex items-center gap-1 sm:gap-2 min-w-0">
           <button 
             v-if="canEditSelectedEvent"
-            @click="openSelectionModal(selectedEvent)" 
+            @click="switchToCompositionTab" 
             class="h-10 sm:h-12 px-2 sm:px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 flex-1 min-w-0 text-xs sm:text-sm"
           >
             Composition
@@ -1386,39 +1365,6 @@
     @avatar-updated="handleAvatarUpdated"
     @advance-onboarding="(s) => { try { if (typeof playerTourStep !== 'undefined') playerTourStep.value = s } catch {} }"
     @show-availability-grid="handleShowAvailabilityGrid"
-  />
-
-  <!-- Modal de composition -->
-  <SelectionModal
-    ref="selectionModalRef"
-    :key="selectionModalKey"
-    :show="showSelectionModal"
-    :event="selectionModalEvent"
-    :current-selection="casts[selectionModalEvent?.id] || []"
-    :available-count="countAvailablePlayers(selectionModalEvent?.id)"
-    :selected-count="countSelectedPlayers(selectionModalEvent?.id)"
-    :availability="availability"
-    :is-available-for-role="isAvailableForRole"
-    :count-selections="countSelections"
-    :season-id="seasonId"
-    :season-slug="seasonSlug"
-    :players="enrichedAllSeasonPlayers"
-    :all-season-players="allSeasonPlayers"
-    :sending="isSendingNotifications"
-    :is-selection-confirmed="isSelectionConfirmed(selectionModalEvent?.id)"
-    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectionModalEvent?.id)"
-    :can-edit-events="canEditEvents"
-    @close="closeSelectionModal"
-    @selection="handleSelectionFromModal"
-    @perfect="handlePerfectFromModal"
-    @send-notifications="handleSendNotifications"
-    @updateCast="handleUpdateCastFromModal"
-    @confirm-selection="handleConfirmSelectionFromModal"
-    @unconfirm-selection="handleUnconfirmCastFromModal"
-    @reset-selection="handleResetSelectionFromModal"
-    @confirm-reselect="handleConfirmReselectFromModal"
-    @fill-cast="handleFillCastFromModal"
-    @slot-confirmation-click="handleSelectionModalSlotConfirmationClick"
   />
 
   <!-- Modal d'annonce d'événement -->
@@ -2905,6 +2851,7 @@ const showSelectionModal = ref(false)
 const selectionModalEvent = ref(null)
 const selectionModalRef = ref(null)
 const selectionModalKey = ref(0)
+const inlineSelectionModalRef = ref(null)
 
 // Variables pour le modal d'annonce d'événement
 const showEventAnnounceModal = ref(false)
@@ -5901,8 +5848,8 @@ watch(() => currentUser.value?.email, async (newEmail, oldEmail) => {
     }
   }
   
-  // Fermer la modale de sélection si l'utilisateur se déconnecte
-  if (!newEmail && showSelectionModal.value) {
+  // Nettoyer l’URL (ex. modal=selection) à la déconnexion
+  if (!newEmail) {
     closeSelectionModal()
   }
 }, { immediate: false })
@@ -7360,61 +7307,28 @@ async function drawForRole(role, count, eventId, excludedPlayers = []) {
 
 async function drawProtected(eventId) {
   logger.debug('🛡️ drawProtected appelé:', { eventId })
-  // Tirage protégé
-  // État de la modal de composition avant
-  
-  // Sauvegarder l'état de la popin avant le tirage
-  const wasSelectionModalOpen = showSelectionModal.value
-  const selectionModalEventId = selectionModalEvent.value?.id
-  
-  // Vérifier si c'est une reselection avant de faire le draw
+
   const wasReselection = getSelectionPlayers(eventId).length > 0
-  
-  // Sauvegarder l'ancienne composition pour comparer
   const oldSelection = wasReselection ? [...getSelectionPlayers(eventId)] : []
-  
+
   logger.debug('🎲 Appel de drawMultiRoles...')
   await drawMultiRoles(eventId)
-  
-  
-  // État de la modal de composition après
-  
-  // S'assurer que la popin de composition reste ouverte si elle était ouverte
-  if (wasSelectionModalOpen && !showSelectionModal.value) {
-    // Restauration de la popin de composition
-    showSelectionModal.value = true
-    selectionModalEvent.value = events.value.find(e => e.id === selectionModalEventId)
-  }
-  
-  // Mettre à jour les données de la popin de composition si elle est ouverte
-  if (showSelectionModal.value && selectionModalEvent.value?.id === eventId) {
-    // Popin de composition ouverte, mise à jour
-    // Forcer la mise à jour des données
+
+  const isCompositionTabOpen = showEventDetailsModal.value && selectedEvent.value?.id === eventId && eventDetailsActiveTab.value === 'composition'
+
+  if (isCompositionTabOpen && inlineSelectionModalRef.value?.showSuccess) {
     await nextTick()
-    
-    // Afficher le message de succès dans la popin de composition
-    if (selectionModalRef.value && selectionModalRef.value.showSuccess) {
-      // Appel de showSuccess sur la popin de composition
-      const newSelection = getSelectionPlayers(eventId)
-      const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
-      const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
-      selectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
-    } else {
-      // showSuccess indisponible
-    }
+    const newSelection = getSelectionPlayers(eventId)
+    const keptPlayers = oldSelection.filter(player => newSelection.includes(player))
+    const isPartialUpdate = keptPlayers.length > 0 && keptPlayers.length < oldSelection.length
+    inlineSelectionModalRef.value.showSuccess(wasReselection, isPartialUpdate)
   } else {
-    // Popin de composition fermée, affichage message global
-    // Afficher un message de succès global si la popin n'est pas ouverte
     showSuccessMessage.value = true
-    const event = events.value.find(e => e.id === eventId)
-    const selectedPlayers = getSelectionPlayers(eventId)
-    
     if (wasReselection) {
       successMessage.value = 'Composition mise à jour avec succès !'
     } else {
       successMessage.value = 'Composition effectuée avec succès !'
     }
-    
     setTimeout(() => {
       showSuccessMessage.value = false
     }, 3000)
@@ -8670,9 +8584,11 @@ async function executePendingOperation(operation) {
               })
             }
           } catch {}
-          // Feedback via la modale de composition si ouverte
+          // Feedback via l’onglet Composition si ouvert pour cet événement
           try {
-            selectionModalRef.value?.showSuccess(true, true)
+            if (showEventDetailsModal.value && selectedEvent.value?.id === eventId && eventDetailsActiveTab.value === 'composition') {
+              inlineSelectionModalRef.value?.showSuccess(true, true)
+            }
           } catch {}
         }
         break
@@ -10670,49 +10586,8 @@ function getPlayerInstruction(playerName, eventId) {
   }
 }
 
-// Fonctions pour la nouvelle popin de composition
-async function openSelectionModal(event) {
-  if (event?.archived) {
-    showSuccessMessage.value = true
-    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
-    setTimeout(() => { showSuccessMessage.value = false }, 3000)
-    return
-  }
-  
-  // Rafraîchir les données de l'événement pour avoir les dernières informations
-  if (event?.id && seasonId.value) {
-    try {
-      const updatedEvent = await firestoreService.getDocument('seasons', seasonId.value, 'events', event.id)
-      if (updatedEvent) {
-        // Mettre à jour l'événement dans la liste
-        const eventIndex = events.value.findIndex(e => e.id === event.id)
-        if (eventIndex !== -1) {
-          events.value[eventIndex] = updatedEvent
-        }
-        selectionModalEvent.value = updatedEvent
-      } else {
-        selectionModalEvent.value = event
-      }
-    } catch (error) {
-      console.warn('Erreur lors du rafraîchissement de l\'événement:', error)
-      selectionModalEvent.value = event
-    }
-  } else {
-    selectionModalEvent.value = event
-  }
-  
-  showSelectionModal.value = true
-  try {
-    const params = new URLSearchParams(window.location.search)
-    params.set('modal', 'selection')
-    params.set('event', event?.id || '')
-    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
-  } catch {}
- }
-
 function closeSelectionModal() {
-  showSelectionModal.value = false
-  selectionModalEvent.value = null
+  // No-op: composition is now inline in the event-details tab; kept for backward compatibility / URL cleanup
   try {
     const params = new URLSearchParams(window.location.search)
     if (params.get('modal') === 'selection') {
@@ -10728,11 +10603,32 @@ function handleEventClickFromTimeline(event, fromAllPlayersFilter = false) {
   showEventDetails(event, false, true, fromAllPlayersFilter)
 }
 
-// Fonction pour afficher la modale de composition depuis TimelineView
+// Passer à l’onglet Composition dans le détail événement (boutons du footer)
+function switchToCompositionTab() {
+  eventDetailsActiveTab.value = 'composition'
+  try {
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', 'compo')
+    if (params.get('modal') !== 'event_details') params.set('modal', 'event_details')
+    if (!params.has('event') && selectedEvent.value?.id) params.set('event', selectedEvent.value.id)
+    history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+  } catch {}
+}
+
+// Ouvre le détail événement avec l’onglet Composition (plus de popup de composition)
+async function openSelectionModal(event) {
+  if (event?.archived) {
+    showSuccessMessage.value = true
+    successMessage.value = 'Impossible d\'ouvrir la composition sur un événement inactif'
+    setTimeout(() => { showSuccessMessage.value = false }, 3000)
+    return
+  }
+  showEventDetails(event, false, true, false, 'composition')
+}
+
+// Fonction pour afficher la composition depuis TimelineView (ouvre le détail avec onglet Composition)
 function showCompositionModal(event, fromAllPlayersFilter = false) {
-  // Si on vient du filtre "Tous", passer cette info pour qu'elle soit prise en compte
   if (fromAllPlayersFilter) {
-    // Définir explicitement le filtre sur "Tous" avant d'ouvrir la modale
     selectedTeamPlayer.value = { id: 'all', name: 'Tous' }
   }
   openSelectionModal(event)
@@ -10851,10 +10747,11 @@ const availablePlayersForDropdown = computed(() => {
 // Désistement helpers supprimés
 
 async function handleSelectionFromModal() {
-  if (!selectionModalEvent.value) return
+  const event = selectedEvent.value
+  if (!event) return
   
-  const eventId = selectionModalEvent.value.id
-  const count = selectionModalEvent.value.playerCount || 6
+  const eventId = event.id
+  const count = event.playerCount || 6
   
   // Vérifier s'il y a des joueurs disponibles
   const availableCount = countAvailablePlayers(eventId)
@@ -10884,9 +10781,9 @@ async function handlePerfectFromModal() {
 }
 
 async function handleConfirmReselectFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Lancer directement la composition (le PIN a déjà été validé)
@@ -10898,9 +10795,9 @@ async function handleConfirmReselectFromModal() {
 }
 
 async function handleConfirmSelectionFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Confirmer la composition
@@ -10951,9 +10848,9 @@ async function handleConfirmSelectionFromModal() {
 }
 
 async function handleUnconfirmCastFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Demander le PIN code avant de déverrouiller la composition
@@ -10969,7 +10866,7 @@ async function handleUnconfirmCastFromModal() {
 async function handleResetSelectionFromModal() {
   // La logique de réinitialisation est maintenant dans SelectionModal
   // Cette fonction ne fait que gérer la mise à jour de l'interface parent
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
   // Recharger les données pour refléter les changements
   try {
@@ -10985,9 +10882,9 @@ async function handleResetSelectionFromModal() {
 }
 
 async function handleFillCastFromModal() {
-  if (!selectionModalEvent.value) return
+  if (!selectedEvent.value) return
   
-  const eventId = selectionModalEvent.value.id
+  const eventId = selectedEvent.value.id
   
   try {
     // Demander le PIN code avant de remplir la composition
@@ -11012,11 +10909,6 @@ async function handleUpdateCastFromModal() {
     // Recharger aussi les disponibilités pour s'assurer que l'affichage est à jour
     const newAvailability = await loadAvailabilityForAllPlayers()
     availability.value = newAvailability
-    
-    // Forcer la mise à jour de la modale en changeant sa clé
-    if (showSelectionModal.value) {
-      selectionModalKey.value++
-    }
   } catch (error) {
     console.error('Erreur lors du rechargement des compositions:', error)
   }
@@ -11125,7 +11017,7 @@ watch(events, (list) => {
     const t = list.find(e => e.id === eventId)
     if (!t) return
     if (modal === 'announce') openEventAnnounceModal(t, showAvailability)
-    if (modal === 'selection') openSelectionModal(t)
+    if (modal === 'selection') showEventDetails(t, false, true, false, 'composition')
     if (modal === 'event_details') {
       showEventDetails(t, showAvailability, false, false, tabParam, showConfirm)
     }
@@ -12035,9 +11927,9 @@ async function checkAndOpenConfirmationModal(eventId) {
   return true
 }
 
-// Handle slot click from composition modal (SelectionModal) – open confirmation popup
+// Handle slot click from composition modal (SelectionModal overlay or inline tab) – open confirmation popup
 async function handleSelectionModalSlotConfirmationClick(slotData) {
-  const event = selectionModalEvent.value
+  const event = selectionModalEvent.value || selectedEvent.value
   if (!event || !slotData?.playerName) return
 
   const eventId = event.id

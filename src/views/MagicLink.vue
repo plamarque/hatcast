@@ -511,7 +511,7 @@ onMounted(async () => {
 
       // Redirection vers la modal de composition pour voir l'état de l'équipe
       if (slug) {
-        setTimeout(() => router.push(`/season/${slug}?modal=selection&event=${eventId}`), 1200)
+        setTimeout(() => router.push(`/season/${slug}?modal=event_details&tab=compo&event=${eventId}`), 1200)
       } else {
         setTimeout(() => router.push('/seasons'), 1200)
       }
