@@ -87,7 +87,7 @@ Slices below describe desired behaviour to be implemented later. Implementation 
 
 - **Event-details tabs – Info as first tab**
   - The content currently shown in the collapsible "details" block (date, location, description, map, add-to-calendar, navigation links) becomes the content of the **first tab**, labeled **Infos**. The Infos tab presents this in **three stacked sections** (Description, Date, Lieu with map), same layout on mobile and desktop. Tabs are displayed as centered pill-style buttons (aligned with the main view switcher and Tous/Moi availability selector).
-  - The event-details view has **two or three tabs**, labeled in the UI: (1) **Infos** (first), (2) **Dispos**, (3) **Équipe** (shown only when a composition exists for the event). URL and code still use `tab=info`, `tab=team`, `tab=compo`.
+  - The event-details view has **three tabs**, labeled in the UI: (1) **Infos** (first), (2) **Dispos**, (3) **Équipe**. The Équipe tab is always visible for logged-in users; when there is no draw yet it shows an empty state (e.g. “Aucun tirage pour le moment”). URL and code use `tab=info`, `tab=team`, `tab=compo`.
   - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Infos)** is displayed.
   - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Infos, Dispos, or Équipe.
   - No other change to existing behaviour (availability popup, composition display, permissions) is specified by this slice.

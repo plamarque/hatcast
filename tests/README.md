@@ -218,7 +218,7 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **PWA** - Installation, offline, cache, responsive
 - ✅ **Emails** - Interception et extraction de liens
 - ✅ **Protection des joueurs** - 3 cas de figure, icônes, modals, flux complet
-- ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement)
+- ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, onglet Équipe toujours visible (état vide si pas de tirage), tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement)
 
 ## 🔧 Configuration
 

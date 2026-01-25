@@ -750,7 +750,6 @@
                 <span>Dispos</span>
               </button>
               <button
-                v-if="hasCompositionForSelectedEvent"
                 @click="setEventDetailsTab('composition')"
                 :class="[
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors',
@@ -845,57 +844,71 @@
             </div>
 
             <!-- Onglet Composition (lecture seule) -->
-            <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">
-              <!-- Message si composition non validée pour utilisateurs normaux -->
-              <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditSelectedEvent" class="text-center py-8">
-                <div class="text-gray-400 text-lg mb-2">⏳</div>
+            <div v-if="eventDetailsActiveTab === 'composition'">
+              <!-- État vide : aucun tirage pour le moment -->
+              <div v-if="!hasCompositionForSelectedEvent" class="text-center py-8">
+                <div class="text-gray-400 text-lg mb-2">🎭</div>
                 <div class="text-gray-300 text-sm">
-                  La composition n'est pas encore validée par l'organisateur
+                  Aucun tirage pour le moment
                 </div>
                 <div class="text-gray-500 text-xs mt-1">
-                  Elle sera visible ici une fois validée
+                  La composition s'affichera ici une fois le tirage effectué
                 </div>
-              </div>
-              
-              <!-- Slots de composition (pour admins ou si validée) -->
-              <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                <template v-for="slot in compositionSlots" :key="slot.key">
-                  <CompositionSlot
-                    :player-id="slot.playerId"
-                    :player-name="slot.playerName"
-                    :player-gender="slot.playerGender"
-                    :role-key="slot.roleKey"
-                    :role-label="slot.roleLabel"
-                    :role-emoji="slot.roleEmoji"
-                    :selection-status="slot.selectionStatus"
-                    :available="slot.available"
-                    :unavailable="slot.unavailable"
-                    :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
-                    :season-id="seasonId"
-                    @slot-click="() => handleCompositionSlotClick(slot)"
-                  />
-                </template>
               </div>
 
-              <!-- Bandeaux informatifs (lecture seule) -->
-              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && !isSelectionConfirmed(selectedEvent?.id) && !hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <div class="flex items-center gap-2 text-blue-200 text-sm">
-                  <span>⏳</span>
-                  <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
+              <!-- Contenu quand une composition existe -->
+              <template v-else>
+                <!-- Message si composition non validée pour utilisateurs normaux -->
+                <div v-if="!isSelectionConfirmedByOrganizer(selectedEvent?.id) && !canEditSelectedEvent" class="text-center py-8">
+                  <div class="text-gray-400 text-lg mb-2">⏳</div>
+                  <div class="text-gray-300 text-sm">
+                    La composition n'est pas encore validée par l'organisateur
+                  </div>
+                  <div class="text-gray-500 text-xs mt-1">
+                    Elle sera visible ici une fois validée
+                  </div>
                 </div>
-              </div>
-              <div v-if="isSelectionConfirmed(selectedEvent?.id)" class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <div class="flex items-center gap-2 text-green-200 text-sm">
-                  <span>✅</span>
-                  <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
+
+                <!-- Slots de composition (pour admins ou si validée) -->
+                <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <template v-for="slot in compositionSlots" :key="slot.key">
+                    <CompositionSlot
+                      :player-id="slot.playerId"
+                      :player-name="slot.playerName"
+                      :player-gender="slot.playerGender"
+                      :role-key="slot.roleKey"
+                      :role-label="slot.roleLabel"
+                      :role-emoji="slot.roleEmoji"
+                      :selection-status="slot.selectionStatus"
+                      :available="slot.available"
+                      :unavailable="slot.unavailable"
+                      :is-selection-confirmed-by-organizer="isSelectionConfirmedByOrganizer(selectedEvent?.id)"
+                      :season-id="seasonId"
+                      @slot-click="() => handleCompositionSlotClick(slot)"
+                    />
+                  </template>
                 </div>
-              </div>
-              <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition && hasEmptySlotsInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                <div class="flex items-center gap-2 text-orange-200 text-sm">
-                  <span>⚠️</span>
-                  <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
+
+                <!-- Bandeaux informatifs (lecture seule) -->
+                <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && !isSelectionConfirmed(selectedEvent?.id) && !hasDeclinedPlayersInComposition" class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <div class="flex items-center gap-2 text-blue-200 text-sm">
+                    <span>⏳</span>
+                    <span><strong>Composition verrouillée :</strong> Les personnes ci-dessus doivent confirmer leur participation. La composition sera définitive lorsque tout le monde aura confirmé.</span>
+                  </div>
                 </div>
-              </div>
+                <div v-if="isSelectionConfirmed(selectedEvent?.id)" class="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <div class="flex items-center gap-2 text-green-200 text-sm">
+                    <span>✅</span>
+                    <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
+                  </div>
+                </div>
+                <div v-if="isSelectionConfirmedByOrganizer(selectedEvent?.id) && hasDeclinedPlayersInComposition && hasEmptySlotsInComposition" class="mt-4 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                  <div class="flex items-center gap-2 text-orange-200 text-sm">
+                    <span>⚠️</span>
+                    <span><strong>Équipe incomplète :</strong> Certaines personnes ont décliné leur participation. Ajustements requis par l'organisateur.</span>
+                  </div>
+                </div>
+              </template>
             </div>
             
             <!-- Onglet Disponibilités -->
@@ -8893,16 +8906,6 @@ async function showEventDetails(event, showAvailability = false, updateUrl = tru
     casts.value = newSelections
   } catch (e) {
     console.warn('Impossible de rafraîchir les données avant ouverture des détails:', e)
-  }
-
-  // Si on avait demandé l'onglet Composition mais qu'il n'y a pas de tirage, afficher Info
-  if (eventDetailsActiveTab.value === 'composition' && !hasCompositionForSelectedEvent.value) {
-    eventDetailsActiveTab.value = 'info'
-    if (updateUrl) {
-      const params = new URLSearchParams(router.currentRoute.value.query)
-      params.set('tab', 'info')
-      router.replace({ path: router.currentRoute.value.path, query: Object.fromEntries(params) })
-    }
   }
 
   // S'assurer que la modale s'ouvre après que les données soient assignées
