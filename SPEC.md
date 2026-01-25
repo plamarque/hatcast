@@ -106,6 +106,11 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Permissions:** An **administrator** (e.g. can edit the event) can open the confirmation popup for any slot (to confirm, decline, or set to pending for any player). The **concerned player** can open it only for **their own** slot (to confirm or decline their own participation). Other users do not open the popup (or see an error if they try).
   - Behaviour and UI of the confirmation popup are unchanged (confirm / decline / pending); only the entry point (slot click in the modal) is added.
 
+- **Event-details Équipe tab – compact layout on mobile**
+  - In the event-details **Équipe** (Composition) tab, the list of composition slots is displayed in a **more compact layout on mobile**: **two slots per line** instead of one slot per line.
+  - Behaviour and information shown for each slot are unchanged (avatar, player name, role, status, click for confirmation, etc.). Only the grid/layout is adjusted so that on small viewports (mobile), two slots sit side by side per row, similar to the Dispos tab.
+  - Reference: the Dispos tab already uses this pattern in `EventRoleGroupingView` (e.g. `grid-cols-2` at base); the Composition slots grid in GridBoard currently uses `grid-cols-1` for the smallest breakpoint.
+
 ---
 
 ## Event details as full screen (specification)

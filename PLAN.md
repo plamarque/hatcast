@@ -145,6 +145,14 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 
 ---
 
+### Slice 11: Event-details Équipe tab – compact mobile layout
+
+- [x] In [GridBoard.vue](src/components/GridBoard.vue), change the composition slots grid from `grid-cols-1` to `grid-cols-2` at the smallest breakpoint (mobile) so that **two slots per line** are shown on small viewports, matching the Dispos tab pattern in `EventRoleGroupingView.vue`. Keep `sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4` (or adjust for consistency). No change to `CompositionSlot` content or behaviour.
+
+**DoD:** On mobile viewports, the Équipe tab shows two composition slots per row; all existing information and interactions (click, confirm/decline, status) remain; build succeeds; existing tests pass.
+
+---
+
 ## Definition of Done / quality gates (per slice)
 
 - **Doc-only slices:** No production code or config change; only markdown and links. Lint/format markdown if the project has a markdown rule.

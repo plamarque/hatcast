@@ -858,7 +858,7 @@
               </div>
               
               <!-- Slots de composition (pour admins ou si validée) -->
-              <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div v-else-if="canEditSelectedEvent || isSelectionConfirmedByOrganizer(selectedEvent?.id)" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 <template v-for="slot in compositionSlots" :key="slot.key">
                   <CompositionSlot
                     :player-id="slot.playerId"
