@@ -18,6 +18,7 @@ Treat these as authoritative. When they conflict with code, flag the conflict; d
 | **ARCH.md** | Architecture as-is; topology; data flows; config; testing. |
 | **PLAN.md** | Slices, tasks, order, status. Only place for "when / in which order." |
 | **docs/adr/** | Recorded decisions. Refer to ADRs for "why" and alternatives. |
+| **docs/technical/COMMIT_MESSAGE_GUIDELINES.md** | Commit message format (Conventional Commits). Mandatory when creating or suggesting commits. |
 
 Code and config are the **runtime** source of truth. The docs above describe intent and constraints; when code clearly diverges, report it rather than changing behavior without explicit approval.
 
@@ -62,3 +63,14 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 - **Destructive operations:** Deleting users, seasons, or audit data is sensitive. Prefer soft-delete or archival unless requirements explicitly say otherwise. Document any new destructive script in PLAN or an ADR.
 - **Secrets:** Never commit secrets. Config comes from `.env` (local, gitignored) or CI secrets (e.g. `FIREBASE_*`). `.env.example` may list variable names only, no values. Do not add new secrets to the repo; use env or a secret manager and document in ARCH / DEVELOPMENT.
 - **Tests:** Do not disable or skip tests to make a change pass. Fix the test or the behavior. Playwright and custom test runners are described in ARCH and DEVELOPMENT.
+
+---
+
+## Commit messages
+
+When an agent creates or suggests a commit, it **must** follow the [Commit Message Guidelines](docs/technical/COMMIT_MESSAGE_GUIDELINES.md).
+
+- **Format:** Conventional Commits, in **English**. Subject line: `type(scope): Description` — e.g. `feat(auth): Add password reset`, `docs: Update DEVELOPMENT.md`.
+- **Types:** Use one of the allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`, `ci`, `ops`, `build`, `style`, `revert`.
+- **Subject line:** Imperative mood, 50 characters max, no period at the end. First letter capitalized.
+- For scopes, body, footer, and examples, see [docs/technical/COMMIT_MESSAGE_GUIDELINES.md](docs/technical/COMMIT_MESSAGE_GUIDELINES.md).

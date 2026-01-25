@@ -102,6 +102,12 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 ---
 
+## Commits
+
+Commit messages must follow the [Commit Message Guidelines](docs/technical/COMMIT_MESSAGE_GUIDELINES.md) (Conventional Commits, in English). Example: `git commit -m "docs: Document release command in DEVELOPMENT.md"` or `feat(auth): Add password reset flow`.
+
+---
+
 ## Lint / format
 
 - No shared lint/format script was observed in package.json. Use editor/IDE defaults or add eslint/prettier and wire scripts in a later slice (see PLAN.md). Do not disable or skip tests to satisfy a linter.
