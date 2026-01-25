@@ -86,6 +86,22 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 ---
 
+## Release / version
+
+- **Commande (depuis la racine du repo) :**  
+  `./scripts/release-version.sh [--dry-run] [--major|--minor|--patch]`  
+  Script principal pour créer une nouvelle version (bump de `package.json`, mise à jour des changelogs, tag Git, etc.). Détails dans [scripts/release-version.sh](scripts/release-version.sh).
+
+- **Options :**
+  - `--patch` : 0.43.1 → 0.43.2
+  - `--minor` : 0.43.1 → 0.44.0
+  - `--major` : 0.43.1 → 1.0.0
+  - `--dry-run` : simulation sans modification des fichiers ni création de tag
+
+- **Changelog :** [scripts/generate-changelog.js](scripts/generate-changelog.js) peut être utilisé pour générer le changelog ; voir [scripts/README.md](scripts/README.md) pour la gestion des versions.
+
+---
+
 ## Lint / format
 
 - No shared lint/format script was observed in package.json. Use editor/IDE defaults or add eslint/prettier and wire scripts in a later slice (see PLAN.md). Do not disable or skip tests to satisfy a linter.
