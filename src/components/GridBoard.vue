@@ -599,7 +599,7 @@
   </div>
   <!-- Popin de détails de l'événement -->
   <div v-if="showEventDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center z-[1360] p-0 sm:p-2 md:p-4" @click="closeEventDetailsAndUpdateUrl">
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-[calc(100vw-2rem)] sm:max-w-lg md:max-w-6xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-4rem)] md:max-h-[92vh] flex flex-col mb-4 md:mb-0" @click.stop>
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-[100vw] sm:max-w-lg md:max-w-6xl h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] sm:h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-4rem)] md:max-h-[92vh] flex flex-col mb-0 sm:mb-4 md:mb-0" @click.stop>
       <!-- Header -->
       <div class="relative p-1 sm:p-2 md:p-3 pb-1 sm:pb-2">
         <button @click="closeEventDetailsAndUpdateUrl" title="Fermer" class="absolute right-2 top-2 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 z-10">✖️</button>
@@ -1004,8 +1004,8 @@
         </div>
       </div>
       
-      <!-- Content scrollable -->
-      <div class="px-2 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
+      <!-- Content scrollable (margins minimisées sur mobile pour maximiser la place, ex. iPhone SE) -->
+      <div class="px-1 sm:px-4 md:px-6 py-1 sm:py-2 md:py-3 space-y-2 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
         <div v-if="currentUser" class="bg-gray-800/50 rounded-lg border border-white/10 mt-0">
           <!-- Onglets -->
           <div class="flex border-b border-white/10">
@@ -1040,8 +1040,8 @@
             </button>
           </div>
           
-          <!-- Contenu des onglets -->
-          <div class="p-2 sm:p-3">
+          <!-- Contenu des onglets (padding réduit sur mobile) -->
+          <div class="p-1 sm:p-2 md:p-3">
 
             <!-- Onglet Composition (lecture seule) -->
             <div v-if="eventDetailsActiveTab === 'composition' && hasCompositionForSelectedEvent">

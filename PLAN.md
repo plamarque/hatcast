@@ -72,6 +72,17 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 
 ---
 
+### Slice 5: Event-details Availability tab – row click to open availability popup
+
+- [x] In `EventRoleGroupingView.vue`, remove the `AvailabilityCell` from both layouts (all players and by role).
+- [x] Make the whole player row/card open the availability modal (reuse existing `openAvailabilityModal`); build the same payload as the cell would emit for `show-availability-modal`.
+- [x] In the by-role layout, ensure the two percentage elements use `@click.stop` so they open the chance-detail popup(s) only and do not trigger the row’s availability open.
+- [x] Respect disabled state when event is archived; protected players keep existing permission checks when the modal is opened.
+
+**DoD:** SPEC behaviour satisfied (Availability tab has no availability cell; row click opens availability popup; percentage clicks open chance popup only); existing tests pass.
+
+---
+
 ## Definition of Done / quality gates (per slice)
 
 - **Doc-only slices:** No production code or config change; only markdown and links. Lint/format markdown if the project has a markdown rule.

@@ -50,6 +50,7 @@ HatCast is a web application for organising improvisation shows: managing **seas
 **Must have (in use today):**
 
 - Seasons, events, players; availability per player/event; weighted draw; casts and cast status (pending/confirmed/declined).
+- **Event-details Availability tab (Disponibilités):** When the list of players is shown (all players or grouped by role), the availability status cell is not displayed. The availability-choices popup is opened by clicking the player row (name, avatar, or the full highlighted box). Clicking the chance-percentage numbers (in the by-role view) opens the chance-detail popup(s) only, not the availability popup.
 - Auth (email/password, magic link, Google); password reset; season join and accept invitation; player claim.
 - Season admin (CRUD season, events, players; run draw; invitations); access control via admins + Super Admin.
 - Firestore persistence with current security rules; multi-database support for environments.
