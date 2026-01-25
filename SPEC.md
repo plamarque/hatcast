@@ -111,6 +111,19 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - Behaviour and information shown for each slot are unchanged (avatar, player name, role, status, click for confirmation, etc.). Only the grid/layout is adjusted so that on small viewports (mobile), two slots sit side by side per row, similar to the Dispos tab.
   - Reference: the Dispos tab already uses this pattern in `EventRoleGroupingView` (e.g. `grid-cols-2` at base); the Composition slots grid in GridBoard currently uses `grid-cols-1` for the smallest breakpoint.
 
+- **Composition history statistics – selected vs available (Play, Decorum, Volunteer)**
+  - In the **composition history view** (CastsView: table of players × events with optional stats columns), the **Play (Jeu)**, **Decorum**, and **Volunteer** stats columns today show only the **number of times** the player was selected in each category.
+  - **Evolution:** Each of these columns will also show the **number of times the player was available** for that category, in the form **selected/available** (e.g. `2/7`). Example: "2/7" = selected twice out of 7 times they were available for play.
+  - **Optional:** When space allows, display below the fraction a **rounded percentage** (e.g. ~29%) so users can compare how often expectations (game, decorum, or volunteer) were met relative to availability.
+  - **Denominator (available):** For each category, "available" is the number of (non-archived) events where the player had indicated availability for that category: for **Play**, availability for role `player`; for **Decorum**, availability for at least one of mc, dj, referee, assistant_referee, coach; for **Volunteer**, availability for role `volunteer`. Event scope (e.g. only events with a confirmed cast, or all non-archived) must align with the current selection-count scope when implemented.
+  - **Code reference:** Stats table and `calculatePlayerRoleStats` → [src/components/CastsView.vue](src/components/CastsView.vue). Availability and roles → [src/services/playerAvailabilityService.js](src/services/playerAvailabilityService.js).
+
+- **Composition history – availability cells with role emojis (upcoming events)**
+  - In the **composition history view** (CastsView), the **availability cells** for **upcoming events** ("Spectacle à venir") currently show dispos in a **purely textual** summary: e.g. "Dispo pour : Bénévole (34%), Assistant.e (11%), Régisseur.euse (33%)" (role labels and percentages).
+  - **Evolution:** Use a **mix of text and emojis**. For each role, display the **emoji** that corresponds to that role (e.g. 🎭 for player, 🤝 for volunteer, 🎤 for MC, 🎧 for DJ, etc.) instead of the full role label in text; keep the **percentages** (chances). The result is more **compact**, **easier to read**, and **visually recognizable** while still showing availability roles and percentages.
+  - Exact format (e.g. "Dispo pour : 🤝 34% 💁 11% 🎬 33%" or emoji + short label where space allows) and accessibility (tooltip with role names) to be defined at implementation time; the intent is a more visual and compact display than the current all-text line.
+  - **Code reference:** Availability cell content for roles and chances → [src/components/SelectionCell.vue](src/components/SelectionCell.vue) (block "Dispo pour :" with `rolesAndChances`). Role → emoji mapping → [src/services/storage.js](src/services/storage.js) (`ROLE_EMOJIS`).
+
 ---
 
 ## Event details as full screen (specification)

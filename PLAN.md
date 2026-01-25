@@ -153,6 +153,22 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 
 ---
 
+### Slice 12: Composition history stats – selected/available and optional %
+
+- **Spec:** SPEC.md, slice « Composition history statistics – selected vs available (Play, Decorum, Volunteer) ».
+- **Summary:** In CastsView stats columns (Play, Decorum, Volunteer), display selected/available (e.g. 2/7) and optionally a rounded percentage below. Enables comparison of how often players were selected vs how often they were available.
+- No development plan yet; to be scheduled later.
+
+---
+
+### Slice 13: Composition history – availability cells with role emojis
+
+- **Spec:** SPEC.md, slice « Composition history – availability cells with role emojis (upcoming events) ».
+- **Summary:** In CastsView availability cells for upcoming events, show roles with emojis + percentages instead of full textual labels, for a more visual and compact display.
+- No development plan yet; to be scheduled later.
+
+---
+
 ## Definition of Done / quality gates (per slice)
 
 - **Doc-only slices:** No production code or config change; only markdown and links. Lint/format markdown if the project has a markdown rule.
