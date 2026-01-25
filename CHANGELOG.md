@@ -2,6 +2,8 @@
 
 ### 📝 Other Changes
 
+- feat(composition): Slot click in composition modal opens participation confirmation (Slice 7)
+- fix(ui): Confirmation modal z-index above composition modal so it appears on top
 - fix(composition): Preserve player statuses on unlock (BUG-001)
 - docs: Plan next developments and add formal issue tracking
 - docs: Align notification docs with availability tab row-click UX

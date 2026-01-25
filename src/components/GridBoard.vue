@@ -1405,7 +1405,8 @@
     @reset-selection="handleResetSelectionFromModal"
     @confirm-reselect="handleConfirmReselectFromModal"
     @fill-cast="handleFillCastFromModal"
-        />
+    @slot-confirmation-click="handleSelectionModalSlotConfirmationClick"
+  />
 
   <!-- Modal d'annonce d'événement -->
   <EventAnnounceModal
@@ -12029,6 +12030,42 @@ async function checkAndOpenConfirmationModal(eventId) {
   // Ouvrir la modale de confirmation pour l'utilisateur
   await handleCompositionSlotClick(userSlot)
   return true
+}
+
+// Handle slot click from composition modal (SelectionModal) – open confirmation popup
+async function handleSelectionModalSlotConfirmationClick(slotData) {
+  const event = selectionModalEvent.value
+  if (!event || !slotData?.playerName) return
+
+  const eventId = event.id
+  const playerName = slotData.playerName
+  const playerId = slotData.playerId
+
+  const canModify = await canModifyConfirmationStatus(playerName, playerId, eventId)
+
+  if (!canModify) {
+    showErrorMessage.value = true
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 5000)
+    return
+  }
+
+  const availabilityData = getAvailabilityData(playerName, eventId)
+  const data = {
+    playerName,
+    playerId,
+    playerGender: slotData.playerGender || 'non-specified',
+    eventId,
+    eventTitle: event.title,
+    eventDate: event.date,
+    assignedRole: slotData.roleKey,
+    availabilityComment: availabilityData?.comment || null,
+    currentStatus: slotData.selectionStatus,
+    seasonId: seasonId.value
+  }
+  openConfirmationModal(data)
 }
 
 // Handle composition slot click from composition tab

@@ -115,7 +115,15 @@
             >
               <!-- Slot rempli -->
               <div v-if="slot.player" class="flex items-center justify-between gap-2">
-                <div class="flex-1 flex items-center gap-2 min-w-0" :title="getPlayerSlotTooltip(slot.player)">
+                <div
+                  class="flex-1 flex items-center gap-2 min-w-0 cursor-pointer"
+                  :title="getPlayerSlotTooltip(slot.player)"
+                  role="button"
+                  tabindex="0"
+                  @click="onFilledSlotClick(slot)"
+                  @keydown.enter.prevent="onFilledSlotClick(slot)"
+                  @keydown.space.prevent="onFilledSlotClick(slot)"
+                >
                   <!-- Avatar du joueur -->
                   <div class="flex-shrink-0">
                     <PlayerAvatar 
@@ -137,7 +145,7 @@
                 </div>
                 <button
                   v-if="canManageCompositionValue && (!isSelectionConfirmedByOrganizer || isPlayerDeclined(slot.player))"
-                  @click="clearSlot(slot.index)"
+                  @click.stop="clearSlot(slot.index)"
                   class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
                   title="Retirer cette personne"
                 >
@@ -642,7 +650,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'fill-cast'])
+const emit = defineEmits(['close', 'selection', 'perfect', 'send-notifications', 'updateCast', 'confirm-selection', 'unconfirm-selection', 'reset-selection', 'confirm-reselect', 'fill-cast', 'slot-confirmation-click'])
 
 // Variable réactive pour stocker les permissions de composition
 const canManageCompositionValue = ref(false)
@@ -1505,6 +1513,19 @@ function getPlayerSlotTooltip(playerName) {
       return `${playerName} - disponibilité non indiquée`
     }
   }
+}
+
+function onFilledSlotClick(slot) {
+  if (!slot?.player) return
+  emit('slot-confirmation-click', {
+    playerName: slot.player,
+    playerId: slot.playerId,
+    roleKey: slot.role,
+    roleLabel: slot.roleLabel,
+    roleEmoji: slot.roleEmoji,
+    playerGender: getPlayerGenderFromName(slot.player),
+    selectionStatus: getPlayerSelectionStatus(slot.player)
+  })
 }
 
 const selectionMessage = computed(() => {
