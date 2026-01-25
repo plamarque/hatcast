@@ -1,12 +1,17 @@
-## [0.43.1] - 2026-01-07
+## [0.44.0] - 2026-01-25
 
-### 🐛 Bug Fixes
+### 📝 Other Changes
 
-- fix: preserve player availability roles when confirming or declining selection
+- docs: link commit guidelines to AGENTS and DEVELOPMENT
+- docs: documenter la commande de release dans DEVELOPMENT.md
+- hint for cursor to run dev server
+- Grand ménage + doc normative et slices
+- tri des dispos par %
 
 
 # Changelog
 
+## [0.44.0] - 2026-01-25
 ## [0.43.1] - 2026-01-07
 ## [0.43.0] - 2025-12-10
 ## [0.42.5] - 2025-12-09
