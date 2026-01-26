@@ -25,6 +25,12 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 ---
 
+## Assets
+
+- **Static images:** Put them in `public/img/` and reference them as `/img/filename` (e.g. `/img/slide-1.jpg`). Full convention in [ARCH.md](ARCH.md) (Static assets).
+
+---
+
 ## Run locally
 
 - **Dev server (default):**  

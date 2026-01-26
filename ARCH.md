@@ -66,6 +66,15 @@ No separate API server; backend is Firebase (Firestore + Auth + Functions).
 
 ---
 
+## Static assets (public)
+
+- **Location:** Static images and files that must be served as-is (no Vite bundling) go under **`public/img/`**.
+- **Reference in code:** Use the **`/img/`** URL prefix (no `public` in the path). Example: `src="/img/slide-1.jpg"`.
+- **Rationale:** Vite and Firebase Hosting serve `public/` at the site root; these files are not hashed or processed at build time.
+- **Existing assets:** `public/icons/` and `public/logos/` remain unchanged; new product/images (e.g. explanation slides) use `public/img/` for a single place for generic images.
+
+---
+
 ## Testing strategy (as-is + minimal improvements)
 
 - **E2E (Playwright):** Default test runner. Config: `playwright.config.js`; baseURL from env or `playwright.config.local.js`. Runs full app against a URL (dev server started by Playwright or existing server with `SKIP_WEBSERVER=1`). Specs in `tests/*.spec.js` (e.g. basic, auth, player-protection, pwa, audit-config). Global setup/teardown in `tests/global-setup.js`, `global-teardown.js`.

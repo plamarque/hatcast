@@ -18,6 +18,11 @@
         </div>
 
         <div class="space-y-3">
+          <p class="text-gray-300">Pour illustrer le principe en 5 étapes, voici un exemple avec 5 personnes disponibles et 2 places à pourvoir.</p>
+          <ChanceExplanationSlides :explanation-data="exampleExplanationData" />
+        </div>
+
+        <div class="space-y-3">
           <h3 class="text-white font-semibold">Détails du tirage multi-rôles</h3>
           <ol class="list-decimal list-inside space-y-2 text-gray-300">
             <li><span class="text-white">Qui participe ?</span> Toutes les personnes marquées « ✅ Disponible » pour l'événement et le rôle concerné.</li>
@@ -79,11 +84,19 @@
 </template>
 
 <script setup>
-const props = defineProps({
+import ChanceExplanationSlides from './ChanceExplanationSlides.vue'
+
+defineProps({
   show: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['close'])
+
+const exampleExplanationData = {
+  availableCount: 5,
+  requiredCount: 2,
+  theoreticalSimpleChance: 40
+}
 </script>
 
 
