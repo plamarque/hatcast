@@ -61,14 +61,16 @@
       
       <!-- Section centre : titre (saison ou événement). min-w-0 pour permettre la troncature et ne pas pousser les icônes droite hors viewport -->
       <div class="flex-1 min-w-0 overflow-hidden text-center px-4">
-        <!-- Mode événement : titre de l'événement -->
-        <h1 
-          v-if="isEventScreen"
-          class="text-lg sm:text-xl md:text-3xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent truncate block"
-          :title="eventTitle || 'Détail événement'"
-        >
-          {{ eventTitle || 'Détail événement' }}
-        </h1>
+        <!-- Mode événement : titre de l'événement + date en repère visuel -->
+        <template v-if="isEventScreen">
+          <h1 
+            class="text-lg sm:text-xl md:text-3xl font-bold text-white mb-0 bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent truncate block"
+            :title="eventTitle || 'Détail événement'"
+          >
+            {{ eventTitle || 'Détail événement' }}
+          </h1>
+          <p v-if="eventDate" class="text-gray-300 text-sm mt-1 truncate">{{ eventDateFormatted }}</p>
+        </template>
         <!-- Titre de la saison - cliquable pour rafraîchir -->
         <h1 
           v-else
@@ -180,6 +182,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { getFirebaseAuth } from '../services/firebase.js'
+import { formatDateFull } from '../utils/dateUtils.js'
 import AccountDropdown from './AccountDropdown.vue'
 import permissionService from '../services/permissionService.js'
 import configService from '../services/configService.js'
@@ -198,6 +201,7 @@ const props = defineProps({
   isCompositionView: { type: Boolean, default: false },
   isEventScreen: { type: Boolean, default: false },
   eventTitle: { type: String, default: '' },
+  eventDate: { type: String, default: '' },
   eventIcon: { type: String, default: '' }
 })
 
@@ -210,6 +214,11 @@ const emit = defineEmits(['go-back', 'open-account-menu', 'open-help', 'open-pre
 const isSuperAdmin = ref(false)
 const canManageRoles = ref(false)
 const isCheckingRoles = ref(false)
+
+// Date de l'événement formatée (mode événement)
+const eventDateFormatted = computed(() => {
+  return props.eventDate ? formatDateFull(props.eventDate) : ''
+})
 
 // Détecter l'environnement de développement
 const isDevelopment = computed(() => {

@@ -48,3 +48,20 @@ export function formatListDate(dateString) {
     month: 'short'
   })
 }
+
+/**
+ * Formate une date en français (format long, ex. "samedi 20 septembre 2025")
+ * @param {string|Date} dateValue - Date au format ISO string ou objet Date
+ * @returns {string} Date formatée
+ */
+export function formatDateFull(dateValue) {
+  if (!dateValue) return ''
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
