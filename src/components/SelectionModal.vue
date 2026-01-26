@@ -75,10 +75,10 @@
             <div class="flex items-center gap-3">
               <div class="text-2xl">🤖</div>
               <div class="flex-1">
-                <h4 class="text-blue-200 font-semibold text-sm mb-1">Composition automatique en cours</h4>
+                <h4 class="text-blue-200 font-semibold text-sm mb-1">Sélection en cours</h4>
                 <p class="text-blue-300 text-xs leading-relaxed">
-                  Cette composition sera <strong>sauvegardée</strong> et remplacera la sélection actuelle.
-                  L'animation montre le processus de tirage équitable.
+                  Nous tirons au sort parmi les candidats disponibles. Vous pouvez visualiser l'animation en cours.
+                  Cette sélection n'est qu'une proposition que vous pourrez ajuster librement.
                 </p>
               </div>
             </div>
@@ -267,6 +267,14 @@
                   <div v-else class="w-6 h-6"></div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Message de succès après tirage (juste sous les slots, au-dessus du texte En préparation) -->
+          <div v-if="showSuccessMessage" class="my-3">
+            <div class="flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
+              <span class="text-blue-400 text-lg">✨</span>
+              <p class="text-blue-300 text-sm font-medium">{{ successMessageText }}</p>
             </div>
           </div>
           
@@ -460,25 +468,6 @@
         </div>
 
 
-
-        <!-- 6) Message de succès après composition -->
-        <div v-if="showSuccessMessage" class="mb-3">
-          <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-            <div class="text-blue-400 text-xl">✨</div>
-            <div class="flex-1">
-              <p class="text-blue-300 text-sm font-medium">{{ successMessageText }}</p>
-            </div>
-            <button 
-              @click="hideSuccessMessage"
-              class="text-blue-400 hover:text-blue-300 transition-colors"
-              title="Fermer le message"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
 
         <!-- 7) Message d'erreur -->
         <div v-if="showErrorMessage" class="mb-3">
@@ -2768,10 +2757,13 @@ async function persistDrawResults() {
     // Ne pas fermer la modale automatiquement - laisser l'utilisateur voir le résultat
     // emit('close')
     
-    // Afficher un message de succès
+    // Afficher un message de succès (masqué automatiquement après 1,5 s)
     showSuccessMessage.value = true
-    successMessageText.value = 'Composition automatique terminée !'
-    
+    successMessageText.value = 'Tirage au sort terminé !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 1500)
+
   } catch (error) {
     console.error('❌ Erreur lors de la persistance des résultats du tirage:', error)
     
@@ -2799,9 +2791,13 @@ function drawNextSlot() {
   })))
   
   if (emptySlots.length === 0) {
+    const wasAutoComposition = isAutoComposition.value
     simulationComplete.value = true
     isSimulating.value = false
     isAutoComposition.value = false
+    if (wasAutoComposition) {
+      showDrawVisualization.value = false
+    }
     return
   }
   
