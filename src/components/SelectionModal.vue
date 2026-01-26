@@ -339,10 +339,12 @@
                 Comment ça marche <span>❓</span>
               </button>
             </div>
-            <!-- Avec sélection : Tirage au-dessus, puis grille 2x2 (Simuler/Partager, Valider/Effacer) -->
+            <!-- Avec sélection : ligne 1 = Tirer au sort + Simuler ; ligne 2 = Partager, Valider, Effacer -->
             <template v-else-if="hasSelection">
-              <div v-if="canManageCompositionValue" class="flex justify-center items-center gap-3 mb-3">
+              <!-- Ligne 1 : Tirer au sort, Simuler (ou Arrêter), Comment ça marche ? -->
+              <div class="flex flex-wrap justify-center items-center gap-3 mb-3">
                 <button
+                  v-if="canManageCompositionValue"
                   @click="handleSelection"
                   :disabled="availableCount === 0"
                   class="composition-action-btn h-12 min-w-[10rem] px-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
@@ -351,18 +353,12 @@
                   <span>✨</span>
                   <span>Tirer au sort</span>
                 </button>
-                <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 text-xs inline-flex items-center gap-1 shrink-0" title="Comment fonctionne la composition automatique ?">
-                  Comment ça marche <span>❓</span>
-                </button>
-              </div>
-              <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                <!-- Ligne 1 : Simuler, Partager -->
                 <div v-if="canManageCompositionValue" class="relative algorithm-dropdown-container">
                   <button
                     v-if="!isSimulating"
                     @click="toggleAlgorithmDropdown"
                     :disabled="availableCount === 0"
-                    class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
                   >
                     <span>🎲</span>
@@ -372,7 +368,7 @@
                   <button
                     v-else
                     @click="abortDraw()"
-                    class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5"
+                    class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5"
                     title="Arrêter le tirage"
                   >
                     <span>⏹️</span>
@@ -393,15 +389,15 @@
                     </div>
                   </div>
                 </div>
+                <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 text-xs inline-flex items-center gap-1 shrink-0" title="Comment fonctionne la composition automatique ?">
+                  Comment ça marche <span>❓</span>
+                </button>
+              </div>
+              <!-- Ligne 2 : Partager, Valider, Effacer -->
+              <div v-if="canManageCompositionValue" class="flex flex-wrap justify-center items-center gap-3">
                 <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
-                <button
-                  v-if="canManageCompositionValue"
                   @click="openDrawAnnounce"
-                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
+                  class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
                   title="Partager le tirage par WhatsApp à la PEDA"
                 >
                   <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -410,39 +406,21 @@
                   <span>Partager</span>
                 </button>
                 <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
-                <!-- Ligne 2 : Valider, Effacer -->
-                <button
-                  v-if="canManageCompositionValue"
                   @click="handleConfirmSelection"
-                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-1.5"
                   title="Valider la composition et demander confirmation aux personnes"
                 >
                   <span>✅</span>
                   <span>Valider</span>
                 </button>
                 <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
-                <button
-                  v-if="canManageCompositionValue"
                   @click="handleResetSelection"
-                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-1.5"
                   title="Supprimer complètement la composition"
                 >
                   <span>🗑️</span>
                   <span>Effacer</span>
                 </button>
-                <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
               </div>
             </template>
           </div>
