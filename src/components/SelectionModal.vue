@@ -296,7 +296,7 @@
                 class="composition-action-btn h-12 min-w-[10rem] flex-1 max-w-[12rem] px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 :title="availableCount === 0 ? 'Aucune personne disponible' : 'Compléter les emplacements vides'"
               >
-                <span>✨</span>
+                <span>🎲</span>
                 <span>Tirer au sort</span>
               </button>
               <div class="relative algorithm-dropdown-container min-w-[10rem] flex-1 max-w-[12rem]">
@@ -307,7 +307,7 @@
                   class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
                 >
-                  <span>🎲</span>
+                  <span>🫣</span>
                   <span>Simuler</span>
                   <span class="text-xs">▼</span>
                 </button>
@@ -350,7 +350,7 @@
                   class="composition-action-btn h-12 min-w-[10rem] px-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les emplacements vides')"
                 >
-                  <span>✨</span>
+                  <span>🎲</span>
                   <span>Tirer au sort</span>
                 </button>
                 <div v-if="canManageCompositionValue" class="relative algorithm-dropdown-container">
@@ -361,7 +361,7 @@
                     class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
                   >
-                    <span>🎲</span>
+                    <span>🫣</span>
                     <span>Simuler</span>
                     <span class="text-xs">▼</span>
                   </button>
@@ -487,7 +487,7 @@
             :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
           >
             <span class="flex items-center">
-              🎲 <span class="hidden sm:inline ml-1">Simuler</span><span class="sm:hidden ml-1">Simuler</span>
+              🫣 <span class="hidden sm:inline ml-1">Simuler</span><span class="sm:hidden ml-1">Simuler</span>
             </span>
             <span class="text-xs">▼</span>
           </button>
