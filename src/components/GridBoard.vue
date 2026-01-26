@@ -11699,7 +11699,7 @@ async function handleConfirmationConfirm(data) {
     if (!canModify) {
       console.error('❌ Tentative de confirmation non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11774,7 +11774,7 @@ async function handleConfirmationDecline(data) {
     if (!canModify) {
       console.error('❌ Tentative de déclin non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11847,7 +11847,7 @@ async function handleConfirmationPending(data) {
     if (!canModify) {
       console.error('❌ Tentative de mise en attente non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11985,7 +11985,7 @@ async function handleSelectionModalSlotConfirmationClick(slotData) {
 
   if (!canModify) {
     showErrorMessage.value = true
-    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.'
     setTimeout(() => {
       showErrorMessage.value = false
     }, 5000)
@@ -12023,7 +12023,7 @@ async function handleCompositionSlotClick(slot) {
   if (!canModify) {
     // Afficher un message d'erreur si l'utilisateur n'est pas autorisé
     showErrorMessage.value = true
-    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.'
     setTimeout(() => {
       showErrorMessage.value = false
     }, 5000)

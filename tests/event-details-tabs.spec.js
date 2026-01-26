@@ -5,16 +5,29 @@
  * Slice 9 – No composition popup; modal=selection opens event details with Composition tab; Équipe tab switches to tab=compo.
  * Permissions – Tirage and Simuler are gated by canManageCompositionValue; manual selection is admin-only.
  *
- * Flow: Go to /seasons (season list, title "Saisons") → click first season → season page (any view) →
- * switch to "Agenda" tab → click first event (.event-item) → app navigates to canonical event URL /season/:slug/event/:eventId (full screen).
- * If / is used, the app may redirect to the last visited season; using /seasons avoids that.
+ * Flow: If TEST_ADMIN_EMAIL/TEST_ADMIN_PASSWORD set → login as admin, then /seasons → first season → Agenda → first event.
+ * Otherwise same without login (tabs may be hidden, more skips). Tabs are only visible when the user is connected.
  *
- * Preconditions: at least one season and one event in the test environment.
- * If none, tests that need them are skipped. Tabs are only visible when the user is connected.
- *
- * Debug: set DEBUG_EVENT_DETAILS_TABS=1 to log each setup step (season card, Agenda, event-item, etc.).
+ * Debug: set DEBUG_EVENT_DETAILS_TABS=1 to log each setup step.
  */
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const { test, expect } = require('@playwright/test');
+
+const TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL?.trim();
+const TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD?.trim();
+const HAS_ADMIN_FIXTURE = !!(TEST_ADMIN_EMAIL && TEST_ADMIN_PASSWORD);
+
+async function dismissPwaBanners(page) {
+  const closeInstallBanner = page.getByRole('button', { name: 'Fermer la barre d\'installation' });
+  const closeUpdateBanner = page.getByRole('button', { name: 'Fermer la barre de mise à jour' });
+  for (const btn of [closeInstallBanner, closeUpdateBanner]) {
+    if (await btn.isVisible().catch(() => false)) {
+      await btn.click();
+      await page.waitForTimeout(300);
+    }
+  }
+}
 
 test.describe('Event-details tabs (Infos, Dispos, Équipe)', () => {
   /** @type {string | null} */
@@ -26,9 +39,34 @@ test.describe('Event-details tabs (Infos, Dispos, Équipe)', () => {
     const debug = process.env.DEBUG_EVENT_DETAILS_TABS === '1' || process.env.DEBUG_EVENT_DETAILS_TABS === 'true';
     const log = (...args) => { if (debug) console.log('[event-details-tabs]', ...args); };
 
-    await page.goto('/seasons');
+    await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('[data-testid="app-loaded"]')).toBeVisible({ timeout: 10000 });
+    await dismissPwaBanners(page);
+
+    if (HAS_ADMIN_FIXTURE) {
+      const loginBtn = page.locator('[data-testid="login-btn"]');
+      if ((await loginBtn.count()) > 0 && (await loginBtn.isVisible())) {
+        await loginBtn.click();
+        await page.getByTestId('email-input').waitFor({ state: 'visible', timeout: 5000 });
+        await page.getByTestId('email-input').fill(TEST_ADMIN_EMAIL);
+        await page.getByTestId('password-input').fill(TEST_ADMIN_PASSWORD);
+        await page.getByTestId('submit-btn').click();
+        await page.waitForTimeout(2000);
+        const errorEl = page.getByTestId('error-message');
+        const errorVisible = await errorEl.isVisible().catch(() => false);
+        if (errorVisible) {
+          const errorText = await errorEl.textContent();
+          throw new Error(`Login failed (auth): ${errorText || 'see error-message in DOM'}. Check TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD in .env.`);
+        }
+        await expect(page.locator('[data-testid="user-menu"]').first()).toBeVisible({ timeout: 18000 });
+        await page.waitForTimeout(1000);
+      }
+    }
+
+    await page.goto('/seasons');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
     log('1. After goto /seasons, URL:', page.url());
 
     const heading = page.getByRole('heading', { name: 'Saisons' });

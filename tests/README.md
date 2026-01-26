@@ -1,6 +1,6 @@
 # 🧪 Tests Automatisés HatCast
 
-Tests automatisés complets pour HatCast incluant tests UI avec Playwright et intercepteur d'emails local.
+Tests automatisés complets pour HatCast incluant tests UI avec Playwright et intercepteur d'emails local. State-dependent E2E tests are currently sensitive to base content; a fixture re-architecture is tracked in ISSUES.md (LIMIT-001) for later.
 
 ## 📁 Structure organisée
 
@@ -32,6 +32,7 @@ npm run test:headed         # Mode visible
 npm run test:full           # Tests complets avec emails
 npm run test:all            # TOUS les tests
 npm run test:all:headed     # Tous les tests en mode visible
+npm run test:unit           # Tests unitaires Vitest (logique statut composition)
 ```
 
 ### **Tests de Protection des Joueurs :**
@@ -219,7 +220,9 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **Emails** - Interception et extraction de liens
 - ✅ **Protection des joueurs** - 3 cas de figure, icônes, modals, flux complet
 - ✅ **Détail événement (onglets)** - Infos par défaut, libellés Infos/Dispos/Équipe, onglet Équipe toujours visible (état vide si pas de tirage), tab=info|team|compo dans l’URL, changement d’onglet met à jour l’URL (skip si pas de saison/événement). Slice 14 : test « declined badge toggles Personnes ayant décliné » (skip si aucun événement avec joueurs déclinés dans l'env).
-- ✅ **Permissions composition (onglet Équipe)** - Cohérence Tirage/Simuler (event-details-tabs). Avec `TEST_PARTICIPANT_EMAIL` et `TEST_PARTICIPANT_PASSWORD` dans `.env`, les tests `composition-permissions.spec.js` vérifient : (1) participant non-admin : pas de Tirage/Simuler, slots vides non éditables, clic slot autre n'ouvre pas la modale, clic sur son slot l'ouvre si dans la composition ; (2) utilisateur anonyme : pas de boutons d'action (Tirage, Simuler), slots vides non cliquables, clic sur slots remplis n'ouvre pas la modale de confirmation.
+- ✅ **Permissions composition (onglet Équipe)** - Cohérence Tirage/Simuler (event-details-tabs). Avec `TEST_PARTICIPANT_EMAIL` et `TEST_PARTICIPANT_PASSWORD` dans `.env`, les tests `composition-permissions.spec.js` vérifient : (1) participant non-admin : pas de Tirage/Simuler, slots vides non éditables, clic slot autre n'ouvre pas la modale, clic sur son slot l'ouvre si dans la composition ; (2) utilisateur anonyme : pas de boutons d'action (Tirage, Simuler), slots vides non cliquables, clic sur slots remplis n'ouvre pas la modale de confirmation. Avec `TEST_ADMIN_EMAIL` et `TEST_ADMIN_PASSWORD` dans `.env`, les specs `composition-status.spec.js` et `event-details-tabs.spec.js` se connectent en admin pour afficher les onglets et les boutons de composition (Valider, Déverrouiller, Compléter), ce qui réduit le nombre de tests ignorés.
+- ✅ **Statut de composition (onglet Équipe)** - `composition-status.spec.js` : assertion du badge et du message (À composer, En préparation, Confirmations en cours, Équipe complète, À compléter, À vérifier) selon l’état affiché ; transitions Valider, Déverrouiller, Compléter, retrait d’un joueur. Utilise `data-testid="composition-status-badge"` et `data-testid="composition-status-hint"`. Les tests sautent lorsqu’un état ou un bouton n’est pas disponible.
+- ✅ **Logique du statut de composition (unit)** - `npm run test:unit` exécute Vitest sur `tests/unit/composition-status.logic.spec.js` : tests unitaires de la règle de décision (ordre d’évaluation, À compléter vs À vérifier, etc.) sans rendre le composant.
 
 ## 🔧 Configuration
 
@@ -250,6 +253,8 @@ Le fichier `playwright.config.local.js` est automatiquement ignoré par Git.
 - `NODE_ENV=test` : Active le mode test
 - `TEST_EMAILS=true` : Active l'intercepteur d'emails
 - `PLAYWRIGHT_HEADLESS=false` : Affiche les tests en cours
+- `TEST_PARTICIPANT_EMAIL` / `TEST_PARTICIPANT_PASSWORD` : (optionnel) Compte participant non-admin pour `composition-permissions.spec.js`
+- `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` : (optionnel) Compte admin pour `composition-status.spec.js` et `event-details-tabs.spec.js` ; réduit les tests ignorés (onglets et boutons composition visibles)
 
 ### **Scripts npm disponibles :**
 ```bash
@@ -288,9 +293,12 @@ tests/
 ├── auth.spec.js             # Tests d'authentification
 ├── basic.spec.js            # Tests de base
 ├── composition-permissions.spec.js # Permissions composition (participant non-admin) – squelettes à activer avec fixture
+├── composition-status.spec.js # Statut composition (badge + hint, états et transitions)
 ├── event-details-tabs.spec.js # Onglets détail événement (Infos, Dispos, Équipe) et URL
 ├── pwa.spec.js              # Tests PWA
 ├── summary.spec.js          # Test de vérification complète
+├── unit/
+│   └── composition-status.logic.spec.js # Tests unitaires (Vitest) de la logique de statut
 ├── email-interceptor.js     # Intercepteur d'emails
 └── run-tests.js             # Script de lancement
 ```
@@ -307,6 +315,10 @@ Tests basés sur des attributs dédiés dans les composants Vue :
 <button data-testid="submit-btn">...</button>
 <div data-testid="success-message">...</div>
 <div data-testid="error-message">...</div>
+
+<!-- Composition (onglet Équipe) -->
+[data-testid="composition-status-badge"]  <!-- Libellé du statut (À composer, En préparation, etc.) -->
+[data-testid="composition-status-hint"]   <!-- Message d'aide (paragraphe gris ou bandeau vert) -->
 ```
 
 ## 📊 Résultats et rapports
