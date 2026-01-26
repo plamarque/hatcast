@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.45.1",
+    "date": "2026-01-26",
+    "changes": [
+      "✨ Ajout de diaporamas statiques pour les chances et réutilisation dans la fenêtre Comment ça marche",
+      "✨ Mise à jour du texte dans la fenêtre Comment ça marche pour le tirage",
+      "🐛 Correction de la bannière de simulation après le tirage et amélioration des messages de tirage",
+      "🐛 Réorganisation des messages de statut dans l'onglet de diffusion d'équipe",
+      "🐛 Placement de la liste des refusée au-dessus des boutons d'action",
+      "✨ Affichage de la date dans la bannière bleue et du titre dans l'onglet Info"
+    ]
+  },
+  {
     "version": "0.45.0",
     "date": "2026-01-25",
     "changes": [

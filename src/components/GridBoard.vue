@@ -21,6 +21,7 @@
       :is-composition-view="isCompositionView"
       :is-event-screen="!!isEventFullScreen"
       :event-title="selectedEvent?.title"
+      :event-date="selectedEvent?.date"
       :event-icon="getEventTypeIcon(selectedEvent)"
       @go-back="goBack"
       @open-account-menu="openAccountMenu"
@@ -346,6 +347,7 @@
                     </div>
                   </div>
                 </div>
+                <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Titre</h3><div class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">{{ selectedEvent?.title || '—' }}</div></section>
                 <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</h3><div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30"><div class="whitespace-pre-wrap">{{ selectedEvent.description }}</div></div><p v-else class="text-sm text-gray-500 italic">Aucune description</p></section>
                 <section class="space-y-1"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h3><div class="relative inline-block"><button @click="showCalendarDropdown = !showCalendarDropdown" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30" title="Ajouter à votre agenda"><span>📆</span><span>{{ formatDateFull(selectedEvent?.date) }}</span><svg class="w-3 h-3 transform transition-transform duration-200" :class="{ 'rotate-180': showCalendarDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div v-if="showCalendarDropdown" class="absolute z-50 mt-2 bg-gray-800 border border-gray-600 rounded-lg shadow-lg min-w-[150px] left-0"><div class="p-2"><div class="text-xs text-gray-400 mb-2">Ajouter à votre agenda :</div><button @click="addToGoogleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📅</span><span>Google</span></button><button @click="addToOutlookCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>📧</span><span>Outlook</span></button><button @click="addToAppleCalendar(selectedEvent); showCalendarDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2"><span>🍎</span><span>Apple</span></button></div></div></div></section>
                 <section class="space-y-2"><h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lieu</h3><div v-if="selectedEvent?.location" class="space-y-3"><div class="relative inline-block min-w-0 max-w-full"><button @click="showGoogleMapsDropdown = !showGoogleMapsDropdown" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer bg-gray-800/30 px-3 py-2 rounded-lg border border-gray-600/30 min-w-0" :title="`Ouvrir ${selectedEvent.location} dans Google Maps`"><span>📍</span><span class="truncate">{{ selectedEvent.location }}</span><svg class="w-3 h-3 flex-shrink-0 transform transition-transform duration-200" :class="{ 'rotate-180': showGoogleMapsDropdown }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div v-if="showGoogleMapsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[200px]"><div class="p-2"><a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2">Ouvrir dans Google Maps</a><a :href="`https://waze.com/ul?q=${encodeURIComponent(selectedEvent.location)}`" target="_blank" rel="noopener noreferrer" @click="showGoogleMapsDropdown = false" class="w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-700 rounded flex items-center gap-2">Ouvrir dans Waze</a></div></div></div><div class="w-full overflow-hidden rounded-lg border border-gray-600/30 h-48"><iframe :src="getGoogleMapsEmbedUrl(selectedEvent.location)" width="100%" height="100%" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" class="rounded-lg w-full h-full" title="Carte" /></div></div><p v-else class="text-sm text-gray-500 italic">Aucun lieu renseigné</p></section>
@@ -706,6 +708,7 @@
                   </svg>
                 </button>
               </h2>
+              <p v-if="selectedEvent?.date" class="text-xs text-gray-400 mt-0.5">{{ formatDateFull(selectedEvent.date) }}</p>
               
               <!-- Menu dropdown -->
               <div v-if="showEventActionsDropdown" class="absolute left-0 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 min-w-[180px]">
@@ -845,9 +848,15 @@
           <!-- Contenu des onglets (padding réduit sur mobile, plus d’air en haut sur mobile) -->
           <div class="pt-4 px-1 pb-1 sm:p-2 md:p-3">
 
-            <!-- Onglet Info : trois sections empilées (Description, Date, Lieu) – même layout mobile et desktop -->
+            <!-- Onglet Info : Titre, Description, Date, Lieu -->
             <div v-if="eventDetailsActiveTab === 'info'" class="w-full space-y-6">
-              <!-- 1. Section Description -->
+              <!-- 1. Section Titre -->
+              <section class="space-y-1">
+                <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Titre</h3>
+                <div class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">{{ selectedEvent?.title || '—' }}</div>
+              </section>
+
+              <!-- 2. Section Description -->
               <section class="space-y-1">
                 <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Description</h3>
                 <div v-if="selectedEvent?.description" class="text-sm text-gray-300 bg-gray-800/30 p-3 rounded-lg border border-gray-600/30">
@@ -856,7 +865,7 @@
                 <p v-else class="text-sm text-gray-500 italic">Aucune description</p>
               </section>
 
-              <!-- 2. Section Date -->
+              <!-- 3. Section Date -->
               <section class="space-y-1">
                 <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h3>
                 <div class="relative inline-block">
@@ -882,7 +891,7 @@
                 </div>
               </section>
 
-              <!-- 3. Section Lieu (adresse + carte) -->
+              <!-- 4. Section Lieu (adresse + carte) -->
               <section class="space-y-2">
                 <h3 class="text-xs font-medium text-gray-500 uppercase tracking-wide">Lieu</h3>
                 <div v-if="selectedEvent?.location" class="space-y-3">
@@ -11690,7 +11699,7 @@ async function handleConfirmationConfirm(data) {
     if (!canModify) {
       console.error('❌ Tentative de confirmation non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11765,7 +11774,7 @@ async function handleConfirmationDecline(data) {
     if (!canModify) {
       console.error('❌ Tentative de déclin non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11838,7 +11847,7 @@ async function handleConfirmationPending(data) {
     if (!canModify) {
       console.error('❌ Tentative de mise en attente non autorisée');
       showErrorMessage.value = true;
-      errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.';
+      errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.';
       setTimeout(() => {
         showErrorMessage.value = false;
       }, 5000);
@@ -11976,7 +11985,7 @@ async function handleSelectionModalSlotConfirmationClick(slotData) {
 
   if (!canModify) {
     showErrorMessage.value = true
-    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.'
     setTimeout(() => {
       showErrorMessage.value = false
     }, 5000)
@@ -12014,7 +12023,7 @@ async function handleCompositionSlotClick(slot) {
   if (!canModify) {
     // Afficher un message d'erreur si l'utilisateur n'est pas autorisé
     showErrorMessage.value = true
-    errorMessage.value = 'Vous devez être connecté et être le propriétaire de ce slot ou un administrateur pour modifier le statut de confirmation.'
+    errorMessage.value = 'Vous devez être connecté et être le propriétaire de cet emplacement ou un administrateur pour modifier le statut de confirmation.'
     setTimeout(() => {
       showErrorMessage.value = false
     }, 5000)

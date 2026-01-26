@@ -28,6 +28,8 @@ const SKIP_WEBSERVER = process.env.SKIP_WEBSERVER === '1' || process.env.SKIP_WE
  */
 module.exports = defineConfig({
   testDir: './tests',
+  /* Vitest unit tests live in tests/unit/; do not run them with Playwright */
+  testIgnore: ['**/unit/**'],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

@@ -25,6 +25,12 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 ---
 
+## Assets
+
+- **Static images:** Put them in `public/img/` and reference them as `/img/filename` (e.g. `/img/slide-1.jpg`). Full convention in [ARCH.md](ARCH.md) (Static assets).
+
+---
+
 ## Run locally
 
 - **Dev server (default):**  
@@ -49,18 +55,19 @@ How to run locally, run tests, build, and deploy. For architecture and product i
   `npm test`  
   Runs Playwright e2e tests. Playwright starts the dev server automatically (see `playwright.config.js` webServer) unless disabled. Requires a free port (default 5173).
 
-- **When the dev server cannot be started (e.g. EPERM, sandbox, or port in use):**  
-  Start the app yourself, then run tests against it:  
-  `npm run dev -- --host`  
-  in one terminal, then in another:  
-  `npm run test:with-server`  
-  This uses `SKIP_WEBSERVER=1` and `BASE_URL=https://localhost:5173` so Playwright does not start a second server.
+- **When the dev server is already running (e.g. port in use, or you use `npm run dev -- --host`):**  
+  Start the app yourself (e.g. `npm run dev -- --host`), then in another terminal run:  
+  `npm run test:no-server`  
+  This uses `SKIP_WEBSERVER=1` so Playwright does not start a second server; the base URL is taken from `playwright.config.js` or `playwright.config.local.js` (e.g. `https://192.168.1.134:5173`).  
+  Alternatively, `npm run test:with-server` uses `BASE_URL=https://localhost:5173` if your app is reachable on localhost.
 
 - **CI:**  
   The deploy workflows (`.github/workflows/deploy-staging.yml`, `deploy-production.yml`) do **not** run Playwright; they only build and deploy. To run tests in CI, add a job that installs deps, creates `.env`, runs the dev server in the background, then runs `npm run test:ci` (uses `BASE_URL=http://localhost:5173`). Do not disable or remove existing tests to fix CI; fix the test or the behaviour.
 
 - **Other scripts:**  
   `test:ui`, `test:headed`, `test:email`, `test:full`, `test:all`, `test:audit-config`, etc. See `package.json` and `tests/README.md`. Global setup/teardown: `tests/global-setup.js`, `tests/global-teardown.js`.
+
+- **Known limitation:** State-dependent E2E tests are currently sensitive to base content; a fixture re-architecture is tracked in ISSUES.md (LIMIT-001) for later.
 
 ---
 

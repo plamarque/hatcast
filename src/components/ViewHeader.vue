@@ -48,8 +48,12 @@
                 <div v-else class="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-gray-600 rounded-full">
                   <span class="text-xs">🎭</span>
                 </div>
-                <span class="flex-1 min-w-0 text-left text-xs md:text-sm truncate">
-                  {{ eventDisplayText }}
+                <span class="flex-1 min-w-0 text-left flex flex-col items-stretch min-w-0">
+                  <template v-if="selectedEvent">
+                    <span class="text-xs md:text-sm font-medium truncate">{{ eventDisplayDate }}</span>
+                    <span class="text-xs text-gray-400 truncate">{{ eventDisplayText }}</span>
+                  </template>
+                  <span v-else class="text-xs md:text-sm truncate">{{ eventDisplayText }}</span>
                 </span>
                 <svg class="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -217,6 +221,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import { EVENT_TYPE_ICONS } from '../services/storage.js'
 import { isMobileOrPWA } from '../utils/deviceDetection.js'
+import { formatEventDate } from '../utils/dateUtils.js'
 
 // Props
 const props = defineProps({
@@ -289,8 +294,13 @@ const eventDisplayText = computed(() => {
   if (!props.selectedEvent) {
     return 'Tous'
   }
-  // Sinon, afficher le titre de l'événement
+  // Sinon, afficher le titre de l'événement (ligne secondaire, plus petit)
   return props.selectedEvent.title
+})
+
+const eventDisplayDate = computed(() => {
+  if (!props.selectedEvent?.date) return ''
+  return formatEventDate(props.selectedEvent.date)
 })
 
 const showEventIcon = computed(() => {

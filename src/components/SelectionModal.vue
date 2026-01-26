@@ -35,13 +35,15 @@
         <!-- Équipe composée (avec édition inline et slots vides) -->
         <div class="mb-3">
           <!-- En inline : seulement le texte d’état puis les slots ; en modale : sous-titre Équipe + badge + hint -->
+          <span v-if="inline" data-testid="composition-status-badge" class="sr-only" aria-hidden="true">{{ compositionStatus.label }}</span>
           <div v-if="!inline" class="mb-2">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="text-base md:text-lg font-semibold text-white">Équipe</h3>
               <div 
+                data-testid="composition-status-badge"
                 class="px-2 py-1 rounded-full text-xs font-normal border"
                 :class="getCompositionStatusColorClass(compositionStatus.color)"
-                :title="compositionStatus.hint"
+                :title="compositionStatus.hintTitle ?? compositionStatus.hint"
               >
                 {{ compositionStatus.label }}
               </div>
@@ -49,17 +51,7 @@
                 <span class="text-sm">❓</span>
               </button>
             </div>
-            <p class="text-xs text-gray-400 ml-0">{{ compositionStatus.hint }}</p>
           </div>
-          <!-- En mode inline : texte d’état en tête, puis slots -->
-          <div v-else class="mb-3">
-            <p class="text-sm text-gray-300">{{ compositionStatus.hint }}</p>
-            <button v-if="inline" @click="openHowItWorks" class="mt-1 text-blue-300 hover:text-blue-200 text-xs inline-flex items-center gap-1" title="Comment fonctionne la composition automatique ?">
-              <span>❓</span> Comment ça marche
-            </button>
-          </div>
-          
-          <!-- Warning de simulation -->
           <div v-if="showDrawVisualization && !isAutoComposition" class="mb-4 p-4 bg-amber-500/20 border border-amber-500/40 rounded-lg">
             <div class="flex items-center gap-3">
               <div class="text-2xl">🎲</div>
@@ -83,10 +75,10 @@
             <div class="flex items-center gap-3">
               <div class="text-2xl">🤖</div>
               <div class="flex-1">
-                <h4 class="text-blue-200 font-semibold text-sm mb-1">Composition automatique en cours</h4>
+                <h4 class="text-blue-200 font-semibold text-sm mb-1">Sélection en cours</h4>
                 <p class="text-blue-300 text-xs leading-relaxed">
-                  Cette composition sera <strong>sauvegardée</strong> et remplacera la sélection actuelle.
-                  L'animation montre le processus de tirage équitable.
+                  Nous tirons au sort parmi les candidats disponibles. Vous pouvez visualiser l'animation en cours.
+                  Cette sélection n'est qu'une proposition que vous pourrez ajuster librement.
                 </p>
               </div>
             </div>
@@ -228,21 +220,84 @@
             </button>
           </div>
           
+          <!-- Section des joueurs déclinés (affichée au clic sur le badge) -->
+          <div id="declined-players-section" v-if="hasDeclinedPlayers && showDeclinedSection" class="mt-4 mb-4">
+            <div class="mb-2">
+              <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                <span>❌</span>
+                <span>Personnes ayant décliné</span>
+              </h3>
+              <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 md:gap-3">
+              <div
+                v-for="declinedPlayer in getDeclinedPlayers()"
+                :key="'declined-'+declinedPlayer.name"
+                class="p-2 md:p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex-1 flex items-center gap-2 min-w-0">
+                    <!-- Avatar du joueur -->
+                    <div class="flex-shrink-0">
+                      <PlayerAvatar 
+                        :player-id="getPlayerIdFromName(declinedPlayer.name)"
+                        :season-id="seasonId"
+                        :player-name="declinedPlayer.name"
+                        :player-gender="getPlayerGenderFromName(declinedPlayer.name)"
+                        size="sm"
+                      />
+                    </div>
+                    
+                    <!-- Nom du joueur + emoji du rôle -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1">
+                        <span class="text-white font-medium truncate text-sm md:text-base">{{ declinedPlayer.name }}</span>
+                        <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    v-if="!isSelectionConfirmedByOrganizer && hasEmptySlotForRole(declinedPlayer.role)"
+                    @click="moveDeclinedToComposition(declinedPlayer)"
+                    class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
+                    title="Remettre en composition"
+                  >
+                    ↶
+                  </button>
+                  <div v-else class="w-6 h-6"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Message de succès après tirage (juste sous les slots, au-dessus du texte En préparation) -->
+          <div v-if="showSuccessMessage" class="my-3">
+            <div class="flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
+              <span class="text-blue-400 text-lg">✨</span>
+              <p class="text-blue-300 text-sm font-medium">{{ successMessageText }}</p>
+            </div>
+          </div>
+          
+          <!-- Texte d'état de la composition (au-dessus des boutons d'action) ; masqué quand équipe complète (message vert uniquement) -->
+          <div v-if="compositionStatus.type !== 'complete'" class="mt-4 mb-2">
+            <p data-testid="composition-status-hint" class="text-sm text-gray-300">{{ compositionStatus.isLocked ? '🔒 ' : '' }}<span v-html="compositionStatus.hint"></span></p>
+          </div>
+          
           <!-- Boutons d'action composition : 2 cas selon hasSelection -->
           <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4">
             <!-- Sans sélection : une seule ligne Tirage + Simuler (ou Arrêter), centrés, même largeur -->
             <div
               v-if="canManageCompositionValue && !hasSelection"
-              class="flex flex-wrap justify-center gap-3"
+              class="flex flex-wrap justify-center items-center gap-3"
             >
               <button
                 @click="handleSelection"
                 :disabled="availableCount === 0"
                 class="composition-action-btn h-12 min-w-[10rem] flex-1 max-w-[12rem] px-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                :title="availableCount === 0 ? 'Aucune personne disponible' : 'Compléter les slots vides'"
+                :title="availableCount === 0 ? 'Aucune personne disponible' : 'Compléter les emplacements vides'"
               >
-                <span>✨</span>
-                <span>Tirage</span>
+                <span>🎲</span>
+                <span>Tirer au sort</span>
               </button>
               <div class="relative algorithm-dropdown-container min-w-[10rem] flex-1 max-w-[12rem]">
                 <button
@@ -252,7 +307,7 @@
                   class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                   :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
                 >
-                  <span>🎲</span>
+                  <span>🫣</span>
                   <span>Simuler</span>
                   <span class="text-xs">▼</span>
                 </button>
@@ -280,38 +335,40 @@
                   </div>
                 </div>
               </div>
+              <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 text-xs inline-flex items-center gap-1 shrink-0" title="Comment fonctionne la composition automatique ?">
+                Comment ça marche <span>❓</span>
+              </button>
             </div>
-            <!-- Avec sélection : Tirage au-dessus, puis grille 2x2 (Simuler/Envoyer, Valider/Effacer) -->
+            <!-- Avec sélection : ligne 1 = Tirer au sort + Simuler ; ligne 2 = Partager, Valider, Effacer -->
             <template v-else-if="hasSelection">
-              <div v-if="canManageCompositionValue" class="flex justify-center mb-3">
+              <!-- Ligne 1 : Tirer au sort, Simuler (ou Arrêter), Comment ça marche ? -->
+              <div class="flex flex-wrap justify-center items-center gap-3 mb-3">
                 <button
+                  v-if="canManageCompositionValue"
                   @click="handleSelection"
                   :disabled="availableCount === 0"
                   class="composition-action-btn h-12 min-w-[10rem] px-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                  :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les slots vides')"
+                  :title="availableCount === 0 ? 'Aucune personne disponible' : (isSelectionComplete ? 'Relancer complètement la composition' : 'Compléter les emplacements vides')"
                 >
-                  <span>✨</span>
-                  <span>Tirage</span>
+                  <span>🎲</span>
+                  <span>Tirer au sort</span>
                 </button>
-              </div>
-              <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                <!-- Ligne 1 : Simuler, Envoyer -->
                 <div v-if="canManageCompositionValue" class="relative algorithm-dropdown-container">
                   <button
                     v-if="!isSimulating"
                     @click="toggleAlgorithmDropdown"
                     :disabled="availableCount === 0"
-                    class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                    class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
                   >
-                    <span>🎲</span>
+                    <span>🫣</span>
                     <span>Simuler</span>
                     <span class="text-xs">▼</span>
                   </button>
                   <button
                     v-else
                     @click="abortDraw()"
-                    class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5"
+                    class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5"
                     title="Arrêter le tirage"
                   >
                     <span>⏹️</span>
@@ -332,56 +389,38 @@
                     </div>
                   </div>
                 </div>
+                <button @click="openHowItWorks" class="text-blue-300 hover:text-blue-200 text-xs inline-flex items-center gap-1 shrink-0" title="Comment fonctionne la composition automatique ?">
+                  Comment ça marche <span>❓</span>
+                </button>
+              </div>
+              <!-- Ligne 2 : Partager, Valider, Effacer -->
+              <div v-if="canManageCompositionValue" class="flex flex-wrap justify-center items-center gap-3">
                 <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
-                <button
-                  v-if="canManageCompositionValue"
                   @click="openDrawAnnounce"
-                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
-                  title="Envoyer le tirage par WhatsApp à la PEDA"
+                  class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex items-center justify-center gap-2"
+                  title="Partager le tirage par WhatsApp à la PEDA"
                 >
                   <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
                   </svg>
-                  <span>Envoyer</span>
+                  <span>Partager</span>
                 </button>
                 <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
-                <!-- Ligne 2 : Valider, Effacer -->
-                <button
-                  v-if="canManageCompositionValue"
                   @click="handleConfirmSelection"
-                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-1.5"
                   title="Valider la composition et demander confirmation aux personnes"
                 >
-                  <span>⏳</span>
+                  <span>✅</span>
                   <span>Valider</span>
                 </button>
                 <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
-                <button
-                  v-if="canManageCompositionValue"
                   @click="handleResetSelection"
-                  class="composition-action-btn h-12 w-full px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-1.5"
+                  class="composition-action-btn h-12 min-w-[10rem] px-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-1.5"
                   title="Supprimer complètement la composition"
                 >
                   <span>🗑️</span>
                   <span>Effacer</span>
                 </button>
-                <button
-                  v-else
-                  class="invisible h-12 w-full rounded-lg"
-                  aria-hidden="true"
-                ></button>
               </div>
             </template>
           </div>
@@ -399,84 +438,14 @@
           </div>
         </div>
         
-        <!-- Section des joueurs déclinés (affichée au clic sur le badge) -->
-        <div id="declined-players-section" v-if="hasDeclinedPlayers && showDeclinedSection" class="mt-4 mb-4">
-          <div class="mb-2">
-            <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
-              <span>❌</span>
-              <span>Personnes ayant décliné</span>
-            </h3>
-            <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
-          </div>
-          <div class="grid grid-cols-2 gap-2 md:gap-3">
-            <div
-              v-for="declinedPlayer in getDeclinedPlayers()"
-              :key="'declined-'+declinedPlayer.name"
-              class="p-2 md:p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex-1 flex items-center gap-2 min-w-0">
-                  <!-- Avatar du joueur -->
-                  <div class="flex-shrink-0">
-                    <PlayerAvatar 
-                      :player-id="getPlayerIdFromName(declinedPlayer.name)"
-                      :season-id="seasonId"
-                      :player-name="declinedPlayer.name"
-                      :player-gender="getPlayerGenderFromName(declinedPlayer.name)"
-                      size="sm"
-                    />
-                  </div>
-                  
-                  <!-- Nom du joueur + emoji du rôle -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1">
-                      <span class="text-white font-medium truncate text-sm md:text-base">{{ declinedPlayer.name }}</span>
-                      <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  v-if="!isSelectionConfirmedByOrganizer && hasEmptySlotForRole(declinedPlayer.role)"
-                  @click="moveDeclinedToComposition(declinedPlayer)"
-                  class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
-                  title="Remettre en composition"
-                >
-                  ↶
-                </button>
-                <div v-else class="w-6 h-6"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Message d'information pour composition définitive -->
-        <div v-if="isSelectionConfirmed" class="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-          <div class="flex items-center gap-2 text-green-200 text-sm">
-            <span>✅</span>
-            <span><strong>Composition définitive :</strong> S'il y a des changements de dernière minute cliquez sur Déverrouiller pour réouvrir la composition.</span>
+        <!-- Message d'information pour composition définitive (même texte que le hint Équipe complète, affiché en bandeau vert) -->
+        <div v-if="compositionStatus.type === 'complete'" class="mb-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+          <div data-testid="composition-status-hint" class="flex items-center gap-2 text-green-200 text-sm">
+            <span v-html="compositionStatus.hint"></span>
           </div>
         </div>
 
 
-
-        <!-- 6) Message de succès après composition -->
-        <div v-if="showSuccessMessage" class="mb-3">
-          <div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-500/20">
-            <div class="text-blue-400 text-xl">✨</div>
-            <div class="flex-1">
-              <p class="text-blue-300 text-sm font-medium">{{ successMessageText }}</p>
-            </div>
-            <button 
-              @click="hideSuccessMessage"
-              class="text-blue-400 hover:text-blue-300 transition-colors"
-              title="Fermer le message"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
 
         <!-- 7) Message d'erreur -->
         <div v-if="showErrorMessage" class="mb-3">
@@ -518,7 +487,7 @@
             :title="availableCount === 0 ? 'Aucune personne disponible' : 'Choisir un algorithme de simulation'"
           >
             <span class="flex items-center">
-              🎲 <span class="hidden sm:inline ml-1">Simuler</span><span class="sm:hidden ml-1">Simuler</span>
+              🫣 <span class="hidden sm:inline ml-1">Simuler</span><span class="sm:hidden ml-1">Simuler</span>
             </span>
             <span class="text-xs">▼</span>
           </button>
@@ -551,14 +520,24 @@
           </div>
         </div>
 
-        <!-- Bouton Remplir Cast (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
+        <!-- Bouton Compléter (visible seulement si organisateur a validé ET qu'il y a des slots vides ET permissions d'édition) -->
         <button 
           v-if="isSelectionConfirmedByOrganizer && hasEmptySlots && canManageCompositionValue" 
           @click="handleFillCast" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-lg hover:from-yellow-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
-          title="Remplir les slots vides avec des joueurs disponibles"
+          title="Compléter les emplacements vides avec des joueurs disponibles"
         >
-          🔧 <span class="hidden sm:inline">Remplir</span><span class="sm:hidden">Remplir</span>
+          🔧 <span class="hidden sm:inline">Compléter</span><span class="sm:hidden">Compléter</span>
+        </button>
+
+        <!-- Bouton Annoncer la compo (visible seulement si organisateur a validé ET permissions d'édition) -->
+        <button 
+          v-if="hasSelection && isSelectionConfirmedByOrganizer && canManageCompositionValue" 
+          @click="openAnnounce" 
+          class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
+          title="Annoncer la composition à toute la troupe"
+        >
+          📢 <span class="hidden sm:inline">Annoncer la compo</span><span class="sm:hidden">Annoncer</span>
         </button>
 
         <!-- Bouton Déverrouiller (visible seulement si organisateur a validé ET permissions d'édition) -->
@@ -566,7 +545,7 @@
           v-if="isSelectionConfirmedByOrganizer && canManageCompositionValue" 
           @click="handleUnconfirmSelection" 
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-colors duration-300 flex-1 whitespace-nowrap"
-          title="Déverrouiller la composition pour permettre les modifications"
+          title="Déverrouiller : la composition ne sera plus visible aux joueurs, uniquement aux administrateurs ; vous pourrez à nouveau modifier ou refaire un tirage."
         >
           🔓 <span class="hidden sm:inline">Déverrouiller</span><span class="sm:hidden">Déverrouiller</span>
         </button>
@@ -578,17 +557,7 @@
           class="h-12 px-3 md:px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 flex-1 whitespace-nowrap"
           title="Valider la composition et demander confirmation aux personnes"
         >
-          ⏳ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
-        </button>
-
-        <!-- Bouton Annoncer la compo (visible seulement si organisateur a validé ET permissions d'édition) -->
-        <button 
-          v-if="hasSelection && isSelectionConfirmedByOrganizer && canManageCompositionValue" 
-          @click="openAnnounce" 
-          class="h-12 px-3 md:px-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 flex-1 whitespace-nowrap"
-          title="Annoncer la composition à toute la troupe"
-        >
-          📢 <span class="hidden sm:inline">Annoncer la compo</span><span class="sm:hidden">Annoncer</span>
+          ✅ <span class="hidden sm:inline">Valider</span><span class="sm:hidden">Valider</span>
         </button>
 
         <!-- Bouton Réinitialiser (dans le footer seulement si pas inline ; en inline il est dans la zone boutons au-dessus) -->
@@ -652,7 +621,7 @@
         <h3 class="text-xl font-bold text-white mb-2">Confirmer la composition automatique</h3>
         <p class="text-gray-300 text-sm leading-relaxed">
           <span v-if="hasExistingSelection">Une composition existe déjà pour cet événement.</span>
-          <span v-else>La composition sera mise à jour : les personnes disponibles seront conservées, les slots vides seront complétés.</span>
+          <span v-else>La composition sera mise à jour : les personnes disponibles seront conservées, les emplacements vides seront complétés.</span>
         </p>
       </div>
 
@@ -1362,49 +1331,95 @@ function getSelectionStatus() {
   return { type: 'complete', availableCount, requiredCount }
 }
 
+// Lorsque la composition est validée : tous les joueurs actuellement dans un emplacement ont-ils le statut « confirmé » ? (recoupe possible avec confirmedByAllPlayers, utile si la prop est en retard)
+const allFilledSlotsConfirmedLocally = computed(() => {
+  if (!props.isSelectionConfirmedByOrganizer || hasEmptySlots.value) return false
+  const filled = teamSlots.value.filter(slot => slot.player)
+  if (filled.length === 0) return false
+  return filled.every(slot => getPlayerSelectionStatus(slot.player) === 'confirmed')
+})
+
 // Fonction pour déterminer le statut de composition précis avec messages explicatifs
 const compositionStatus = computed(() => {
   // Cas 1: Pas de composition (étape initiale)
   if (!hasSelection.value) {
+    const hintPlain = "🫵 À composer : Cliquez dans les emplacements pour sélectionner un participant ou ✨ Tirez au sort pour faire une sélection automatique."
     return {
       type: 'none',
       label: 'À composer',
-      hint: "Aucun joueur n'a encore été sélectionné. Utilisez le bouton [Tirage] pour sélectionner automatiquement les participants ou cliquez dans les cases ci-dessous pour les sélectionner manuellement.",
+      hint: "<strong>🫵 À composer</strong> : Cliquez dans les emplacements pour sélectionner un participant ou ✨ Tirez au sort pour faire une sélection automatique.",
+      hintTitle: hintPlain,
       color: 'blue'
     }
   }
   
-  // Cas 4: Équipe complète (toutes confirmations obtenues)
-  if (props.isSelectionConfirmed) {
+  // Cas 4: Équipe complète (toutes confirmations obtenues, aucun emplacement vide, aucun joueur en place ayant décliné). On s'appuie sur le calcul local des statuts par slot pour éviter d'afficher « complète » quand un joueur vient d'être ajouté (Compléter / manuel) et n'a pas encore confirmé, tant que le parent n'a pas rafraîchi confirmedByAllPlayers.
+  if (!hasEmptySlots.value && !hasDeclinedPlayersInSlots.value && allFilledSlotsConfirmedLocally.value) {
+    const hintPlain = "🎉 Équipe complète : 📢 Annoncez la compo définitive ou 🔓 Déverrouillez pour faire des changements."
     return {
       type: 'complete',
       label: 'Équipe complète',
-      hint: "Tous les joueurs ont confirmé leur participation. L'équipe est complète.",
-      color: 'green'
+      hint: "<strong>🎉 Équipe complète</strong> : 📢 Annoncez la compo définitive ou 🔓 Déverrouillez pour faire des changements.",
+      hintTitle: hintPlain,
+      color: 'green',
+      isLocked: true
+    }
+  }
+  
+  // Cas 3b: Composition validée mais emplacements vides (ex. après des déclins ou retrait d'un désisté) — inviter à compléter (pas de préfixe 🔒)
+  if (props.isSelectionConfirmedByOrganizer && hasEmptySlots.value) {
+    const hintPlain = "⚠️ À compléter :  La composition a été validée mais certains emplacements sont vides. Finalisez la compo en cliquant dans un emplacement vide ou sur le bouton 🔧 Compléter pour un choix aléatoire."
+    return {
+      type: 'slots_to_complete',
+      label: 'À compléter',
+      hint: "<strong>⚠️ À compléter</strong> :  La composition a été validée mais certains emplacements sont vides. Finalisez la compo en cliquant dans un emplacement vide ou sur le bouton 🔧 Compléter pour un choix aléatoire.",
+      hintTitle: hintPlain,
+      color: 'orange',
+      isLocked: false
+    }
+  }
+  
+  // Cas 3c: Composition validée avec au moins un joueur encore dans un emplacement qui a décliné — inviter à vérifier (pas les déclinés déjà sortis de la compo)
+  if (props.isSelectionConfirmedByOrganizer && hasDeclinedPlayersInSlots.value) {
+    const hintPlain = "⚠️ À vérifier : La composition de l'équipe contient des personnes désistées, vérifiez que tout le monde est toujours disponible."
+    return {
+      type: 'has_declined',
+      label: 'À vérifier',
+      hint: "<strong>⚠️ À vérifier</strong> : La composition de l'équipe contient des personnes désistées, vérifiez que tout le monde est toujours disponible.",
+      hintTitle: hintPlain,
+      color: 'orange',
+      isLocked: false
     }
   }
   
   // Cas 3: En attente de confirmations (composition validée, confirmations en cours)
   if (props.isSelectionConfirmedByOrganizer) {
+const hintPlain = "⏳ Confirmations : 📢 Annoncez la compo, puis récoltez les confirmations des participants. ⚠️ La compo actuelle est visible de tous. 🔒 Déverrouillez pour la masquer."
     return {
       type: 'pending_confirmation',
       label: 'Confirmations en cours',
-      hint: "La composition a été validée. En attente des confirmations des joueurs sélectionnés.",
-      color: 'blue'
+      hint: "<strong>⏳ Confirmations</strong> : 📢 Annoncez la compo, puis récoltez les confirmations des participants. ⚠️ La compo actuelle est visible de tous. 🔒 Déverrouillez pour la masquer.",
+      hintTitle: hintPlain,
+      color: 'blue',
+      isLocked: false
     }
   }
-  
+
   // Cas 2: Composition en cours (tirage effectué mais non validé)
   // Adapter le message selon les permissions
   const canManage = canManageCompositionValue.value || props.canEditEvents
-  const hint = canManage
-    ? "La composition n'est pas encore validée. Vous pouvez la modifier ou la partager aux responsables avant validation."
+  const hintPlain = canManage
+    ? "🧠 En préparation : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez la aux responsables si vous le désirez et lorsque vous serez prêt cliquez sur ✅ Valider pour la rendre visible à tout le monde."
     : "Une composition est en cours de préparation par les sélectionneurs."
-  
+  const hint = canManage
+    ? "<strong>🧠 En préparation</strong> : ⚠️ Seuls les administrateurs peuvent voir la compo actuelle. Partagez la aux responsables si vous le désirez et lorsque vous serez prêt cliquez sur ✅ Valider pour la rendre visible à tout le monde."
+    : hintPlain
+
   return {
     type: 'draft',
     label: 'En préparation',
-    hint: hint,
+    hint,
+    hintTitle: hintPlain,
     color: 'orange'
   }
 })
@@ -1515,6 +1530,11 @@ const hasDeclinedPlayers = computed(() => {
   }
   
   return false
+})
+
+// Au moins un joueur actuellement dans un emplacement a décliné (à vérifier/remplacer) ; exclut les déclinés uniquement dans la section « désistés »
+const hasDeclinedPlayersInSlots = computed(() => {
+  return teamSlots.value.some(slot => slot.player && isPlayerDeclined(slot.player))
 })
 
 // Nombre de déclinés pour le badge (aligné sur la liste affichée ; inclut le fallback playerStatuses)
@@ -2715,10 +2735,13 @@ async function persistDrawResults() {
     // Ne pas fermer la modale automatiquement - laisser l'utilisateur voir le résultat
     // emit('close')
     
-    // Afficher un message de succès
+    // Afficher un message de succès (masqué automatiquement après 1,5 s)
     showSuccessMessage.value = true
-    successMessageText.value = 'Composition automatique terminée !'
-    
+    successMessageText.value = 'Tirage au sort terminé !'
+    setTimeout(() => {
+      showSuccessMessage.value = false
+    }, 1500)
+
   } catch (error) {
     console.error('❌ Erreur lors de la persistance des résultats du tirage:', error)
     
@@ -2746,9 +2769,13 @@ function drawNextSlot() {
   })))
   
   if (emptySlots.length === 0) {
+    const wasAutoComposition = isAutoComposition.value
     simulationComplete.value = true
     isSimulating.value = false
     isAutoComposition.value = false
+    if (wasAutoComposition) {
+      showDrawVisualization.value = false
+    }
     return
   }
   

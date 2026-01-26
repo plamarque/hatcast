@@ -1,4 +1,4 @@
-0.45.0
-Production build - 2026-01-25
-Git: 68dc5fa
-Build: 2026-01-25T19:00:48+0100
+0.45.1
+Production build - 2026-01-26
+Git: a9bee70
+Build: 2026-01-26T22:22:39+0100
