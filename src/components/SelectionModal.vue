@@ -228,6 +228,56 @@
             </button>
           </div>
           
+          <!-- Section des joueurs déclinés (affichée au clic sur le badge) -->
+          <div id="declined-players-section" v-if="hasDeclinedPlayers && showDeclinedSection" class="mt-4 mb-4">
+            <div class="mb-2">
+              <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                <span>❌</span>
+                <span>Personnes ayant décliné</span>
+              </h3>
+              <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 md:gap-3">
+              <div
+                v-for="declinedPlayer in getDeclinedPlayers()"
+                :key="'declined-'+declinedPlayer.name"
+                class="p-2 md:p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex-1 flex items-center gap-2 min-w-0">
+                    <!-- Avatar du joueur -->
+                    <div class="flex-shrink-0">
+                      <PlayerAvatar 
+                        :player-id="getPlayerIdFromName(declinedPlayer.name)"
+                        :season-id="seasonId"
+                        :player-name="declinedPlayer.name"
+                        :player-gender="getPlayerGenderFromName(declinedPlayer.name)"
+                        size="sm"
+                      />
+                    </div>
+                    
+                    <!-- Nom du joueur + emoji du rôle -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-1">
+                        <span class="text-white font-medium truncate text-sm md:text-base">{{ declinedPlayer.name }}</span>
+                        <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    v-if="!isSelectionConfirmedByOrganizer && hasEmptySlotForRole(declinedPlayer.role)"
+                    @click="moveDeclinedToComposition(declinedPlayer)"
+                    class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
+                    title="Remettre en composition"
+                  >
+                    ↶
+                  </button>
+                  <div v-else class="w-6 h-6"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- Boutons d'action composition : 2 cas selon hasSelection -->
           <div v-if="!isSelectionConfirmedByOrganizer" class="mt-4 mb-4">
             <!-- Sans sélection : une seule ligne Tirage + Simuler (ou Arrêter), centrés, même largeur -->
@@ -395,56 +445,6 @@
               <span>
                 Cliquez sur <strong>[✨ Compo Auto]</strong> pour lancer un tirage au sort parmi les personnes disponibles.
               </span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Section des joueurs déclinés (affichée au clic sur le badge) -->
-        <div id="declined-players-section" v-if="hasDeclinedPlayers && showDeclinedSection" class="mt-4 mb-4">
-          <div class="mb-2">
-            <h3 class="text-base md:text-lg font-semibold text-white mb-1 flex items-center gap-2">
-              <span>❌</span>
-              <span>Personnes ayant décliné</span>
-            </h3>
-            <p class="text-xs md:text-sm text-gray-400 ml-7">(ne comptent pas dans la composition)</p>
-          </div>
-          <div class="grid grid-cols-2 gap-2 md:gap-3">
-            <div
-              v-for="declinedPlayer in getDeclinedPlayers()"
-              :key="'declined-'+declinedPlayer.name"
-              class="p-2 md:p-3 rounded-lg border bg-gradient-to-r from-red-500/60 to-orange-500/60 border-red-500/30"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex-1 flex items-center gap-2 min-w-0">
-                  <!-- Avatar du joueur -->
-                  <div class="flex-shrink-0">
-                    <PlayerAvatar 
-                      :player-id="getPlayerIdFromName(declinedPlayer.name)"
-                      :season-id="seasonId"
-                      :player-name="declinedPlayer.name"
-                      :player-gender="getPlayerGenderFromName(declinedPlayer.name)"
-                      size="sm"
-                    />
-                  </div>
-                  
-                  <!-- Nom du joueur + emoji du rôle -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-1">
-                      <span class="text-white font-medium truncate text-sm md:text-base">{{ declinedPlayer.name }}</span>
-                      <span class="text-lg flex-shrink-0">{{ declinedPlayer.roleEmoji }}</span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  v-if="!isSelectionConfirmedByOrganizer && hasEmptySlotForRole(declinedPlayer.role)"
-                  @click="moveDeclinedToComposition(declinedPlayer)"
-                  class="text-white/80 hover:text-white rounded-full hover:bg-white/10 px-2 py-1"
-                  title="Remettre en composition"
-                >
-                  ↶
-                </button>
-                <div v-else class="w-6 h-6"></div>
-              </div>
             </div>
           </div>
         </div>
