@@ -1,19 +1,13 @@
-## [0.45.1] - 2026-01-26
+## [0.45.2] - 2026-01-27
 
 ### 📝 Other Changes
 
-- feat(dispos): Static chance slides and reuse in HowItWorksModal
-- feat(ui): Update Comment ça marche modal copy for draw
-- style(SelectionModal): Update draw and simulate button emojis
-- refactor(composition): Two-row layout for compo action buttons
-- fix(selection): Fix simulation banner after draw and improve draw messages
-- reworked status messages on team cast tab
-- fix(composition): Put declined list above action buttons
-- feat(events): Show date in blue banner and title in Info tab
+- chore: Update package-lock.json with vitest dependencies
 
 
 # Changelog
 
+## [0.45.2] - 2026-01-27
 ## [0.45.1] - 2026-01-26
 ## [0.45.0] - 2026-01-25
 ## [0.44.1] - 2026-01-25
