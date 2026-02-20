@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.46.3",
+    "date": "2026-02-20",
+    "changes": [
+      "✨ Augmentation de la taille de police des noms de participants dans les vues en grille.",
+      "✨ Amélioration de la typographie de la vue des statistiques Historique."
+    ]
+  },
+  {
     "version": "0.46.2",
     "date": "2026-02-20",
     "changes": [
