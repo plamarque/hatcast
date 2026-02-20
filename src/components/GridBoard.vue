@@ -3349,7 +3349,7 @@ function getViewLabel(view) {
     case 'events': return 'Spectacles'
     case 'participants': return 'Participants'
     case 'timeline': return 'Agenda'
-    case 'casts': return 'Compositions'
+    case 'casts': return 'Historique'
     default: return 'Lignes'
   }
 }
