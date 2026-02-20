@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full">
+  <div class="w-full bg-gray-900 min-h-full">
     <!-- Tableau avec colonnes de statistiques et événements -->
     <div class="overflow-x-auto casts-view" @scroll="handleScroll">
     <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 0;">
