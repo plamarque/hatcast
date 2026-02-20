@@ -75,6 +75,16 @@ La vue Compositions affiche des statistiques par joueur et par catégorie de rô
 | **BÉNÉVOLE** | BÉNÉVOLE        | Rôle volunteer dans tous événements                                    | Le rôle « Bénévole » proprement dit         |
 | **BÉNÉVOLE** | TOTAL BÉNÉVOLE  | Somme Régisseur + Lumière + Bénévole                                   | idem                                        |
 
+### Zone spectacles (colonnes par mois)
+
+La zone spectacles affiche les participations par mois. Chaque mois est une colonne agrégée avec « voir les détails » / « masquer les détails » pour afficher ou masquer les sous-colonnes (une par événement).
+
+| Élément   | Contenu                                                                 | Règle de calcul                                                                 |
+| --------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Colonne mois (collapsed) | Nb participations (tous rôles) + % | Participations = événements du mois où le joueur a un rôle dans un cast confirmé (sans désistement). % = `getStatPercent(participations, dispos, declines)` avec dispos = événements où `isAvailableForRole` true pour au moins un rôle, declines = événements où le joueur a décliné. |
+| Colonne mois (expanded) | Colonne de résumé (nb + %) + une colonne par événement | Même calcul pour le résumé ; chaque événement affiche la cellule de sélection habituelle. |
+| Mois affichés | Mois ayant au moins un événement                                        | Triés chronologiquement (année, mois).                                          |
+
 ---
 
 ## State machines / workflows (observed)

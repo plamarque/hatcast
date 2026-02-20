@@ -18,6 +18,7 @@
     :get-player-availability="getPlayerAvailability"
     :header-offset-x="headerOffsetX"
     :header-scroll-x="headerScrollX"
+    :header-offset-top="headerOffsetTop"
     @player-selected="showPlayerDetails"
     @availability-changed="handleAvailabilityChanged"
     @scroll="handleScroll"
@@ -307,6 +308,10 @@ const props = defineProps({
     default: 0
   },
   headerScrollX: {
+    type: Number,
+    default: 0
+  },
+  headerOffsetTop: {
     type: Number,
     default: 0
   },

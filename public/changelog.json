@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.46.4",
+    "date": "2026-02-21",
+    "changes": [
+      "🐛 Les en-têtes de la grille restent en place sous l'en-tête de vue.",
+      "✨ Ajout de colonnes pour les mois avec option d'extension/repli dans la zone des spectacles."
+    ]
+  },
+  {
     "version": "0.46.3",
     "date": "2026-02-20",
     "changes": [
