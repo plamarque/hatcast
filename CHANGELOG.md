@@ -1,13 +1,13 @@
-## [0.46.1] - 2026-02-20
+## [0.46.2] - 2026-02-20
 
 ### 📝 Other Changes
 
-- perf(casts): Optimize Composition view rendering and availability loading
-- feat(ui): Enable landscape mode and fix grid transparency
+- refactor(ui): Rename Compositions view label to Historique
 
 
 # Changelog
 
+## [0.46.2] - 2026-02-20
 ## [0.46.1] - 2026-02-20
 ## [0.46.0] - 2026-02-20
 ## [0.45.2] - 2026-01-27
