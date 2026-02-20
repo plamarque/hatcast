@@ -50,10 +50,11 @@
             </th>
           </template>
           
-          <!-- Cellules vides pour les événements -->
-          <th 
-            v-for="event in props.events"
-            :key="`group-${event.id}`"
+          <!-- Cellules de groupe pour les mois (colspan quand détails visibles) -->
+          <th
+            v-for="monthData in groupedEventsByMonth"
+            :key="`group-${monthData.monthKey}`"
+            :colspan="isMonthDetailsShown(monthData.monthKey) ? monthData.events.length + 1 : 1"
             style="border: none; padding: 0;"
           ></th>
         </tr>
@@ -310,67 +311,98 @@
             </th>
           </template>
           
-    <!-- En-têtes des événements -->
-          <th
-            v-for="event in props.events"
-            :key="event.id"
-            class="col-header col-event px-2 py-3 text-center"
-            :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
-          >
-      <div
-        class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer touch-manipulation"
-        :class="[
-                event._isArchived 
-            ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70' 
-                  : event._isPast 
-              ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50' 
-              : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
-        ]"
+    <!-- En-têtes des mois et événements -->
+          <template v-for="monthData in groupedEventsByMonth" :key="monthData.monthKey">
+            <!-- Mois collapsed : une colonne agrégée -->
+            <th
+              v-if="!isMonthDetailsShown(monthData.monthKey)"
+              class="col-header col-month px-2 py-3 text-center"
               :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
-              @click="openEventModal(event)"
-      >
-        <div class="flex flex-col items-center space-y-1 w-full">
-          <!-- Emoji et titre empilés -->
-          <div class="flex flex-col items-center gap-1 w-full">
-                  <span class="text-sm">{{ getEventIcon(event) }}</span>
-            <span 
-              class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden" 
-              :class="[
-                      event._isArchived 
-                  ? 'text-gray-400' 
-                        : event._isPast 
-                    ? 'text-amber-200' 
-                    : 'text-white'
-              ]"
-                    :title="event.title + (event._isArchived ? ' (Archivé)' : event._isPast ? ' (Passé)' : '')"
-                  >
-                    {{ event.title }}
-                    <span v-if="event._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
-                    <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
-            </span>
-          </div>
-          <!-- Date et statut empilés -->
-          <div class="flex flex-col items-center space-y-1">
-            <span 
-              class="text-xs text-center font-normal"
-              :class="[
-                      event._isArchived 
-                  ? 'text-gray-500' 
-                        : event._isPast 
-                    ? 'text-amber-300' 
-                    : 'text-gray-400'
-              ]"
             >
-                    {{ formatEventDate(event.date) }}
-            </span>
-            <StatusBadge 
-                    :event-id="event.id" 
-                    :event-status="getEventStatus(event)" 
-            />
-          </div>
-        </div>
-      </div>
-          </th>
+              <div
+                class="col-month rounded-xl flex flex-col items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer touch-manipulation bg-indigo-900/50 border border-indigo-600/30 hover:bg-indigo-800/50"
+                :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
+                @click="toggleMonthDetails(monthData.monthKey)"
+              >
+                <span class="font-bold text-sm text-indigo-200 capitalize">{{ monthData.monthName }}</span>
+                <button
+                  @click.stop="toggleMonthDetails(monthData.monthKey)"
+                  class="text-indigo-400 hover:text-indigo-200 text-xs underline font-normal mt-0.5"
+                  title="Voir les détails"
+                >
+                  voir les détails
+                </button>
+              </div>
+            </th>
+            <!-- Mois expanded : colonne toggle + une colonne par événement -->
+            <template v-else>
+              <th
+                class="col-header col-month-toggle px-2 py-3 text-center"
+                style="width: 90px; min-width: 90px;"
+              >
+                <div
+                  class="rounded-xl flex flex-col items-center justify-center px-2 py-3 cursor-pointer touch-manipulation bg-indigo-900/50 border border-indigo-600/30 hover:bg-indigo-800/50"
+                  @click="toggleMonthDetails(monthData.monthKey)"
+                >
+                  <span class="font-bold text-xs text-indigo-200 capitalize">{{ monthData.monthName }}</span>
+                  <button
+                    @click.stop="toggleMonthDetails(monthData.monthKey)"
+                    class="text-indigo-400 hover:text-indigo-200 text-xs underline font-normal mt-0.5"
+                    title="Masquer les détails"
+                  >
+                    masquer les détails
+                  </button>
+                </div>
+              </th>
+              <th
+                v-for="event in monthData.events"
+                :key="event.id"
+                class="col-header col-event px-2 py-3 text-center"
+                :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
+              >
+                <div
+                  class="col-event rounded-xl flex items-center justify-center px-2 py-3 transition-all duration-200 cursor-pointer touch-manipulation"
+                  :class="[
+                    event._isArchived
+                      ? 'bg-gray-600/50 border border-gray-500/30 hover:bg-gray-600/70'
+                      : event._isPast
+                        ? 'bg-amber-800/30 border border-amber-600/30 hover:bg-amber-800/50'
+                        : 'bg-gray-800 border border-gray-700/30 hover:bg-gray-700'
+                  ]"
+                  :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px` }"
+                  @click="openEventModal(event)"
+                >
+                  <div class="flex flex-col items-center space-y-1 w-full">
+                    <div class="flex flex-col items-center gap-1 w-full">
+                      <span class="text-sm">{{ getEventIcon(event) }}</span>
+                      <span
+                        class="font-semibold text-sm text-center leading-tight line-clamp-2 overflow-hidden"
+                        :class="[
+                          event._isArchived ? 'text-gray-400' : event._isPast ? 'text-amber-200' : 'text-white'
+                        ]"
+                        :title="event.title + (event._isArchived ? ' (Archivé)' : event._isPast ? ' (Passé)' : '')"
+                      >
+                        {{ event.title }}
+                        <span v-if="event._isArchived" class="text-xs text-gray-500 ml-1">📁</span>
+                        <span v-else-if="event._isPast" class="text-xs text-amber-400 ml-1">⏰</span>
+                      </span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-1">
+                      <span
+                        class="text-xs text-center font-normal"
+                        :class="[
+                          event._isArchived ? 'text-gray-500' : event._isPast ? 'text-amber-300' : 'text-gray-400'
+                        ]"
+                      >
+                        {{ formatEventDate(event.date) }}
+                      </span>
+                      <StatusBadge :event-id="event.id" :event-status="getEventStatus(event)" />
+                    </div>
+                  </div>
+                </div>
+              </th>
+            </template>
+          </template>
         </tr>
       </thead>
 
@@ -548,31 +580,90 @@
             </td>
           </template>
         
-        <!-- Cellules de sélection -->
-        <td
-            v-for="event in props.events"
-          :key="`${player.id}-${event.id}`"
-          class="col-event p-2 md:p-1"
+        <!-- Cellules spectacles : par mois (collapsed) ou mois+événements (expanded) -->
+        <template v-for="monthData in groupedEventsByMonth" :key="monthData.monthKey">
+          <!-- Mois collapsed : cellule agrégée nb participations + % -->
+          <td
+            v-if="!isMonthDetailsShown(monthData.monthKey)"
+            class="col-month p-2 md:p-1 text-center bg-indigo-900/30 border-r border-b border-indigo-600/20 cursor-pointer touch-manipulation"
             :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px`, height: '4rem' }"
-        >
-          <SelectionCell
-            :player-name="player.name"
-            :event-id="event.id"
-              :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
-              :is-selection-confirmed="props.isSelectionConfirmed(event.id)"
-              :is-selection-confirmed-by-organizer="props.isSelectionConfirmedByOrganizer(event.id)"
-              :player-selection-status="props.getPlayerSelectionStatus(player.name, event.id)"
-            :season-id="seasonId"
-            :can-edit="false"
-              :availability-data="props.getAvailabilityData(player.name, event.id)"
-            :player-gender="player.gender || 'non-specified'"
-              :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
-              :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
-              :selected-role-chance="getPlayerRoleInEvent(player.id, event.id) && getPlayerSelectionStatusFromCast(player.id, event.id) === 'pending' ? getPlayerChanceForRole(player.id, event.id, getPlayerRoleInEvent(player.id, event.id)) : null"
-              :can-edit-events="canEditEvents"
-              :is-past-event="event._isPast"
-          />
-        </td>
+            @click.stop="openStatPopover(getStatTooltip(
+              (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0,
+              (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
+              (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
+            ), $event)"
+          >
+            <div class="flex flex-col items-center justify-center w-full h-full">
+              <span class="text-indigo-200 font-semibold">{{ (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || '' }}</span>
+              <span
+                v-if="getEffectiveDispos(
+                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
+                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
+                ) > 0"
+                class="text-xs text-indigo-400/90"
+              >
+                ({{ getStatPercent(
+                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0,
+                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
+                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
+                ) }}%)
+              </span>
+            </div>
+          </td>
+          <!-- Mois expanded : cellule résumé + cellules événements -->
+          <template v-else>
+            <td
+              class="col-month-toggle p-2 md:p-1 text-center bg-indigo-900/30 border-r border-b border-indigo-600/20 cursor-pointer touch-manipulation"
+              style="width: 90px; min-width: 90px; height: 4rem;"
+              @click.stop="openStatPopover(getStatTooltip(
+                (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0,
+                (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
+                (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
+              ), $event)"
+            >
+              <div class="flex flex-col items-center justify-center w-full h-full">
+                <span class="text-indigo-200 font-semibold">{{ (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || '' }}</span>
+                <span
+                  v-if="getEffectiveDispos(
+                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
+                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
+                  ) > 0"
+                  class="text-xs text-indigo-400/90"
+                >
+                  ({{ getStatPercent(
+                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0,
+                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
+                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
+                  ) }}%)
+                </span>
+              </div>
+            </td>
+            <td
+              v-for="event in monthData.events"
+              :key="`${player.id}-${event.id}`"
+              class="col-event p-2 md:p-1"
+              :style="{ width: `${eventColumnWidth}px`, minWidth: `${eventColumnWidth}px`, height: '4rem' }"
+            >
+              <SelectionCell
+                :player-name="player.name"
+                :event-id="event.id"
+                :is-selected="getPlayerRoleInEvent(player.id, event.id) !== null"
+                :is-selection-confirmed="props.isSelectionConfirmed(event.id)"
+                :is-selection-confirmed-by-organizer="props.isSelectionConfirmedByOrganizer(event.id)"
+                :player-selection-status="props.getPlayerSelectionStatus(player.name, event.id)"
+                :season-id="seasonId"
+                :can-edit="false"
+                :availability-data="props.getAvailabilityData(player.name, event.id)"
+                :player-gender="player.gender || 'non-specified'"
+                :selection-data="getPlayerRoleInEvent(player.id, event.id) ? { role: getPlayerRoleInEvent(player.id, event.id), roleLabel: getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified') } : null"
+                :roles-and-chances="getPlayerRolesAndChances(player.id, event.id, player.gender || 'non-specified')"
+                :selected-role-chance="getPlayerRoleInEvent(player.id, event.id) && getPlayerSelectionStatusFromCast(player.id, event.id) === 'pending' ? getPlayerChanceForRole(player.id, event.id, getPlayerRoleInEvent(player.id, event.id)) : null"
+                :can-edit-events="canEditEvents"
+                :is-past-event="event._isPast"
+              />
+            </td>
+          </template>
+        </template>
         </tr>
         
         <!-- Ligne "Afficher Plus" -->
@@ -787,6 +878,9 @@ const showDeplacementDetails = ref(false)
 
 // State pour contrôler l'affichage des détails bénévole
 const showBenevoleDetails = ref(false)
+
+// State pour contrôler l'affichage des détails par mois (zone spectacles)
+const showMonthDetails = ref({})
 
 // Popover stats : DOM natif pour éviter le re-render Vue (CastsView est lourd)
 let statPopoverEl = null
@@ -1366,14 +1460,133 @@ const benevoleColumnsCount = computed(() => {
   return 1 + (showBenevoleDetails.value ? 3 : 0)
 })
 
+// Regroupement des événements par mois (zone spectacles)
+const MONTH_NAMES = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+function getMonthKey(event) {
+  if (!event?.date) return null
+  const d = event.date?.toDate ? event.date.toDate() : new Date(event.date)
+  if (isNaN(d.getTime())) return null
+  return `${d.getFullYear()}-${d.getMonth()}`
+}
+function getMonthYearName(monthKey) {
+  if (!monthKey) return ''
+  const [y, m] = monthKey.split('-').map(Number)
+  return `${MONTH_NAMES[m]} ${y}`
+}
+
+const groupedEventsByMonth = computed(() => {
+  if (!props.events?.length) return []
+  const months = {}
+  props.events.forEach(event => {
+    const key = getMonthKey(event)
+    if (!key) return
+    if (!months[key]) {
+      months[key] = { monthKey: key, monthName: getMonthYearName(key), year: parseInt(key.split('-')[0], 10), month: parseInt(key.split('-')[1], 10), events: [] }
+    }
+    months[key].events.push(event)
+  })
+  Object.values(months).forEach(m => {
+    m.events.sort((a, b) => {
+      const da = a.date?.toDate ? a.date.toDate() : new Date(a.date)
+      const db = b.date?.toDate ? b.date.toDate() : new Date(b.date)
+      return da.getTime() - db.getTime()
+    })
+  })
+  return Object.values(months).sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year
+    return a.month - b.month
+  })
+})
+
+function toggleMonthDetails(monthKey) {
+  const next = { ...showMonthDetails.value }
+  next[monthKey] = !next[monthKey]
+  showMonthDetails.value = next
+}
+
+function isMonthDetailsShown(monthKey) {
+  return !!showMonthDetails.value[monthKey]
+}
+
+// Participations et dispos/declines par joueur et par mois (tous rôles confondus)
+function calculatePlayerMonthStats(playerName, monthKey) {
+  const player = props.displayedPlayers.find(p => p.name === playerName)
+  if (!player) return { participations: 0, dispos: 0, declines: 0 }
+  const playerId = player.id
+  const monthData = groupedEventsByMonth.value.find(m => m.monthKey === monthKey)
+  if (!monthData) return { participations: 0, dispos: 0, declines: 0 }
+
+  let participations = 0
+  let dispos = 0
+  let declines = 0
+
+  monthData.events.forEach(event => {
+    if (event.archived === true) return
+    const cast = props.casts[event.id] || {}
+    if (!cast.confirmed) return
+
+    let hasDeclined = false
+    if (cast.declined) {
+      Object.values(cast.declined).forEach(playerIds => {
+        if (Array.isArray(playerIds) && playerIds.includes(playerId)) hasDeclined = true
+      })
+    }
+    if (!hasDeclined && cast.playerStatuses?.[playerId] === 'declined') hasDeclined = true
+    if (hasDeclined) declines++
+
+    let hasRole = false
+    if (cast.roles) {
+      Object.values(cast.roles).forEach(players => {
+        if (Array.isArray(players)) {
+          for (const p of players) {
+            const id = typeof p === 'string' ? p : (p.id || p.name || p)
+            if (id === playerId) { hasRole = true; break }
+          }
+        }
+      })
+    }
+    if (hasRole) participations++
+
+    if (props.isAvailableForRole) {
+      const eventRoles = event.roles || (event.playerCount > 0 ? { player: event.playerCount || 6 } : {})
+      for (const [role, count] of Object.entries(eventRoles)) {
+        if ((count || 0) > 0 && props.isAvailableForRole(playerName, role, event.id)) {
+          dispos++
+          break
+        }
+      }
+    }
+  })
+
+  return { participations, dispos, declines }
+}
+
+const playersMonthStats = computed(() => {
+  const map = new Map()
+  props.displayedPlayers.forEach(player => {
+    const monthMap = new Map()
+    groupedEventsByMonth.value.forEach(m => {
+      monthMap.set(m.monthKey, calculatePlayerMonthStats(player.name, m.monthKey))
+    })
+    map.set(player.name, monthMap)
+  })
+  return map
+})
+
+// Nombre de colonnes spectacles (mois collapsed ou toggle+events quand expanded)
+const eventZoneColumnsCount = computed(() => {
+  return groupedEventsByMonth.value.reduce((acc, m) => {
+    return acc + (isMonthDetailsShown(m.monthKey) ? m.events.length + 1 : 1)
+  }, 0)
+})
+
 // Computed property pour le colspan de la ligne "Afficher Plus"
 const showMoreColspan = computed(() => {
   const baseColumns = 1
   const statsColumns = showStatsColumns.value
     ? jeuColumnsCount.value + decorumColumnsCount.value + deplacementColumnsCount.value + benevoleColumnsCount.value
     : 0
-  const eventColumns = props.events.length
-  return baseColumns + statsColumns + eventColumns
+  return baseColumns + statsColumns + eventZoneColumnsCount.value
 })
 
 // Fonction pour basculer l'affichage des colonnes de statistiques
@@ -1401,13 +1614,17 @@ function toggleBenevoleDetails() {
   showBenevoleDetails.value = !showBenevoleDetails.value
 }
 
+// Événements aplatis dans l'ordre d'affichage (mois puis événements)
+const flattenedEventsForExport = computed(() => {
+  return groupedEventsByMonth.value.flatMap(m => m.events)
+})
+
 // Fonction d'export vers Excel/Google Sheets
 function exportToExcel() {
   try {
-    // Créer les données pour l'export
     const exportData = []
-    
-    // En-têtes
+    const monthHeaders = groupedEventsByMonth.value.map(m => m.monthName)
+    const eventHeaders = flattenedEventsForExport.value.map(e => e.title)
     const headers = [
       'Joueur',
       'JEU MATCH',
@@ -1428,13 +1645,20 @@ function exportToExcel() {
       'LUMIÈRE',
       'BÉNÉVOLE',
       'TOTAL BÉNÉVOLE',
-      ...props.events.map(event => event.title)
+      ...monthHeaders,
+      ...eventHeaders
     ]
     exportData.push(headers)
-    
-    // Données pour chaque joueur
     props.displayedPlayers.forEach(player => {
       const stats = playersRoleStats.value.get(player.name) || getDefaultStats()
+      const monthStats = playersMonthStats.value.get(player.name)
+      const monthValues = groupedEventsByMonth.value.map(m =>
+        (monthStats?.get(m.monthKey) || {}).participations ?? ''
+      )
+      const eventValues = flattenedEventsForExport.value.map(event => {
+        const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
+        return roleLabel || ''
+      })
       const playerRow = [
         player.name,
         stats.jeuMatch,
@@ -1455,10 +1679,8 @@ function exportToExcel() {
         stats.lighting,
         stats.volunteer,
         stats.totalBenevole,
-        ...props.events.map(event => {
-          const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
-          return roleLabel || ''
-        })
+        ...monthValues,
+        ...eventValues
       ]
       exportData.push(playerRow)
     })
