@@ -106,7 +106,7 @@
               class="!w-10 !h-10"
               @click="showPlayerDetails(player)"
             />
-            <span class="text-white font-medium text-sm">{{ player.name }}</span>
+            <span class="text-white font-medium text-base">{{ player.name }}</span>
           </div>
         </td>
         

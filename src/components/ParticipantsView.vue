@@ -39,7 +39,7 @@
           :size="'lg'"
           class="!w-10 !h-10"
         />
-        <span class="text-white text-xs text-center leading-tight">{{ item.name }}</span>
+        <span class="text-white text-sm text-center leading-tight">{{ item.name }}</span>
       </div>
     </template>
     
