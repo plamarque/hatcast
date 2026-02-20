@@ -21,6 +21,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Audit log:** Immutable record of significant actions. Stored in `auditLogs`; written by client (`auditClient.js`) and/or Firestore triggers (`functions/auditTriggers.js`).
 - **Magic link:** Passwordless auth link; stored in `magicLinks` or `accountMagicLinks`, processed in `magicLinks.js` and auth views.
 - **Push queue / reminder queue:** Firestore collections (`pushQueue`, `reminderQueue`) consumed by Cloud Functions to send push notifications or email reminders (see `functions/index.js`).
+- **Display filter (participants / events):** User-selected subset of players or events to display in the grid views. `null` = all; `Set<id>` = only those IDs. State in GridBoard (`selectedPlayerIds`, `selectedEventIds`); UI in PlayerSelectorModal, EventSelectorModal, ViewHeader.
 
 ---
 

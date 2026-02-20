@@ -77,9 +77,10 @@ No separate API server; backend is Firebase (Firestore + Auth + Functions).
 
 ## Testing strategy (as-is + minimal improvements)
 
-- **E2E (Playwright):** Default test runner. Config: `playwright.config.js`; baseURL from env or `playwright.config.local.js`. Runs full app against a URL (dev server started by Playwright or existing server with `SKIP_WEBSERVER=1`). Specs in `tests/*.spec.js` (e.g. basic, auth, player-protection, pwa, audit-config). Global setup/teardown in `tests/global-setup.js`, `global-teardown.js`.
+- **E2E (Playwright):** Default test runner. Config: `playwright.config.js`; baseURL from env or `playwright.config.local.js`. Runs full app against a URL (dev server started by Playwright or existing server with `SKIP_WEBSERVER=1`). Specs in `tests/*.spec.js` (e.g. basic, auth, player-protection, pwa, audit-config, selector-multi-select). Global setup/teardown in `tests/global-setup.js`, `global-teardown.js`.
 - **Custom runners:** `tests/run-tests.js`, `run-manual.js`, email interceptor for flows that need controlled email/push behaviour. Not part of default `npm test`.
 - **CI:** `test:ci` uses `BASE_URL=http://localhost:5173`; Playwright typically starts the dev server unless disabled. For agent/sandbox environments that cannot bind ports, `test:with-server` with an already-running server is an option.
+- **Unit (Vitest):** Logic tests in `tests/unit/*.spec.js` (e.g. composition-status.logic, selector-display). Run with `npm run test:unit`. Playwright ignores `tests/unit/**` via `testIgnore`.
 - **Improvements (minimal, non-invasive):** Keep a single "smoke" suite that loads home and one season route; avoid disabling tests to fix CI; document test:with-server and env requirements in DEVELOPMENT.md. No refactor of test architecture required for v0.1.
 
 ---

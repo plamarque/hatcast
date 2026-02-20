@@ -7,6 +7,7 @@
             <!-- Sélecteur de joueur -->
             <div v-if="showPlayerSelector" class="relative">
               <button
+                data-testid="player-selector-trigger"
                 @click="togglePlayerModal"
                 class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32 max-w-[240px] md:max-w-[300px]"
               >
@@ -37,6 +38,7 @@
             <!-- Sélecteur d'événement -->
             <div v-if="showEventSelector" class="relative">
               <button
+                data-testid="event-selector-trigger"
                 @click="toggleEventModal"
                 class="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 bg-gray-800/50 border border-gray-600/50 rounded-lg text-white hover:bg-gray-700/50 transition-colors min-w-24 md:min-w-32 max-w-[240px] md:max-w-[300px]"
               >
@@ -238,6 +240,14 @@ const props = defineProps({
     type: Object,
     default: null
   },
+  selectedPlayerIds: {
+    type: Array,
+    default: null
+  },
+  players: {
+    type: Array,
+    default: () => []
+  },
   seasonId: {
     type: String,
     required: true
@@ -249,6 +259,10 @@ const props = defineProps({
   },
   selectedEvent: {
     type: Object,
+    default: null
+  },
+  selectedEventIds: {
+    type: Array,
     default: null
   },
   events: {
@@ -275,36 +289,53 @@ const emit = defineEmits(['view-change', 'player-modal-toggle', 'event-modal-tog
 
 // Logique d'affichage du dropdown
 const displayText = computed(() => {
-  // Si aucun joueur sélectionné, afficher "Tous"
-  if (!props.selectedPlayer) {
-    return 'Tous'
+  const ids = props.selectedPlayerIds
+  if (ids && ids.length > 1) {
+    const names = ids
+      .map(id => props.players?.find(p => p.id === id)?.name)
+      .filter(Boolean)
+    if (names.length > 0) {
+      return names.length <= 2 ? names.join(', ') : `${names.length} participants`
+    }
   }
-  // Sinon, afficher le nom du joueur
-  return props.selectedPlayer.name
+  if (props.selectedPlayer) return props.selectedPlayer.name
+  return 'Tous'
 })
 
 const showPlayerAvatar = computed(() => {
-  // Afficher l'avatar seulement si un joueur spécifique est sélectionné
+  const ids = props.selectedPlayerIds
+  if (ids && ids.length > 1) return false
   return !!props.selectedPlayer
 })
 
 // Logique d'affichage du sélecteur d'événements
 const eventDisplayText = computed(() => {
-  // Si aucun événement sélectionné, afficher "Tous"
-  if (!props.selectedEvent) {
-    return 'Tous'
+  const ids = props.selectedEventIds
+  if (ids && ids.length > 1) {
+    const titles = ids
+      .map(id => props.events?.find(e => e.id === id)?.title)
+      .filter(Boolean)
+    if (titles.length > 0) {
+      return titles.length <= 2 ? titles.join(', ') : `${titles.length} événements`
+    }
   }
-  // Sinon, afficher le titre de l'événement (ligne secondaire, plus petit)
-  return props.selectedEvent.title
+  if (props.selectedEvent) return props.selectedEvent.title
+  return 'Tous'
 })
 
 const eventDisplayDate = computed(() => {
-  if (!props.selectedEvent?.date) return ''
-  return formatEventDate(props.selectedEvent.date)
+  const ids = props.selectedEventIds
+  if (ids && ids.length === 1 && props.events?.length) {
+    const ev = props.events.find(e => e.id === ids[0])
+    if (ev?.date) return formatEventDate(ev.date)
+  }
+  if (props.selectedEvent?.date) return formatEventDate(props.selectedEvent.date)
+  return ''
 })
 
 const showEventIcon = computed(() => {
-  // Afficher l'icône seulement si un événement spécifique est sélectionné
+  const ids = props.selectedEventIds
+  if (ids && ids.length > 1) return false
   return !!props.selectedEvent
 })
 

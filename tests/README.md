@@ -223,6 +223,7 @@ Tests automatisés pour la fonctionnalité de protection des joueurs, incluant l
 - ✅ **Permissions composition (onglet Équipe)** - Cohérence Tirage/Simuler (event-details-tabs). Avec `TEST_PARTICIPANT_EMAIL` et `TEST_PARTICIPANT_PASSWORD` dans `.env`, les tests `composition-permissions.spec.js` vérifient : (1) participant non-admin : pas de Tirage/Simuler, slots vides non éditables, clic slot autre n'ouvre pas la modale, clic sur son slot l'ouvre si dans la composition ; (2) utilisateur anonyme : pas de boutons d'action (Tirage, Simuler), slots vides non cliquables, clic sur slots remplis n'ouvre pas la modale de confirmation. Avec `TEST_ADMIN_EMAIL` et `TEST_ADMIN_PASSWORD` dans `.env`, les specs `composition-status.spec.js` et `event-details-tabs.spec.js` se connectent en admin pour afficher les onglets et les boutons de composition (Valider, Déverrouiller, Compléter), ce qui réduit le nombre de tests ignorés.
 - ✅ **Statut de composition (onglet Équipe)** - `composition-status.spec.js` : assertion du badge et du message (À composer, En préparation, Confirmations en cours, Équipe complète, À compléter, À vérifier) selon l’état affiché ; transitions Valider, Déverrouiller, Compléter, retrait d’un joueur. Utilise `data-testid="composition-status-badge"` et `data-testid="composition-status-hint"`. Les tests sautent lorsqu’un état ou un bouton n’est pas disponible.
 - ✅ **Logique du statut de composition (unit)** - `npm run test:unit` exécute Vitest sur `tests/unit/composition-status.logic.spec.js` : tests unitaires de la règle de décision (ordre d’évaluation, À compléter vs À vérifier, etc.) sans rendre le composant.
+- ✅ **Multi-sélection participants/spectacles** - `selector-multi-select.spec.js` : ouverture des sélecteurs avec checkboxes, clic ligne "Tous" ferme et affiche tous, checkbox multi-select filtre à la fermeture. Tests unitaires `tests/unit/selector-display.spec.js` pour la logique d'affichage (X participants, N événements).
 
 ## 🔧 Configuration
 
@@ -295,10 +296,12 @@ tests/
 ├── composition-permissions.spec.js # Permissions composition (participant non-admin) – squelettes à activer avec fixture
 ├── composition-status.spec.js # Statut composition (badge + hint, états et transitions)
 ├── event-details-tabs.spec.js # Onglets détail événement (Infos, Dispos, Équipe) et URL
+├── selector-multi-select.spec.js # Multi-sélection participants/spectacles (checkboxes)
 ├── pwa.spec.js              # Tests PWA
 ├── summary.spec.js          # Test de vérification complète
 ├── unit/
-│   └── composition-status.logic.spec.js # Tests unitaires (Vitest) de la logique de statut
+│   ├── composition-status.logic.spec.js # Tests unitaires (Vitest) de la logique de statut
+│   └── selector-display.spec.js # Logique d'affichage multi-sélection (participants/spectacles)
 ├── email-interceptor.js     # Intercepteur d'emails
 └── run-tests.js             # Script de lancement
 ```

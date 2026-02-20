@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1400] md:p-4" @click="closeModal">
+  <div v-if="show" data-testid="event-selector-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1400] md:p-4" @click="closeModalWithCheckboxes">
     <!-- Sur mobile: hauteur complète sans padding, sur desktop: centré avec padding -->
     <div class="flex md:items-center md:justify-center min-h-full h-full">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 md:rounded-2xl shadow-2xl w-full max-w-md flex flex-col h-full md:h-auto md:max-h-[85vh]" @click.stop>
@@ -7,7 +7,7 @@
         <div class="p-3 md:p-6 border-b border-white/10 flex-shrink-0">
           <div class="flex items-center justify-between">
             <h2 class="text-lg md:text-2xl font-bold text-white">Filtrer les événements</h2>
-            <button @click="closeModal" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
+            <button @click="closeModalWithCheckboxes" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
               ✖️
             </button>
           </div>
@@ -23,7 +23,7 @@
                 type="text"
                 placeholder="Rechercher un événement..."
                 class="w-full pl-3 pr-3 py-2 md:pl-4 md:pr-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
-                @keyup.escape="closeModal"
+                @keyup.escape="closeModalWithCheckboxes"
                 ref="searchInput"
               />
             </div>
@@ -72,6 +72,7 @@
           <div class="flex-1 overflow-y-auto -mx-2 px-2">
             <!-- Option "Tous les événements" -->
             <div
+              data-testid="event-selector-option-all"
               class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors mb-2"
               :class="!selectedEventId ? 'bg-purple-600/30 border border-purple-500/50' : ''"
               @click="selectAllEvents"
@@ -82,12 +83,22 @@
               <div class="flex-1">
                 <span class="text-white font-medium">Tous les événements</span>
               </div>
+              <input
+                ref="allCheckboxRef"
+                data-testid="event-selector-checkbox-all"
+                type="checkbox"
+                :checked="isAllChecked"
+                @click.stop="toggleAllEvents"
+                class="flex-shrink-0 w-5 h-5 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+                aria-label="Sélectionner ou désélectionner tous les événements"
+              />
             </div>
             
             <!-- Liste filtrée des événements -->
             <div
               v-for="event in filteredEvents"
               :key="event.id"
+              :data-testid="`event-selector-row-${event.id}`"
               class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors"
               :class="selectedEventId === event.id ? 'bg-purple-600/30 border border-purple-500/50' : ''"
               @click="selectEvent(event)"
@@ -118,6 +129,14 @@
                   {{ getEventStatusText(event) }}
                 </div>
               </div>
+              <input
+                type="checkbox"
+                :data-testid="`event-selector-checkbox-${event.id}`"
+                :checked="checkedEventIds.has(event.id)"
+                @click.stop="toggleEvent(event)"
+                class="flex-shrink-0 w-5 h-5 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+                :aria-label="`Sélectionner ${event.title}`"
+              />
             </div>
             
             <!-- Message si aucun résultat -->
@@ -162,6 +181,10 @@ const props = defineProps({
     type: String,
     default: null
   },
+  selectedEventIds: {
+    type: [Array, Set],
+    default: null
+  },
   // Props pour calculer le statut des événements
   getSelectionPlayers: {
     type: Function,
@@ -203,14 +226,27 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['close', 'event-selected', 'all-events-selected'])
+const emit = defineEmits(['close', 'event-selected', 'all-events-selected', 'events-selected'])
 
 // État local
 const searchQuery = ref('')
 const searchInput = ref(null)
+const allCheckboxRef = ref(null)
+const checkedEventIds = ref(new Set())
 const showPastEvents = ref(false)
 const showInactiveEvents = ref(false)
 const showFilterMenu = ref(false)
+
+function initCheckedEventIds() {
+  const ids = props.selectedEventIds
+  if (ids && (Array.isArray(ids) ? ids.length : ids.size) > 0) {
+    checkedEventIds.value = new Set(Array.isArray(ids) ? ids : Array.from(ids))
+  } else if (props.selectedEventId) {
+    checkedEventIds.value = new Set([props.selectedEventId])
+  } else {
+    checkedEventIds.value = new Set(props.events.map(e => e.id))
+  }
+}
 
 // Calculer le nombre de filtres actifs
 const activeFiltersCount = computed(() => {
@@ -248,14 +284,49 @@ const filteredEvents = computed(() => {
   return filtered.slice(0, 20) // Limiter à 20 résultats
 })
 
+const allEventIds = computed(() => new Set(filteredEvents.value.map(e => e.id)))
+const isAllChecked = computed(() => {
+  if (allEventIds.value.size === 0) return false
+  return [...allEventIds.value].every(id => checkedEventIds.value.has(id))
+})
+const isSomeChecked = computed(() => {
+  const count = [...allEventIds.value].filter(id => checkedEventIds.value.has(id)).length
+  return count > 0 && count < allEventIds.value.size
+})
+
+function toggleEvent(event) {
+  const next = new Set(checkedEventIds.value)
+  if (next.has(event.id)) {
+    next.delete(event.id)
+  } else {
+    next.add(event.id)
+  }
+  checkedEventIds.value = next
+}
+
+function toggleAllEvents() {
+  if (isAllChecked.value) {
+    checkedEventIds.value = new Set()
+  } else {
+    checkedEventIds.value = new Set(allEventIds.value)
+  }
+}
+
 // Fonctions
-const closeModal = () => {
+const closeModal = (applyCheckboxSelection = false) => {
+  if (applyCheckboxSelection && checkedEventIds.value.size > 0) {
+    emit('events-selected', Array.from(checkedEventIds.value))
+  }
   emit('close')
+}
+
+const closeModalWithCheckboxes = () => {
+  closeModal(true)
 }
 
 const selectEvent = (event) => {
   emit('event-selected', event)
-  closeModal()
+  closeModal(false)
 }
 
 const selectAllEvents = () => {
@@ -263,7 +334,7 @@ const selectAllEvents = () => {
     showPastEvents: showPastEvents.value,
     showInactiveEvents: showInactiveEvents.value
   })
-  closeModal()
+  closeModal(false)
 }
 
 // Fonction pour obtenir l'icône de l'événement
@@ -376,14 +447,26 @@ const getEventStats = (event) => {
 }
 
 
-// Focus sur l'input quand le modal s'ouvre
+// Focus sur l'input et initialiser les cases à cocher quand le modal s'ouvre
 watch(() => props.show, (newShow) => {
   if (newShow) {
-    showFilterMenu.value = false // Fermer le menu filtre
+    showFilterMenu.value = false
+    searchQuery.value = ''
+    initCheckedEventIds()
     nextTick(() => {
       searchInput.value?.focus()
-      searchQuery.value = '' // Reset search query
+      if (allCheckboxRef.value) {
+        allCheckboxRef.value.indeterminate = isSomeChecked.value
+      }
     })
   }
 })
+
+watch(() => checkedEventIds.value.size, () => {
+  nextTick(() => {
+    if (allCheckboxRef.value) {
+      allCheckboxRef.value.indeterminate = isSomeChecked.value
+    }
+  })
+}, { immediate: true })
 </script>

@@ -72,7 +72,8 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
-| `z-[1500]` | PlayerSelectorModal | Sélection de joueur dans vue chronologique | `src/components/PlayerSelectorModal.vue` |
+| `z-[1500]` | PlayerSelectorModal | Sélection de joueur(s) – grille et vue chronologique, multi-select via checkboxes | `src/components/PlayerSelectorModal.vue` |
+| `z-[1400]` | EventSelectorModal | Sélection d'événement(s) – grille, multi-select via checkboxes | `src/components/EventSelectorModal.vue` |
 
 ### 🎯 Niveau 1000+ : Éléments au-dessus de la grille
 

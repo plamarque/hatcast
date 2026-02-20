@@ -44,10 +44,13 @@
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
+      :selected-player-ids="selectedPlayerIds ? Array.from(selectedPlayerIds) : null"
+      :players="allSeasonPlayers"
       :season-id="seasonId"
       :show-event-selector="true"
       :selected-event="selectedEventForFilter"
-      :events="events"
+      :selected-event-ids="selectedEventIds ? Array.from(selectedEventIds) : null"
+      :events="allEvents"
       :is-sticky="true"
       @view-change="selectView"
       @player-modal-toggle="togglePlayerModal"
@@ -61,6 +64,7 @@
       :players="allSeasonPlayers"
       :season-id="seasonId"
       :selected-player-id="selectedPlayerId"
+      :selected-player-ids="selectedPlayerIds ? Array.from(selectedPlayerIds) : null"
       :preferred-player-ids-set="preferredPlayerIdsSet"
       :is-player-protected="isPlayerProtectedInGrid"
       :is-player-already-displayed="isPlayerAlreadyDisplayed"
@@ -70,6 +74,7 @@
       @close="closePlayerModal"
       @player-selected="handlePlayerSelected"
       @all-players-selected="handleAllPlayersSelected"
+      @players-selected="handlePlayersSelected"
       @add-new-player="(name) => openNewPlayerForm(name)"
     />
 
@@ -79,6 +84,7 @@
       :players="allSeasonPlayers"
       :season-id="seasonId"
       :selected-player-id="selectedTeamPlayer && selectedTeamPlayer.id !== 'all' ? selectedTeamPlayer.id : null"
+      :selected-player-ids="selectedTeamPlayer && selectedTeamPlayer.id !== 'all' ? [selectedTeamPlayer.id] : null"
       :preferred-player-ids-set="preferredPlayerIdsSet"
       :is-player-protected="isPlayerProtectedInGrid"
       :is-player-already-displayed="isPlayerAlreadyDisplayed"
@@ -88,6 +94,7 @@
       @close="() => showAvailabilityPlayerSelector = false"
       @player-selected="selectAvailabilityPlayer"
       @all-players-selected="selectAllAvailabilityPlayers"
+      @players-selected="(ids) => { const p = ids?.length ? allSeasonPlayers.find(pl => pl.id === ids[0]) : null; if (p) selectAvailabilityPlayer(p) }"
       @add-new-player="(name) => openNewPlayerForm(name)"
     />
 
@@ -96,6 +103,7 @@
       :show="showEventModal"
       :events="allEvents"
       :selected-event-id="selectedEventId"
+      :selected-event-ids="selectedEventIds ? Array.from(selectedEventIds) : null"
       :get-selection-players="getSelectionPlayers"
       :get-total-required-count="getTotalRequiredCount"
       :count-available-players="countAvailablePlayers"
@@ -109,6 +117,7 @@
       @close="closeEventModal"
       @event-selected="handleEventSelected"
       @all-events-selected="handleAllEventsSelected"
+      @events-selected="handleEventsSelected"
     />
 
     <template v-if="!isEventFullScreen">
@@ -119,10 +128,13 @@
         :current-view="validCurrentView"
         :show-player-selector="true"
         :selected-player="selectedPlayer"
+        :selected-player-ids="selectedPlayerIds ? Array.from(selectedPlayerIds) : null"
+        :players="allSeasonPlayers"
         :season-id="seasonId"
         :show-event-selector="true"
         :selected-event="selectedEventForFilter"
-        :events="events"
+        :selected-event-ids="selectedEventIds ? Array.from(selectedEventIds) : null"
+        :events="allEvents"
         :is-sticky="true"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
@@ -2379,6 +2391,10 @@ const validCurrentView = computed(() => {
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
 
+// Sélection multiple (null = tous, Set = IDs filtrés)
+const selectedPlayerIds = ref(null)
+const selectedEventIds = ref(null)
+
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
 const isAllEventsView = ref(false)
@@ -2433,26 +2449,15 @@ const selectedPlayerForDetails = ref(null)
 
 // Computed pour le joueur sélectionné (utilise toujours allSeasonPlayers)
 const selectedPlayer = computed(() => {
-  console.log('🔍 selectedPlayer computed:', {
-    selectedPlayerId: selectedPlayerId.value,
-    allSeasonPlayersLength: allSeasonPlayers.value?.length || 0,
-    currentView: validCurrentView.value
-  })
-  
-  if (!selectedPlayerId.value) {
-    console.log('🔍 selectedPlayer: no selectedPlayerId, returning null')
-    return null
+  if (!allSeasonPlayers.value) return null
+  if (selectedPlayerId.value) {
+    return allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
   }
-  
-  // Toujours utiliser allSeasonPlayers car c'est la liste complète
-  if (!allSeasonPlayers.value) {
-    console.log('🔍 selectedPlayer: no allSeasonPlayers, returning null')
-    return null
+  if (selectedPlayerIds.value && selectedPlayerIds.value.size === 1) {
+    const id = [...selectedPlayerIds.value][0]
+    return allSeasonPlayers.value.find(p => p.id === id) || null
   }
-  
-  const found = allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
-  console.log('🔍 selectedPlayer found:', found ? { id: found.id, name: found.name } : null)
-  return found
+  return null
 })
 
 // Le provide sera déplacé plus tard après la définition de dropdownDisplayText
@@ -2662,6 +2667,7 @@ async function handleShowAvailabilityGrid(playerId) {
     
     // Définir le joueur sélectionné pour la vue Agenda
     selectedPlayerId.value = playerId
+    selectedPlayerIds.value = new Set([playerId])
     
     // Fermer la modale de joueur
     closePlayerDetailsModal()
@@ -3424,6 +3430,7 @@ async function handlePlayerSelected(player) {
   // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
+    selectedPlayerIds.value = new Set([player.id])
     showPlayerModal.value = false
     
     console.log('🎯 After: selectedPlayerId =', selectedPlayerId.value)
@@ -3440,6 +3447,7 @@ async function handlePlayerSelected(player) {
   } else {
     // Pour les vues lignes/colonnes : remplacer la liste des joueurs par le joueur sélectionné
     selectedPlayerId.value = player.id
+    selectedPlayerIds.value = new Set([player.id])
     
     // Désactiver le mode "tous les joueurs" et la vue focalisée
     isAllPlayersView.value = false
@@ -3469,6 +3477,7 @@ async function handleAllPlayersSelected() {
   // Pour la vue chronologique : afficher tous les joueurs et recharger toutes les disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     showPlayerModal.value = false
     
     // Recharger toutes les disponibilités
@@ -3483,8 +3492,40 @@ async function handleAllPlayersSelected() {
   } else {
     // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille et réinitialiser selectedPlayerId
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     await addAllPlayersToGrid()
     logger.debug('🎯 Affichage de tous les joueurs pour la vue grille')
+  }
+}
+
+async function handlePlayersSelected(ids) {
+  if (!ids || ids.length === 0) return
+  selectedPlayerIds.value = new Set(ids)
+  selectedPlayerId.value = null
+  showPlayerModal.value = false
+
+  const selectedPlayers = allSeasonPlayers.value.filter(p => ids.includes(p.id))
+  if (selectedPlayers.length === 0) return
+
+  if (validCurrentView.value === 'timeline') {
+    selectedPlayerId.value = ids[0]
+    try {
+      const playerAvailability = await loadAvailability(selectedPlayers, events.value, seasonId.value)
+      availability.value = playerAvailability
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités:', error)
+    }
+  } else {
+    isAllPlayersView.value = false
+    isFocusedView.value = false
+    players.value = [...selectedPlayers]
+    manuallyAddedPlayers.value = new Set(ids)
+    try {
+      const playerAvailability = await loadAvailability(selectedPlayers, events.value, seasonId.value)
+      availability.value = playerAvailability
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités:', error)
+    }
   }
 }
 
@@ -3600,6 +3641,7 @@ async function handleAllPlayersLoaded(data) {
     
     // Réinitialiser la sélection de joueur pour que le dropdown affiche "Tous"
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     
     // Mettre à jour les états de chargement
     data.players.forEach(player => {
@@ -3631,6 +3673,7 @@ async function handleAllEventsLoaded() {
     
     // Réinitialiser la sélection d'événement pour afficher tous les événements
     selectedEventId.value = null
+    selectedEventIds.value = null
     
     logger.debug('✅ Mode "tous les événements" activé via l\'événement des composants enfants')
   } catch (error) {
@@ -5847,6 +5890,7 @@ onMounted(async () => {
       // Appliquer également le filtre d'événement comme si choisi dans le ViewHeader
       // Cela limite la grille à cet événement pour permettre de déposer ses disponibilités directement
       selectedEventId.value = eventIdFromUrl
+      selectedEventIds.value = new Set([eventIdFromUrl])
       isAllEventsView.value = false
 
               // Si modal=event_details est demandé, ouvrir automatiquement la modal
@@ -6120,7 +6164,11 @@ const sortedPlayers = computed(() => {
 
 // Computed pour les joueurs affichés
 const displayedPlayers = computed(() => {
-  // Si un joueur spécifique est sélectionné, ne montrer que ce joueur
+  // Filtrage multi : selectedPlayerIds contient les IDs à afficher
+  if (selectedPlayerIds.value && selectedPlayerIds.value.size > 0) {
+    return sortedPlayers.value.filter(p => selectedPlayerIds.value.has(p.id))
+  }
+  // Sélection unique (rétrocompat) : selectedPlayerId
   if (selectedPlayerId.value) {
     const selectedPlayer = sortedPlayers.value.find(p => p.id === selectedPlayerId.value)
     return selectedPlayer ? [selectedPlayer] : []
@@ -6236,12 +6284,14 @@ watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], (
     }
     
     // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
-    if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
+    const hasNoPlayerSelection = !selectedPlayerId.value && (!selectedPlayerIds.value || selectedPlayerIds.value.size === 0)
+    if (favoritesSize > 0 && seasonPlayersLength > 0 && hasNoPlayerSelection) {
       const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
       const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
       
       if (firstFavorite) {
         selectedPlayerId.value = firstFavoriteId
+        selectedPlayerIds.value = new Set([firstFavoriteId])
         logger.debug('🎯 Joueur par défaut initialisé avec le premier favori:', firstFavorite.name)
       }
     }
@@ -6258,6 +6308,7 @@ watch(validCurrentView, async (newView, oldView) => {
   if (newView === 'casts' && oldView !== 'casts') {
     console.log('🎯 Activation de la vue casts')
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     
     // Charger tous les joueurs pour la vue "casts"
     try {
@@ -6690,9 +6741,12 @@ const allEvents = computed(() => {
 
 const displayedEvents = computed(() => {
   let filteredEvents
-  
-  // Si un événement spécifique est sélectionné, utiliser tous les événements pour le trouver
-  if (selectedEventId.value) {
+
+  // Filtrage multi : selectedEventIds contient les IDs à afficher
+  if (selectedEventIds.value && selectedEventIds.value.size > 0) {
+    filteredEvents = allEvents.value.filter(event => selectedEventIds.value.has(event.id))
+  } else if (selectedEventId.value) {
+    // Si un événement spécifique est sélectionné, utiliser tous les événements pour le trouver
     filteredEvents = allEvents.value
     filteredEvents = filteredEvents.filter(event => event.id === selectedEventId.value)
   } else if (isAllEventsView.value) {
@@ -6769,8 +6823,15 @@ const displayedEvents = computed(() => {
 
 // Computed pour l'événement sélectionné pour le filtre
 const selectedEventForFilter = computed(() => {
-  if (!selectedEventId.value || !events.value) return null
-  return events.value.find(event => event.id === selectedEventId.value)
+  if (!events.value) return null
+  if (selectedEventId.value) {
+    return events.value.find(event => event.id === selectedEventId.value) || null
+  }
+  if (selectedEventIds.value && selectedEventIds.value.size === 1) {
+    const id = [...selectedEventIds.value][0]
+    return events.value.find(event => event.id === id) || null
+  }
+  return null
 })
 
 
@@ -9336,12 +9397,9 @@ function handleEventSelected(event) {
   console.log('🎭 handleEventSelected:', event)
   
   try {
-    // Fermer la modale d'abord
     closeEventModal()
-    
-    // Changer l'ID de l'événement sélectionné directement
-    // sans délai pour éviter les conflits de réactivité
     selectedEventId.value = event.id
+    selectedEventIds.value = new Set([event.id])
   } catch (error) {
     console.error('❌ Erreur lors de la sélection d\'événement:', error)
   }
@@ -9378,6 +9436,15 @@ function handleAllEventsSelected(filters = {}) {
   // Activer le mode "tous les événements"
   isAllEventsView.value = true
   selectedEventId.value = null
+  selectedEventIds.value = null
+  closeEventModal()
+}
+
+function handleEventsSelected(ids) {
+  if (!ids || ids.length === 0) return
+  selectedEventIds.value = new Set(ids)
+  selectedEventId.value = null
+  isAllEventsView.value = false
   closeEventModal()
 }
 
@@ -11104,6 +11171,7 @@ watch(events, (list) => {
       if (t) {
         // Appliquer le filtre d'événement issu de l'URL si présent
         selectedEventId.value = eventId
+        selectedEventIds.value = new Set([eventId])
         isAllEventsView.value = false
       }
     }
