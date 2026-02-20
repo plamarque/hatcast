@@ -1,5 +1,14 @@
 <template>
   <div class="chance-explanation-slides">
+    <!-- Zone image (slides statiques) -->
+    <div class="relative bg-gray-800/50 rounded-lg p-4 sm:p-6 min-h-[200px] sm:min-h-[300px] flex items-center justify-center mb-4 pb-2 sm:pb-4">
+      <img
+        :src="`/img/slide-${currentSlide + 1}.jpg`"
+        :alt="`Explication algorithme, étape ${currentSlide + 1}`"
+        class="chance-explanation-slide-img max-w-full max-h-[200px] sm:max-h-[300px] w-auto h-auto object-contain"
+      />
+    </div>
+
     <!-- Texte explicatif -->
     <div class="text-gray-300 text-sm sm:text-xs mb-4 min-h-[60px]">
       <div v-if="currentSlide === 0" class="text-center">
@@ -15,17 +24,8 @@
         Les plus gros papiers ont plus de chances d'être tirés au hasard que les petits.
       </div>
       <div v-if="currentSlide === 4" class="text-center">
-        On fait <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> tirage{{ explanationData.requiredCount > 1 ? 's' : '' }} dans le sac sans remettre les papiers tirés
+        On fait <span class="text-blue-400 font-semibold">{{ explanationData.requiredCount }}</span> tirage{{ explanationData.requiredCount > 1 ? 's' : '' }} dans le sac sans remettre les papiers tirés. Puis on recommence pour chaque rôle.
       </div>
-    </div>
-
-    <!-- Zone image (slides statiques) -->
-    <div class="relative bg-gray-800/50 rounded-lg p-4 sm:p-6 min-h-[200px] sm:min-h-[300px] flex items-center justify-center mb-4 pb-2 sm:pb-4">
-      <img
-        :src="`/img/slide-${currentSlide + 1}.jpg`"
-        :alt="`Explication algorithme, étape ${currentSlide + 1}`"
-        class="chance-explanation-slide-img max-w-full max-h-[200px] sm:max-h-[300px] w-auto h-auto object-contain"
-      />
     </div>
 
     <!-- Navigation -->

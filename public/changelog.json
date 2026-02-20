@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.46.0",
+    "date": "2026-02-20",
+    "changes": [
+      "✨ Ajout des pourcentages de statistiques avec une fenêtre contextuelle dans la vue des compositions.",
+      "🐛 Les images d'explication des chances s'affichent maintenant au-dessus du texte.",
+      "✨ Ajout de la catégorie DEPLACEMENT et des sous-colonnes BÉNÉVOLE dans les compositions."
+    ]
+  },
+  {
     "version": "0.45.2",
     "date": "2026-01-27",
     "changes": []

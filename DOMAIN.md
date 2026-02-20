@@ -55,6 +55,28 @@ User 1──* userPreferences, userPushTokens, userNavigation
 
 ---
 
+## Statistiques de composition (vue Compositions)
+
+La vue Compositions affiche des statistiques par joueur et par catégorie de rôle. Un événement est soit « spectacle local » (match, cabaret, longform, freeform, catch, custom, survey) soit « déplacement ». Les participations en déplacement vont dans la catégorie DEPLACEMENT, jamais dans JEU ou DECORUM. Implémenté dans `src/components/CastsView.vue`, `calculatePlayerRoleStats`.
+
+| Catégorie    | Colonne         | Contenu                                                                 | Source                                      |
+| ------------ | --------------- | ----------------------------------------------------------------------- | ------------------------------------------- |
+| **JEU**      | JEU MATCH       | Joueur (role=player) dans événements match                              | Spectacles locaux uniquement                 |
+| **JEU**      | JEU CAB         | Joueur dans événements cabaret                                         | idem                                        |
+| **JEU**      | JEU LONG        | Joueur dans événements longform                                        | idem                                        |
+| **JEU**      | JEU AUTRE       | Joueur dans freeform, catch, custom                                    | idem                                        |
+| **JEU**      | TOTAL JEU       | Somme des 4 colonnes ci-dessus                                         | Ne compte jamais les déplacements            |
+| **DECORUM**  | MC, DJ, etc.    | Rôles MC, DJ, Arbitre, Assist., Coach dans événements non-déplacement   | Spectacles locaux uniquement                 |
+| **DEPLACEMENT** | JEU           | Joueur dans événements deplacement                                    | Uniquement déplacements                     |
+| **DEPLACEMENT** | DECORUM       | MC, DJ, Arbitre, etc. dans événements deplacement (cas rare)            | idem                                        |
+| **DEPLACEMENT** | TOTAL DÉPLACEMENT | Somme JEU + DECORUM pour déplacements                               | idem                                        |
+| **BÉNÉVOLE** | RÉGISSEUR       | Rôle stage_manager dans tous événements                                | Sous-rôle bénévole                          |
+| **BÉNÉVOLE** | LUMIÈRE         | Rôle lighting dans tous événements                                     | Sous-rôle bénévole                           |
+| **BÉNÉVOLE** | BÉNÉVOLE        | Rôle volunteer dans tous événements                                    | Le rôle « Bénévole » proprement dit         |
+| **BÉNÉVOLE** | TOTAL BÉNÉVOLE  | Somme Régisseur + Lumière + Bénévole                                   | idem                                        |
+
+---
+
 ## State machines / workflows (observed)
 
 - **Auth state:** Anonymous / unauthenticated → signed in (email, magic link, Google). Password reset: request → email with link → reset (views: `PasswordReset.vue`, `MagicLink.vue`). No explicit state diagram in code; flows in auth components and `authState.js`.

@@ -1,12 +1,17 @@
-## [0.45.2] - 2026-01-27
+## [0.46.0] - 2026-02-20
 
 ### 📝 Other Changes
 
-- chore: Update package-lock.json with vitest dependencies
+- feat(casts): Add stat percentages with dispos popover in Compositions view
+- fix(ui): Show chance explanation images above text
+- caniuse upgrade
+- feat(compositions): Add DEPLACEMENT category and BÉNÉVOLE sub-columns
+- chore: Add start-dev.sh script to launch dev server
 
 
 # Changelog
 
+## [0.46.0] - 2026-02-20
 ## [0.45.2] - 2026-01-27
 ## [0.45.1] - 2026-01-26
 ## [0.45.0] - 2026-01-25
