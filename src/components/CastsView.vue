@@ -1214,139 +1214,120 @@ function getPlayerSelectionStatusFromCast(playerId, eventId) {
   return getPlayerCastStatus(cast, player.name, props.allSeasonPlayers.length > 0 ? props.allSeasonPlayers : props.displayedPlayers)
 }
 
-// Fonction pour calculer le pourcentage de chance pour un rôle spécifique d'un joueur
+// Fonction pour calculer le pourcentage de chance pour un rôle spécifique (utilise allRoleChancesByEvent avec fallback)
 function getPlayerChanceForRole(playerId, eventId, role) {
-  // Trouver le nom du joueur à partir de l'ID
   const player = props.displayedPlayers.find(p => p.id === playerId)
-  if (!player) {
+  if (!player) return null
+  const allRoleChances = allRoleChancesByEvent.value.get(eventId)
+  if (allRoleChances) {
+    const roleData = allRoleChances[role]
+    if (roleData?.candidates) {
+      const candidate = roleData.candidates.find(c => c.name === player.name)
+      if (candidate) return Math.round(candidate.practicalChance)
+    }
     return null
   }
-  
-  // Trouver l'événement correspondant
+  return getPlayerChanceForRoleFallback(playerId, eventId, role)
+}
+
+function getPlayerChanceForRoleFallback(playerId, eventId, role) {
+  const player = props.displayedPlayers.find(p => p.id === playerId)
   const event = props.events.find(e => e.id === eventId)
-  if (!event) {
-    return null
-  }
-  
-  // Vérifier que les props nécessaires sont disponibles pour calculer les chances
-  if (!props.countSelections || !props.isAvailableForRole || !props.allSeasonPlayers || props.allSeasonPlayers.length === 0) {
-    return null
-  }
-  
-  // Créer une fonction countSelections qui exclut l'événement en cours (même logique que EventRoleGroupingView)
-  const countSelectionsExcludingCurrentEvent = (playerName, roleKey) => {
-    if (!props.countSelections) return 0
-    return props.countSelections(playerName, roleKey, eventId, event.templateType)
-  }
-  
-  // Calculer les chances pour tous les rôles (même logique que EventRoleGroupingView)
-  const allRoleChances = calculateAllRoleChances(
-    event,
-    props.allSeasonPlayers,
-    props.availability,
-    countSelectionsExcludingCurrentEvent,
-    props.isAvailableForRole
-  )
-  
-  // Récupérer les chances pour ce rôle spécifique
+  if (!player || !event || !props.countSelections || !props.isAvailableForRole || !props.allSeasonPlayers?.length) return null
+  const countSelectionsExcludingCurrentEvent = (playerName, r) => props.countSelections(playerName, r, eventId, event.templateType)
+  const allRoleChances = calculateAllRoleChances(event, props.allSeasonPlayers, props.availability, countSelectionsExcludingCurrentEvent, props.isAvailableForRole)
   const roleData = allRoleChances[role]
-  if (!roleData || !roleData.candidates) {
-    return null
-  }
-  
+  if (!roleData?.candidates) return null
   const candidate = roleData.candidates.find(c => c.name === player.name)
   return candidate ? Math.round(candidate.practicalChance) : null
 }
 
-// Fonction pour obtenir les rôles et chances d'un joueur pour un événement
+// Fonction pour obtenir les rôles et chances d'un joueur pour un événement (utilise le pré-calculé si disponible)
 function getPlayerRolesAndChances(playerId, eventId, playerGender = 'non-specified') {
-  // Si le joueur est sélectionné ET la composition est validée, on n'affiche pas les chances
-  const selectedRole = getPlayerRoleInEvent(playerId, eventId)
-  if (selectedRole && props.isSelectionConfirmedByOrganizer(eventId)) {
-    return null
-  }
-  
-  // Trouver le nom du joueur à partir de l'ID
+  const lookup = rolesAndChancesLookup.value.get(`${playerId}-${eventId}`)
+  if (lookup !== undefined) return lookup
+  return getPlayerRolesAndChancesFallback(playerId, eventId, playerGender)
+}
+
+function getPlayerRolesAndChancesFallback(playerId, eventId, playerGender = 'non-specified') {
   const player = props.displayedPlayers.find(p => p.id === playerId)
-  if (!player) {
-    return null
-  }
-  
-  // Récupérer les données d'availability avec le nom du joueur
+  if (!player) return null
+  const selectedRole = getPlayerRoleInEvent(playerId, eventId)
+  if (selectedRole && props.isSelectionConfirmedByOrganizer(eventId)) return null
   const availabilityData = props.getAvailabilityData(player.name, eventId)
-  
-  if (!availabilityData?.available || !availabilityData?.roles || availabilityData.roles.length === 0) {
-    return null
-  }
-  
-  // Trouver l'événement correspondant
+  if (!availabilityData?.available || !availabilityData?.roles || availabilityData.roles.length === 0) return null
   const event = props.events.find(e => e.id === eventId)
-  if (!event) {
-    return null
-  }
-  
-  // Vérifier que les props nécessaires sont disponibles pour calculer les chances
+  if (!event) return null
   if (!props.countSelections || !props.isAvailableForRole || !props.allSeasonPlayers || props.allSeasonPlayers.length === 0) {
-    // Si les props ne sont pas disponibles, retourner les rôles sans chances
-    const rolesWithChances = availabilityData.roles.map(role => {
-      const roleLabel = getRoleLabel(role, playerGender)
-      return {
-        role: role,
-        label: roleLabel,
-        chance: null
-      }
-    })
-    return rolesWithChances
+    return availabilityData.roles.map(role => ({ role, label: getRoleLabel(role, playerGender), chance: null }))
   }
-  
-  // Créer une fonction countSelections qui exclut l'événement en cours (même logique que EventRoleGroupingView)
-  const countSelectionsExcludingCurrentEvent = (playerName, role) => {
-    if (!props.countSelections) return 0
-    return props.countSelections(playerName, role, eventId, event.templateType)
-  }
-  
-  // Calculer les chances pour tous les rôles (même logique que EventRoleGroupingView)
-  const allRoleChances = calculateAllRoleChances(
-    event,
-    props.allSeasonPlayers,
-    props.availability,
-    countSelectionsExcludingCurrentEvent,
-    props.isAvailableForRole
-  )
-  
-  // Mapper les rôles avec leurs chances calculées
-  const rolesWithChances = availabilityData.roles.map(role => {
-    const roleLabel = getRoleLabel(role, playerGender)
-    
-    // Récupérer les chances pour ce rôle
+  const countSelectionsExcludingCurrentEvent = (playerName, role) =>
+    props.countSelections ? props.countSelections(playerName, role, eventId, event.templateType) : 0
+  const allRoleChances = calculateAllRoleChances(event, props.allSeasonPlayers, props.availability, countSelectionsExcludingCurrentEvent, props.isAvailableForRole)
+  return availabilityData.roles.map(role => {
     const roleData = allRoleChances[role]
     let chance = null
-    
-    if (roleData && roleData.candidates) {
+    if (roleData?.candidates) {
       const candidate = roleData.candidates.find(c => c.name === player.name)
-      if (candidate) {
-        chance = Math.round(candidate.practicalChance)
-      }
+      if (candidate) chance = Math.round(candidate.practicalChance)
     }
-    
-    return {
-      role: role,
-      label: roleLabel,
-      chance: chance
-    }
+    return { role, label: getRoleLabel(role, playerGender), chance }
   })
-  
-  return rolesWithChances
 }
+
+// Pré-calcul: 1× calculateAllRoleChances par event (au lieu de 1× par cellule = events×players)
+const allRoleChancesByEvent = computed(() => {
+  const map = new Map()
+  if (!props.countSelections || !props.isAvailableForRole || !props.allSeasonPlayers?.length) return map
+  props.events.forEach(event => {
+    const countSelectionsExcludingCurrentEvent = (playerName, role) =>
+      props.countSelections(playerName, role, event.id, event.templateType)
+    map.set(event.id, calculateAllRoleChances(event, props.allSeasonPlayers, props.availability, countSelectionsExcludingCurrentEvent, props.isAvailableForRole))
+  })
+  return map
+})
+
+// Lookup O(1) par cellule au lieu de O(roles×candidates) - évite le blocage 3.6s au toggle
+const rolesAndChancesLookup = computed(() => {
+  const map = new Map()
+  props.displayedPlayers.forEach(player => {
+    props.events.forEach(event => {
+      const selectedRole = getPlayerRoleInEvent(player.id, event.id)
+      if (selectedRole && props.isSelectionConfirmedByOrganizer(event.id)) {
+        map.set(`${player.id}-${event.id}`, null)
+        return
+      }
+      const availabilityData = props.getAvailabilityData(player.name, event.id)
+      if (!availabilityData?.available || !availabilityData?.roles?.length) {
+        map.set(`${player.id}-${event.id}`, null)
+        return
+      }
+      const allRoleChances = allRoleChancesByEvent.value.get(event.id)
+      if (!allRoleChances) {
+        map.set(`${player.id}-${event.id}`, null)
+        return
+      }
+      const rolesWithChances = availabilityData.roles.map(role => {
+        const roleData = allRoleChances[role]
+        let chance = null
+        if (roleData?.candidates) {
+          const candidate = roleData.candidates.find(c => c.name === player.name)
+          if (candidate) chance = Math.round(candidate.practicalChance)
+        }
+        return { role, label: getRoleLabel(role, player.gender || 'non-specified'), chance }
+      })
+      map.set(`${player.id}-${event.id}`, rolesWithChances)
+    })
+  })
+  return map
+})
 
 // Computed property pour les statistiques de tous les joueurs
 const playersRoleStats = computed(() => {
   const statsMap = new Map()
-  
   props.displayedPlayers.forEach(player => {
     statsMap.set(player.name, calculatePlayerRoleStats(player.name))
   })
-  
   return statsMap
 })
 
@@ -1603,11 +1584,21 @@ async function addAllPlayersToGrid() {
   try {
     logger.debug('🔄 Chargement de tous les joueurs de la saison...')
     
-    // Charger tous les joueurs
     const allPlayers = await loadPlayers(props.seasonId)
-    
-    // Recharger les disponibilités pour tous les joueurs
-    const newAvailability = await loadAvailability(allPlayers, props.events, props.seasonId)
+    const existingNames = new Set(Object.keys(props.availability || {}))
+    const missingPlayers = allPlayers.filter(p => !existingNames.has(p.name))
+    let newAvailability
+
+    if (missingPlayers.length === 0) {
+      newAvailability = props.availability
+      logger.debug('📊 Réutilisation des dispos existantes (déjà chargées)')
+    } else if (missingPlayers.length < allPlayers.length) {
+      const loaded = await loadAvailability(missingPlayers, props.events, props.seasonId)
+      newAvailability = { ...props.availability, ...loaded }
+      logger.debug(`📊 Dispos chargées pour ${missingPlayers.length} joueurs manquants, ${allPlayers.length - missingPlayers.length} réutilisés`)
+    } else {
+      newAvailability = await loadAvailability(allPlayers, props.events, props.seasonId)
+    }
     
     logger.debug(`📊 Chargé ${allPlayers.length} joueurs (mode "tous")`)
     logger.debug('✅ Tous les joueurs chargés avec leurs disponibilités')
