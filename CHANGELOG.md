@@ -1,16 +1,14 @@
-## [0.46.0] - 2026-02-20
+## [0.46.1] - 2026-02-20
 
 ### 📝 Other Changes
 
-- feat(casts): Add stat percentages with dispos popover in Compositions view
-- fix(ui): Show chance explanation images above text
-- caniuse upgrade
-- feat(compositions): Add DEPLACEMENT category and BÉNÉVOLE sub-columns
-- chore: Add start-dev.sh script to launch dev server
+- perf(casts): Optimize Composition view rendering and availability loading
+- feat(ui): Enable landscape mode and fix grid transparency
 
 
 # Changelog
 
+## [0.46.1] - 2026-02-20
 ## [0.46.0] - 2026-02-20
 ## [0.45.2] - 2026-01-27
 ## [0.45.1] - 2026-01-26

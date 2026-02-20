@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full overflow-x-auto" ref="gridboardRef" @scroll="handleScroll">
+  <div class="w-full overflow-x-auto bg-gray-900 min-h-full" ref="gridboardRef" @scroll="handleScroll">
     <table 
       class="w-full table-auto border-separate border-spacing-0" 
       :style="{

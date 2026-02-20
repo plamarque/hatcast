@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.46.1",
+    "date": "2026-02-20",
+    "changes": [
+      "🔧 On a amélioré le rendu de la vue de composition et le chargement de la disponibilité.",
+      "✨ On a ajouté le mode paysage et corrigé la transparence de la grille."
+    ]
+  },
+  {
     "version": "0.46.0",
     "date": "2026-02-20",
     "changes": [

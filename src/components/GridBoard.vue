@@ -113,7 +113,7 @@
 
     <template v-if="!isEventFullScreen">
     <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full px-0 md:px-0 pb-0 bg-gray-900">
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full flex-1 min-h-0 px-0 md:px-0 pb-0 bg-gray-900 overflow-auto">
       
       <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
