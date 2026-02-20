@@ -1,10 +1,12 @@
 <template>
-  <div class="w-full bg-gray-900 min-h-full">
-    <!-- Tableau avec colonnes de statistiques et événements -->
-    <div class="overflow-x-auto casts-view" @scroll="handleScroll">
+  <div class="w-full min-w-0 bg-gray-900 min-h-full casts-view" ref="castsViewRef">
+    <!-- overflow-x-auto sur le parent GridBoard gère le scroll horizontal ; pas d'overflow ici pour thead sticky -->
     <table class="w-full table-auto border-separate border-spacing-0" style="border-spacing: 0;">
-      <!-- En-tête de la table -->
-      <thead class="sticky top-0 z-[110]">
+      <!-- En-tête de la table - sticky par rapport au conteneur overflow-auto du GridBoard -->
+      <thead
+        class="casts-view-thead sticky z-[110] bg-gray-900"
+        :style="{ top: headerOffsetTop ? `${headerOffsetTop}px` : '0' }"
+      >
         <!-- Ligne d'en-tête de groupe -->
         <tr>
           <!-- Cellule vide pour la colonne de gauche -->
@@ -696,8 +698,6 @@
         </tr>
       </tbody>
     </table>
-    </div>
-
   </div>
 </template>
 
@@ -753,6 +753,10 @@ const props = defineProps({
     default: 0
   },
   headerScrollX: {
+    type: Number,
+    default: 0
+  },
+  headerOffsetTop: {
     type: Number,
     default: 0
   },
@@ -924,8 +928,17 @@ onMounted(() => {
   updateWindowWidth()
   window.addEventListener('resize', updateWindowWidth)
   
+  // Écouter le scroll sur le parent (conteneur overflow-auto) pour emit
+  const scrollParent = castsViewRef.value?.parentElement
+  if (scrollParent) {
+    scrollParent.addEventListener('scroll', handleScroll, { passive: true })
+  }
+  
   onUnmounted(() => {
     window.removeEventListener('resize', updateWindowWidth)
+    if (castsViewRef.value?.parentElement) {
+      castsViewRef.value.parentElement.removeEventListener('scroll', handleScroll)
+    }
   })
 })
 
@@ -1769,6 +1782,8 @@ const handleAvailabilityChanged = (data) => {
   emit('availability-changed', data)
 }
 
+const castsViewRef = ref(null)
+
 const handleScroll = (event) => {
   emit('scroll', event)
 }
@@ -1849,6 +1864,11 @@ async function addAllEventsToGrid() {
 
 <style scoped>
 /* Chiffres des cellules stats dans Historique – agrandis d’au moins 50 % */
+.casts-view-thead {
+  position: sticky !important;
+  background-color: #111827 !important;
+}
+
 .casts-view td .flex.flex-col.items-center.w-full > span:first-child {
   font-size: 1.25rem; /* ~20px, +43 % vs text-sm 14px */
 }

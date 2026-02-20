@@ -1,15 +1,14 @@
 <template>
   <div
-      class="min-h-screen flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+      class="flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
       :class="[
-        { 'h-screen': isEventFullScreen },
-        isEventFullScreen ? '' : 'pb-20'
+        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20'
       ]"
     >
     <!-- Contenu principal -->
     <div class="w-full flex-1 flex flex-col min-h-0">
       <!-- Header de saison partagé -->
-    <SeasonHeader 
+    <SeasonHeader
       :season-name="seasonName"
       :is-scrolled="isScrolled"
       :season-slug="props.slug"
@@ -39,8 +38,9 @@
 
     <!-- Season grid / timeline (hidden when on event full-screen) -->
     <template v-if="!isEventFullScreen">
+    <!-- ViewHeader for timeline view only (outside scroll, sticky) -->
     <ViewHeader
-      v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'timeline' || validCurrentView === 'casts'"
+      v-if="validCurrentView === 'timeline'"
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
@@ -112,11 +112,22 @@
     />
 
     <template v-if="!isEventFullScreen">
-    <!-- Vue grille (lignes ou colonnes) -->
-    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" class="w-full flex-1 min-h-0 px-0 md:px-0 pb-0 bg-gray-900 overflow-auto">
-      
-      <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
-      
+    <!-- Vue grille (lignes ou colonnes) : ViewHeader + grille dans même zone scroll pour sticky unifié -->
+    <div v-if="validCurrentView === 'events' || validCurrentView === 'participants' || validCurrentView === 'casts'" ref="gridScrollRef" class="w-full flex-1 min-h-0 min-w-0 px-0 md:px-0 pb-0 bg-gray-900 overflow-auto" :style="{ '--header-offset-top': `${viewHeaderHeight}px`, '-webkit-overflow-scrolling': 'touch' }">
+      <ViewHeader
+        ref="viewHeaderRef"
+        :current-view="validCurrentView"
+        :show-player-selector="true"
+        :selected-player="selectedPlayer"
+        :season-id="seasonId"
+        :show-event-selector="true"
+        :selected-event="selectedEventForFilter"
+        :events="events"
+        :is-sticky="true"
+        @view-change="selectView"
+        @player-modal-toggle="togglePlayerModal"
+        @event-modal-toggle="toggleEventModal"
+      />
       <!-- Composants de vue séparés -->
       <ParticipantsView
         v-if="validCurrentView === 'participants'"
@@ -148,6 +159,7 @@
         :casts="casts"
         :header-offset-x="0"
         :header-scroll-x="0"
+        :header-offset-top="viewHeaderHeight"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
@@ -191,6 +203,7 @@
         :casts="casts"
         :header-offset-x="0"
         :header-scroll-x="0"
+        :header-offset-top="viewHeaderHeight"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
@@ -238,6 +251,7 @@
         :is-available-for-role="isAvailableForRole"
         :availability="availability"
         :all-season-players="allSeasonPlayers"
+        :header-offset-top="viewHeaderHeight"
         @player-selected="showPlayerDetails"
         @availability-changed="handleAvailabilityChanged"
         @scroll="handleGridScroll"
@@ -252,7 +266,7 @@
       />
                 </div>
                 
-    <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full bg-gray-900">
+    <div v-if="validCurrentView === 'timeline' && events.length > 0" class="w-full flex-1 min-h-0 overflow-auto bg-gray-900">
       
       <!-- Modal de sélection supprimé d'ici - déplacé au niveau global -->
       
@@ -2298,6 +2312,12 @@ const seasonMeta = ref({})
 // État du scroll pour le header sticky
 const isScrolled = ref(false)
 
+// Hauteur du ViewHeader (zone grille) pour le sticky des thead
+const viewHeaderRef = ref(null)
+const viewHeaderHeight = ref(0)
+const gridScrollRef = ref(null)
+let viewHeaderResizeObserver = null
+
 // Vues valides disponibles
 const VALID_VIEWS = ['events', 'participants', 'timeline', 'casts']
 const DEFAULT_VIEW = 'events'
@@ -2380,6 +2400,31 @@ watch(selectedPlayerId, (newValue, oldValue) => {
     to: newValue,
     stack: new Error().stack?.split('\n').slice(1, 4) // 3 premières lignes de la stack
   })
+}, { immediate: true })
+
+function getEl(obj) {
+  return obj?.$el ?? obj
+}
+
+// ResizeObserver pour mesurer la hauteur du ViewHeader (zone grille)
+watch(viewHeaderRef, (el) => {
+  const domEl = getEl(el)
+  if (viewHeaderResizeObserver) {
+    viewHeaderResizeObserver.disconnect()
+    viewHeaderResizeObserver = null
+  }
+  if (!domEl) {
+    viewHeaderHeight.value = 0
+    return
+  }
+  viewHeaderResizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const rect = entry.target.getBoundingClientRect()
+      viewHeaderHeight.value = Math.ceil(rect.height) + 2
+    }
+  })
+  viewHeaderResizeObserver.observe(domEl)
+  viewHeaderHeight.value = Math.ceil(domEl.getBoundingClientRect().height) + 2
 }, { immediate: true })
 const showPlayerModal = ref(false)
 const showEventModal = ref(false)
@@ -4387,6 +4432,10 @@ onMounted(() => {
   window.addEventListener('resize', maybeRepositionCoachmark)
 })
 onUnmounted(() => {
+  if (viewHeaderResizeObserver) {
+    viewHeaderResizeObserver.disconnect()
+    viewHeaderResizeObserver = null
+  }
   // Cleanup de l'écouteur d'authentification
   if (window._gridBoardUnsubscribe) {
     window._gridBoardUnsubscribe()

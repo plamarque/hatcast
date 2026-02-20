@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full overflow-x-auto bg-gray-900 min-h-full" ref="gridboardRef" @scroll="handleScroll">
+  <div class="w-full bg-gray-900 min-h-full" ref="gridboardRef">
     <table 
       class="w-full table-auto border-separate border-spacing-0" 
       :style="{
@@ -7,7 +7,10 @@
       }"
     >
       <!-- En-tête de la table -->
-      <thead class="sticky top-0 z-[110]">
+      <thead
+        class="sticky z-[110] bg-gray-900"
+        :style="{ top: headerOffsetTop ? `${headerOffsetTop}px` : '0' }"
+      >
         <tr>
           <!-- Colonne de gauche -->
           <th 
@@ -123,6 +126,12 @@ const props = defineProps({
     default: 80
   },
   
+  // Offset top pour thead sticky (hauteur du ViewHeader au-dessus)
+  headerOffsetTop: {
+    type: Number,
+    default: 0
+  },
+
   // État de l'affichage
   isAllPlayersView: {
     type: Boolean,
@@ -230,14 +239,21 @@ const dynamicLeftColumnWidth = computed(() => {
 })
 
 
-// Methods
+// Methods - le scroll se produit sur le parent overflow-auto (pas ici), on écoute le parent
 const handleScroll = (event) => {
   const el = event.target
   const { scrollLeft, scrollWidth, clientWidth } = el
   showLeftHint.value = scrollLeft > 2
   showRightHint.value = scrollLeft < scrollWidth - clientWidth - 2
-  
-  // Émettre l'événement de scroll pour synchroniser avec le parent
+  emit('scroll', { scrollLeft })
+}
+
+const updateScrollFromParent = () => {
+  const scrollEl = gridboardRef.value?.parentElement
+  if (!scrollEl) return
+  const { scrollLeft, scrollWidth, clientWidth } = scrollEl
+  showLeftHint.value = scrollLeft > 2
+  showRightHint.value = scrollLeft < scrollWidth - clientWidth - 2
   emit('scroll', { scrollLeft })
 }
 
@@ -258,19 +274,19 @@ const toggleEventModal = () => {
 }
 
 
-// Lifecycle
+// Lifecycle - écouter le scroll sur le parent (conteneur overflow-auto) pour hints et emit
 onMounted(() => {
-  // Ajouter un listener pour le scroll
-  if (gridboardRef.value) {
-    gridboardRef.value.addEventListener('scroll', handleScroll, { passive: true })
+  const scrollParent = gridboardRef.value?.parentElement
+  if (scrollParent) {
+    scrollParent.addEventListener('scroll', handleScroll, { passive: true })
+    updateScrollFromParent()
   }
 })
 
-
 onUnmounted(() => {
-  // Nettoyer les listeners
-  if (gridboardRef.value) {
-    gridboardRef.value.removeEventListener('scroll', handleScroll)
+  const scrollParent = gridboardRef.value?.parentElement
+  if (scrollParent) {
+    scrollParent.removeEventListener('scroll', handleScroll)
   }
 })
 </script>

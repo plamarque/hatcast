@@ -202,8 +202,8 @@ Les modales suivantes sont définies inline dans `GridBoard.vue` :
 - **Justification** : Doivent apparaître au-dessus de l'en-tête de saison et des autres modales
 
 ### En-têtes de tableaux sticky
-- **Z-index** : `z-[105]`
-- **Justification** : Doivent être sticky sous le ViewHeader (z-[110]) mais au-dessus du header de saison (z-[100])
+- **Z-index** : `z-[110]` (BaseGridView, CastsView)
+- **Justification** : Doivent être sticky sous le ViewHeader (z-[120]) mais au-dessus du contenu. La zone sticky unifiée (vues grille) inclut ViewHeader + en-têtes de colonnes : ViewHeader en `top-0`, thead en `top-[hauteur ViewHeader]`.
 
 ### Toasts de notification
 - **Z-index** : `z-[9999]`
