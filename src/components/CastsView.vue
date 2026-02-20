@@ -39,7 +39,7 @@
               class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1.5 text-center"
               style="border: none; margin: 0;"
             >
-              DEPLACEMENT
+              DEPLAC.
             </th>
             <th 
               :colspan="benevoleColumnsCount" 
@@ -213,7 +213,7 @@
               </div>
             </th>
             
-            <!-- DEPLACEMENT - Colonnes de détails (affichées conditionnellement) -->
+            <!-- DEPLAC. - Colonnes de détails (affichées conditionnellement) -->
             <template v-if="showDeplacementDetails">
               <th class="bg-teal-50 text-teal-700 text-xs px-2 py-2 text-center border-r border-b border-teal-200 cursor-pointer touch-manipulation" style="width: 70px; min-width: 70px;">
                 <div class="flex flex-col items-center space-y-0.5">
@@ -236,7 +236,7 @@
               <div class="flex flex-col items-center space-y-0.5">
                 <template v-if="showDeplacementDetails">
                   <span>TOTAL</span>
-                  <span>DÉPLACEMENT</span>
+                  <span>DEPLAC.</span>
                   <button
                     @click.stop="toggleDeplacementDetails"
                     class="text-teal-600 hover:text-teal-800 text-xs underline font-normal mt-0.5"
@@ -246,7 +246,7 @@
                   </button>
                 </template>
                 <template v-else>
-                  <span>DEPLACEMENT</span>
+                  <span>DEPLAC.</span>
                   <button
                     @click.stop="toggleDeplacementDetails"
                     class="text-teal-600 hover:text-teal-800 text-xs underline font-normal"
@@ -489,7 +489,7 @@
               </div>
             </td>
             
-            <!-- Colonnes DEPLACEMENT - Détails (affichées conditionnellement) -->
+            <!-- Colonnes DEPLAC. - Détails (affichées conditionnellement) -->
             <template v-if="showDeplacementDetails">
               <td class="bg-teal-50 text-teal-700 text-center text-sm border-r border-b border-teal-200 cursor-pointer touch-manipulation" style="width: 70px; min-width: 70px;">
                 <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.deplacementJeu || 0, (playersDisposDeclines.get(player.name) || {})['deplacementJeu']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['deplacementJeu']?.declines || 0), $event)">
@@ -1625,4 +1625,20 @@ async function addAllEventsToGrid() {
 }
 </script>
 
-<!-- Styles gérés par BaseGridView.vue -->
+<style scoped>
+/* Chiffres des cellules stats dans Historique – agrandis d’au moins 50 % */
+.casts-view td .flex.flex-col.items-center.w-full > span:first-child {
+  font-size: 1.25rem; /* ~20px, +43 % vs text-sm 14px */
+}
+.casts-view td .flex.flex-col.items-center.w-full > span.text-xs {
+  font-size: 0.875rem; /* 14px, légèrement plus grand que text-xs 12px */
+}
+
+/* Titres des colonnes stats – légèrement agrandis */
+.casts-view thead th[class*="bg-amber"],
+.casts-view thead th[class*="bg-violet"],
+.casts-view thead th[class*="bg-teal"],
+.casts-view thead th[class*="bg-slate"] {
+  font-size: 0.875rem; /* text-sm, 14px vs text-xs 12px */
+}
+</style>
