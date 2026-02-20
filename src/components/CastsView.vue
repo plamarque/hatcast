@@ -19,28 +19,35 @@
           ></th>
           
           <!-- En-tête de groupe (affiché seulement quand les détails sont visibles) -->
-          <template v-if="showStatsColumns && (showJeuDetails || showDecorumDetails)">
-            <!-- En-tête de groupe JEU -->
+          <template v-if="showStatsColumns && (showJeuDetails || showDecorumDetails || showDeplacementDetails || showBenevoleDetails)">
             <th 
-              v-if="showJeuDetails"
               :colspan="jeuColumnsCount" 
               class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1.5 text-center rounded-tl"
               style="border: none; margin: 0;"
             >
               JEU
             </th>
-            <!-- En-tête de groupe DECORUM -->
             <th 
-              v-if="showDecorumDetails"
               :colspan="decorumColumnsCount" 
               class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-1.5 text-center"
-              :class="showJeuDetails ? '' : 'rounded-tl'"
               style="border: none; margin: 0;"
             >
               DECORUM
             </th>
-            <!-- Cellule vide pour BÉNÉVOLE -->
-            <th colspan="1" class="rounded-tr" style="border: none; padding: 0; margin: 0;"></th>
+            <th 
+              :colspan="deplacementColumnsCount" 
+              class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1.5 text-center"
+              style="border: none; margin: 0;"
+            >
+              DEPLACEMENT
+            </th>
+            <th 
+              :colspan="benevoleColumnsCount" 
+              class="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-1.5 text-center rounded-tr"
+              style="border: none; margin: 0;"
+            >
+              BÉNÉVOLE
+            </th>
           </template>
           
           <!-- Cellules vides pour les événements -->
@@ -115,8 +122,8 @@
             <!-- Total Jeu avec lien toggle -->
             <th 
               class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-amber-200"
-              :class="!showJeuDetails && !showDecorumDetails ? 'rounded-tl' : ''"
-              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
+              :class="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'rounded-tl' : ''"
+              :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
             >
               <div class="flex flex-col items-center space-y-0.5">
                 <template v-if="showJeuDetails">
@@ -179,7 +186,7 @@
             <!-- Total Decorum avec lien toggle -->
             <th 
               class="bg-violet-100 text-violet-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-violet-200"
-              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
+              :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
             >
               <div class="flex flex-col items-center space-y-0.5">
                 <template v-if="showDecorumDetails">
@@ -206,14 +213,99 @@
               </div>
             </th>
             
-            <!-- BÉNÉVOLES -->
+            <!-- DEPLACEMENT - Colonnes de détails (affichées conditionnellement) -->
+            <template v-if="showDeplacementDetails">
+              <th class="bg-teal-50 text-teal-700 text-xs px-2 py-2 text-center border-r border-b border-teal-200" style="width: 70px; min-width: 70px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎭</span>
+                  <span>JEU</span>
+                </div>
+              </th>
+              <th class="bg-teal-50 text-teal-700 text-xs px-2 py-2 text-center border-r border-b border-teal-200" style="width: 75px; min-width: 75px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎤</span>
+                  <span>DECORUM</span>
+                </div>
+              </th>
+            </template>
+            <!-- Total Déplacement avec lien toggle -->
             <th 
-              class="bg-slate-100 text-slate-700 text-xs px-2 py-2 text-center border-l-2 border-r border-b border-slate-200 rounded-tr"
-              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
+              class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-teal-200"
+              :style="!showDeplacementDetails ? 'width: 85px; min-width: 85px;' : 'width: 80px; min-width: 80px;'"
             >
               <div class="flex flex-col items-center space-y-0.5">
-                <span>🤝</span>
-                <span>BÉNÉVOLE</span>
+                <template v-if="showDeplacementDetails">
+                  <span>TOTAL</span>
+                  <span>DÉPLACEMENT</span>
+                  <button
+                    @click.stop="toggleDeplacementDetails"
+                    class="text-teal-600 hover:text-teal-800 text-xs underline font-normal mt-0.5"
+                    title="Masquer les détails"
+                  >
+                    masquer les détails
+                  </button>
+                </template>
+                <template v-else>
+                  <span>DEPLACEMENT</span>
+                  <button
+                    @click.stop="toggleDeplacementDetails"
+                    class="text-teal-600 hover:text-teal-800 text-xs underline font-normal"
+                    title="Voir les détails"
+                  >
+                    voir les détails
+                  </button>
+                </template>
+              </div>
+            </th>
+            
+            <!-- BÉNÉVOLE - Colonnes de détails (affichées conditionnellement) -->
+            <template v-if="showBenevoleDetails">
+              <th class="bg-slate-50 text-slate-700 text-xs px-2 py-2 text-center border-r border-b border-slate-200" style="width: 70px; min-width: 70px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🎬</span>
+                  <span>RÉGISSEUR</span>
+                </div>
+              </th>
+              <th class="bg-slate-50 text-slate-700 text-xs px-2 py-2 text-center border-r border-b border-slate-200" style="width: 65px; min-width: 65px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🔦</span>
+                  <span>LUMIÈRE</span>
+                </div>
+              </th>
+              <th class="bg-slate-50 text-slate-700 text-xs px-2 py-2 text-center border-r border-b border-slate-200" style="width: 70px; min-width: 70px;">
+                <div class="flex flex-col items-center space-y-0.5">
+                  <span>🤝</span>
+                  <span>BÉNÉVOLE</span>
+                </div>
+              </th>
+            </template>
+            <!-- Total Bénévole avec lien toggle -->
+            <th 
+              class="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-2 text-center border-l-2 border-r border-b border-slate-200 rounded-tr"
+              :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
+            >
+              <div class="flex flex-col items-center space-y-0.5">
+                <template v-if="showBenevoleDetails">
+                  <span>TOTAL</span>
+                  <span>BÉNÉVOLE</span>
+                  <button
+                    @click.stop="toggleBenevoleDetails"
+                    class="text-slate-600 hover:text-slate-800 text-xs underline font-normal mt-0.5"
+                    title="Masquer les détails"
+                  >
+                    masquer les détails
+                  </button>
+                </template>
+                <template v-else>
+                  <span>BÉNÉVOLE</span>
+                  <button
+                    @click.stop="toggleBenevoleDetails"
+                    class="text-slate-600 hover:text-slate-800 text-xs underline font-normal"
+                    title="Voir les détails"
+                  >
+                    voir les détails
+                  </button>
+                </template>
               </div>
             </th>
           </template>
@@ -314,7 +406,7 @@
         </td>
           
           <!-- Cellules de comptage des rôles -->
-          <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0}]" :key="`stats-${player.id}`">
+          <template v-if="showStatsColumns" v-for="(stats, index) in [playersRoleStats.get(player.name) || getDefaultStats()]" :key="`stats-${player.id}`">
             <!-- Colonnes de jeu - Détails (affichées conditionnellement) -->
             <template v-if="showJeuDetails">
               <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200" style="width: 90px; min-width: 90px;">
@@ -333,7 +425,7 @@
             <!-- Total Jeu -->
             <td 
               class="bg-amber-100 text-amber-800 text-center text-sm font-bold border-l-2 border-r border-b border-amber-200"
-              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
+              :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
             >
               {{ stats.totalJeu || '' }}
             </td>
@@ -359,17 +451,46 @@
             <!-- Total Decorum -->
             <td 
               class="bg-violet-100 text-violet-800 text-center text-sm font-bold border-l-2 border-r border-b border-violet-200"
-              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
+              :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
             >
               {{ (stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || '' }}
             </td>
             
-            <!-- Colonne bénévoles -->
+            <!-- Colonnes DEPLACEMENT - Détails (affichées conditionnellement) -->
+            <template v-if="showDeplacementDetails">
+              <td class="bg-teal-50 text-teal-700 text-center text-sm border-r border-b border-teal-200" style="width: 70px; min-width: 70px;">
+                {{ stats.deplacementJeu || '' }}
+              </td>
+              <td class="bg-teal-50 text-teal-700 text-center text-sm border-r border-b border-teal-200" style="width: 75px; min-width: 75px;">
+                {{ stats.deplacementDecorum || '' }}
+              </td>
+            </template>
+            <!-- Total Déplacement -->
             <td 
-              class="bg-slate-100 text-slate-700 text-center text-sm border-l-2 border-r border-b border-slate-200"
-              :style="!showJeuDetails && !showDecorumDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
+              class="bg-teal-100 text-teal-800 text-center text-sm font-bold border-l-2 border-r border-b border-teal-200"
+              :style="!showDeplacementDetails ? 'width: 85px; min-width: 85px;' : 'width: 80px; min-width: 80px;'"
             >
-              {{ stats.volunteer || '' }}
+              {{ stats.totalDeplacement || '' }}
+            </td>
+            
+            <!-- Colonnes BÉNÉVOLE - Détails (affichées conditionnellement) -->
+            <template v-if="showBenevoleDetails">
+              <td class="bg-slate-50 text-slate-700 text-center text-sm border-r border-b border-slate-200" style="width: 70px; min-width: 70px;">
+                {{ stats.stageManager || '' }}
+              </td>
+              <td class="bg-slate-50 text-slate-700 text-center text-sm border-r border-b border-slate-200" style="width: 65px; min-width: 65px;">
+                {{ stats.lighting || '' }}
+              </td>
+              <td class="bg-slate-50 text-slate-700 text-center text-sm border-r border-b border-slate-200" style="width: 70px; min-width: 70px;">
+                {{ stats.volunteer || '' }}
+              </td>
+            </template>
+            <!-- Total Bénévole -->
+            <td 
+              class="bg-slate-100 text-slate-700 text-center text-sm font-bold border-l-2 border-r border-b border-slate-200"
+              :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
+            >
+              {{ stats.totalBenevole || '' }}
             </td>
           </template>
         
@@ -606,6 +727,12 @@ const showDecorumDetails = ref(false)
 // State pour contrôler l'affichage des détails du jeu
 const showJeuDetails = ref(false)
 
+// State pour contrôler l'affichage des détails déplacement
+const showDeplacementDetails = ref(false)
+
+// State pour contrôler l'affichage des détails bénévole
+const showBenevoleDetails = ref(false)
+
 // Écouter les changements de taille d'écran
 onMounted(() => {
   const updateWindowWidth = () => {
@@ -658,27 +785,33 @@ function calculatePlayerRoleStats(playerName) {
   const player = props.displayedPlayers.find(p => p.name === playerName)
   if (!player) {
     console.log(`❌ Joueur ${playerName} non trouvé dans displayedPlayers`)
-    return { mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0 }
+    return { mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, deplacementJeu: 0, deplacementDecorum: 0, totalDeplacement: 0, stageManager: 0, lighting: 0, volunteer: 0, totalBenevole: 0 }
   }
   
   const playerId = player.id
   
   const stats = {
-    // Rôles de décorum
+    // Rôles de décorum (spectacles locaux uniquement)
     mc: 0,
     dj: 0,
     referee: 0,
     assistantReferee: 0,
     coach: 0,
-    // Rôles de jeu (basés sur le type d'événement)
+    // Rôles de jeu (spectacles locaux uniquement)
     jeuMatch: 0,
     jeuCab: 0,
     jeuLong: 0,
     jeuAutre: 0,
-    // Total de toutes les participations en tant que joueur
     totalJeu: 0,
-    // Bénévoles
-    volunteer: 0
+    // Déplacement (événements deplacement uniquement)
+    deplacementJeu: 0,
+    deplacementDecorum: 0,
+    totalDeplacement: 0,
+    // Bénévoles détaillés (tous événements)
+    stageManager: 0,
+    lighting: 0,
+    volunteer: 0,
+    totalBenevole: 0
   }
 
   // Parcourir tous les événements pour compter les rôles
@@ -735,43 +868,54 @@ function calculatePlayerRoleStats(playerName) {
     }
     
     if (playerRole) {
-      // Compter les rôles de décorum
+      const isDeplacement = event.templateType === 'deplacement'
+
       switch (playerRole) {
         case 'mc':
-          stats.mc++
+          if (isDeplacement) stats.deplacementDecorum++
+          else stats.mc++
           break
         case 'dj':
-          stats.dj++
+          if (isDeplacement) stats.deplacementDecorum++
+          else stats.dj++
           break
         case 'referee':
-          stats.referee++
+          if (isDeplacement) stats.deplacementDecorum++
+          else stats.referee++
           break
         case 'assistant_referee':
-          stats.assistantReferee++
+          if (isDeplacement) stats.deplacementDecorum++
+          else stats.assistantReferee++
           break
         case 'coach':
-          stats.coach++
+          if (isDeplacement) stats.deplacementDecorum++
+          else stats.coach++
           break
         case 'player':
-          // Compter TOUTES les participations en tant que joueur dans totalJeu
-          stats.totalJeu++
-          
-          // Compter selon le type d'événement spécifique pour les colonnes dédiées
-          switch (event.templateType) {
-            case 'match':
-              stats.jeuMatch++
-              break
-            case 'cabaret':
-              stats.jeuCab++
-              break
-            case 'longform':
-              stats.jeuLong++
-              break
-            default:
-              // Pour les autres types (freeform, catch, etc.), compter dans jeuAutre
-              stats.jeuAutre++
-              break
+          if (isDeplacement) {
+            stats.deplacementJeu++
+          } else {
+            switch (event.templateType) {
+              case 'match':
+                stats.jeuMatch++
+                break
+              case 'cabaret':
+                stats.jeuCab++
+                break
+              case 'longform':
+                stats.jeuLong++
+                break
+              default:
+                stats.jeuAutre++
+                break
+            }
           }
+          break
+        case 'stage_manager':
+          stats.stageManager++
+          break
+        case 'lighting':
+          stats.lighting++
           break
         case 'volunteer':
           stats.volunteer++
@@ -780,7 +924,15 @@ function calculatePlayerRoleStats(playerName) {
     }
   })
 
+  stats.totalJeu = stats.jeuMatch + stats.jeuCab + stats.jeuLong + stats.jeuAutre
+  stats.totalDeplacement = stats.deplacementJeu + stats.deplacementDecorum
+  stats.totalBenevole = stats.stageManager + stats.lighting + stats.volunteer
+
   return stats
+}
+
+function getDefaultStats() {
+  return { mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, deplacementJeu: 0, deplacementDecorum: 0, totalDeplacement: 0, stageManager: 0, lighting: 0, volunteer: 0, totalBenevole: 0 }
 }
 
 // Fonction pour obtenir le rôle d'un joueur dans un événement spécifique
@@ -983,19 +1135,28 @@ const decorumColumnsCount = computed(() => {
 // Computed property pour calculer le nombre de colonnes de jeu visibles
 const jeuColumnsCount = computed(() => {
   if (!showStatsColumns.value) return 0
-  // Total Jeu est toujours visible (1 colonne)
-  // + 4 colonnes de détails si showJeuDetails est true
   return 1 + (showJeuDetails.value ? 4 : 0)
+})
+
+// Computed property pour calculer le nombre de colonnes déplacement visibles
+const deplacementColumnsCount = computed(() => {
+  if (!showStatsColumns.value) return 0
+  return 1 + (showDeplacementDetails.value ? 2 : 0)
+})
+
+// Computed property pour calculer le nombre de colonnes bénévole visibles
+const benevoleColumnsCount = computed(() => {
+  if (!showStatsColumns.value) return 0
+  return 1 + (showBenevoleDetails.value ? 3 : 0)
 })
 
 // Computed property pour le colspan de la ligne "Afficher Plus"
 const showMoreColspan = computed(() => {
-  // 1 pour la colonne joueur + colonnes de stats (si affichées) + nombre d'événements
-  const baseColumns = 1 // colonne joueur
-  const statsColumns = showStatsColumns.value 
-    ? jeuColumnsCount.value + decorumColumnsCount.value + 1 // JEU + DÉCORUM + Bénévol
+  const baseColumns = 1
+  const statsColumns = showStatsColumns.value
+    ? jeuColumnsCount.value + decorumColumnsCount.value + deplacementColumnsCount.value + benevoleColumnsCount.value
     : 0
-  const eventColumns = props.events.length // colonnes d'événements
+  const eventColumns = props.events.length
   return baseColumns + statsColumns + eventColumns
 })
 
@@ -1014,6 +1175,16 @@ function toggleJeuDetails() {
   showJeuDetails.value = !showJeuDetails.value
 }
 
+// Fonction pour basculer l'affichage des détails déplacement
+function toggleDeplacementDetails() {
+  showDeplacementDetails.value = !showDeplacementDetails.value
+}
+
+// Fonction pour basculer l'affichage des détails bénévole
+function toggleBenevoleDetails() {
+  showBenevoleDetails.value = !showBenevoleDetails.value
+}
+
 // Fonction d'export vers Excel/Google Sheets
 function exportToExcel() {
   try {
@@ -1029,19 +1200,25 @@ function exportToExcel() {
       'JEU AUTRE',
       'TOTAL JEU',
       'MC',
-      'DJ', 
+      'DJ',
       'ARBITRE',
       'ASSIST.',
       'COACH',
       'TOTAL DECORUM',
+      'DEPL. JEU',
+      'DEPL. DECORUM',
+      'TOTAL DÉPLACEMENT',
+      'RÉGISSEUR',
+      'LUMIÈRE',
       'BÉNÉVOLE',
+      'TOTAL BÉNÉVOLE',
       ...props.events.map(event => event.title)
     ]
     exportData.push(headers)
     
     // Données pour chaque joueur
     props.displayedPlayers.forEach(player => {
-      const stats = playersRoleStats.value.get(player.name) || {mc: 0, dj: 0, referee: 0, assistantReferee: 0, coach: 0, jeuMatch: 0, jeuCab: 0, jeuLong: 0, jeuAutre: 0, totalJeu: 0, volunteer: 0}
+      const stats = playersRoleStats.value.get(player.name) || getDefaultStats()
       const playerRow = [
         player.name,
         stats.jeuMatch,
@@ -1055,7 +1232,13 @@ function exportToExcel() {
         stats.assistantReferee,
         stats.coach,
         stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach,
+        stats.deplacementJeu,
+        stats.deplacementDecorum,
+        stats.totalDeplacement,
+        stats.stageManager,
+        stats.lighting,
         stats.volunteer,
+        stats.totalBenevole,
         ...props.events.map(event => {
           const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
           return roleLabel || ''
