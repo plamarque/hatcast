@@ -1,12 +1,14 @@
-## [0.46.2] - 2026-02-20
+## [0.46.3] - 2026-02-20
 
 ### 📝 Other Changes
 
-- refactor(ui): Rename Compositions view label to Historique
+- feat(ui): Increase participant names font size in grid views
+- feat(ui): Improve Historique stats view typography
 
 
 # Changelog
 
+## [0.46.3] - 2026-02-20
 ## [0.46.2] - 2026-02-20
 ## [0.46.1] - 2026-02-20
 ## [0.46.0] - 2026-02-20
