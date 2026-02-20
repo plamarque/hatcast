@@ -1,13 +1,14 @@
-## [0.46.3] - 2026-02-20
+## [0.46.4] - 2026-02-21
 
 ### 📝 Other Changes
 
-- feat(ui): Increase participant names font size in grid views
-- feat(ui): Improve Historique stats view typography
+- fix(ui): Position sticky grid headers below ViewHeader
+- feat(historique): Add month columns with expand/collapse in spectacles zone
 
 
 # Changelog
 
+## [0.46.4] - 2026-02-21
 ## [0.46.3] - 2026-02-20
 ## [0.46.2] - 2026-02-20
 ## [0.46.1] - 2026-02-20
