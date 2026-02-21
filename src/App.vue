@@ -9,11 +9,11 @@
         <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse flex items-center justify-center shadow-2xl mb-6">
           <span class="text-3xl">🎭</span>
         </div>
-        <p class="text-white text-lg mb-3">Chargement des données de la saison…</p>
+        <p class="text-white text-lg mb-3">Chargement de l'application…</p>
         <div class="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
-          <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" style="width: 20%"></div>
+          <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300 animate-pulse" style="width: 10%"></div>
         </div>
-        <p class="text-white/60 text-xs mt-2">20%</p>
+        <p class="text-white/60 text-xs mt-2">Chargement…</p>
       </div>
       <Suspense v-else>
         <component :is="Component" />
@@ -22,11 +22,11 @@
             <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse flex items-center justify-center shadow-2xl mb-6">
               <span class="text-3xl">🎭</span>
             </div>
-            <p class="text-white text-lg mb-3">Chargement des données de la saison…</p>
+            <p class="text-white text-lg mb-3">Préparation de l'interface…</p>
             <div class="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" style="width: 20%"></div>
+              <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300 animate-pulse" style="width: 15%"></div>
             </div>
-            <p class="text-white/60 text-xs mt-2">20%</p>
+            <p class="text-white/60 text-xs mt-2">Chargement…</p>
           </div>
         </template>
       </Suspense>

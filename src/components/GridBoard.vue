@@ -5529,14 +5529,18 @@ onMounted(async () => {
   props.onReady?.()
 
   try {
-    // Le mode de stockage est maintenant géré par les variables d'environnement
-    // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
+    // Étape 0: connexion
+    currentLoadingLabel.value = 'Connexion au serveur'
+    loadingProgress.value = 5
 
     // Attendre que firestoreService soit initialisé
     logger.debug('⏳ Attente de l\'initialisation de firestoreService...')
     await performanceService.measureStep('firestore_init', async () => {
       await firestoreService.initialize()
     })
+
+    currentLoadingLabel.value = 'Recherche de la saison'
+    loadingProgress.value = 10
     logger.debug('✅ firestoreService initialisé')
 
     // Charger la saison par slug
@@ -5669,9 +5673,9 @@ onMounted(async () => {
     // Charger les données de la saison
     if (seasonId.value) {
       // Étape 1: événements + joueurs en parallèle (H-B)
-      currentLoadingLabel.value = 'Chargement des données de la saison'
+      currentLoadingLabel.value = 'Chargement des événements et joueurs'
       loadingProgress.value = 20
-      
+
       const [allEventsResult, playersResult] = await Promise.all([
         performanceService.measureStep('load_all_events', async () => {
           return await firestoreService.getDocuments('seasons', seasonId.value, 'events')
@@ -5689,6 +5693,9 @@ onMounted(async () => {
 
       players.value = playersResult
       allSeasonPlayers.value = [...players.value]
+
+      currentLoadingLabel.value = 'Chargement des permissions'
+      loadingProgress.value = 40
 
       // Charger les permissions pour chaque événement
       await loadEventPermissions()
@@ -5727,9 +5734,12 @@ onMounted(async () => {
         logger.debug('📊 Utilisateur non connecté, allSeasonPlayers déjà rempli')
       }
 
+      currentLoadingLabel.value = 'Préparation de la grille'
+      loadingProgress.value = 55
+
       // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
       isEssentialDataLoaded.value = true
-      
+
       // Jalon : Grille visible pour l'utilisateur
       performanceService.milestone('grid_loading', 'grid_visible', {
         playersCount: players.value.length,

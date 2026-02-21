@@ -204,6 +204,8 @@ async function mountApp() {
     await router.isReady()
   }
   app.mount('#app-vue')
+  // Masquer le placeholder HTML statique (20% fixe) pour afficher les overlays Vue avec progression réelle
+  document.getElementById('app-loading')?.style.setProperty('display', 'none')
 }
 mountApp()
 
