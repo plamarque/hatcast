@@ -366,14 +366,12 @@ export async function loadEvents(seasonId) {
   })
 }
 
-export async function loadActiveEvents(seasonId) {
-  const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
-
-  // TEMPORAIRE: Charger TOUS les événements pour visibilité complète et debugging
-  // TODO: Réimplémenter le filtrage avec une option dans l'UI
-  console.log(`🔍 Chargement de TOUS les événements (${events.length} trouvés) pour visibilité complète`)
-  
-  // Marquer visuellement les événements archivés et passés
+/**
+ * Traite des événements bruts pour l'affichage (tri, _isArchived, _isPast).
+ * Utilisé pour éviter un double fetch Firestore quand on a déjà allEventsData.
+ */
+export function processEventsForDisplay(events) {
+  if (!Array.isArray(events)) return []
   const now = new Date()
   const processedEvents = events.map(event => {
     const eventDate = (() => {
@@ -383,7 +381,6 @@ export async function loadActiveEvents(seasonId) {
       const d = new Date(event.date)
       return isNaN(d.getTime()) ? null : d
     })()
-    
     return {
       ...event,
       _isArchived: event.archived === true,
@@ -391,15 +388,22 @@ export async function loadActiveEvents(seasonId) {
       _eventDate: eventDate
     }
   })
-
-  // Tri des événements par date (croissant) puis par titre (alphabétique)
   return processedEvents.sort((a, b) => {
-    // Utiliser les dates déjà calculées
     const ta = a._eventDate ? a._eventDate.getTime() : Number.POSITIVE_INFINITY
     const tb = b._eventDate ? b._eventDate.getTime() : Number.POSITIVE_INFINITY
     if (ta !== tb) return ta - tb
     return (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' })
   })
+}
+
+export async function loadActiveEvents(seasonId) {
+  const events = await firestoreService.getDocuments('seasons', seasonId, 'events')
+
+  // TEMPORAIRE: Charger TOUS les événements pour visibilité complète et debugging
+  // TODO: Réimplémenter le filtrage avec une option dans l'UI
+  console.log(`🔍 Chargement de TOUS les événements (${events.length} trouvés) pour visibilité complète`)
+  
+  return processEventsForDisplay(events)
 }
 
 export async function loadPlayers(seasonId) {

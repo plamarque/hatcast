@@ -49,9 +49,74 @@
         }
       })();
     </script>
+  <style>
+    /* Structure : #app contient loading + mount, les deux occupent l'écran */
+    #app { min-height: 100vh; position: relative; }
+    #app-vue { min-height: 100vh; }
+    /* Placeholder = même design que GridBoard overlay (transition fluide) */
+    #app-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #030712;
+      z-index: 99999;
+    }
+    #app-loading .icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(to bottom right, #ec4899, #9333ea);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    #app-loading .text {
+      color: rgba(255,255,255,0.95);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 1.125rem;
+      margin-bottom: 0.75rem;
+    }
+    #app-loading .bar {
+      width: 256px;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    #app-loading .bar-fill {
+      height: 100%;
+      width: 20%;
+      background: linear-gradient(to right, #ec4899, #9333ea);
+      transition: width 0.3s;
+    }
+    #app-loading .percent {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    @keyframes app-load-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    #app-loading .icon { animation: app-load-pulse 1.5s ease-in-out infinite; }
+  </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div id="app-loading" aria-live="polite">
+        <div class="icon" aria-hidden="true">🎭</div>
+        <span class="text">Chargement des données de la saison</span>
+        <div class="bar"><div class="bar-fill"></div></div>
+        <span class="percent">20%</span>
+      </div>
+      <div id="app-vue"></div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

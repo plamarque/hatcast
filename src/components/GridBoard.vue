@@ -1,10 +1,25 @@
 <template>
   <div
-      class="flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+      class="flex flex-col"
       :class="[
-        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20'
+        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20',
+        isLoadingGrid ? 'bg-[#030712]' : 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900'
       ]"
     >
+    <!-- Overlay de chargement en premier (first paint prioritaire mobile, fond opaque) -->
+    <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#030712]">
+      <div class="text-center">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
+          <span class="text-3xl">🎭</span>
+        </div>
+        <p class="text-white text-lg">{{ currentLoadingLabel }}…</p>
+        <div class="mt-3 w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" :style="{ width: loadingProgress + '%' }"></div>
+        </div>
+        <p class="text-white/60 text-xs mt-2">{{ loadingProgress }}%</p>
+      </div>
+    </div>
+
     <!-- Contenu principal -->
     <div class="w-full flex-1 flex flex-col min-h-0">
       <!-- Header de saison partagé -->
@@ -394,21 +409,6 @@
         </div>
       </div>
     </div>
-
-  <!-- Overlay de chargement pleine page -->
-  <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
-    <div class="text-center">
-      <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
-        <span class="text-3xl">🎭</span>
-      </div>
-      <p class="text-white text-lg">{{ currentLoadingLabel }}…</p>
-      <div class="mt-3 w-64 h-2 bg-white/10 rounded-full overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" :style="{ width: loadingProgress + '%' }"></div>
-      </div>
-      <p class="text-white/60 text-xs mt-2">{{ loadingProgress }}%</p>
-    </div>
-  </div>
-
 
   <!-- Indicateur de chargement progressif (en bas à droite) -->
   <div v-if="isProgressiveLoading" class="fixed bottom-4 right-4 z-[100] bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg p-4 shadow-xl">
@@ -1959,6 +1959,7 @@ import {
   loadPlayers,
   loadEvents,
   loadActiveEvents,
+  processEventsForDisplay,
   loadAvailability,
   loadCasts,
   addPlayer,
@@ -2030,6 +2031,11 @@ const props = defineProps({
   eventId: {
     type: String,
     required: false
+  },
+  /** Appelé après montage pour que GridBoardShell masque son overlay (évite écran dégradé) */
+  onReady: {
+    type: Function,
+    default: null
   }
 })
 
@@ -5519,6 +5525,9 @@ onMounted(async () => {
     timestamp: new Date().toISOString()
   })
 
+  // Notifier la shell que le premier paint est fait (évite écran dégradé pendant setup)
+  props.onReady?.()
+
   try {
     // Le mode de stockage est maintenant géré par les variables d'environnement
     // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
@@ -5538,7 +5547,7 @@ onMounted(async () => {
         return await firestoreService.queryDocuments('seasons', [
           firestoreService.where('slug', '==', props.slug)
         ])
-      }, { seasonSlug: props.slug })
+      }, { seasonSlug: props.slug       })
       logger.debug('🔍 Saisons trouvées:', seasons.length, seasons.map(s => ({ id: s.id, name: s.name, slug: s.slug })))
     } catch (error) {
       logger.error('❌ Erreur lors de la recherche de la saison:', error)
@@ -5659,34 +5668,32 @@ onMounted(async () => {
 
     // Charger les données de la saison
     if (seasonId.value) {
-      // Étape 1: événements
-      currentLoadingLabel.value = 'Chargement des événements de la saison'
+      // Étape 1: événements + joueurs en parallèle (H-B)
+      currentLoadingLabel.value = 'Chargement des données de la saison'
       loadingProgress.value = 20
       
-      // Charger TOUS les événements (y compris passés et archivés)
-      allEventsData.value = await performanceService.measureStep('load_all_events', async () => {
-        return await firestoreService.getDocuments('seasons', seasonId.value, 'events')
-      }, { seasonId: seasonId.value, count: 'unknown' })
-      
-      // Filtrer pour ne garder que les événements actifs dans events.value
+      const [allEventsResult, playersResult] = await Promise.all([
+        performanceService.measureStep('load_all_events', async () => {
+          return await firestoreService.getDocuments('seasons', seasonId.value, 'events')
+        }, { seasonId: seasonId.value, count: 'unknown' }),
+        performanceService.measureStep('load_players', async () => {
+          return await loadPlayers(seasonId.value)
+        }, { seasonId: seasonId.value, count: 'unknown' })
+      ])
+
+      allEventsData.value = allEventsResult
+      // H-A: réutiliser allEventsData au lieu de refaire une requête Firestore
       events.value = await performanceService.measureStep('load_events', async () => {
-        return await loadActiveEvents(seasonId.value)
-      }, { seasonId: seasonId.value, count: 'unknown' })
-      
+        return processEventsForDisplay(allEventsData.value)
+      }, { seasonId: seasonId.value, count: allEventsData.value?.length })
+
+      players.value = playersResult
+      allSeasonPlayers.value = [...players.value]
+
       // Charger les permissions pour chaque événement
       await loadEventPermissions()
 
-      // Étape 2: joueurs (optimisation mobile - chargement sélectif)
-      currentLoadingLabel.value = 'Chargement des joueurs'
-      loadingProgress.value = 45
-      
-      // Charger tous les joueurs de la saison
-      players.value = await performanceService.measureStep('load_players', async () => {
-        return await loadPlayers(seasonId.value)
-      }, { seasonId: seasonId.value, count: 'unknown' })
-      
-      // Charger aussi tous les joueurs pour les modals (EventRoleGroupingView, etc.)
-      allSeasonPlayers.value = [...players.value]
+      // Étape 2: joueurs déjà chargés en parallèle avec events (H-B)
       
       logger.debug(`📊 Chargé ${players.value.length} joueurs de la saison`)
       
@@ -5744,59 +5751,48 @@ onMounted(async () => {
         })
       }
       
-      // Étape 3: disponibilités (optimisation mobile - chargement sélectif)
+      // Étape 3: disponibilités + casts + protections en parallèle (H-B)
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
       
-      // OPTIMISATION MOBILE : Charger les disponibilités de manière sélective
-      logger.debug('🚀 Chargement sélectif des disponibilités (optimisation mobile)')
-      
-      // Charger les disponibilités pour tous les joueurs de la saison (pas seulement ceux visibles dans la grille)
       const allPlayers = allSeasonPlayers.value
       logger.debug(`📊 Chargement des disponibilités pour ${allPlayers.length} joueurs (tous)`)
-      
-      availability.value = await performanceService.measureStep('load_availability_all', async () => {
-        return await loadAvailability(allPlayers, events.value, seasonId.value)
-      }, { 
-        seasonId: seasonId.value, 
-        playersCount: allPlayers.length, 
-        eventsCount: events.value.length 
-      })
-      
+
+      const [availabilityResult, castsResult, protectionsResult] = await Promise.all([
+        performanceService.measureStep('load_availability_all', async () => {
+          return await loadAvailability(allPlayers, events.value, seasonId.value)
+        }, { seasonId: seasonId.value, playersCount: allPlayers.length, eventsCount: events.value.length }),
+        performanceService.measureStep('load_casts', async () => {
+          try {
+            return await loadCasts(seasonId.value)
+          } catch (error) {
+            logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
+            return {}
+          }
+        }, { seasonId: seasonId.value, count: 'unknown' }),
+        performanceService.measureStep('load_protections', async () => {
+          try {
+            return await listProtectedPlayers(seasonId.value)
+          } catch (error) {
+            logger.debug('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
+            return []
+          }
+        }, { seasonId: seasonId.value })
+      ])
+
+      availability.value = availabilityResult
+      casts.value = castsResult
+      const protSet = new Set()
+      if (Array.isArray(protectionsResult)) {
+        protectionsResult.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+      }
+      protectedPlayers.value = protSet
+
       logger.debug('✅ Disponibilités chargées avec succès (tous les joueurs)')
-      
-      // Initialiser les états de chargement pour tous les joueurs
       allPlayers.forEach(player => {
         playerLoadingStates.value.set(player.id, 'loaded')
       })
 
-      // Étape 4: compositions (en arrière-plan)
-      try {
-        casts.value = await performanceService.measureStep('load_casts', async () => {
-          return await loadCasts(seasonId.value)
-        }, { seasonId: seasonId.value, count: 'unknown' })
-      } catch (error) {
-        logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
-        casts.value = {}
-      }
-
-      // Étape 5: protections (en arrière-plan)
-      try {
-        const protections = await performanceService.measureStep('load_protections', async () => {
-          return await listProtectedPlayers(seasonId.value)
-        }, { seasonId: seasonId.value })
-        const protSet = new Set()
-        if (Array.isArray(protections)) {
-          protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
-        }
-        protectedPlayers.value = protSet
-      } catch (error) {
-        logger.debug('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
-        protectedPlayers.value = new Set()
-      }
-      
-      // Étape 6: joueurs protégés déjà chargés dans l'étape 2 (optimisation mobile)
-      
       // Initialiser les joueurs préférés si l'utilisateur est connecté (déjà fait dans l'étape 3)
       if (getFirebaseAuth()?.currentUser?.email) {
         try {
@@ -5850,7 +5846,7 @@ onMounted(async () => {
     eventsCount: events.value.length,
     seasonId: seasonId.value
   })
-  
+
   // Afficher le résumé des performances dans la console
   logger.info(`🚀 Grille chargée en ${totalGridLoadingTime.toFixed(2)}ms (${players.value.length} joueurs, ${events.value.length} événements)`)
   performanceService.logSummary()

@@ -1,6 +1,36 @@
 <template>
-  <div data-testid="app-loaded">
-    <router-view />
+  <div data-testid="app-loaded" class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <router-view v-slot="{ Component }">
+      <!-- Overlay visible quand le router charge la route (Component null) ou pendant Suspense -->
+      <div
+        v-if="!Component"
+        class="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#030712]"
+      >
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse flex items-center justify-center shadow-2xl mb-6">
+          <span class="text-3xl">🎭</span>
+        </div>
+        <p class="text-white text-lg mb-3">Chargement des données de la saison…</p>
+        <div class="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" style="width: 20%"></div>
+        </div>
+        <p class="text-white/60 text-xs mt-2">20%</p>
+      </div>
+      <Suspense v-else>
+        <component :is="Component" />
+        <template #fallback>
+            <div class="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-[#030712]">
+            <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse flex items-center justify-center shadow-2xl mb-6">
+              <span class="text-3xl">🎭</span>
+            </div>
+            <p class="text-white text-lg mb-3">Chargement des données de la saison…</p>
+            <div class="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" style="width: 20%"></div>
+            </div>
+            <p class="text-white/60 text-xs mt-2">20%</p>
+          </div>
+        </template>
+      </Suspense>
+    </router-view>
   </div>
 
   <!-- Barre d'installation PWA moderne -->
@@ -161,8 +191,22 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+// Masquer le placeholder HTML une fois le contenu prêt (routes non-saison ; les routes saison font ça dans GridBoardShell)
+watch(() => route.path, (path) => {
+  if (!path.startsWith('/season')) {
+    nextTick().then(() => {
+      requestAnimationFrame(() => {
+        const el = document.getElementById('app-loading')
+        if (el) el.style.display = 'none'
+      })
+    })
+  }
+}, { immediate: true })
 import { ensurePushNotificationsActive, initializePushNotifications } from './services/notifications.js'
 import PWAInstallModal from './components/PWAInstallModal.vue'
 import logger from './services/logger.js'
@@ -174,7 +218,6 @@ const canInstallPwa = ref(false)
 const updateAvailable = ref(false)
 const refreshing = ref(false)
 const bannerDismissed = ref(false)
-const route = useRoute()
 
 // PWA Install Modal
 const showInstallModal = ref(false)
