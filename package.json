@@ -1,6 +1,6 @@
 {
   "name": "hatcast",
-  "version": "0.46.4",
+  "version": "0.47.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
