@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.47.0",
+    "date": "2026-02-21",
+    "changes": [
+      "✨ On a amélioré la barre de chargement pour qu'elle montre de vrais étapes de progression.",
+      "✨ On a ajouté une sélection multiple avec des cases à cocher dans les fenêtres de sélection de participants et d'événements."
+    ]
+  },
+  {
     "version": "0.46.4",
     "date": "2026-02-21",
     "changes": [

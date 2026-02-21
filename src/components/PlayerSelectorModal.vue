@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1500] md:p-4" @click="closeModal">
+  <div v-if="show" data-testid="player-selector-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1500] md:p-4" @click="closeModalWithCheckboxes">
     <!-- Sur mobile: hauteur complète sans padding, sur desktop: centré avec padding -->
     <div class="flex md:items-center md:justify-center min-h-full h-full">
       <div class="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/20 md:rounded-2xl shadow-2xl w-full max-w-md flex flex-col h-full md:h-auto md:max-h-[85vh]" @click.stop>
@@ -7,7 +7,7 @@
       <div class="p-3 md:p-6 border-b border-white/10 flex-shrink-0">
         <div class="flex items-center justify-between">
           <h2 class="text-lg md:text-2xl font-bold text-white">Filtrer les participants</h2>
-          <button @click="closeModal" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
+          <button @click="closeModalWithCheckboxes" class="text-white/80 hover:text-white p-1.5 md:p-2 rounded-full hover:bg-white/10">
             ✖️
           </button>
         </div>
@@ -22,7 +22,7 @@
             type="text"
             placeholder="Rechercher un participant..."
             class="w-full px-3 py-2 md:px-4 md:py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
-            @keyup.escape="closeModal"
+            @keyup.escape="closeModalWithCheckboxes"
             ref="searchInput"
           />
         </div>
@@ -31,6 +31,7 @@
         <div class="flex-1 overflow-y-auto -mx-2 px-2">
           <!-- Option "Tous" -->
           <div
+            data-testid="player-selector-option-all"
             @click="selectAllPlayers"
             class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200"
             :class="{ 'bg-gray-700': !selectedPlayerId }"
@@ -38,10 +39,19 @@
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
               <span class="text-white text-lg font-bold">👥</span>
             </div>
-            <div>
+            <div class="flex-1">
               <div class="text-white font-medium">Tous</div>
               <div class="text-gray-400 text-sm">Charger tous les participants</div>
             </div>
+            <input
+              ref="allCheckboxRef"
+              data-testid="player-selector-checkbox-all"
+              type="checkbox"
+              :checked="isAllChecked"
+              @click.stop="toggleAllPlayers"
+              class="flex-shrink-0 w-5 h-5 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+              aria-label="Sélectionner ou désélectionner tous les participants"
+            />
           </div>
           
           <!-- Séparateur -->
@@ -51,6 +61,7 @@
           <div
             v-for="player in filteredPlayers"
             :key="player.id"
+            :data-testid="`player-selector-row-${player.id}`"
             @click="selectPlayer(player)"
             class="px-4 py-3 hover:bg-gray-700 cursor-pointer flex items-center gap-3 rounded-lg transition-colors duration-200 relative"
             :class="{ 'bg-gray-700': selectedPlayerId === player.id }"
@@ -82,6 +93,14 @@
                 </CustomTooltip>
               </div>
             </div>
+            <input
+              type="checkbox"
+              :data-testid="`player-selector-checkbox-${player.id}`"
+              :checked="checkedPlayerIds.has(player.id)"
+              @click.stop="togglePlayer(player)"
+              class="flex-shrink-0 w-5 h-5 text-purple-600 bg-gray-700 border-gray-500 rounded focus:ring-purple-500"
+              :aria-label="`Sélectionner ${player.name}`"
+            />
           </div>
           
           <!-- Option "Ajouter un participant" -->
@@ -133,6 +152,10 @@ export default {
       type: String,
       default: null
     },
+    selectedPlayerIds: {
+      type: [Array, Set],
+      default: null
+    },
     preferredPlayerIdsSet: {
       type: Set,
       default: () => new Set()
@@ -159,11 +182,26 @@ export default {
       default: () => []
     }
   },
-  emits: ['close', 'player-selected', 'all-players-selected', 'add-new-player'],
+  emits: ['close', 'player-selected', 'all-players-selected', 'players-selected', 'add-new-player'],
   setup(props, { emit }) {
     const searchQuery = ref('')
     const searchInput = ref(null)
-    
+    const allCheckboxRef = ref(null)
+    const checkedPlayerIds = ref(new Set())
+
+    // Initialiser checkedPlayerIds à l'ouverture du modal
+    function initCheckedPlayerIds() {
+      const ids = props.selectedPlayerIds
+      if (ids && (Array.isArray(ids) ? ids.length : ids.size) > 0) {
+        checkedPlayerIds.value = new Set(Array.isArray(ids) ? ids : Array.from(ids))
+      } else if (props.selectedPlayerId) {
+        checkedPlayerIds.value = new Set([props.selectedPlayerId])
+      } else {
+        // Mode "Tous" : cocher toutes les cases
+        checkedPlayerIds.value = new Set(props.players.map(p => p.id))
+      }
+    }
+
     // Participants filtrés pour l'autocomplete
     const filteredPlayers = computed(() => {
       let players = props.players
@@ -182,26 +220,60 @@ export default {
       const allPlayers = [...favoritePlayers, ...otherPlayers]
       return allPlayers.slice(0, 20)
     })
-    
+
+    const allPlayerIds = computed(() => new Set(props.players.map(p => p.id)))
+    const isAllChecked = computed(() => {
+      if (allPlayerIds.value.size === 0) return false
+      return [...allPlayerIds.value].every(id => checkedPlayerIds.value.has(id))
+    })
+    const isSomeChecked = computed(() => {
+      const count = [...allPlayerIds.value].filter(id => checkedPlayerIds.value.has(id)).length
+      return count > 0 && count < allPlayerIds.value.size
+    })
+
+    function togglePlayer(player) {
+      const next = new Set(checkedPlayerIds.value)
+      if (next.has(player.id)) {
+        next.delete(player.id)
+      } else {
+        next.add(player.id)
+      }
+      checkedPlayerIds.value = next
+    }
+
+    function toggleAllPlayers() {
+      if (isAllChecked.value) {
+        checkedPlayerIds.value = new Set()
+      } else {
+        checkedPlayerIds.value = new Set(allPlayerIds.value)
+      }
+    }
     
     // Fonctions
-    const closeModal = () => {
+    const closeModal = (applyCheckboxSelection = false) => {
+      if (applyCheckboxSelection && checkedPlayerIds.value.size > 0) {
+        emit('players-selected', Array.from(checkedPlayerIds.value))
+      }
       emit('close')
+    }
+
+    const closeModalWithCheckboxes = () => {
+      closeModal(true)
     }
     
     const selectPlayer = (player) => {
       emit('player-selected', player)
-      closeModal()
+      closeModal(false)
     }
     
     const selectAllPlayers = () => {
       emit('all-players-selected')
-      closeModal()
+      closeModal(false)
     }
     
     const addNewPlayer = () => {
       emit('add-new-player', searchQuery.value.trim())
-      closeModal()
+      closeModal(false)
     }
     
     // Fonction pour obtenir les statistiques d'un joueur
@@ -233,10 +305,11 @@ export default {
       return props.isPlayerAlreadyDisplayed(playerId)
     }
     
-    // Focus sur l'input quand le modal s'ouvre
+    // Focus sur l'input et initialiser les cases à cocher quand le modal s'ouvre
     watch(() => props.show, (newShow) => {
       if (newShow) {
         searchQuery.value = ''
+        initCheckedPlayerIds()
         nextTick(() => {
           if (searchInput.value) {
             searchInput.value.focus()
@@ -244,6 +317,15 @@ export default {
         })
       }
     })
+
+    // Mettre à jour l'état indeterminate de la checkbox "Tous"
+    watch(() => checkedPlayerIds.value.size, () => {
+      nextTick(() => {
+        if (allCheckboxRef.value) {
+          allCheckboxRef.value.indeterminate = isSomeChecked.value
+        }
+      })
+    }, { immediate: true })
 
     // Fonction pour générer le tooltip d'avertissement pour les joueurs non-protégés
     const getUnprotectedPlayerTooltip = (player) => {
@@ -254,8 +336,15 @@ Disponibilités modifiables par tous`
     return {
       searchQuery,
       searchInput,
+      allCheckboxRef,
       filteredPlayers,
+      checkedPlayerIds,
+      isAllChecked,
+      isSomeChecked,
+      togglePlayer,
+      toggleAllPlayers,
       closeModal,
+      closeModalWithCheckboxes,
       selectPlayer,
       selectAllPlayers,
       addNewPlayer,

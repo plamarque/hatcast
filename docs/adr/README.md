@@ -16,6 +16,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0004](0004-audit-via-triggers-and-collection.md) | Audit via Firestore triggers and auditLogs collection | Observed |
 | [0005](0005-permission-model-super-admin-season.md) | Permission model: Super Admin + season admins | Observed |
 | [0006](0006-queue-based-notifications.md) | Queue-based notifications (mail, reminder, push) | Observed |
+| [0007](0007-multi-select-participants-events.md) | Multi-select participants and events in header selectors | Accepted |
 
 ---
 

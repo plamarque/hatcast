@@ -4,21 +4,15 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { registerSW } from 'virtual:pwa-register'
-import SeasonResolver from './components/SeasonResolver.vue'
-import HomePage from './views/HomePage.vue'
-import SeasonsPage from './views/SeasonsPage.vue'
-import HelpPage from './views/HelpPage.vue'
-import GridBoard from './components/GridBoard.vue'
-import PasswordReset from './views/PasswordReset.vue'
-import MagicLink from './views/MagicLink.vue'
-import AcceptInvitation from './views/AcceptInvitation.vue'
-import JoinSeason from './views/JoinSeason.vue'
-import SeasonAdminPage from './views/SeasonAdminPage.vue'
-import NotFoundPage from './views/NotFoundPage.vue'
 import { getFirebaseAuth } from './services/firebase.js'
 import permissionService from './services/permissionService.js'
 import firestoreService from './services/firestoreService.js'
 import logger from './services/logger.js'
+
+// Précharger GridBoardShell (+ GridBoard) si on est déjà sur une route saison (mobile PWA refresh)
+if (typeof window !== 'undefined' && /^\/season\//.test(window.location.pathname)) {
+  import('./components/GridBoardShell.vue').catch(() => {})
+}
 
 // Réduire le bruit de logs en production (garder warnings/erreurs)
 if (import.meta.env && import.meta.env.PROD) {
@@ -32,19 +26,19 @@ if (import.meta.env && import.meta.env.PROD) {
 }
 
 const routes = [
-  { path: '/', component: HomePage },
-  { path: '/redirect', component: SeasonResolver },
-  { path: '/seasons', component: SeasonsPage },
-  { path: '/help', component: HelpPage },
-  { path: '/season/:slug', component: GridBoard, props: true },
-  { path: '/season/:slug/event/:eventId', component: GridBoard, props: true },
-  { path: '/season/:slug/join', component: JoinSeason, props: true },
-  { path: '/season/:slug/admin', component: SeasonAdminPage, props: true },
-  { path: '/reset-password', component: PasswordReset },
-  { path: '/magic', component: MagicLink },
-  { path: '/accept-invitation', component: AcceptInvitation },
-  { path: '/404', component: NotFoundPage },
-  { path: '/:pathMatch(.*)*', component: NotFoundPage }
+  { path: '/', component: () => import('./views/HomePage.vue') },
+  { path: '/redirect', component: () => import('./components/SeasonResolver.vue') },
+  { path: '/seasons', component: () => import('./views/SeasonsPage.vue') },
+  { path: '/help', component: () => import('./views/HelpPage.vue') },
+  { path: '/season/:slug', component: () => import('./components/GridBoardShell.vue'), props: true },
+  { path: '/season/:slug/event/:eventId', component: () => import('./components/GridBoardShell.vue'), props: true },
+  { path: '/season/:slug/join', component: () => import('./views/JoinSeason.vue') },
+  { path: '/season/:slug/admin', component: () => import('./views/SeasonAdminPage.vue') },
+  { path: '/reset-password', component: () => import('./views/PasswordReset.vue') },
+  { path: '/magic', component: () => import('./views/MagicLink.vue') },
+  { path: '/accept-invitation', component: () => import('./views/AcceptInvitation.vue') },
+  { path: '/404', component: () => import('./views/NotFoundPage.vue') },
+  { path: '/:pathMatch(.*)*', component: () => import('./views/NotFoundPage.vue') }
 ]
 
 const router = createRouter({
@@ -203,7 +197,17 @@ app.config.globalProperties.configService = configService
 window.configService = configService
 
 app.use(router)
-app.mount('#app')
+
+// Sur route saison : attendre que le composant soit chargé avant de monter (évite écran dégradé)
+async function mountApp() {
+  if (/^\/season\//.test(window.location.pathname)) {
+    await router.isReady()
+  }
+  app.mount('#app-vue')
+  // Masquer le placeholder HTML statique (20% fixe) pour afficher les overlays Vue avec progression réelle
+  document.getElementById('app-loading')?.style.setProperty('display', 'none')
+}
+mountApp()
 
 // Enregistrer le service worker pour PWA et Push
 registerSW({

@@ -1,10 +1,25 @@
 <template>
   <div
-      class="flex flex-col bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"
+      class="flex flex-col"
       :class="[
-        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20'
+        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20',
+        isLoadingGrid ? 'bg-[#030712]' : 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900'
       ]"
     >
+    <!-- Overlay de chargement en premier (first paint prioritaire mobile, fond opaque) -->
+    <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#030712]">
+      <div class="text-center">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
+          <span class="text-3xl">🎭</span>
+        </div>
+        <p class="text-white text-lg">{{ currentLoadingLabel }}…</p>
+        <div class="mt-3 w-64 h-2 bg-white/10 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" :style="{ width: loadingProgress + '%' }"></div>
+        </div>
+        <p class="text-white/60 text-xs mt-2">{{ loadingProgress }}%</p>
+      </div>
+    </div>
+
     <!-- Contenu principal -->
     <div class="w-full flex-1 flex flex-col min-h-0">
       <!-- Header de saison partagé -->
@@ -44,10 +59,13 @@
       :current-view="validCurrentView"
       :show-player-selector="true"
       :selected-player="selectedPlayer"
+      :selected-player-ids="selectedPlayerIds ? Array.from(selectedPlayerIds) : null"
+      :players="allSeasonPlayers"
       :season-id="seasonId"
       :show-event-selector="true"
       :selected-event="selectedEventForFilter"
-      :events="events"
+      :selected-event-ids="selectedEventIds ? Array.from(selectedEventIds) : null"
+      :events="allEvents"
       :is-sticky="true"
       @view-change="selectView"
       @player-modal-toggle="togglePlayerModal"
@@ -61,6 +79,7 @@
       :players="allSeasonPlayers"
       :season-id="seasonId"
       :selected-player-id="selectedPlayerId"
+      :selected-player-ids="selectedPlayerIds ? Array.from(selectedPlayerIds) : null"
       :preferred-player-ids-set="preferredPlayerIdsSet"
       :is-player-protected="isPlayerProtectedInGrid"
       :is-player-already-displayed="isPlayerAlreadyDisplayed"
@@ -70,6 +89,7 @@
       @close="closePlayerModal"
       @player-selected="handlePlayerSelected"
       @all-players-selected="handleAllPlayersSelected"
+      @players-selected="handlePlayersSelected"
       @add-new-player="(name) => openNewPlayerForm(name)"
     />
 
@@ -79,6 +99,7 @@
       :players="allSeasonPlayers"
       :season-id="seasonId"
       :selected-player-id="selectedTeamPlayer && selectedTeamPlayer.id !== 'all' ? selectedTeamPlayer.id : null"
+      :selected-player-ids="selectedTeamPlayer && selectedTeamPlayer.id !== 'all' ? [selectedTeamPlayer.id] : null"
       :preferred-player-ids-set="preferredPlayerIdsSet"
       :is-player-protected="isPlayerProtectedInGrid"
       :is-player-already-displayed="isPlayerAlreadyDisplayed"
@@ -88,6 +109,7 @@
       @close="() => showAvailabilityPlayerSelector = false"
       @player-selected="selectAvailabilityPlayer"
       @all-players-selected="selectAllAvailabilityPlayers"
+      @players-selected="(ids) => { const p = ids?.length ? allSeasonPlayers.find(pl => pl.id === ids[0]) : null; if (p) selectAvailabilityPlayer(p) }"
       @add-new-player="(name) => openNewPlayerForm(name)"
     />
 
@@ -96,6 +118,7 @@
       :show="showEventModal"
       :events="allEvents"
       :selected-event-id="selectedEventId"
+      :selected-event-ids="selectedEventIds ? Array.from(selectedEventIds) : null"
       :get-selection-players="getSelectionPlayers"
       :get-total-required-count="getTotalRequiredCount"
       :count-available-players="countAvailablePlayers"
@@ -109,6 +132,7 @@
       @close="closeEventModal"
       @event-selected="handleEventSelected"
       @all-events-selected="handleAllEventsSelected"
+      @events-selected="handleEventsSelected"
     />
 
     <template v-if="!isEventFullScreen">
@@ -119,10 +143,13 @@
         :current-view="validCurrentView"
         :show-player-selector="true"
         :selected-player="selectedPlayer"
+        :selected-player-ids="selectedPlayerIds ? Array.from(selectedPlayerIds) : null"
+        :players="allSeasonPlayers"
         :season-id="seasonId"
         :show-event-selector="true"
         :selected-event="selectedEventForFilter"
-        :events="events"
+        :selected-event-ids="selectedEventIds ? Array.from(selectedEventIds) : null"
+        :events="allEvents"
         :is-sticky="true"
         @view-change="selectView"
         @player-modal-toggle="togglePlayerModal"
@@ -382,21 +409,6 @@
         </div>
       </div>
     </div>
-
-  <!-- Overlay de chargement pleine page -->
-  <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/80 backdrop-blur-sm">
-    <div class="text-center">
-      <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
-        <span class="text-3xl">🎭</span>
-      </div>
-      <p class="text-white text-lg">{{ currentLoadingLabel }}…</p>
-      <div class="mt-3 w-64 h-2 bg-white/10 rounded-full overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-pink-500 to-purple-600 transition-all duration-300" :style="{ width: loadingProgress + '%' }"></div>
-      </div>
-      <p class="text-white/60 text-xs mt-2">{{ loadingProgress }}%</p>
-    </div>
-  </div>
-
 
   <!-- Indicateur de chargement progressif (en bas à droite) -->
   <div v-if="isProgressiveLoading" class="fixed bottom-4 right-4 z-[100] bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg p-4 shadow-xl">
@@ -1947,6 +1959,7 @@ import {
   loadPlayers,
   loadEvents,
   loadActiveEvents,
+  processEventsForDisplay,
   loadAvailability,
   loadCasts,
   addPlayer,
@@ -2018,6 +2031,11 @@ const props = defineProps({
   eventId: {
     type: String,
     required: false
+  },
+  /** Appelé après montage pour que GridBoardShell masque son overlay (évite écran dégradé) */
+  onReady: {
+    type: Function,
+    default: null
   }
 })
 
@@ -2379,6 +2397,10 @@ const validCurrentView = computed(() => {
 // Variables pour la vue chronologique
 const selectedPlayerId = ref(null)
 
+// Sélection multiple (null = tous, Set = IDs filtrés)
+const selectedPlayerIds = ref(null)
+const selectedEventIds = ref(null)
+
 // Variables pour le filtrage des événements
 const selectedEventId = ref(null)
 const isAllEventsView = ref(false)
@@ -2433,26 +2455,15 @@ const selectedPlayerForDetails = ref(null)
 
 // Computed pour le joueur sélectionné (utilise toujours allSeasonPlayers)
 const selectedPlayer = computed(() => {
-  console.log('🔍 selectedPlayer computed:', {
-    selectedPlayerId: selectedPlayerId.value,
-    allSeasonPlayersLength: allSeasonPlayers.value?.length || 0,
-    currentView: validCurrentView.value
-  })
-  
-  if (!selectedPlayerId.value) {
-    console.log('🔍 selectedPlayer: no selectedPlayerId, returning null')
-    return null
+  if (!allSeasonPlayers.value) return null
+  if (selectedPlayerId.value) {
+    return allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
   }
-  
-  // Toujours utiliser allSeasonPlayers car c'est la liste complète
-  if (!allSeasonPlayers.value) {
-    console.log('🔍 selectedPlayer: no allSeasonPlayers, returning null')
-    return null
+  if (selectedPlayerIds.value && selectedPlayerIds.value.size === 1) {
+    const id = [...selectedPlayerIds.value][0]
+    return allSeasonPlayers.value.find(p => p.id === id) || null
   }
-  
-  const found = allSeasonPlayers.value.find(p => p.id === selectedPlayerId.value) || null
-  console.log('🔍 selectedPlayer found:', found ? { id: found.id, name: found.name } : null)
-  return found
+  return null
 })
 
 // Le provide sera déplacé plus tard après la définition de dropdownDisplayText
@@ -2662,6 +2673,7 @@ async function handleShowAvailabilityGrid(playerId) {
     
     // Définir le joueur sélectionné pour la vue Agenda
     selectedPlayerId.value = playerId
+    selectedPlayerIds.value = new Set([playerId])
     
     // Fermer la modale de joueur
     closePlayerDetailsModal()
@@ -3424,6 +3436,7 @@ async function handlePlayerSelected(player) {
   // Pour la vue chronologique : changer le joueur sélectionné et charger ses disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = player.id
+    selectedPlayerIds.value = new Set([player.id])
     showPlayerModal.value = false
     
     console.log('🎯 After: selectedPlayerId =', selectedPlayerId.value)
@@ -3440,6 +3453,7 @@ async function handlePlayerSelected(player) {
   } else {
     // Pour les vues lignes/colonnes : remplacer la liste des joueurs par le joueur sélectionné
     selectedPlayerId.value = player.id
+    selectedPlayerIds.value = new Set([player.id])
     
     // Désactiver le mode "tous les joueurs" et la vue focalisée
     isAllPlayersView.value = false
@@ -3469,6 +3483,7 @@ async function handleAllPlayersSelected() {
   // Pour la vue chronologique : afficher tous les joueurs et recharger toutes les disponibilités
   if (validCurrentView.value === 'timeline') {
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     showPlayerModal.value = false
     
     // Recharger toutes les disponibilités
@@ -3483,8 +3498,40 @@ async function handleAllPlayersSelected() {
   } else {
     // Pour les vues lignes/colonnes : ajouter tous les joueurs à la grille et réinitialiser selectedPlayerId
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     await addAllPlayersToGrid()
     logger.debug('🎯 Affichage de tous les joueurs pour la vue grille')
+  }
+}
+
+async function handlePlayersSelected(ids) {
+  if (!ids || ids.length === 0) return
+  selectedPlayerIds.value = new Set(ids)
+  selectedPlayerId.value = null
+  showPlayerModal.value = false
+
+  const selectedPlayers = allSeasonPlayers.value.filter(p => ids.includes(p.id))
+  if (selectedPlayers.length === 0) return
+
+  if (validCurrentView.value === 'timeline') {
+    selectedPlayerId.value = ids[0]
+    try {
+      const playerAvailability = await loadAvailability(selectedPlayers, events.value, seasonId.value)
+      availability.value = playerAvailability
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités:', error)
+    }
+  } else {
+    isAllPlayersView.value = false
+    isFocusedView.value = false
+    players.value = [...selectedPlayers]
+    manuallyAddedPlayers.value = new Set(ids)
+    try {
+      const playerAvailability = await loadAvailability(selectedPlayers, events.value, seasonId.value)
+      availability.value = playerAvailability
+    } catch (error) {
+      logger.error('Erreur lors du chargement des disponibilités:', error)
+    }
   }
 }
 
@@ -3600,6 +3647,7 @@ async function handleAllPlayersLoaded(data) {
     
     // Réinitialiser la sélection de joueur pour que le dropdown affiche "Tous"
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     
     // Mettre à jour les états de chargement
     data.players.forEach(player => {
@@ -3631,6 +3679,7 @@ async function handleAllEventsLoaded() {
     
     // Réinitialiser la sélection d'événement pour afficher tous les événements
     selectedEventId.value = null
+    selectedEventIds.value = null
     
     logger.debug('✅ Mode "tous les événements" activé via l\'événement des composants enfants')
   } catch (error) {
@@ -5476,15 +5525,22 @@ onMounted(async () => {
     timestamp: new Date().toISOString()
   })
 
+  // Notifier la shell que le premier paint est fait (évite écran dégradé pendant setup)
+  props.onReady?.()
+
   try {
-    // Le mode de stockage est maintenant géré par les variables d'environnement
-    // setStorageMode(useFirebase ? 'firebase' : 'mock') // SUPPRIMÉ
+    // Étape 0: connexion
+    currentLoadingLabel.value = 'Connexion au serveur'
+    loadingProgress.value = 5
 
     // Attendre que firestoreService soit initialisé
     logger.debug('⏳ Attente de l\'initialisation de firestoreService...')
     await performanceService.measureStep('firestore_init', async () => {
       await firestoreService.initialize()
     })
+
+    currentLoadingLabel.value = 'Recherche de la saison'
+    loadingProgress.value = 10
     logger.debug('✅ firestoreService initialisé')
 
     // Charger la saison par slug
@@ -5495,7 +5551,7 @@ onMounted(async () => {
         return await firestoreService.queryDocuments('seasons', [
           firestoreService.where('slug', '==', props.slug)
         ])
-      }, { seasonSlug: props.slug })
+      }, { seasonSlug: props.slug       })
       logger.debug('🔍 Saisons trouvées:', seasons.length, seasons.map(s => ({ id: s.id, name: s.name, slug: s.slug })))
     } catch (error) {
       logger.error('❌ Erreur lors de la recherche de la saison:', error)
@@ -5616,34 +5672,35 @@ onMounted(async () => {
 
     // Charger les données de la saison
     if (seasonId.value) {
-      // Étape 1: événements
-      currentLoadingLabel.value = 'Chargement des événements de la saison'
+      // Étape 1: événements + joueurs en parallèle (H-B)
+      currentLoadingLabel.value = 'Chargement des événements et joueurs'
       loadingProgress.value = 20
-      
-      // Charger TOUS les événements (y compris passés et archivés)
-      allEventsData.value = await performanceService.measureStep('load_all_events', async () => {
-        return await firestoreService.getDocuments('seasons', seasonId.value, 'events')
-      }, { seasonId: seasonId.value, count: 'unknown' })
-      
-      // Filtrer pour ne garder que les événements actifs dans events.value
+
+      const [allEventsResult, playersResult] = await Promise.all([
+        performanceService.measureStep('load_all_events', async () => {
+          return await firestoreService.getDocuments('seasons', seasonId.value, 'events')
+        }, { seasonId: seasonId.value, count: 'unknown' }),
+        performanceService.measureStep('load_players', async () => {
+          return await loadPlayers(seasonId.value)
+        }, { seasonId: seasonId.value, count: 'unknown' })
+      ])
+
+      allEventsData.value = allEventsResult
+      // H-A: réutiliser allEventsData au lieu de refaire une requête Firestore
       events.value = await performanceService.measureStep('load_events', async () => {
-        return await loadActiveEvents(seasonId.value)
-      }, { seasonId: seasonId.value, count: 'unknown' })
-      
+        return processEventsForDisplay(allEventsData.value)
+      }, { seasonId: seasonId.value, count: allEventsData.value?.length })
+
+      players.value = playersResult
+      allSeasonPlayers.value = [...players.value]
+
+      currentLoadingLabel.value = 'Chargement des permissions'
+      loadingProgress.value = 40
+
       // Charger les permissions pour chaque événement
       await loadEventPermissions()
 
-      // Étape 2: joueurs (optimisation mobile - chargement sélectif)
-      currentLoadingLabel.value = 'Chargement des joueurs'
-      loadingProgress.value = 45
-      
-      // Charger tous les joueurs de la saison
-      players.value = await performanceService.measureStep('load_players', async () => {
-        return await loadPlayers(seasonId.value)
-      }, { seasonId: seasonId.value, count: 'unknown' })
-      
-      // Charger aussi tous les joueurs pour les modals (EventRoleGroupingView, etc.)
-      allSeasonPlayers.value = [...players.value]
+      // Étape 2: joueurs déjà chargés en parallèle avec events (H-B)
       
       logger.debug(`📊 Chargé ${players.value.length} joueurs de la saison`)
       
@@ -5677,9 +5734,12 @@ onMounted(async () => {
         logger.debug('📊 Utilisateur non connecté, allSeasonPlayers déjà rempli')
       }
 
+      currentLoadingLabel.value = 'Préparation de la grille'
+      loadingProgress.value = 55
+
       // Marquer les données essentielles comme chargées (événements + joueurs + favoris)
       isEssentialDataLoaded.value = true
-      
+
       // Jalon : Grille visible pour l'utilisateur
       performanceService.milestone('grid_loading', 'grid_visible', {
         playersCount: players.value.length,
@@ -5701,59 +5761,48 @@ onMounted(async () => {
         })
       }
       
-      // Étape 3: disponibilités (optimisation mobile - chargement sélectif)
+      // Étape 3: disponibilités + casts + protections en parallèle (H-B)
       currentLoadingLabel.value = 'Chargement des disponibilités'
       loadingProgress.value = 70
       
-      // OPTIMISATION MOBILE : Charger les disponibilités de manière sélective
-      logger.debug('🚀 Chargement sélectif des disponibilités (optimisation mobile)')
-      
-      // Charger les disponibilités pour tous les joueurs de la saison (pas seulement ceux visibles dans la grille)
       const allPlayers = allSeasonPlayers.value
       logger.debug(`📊 Chargement des disponibilités pour ${allPlayers.length} joueurs (tous)`)
-      
-      availability.value = await performanceService.measureStep('load_availability_all', async () => {
-        return await loadAvailability(allPlayers, events.value, seasonId.value)
-      }, { 
-        seasonId: seasonId.value, 
-        playersCount: allPlayers.length, 
-        eventsCount: events.value.length 
-      })
-      
+
+      const [availabilityResult, castsResult, protectionsResult] = await Promise.all([
+        performanceService.measureStep('load_availability_all', async () => {
+          return await loadAvailability(allPlayers, events.value, seasonId.value)
+        }, { seasonId: seasonId.value, playersCount: allPlayers.length, eventsCount: events.value.length }),
+        performanceService.measureStep('load_casts', async () => {
+          try {
+            return await loadCasts(seasonId.value)
+          } catch (error) {
+            logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
+            return {}
+          }
+        }, { seasonId: seasonId.value, count: 'unknown' }),
+        performanceService.measureStep('load_protections', async () => {
+          try {
+            return await listProtectedPlayers(seasonId.value)
+          } catch (error) {
+            logger.debug('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
+            return []
+          }
+        }, { seasonId: seasonId.value })
+      ])
+
+      availability.value = availabilityResult
+      casts.value = castsResult
+      const protSet = new Set()
+      if (Array.isArray(protectionsResult)) {
+        protectionsResult.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
+      }
+      protectedPlayers.value = protSet
+
       logger.debug('✅ Disponibilités chargées avec succès (tous les joueurs)')
-      
-      // Initialiser les états de chargement pour tous les joueurs
       allPlayers.forEach(player => {
         playerLoadingStates.value.set(player.id, 'loaded')
       })
 
-      // Étape 4: compositions (en arrière-plan)
-      try {
-        casts.value = await performanceService.measureStep('load_casts', async () => {
-          return await loadCasts(seasonId.value)
-        }, { seasonId: seasonId.value, count: 'unknown' })
-      } catch (error) {
-        logger.debug('🔍 Collection casts non trouvée ou vide (normal pour une nouvelle saison)')
-        casts.value = {}
-      }
-
-      // Étape 5: protections (en arrière-plan)
-      try {
-        const protections = await performanceService.measureStep('load_protections', async () => {
-          return await listProtectedPlayers(seasonId.value)
-        }, { seasonId: seasonId.value })
-        const protSet = new Set()
-        if (Array.isArray(protections)) {
-          protections.forEach(p => { if (p.isProtected) protSet.add(p.playerId || p.id) })
-        }
-        protectedPlayers.value = protSet
-      } catch (error) {
-        logger.debug('🔍 Collection protections non trouvée ou vide (normal pour une nouvelle saison)')
-        protectedPlayers.value = new Set()
-      }
-      
-      // Étape 6: joueurs protégés déjà chargés dans l'étape 2 (optimisation mobile)
-      
       // Initialiser les joueurs préférés si l'utilisateur est connecté (déjà fait dans l'étape 3)
       if (getFirebaseAuth()?.currentUser?.email) {
         try {
@@ -5807,7 +5856,7 @@ onMounted(async () => {
     eventsCount: events.value.length,
     seasonId: seasonId.value
   })
-  
+
   // Afficher le résumé des performances dans la console
   logger.info(`🚀 Grille chargée en ${totalGridLoadingTime.toFixed(2)}ms (${players.value.length} joueurs, ${events.value.length} événements)`)
   performanceService.logSummary()
@@ -5847,6 +5896,7 @@ onMounted(async () => {
       // Appliquer également le filtre d'événement comme si choisi dans le ViewHeader
       // Cela limite la grille à cet événement pour permettre de déposer ses disponibilités directement
       selectedEventId.value = eventIdFromUrl
+      selectedEventIds.value = new Set([eventIdFromUrl])
       isAllEventsView.value = false
 
               // Si modal=event_details est demandé, ouvrir automatiquement la modal
@@ -6120,7 +6170,11 @@ const sortedPlayers = computed(() => {
 
 // Computed pour les joueurs affichés
 const displayedPlayers = computed(() => {
-  // Si un joueur spécifique est sélectionné, ne montrer que ce joueur
+  // Filtrage multi : selectedPlayerIds contient les IDs à afficher
+  if (selectedPlayerIds.value && selectedPlayerIds.value.size > 0) {
+    return sortedPlayers.value.filter(p => selectedPlayerIds.value.has(p.id))
+  }
+  // Sélection unique (rétrocompat) : selectedPlayerId
   if (selectedPlayerId.value) {
     const selectedPlayer = sortedPlayers.value.find(p => p.id === selectedPlayerId.value)
     return selectedPlayer ? [selectedPlayer] : []
@@ -6236,12 +6290,14 @@ watch(() => [preferredPlayerIdsSet.value.size, allSeasonPlayers.value.length], (
     }
     
     // Seulement si on a des favoris, des joueurs de saison, et pas encore de joueur sélectionné
-    if (favoritesSize > 0 && seasonPlayersLength > 0 && !selectedPlayerId.value) {
+    const hasNoPlayerSelection = !selectedPlayerId.value && (!selectedPlayerIds.value || selectedPlayerIds.value.size === 0)
+    if (favoritesSize > 0 && seasonPlayersLength > 0 && hasNoPlayerSelection) {
       const firstFavoriteId = preferredPlayerIdsSet.value.values().next().value
       const firstFavorite = allSeasonPlayers.value.find(p => p.id === firstFavoriteId)
       
       if (firstFavorite) {
         selectedPlayerId.value = firstFavoriteId
+        selectedPlayerIds.value = new Set([firstFavoriteId])
         logger.debug('🎯 Joueur par défaut initialisé avec le premier favori:', firstFavorite.name)
       }
     }
@@ -6258,6 +6314,7 @@ watch(validCurrentView, async (newView, oldView) => {
   if (newView === 'casts' && oldView !== 'casts') {
     console.log('🎯 Activation de la vue casts')
     selectedPlayerId.value = null
+    selectedPlayerIds.value = null
     
     // Charger tous les joueurs pour la vue "casts"
     try {
@@ -6690,9 +6747,12 @@ const allEvents = computed(() => {
 
 const displayedEvents = computed(() => {
   let filteredEvents
-  
-  // Si un événement spécifique est sélectionné, utiliser tous les événements pour le trouver
-  if (selectedEventId.value) {
+
+  // Filtrage multi : selectedEventIds contient les IDs à afficher
+  if (selectedEventIds.value && selectedEventIds.value.size > 0) {
+    filteredEvents = allEvents.value.filter(event => selectedEventIds.value.has(event.id))
+  } else if (selectedEventId.value) {
+    // Si un événement spécifique est sélectionné, utiliser tous les événements pour le trouver
     filteredEvents = allEvents.value
     filteredEvents = filteredEvents.filter(event => event.id === selectedEventId.value)
   } else if (isAllEventsView.value) {
@@ -6769,8 +6829,15 @@ const displayedEvents = computed(() => {
 
 // Computed pour l'événement sélectionné pour le filtre
 const selectedEventForFilter = computed(() => {
-  if (!selectedEventId.value || !events.value) return null
-  return events.value.find(event => event.id === selectedEventId.value)
+  if (!events.value) return null
+  if (selectedEventId.value) {
+    return events.value.find(event => event.id === selectedEventId.value) || null
+  }
+  if (selectedEventIds.value && selectedEventIds.value.size === 1) {
+    const id = [...selectedEventIds.value][0]
+    return events.value.find(event => event.id === id) || null
+  }
+  return null
 })
 
 
@@ -9336,12 +9403,9 @@ function handleEventSelected(event) {
   console.log('🎭 handleEventSelected:', event)
   
   try {
-    // Fermer la modale d'abord
     closeEventModal()
-    
-    // Changer l'ID de l'événement sélectionné directement
-    // sans délai pour éviter les conflits de réactivité
     selectedEventId.value = event.id
+    selectedEventIds.value = new Set([event.id])
   } catch (error) {
     console.error('❌ Erreur lors de la sélection d\'événement:', error)
   }
@@ -9378,6 +9442,15 @@ function handleAllEventsSelected(filters = {}) {
   // Activer le mode "tous les événements"
   isAllEventsView.value = true
   selectedEventId.value = null
+  selectedEventIds.value = null
+  closeEventModal()
+}
+
+function handleEventsSelected(ids) {
+  if (!ids || ids.length === 0) return
+  selectedEventIds.value = new Set(ids)
+  selectedEventId.value = null
+  isAllEventsView.value = false
   closeEventModal()
 }
 
@@ -11104,6 +11177,7 @@ watch(events, (list) => {
       if (t) {
         // Appliquer le filtre d'événement issu de l'URL si présent
         selectedEventId.value = eventId
+        selectedEventIds.value = new Set([eventId])
         isAllEventsView.value = false
       }
     }
