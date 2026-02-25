@@ -7,7 +7,7 @@
       ]"
     >
     <!-- Overlay de chargement en premier (first paint prioritaire mobile, fond opaque) -->
-    <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#030712]">
+    <div v-if="isLoadingGrid" class="fixed inset-0 z-[200] flex items-center justify-center bg-[#030712]">
       <div class="text-center">
         <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
           <span class="text-3xl">🎭</span>
