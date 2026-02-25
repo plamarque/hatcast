@@ -2,7 +2,7 @@
   <div
       class="flex flex-col"
       :class="[
-        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20',
+        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden md:pb-20',
         isLoadingGrid ? 'bg-[#030712]' : 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900'
       ]"
     >
