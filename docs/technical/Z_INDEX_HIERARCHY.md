@@ -82,11 +82,12 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | `z-[1100]` | CreatorOnboardingModal | Onboarding créateur | `src/components/CreatorOnboardingModal.vue` |
 | `z-[1110]` | PlayerOnboardingModal | Onboarding joueur (désactivé) | `src/components/PlayerOnboardingModal.vue` |
 
-### 🎯 Niveau 100-200 : Headers et navigation
+### 🎯 Niveau 100-200 : Headers et overlays
 
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
-| `z-[110]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
+| `z-[200]` | GridLoadingOverlay | Overlay de chargement grille (au-dessus du ViewHeader z-[120]) | `src/components/GridBoard.vue` |
+| `z-[120]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
 | `z-[105]` | GridTableHeader | En-tête sticky des tableaux (spectacles/participants) | `src/components/BaseGridView.vue` |
 | `z-[101]` | GridLeftColumn | Colonne de gauche de la grille (joueurs) | `src/components/GridBoard.vue` |
 | `z-[100]` | GridHeader | Header principal de la grille | `src/components/GridBoard.vue` |
@@ -109,7 +110,7 @@ Ce document décrit la hiérarchie des z-index utilisés dans l'application HatC
 | Z-Index | Composant | Description | Fichier |
 |---------|-----------|-------------|---------|
 | `z-[1200]` | FiltersDropdown | Dropdown des filtres (inline) | `src/components/GridBoard.vue` |
-| `z-[110]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
+| `z-[120]` | ViewHeader | Header sticky avec dropdown de sélection de vue | `src/components/ViewHeader.vue` |
 | `z-[1210]` | ViewHeaderDropdown | Dropdown de sélection de vue (Lignes/Colonnes/Chronologique) | `src/components/ViewHeader.vue` |
 | `z-[1220]` | PasswordVerificationModal | Vérification mot de passe | `src/components/PasswordVerificationModal.vue` |
 | `z-[1230]` | PinModal | Saisie du PIN | `src/components/PinModal.vue` |

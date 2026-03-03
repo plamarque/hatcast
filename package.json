@@ -1,6 +1,6 @@
 {
   "name": "hatcast",
-  "version": "0.47.0",
+  "version": "0.47.1",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -24,7 +24,8 @@
     "test:all": "node tests/run-tests.js",
     "test:all:headed": "node tests/run-tests.js --headed",
     "test:audit-config": "playwright test tests/audit-config.spec.js",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "replay": "node scripts/replay-season.js"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.10",

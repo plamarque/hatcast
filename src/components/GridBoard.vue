@@ -1,13 +1,13 @@
 <template>
   <div
-      class="flex flex-col"
+      class="flex flex-col min-h-[100dvh]"
       :class="[
-        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden pb-20',
+        isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden md:pb-20',
         isLoadingGrid ? 'bg-[#030712]' : 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900'
       ]"
     >
     <!-- Overlay de chargement en premier (first paint prioritaire mobile, fond opaque) -->
-    <div v-if="isLoadingGrid" class="fixed inset-0 z-[120] flex items-center justify-center bg-[#030712]">
+    <div v-if="isLoadingGrid" class="fixed inset-0 z-[200] flex items-center justify-center bg-[#030712]">
       <div class="text-center">
         <div class="w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse mx-auto mb-6 flex items-center justify-center shadow-2xl">
           <span class="text-3xl">🎭</span>
@@ -21,7 +21,10 @@
     </div>
 
     <!-- Contenu principal -->
-    <div class="w-full flex-1 flex flex-col min-h-0">
+    <div
+      class="w-full flex-1 flex flex-col min-h-0"
+      :class="{ 'bg-gray-900': !isLoadingGrid }"
+    >
       <!-- Header de saison partagé -->
     <SeasonHeader
       :season-name="seasonName"

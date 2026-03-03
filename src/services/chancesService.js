@@ -788,7 +788,7 @@ export function performDefaultDraw(candidates, role, options = {}) {
  * @param {Array} candidates - Liste des candidats
  * @returns {Object} - Objet avec les clés = nombre de casts, valeurs = array de candidats
  */
-function groupCandidatesByExperience(candidates) {
+export function groupCandidatesByExperience(candidates) {
   const groups = {}
   
   for (const candidate of candidates) {
