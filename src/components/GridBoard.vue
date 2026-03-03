@@ -1,6 +1,6 @@
 <template>
   <div
-      class="flex flex-col"
+      class="flex flex-col min-h-[100dvh]"
       :class="[
         isEventFullScreen ? 'h-screen' : 'h-screen overflow-hidden md:pb-20',
         isLoadingGrid ? 'bg-[#030712]' : 'bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900'
@@ -21,7 +21,10 @@
     </div>
 
     <!-- Contenu principal -->
-    <div class="w-full flex-1 flex flex-col min-h-0">
+    <div
+      class="w-full flex-1 flex flex-col min-h-0"
+      :class="{ 'bg-gray-900': !isLoadingGrid }"
+    >
       <!-- Header de saison partagé -->
     <SeasonHeader
       :season-name="seasonName"
