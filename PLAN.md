@@ -154,6 +154,12 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 
 ---
 
+### Work in progress (checkpoint for release – to resume later)
+
+- **Algorithm replay simulation (WIP):** Headless script `npm run replay` to replay season draws with default, Bruno, Bruno2 algorithms. Loads data from Firestore dev; first event uses real cast; generates JSON with metrics (consecutive plays, participation std dev, unique pairs). See `scripts/replay/`. **Not yet done:** equity score based on participation/availability ratio; integration in UI; analysis tooling for output files.
+
+---
+
 ### Slice 12: Composition history stats – selected/available and optional %
 
 - **Spec:** SPEC.md, slice « Composition history statistics – selected vs available (Play, Decorum, Volunteer) ».
