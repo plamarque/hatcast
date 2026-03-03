@@ -1,15 +1,16 @@
-## [0.47.0] - 2026-02-21
+## [0.47.1] - 2026-03-03
 
 ### 📝 Other Changes
 
-- test: Add E2E regression tests for view loading
-- feat(ux): Improve loading bar with real progress steps
-- perf(load): Optimize initial load and reduce gradient screen on mobile
-- feat(ui): Add multi-select with checkboxes in participant and event selectors
+- feat(replay): Add headless algorithm replay simulation (WIP)
+- fix(ui): Eliminate bottom band on mobile in GridBoard
+- fix(ui): Remove colored band at footer on mobile
+- fix(ui): Hide ViewHeader behind loading overlay on mobile
 
 
 # Changelog
 
+## [0.47.1] - 2026-03-03
 ## [0.47.0] - 2026-02-21
 ## [0.46.4] - 2026-02-21
 ## [0.46.3] - 2026-02-20

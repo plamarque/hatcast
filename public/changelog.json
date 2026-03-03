@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.47.1",
+    "date": "2026-03-03",
+    "changes": [
+      "✨ Ajout d'une simulation d'algorithme sans interface pour le replay (en cours de développement)",
+      "🐛 Suppression de la bande inférieure sur mobile dans le tableau de grille",
+      "🐛 Suppression de la bande colorée en bas sur mobile",
+      "🐛 Masquage de l'en-tête de vue derrière le chargement sur mobile"
+    ]
+  },
+  {
     "version": "0.47.0",
     "date": "2026-02-21",
     "changes": [
