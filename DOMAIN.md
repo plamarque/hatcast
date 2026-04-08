@@ -9,7 +9,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 ## Glossary
 
 - **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `src/services/storage.js`, `seasons.js`).
-- **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`).
+- **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`). For UI, “past” vs still on the programme follows the **calendar day in `Europe/Paris`** (see `eventPastParis.js`), not raw UTC instant of a date-only field.
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
 - **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`).
 - **Cast:** The set of players selected to perform at an event after the draw. One cast per event. Includes roles and per-player status (pending, confirmed, declined). Stored e.g. in `seasons/{id}/casts`; structure observed in `castService.js`, `selectionService.js`.

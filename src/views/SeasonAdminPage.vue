@@ -1071,6 +1071,7 @@ import CreateInviteModal from '../components/CreateInviteModal.vue'
 import PinModal from '../components/PinModal.vue'
 import PlayerAvatar from '../components/PlayerAvatar.vue'
 import { loadEvents, saveEvent, updateEvent, deleteEvent as deleteEventService, loadPlayers, countAvailabilities, deletePlayer, getEventAdmins, addEventAdmin, removeEventAdmin } from '../services/storage.js'
+import { isEventPastParis } from '../utils/eventPastParis.js'
 import firestoreService from '../services/firestoreService.js'
 import { updateSeason, getSeasons, exportSeasonAvailabilitiesCsv, deleteSeasonDirect } from '../services/seasons.js'
 import { uploadImage, deleteImage, isFirebaseStorageUrl } from '../services/imageUpload.js'
@@ -1191,9 +1192,8 @@ const filteredEvents = computed(() => {
   if (!events.value || events.value.length === 0) return []
   
   return events.value.filter(event => {
-    const eventDate = new Date(event.date)
     const isInactive = !!event.archived
-    const isPast = eventDate < new Date()
+    const isPast = !!(event.date && isEventPastParis(event.date))
     
     // Par défaut : afficher les spectacles futurs actifs
     let shouldShow = !isInactive && !isPast

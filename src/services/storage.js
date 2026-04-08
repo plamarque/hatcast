@@ -5,6 +5,7 @@ import firestoreService from './firestoreService.js'
 import AuditClient from './auditClient.js'
 import { LABELS } from '../constants/labels.js'
 import permissionService from './permissionService.js'
+import { isEventPastParis, normalizeEventDate } from '../utils/eventPastParis.js'
 
 // Fonctions utilitaires pour la migration vers les IDs de joueurs
 export async function getPlayerIdByName(playerName, seasonId) {
@@ -374,17 +375,11 @@ export function processEventsForDisplay(events) {
   if (!Array.isArray(events)) return []
   const now = new Date()
   const processedEvents = events.map(event => {
-    const eventDate = (() => {
-      if (!event.date) return null
-      if (event.date instanceof Date) return event.date
-      if (typeof event.date?.toDate === 'function') return event.date.toDate()
-      const d = new Date(event.date)
-      return isNaN(d.getTime()) ? null : d
-    })()
+    const eventDate = normalizeEventDate(event.date)
     return {
       ...event,
       _isArchived: event.archived === true,
-      _isPast: eventDate && eventDate < now,
+      _isPast: !!(event.date && isEventPastParis(event.date, now)),
       _eventDate: eventDate
     }
   })

@@ -57,6 +57,7 @@ HatCast is a web application for organising improvisation shows: managing **seas
 - Audit trail of significant actions (e.g. via Firestore triggers and `auditClient.js`).
 - Responsive web UI; PWA (install, service worker, manifest).
 - **Participant and event selectors (multi-select):** Header dropdowns filter the displayed participants and events. Clic sur une ligne = sélection simple immédiate + fermeture. Cases à cocher (à droite de chaque ligne) permettent la multi-sélection : cocher plusieurs participants ou spectacles, fermer la popup → affichage filtré à ceux cochés. L'entrée « Tous » a une case pour tout cocher/décocher ; son clic sur la ligne garde le comportement actuel (fermeture + afficher tous). Code : [PlayerSelectorModal.vue](src/components/PlayerSelectorModal.vue), [EventSelectorModal.vue](src/components/EventSelectorModal.vue), [ViewHeader.vue](src/components/ViewHeader.vue).
+- **Event “past” for UI filters and styling:** The event date is a calendar day (typically `YYYY-MM-DD` from the date picker). An event is treated as **past** (hidden when “past” is off, ⏰ styling, etc.) only **after the end of that calendar day in `Europe/Paris`**, not immediately after UTC midnight of the stored date. Implementation: [eventPastParis.js](src/utils/eventPastParis.js).
 
 **Should have (present in codebase):**
 
