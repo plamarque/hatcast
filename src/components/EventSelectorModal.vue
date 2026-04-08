@@ -164,6 +164,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { formatEventDate } from '../utils/dateUtils.js'
+import { isEventPastParis } from '../utils/eventPastParis.js'
 import { EVENT_TYPE_ICONS } from '../services/storage.js'
 import { getStatusLabel, getStatusColor } from '../services/eventStatusService.js'
 
@@ -271,8 +272,7 @@ const filteredEvents = computed(() => {
     const now = new Date()
     filtered = filtered.filter(event => {
       if (!event.date) return true
-      const eventDate = new Date(event.date)
-      return eventDate >= now
+      return !isEventPastParis(event.date, now)
     })
   }
   

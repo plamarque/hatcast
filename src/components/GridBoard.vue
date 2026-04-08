@@ -1986,6 +1986,7 @@ import playerPasswordSessionManager from '../services/playerPasswordSession.js'
 import { rememberLastVisitedSeason } from '../services/seasonPreferences.js'
 import logger from '../services/logger.js'
 import performanceService from '../services/performanceService.js'
+import { isEventPastParis } from '../utils/eventPastParis.js'
 import AnnounceModal from './AnnounceModal.vue'
 import EventAnnounceModal from './EventAnnounceModal.vue'
 import PasswordResetModal from './PasswordResetModal.vue'
@@ -6771,15 +6772,8 @@ const displayedEvents = computed(() => {
       if (!currentFilters.showInactiveEvents && event.archived === true) return false
       
       // Appliquer le filtre des événements passés (inversé : si NON coché, on masque)
-      if (!currentFilters.showPastEvents && event.date) {
-        const eventDate = (() => {
-          if (event.date instanceof Date) return event.date
-          if (typeof event.date?.toDate === 'function') return event.date.toDate()
-          const d = new Date(event.date)
-          return isNaN(d.getTime()) ? null : d
-        })()
-        
-        if (eventDate && eventDate < now) return false
+      if (!currentFilters.showPastEvents && event.date && isEventPastParis(event.date, now)) {
+        return false
       }
       
       return true
@@ -6797,15 +6791,8 @@ const displayedEvents = computed(() => {
       if (!currentFilters.showInactiveEvents && event.archived === true) return false
       
       // Appliquer le filtre des événements passés
-      if (!currentFilters.showPastEvents && event.date) {
-        const eventDate = (() => {
-          if (event.date instanceof Date) return event.date
-          if (typeof event.date?.toDate === 'function') return event.date.toDate()
-          const d = new Date(event.date)
-          return isNaN(d.getTime()) ? null : d
-        })()
-        
-        if (eventDate && eventDate < now) return false
+      if (!currentFilters.showPastEvents && event.date && isEventPastParis(event.date, now)) {
+        return false
       }
       
       return true
@@ -6813,21 +6800,12 @@ const displayedEvents = computed(() => {
   }
   
   // Enrichir les événements avec les propriétés _isPast et _isArchived
-  const now = new Date()
-  return filteredEvents.map(event => {
-    const eventDate = (() => {
-      if (event.date instanceof Date) return event.date
-      if (typeof event.date?.toDate === 'function') return event.date.toDate()
-      const d = new Date(event.date)
-      return isNaN(d.getTime()) ? null : d
-    })()
-    
-    return {
-      ...event,
-      _isArchived: event.archived === true,
-      _isPast: eventDate ? eventDate < now : false
-    }
-  })
+  const nowForPast = new Date()
+  return filteredEvents.map(event => ({
+    ...event,
+    _isArchived: event.archived === true,
+    _isPast: !!(event.date && isEventPastParis(event.date, nowForPast))
+  }))
 })
 
 // Computed pour l'événement sélectionné pour le filtre
