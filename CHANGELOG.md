@@ -1,15 +1,13 @@
-## [0.47.1] - 2026-03-03
+## [0.47.2] - 2026-04-08
 
 ### 📝 Other Changes
 
-- feat(replay): Add headless algorithm replay simulation (WIP)
-- fix(ui): Eliminate bottom band on mobile in GridBoard
-- fix(ui): Remove colored band at footer on mobile
-- fix(ui): Hide ViewHeader behind loading overlay on mobile
+- fix(events): Use Paris EOD for past visibility
 
 
 # Changelog
 
+## [0.47.2] - 2026-04-08
 ## [0.47.1] - 2026-03-03
 ## [0.47.0] - 2026-02-21
 ## [0.46.4] - 2026-02-21

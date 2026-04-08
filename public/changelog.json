@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.47.2",
+    "date": "2026-04-08",
+    "changes": [
+      "🐛 Correction : Maintenant, on utilise l'EOD de Paris pour afficher correctement les événements passés."
+    ]
+  },
+  {
     "version": "0.47.1",
     "date": "2026-03-03",
     "changes": [
