@@ -8,17 +8,17 @@ L'authentification Google a été intégrée dans HatCast pour permettre aux uti
 
 ### Services implémentés
 
-1. **`src/services/firebase.js`**
+1. **`legacy/src/services/firebase.js`**
    - `signInWithGoogle()` - Connexion avec Google
    - `signUpWithGoogle()` - Inscription avec Google (même processus que la connexion)
    - Gestion des erreurs spécifiques à Google Auth
 
-2. **`src/components/AccountLoginModal.vue`**
+2. **`legacy/src/components/AccountLoginModal.vue`**
    - Bouton Google en premier (UX prioritaire)
    - Fallback vers email/password
    - Audit logging intégré
 
-3. **`src/components/AccountCreationModal.vue`**
+3. **`legacy/src/components/AccountCreationModal.vue`**
    - Bouton Google en premier
    - Alternative email/password maintenue
    - Gestion de la navigation post-inscription

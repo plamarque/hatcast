@@ -9,7 +9,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 ## Glossary
 
 - **Troupe:** The performing group / organisation whose **identity** and **seasons** are managed together in admin. (May map 1:1 to a tenant or org in the target data model; legacy code often scopes by **season** only—see ARCH when migrating.)
-- **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `src/services/storage.js`, `seasons.js`). Belongs to a **troupe** in the product sense when multi-season-per-troupe is modelled (V2 admin).
+- **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `legacy/src/services/storage.js`, `seasons.js`). Belongs to a **troupe** in the product sense when multi-season-per-troupe is modelled (V2 admin).
 - **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`).
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
 - **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`).
@@ -60,7 +60,7 @@ User 1──* userPreferences, userPushTokens, userNavigation
 
 ## Statistiques de composition (vue Compositions)
 
-La vue Compositions affiche des statistiques par joueur et par catégorie de rôle. Un événement est soit « spectacle local » (match, cabaret, longform, freeform, catch, custom, survey) soit « déplacement ». Les participations en déplacement vont dans la catégorie DEPLACEMENT, jamais dans JEU ou DECORUM. Implémenté dans `src/components/CastsView.vue`, `calculatePlayerRoleStats`.
+La vue Compositions affiche des statistiques par joueur et par catégorie de rôle. Un événement est soit « spectacle local » (match, cabaret, longform, freeform, catch, custom, survey) soit « déplacement ». Les participations en déplacement vont dans la catégorie DEPLACEMENT, jamais dans JEU ou DECORUM. Implémenté dans `legacy/src/components/CastsView.vue`, `calculatePlayerRoleStats`.
 
 | Catégorie    | Colonne         | Contenu                                                                 | Source                                      |
 | ------------ | --------------- | ----------------------------------------------------------------------- | ------------------------------------------- |
@@ -106,4 +106,4 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 - **Ambiguity:** "Role" in a cast (e.g. for multi-role shows) vs simple "selected": both appear in code (`castService.getPlayerCastRole`, selection-multi-roles docs); exact role set and who defines it (per event vs per season) not fully unified here.
 - **OPEN QUESTION:** Lifecycle of invitations (expiry, single-use) is implied by usage but not defined in one place.
 
-**Code references:** Draw and chances: [src/services/selectionService.js](src/services/selectionService.js), [src/services/chancesService.js](src/services/chancesService.js). Casts: [src/services/castService.js](src/services/castService.js). Availability: [src/services/playerAvailabilityService.js](src/services/playerAvailabilityService.js), [src/services/storage.js](src/services/storage.js). Seasons/players: [src/services/seasons.js](src/services/seasons.js), [src/services/players.js](src/services/players.js).
+**Code references:** Draw and chances: [legacy/src/services/selectionService.js](legacy/src/services/selectionService.js), [legacy/src/services/chancesService.js](legacy/src/services/chancesService.js). Casts: [legacy/src/services/castService.js](legacy/src/services/castService.js). Availability: [legacy/src/services/playerAvailabilityService.js](legacy/src/services/playerAvailabilityService.js), [legacy/src/services/storage.js](legacy/src/services/storage.js). Seasons/players: [legacy/src/services/seasons.js](legacy/src/services/seasons.js), [legacy/src/services/players.js](legacy/src/services/players.js).

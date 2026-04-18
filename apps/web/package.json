@@ -1,0 +1,10 @@
+{
+  "name": "@hatcast/web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "HatCast V2 web client (Angular 21 + Angular Material). Scaffold when implementing V2 stories.",
+  "scripts": {
+    "build": "node -e \"console.log('[apps/web] Add Angular CLI build (ng build) here.'); process.exit(0)\"",
+    "test": "node -e \"process.exit(0)\""
+  }
+}

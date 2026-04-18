@@ -3,6 +3,12 @@ name: Deploy to Staging
 on:
   push:
     branches: [staging]
+    paths-ignore:
+      - 'apps/web/**'
+      - 'services/api/**'
+      - 'docs/**'
+      - '_bmad-output/**'
+      - '.agents/**'
   workflow_dispatch:
 
 jobs:
@@ -42,8 +48,8 @@ jobs:
         GIT_HASH=$(git rev-parse --short HEAD)
         BUILD_DATE=$(date '+%Y-%m-%d')
         BUILD_TIME=$(date '+%Y-%m-%dT%H:%M:%S%z')
-        cat > public/version.txt << EOF
-        $(node -p "require('./package.json').version")
+        cat > legacy/public/version.txt << EOF
+        $(node -p "require('./legacy/package.json').version")
         Staging build - $BUILD_DATE
         Git: $GIT_HASH
         Build: $BUILD_TIME
@@ -52,36 +58,36 @@ jobs:
     - name: Ensure changelog files exist in public directory
       run: |
         if [ -f "changelog.json" ]; then
-          cp changelog.json public/changelog.json
+          cp changelog.json legacy/public/changelog.json
         fi
         if [ -f "CHANGELOG_FR.md" ]; then
-          cp CHANGELOG_FR.md public/changelog_fr.md
+          cp CHANGELOG_FR.md legacy/public/changelog_fr.md
         elif [ -f "CHANGELOG.md" ]; then
-          cp CHANGELOG.md public/changelog.md
-        elif [ -f "public/changelog.md" ]; then
-          echo "changelog.md already exists in public/"
+          cp CHANGELOG.md legacy/public/changelog.md
+        elif [ -f "legacy/public/changelog.md" ]; then
+          echo "changelog.md already exists in legacy/public/"
         else
-          echo "# Changelog" > public/changelog.md
-          echo "" >> public/changelog.md
-          echo "Aucune nouveauté récente." >> public/changelog.md
+          echo "# Changelog" > legacy/public/changelog.md
+          echo "" >> legacy/public/changelog.md
+          echo "Aucune nouveauté récente." >> legacy/public/changelog.md
         fi
       
-    - name: Build application
+    - name: Build application (legacy V1 client)
       run: npm run build
       
     - name: Copy changelog files to build directory
       run: |
-        if [ -f "public/changelog.json" ]; then
-          cp public/changelog.json dist/changelog.json
+        if [ -f "legacy/public/changelog.json" ]; then
+          cp legacy/public/changelog.json legacy/dist/changelog.json
         fi
-        if [ -f "public/changelog_fr.md" ]; then
-          cp public/changelog_fr.md dist/changelog_fr.md
-        elif [ -f "public/changelog.md" ]; then
-          cp public/changelog.md dist/changelog.md
+        if [ -f "legacy/public/changelog_fr.md" ]; then
+          cp legacy/public/changelog_fr.md legacy/dist/changelog_fr.md
+        elif [ -f "legacy/public/changelog.md" ]; then
+          cp legacy/public/changelog.md legacy/dist/changelog.md
         else
-          echo "# Changelog" > dist/changelog.md
-          echo "" >> dist/changelog.md
-          echo "Aucune nouveauté récente." >> dist/changelog.md
+          echo "# Changelog" > legacy/dist/changelog.md
+          echo "" >> legacy/dist/changelog.md
+          echo "Aucune nouveauté récente." >> legacy/dist/changelog.md
         fi
       
     - name: Deploy to Firebase Staging

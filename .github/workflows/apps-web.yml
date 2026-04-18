@@ -1,0 +1,29 @@
+# Lightweight check when only the V2 web client tree changes (no legacy Firebase deploy).
+name: apps/web (V2 client)
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [v2, main]
+    paths:
+      - 'apps/web/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  build-placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install workspaces
+        run: npm ci
+      - name: Run apps/web build script (placeholder until Angular scaffold)
+        run: npm run build -w @hatcast/web

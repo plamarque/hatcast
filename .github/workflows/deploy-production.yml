@@ -3,6 +3,12 @@ name: Deploy to Production
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'apps/web/**'
+      - 'services/api/**'
+      - 'docs/**'
+      - '_bmad-output/**'
+      - '.agents/**'
   workflow_dispatch:
 
 jobs:
@@ -38,7 +44,7 @@ jobs:
 
         EOF
         
-    - name: Build application
+    - name: Build application (legacy V1 client)
       run: npm run build
       
     - name: Deploy to Firebase Production

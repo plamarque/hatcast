@@ -1,0 +1,53 @@
+{
+  "name": "hatcast-legacy",
+  "version": "0.47.1",
+  "private": true,
+  "description": "HatCast V1 — Vue 3 + Vite + Firebase client (reference / maintenance). Build output: legacy/dist",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "vite build && gh-pages -d dist --dotfiles",
+    "tailwind:init": "tailwindcss init",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:email": "node tests/email-interceptor.js",
+    "test:full": "node tests/run-tests.js",
+    "test:cleanup": "node tests/run-tests.js --cleanup",
+    "test:show-emails": "node tests/run-tests.js --show-emails",
+    "test:cleanup-files": "./tests/cleanup-tests.sh",
+    "test:cleanup-auto": "CLEANUP_TESTS=true playwright test",
+    "test:ci": "BASE_URL=http://localhost:5173 playwright test",
+    "test:with-server": "SKIP_WEBSERVER=1 BASE_URL=https://localhost:5173 playwright test",
+    "test:no-server": "SKIP_WEBSERVER=1 playwright test",
+    "test:manual": "node tests/run-manual.js",
+    "test:local": "playwright test",
+    "test:all": "node tests/run-tests.js",
+    "test:all:headed": "node tests/run-tests.js --headed",
+    "test:audit-config": "playwright test tests/audit-config.spec.js",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.10",
+    "dotenv": "^17.2.2",
+    "firebase": "^12.1.0",
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.5.0",
+    "openai": "^5.20.0",
+    "vue": "^3.3.0",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@tailwindcss/postcss": "^4.1.10",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "autoprefixer": "^10.4.21",
+    "gh-pages": "^6.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.3",
+    "vite": "^4.4.0",
+    "vite-plugin-pwa": "^0.16.5",
+    "vitest": "^2.1.0"
+  }
+}

@@ -2,6 +2,12 @@
 
 Ce dossier contient la documentation technique et d'implémentation du projet HatCast.
 
+## Monorepo V1 / V2
+
+- **[MONOREPO.md](MONOREPO.md)** — Structure `legacy/`, `apps/web/`, `services/api/` et règles d’import.
+- **[BRANCH_ENVIRONMENTS.md](BRANCH_ENVIRONMENTS.md)** — Branches Git, déploiements, environnements.
+- **[MERGE_V2_TO_MAIN_CHECKLIST.md](MERGE_V2_TO_MAIN_CHECKLIST.md)** — Avant merge `v2` → `main`.
+
 ## 🏗️ Architecture et implémentation
 
 ### 🎭 Interface utilisateur

@@ -2,10 +2,17 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// Certificats dev HTTPS : à la racine du repo (voir DEVELOPMENT.md)
+const defaultCert = path.join(__dirname, '..', '192.168.1.134.pem')
+const defaultKey = path.join(__dirname, '..', '192.168.1.134-key.pem')
 
 // Configuration HTTPS pour le développement local
-const CERT_PATH = process.env.VITE_HTTPS_CERT_PATH || './192.168.1.134.pem'
-const KEY_PATH = process.env.VITE_HTTPS_KEY_PATH || './192.168.1.134-key.pem'
+const CERT_PATH = process.env.VITE_HTTPS_CERT_PATH || defaultCert
+const KEY_PATH = process.env.VITE_HTTPS_KEY_PATH || defaultKey
 const FORCE_HTTPS = process.env.VITE_FORCE_HTTPS === 'true' || true
 
 const httpsConfig = (fs.existsSync(CERT_PATH) && fs.existsSync(KEY_PATH))

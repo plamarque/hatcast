@@ -27,7 +27,7 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 ## Assets
 
-- **Static images:** Put them in `public/img/` and reference them as `/img/filename` (e.g. `/img/slide-1.jpg`). Full convention in [ARCH.md](ARCH.md) (Static assets).
+- **Static images:** Put them in `legacy/public/img/` and reference them as `/img/filename` (e.g. `/img/slide-1.jpg`). Full convention in [ARCH.md](ARCH.md) (Static assets).
 
 ---
 
@@ -39,33 +39,33 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 - **Dev server (network / mobile):**  
   `npm run dev -- --host`  
-  Serves on all interfaces (e.g. https://192.168.x.x:5173 if HTTPS is set). HTTPS needs cert/key; see `vite.config.js` (CERT_PATH, KEY_PATH) and project rules (e.g. `.cursor/rules/dev-server.mdc`).
+  Serves on all interfaces (e.g. https://192.168.x.x:5173 if HTTPS is set). HTTPS needs cert/key; see [`legacy/vite.config.js`](legacy/vite.config.js) (cert paths default to PEM files at repo root) and project rules (e.g. `.cursor/rules/dev-server.mdc`).
 
 - **Preview production build:**  
   `npm run build` then `npm run preview`  
-  Serves the built `dist` locally.
+  Serves the built `legacy/dist` locally.
 
 ---
 
 ## Tests
 
-- **Minimal smoke:** The default `npm test` runs all Playwright specs; the baseline smoke set is in `tests/basic.spec.js` (home page load, navigation, critical route `/seasons`). Use this to confirm the app and routes respond.
+- **Minimal smoke:** The default `npm test` runs all Playwright specs; the baseline smoke set is in [`legacy/tests/basic.spec.js`](legacy/tests/basic.spec.js) (home page load, navigation, critical route `/seasons`). Use this to confirm the app and routes respond.
 
 - **Playwright (default):**  
   `npm test`  
-  Runs Playwright e2e tests. Playwright starts the dev server automatically (see `playwright.config.js` webServer) unless disabled. Requires a free port (default 5173).
+  Runs Playwright e2e tests. Playwright starts the dev server automatically (see [`legacy/playwright.config.js`](legacy/playwright.config.js) `webServer`) unless disabled. Requires a free port (default 5173).
 
 - **When the dev server is already running (e.g. port in use, or you use `npm run dev -- --host`):**  
   Start the app yourself (e.g. `npm run dev -- --host`), then in another terminal run:  
   `npm run test:no-server`  
-  This uses `SKIP_WEBSERVER=1` so Playwright does not start a second server; the base URL is taken from `playwright.config.js` or `playwright.config.local.js` (e.g. `https://192.168.1.134:5173`).  
+  This uses `SKIP_WEBSERVER=1` so Playwright does not start a second server; the base URL is taken from `legacy/playwright.config.js` or `legacy/playwright.config.local.js` (e.g. `https://192.168.1.134:5173`).  
   Alternatively, `npm run test:with-server` uses `BASE_URL=https://localhost:5173` if your app is reachable on localhost.
 
 - **CI:**  
   The deploy workflows (`.github/workflows/deploy-staging.yml`, `deploy-production.yml`) do **not** run Playwright; they only build and deploy. To run tests in CI, add a job that installs deps, creates `.env`, runs the dev server in the background, then runs `npm run test:ci` (uses `BASE_URL=http://localhost:5173`). Do not disable or remove existing tests to fix CI; fix the test or the behaviour.
 
 - **Other scripts:**  
-  `test:ui`, `test:headed`, `test:email`, `test:full`, `test:all`, `test:audit-config`, etc. See `package.json` and `tests/README.md`. Global setup/teardown: `tests/global-setup.js`, `tests/global-teardown.js`.
+  `test:ui`, `test:headed`, `test:email`, `test:full`, `test:all`, `test:audit-config`, etc. See root `package.json` / `legacy/package.json` and [`legacy/tests/README.md`](legacy/tests/README.md). Global setup/teardown: [`legacy/tests/global-setup.js`](legacy/tests/global-setup.js), [`legacy/tests/global-teardown.js`](legacy/tests/global-teardown.js).
 
 - **Known limitation:** State-dependent E2E tests are currently sensitive to base content; a fixture re-architecture is tracked in ISSUES.md (LIMIT-001) for later.
 
@@ -75,7 +75,7 @@ How to run locally, run tests, build, and deploy. For architecture and product i
 
 - **Production build:**  
   `npm run build`  
-  Output: `dist/`. Includes Vite bundle and PWA assets (manifest, service worker from `src/service-worker.js`). No server-side build; hosting serves `dist` as static files.
+  Output: **`legacy/dist/`**. Includes Vite bundle and PWA assets (manifest, service worker from `legacy/src/service-worker.js`). No server-side build; Firebase Hosting serves `legacy/dist` as static files (see [`firebase.json`](firebase.json)).
 
 - **Functions (Firebase):**  
   From repo root, deploy with Firebase CLI; the Functions runtime builds as needed. Config: `functions/package.json`, `firebase.json` (source: `functions`, runtime Node 20).

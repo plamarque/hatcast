@@ -1,5 +1,5 @@
 // @ts-check
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { defineConfig, devices } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -96,6 +96,7 @@ module.exports = defineConfig({
   ...(SKIP_WEBSERVER ? {} : {
     webServer: {
       command: 'npm run dev -- --host',
+      cwd: __dirname,
       url: BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,

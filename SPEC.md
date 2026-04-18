@@ -29,8 +29,8 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 ## Actors / personas
 
 - **Anonymous visitor:** Can view public content (e.g. landing, help). Cannot access season data that requires auth.
-- **Player (participant):** Has a **player** profile linked to a season (via claim or invite). Can set availability per event, view casts, and confirm or decline presence in a cast. May authenticate via email/password, magic link, or Google (observed in `src/services/firebase.js`, auth flows).
-- **Season creator / admin:** Can create and edit a season, its events, and its players; run the draw; announce casts; manage invitations. Access is controlled by Firestore `seasons/{id}/admins` and/or Super Admin (Cloud Function) (observed in `src/services/permissionService.js`, `main.js` router guard).
+- **Player (participant):** Has a **player** profile linked to a season (via claim or invite). Can set availability per event, view casts, and confirm or decline presence in a cast. May authenticate via email/password, magic link, or Google (observed in `legacy/src/services/firebase.js`, auth flows).
+- **Season creator / admin:** Can create and edit a season, its events, and its players; run the draw; announce casts; manage invitations. Access is controlled by Firestore `seasons/{id}/admins` and/or Super Admin (Cloud Function) (observed in `legacy/src/services/permissionService.js`, `main.js` router guard).
 - **Super Admin:** Global admin (e.g. for support). Granted via Cloud Function; can access any season admin (observed in `permissionService.js`, `functions/adminFunctions.js`).
 
 ---
@@ -39,13 +39,13 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 1. **View seasons and events:** User opens the app, sees or navigates to a season, sees a list of events and players (grid). No auth required for read in current rules (Firestore read public for seasons and subcollections).
 2. **Join a season (player):** User follows a join/invite link (e.g. `/season/:slug/join` or `/accept-invitation`), authenticates if needed, claims or is assigned a player, then can set availability.
-3. **Set availability:** Authenticated player selects events and sets availability (e.g. available / unavailable). Data stored in Firestore under the season (e.g. `availability` or player subcollections); observed in `src/services/storage.js`, `playerAvailabilityService.js`.
+3. **Set availability:** Authenticated player selects events and sets availability (e.g. available / unavailable). Data stored in Firestore under the season (e.g. `availability` or player subcollections); observed in `legacy/src/services/storage.js`, `playerAvailabilityService.js`.
 4. **Run draw and announce cast:** Season admin runs the selection (weighted random draw based on past participation). System produces a **cast** per event (who is selected). Admin can announce; players can see cast and confirm/decline. Observed in `selectionService.js`, `castService.js`, `chancesService.js`.
 5. **Account and auth:** User signs in (email/password, magic link, Google) or uses password reset. Optional: link account to a player (claim), manage preferences. Observed in auth views and `authState.js`, `magicLinks.js`.
 6. **Season admin:** Admin opens `/season/:slug/admin`, manages season, events, players, invitations. Guarded by router + permission check (observed in `main.js` router.beforeEach, `permissionService.js`).
 7. **Notifications (optional):** Push (FCM) and/or email reminders. User opts in; app writes to `pushQueue` / `reminderQueue`; Cloud Functions process. Observed in `functions/index.js`, `notifications.js`, `reminderService.js`.
 
-**Code references (critical flows):** Draw/selection → [src/services/selectionService.js](src/services/selectionService.js), [src/services/chancesService.js](src/services/chancesService.js). Cast read/write → [src/services/castService.js](src/services/castService.js), [src/services/storage.js](src/services/storage.js). Availability → [src/services/playerAvailabilityService.js](src/services/playerAvailabilityService.js), [src/services/storage.js](src/services/storage.js). Auth → [src/services/firebase.js](src/services/firebase.js), [src/services/authState.js](src/services/authState.js). Admin guard → [src/main.js](src/main.js) (router.beforeEach), [src/services/permissionService.js](src/services/permissionService.js).
+**Code references (critical flows):** Draw/selection → [legacy/src/services/selectionService.js](legacy/src/services/selectionService.js), [legacy/src/services/chancesService.js](legacy/src/services/chancesService.js). Cast read/write → [legacy/src/services/castService.js](legacy/src/services/castService.js), [legacy/src/services/storage.js](legacy/src/services/storage.js). Availability → [legacy/src/services/playerAvailabilityService.js](legacy/src/services/playerAvailabilityService.js), [legacy/src/services/storage.js](legacy/src/services/storage.js). Auth → [legacy/src/services/firebase.js](legacy/src/services/firebase.js), [legacy/src/services/authState.js](legacy/src/services/authState.js). Admin guard → [legacy/src/main.js](legacy/src/main.js) (router.beforeEach), [legacy/src/services/permissionService.js](legacy/src/services/permissionService.js).
 
 ---
 
@@ -53,7 +53,7 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 
 - **Online-first:** App assumes network; Firestore has offline cache but critical flows (auth, draw, admin) expect connectivity. No hard offline-only mode specified in code.
 - **Hosting:** Deployed to Firebase Hosting (production and staging targets); build is static `dist` from Vite (see `firebase.json`, CI workflows).
-- **Devices:** Responsive UI; mobile and desktop. PWA install supported (manifest, service worker in `src/service-worker.js`, `vite.config.js`).
+- **Devices:** Responsive UI; mobile and desktop. PWA install supported (manifest, service worker in `legacy/src/service-worker.js`, [`legacy/vite.config.js`](legacy/vite.config.js)).
 - **Environment:** Multiple Firestore databases (default, staging, development) and env-specific config via `configService.js` (hostname and env vars).
 - **Language:** UI and docs are primarily French (observed in labels, routes, and existing docs).
 
@@ -70,7 +70,7 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 - Firestore persistence with current security rules; multi-database support for environments.
 - Audit trail of significant actions (e.g. via Firestore triggers and `auditClient.js`).
 - Responsive web UI; PWA (install, service worker, manifest).
-- **Participant and event selectors (multi-select):** Header dropdowns filter the displayed participants and events. Clic sur une ligne = sélection simple immédiate + fermeture. Cases à cocher (à droite de chaque ligne) permettent la multi-sélection : cocher plusieurs participants ou spectacles, fermer la popup → affichage filtré à ceux cochés. L'entrée « Tous » a une case pour tout cocher/décocher ; son clic sur la ligne garde le comportement actuel (fermeture + afficher tous). Code : [PlayerSelectorModal.vue](src/components/PlayerSelectorModal.vue), [EventSelectorModal.vue](src/components/EventSelectorModal.vue), [ViewHeader.vue](src/components/ViewHeader.vue).
+- **Participant and event selectors (multi-select):** Header dropdowns filter the displayed participants and events. Clic sur une ligne = sélection simple immédiate + fermeture. Cases à cocher (à droite de chaque ligne) permettent la multi-sélection : cocher plusieurs participants ou spectacles, fermer la popup → affichage filtré à ceux cochés. L'entrée « Tous » a une case pour tout cocher/décocher ; son clic sur la ligne garde le comportement actuel (fermeture + afficher tous). Code : [PlayerSelectorModal.vue](legacy/src/components/PlayerSelectorModal.vue), [EventSelectorModal.vue](legacy/src/components/EventSelectorModal.vue), [ViewHeader.vue](legacy/src/components/ViewHeader.vue).
 
 **Should have (present in codebase):**
 
@@ -106,7 +106,7 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Default tab:** When opening the event-details modal **without** a tab specified in the URL, the **first tab (Infos)** is displayed.
   - **URL parameter:** A query parameter (e.g. `tab`) allows opening a specific tab when opening event details via URL (e.g. `tab=info`, `tab=team`, `tab=compo`), so deep links can target Infos, Dispos, or Équipe.
   - No other change to existing behaviour (availability popup, composition display, permissions) is specified by this slice.
-  - **Code reference:** Event-details tabs UI → [src/components/GridBoard.vue](src/components/GridBoard.vue).
+  - **Code reference:** Event-details tabs UI → [legacy/src/components/GridBoard.vue](legacy/src/components/GridBoard.vue).
 
 - **Inline composition in event-details Composition tab (no separate popup)**
   - Composition management is done **only** in the **Composition** tab of the event-details modal. There is **no separate composition popup** (SelectionModal is no longer opened as an overlay).
@@ -128,27 +128,27 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - Reference: the Dispos tab already uses this pattern in `EventRoleGroupingView` (e.g. `grid-cols-2` at base); the Composition slots grid in GridBoard currently uses `grid-cols-1` for the smallest breakpoint.
 
 - **Event-details Équipe tab – message déclinés compact et liste sur demande**
-  - In the event-details **Équipe** (Composition) tab, do **not** display a large always-visible message or "Personnes ayant décliné" block. **Evolution:** Show a **compact clickable badge** just below the composition slots that indicates how many people have declined (e.g. "4 personnes ont décliné" or "1 personne a décliné"). When the user **clicks** the badge, the "Personnes ayant décliné" section (heading, subtitle, list with avatars, roles, "Remettre en composition" where applicable) is shown below; clicking the badge again (or an equivalent control) closes it. The badge is the only always-visible element for declined; the list is on demand. Scope and display conditions unchanged (composition validated, declined players, empty slots where relevant); no change to business behaviour. Code reference: [SelectionModal.vue](src/components/SelectionModal.vue) (inline in Équipe tab via [GridBoard.vue](src/components/GridBoard.vue)).
+  - In the event-details **Équipe** (Composition) tab, do **not** display a large always-visible message or "Personnes ayant décliné" block. **Evolution:** Show a **compact clickable badge** just below the composition slots that indicates how many people have declined (e.g. "4 personnes ont décliné" or "1 personne a décliné"). When the user **clicks** the badge, the "Personnes ayant décliné" section (heading, subtitle, list with avatars, roles, "Remettre en composition" where applicable) is shown below; clicking the badge again (or an equivalent control) closes it. The badge is the only always-visible element for declined; the list is on demand. Scope and display conditions unchanged (composition validated, declined players, empty slots where relevant); no change to business behaviour. Code reference: [SelectionModal.vue](legacy/src/components/SelectionModal.vue) (inline in Équipe tab via [GridBoard.vue](legacy/src/components/GridBoard.vue)).
 
 - **Composition status messages (Équipe tab)**
   - In the Composition tab, a **status badge** and a **hint message** indicate the current composition state. The displayed status is one of six; the **order of evaluation** matters (first matching condition wins).
   - **Definitions (logical conditions):** *hasSelection* — at least one player in the composition. *hasEmptySlots* — at least one slot has no player. *hasDeclinedPlayersInSlots* — at least one slot is filled by a player whose status is declined. *allFilledSlotsConfirmedLocally* — composition is validated by the organizer, there are no empty slots, and every filled slot has player status confirmed (derived from cast data). *isSelectionConfirmedByOrganizer* — the composition has been locked/validated by the organizer.
   - **Status table (evaluation order):** (1) **À composer** — no player in composition. (2) **Équipe complète** — validated, no empty slots, no declined in slots, all filled slots confirmed. (3) **À compléter** — validated and at least one empty slot. (4) **À vérifier** — validated and at least one slot has a declined player (and no empty slots). (5) **Confirmations en cours** — validated, no empty slots, no declined in slots, not all confirmed. (6) **En préparation** — has selection but not validated (message differs for managers vs non-managers).
   - **Priority rule:** If there is any empty slot, the status is À compléter (evaluated before À vérifier).
-  - **Full message strings and source of truth:** See [docs/technical/composition-status-messages.md](docs/technical/composition-status-messages.md). Implementation: [SelectionModal.vue](src/components/SelectionModal.vue) (`compositionStatus` computed).
+  - **Full message strings and source of truth:** See [docs/technical/composition-status-messages.md](docs/technical/composition-status-messages.md). Implementation: [SelectionModal.vue](legacy/src/components/SelectionModal.vue) (`compositionStatus` computed).
 
 - **Composition history statistics – selected vs available (Play, Decorum, Volunteer)**
   - In the **composition history view** (CastsView: table of players × events with optional stats columns), the **Play (Jeu)**, **Decorum**, and **Volunteer** stats columns today show only the **number of times** the player was selected in each category.
   - **Evolution:** Each of these columns will also show the **number of times the player was available** for that category, in the form **selected/available** (e.g. `2/7`). Example: "2/7" = selected twice out of 7 times they were available for play.
   - **Optional:** When space allows, display below the fraction a **rounded percentage** (e.g. ~29%) so users can compare how often expectations (game, decorum, or volunteer) were met relative to availability.
   - **Denominator (available):** For each category, "available" is the number of (non-archived) events where the player had indicated availability for that category: for **Play**, availability for role `player`; for **Decorum**, availability for at least one of mc, dj, referee, assistant_referee, coach; for **Volunteer**, availability for role `volunteer`. Event scope (e.g. only events with a confirmed cast, or all non-archived) must align with the current selection-count scope when implemented.
-  - **Code reference:** Stats table and `calculatePlayerRoleStats` → [src/components/CastsView.vue](src/components/CastsView.vue). Availability and roles → [src/services/playerAvailabilityService.js](src/services/playerAvailabilityService.js).
+  - **Code reference:** Stats table and `calculatePlayerRoleStats` → [legacy/src/components/CastsView.vue](legacy/src/components/CastsView.vue). Availability and roles → [legacy/src/services/playerAvailabilityService.js](legacy/src/services/playerAvailabilityService.js).
 
 - **Composition history – availability cells with role emojis (upcoming events)**
   - In the **composition history view** (CastsView), the **availability cells** for **upcoming events** ("Spectacle à venir") currently show dispos in a **purely textual** summary: e.g. "Dispo pour : Bénévole (34%), Assistant.e (11%), Régisseur.euse (33%)" (role labels and percentages).
   - **Evolution:** Use a **mix of text and emojis**. For each role, display the **emoji** that corresponds to that role (e.g. 🎭 for player, 🤝 for volunteer, 🎤 for MC, 🎧 for DJ, etc.) instead of the full role label in text; keep the **percentages** (chances). The result is more **compact**, **easier to read**, and **visually recognizable** while still showing availability roles and percentages.
   - Exact format (e.g. "Dispo pour : 🤝 34% 💁 11% 🎬 33%" or emoji + short label where space allows) and accessibility (tooltip with role names) to be defined at implementation time; the intent is a more visual and compact display than the current all-text line.
-  - **Code reference:** Availability cell content for roles and chances → [src/components/SelectionCell.vue](src/components/SelectionCell.vue) (block "Dispo pour :" with `rolesAndChances`). Role → emoji mapping → [src/services/storage.js](src/services/storage.js) (`ROLE_EMOJIS`).
+  - **Code reference:** Availability cell content for roles and chances → [legacy/src/components/SelectionCell.vue](legacy/src/components/SelectionCell.vue) (block "Dispo pour :" with `rolesAndChances`). Role → emoji mapping → [legacy/src/services/storage.js](legacy/src/services/storage.js) (`ROLE_EMOJIS`).
 
 ---
 

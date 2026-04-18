@@ -26,12 +26,12 @@ class AuditService {
 
     try {
       // Importer EnvironmentDetector
-      const { EnvironmentDetector: ED } = await import('../src/services/configService.js')
+      const { EnvironmentDetector: ED } = await import('../legacy/src/services/configService.js')
       EnvironmentDetector = ED
       _environment = ED.detectEnvironment()
       
       // Importer FirestoreService
-      const { default: FS } = await import('../src/services/firestoreService.js')
+      const { default: FS } = await import('../legacy/src/services/firestoreService.js')
       FirestoreService = FS
       
       console.log(`🔧 AuditService initialisé - Environnement: ${_environment}`)

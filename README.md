@@ -51,25 +51,22 @@ Basée sur Vue 3, Firebase et TailwindCSS.
 
 Le déploiement est géré par **Firebase Hosting** et les **GitHub Actions** (branches `staging` et `main`). La CI fait un build Vite puis `firebase deploy`. Voir [DEVELOPMENT.md](DEVELOPMENT.md) et `.github/workflows/`.
 
-## 📁 Structure
+## 📁 Structure (monorepo)
+
+- **`legacy/`** — Client **V1** (Vue 3 + Vite + PWA). Build → `legacy/dist` (Firebase Hosting actuel). Voir [docs/technical/MONOREPO.md](docs/technical/MONOREPO.md).
+- **`apps/web/`** — Client **V2** (cible Angular) — scaffold à venir.
+- **`services/api/`** — API **V2** (cible Spring Boot) — scaffold à venir.
+- **`functions/`** — Cloud Functions Firebase (ligne actuelle).
 
 ```
-src/
-  main.js              # Point d'entrée, routes Vue Router
-  App.vue
-  components/          # Composants Vue (dont GridBoard.vue = grille principale)
-  views/               # Pages : HomePage, SeasonsPage, HelpPage, GridBoard, etc.
-  services/
-    firebase.js        # Connexion Firebase (Auth, Firestore, Functions)
-    firestoreService.js # Accès Firestore centralisé (multi-DB)
-    storage.js         # Abstraction métier Firestore (saisons, events, players, casts)
+legacy/
+  src/                 # App Vue (main.js, components/, views/, services/)
+  public/              # Assets statiques servis à la racine du site
+  vite.config.js
 functions/
   index.js             # Cloud Functions (auth, audit, mail, push, admin)
-  auditService.js      # Service d'audit
-  auditTriggers.js     # Triggers Firestore pour l'audit
-  auditQueries.js      # Requêtes d'audit
 scripts/
-  audit-cli.js         # CLI pour consulter l'audit trail
+  replay-season.js     # Replay algorithmes (CLI)
 ```
 
 ## 📄 Docs pour agents et mainteneurs

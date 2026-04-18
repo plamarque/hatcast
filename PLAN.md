@@ -9,7 +9,8 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 ## Current status summary
 
 - **Normative docs (v0.1):** AGENTS.md, SPEC.md, DOMAIN.md, ARCH.md, PLAN.md, DEVELOPMENT.md, and `docs/adr/` are in place. Align code and behaviour with them over time.
-- **Application:** Single Vue 3 SPA; Firebase backend; CI deploys to Firebase Hosting (staging/production). Tests: Playwright + custom runners; some envs require `test:with-server` when dev server cannot be started by Playwright.
+- **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/technical/MONOREPO.md](docs/technical/MONOREPO.md) and [docs/technical/BRANCH_ENVIRONMENTS.md](docs/technical/BRANCH_ENVIRONMENTS.md).
+- **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
 
 ---

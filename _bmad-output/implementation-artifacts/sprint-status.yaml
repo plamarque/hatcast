@@ -1,0 +1,117 @@
+# generated: 2026-04-18T12:00:00Z
+# last_updated: 2026-04-18T14:30:00Z
+# project: hatcast
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+#
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: "2026-04-18T12:00:00Z"
+last_updated: "2026-04-18T14:30:00Z"
+project: hatcast
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-connexion-avec-fournisseur-oauth-google: ready-for-dev
+  1-2-connexion-email-et-mot-de-passe: backlog
+  1-3-reinitialisation-et-recuperation-de-mot-de-passe-par-email: backlog
+  1-4-session-persistante-se-souvenir-de-moi: backlog
+  1-5-deconnexion: backlog
+  1-6-mise-a-jour-des-identifiants-et-champs-de-compte-supportes: backlog
+  1-7-suppression-de-compte: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-adhesion-a-une-troupe-et-profil-membre-minimal: backlog
+  2-2-administration-des-membres-et-roles-de-base: backlog
+  2-3-navigation-entre-troupes: backlog
+  2-4-pseudo-affiche-par-troupe: backlog
+  2-5-avatar-et-option-image-de-profil-google: backlog
+  2-6-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: backlog
+  3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: backlog
+  3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: backlog
+  3-4-types-devenement-et-roles-requis-optionnels: backlog
+  3-5-delegation-des-organisateurs-perimetre-saison-evenement: backlog
+  3-6-vue-historique-colonnes-roles-mois-export-masquage: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-annuaire-public-des-troupes: backlog
+  4-2-pages-publiques-saison-et-evenements: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: backlog
+  5-2-disponibilite-par-role-lorsque-le-type-devenement-lexige: backlog
+  5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous: backlog
+  5-4-commentaire-optionnel-sur-la-disponibilite: backlog
+  5-5-saisie-de-disponibilite-pour-un-autre-membre-proxy-avec-audit: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui: backlog
+  6-2-detail-evenement-plein-ecran-onglets-infos-dispos-equipe: backlog
+  6-3-composition-brouillon-non-visible-aux-membres-ordinaires: backlog
+  6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability: backlog
+  6-5-assignation-manuelle-et-reassignation-des-roles: backlog
+  6-6-validation-verrouillage-de-la-composition: backlog
+  6-7-confirmation-ou-declinaison-de-participation-membre: backlog
+  6-8-confirmation-ou-declinaison-pour-le-compte-d-un-membre-proxy: backlog
+  6-9-creneaux-vacants-apres-declin-et-actions-de-suivi: backlog
+  6-10-partage-et-annonce-message-editable-canaux: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-inviter-un-non-membre-sur-un-role-et-un-perimetre-devenements: backlog
+  7-2-disponibilites-invite-et-modes-de-selection-alternatifs: backlog
+  epic-7-retrospective: optional
+
+  epic-8: backlog
+  8-1-opt-in-aux-notifications-navigateur-et-categories: backlog
+  8-2-preferences-de-notification: backlog
+  8-3-notifications-aux-jalons-metier-dispos-composition-confirmations: backlog
+  epic-8-retrospective: optional
+
+  epic-9: backlog
+  9-1-consultation-de-la-piste-d-audit-pour-utilisateurs-autorises: backlog
+  epic-9-retrospective: optional
+
+  epic-10: backlog
+  10-1-installabilite-pwa-raccourci-ajouter-a-lecran-d-accueil: backlog
+  10-2-detection-de-mise-a-jour-client-action-utilisateur-rechargement-au-clic: backlog
+  epic-10-retrospective: optional
