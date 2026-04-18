@@ -8,7 +8,8 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 
 ## Glossary
 
-- **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `src/services/storage.js`, `seasons.js`).
+- **Troupe:** The performing group / organisation whose **identity** and **seasons** are managed together in admin. (May map 1:1 to a tenant or org in the target data model; legacy code often scopes by **season** only—see ARCH when migrating.)
+- **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `src/services/storage.js`, `seasons.js`). Belongs to a **troupe** in the product sense when multi-season-per-troupe is modelled (V2 admin).
 - **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`).
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
 - **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`).
@@ -47,6 +48,7 @@ User 1──* userPreferences, userPushTokens, userNavigation
 
 ## Business rules / invariants (must always hold)
 
+- **Single active season (troupe scope):** For a given **troupe**, **at most one** season is **active** at any time. Activating a season **must** deactivate any other previously active season in that scope (explicit user action; auditable if required). Normative product statement; see [SPEC.md — Administration — required capabilities (V2 target)](SPEC.md#administration--required-capabilities-v2-target) and [_bmad-output/planning-artifacts/ux-design-hatcast-v2.md_ — Admin surfaces](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#admin-functional-scope).
 - **One cast per event:** For a given event there is at most one cast; the draw produces or updates it (observed in storage/cast usage).
 - **Cast status values:** Player status in a cast is one of: pending, confirmed, declined (see `castService.getPlayerCastStatus`).
 - **Admin access:** Only users in `seasons/{id}/admins` or Super Admin can write/admin that season; enforced by router guard and permission checks (`main.js`, `permissionService.js`) and by Firestore rules where applicable.

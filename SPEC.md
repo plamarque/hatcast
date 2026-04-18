@@ -12,6 +12,20 @@ HatCast is a web application for organising improvisation shows: managing **seas
 
 ---
 
+## Administration — required capabilities (V2 target)
+
+Normative intent for **administration** flows: **visual design is not prescribed** (Angular Material–typical or equivalent is acceptable). The product **must** expose the following capabilities to users with the appropriate roles (exact labels and routes in DOMAIN / permissions):
+
+1. **Members** — manage **members** and their **roles** (organizer, admin, participant, etc. as defined in DOMAIN).
+2. **Spectacles** — manage **spectacles** (events: lifecycle, metadata, attachment to a season) for the relevant scope.
+3. **Troupe and seasons** — manage **troupe** identity and **seasons**; **at most one season may be active at a time** within a given **troupe** (or product-defined scope)—activation must be **explicit** (see DOMAIN invariant).
+
+**UX reference (non-pixel):** [_bmad-output/planning-artifacts/ux-design-hatcast-v2.md_ — Admin surfaces (functional scope)](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#admin-functional-scope).
+
+This section complements the **legacy** admin behaviour described elsewhere in this document (e.g. `/season/:slug/admin`); where they differ, **migration** is handled in PLAN / ARCH for the target stack.
+
+---
+
 ## Actors / personas
 
 - **Anonymous visitor:** Can view public content (e.g. landing, help). Cannot access season data that requires auth.
