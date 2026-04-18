@@ -52,3 +52,7 @@ firebase-debug.log
 
 # Replay algorithm simulation output
 scripts/replay/output/
+
+# BMad standard skills (installed locally; identical copies — regenerate from BMad if needed)
+.agents/skills/
+.cursor/skills/
