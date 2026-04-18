@@ -256,10 +256,11 @@ async function signInWithGoogle() {
       console.warn('Error logging Google sign-in audit:', auditError)
     }
     
-    emit('success', { 
+    emit('success', {
       email: user.email,
       action: 'google_signin_success',
-      isNewUser: user.metadata.creationTime === user.metadata.lastSignInTime
+      isNewUser: user.metadata.creationTime === user.metadata.lastSignInTime,
+      returnUrl: props.returnUrl,
     })
   } catch (e) {
     error.value = e.message || 'Erreur lors de la connexion avec Google'

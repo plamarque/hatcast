@@ -1,8 +1,60 @@
-# `apps/web` — client web HatCast (V2)
+# HatCast — client V2 (`@hatcast/web`)
 
-Emplacement du **client V2** (cible : **Angular 21** + **Angular Material** selon les artefacts de planification).
+SPA **Angular 21** + **Angular Material** (OAuth Google + session API, voir [`docs/technical/V2_GOOGLE_OAUTH_SETUP.md`](../../docs/technical/V2_GOOGLE_OAUTH_SETUP.md)).
 
-- Ne pas importer depuis [`legacy/`](../legacy/) : s’en inspirer ou copier des motifs, pas des dépendances de module.
-- Le script `build` est un **no-op** jusqu’à l’ajout du projet Angular (`ng new` / workspace).
+Depuis la racine du monorepo : `npm run dev:web:v2` (équivalent à `npm run dev` dans ce workspace).
 
-Voir aussi [MONOREPO.md](../../docs/technical/MONOREPO.md).
+## Development server
+
+```bash
+npm run dev
+# ou : ng serve
+```
+
+Ouvrir **`https://localhost:4200/`** (TLS activé dans `angular.json` pour coller aux exigences Google OAuth en local). Le navigateur peut afficher un avertissement de certificat auto-signé : normal en dev. `proxy.conf.json` proxifie `/v1` et `/actuator` vers l’API sur `http://127.0.0.1:8080`.
+
+Pour Google Identity Services : renseigner `googleOAuthWebClientId` dans `src/environments/environment.development.ts` (profil `development` ; voir `angular.json` → `fileReplacements`).
+
+## Code scaffolding
+
+Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+
+```bash
+ng generate component component-name
+```
+
+For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+
+```bash
+ng generate --help
+```
+
+## Building
+
+To build the project run:
+
+```bash
+ng build
+```
+
+This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+
+## Running unit tests
+
+```bash
+ng test
+```
+
+## Running end-to-end tests
+
+For end-to-end (e2e) testing, run:
+
+```bash
+ng e2e
+```
+
+Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+
+## Additional Resources
+
+For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "dev": "npm run dev -w hatcast-legacy",
+    "dev:api": "cd services/api && ./gradlew bootRun",
+    "dev:web:v2": "npm run dev -w @hatcast/web",
     "build": "npm run build -w hatcast-legacy",
     "build:legacy": "npm run build -w hatcast-legacy",
     "preview": "npm run preview -w hatcast-legacy",

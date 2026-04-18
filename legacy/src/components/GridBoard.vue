@@ -11457,7 +11457,10 @@ async function handleAccountLoginSuccess(data) {
   // Vérifier s'il y a des données de notification en attente
   const pendingNotificationData = localStorage.getItem('pendingNotificationData')
   
-  if (data.action === 'login_success' && pendingNotificationData) {
+  if (
+    (data.action === 'login_success' || data.action === 'google_signin_success') &&
+    pendingNotificationData
+  ) {
     console.log('🎯 Connexion réussie, activation des notifications...')
     
     try {

@@ -4,9 +4,15 @@ test.describe('Tests d\'authentification HatCast', () => {
   test.beforeEach(async ({ page }) => {
     // Aller sur la page d'accueil (utilise la baseURL de Playwright)
     await page.goto('/');
-    
+
     // Attendre que la page se charge
     await page.waitForLoadState('domcontentloaded');
+
+    // La bannière PWA (z-index élevé) intercepte les clics sur le header si elle est visible
+    const dismissPwa = page.locator('[data-testid="pwa-install-banner-dismiss"]');
+    if (await dismissPwa.isVisible().catch(() => false)) {
+      await dismissPwa.click();
+    }
   });
 
   test('Interface de connexion', async ({ page }) => {
@@ -25,7 +31,8 @@ test.describe('Tests d\'authentification HatCast', () => {
     await expect(page.locator('[data-testid="submit-btn"]')).toBeVisible();
     await expect(page.locator('[data-testid="create-account-btn"]')).toBeVisible();
     await expect(page.locator('[data-testid="forgot-password-btn"]')).toBeVisible();
-    
+    await expect(page.locator('[data-testid="google-signin-btn"]')).toBeVisible();
+
     console.log('✅ Interface de connexion vérifiée');
   });
 

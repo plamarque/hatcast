@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: hatcast-api
+  profiles:
+    active: ${HATCAST_SPRING_PROFILE:dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: never
+  datasource:
+    url: jdbc:h2:mem:hatcast;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+server:
+  port: ${HATCAST_SERVER_PORT:8080}
+  servlet:
+    session:
+      cookie:
+        name: HATCAST_SESSION
+        http-only: true
+        same-site: lax
+
+hatcast:
+  google:
+    oauth-web-client-id: ${HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID:}
+  cors:
+    allowed-origins: ${HATCAST_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:4200,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:4200,https://localhost:5173,https://localhost:5174,https://localhost:4200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

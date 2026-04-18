@@ -1,0 +1,18 @@
+# Profil test : H2 isolé + client Google factice (pas d’appel réseau aux JWKS).
+spring:
+  datasource:
+    url: jdbc:h2:mem:hatcast_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  session:
+    jdbc:
+      initialize-schema: always
+
+hatcast:
+  google:
+    oauth-web-client-id: test-google-web-client-id
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:4200

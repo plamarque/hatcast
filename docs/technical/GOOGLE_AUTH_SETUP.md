@@ -52,7 +52,7 @@ Aucune variable supplémentaire nécessaire. Google Auth utilise la configuratio
 ## Flux utilisateur
 
 ### Connexion
-1. User clique "Continue with Google"
+1. User clique « Continuer avec Google »
 2. Popup Google s'ouvre
 3. User s'authentifie
 4. Firebase crée/connecte le compte automatiquement
@@ -67,10 +67,13 @@ Aucune variable supplémentaire nécessaire. Google Auth utilise la configuratio
 
 ## Gestion des erreurs
 
-- **Popup fermée** : Message user-friendly
-- **Popup bloquée** : Instructions pour autoriser
-- **Compte existant** : Guidance vers la connexion appropriée
-- **Erreurs réseau** : Message générique avec retry
+Les messages affichés sont en français, sans détail technique du SDK (codes stables côté audit : `AUTH_POPUP_CANCELLED`, `AUTH_POPUP_BLOCKED`, `AUTH_POPUP_CONFLICT`, `AUTH_ACCOUNT_EXISTS`, `AUTH_GOOGLE_ERROR`).
+
+- **Popup fermée** (`auth/popup-closed-by-user`) : invitation à réessayer ou annuler explicitement
+- **Popup bloquée** (`auth/popup-blocked`) : autoriser les popups pour le site
+- **Conflit de popup** (`auth/cancelled-popup-request`) : fermer d’autres fenêtres de connexion et réessayer
+- **Compte existant autre méthode** (`auth/account-exists-with-different-credential`) : utiliser la méthode déjà liée au compte
+- **Autres erreurs** : message générique invitant à réessayer
 
 ## Audit et logging
 
@@ -81,10 +84,8 @@ Tous les événements Google Auth sont loggés :
 
 ## Tests
 
-Les tests Playwright devront être mis à jour pour supporter :
-- Test du bouton Google (mock des popups)
-- Test des flux d'erreur
-- Test de l'audit logging
+- **Playwright** (`legacy/tests/auth.spec.js`) : vérifie la présence du bouton Google dans la modale (pas d’OAuth réel en CI sans configuration dédiée).
+- Les flux d’erreur et l’audit sont couverts côté code (messages utilisateur + `AuditClient`) ; tests bout-à-bout OAuth réel réservés aux environnements avec Firebase + domaines autorisés.
 
 ## Prochaines étapes
 

@@ -1,0 +1,175 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Authentication (fragment)
+  description: >
+    Contrat minimal pour l’authentification V2 (Google). Aligné sur
+    [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md).
+    Ce fichier pourra être fusionné dans un OpenAPI global `/v1` lorsque le reste de l’API sera publié.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    description: Base API versionnée (remplacer apiHost par l’URL Cloud Run ou locale).
+    variables:
+      apiHost:
+        default: api.example.invalid
+        description: Hôte de l’API sans chemin (ex. run.app ou localhost avec port).
+
+tags:
+  - name: Auth
+    description: Établissement et gestion de session (cookie HttpOnly côté navigateur).
+
+paths:
+  /auth/google:
+    post:
+      tags: [Auth]
+      summary: Connexion avec Google (ID token OIDC)
+      description: >
+        Valide le JWT ID token émis par Google, crée ou met à jour l’utilisateur en base,
+        établit une session serveur et renvoie un cookie de session (`Set-Cookie`).
+        Les messages d’erreur exposés au client ne doivent pas divulguer de détails internes (NFR-S1).
+      operationId: signInWithGoogle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleSignInRequest'
+      responses:
+        '200':
+          description: Session établie ; corps minimal utilisateur ; en-tête `Set-Cookie` pour la session.
+          headers:
+            Set-Cookie:
+              description: Cookie de session HttpOnly (nom exact défini à l’implémentation).
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionResponse'
+        '400':
+          description: Requête invalide (corps manquant ou mal formé).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: ID token Google invalide, expiré ou non autorisé pour ce client.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Compte ou domaine non autorisé (politique produit, si applicable).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erreur serveur ; message générique côté client.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Utilisateur courant
+      description: Retourne le profil minimal si la session cookie est valide.
+      operationId: getCurrentUser
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Utilisateur authentifié.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
+        '401':
+          description: Pas de session ou session expirée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Déconnexion
+      description: Invalide la session serveur et supprime ou invalide le cookie de session.
+      operationId: logout
+      security:
+        - SessionCookie: []
+      responses:
+        '204':
+          description: Déconnexion réussie (corps vide ; cookie effacé ou expiré).
+        '401':
+          description: Déjà non authentifié (idempotent ; peut être traité comme 204 selon politique d’implémentation).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+      description: >
+        Nom réservé pour la documentation ; l’implémentation peut utiliser un autre nom
+        stable documenté dans les variables d’environnement et la config Spring Security.
+
+  schemas:
+    GoogleSignInRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: JWT ID token OIDC Google (audience = OAuth Web client ID).
+
+    AuthSessionResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    CurrentUserResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant utilisateur HatCast (PostgreSQL).
+        email:
+          type: string
+          format: email
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Code stable pour logs et support (ex. AUTH_INVALID_ID_TOKEN).
+          example: AUTH_INVALID_ID_TOKEN
+        message:
+          type: string
+          description: Message sûr pour l’utilisateur (français recommandé pour l’UI).
+          example: Connexion impossible. Réessayez.

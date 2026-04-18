@@ -1,0 +1,14 @@
+# Postgres local (ex. docker-compose) — lancer avec: HATCAST_SPRING_PROFILE=docker
+spring:
+  datasource:
+    url: ${HATCAST_DATASOURCE_URL:jdbc:postgresql://localhost:5433/hatcast}
+    driver-class-name: org.postgresql.Driver
+    username: ${HATCAST_DATASOURCE_USERNAME:hatcast}
+    password: ${HATCAST_DATASOURCE_PASSWORD:hatcast}
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  session:
+    jdbc:
+      initialize-schema: always

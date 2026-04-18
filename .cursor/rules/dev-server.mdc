@@ -1,14 +1,37 @@
 ---
-description: Commande pour lancer le serveur de dev (réseau local / HTTPS)
+description: Commandes pour lancer le serveur de dev (V1 legacy vs V2)
 alwaysApply: true
 ---
 
 # Serveur de développement
 
-Lorsque l'utilisateur demande de démarrer, lancer ou tester le serveur de développement en local, utiliser **toujours** :
+## Stack V2 (Angular + API Spring — cible actuelle sous `apps/web/` + `services/api/`)
+
+Pour démarrer **back et front** en local :
+
+```bash
+./scripts/start-dev.sh
+```
+
+- API : `http://127.0.0.1:8080` (attente `actuator/health` avant le front).
+- Front : **`https://localhost:4200`** (`ng serve` avec TLS dans `angular.json` ; `--host` pour le LAN). Enregistrer la même origine (et les variantes IP) dans Google Cloud Console pour OAuth.
+
+Alternative manuelle : `npm run dev:api` et `npm run dev:web:v2` dans deux terminaux.
+
+## Stack V1 (Vue / Vite sous `legacy/` — production Firebase actuelle)
+
+Pour exposer l’app sur toutes les interfaces (téléphone, autre machine sur le LAN) :
 
 ```bash
 npm run dev -- --host
 ```
 
-Cette commande expose l'app sur toutes les interfaces (ex. https://192.168.1.134:5173/) en plus de localhost, pour tester depuis un téléphone ou une autre machine sur le réseau. Le HTTPS est géré par la config Vite si les certificats sont présents.
+Le HTTPS éventuel est géré par la config Vite si les certificats sont présents.
+
+## Raccourci legacy depuis le script V2
+
+```bash
+./scripts/start-dev.sh --legacy
+```
+
+(équivalent à `npm run dev -- --host` — uniquement le client V1.)

@@ -1,0 +1,7 @@
+# Profil par défaut : H2 en mémoire + schéma Spring Session créé au démarrage (Flyway ne gère pas les tables session).
+spring:
+  session:
+    jdbc:
+      initialize-schema: always
+  flyway:
+    enabled: true

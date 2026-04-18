@@ -10,7 +10,10 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 - **`DATABASE_MIGRATION.md`** : Documentation complète de la migration
 
 ### 🧪 Tests et développement
-- **`test-dev-server.sh`** : Lance le serveur de développement et vérifie qu'il fonctionne
+- **`start-dev.sh`** : Démarre la stack **V2** en local (API Spring sur 8080 + Angular sur 4200, `ng serve --host`). Option **`./scripts/start-dev.sh --legacy`** pour l’ancien flux (seul le client V1 / Vite). Charge **`.env`** à la racine via **`load-dotenv.sh`** (toutes les variables reconnues).
+- **`run-tests.sh`** : Lance les tests **V2** (`./gradlew test` dans `services/api`, puis `ng test` dans `apps/web`). Charge aussi **`.env`** comme `start-dev.sh`.
+- **`load-dotenv.sh`** : Bibliothèque sourcée par les scripts ci-dessus (format `KEY=value`, `#`, `export` optionnel).
+- **`test-dev-server.sh`** : Lance le serveur de développement V1 et vérifie qu’il démarre (port 5173 ; utile surtout pour le scénario décrit ci-dessous avec la V1).
 
 ### 📦 Gestion des versions
 - **`release-version.sh`** : Script principal pour créer de nouvelles versions
@@ -33,7 +36,13 @@ Le sous-dossier **`debug/`** contient des scripts de diagnostic exécutables à 
 
 ## Utilisation rapide
 
-### Reproduire la situation de production en local
+### Développement V2 (API + Angular)
+```bash
+./scripts/start-dev.sh
+# Puis ouvrir https://localhost:4200 (API : http://127.0.0.1:8080)
+```
+
+### Reproduire la situation de production en local (V1 / legacy)
 ```bash
 # 1. Les données de production sont déjà importées dans development
 # 2. Lancer l'app

@@ -72,6 +72,7 @@
           
           <!-- Bouton de fermeture -->
           <button
+            data-testid="pwa-install-banner-dismiss"
             class="text-gray-400 hover:text-white p-2 rounded-full hover:bg-gray-800 transition-colors"
             @click.stop="dismissBanner"
             aria-label="Fermer la barre d'installation"

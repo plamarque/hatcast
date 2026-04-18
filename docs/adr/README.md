@@ -17,12 +17,13 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0005](0005-permission-model-super-admin-season.md) | Permission model: Super Admin + season admins | Observed |
 | [0006](0006-queue-based-notifications.md) | Queue-based notifications (mail, reminder, push) | Observed |
 | [0007](0007-multi-select-participants-events.md) | Multi-select participants and events in header selectors | Accepted |
+| [0008](0008-v2-spa-auth-google-session.md) | V2 SPA auth: Google OIDC ID token + server-side session (no Firebase Auth) | Accepted |
 
 ---
 
 ## Format
 
-New ADRs: copy the template below, use next number (0007, …), and add a row to the index.
+New ADRs: copy the template below, use next number (0009, …), and add a row to the index.
 
 ```markdown
 # ADR-00XX: Short title

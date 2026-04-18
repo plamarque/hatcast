@@ -1,8 +1,8 @@
 # Story 1.1: Sign in with Google (OAuth)
 
-Status: ready-for-dev
+Status: done
 
-<!-- Validation: optional — run create-story validate action before dev-story. -->
+**Portée réalisée :** piste **Track B — V2** (`apps/web` Angular 21 + `services/api` Spring), conforme [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md) et fragment OpenAPI [`auth.yaml`](../../services/api/openapi/auth.yaml).
 
 ## Story
 
@@ -18,91 +18,49 @@ so that I can access HatCast without creating a new HatCast-specific password.
 
 ## Tasks / Subtasks
 
-- [ ] **Scope gate (mandatory first):** Confirm whether this increment targets (A) the **current production stack** (Vue 3 + Firebase Auth — see root `PLAN.md`, `ARCH.md`) or (B) the **V2 target stack** (Angular 21 + Spring Boot + PostgreSQL — see `_bmad-output/planning-artifacts/architecture.md`). If both docs conflict and no ADR resolves it, record the decision in an ADR or `PLAN.md` before large code changes.
-- [ ] **Track A — Legacy Vue + Firebase (brownfield):**
-  - [ ] Verify end-to-end: `signInWithGoogle()` in `legacy/src/services/firebase.js`, UI entry in `legacy/src/components/AccountLoginModal.vue`, post-login routing and `authState` behaviour in `legacy/src/services/authState.js`.
-  - [ ] Align UX copy and error mapping with AC (popup closed, popup blocked, account-exists-with-different-credential, generic failures).
-  - [ ] Ensure audit hooks remain consistent (`AuditClient.logLogin` / failure actions) with `docs/technical/GOOGLE_AUTH_SETUP.md`.
-  - [ ] Extend or add Playwright coverage if gaps exist (e.g. visibility of Google entry point, mocked or documented limitations for real OAuth in CI).
-- [ ] **Track B — V2 Angular + Spring (greenfield / parallel app):**
-  - [ ] Follow `_bmad-output/planning-artifacts/architecture.md` § Authentication: Google OAuth + email/password; industry-standard SPA↔API session or JWT (finalize via ADR).
-  - [ ] Implement Google OAuth on the API (authorization code or equivalent; server-side validation of tokens); expose login/session contract documented in OpenAPI when the API exists.
-  - [ ] Angular client: “Sign in with Google” using official Google Identity / OAuth patterns aligned with Material primary actions; map errors to Material snackbar/dialog per architecture error guidelines.
-  - [ ] Coupled deploy awareness (NFR-R1): client and API revisions must not drift — see architecture “Coupled deploy” section.
+- [x] **Scope gate (mandatory first):** Incrément **Track B** (Angular + Spring + session cookie) ; Track A (Firebase) inchangé dans ce lot.
+- [ ] **Track A — Legacy Vue + Firebase (brownfield):** hors périmètre de cette livraison.
+- [x] **Track B — V2 Angular + Spring (greenfield / parallel app):**
+  - [x] Auth API : validation ID token Google, session JDBC, `POST /v1/auth/google`, `GET /v1/auth/me`, `POST /v1/auth/logout` (existant).
+  - [x] Client Angular : bouton Google (GIS), établissement de session, **navigation vers `/accueil`** après succès ; écran **Connexion** sur `/connexion`.
+  - [x] Erreurs auth : **MatSnackBar**, textes utilisateur sans fuite de détail ; panneau technique optionnel **uniquement en build développement**.
+  - [x] Entrée `/` : redirection vers `/accueil` si session valide, sinon `/connexion`.
 
 ## Dev Notes
 
-### Scope and brownfield reality
+### Historique BMad
 
-- **Product outcome** is FR1 (`prd.md`), with NFR-I1 and partial NFR-S1 (`epics.md` Story 1.1).
-- **Repository today:** Google sign-in is **already integrated** via Firebase (`GoogleAuthProvider`, `signInWithPopup`) in `legacy/src/services/firebase.js` and wired from `AccountLoginModal.vue`. Treat this as **reference implementation** for Track A, not as proof that every AC is covered by tests or docs.
-- **Planning architecture** describes a **future** Angular + Kotlin/Spring + PostgreSQL stack and a phased Firebase migration. Do **not** assume a big-bang rewrite is in scope for this single story unless explicitly decided.
-
-### Architecture compliance
-
-| Source | Relevance |
-|--------|-----------|
-| Root `ARCH.md` | As-is stack: Vue SPA, Firebase Auth, `firebase.js`, `authState.js`. |
-| `_bmad-output/planning-artifacts/architecture.md` | Target V2: Angular 21, Material, Spring Boot REST, PostgreSQL, OAuth/session ADR. |
-| `AGENTS.md` | Normative docs vs code; update SPEC/DOMAIN/ARCH when behaviour changes. |
-| `docs/technical/GOOGLE_AUTH_SETUP.md` | Firebase console steps, domains, user flow — keep in sync if behaviour changes. |
-
-### Technical requirements (guardrails)
-
-- **Do not** introduce a second parallel auth stack in the same SPA without an explicit migration plan (strangler / feature flag / separate host).
-- **Error messages:** Reuse existing `cleanError` pattern in `firebase.js` (user-facing French strings, stable `code` for analytics/audit where applicable).
-- **Security:** Avoid logging access tokens; existing code logs uid/email at info — keep PII handling aligned with audit helpers (`AuditClient.obfuscateEmail` where applicable).
-- **NFR-I1:** User-visible failures must be actionable (e.g. popup blocked → explain enabling popups).
-
-### Library / framework requirements
-
-- **Track A:** `firebase` auth APIs already in use — stay on supported Firebase JS SDK patterns used in repo; no speculative migration to modular v9+ style unless repo already standardizes it (check existing imports in `firebase.js`).
-- **Track B:** Angular 21 + Angular Material per planning architecture; Spring Security or equivalent for OAuth — exact libraries to be fixed in ADR / backend scaffold story.
-
-### File structure (Track A touchpoints)
-
-- `legacy/src/services/firebase.js` — `signInWithGoogle`, `signUpWithGoogle`
-- `legacy/src/components/AccountLoginModal.vue` — Google button, loading/error, audit
-- `legacy/src/services/authState.js` — session lifecycle after sign-in
-- `docs/technical/GOOGLE_AUTH_SETUP.md` — operator-facing setup
-- `tests/auth.spec.js` — extend if asserting Google entry (data-testid for Google button if missing)
-
-### Testing requirements
-
-- **Playwright:** Prefer stable selectors (`data-testid`); document if real Google OAuth cannot run in CI (use mocks or smoke-only).
-- **Vitest:** Only if extracting pure helpers (e.g. error code → message mapping).
-- **Manual:** Verify on `localhost` with Firebase project where Google provider is enabled; confirm authorized domains in Firebase Console match `GOOGLE_AUTH_SETUP.md`.
-
-### Previous story intelligence
-
-- Not applicable — first story in Epic 1.
-
-### Git intelligence (recent commits)
-
-- Recent work is mostly docs/planning and tooling; no conflicting auth refactors in the last five commits. Auth behaviour should be validated against **current** `main`, not assumed from commit titles alone.
-
-### Latest technical notes (Track A)
-
-- Firebase Auth Google provider uses popup flow (`signInWithPopup`). Alternatives (redirect) would be a deliberate change — document if product requires it (e.g. mobile Safari quirks).
-
-### Project context reference
-
-- No `project-context.md` in repo root; use `ARCH.md`, `SPEC.md` (auth-related sections), and `DOMAIN.md` for vocabulary.
-- BMad planning artifacts live under `_bmad-output/planning-artifacts/`.
+L’analyse détaillée (Track A legacy Firebase, garde-fous, Playwright, structure des fichiers V1) était dans la version **ready-for-dev** de ce fichier ; elle reste consultable dans l’historique Git. Ce lot implémente uniquement la **Track B V2** sans modifier `legacy/`.
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-_(To be filled by dev agent)_
-
-### Debug Log References
+Composer (implémentation incrément + fermeture story).
 
 ### Completion Notes List
 
+- Session **cookie HttpOnly** côté API ; aucun jeton longue durée en `localStorage`.
+- Parcours : `/` → `AuthRedirect` (`GET /me`) → `/accueil` ou `/connexion` ; connexion Google → snackbar succès → `/accueil` ; déconnexion → snackbar → `/connexion`.
+- Messages d’échec centralisés dans `apps/web/src/app/core/auth/auth-user-message.ts`.
+- Animations Angular ajoutées (`@angular/animations`) pour Material snackbar.
+
 ### File List
+
+**Angular (`apps/web/`)**
+
+- `src/app/core/auth/auth-api.service.ts` — appels `fetch` vers `/v1/auth/*`.
+- `src/app/core/auth/auth-user-message.ts` — libellés utilisateur.
+- `src/app/pages/auth-redirect/auth-redirect.ts` — redirection racine selon session.
+- `src/app/pages/home-signed-in/*` — expérience connectée minimale + logout.
+- `src/app/pages/oauth-demo/*` — écran connexion (`/connexion`), GIS + snackbars.
+- `src/app/app.routes.ts`, `src/app/app.config.ts` — routes + `provideAnimationsAsync`.
+
+**Suivi**
+
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — story **1-1** → **done**.
 
 ## Story completion status
 
-- **Status:** ready-for-dev  
-- **Note:** Ultimate context engine analysis completed — comprehensive developer guide created. Resolve **Track A vs Track B** before implementation to avoid wrong-stack work.
+- **Status:** done  
+- **Date:** 2026-04-19

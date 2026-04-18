@@ -45,9 +45,26 @@ How to run locally, run tests, build, and deploy. For architecture and product i
   `npm run build` then `npm run preview`  
   Serves the built `legacy/dist` locally.
 
+### V2 — API Spring + client Angular (OAuth Google)
+
+Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`](apps/web/) (**Angular 21** + Material, démo OAuth sur la route par défaut). Ne modifie pas la V1 sous `legacy/`.
+
+1. Créer un client OAuth **Web** dans Google Cloud Console ; ajouter l’origine JavaScript **`https://localhost:4200`** (dev Angular avec TLS par défaut, voir `apps/web/angular.json` → `serve.options.ssl`). Ajouter d’autres origines si vous utilisez `127.0.0.1`, le réseau local (`--host`), ou du HTTP sans SSL.
+2. **API** : `cd services/api && export HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID="…" && ./gradlew bootRun` (port **8080**).
+3. **Client** : dans `apps/web`, éditer `src/environments/environment.development.ts` et renseigner `googleOAuthWebClientId` (même valeur publique que l’API), puis `npm install && npm run dev` (port **4200** en **HTTPS** ; le proxy envoie `/v1` et `/actuator` vers l’API en HTTP, voir `proxy.conf.json`). Routes : **`/`** redirige selon la session ; **`/connexion`** (Google) ; **`/accueil`** une fois connecté. Au premier chargement, le navigateur peut avertir sur le certificat de dev — accepter pour localhost.
+
+**Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
+
+Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/technical/V2_GOOGLE_OAUTH_SETUP.md).
+
 ---
 
 ## Tests
+
+- **V2 (API + Angular) :** `./scripts/run-tests.sh` à la racine (Gradle puis `ng test` sans watch).
+
+- **V2 API (Spring, `services/api/`) seule :**  
+  `cd services/api && ./gradlew test`
 
 - **Minimal smoke:** The default `npm test` runs all Playwright specs; the baseline smoke set is in [`legacy/tests/basic.spec.js`](legacy/tests/basic.spec.js) (home page load, navigation, critical route `/seasons`). Use this to confirm the app and routes respond.
 

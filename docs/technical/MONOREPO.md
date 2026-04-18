@@ -5,7 +5,7 @@
 | Chemin | Contenu |
 |--------|---------|
 | [`legacy/`](../../legacy/) | Client **V1** (Vue 3, Vite, PWA). Build : `legacy/dist`. |
-| [`apps/web/`](../../apps/web/) | Client **V2** (cible Angular). |
+| [`apps/web/`](../../apps/web/) | Client **V2** (Angular 21 + Material). |
 | [`services/api/`](../../services/api/) | API **V2** (cible Spring Boot). |
 | [`functions/`](../../functions/) | Cloud Functions Firebase (ligne actuelle partagée avec la V1). |
 | Racine | `firebase.json`, règles Firestore/Storage, `package.json` **workspace**, scripts transverses (`scripts/`). |
@@ -26,4 +26,4 @@ npm run dev          # lance le dev V1 (hatcast-legacy)
 npm run build        # build V1 → legacy/dist
 ```
 
-Le client V2, une fois scaffoldé, pourra exposer ses propres scripts (`npm run build -w @hatcast/web`, etc.).
+Le client V2 expose ses scripts via le workspace **`@hatcast/web`** (ex. `npm run dev:web:v2` à la racine, `npm run build -w @hatcast/web`).

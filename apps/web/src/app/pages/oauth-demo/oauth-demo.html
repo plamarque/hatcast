@@ -1,0 +1,18 @@
+<mat-card appearance="outlined">
+  <mat-card-header>
+    <mat-card-title>Connexion</mat-card-title>
+    <mat-card-subtitle
+      >HatCast V2 — Se connecter avec Google (session sécurisée côté serveur)</mat-card-subtitle
+    >
+  </mat-card-header>
+  <mat-card-content class="oauth-demo__content">
+    <p class="oauth-demo__hint">
+      En local : <code>./scripts/start-dev.sh</code>, front <strong>https://localhost:4200</strong>, origine
+      enregistrée dans Google Cloud Console.
+    </p>
+    <div #googleButtonHost class="oauth-demo__gsi"></div>
+    @if (isDev && devLog()) {
+      <pre class="oauth-demo__out" aria-label="Détails techniques (développement)">{{ devLog() }}</pre>
+    }
+  </mat-card-content>
+</mat-card>

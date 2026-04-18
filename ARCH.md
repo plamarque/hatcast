@@ -4,6 +4,17 @@
 
 Describes the system architecture **as-is** and principles for evolving safely. For "why" decisions, see `docs/adr/`.
 
+### Évolution V2 (contrats — pas encore le déploiement production actuel)
+
+La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL, Cloud Run) est décrite dans [`docs/technical/MONOREPO.md`](docs/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. Pour l’authentification Google côté V2 (sans Firebase Auth) :
+
+- **Décision :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) (ID token Google + session serveur, cookie HttpOnly).
+- **Contrat HTTP (fragment) :** [services/api/openapi/auth.yaml](services/api/openapi/auth.yaml).
+- **Configuration GCP / OAuth (opérateur) :** [docs/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/technical/V2_GOOGLE_OAUTH_SETUP.md).
+- **Implémentation slice testable :** API Spring sous [services/api/](services/api/) (`./gradlew bootRun`, `./gradlew test`) ; client Angular sous [apps/web/](apps/web/) (`ng serve`, port **4200** par défaut). Voir [DEVELOPMENT.md](DEVELOPMENT.md) section « V2 ».
+
+Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pour la production Firebase décrite ci-dessous jusqu’à bascule explicite.
+
 ---
 
 ## High-level component map

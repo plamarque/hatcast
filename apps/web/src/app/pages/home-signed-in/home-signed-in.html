@@ -1,0 +1,22 @@
+<mat-card appearance="outlined" class="home">
+  <mat-card-header>
+    <mat-card-title>Bienvenue sur HatCast</mat-card-title>
+    <mat-card-subtitle>Vous êtes connecté.</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content class="home__content">
+    @if (user(); as u) {
+      <p class="home__line">
+        <span class="home__label">Identité</span>
+        <strong>{{ u.displayName || u.email || 'Compte Google' }}</strong>
+      </p>
+      @if (u.email && u.displayName) {
+        <p class="home__line home__muted">{{ u.email }}</p>
+      }
+    }
+    <div class="home__actions">
+      <button mat-flat-button color="primary" type="button" (click)="logout()">
+        Se déconnecter
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
