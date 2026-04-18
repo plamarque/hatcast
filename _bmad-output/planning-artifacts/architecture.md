@@ -13,7 +13,7 @@ inputDocuments:
   - _bmad-output/planning-artifacts/product-brief-hatcast-v2.md
   - _bmad-output/planning-artifacts/ux-design-hatcast-v2.md
   - ARCH.md
-uxReferenceNote: "Continuity with HatCast V1: see ux-design-hatcast-v2.md (+ ux-references/*.png); live V1 + repo components remain references."
+uxReferenceNote: "Continuity with HatCast V1: see ux-design-hatcast-v2.md (+ ux-references/*.png); live V1 + legacy/src components remain references."
 workflowType: architecture
 project_name: hatcast
 user_name: Patrice
@@ -23,6 +23,7 @@ status: complete
 completedAt: '2026-04-12'
 sprintChangeApproved: '2026-04-18'
 frontendStackNote: 'V2 target client: Angular 21 + Angular Material (approved sprint change); legacy V1 remains Vue until migration.'
+repoStructureNote: 'Monorepo as implemented: legacy/ (Vue V1), apps/web/ (Angular V2 client), services/api/ (Spring V2). Normative repo layout: root ARCH.md, docs/technical/MONOREPO.md.'
 ---
 
 # Architecture Decision Document
@@ -33,7 +34,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 - **Layout:** Keep **layouts and navigation patterns** from V1 screens that remain satisfactory as the **primary UX reference** for the rewrite (historical V1: Vue + PrimeVue). **V2 implementation** uses **Angular 21 + Angular Material**; **structure and familiar placement** of key actions remain explicit goals where chosen.
 - **Visual style:** Preserve the **overall look and feel** of V1 (density, contrast, typography mood, component “personality”) as a **baseline**, reconciled through **Angular Material theming** (and design tokens)—not by copying ad-hoc utility styling as the main layer.
-- **Sources of truth for designers/impl:** The **running V1 app**, **`ux-design-hatcast-v2.md`** (screen-by-screen continuity + captures under `ux-references/`), **legacy V1 Vue components** in `src/` (e.g. grid, event views, headers) until replaced, and **SPEC/PLAN slices** that describe behaviour.
+- **Sources of truth for designers/impl:** The **running V1 app**, **`ux-design-hatcast-v2.md`** (screen-by-screen continuity + captures under `ux-references/`), **legacy V1 Vue components** under **`legacy/src/`** (e.g. grid, event views, headers) until replaced, and **SPEC/PLAN slices** that describe behaviour.
 - **PRD alignment:** This complements the PRD (Angular Material–first, avoid Tailwind as the primary styling surface) by stating **continuity** as a product/architecture constraint, not a mandate to port legacy CSS verbatim.
 
 ## Project Context Analysis
@@ -56,7 +57,7 @@ NFRs drive: **performance** under mobile conditions and bounded list loads (NFR-
 
 ### Technical Constraints & Dependencies
 
-- **Brownfield:** Current production architecture (Vue SPA + Firestore + Auth + Cloud Functions) is documented in repository **ARCH.md**; the PRD targets **Kotlin/Spring Boot on Cloud Run**, **PostgreSQL on Neon**, **GitHub Pages** for static frontend — architecture must address **migration strategy**, **API contract (e.g. OpenAPI)**, and **environment parity** (staging vs production).
+- **Brownfield:** Current production architecture (Vue SPA under **`legacy/`** + Firestore + Auth + Cloud Functions) is documented in repository **ARCH.md** (monorepo: `legacy/`, `apps/web/`, `services/api/`); the PRD targets **Kotlin/Spring Boot on Cloud Run**, **PostgreSQL on Neon**, **GitHub Pages** (or equivalent static host) for the **V2** frontend — architecture must address **migration strategy**, **API contract (e.g. OpenAPI)**, and **environment parity** (staging vs production).
 - **Deployment:** Coupled CI releases for client and API per environment (NFR-R1) to avoid version skew.
 - **UX stack:** **Angular Material** (on **Angular 21**) as primary UI layer; continuity constraints documented in `ux-design-hatcast-v2.md` and existing `architecture.md` UX section.
 
@@ -73,13 +74,13 @@ NFRs drive: **performance** under mobile conditions and bounded list loads (NFR-
 
 ### Primary Technology Domain
 
-**Full-stack web application:** **Angular 21** SPA for the client; Kotlin/Spring Boot REST API on the server; PostgreSQL persistence — aligned with the PRD target stack and brownfield migration from Firebase (see `ARCH.md`). **Legacy V1** in the repo may remain **Vue + Vite** until replaced; **V2** targets **Angular CLI** workspace + **Angular Material**.
+**Full-stack web application:** **Angular 21** SPA for the client (to live under **`apps/web/`**); Kotlin/Spring Boot REST API on the server (under **`services/api/`**); PostgreSQL persistence — aligned with the PRD target stack and brownfield migration from Firebase (see `ARCH.md`). **Legacy V1** remains **Vue + Vite** in **`legacy/`** until replaced; **V2** targets **Angular CLI** workspace + **Angular Material** in **`apps/web/`**.
 
 ### Starter Options Considered
 
 | Layer | Option | Notes |
 |-------|--------|--------|
-| **Frontend (greenfield equivalent)** | **Angular CLI** (`ng new`) | Official **Angular 21** application scaffold ([Angular CLI overview](https://angular.dev/tools/cli)). Enable **routing**, **SCSS** (or CSS per team choice), **strict** mode; add **standalone components** as default. **HatCast today** may still ship a **Vue + Vite** client; this row documents the **V2** baseline for new client work. |
+| **Frontend (greenfield equivalent)** | **Angular CLI** (`ng new`) | Official **Angular 21** application scaffold ([Angular CLI overview](https://angular.dev/tools/cli)). Enable **routing**, **SCSS** (or CSS per team choice), **strict** mode; add **standalone components** as default. **HatCast today** still ships the **Vue + Vite** client from **`legacy/`**; new work scaffolds into **`apps/web/`** — this row documents the **V2** baseline. |
 | **UI library** | **Angular Material** | Add with `ng add @angular/material`; configure theme (prebuilt or custom) per [Angular Material guides](https://material.angular.io/guide/getting-started). |
 | **Backend (new service)** | **Spring Initializr** ([start.spring.io](https://start.spring.io/)) | Generate **Kotlin** + **Gradle (Kotlin DSL)** project. Select **Spring Boot** version from the **current stable** line offered by the UI at generation time (PRD: use latest stable Spring Boot line when implementing). Typical dependencies: Spring Web, validation, data access (JDBC or JPA as chosen in ADRs), PostgreSQL driver, Actuator; add **OpenAPI** (e.g. springdoc-openapi) in implementation stories. |
 | **CLI alternative (backend)** | `curl https://start.spring.io/starter.zip` with parameters | Same output as the web UI; use for automation in CI once coordinates are fixed. |
@@ -92,8 +93,8 @@ NFRs drive: **performance** under mobile conditions and bounded list loads (NFR-
 
 ```bash
 npm install -g @angular/cli@21
-ng new hatcast-web --routing --style=scss --ssr=false
-cd hatcast-web
+# Scaffold the Angular 21 app into apps/web/ (ng new …) per Angular CLI docs; keep npm workspace @hatcast/web at repo root.
+cd apps/web
 ng add @angular/material
 ng serve
 ```
@@ -107,7 +108,7 @@ ng serve
 - **Frontend:** **Angular application builder** (`ng build`), **standalone** or NgModule-based components per project policy; **Angular Router**; **Angular Material** for components + theming; **Playwright** for E2E (PRD). Client state: **injectable services**, **signals**, and optionally **NgRx** or similar—**ADR** where shared state grows.
 - **Backend:** Spring Boot conventions (auto-configuration, executable JAR), Kotlin-first Gradle build, embeddable server suitable for **Cloud Run** container deployment.
 
-**Note:** Scaffolding `ng new` applies when creating a **new** Angular client package; migrating from the **legacy Vue** app may follow **incremental** slices per PLAN (strangler or parallel app).
+**Note:** Scaffolding `ng new` applies when creating the **Angular** tree under **`apps/web/`** (or a subfolder agreed in PLAN); migrating from the **legacy Vue** app in **`legacy/`** may follow **incremental** slices per PLAN (strangler or parallel app). **No imports** from `apps/web/` into `legacy/src/` except documented shared contracts (prefer HTTP/OpenAPI over code sharing).
 
 ## Core Architectural Decisions
 
@@ -273,50 +274,48 @@ ng serve
 
 ### Complete Project Directory Structure
 
-Target layout for **hatcast** (brownfield): existing **Vue** + Firebase assets may remain until migration; **V2** Angular client may live alongside (e.g. `hatcast-web/` or `frontend/`) per PLAN.
+**As-is monorepo** (aligned with root `ARCH.md` and `docs/technical/MONOREPO.md`): **V1** client is isolated under **`legacy/`**; **V2** client targets **`apps/web/`**; **V2** API targets **`services/api/`**. Firebase Hosting currently serves **`legacy/dist`**.
 
 ```
 hatcast/
-├── .github/workflows/          # CI/CD — coupled frontend + API deploys per PRD (NFR-R1)
+├── .github/workflows/          # CI/CD — coupled frontend + API deploys per PRD (NFR-R1); path filters for V1 vs V2
 ├── _bmad-output/               # Planning artifacts (PRD, architecture, UX references)
-├── backend/                    # Kotlin + Spring Boot API (Neon, Cloud Run) — expand per Spring Initializr + ADRs
-│   ├── build.gradle.kts        # (or Gradle Kotlin layout once generated)
+├── apps/web/                   # V2 Angular 21 SPA (scaffold when implementing V2) — npm workspace @hatcast/web
+│   └── (angular.json, src/app/ … when created)
+├── legacy/                     # V1 Vue 3 + Vite + PWA — reference / current production client build
+│   ├── src/                    # components/, views/, services/, …
+│   ├── public/                 # Static assets for Vite (URLs served at site root after build)
+│   ├── tests/                  # Playwright E2E + Vitest unit (legacy/tests/unit)
+│   ├── package.json            # workspace: hatcast-legacy
+│   ├── vite.config.js
+│   ├── playwright.config.js
+│   └── dist/                   # Vite build output → Firebase Hosting (see firebase.json)
+├── services/api/               # V2 Kotlin + Spring Boot API (Neon, Cloud Run) — scaffold per Spring Initializr + ADRs
 │   └── src/
-│       ├── main/kotlin/com/hatcast/…   # api / application / domain / infrastructure packages
+│       ├── main/kotlin/com/hatcast/…
 │       └── test/kotlin/…
-├── docs/                       # ADRs, technical docs, user docs
-├── functions/                  # Legacy Firebase Cloud Functions (current production path per ARCH.md)
-├── src/                        # Legacy Vue 3 SPA (Vite) — until replaced by Angular V2
-│   ├── components/
-│   ├── views/
-│   ├── services/
-│   └── …
-├── hatcast-web/                # (illustrative) Angular 21 SPA — adjust name/path when scaffolded
-│   ├── angular.json
-│   ├── src/app/
-│   └── …
-├── public/                     # Static assets (legacy Vite public root or Angular `src/assets` — consolidate in PLAN)
-├── scripts/                    # DB / maintenance scripts (see AGENTS.md)
-├── tests/                      # Playwright E2E (repo root or under client package)
-├── dist/                       # Build output (gitignored or deploy artifact)
-├── package.json                # Legacy root; Angular workspace may use nested package.json
-├── vite.config.js              # Legacy Vue build
-├── index.html                  # Legacy Vue entry (Angular uses client under hatcast-web/)
-├── firebase.json               # Legacy Firebase Hosting until GitHub Pages cutover
+├── backend/                    # Optional / legacy stub if present; prefer services/api/ for V2 API per repo convention
+├── docs/                       # ADRs, technical docs, user docs (incl. docs/technical/MONOREPO.md)
+├── functions/                  # Firebase Cloud Functions (current production; audit imports may reference legacy/src)
+├── scripts/                    # DB / maintenance / replay (see AGENTS.md)
+├── package.json                # Root npm workspaces: legacy, apps/web
+├── package-lock.json
+├── firebase.json               # Hosting public: legacy/dist; functions, Firestore, Storage rules at repo root
 ├── firestore.rules
 ├── firestore.indexes.json
+├── storage.rules
 ├── ARCH.md, SPEC.md, DOMAIN.md, PLAN.md, AGENTS.md
 └── README.md
 ```
 
-*Note:* Exact files under `backend/` appear when the Spring Boot project is generated; package root **`com.hatcast`** is illustrative—align with group id chosen at creation.
+*Notes:* (1) Exact files under **`services/api/`** appear when the Spring Boot project is generated; package root **`com.hatcast`** is illustrative. (2) **`backend/`** at repo root is not the canonical V2 API home unless explicitly chosen in PLAN — **`services/api/`** matches the documented monorepo layout.
 
 ### Architectural Boundaries
 
 **API boundaries:**
 
 - **External HTTP API:** Spring Boot on Cloud Run exposes `/v1/...` to the SPA and (later) other clients; **OpenAPI** is the contract.
-- **Legacy:** Until cutover, the SPA may still call **Firestore** and **callable functions** via `src/services/` — boundary is **per feature slice** in PLAN (dual-write vs read-only migration).
+- **Legacy:** Until cutover, the V1 SPA under **`legacy/`** may still call **Firestore** and **callable functions** via **`legacy/src/services/`** — boundary is **per feature slice** in PLAN (dual-write vs read-only migration).
 
 **Component boundaries (frontend):**
 
@@ -324,24 +323,24 @@ hatcast/
 
 **Data boundaries:**
 
-- **Target:** PostgreSQL (Neon) owned exclusively by **`backend/`** persistence layer.
+- **Target:** PostgreSQL (Neon) owned exclusively by **`services/api/`** persistence layer.
 - **Legacy:** Firestore schema under `seasons/...` remains documented in DOMAIN/ARCH until migrated.
 
 ### Requirements to Structure Mapping
 
 | Area (FR groups) | Primary location |
 |------------------|------------------|
-| FR1–FR5 Auth | `src/services/` (firebase.js, auth flows) → migrate to `backend/` security + SPA token/session handling |
-| FR6–FR14 Troupe / seasons / events | `src/views/`, `src/services/seasons.js`, … → `backend/` domain modules `troupe`, `season`, `event` |
-| FR15–FR24 Availability & draw | `src/services/playerAvailabilityService.js`, selection services → `backend/` + shared draw logic |
-| FR25–FR28 Composition lifecycle | Event detail / GridBoard → API resources for casts |
-| FR29–FR31 Notifications | `functions/`, client queues → `backend/` async + provider adapters |
+| FR1–FR5 Auth | `legacy/src/services/` (firebase.js, auth flows) → migrate to **`services/api/`** security + SPA token/session handling |
+| FR6–FR14 Troupe / seasons / events | `legacy/src/views/`, `legacy/src/services/seasons.js`, … → **`services/api/`** domain modules `troupe`, `season`, `event` |
+| FR15–FR24 Availability & draw | `legacy/src/services/playerAvailabilityService.js`, selection services → **`services/api/`** + shared draw logic |
+| FR25–FR28 Composition lifecycle | Event detail / GridBoard (`legacy/src/components/`) → API resources for casts |
+| FR29–FR31 Notifications | `functions/`, client queues → **`services/api/`** async + provider adapters |
 | FR32–FR33 Public directory | Public routes + read APIs with reduced DTOs |
-| FR34–FR35 Audit | `auditClient.js` → persistent audit in PostgreSQL via API |
+| FR34–FR35 Audit | `legacy/src/services/auditClient.js` → persistent audit in PostgreSQL via API |
 
 ### Integration Points
 
-**Internal:** **Angular** services (or legacy Vue services) call either Firestore (legacy) or **REST** (`HttpClient`/generated client) to `backend/` — only one path per feature after migration.
+**Internal:** **Angular** services in **`apps/web/`** (or legacy Vue services in **`legacy/src/`**) call either Firestore (legacy) or **REST** (`HttpClient`/generated client) to **`services/api/`** — only one path per feature after migration.
 
 **External:** Neon (Postgres), GCP Cloud Run, GitHub Pages, OAuth providers, email/push providers — configured via env/secrets, never committed.
 
@@ -351,15 +350,15 @@ hatcast/
 
 **Configuration:** Angular `environment.ts` / build-time replacement for frontend; Spring `application.yml` + env for backend; `.env.example` at repo root documents names only.
 
-**Tests:** Playwright `tests/*.spec.js`; backend `src/test/kotlin`; unit tests colocated or under parallel test tree per Kotlin convention.
+**Tests:** Playwright **`legacy/tests/*.spec.js`**; backend **`services/api/src/test/kotlin`**; Angular unit tests under **`apps/web/`** per `angular.json` when scaffolded.
 
-**Assets:** `public/img/` per ARCH.md for unbundled static files.
+**Assets (V1):** `legacy/public/img/` per root ARCH.md for unbundled static files served by Vite/Firebase Hosting.
 
 ### Development Workflow Integration
 
-**Dev:** `ng serve` (Angular client) or `npm run dev` (legacy Vue); backend `./gradlew bootRun` or IDE from `backend/` once present.
+**Dev:** `npm run dev` at repo root (legacy Vue via workspace **hatcast-legacy**); `ng serve` or `npm run dev -w @hatcast/web` once **`apps/web/`** is scaffolded; backend `./gradlew bootRun` or IDE from **`services/api/`** once present.
 
-**Build:** `ng build` → `dist/` (or configured output); legacy `npm run build` if Vue remains; `./gradlew build` → JAR/Docker image for Cloud Run.
+**Build:** `ng build` in **`apps/web/`** → configured `dist/`; **`npm run build`** at root → **`legacy/dist/`** (current production client); `./gradlew build` in **`services/api/`** → JAR/Docker image for Cloud Run.
 
 **Deploy:** GitHub Actions build both artifacts and deploy in a **coupled** workflow per environment.
 
@@ -371,7 +370,7 @@ hatcast/
 
 **Pattern consistency:** Naming (snake_case DB, camelCase JSON, plural REST), error (Problem Details), and date (ISO 8601 UTC) rules align with Spring and **Angular** norms and reduce agent drift.
 
-**Structure alignment:** `src/` (legacy Vue) and/or **Angular** workspace, `backend/` for API, `functions/` for legacy, `tests/` for Playwright matches brownfield reality and target boundaries.
+**Structure alignment:** **`legacy/`** (Vue V1), **`apps/web/`** (Angular V2), **`services/api/`** (Spring), **`functions/`** (Firebase), **`legacy/tests/`** for Playwright matches brownfield reality and target boundaries (see root **ARCH.md**).
 
 ### Requirements Coverage Validation
 
@@ -383,7 +382,7 @@ hatcast/
 
 **Decision completeness:** Critical stack and deployment decisions are set; **deferred** items (JPA vs JDBC, JWT vs session cookie, push provider, WCAG level) are explicitly flagged for ADRs—acceptable if tracked before coding those slices.
 
-**Structure completeness:** Repository layout is concrete enough for agents; `backend/` Gradle tree to be generated per Initializr.
+**Structure completeness:** Repository layout is concrete enough for agents; **`services/api/`** Gradle tree to be generated per Initializr (or ADR if `backend/` is used instead).
 
 **Pattern completeness:** Naming, formats, errors, logging, and audit expectations are documented with examples.
 
@@ -421,7 +420,7 @@ hatcast/
 
 **AI agent guidelines:** Follow this document, `SPEC.md`, `DOMAIN.md`, and `ux-design-hatcast-v2.md`; use OpenAPI as the API source of truth; respect implementation patterns on every PR.
 
-**First implementation priorities:** (1) Generate and commit `backend/` skeleton from Spring Initializr + Dockerfile for Cloud Run; (2) publish initial OpenAPI for health + one vertical slice (e.g. season read); (3) add SPA API client module and env wiring; (4) align first migration story with PLAN.
+**First implementation priorities:** (1) Generate and commit **`services/api/`** skeleton from Spring Initializr + Dockerfile for Cloud Run; (2) publish initial OpenAPI for health + one vertical slice (e.g. season read); (3) add SPA API client module and env wiring under **`apps/web/`**; (4) align first migration story with PLAN.
 
 ## Architecture Workflow Completion
 
