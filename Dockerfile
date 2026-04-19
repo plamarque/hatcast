@@ -35,7 +35,8 @@ COPY --from=web-build /workspace/apps/web/dist/web/browser /usr/share/nginx/html
 COPY deploy/v2/nginx.conf.template /etc/nginx/nginx.conf.template
 COPY deploy/v2/supervisord.conf /etc/supervisord.conf
 COPY deploy/v2/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY deploy/v2/wait-and-nginx.sh /wait-and-nginx.sh
+RUN chmod +x /docker-entrypoint.sh /wait-and-nginx.sh
 
 ENV HATCAST_SERVER_PORT=8081
 ENV HATCAST_SPRING_PROFILE=cloud

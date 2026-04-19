@@ -139,6 +139,10 @@ Le service Cloud Run s’exécute avec un **service account** (par défaut ou d�
 - Connexion Google sans `origin_mismatch` (origine OAuth + CORS alignés sur cet env).
 - `GET /v1/auth/me` après login.
 
+### 502 sur `/v1/...` (`connect() failed (111: Connection refused)` vers `127.0.0.1:8081`)
+
+Souvent **Nginx** est prêt avant que **Spring** n’écoute sur `HATCAST_SERVER_PORT` (cold start, Flyway/Neon lent). L’image attend jusqu’à **240 s** que `http://127.0.0.1:8081/actuator/health` réponde avant de lancer Nginx ; variable optionnelle **`WAIT_FOR_API_SECONDS`** sur le service Cloud Run pour ajuster. Si l’API ne démarre pas (Neon injoignable, OOM, erreur Flyway), consulter les **logs** du révision Cloud Run (sortie Java + Nginx).
+
 ## Références
 
 - [Neon — documentation](https://neon.tech/docs)
