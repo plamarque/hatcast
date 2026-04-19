@@ -71,8 +71,11 @@ Composer (implémentation story 1.2)
 ### Completion Notes List
 
 - **API :** `POST /v1/auth/idp` avec corps `{ idToken }` ; vérification `FirebaseAuth.verifyIdToken` (profil `!test`) ; session JDBC inchangée ; `UserEntity` : `google_sub` nullable, `idp_uid` ; `SessionUserPrincipal` : `idpUid` + `googleSub`.
-- **Init Firebase Admin :** `GOOGLE_APPLICATION_CREDENTIALS` + `IdentityPlatformFirebaseInitializer` (`@Profile("!test")`).
+- **Init Firebase Admin :** fichier JSON via `GOOGLE_APPLICATION_CREDENTIALS` en local ; sur **Cloud Run**, repli **Application Default Credentials** + `GOOGLE_CLOUD_PROJECT` (`IdentityPlatformFirebaseInitializer`).
+- **Garde-fou :** si aucune app Firebase initialisée (hors profil `test`), `POST /v1/auth/idp` → **503** (évite un 401 trompeur).
 - **Angular :** `firebase` npm ; formulaires email sur `/connexion` ; `signInWithIdentityPlatformIdToken` ; UI masquée si `environment.firebase` incomplet.
+- **CI / Docker :** secrets `HATCAST_FIREBASE_*` + script `inject-google-client-id.mjs` pour le build prod ; workflow injecte `GOOGLE_CLOUD_PROJECT` — voir `docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md` §6.1.
+- **Validation :** parcours email/mot de passe OK en **local** et en **environnement dev** (déploiement Cloud Run) après configuration secrets + IAM.
 - **Tests :** `AuthControllerIntegrationTest` mocke `IdpIdTokenVerifier` ; exécuter `./gradlew test` localement (JDK 21).
 
 ### File List
@@ -108,9 +111,16 @@ Composer (implémentation story 1.2)
 **Racine**
 
 - `.env.example`
+- `.github/workflows/deploy-v2-cloud-run.yml`
+- `Dockerfile`
+- `.gitignore` (excl. `skills-lock.json` — tooling Cursor)
+
+**Docs**
+
+- `docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md` (§6.1 Identity Platform, secrets `HATCAST_FIREBASE_*`)
 
 ## Story completion status
 
-- **Status:** done  
+- **Status:** done (clôturée après validation **dev** déployé)  
 - **Date :** 2026-04-19  
 - **Clé sprint :** `1-2-inscription-et-connexion-email-mot-de-passe`

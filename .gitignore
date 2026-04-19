@@ -56,3 +56,6 @@ scripts/replay/output/
 # BMad standard skills (installed locally; identical copies — regenerate from BMad if needed)
 .agents/skills/
 .cursor/skills/
+
+# Cursor agent skills lockfile (local pin per machine)
+skills-lock.json
