@@ -28,7 +28,7 @@ Code and config are the **runtime** source of truth. The docs above describe int
 - **`docs/v1/`** — Describes the **legacy** stack (Vue + Firebase under `legacy/`): reference for understanding behaviour and UX that shipped on Firebase Hosting; **not** a description of the V2 runtime.
 - **`docs/v2/`** — Operational and stack docs for **Angular + Spring + Neon + Cloud Run** (`apps/web/`, `services/api/`).
 - **`docs/shared/`** — Monorepo layout, branches, merge checklists, commit conventions (applies to the whole repo).
-- **ADRs:** **0001–0007** mainly record the **Firebase-era** system; **0008–0009** record **V2** auth and PostgreSQL/Neon. Read the ADR index in `docs/adr/README.md`.
+- **ADRs:** **0001–0007** mainly record the **Firebase-era** system; **0008–0010** record **V2** auth and PostgreSQL/Neon (**0010** = Identity Platform cible ; **0008** déprécié). Read the ADR index in `docs/adr/README.md`.
 
 ---
 

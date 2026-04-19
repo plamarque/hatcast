@@ -1,6 +1,8 @@
-# Configuration Google OAuth (V2 — sans Firebase Auth)
+# Configuration Google OAuth (V2 — slice OIDC Google / ADR-0008)
 
-Ce guide est destiné aux **opérateurs** et développeurs qui configurent « Se connecter avec Google » pour la stack **Angular + Spring Boot + PostgreSQL**, conformément à [ADR-0008](../../adr/0008-v2-spa-auth-google-session.md). Il ne couvre **pas** la V1 (Firebase Auth sous `legacy/`).
+**Cible produit actuelle :** l’auth V2 managée est **Google Cloud Identity Platform** ([ADR-0010](../../adr/0010-v2-auth-identity-platform.md)) — **pas** un retour au backend Firebase de la V1. Ce document décrit uniquement le **slice historique** « GIS + JWT Google + session Spring » ([ADR-0008](../../adr/0008-v2-spa-auth-google-session.md), Deprecated), utile tant que la bascule Identity Platform n’est pas faite.
+
+Ce guide est destiné aux **opérateurs** et développeurs qui configurent « Se connecter avec Google » pour cette stack **Angular + Spring Boot + PostgreSQL**. Il ne couvre **pas** la V1 sous `legacy/`.
 
 ## Principes
 

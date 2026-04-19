@@ -70,6 +70,20 @@ Le workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflow
 | `GCP_SERVICE_ACCOUNT` | Email du SA CI, ex. `github-deploy-hatcast-v2@PROJECT.iam.gserviceaccount.com` |
 | `GOOGLE_OAUTH_WEB_CLIENT_ID` | Client ID Web — **build Angular** (même valeur que le client utilisé par le runtime si un seul client multi-origines) |
 
+#### Secrets **dépôt** (optionnels — Identity Platform / email–mot de passe dans le SPA)
+
+Ces valeurs sont aussi présentes côté client une fois le SPA déployé ; les stocker en **secrets** GitHub reste une bonne pratique pour ne pas les exposer dans l’UI des variables dépôt et pour aligner le stockage avec le reste des identifiants CI.
+
+Le workflow les passe en `--build-arg` Docker ; le script [`apps/web/scripts/inject-google-client-id.mjs`](../../apps/web/scripts/inject-google-client-id.mjs) les injecte dans `environment.ts` au build. Alignez-les sur la **même** appli Web / projet GCP qu’Identity Platform.
+
+| Nom | Description |
+|-----|-------------|
+| `HATCAST_FIREBASE_WEB_API_KEY` | `apiKey` (config Web GCP / Identity Platform) |
+| `HATCAST_FIREBASE_AUTH_DOMAIN` | ex. `mon-projet.firebaseapp.com` |
+| `HATCAST_FIREBASE_PROJECT_ID` | ID du projet GCP (souvent identique à `GCP_PROJECT_ID`) |
+
+Si ces secrets sont absents ou vides, le bloc `firebase` reste vide : **Google (GIS)** fonctionne si le Client ID est correct ; le formulaire **email / mot de passe** reste masqué jusqu’à configuration.
+
 #### Variables d’environnement **par environnement GitHub** (recommandé)
 
 | Nom | Description |
@@ -132,12 +146,22 @@ Vous pouvez garder les mots de passe dans les **secrets d’environnement GitHub
 
 Le service Cloud Run s’exécute avec un **service account** (par défaut ou dédié). Avec Neon, **aucun** rôle Cloud SQL Client n’est requis pour la couche données V2.
 
+### 6.1 Identity Platform — `POST /v1/auth/idp` (email / mot de passe)
+
+L’API initialise **Firebase Admin** pour vérifier les ID tokens côté serveur ([ADR-0010](../../adr/0010-v2-auth-identity-platform.md)).
+
+- **Sur Cloud Run**, on ne passe en général **pas** de fichier JSON dans l’image : le workflow définit **`GOOGLE_CLOUD_PROJECT`** (identique au projet GCP où Identity Platform est activé). L’API utilise les **Application Default Credentials** du **compte de service d’exécution** du service Cloud Run.
+- Accordez à ce compte de service au minimum un rôle permettant l’administration Auth / Identity Platform sur le projet, par ex. **Administrateur Authentication Firebase** (`roles/firebaseauth.admin`) ou, en environnement restreint, le rôle minimal documenté par Google pour le SDK Admin selon votre politique IAM.
+- Le **build Angular** pour cet environnement doit exposer la **même** config Web (`apiKey`, `authDomain`, `projectId`) que ce projet GCP : secrets dépôt `HATCAST_FIREBASE_*` (voir tableau ci-dessus) + `GOOGLE_OAUTH_WEB_CLIENT_ID` dans le workflow.
+- En secours, vous pouvez monter un secret fichier et définir **`GOOGLE_APPLICATION_CREDENTIALS`** sur le service Cloud Run (`gcloud run deploy` / Secret Manager) si vous ne souhaitez pas utiliser ADC.
+
 ## 7. Vérifications post-déploiement
 
 - `https://<service-url>/` charge l’SPA Angular.
 - Navigation directe vers `/accueil` ou `/connexion` : pas de 404 (fallback SPA via Nginx).
 - Connexion Google sans `origin_mismatch` (origine OAuth + CORS alignés sur cet env).
 - `GET /v1/auth/me` après login.
+- Après déploiement : tester **email / mot de passe** sur `/connexion` ; si **503** sur `POST /v1/auth/idp`, vérifier IAM du compte d’exécution Cloud Run (§6.1) et les logs JVM.
 
 ### 502 sur `/v1/...` (`connect() failed (111: Connection refused)` vers `127.0.0.1:8081`)
 
@@ -147,5 +171,6 @@ Souvent **Nginx** est prêt avant que **Spring** n’écoute sur `HATCAST_SERVER
 
 - [Neon — documentation](https://neon.tech/docs)
 - [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md)
-- [ADR-0008](../../adr/0008-v2-spa-auth-google-session.md)
+- [ADR-0010 — Identity Platform (cible)](../../adr/0010-v2-auth-identity-platform.md)
+- [ADR-0008 — Google OIDC + session (historique)](../../adr/0008-v2-spa-auth-google-session.md)
 - [ADR-0009](../../adr/0009-neon-postgres-environments.md)

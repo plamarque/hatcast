@@ -69,6 +69,9 @@ jobs:
         run: |
           docker build \
             --build-arg GOOGLE_OAUTH_WEB_CLIENT_ID="${{ secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}" \
+            --build-arg HATCAST_FIREBASE_WEB_API_KEY="${{ secrets.HATCAST_FIREBASE_WEB_API_KEY }}" \
+            --build-arg HATCAST_FIREBASE_AUTH_DOMAIN="${{ secrets.HATCAST_FIREBASE_AUTH_DOMAIN }}" \
+            --build-arg HATCAST_FIREBASE_PROJECT_ID="${{ secrets.HATCAST_FIREBASE_PROJECT_ID }}" \
             -t "${IMAGE_TAG}" \
             -t "${{ secrets.GCP_ARTIFACT_REGISTRY }}:latest" \
             -f Dockerfile \
@@ -86,6 +89,7 @@ jobs:
           V="${V},HATCAST_DATASOURCE_USERNAME=${{ secrets.HATCAST_DATASOURCE_USERNAME }}"
           V="${V},HATCAST_DATASOURCE_PASSWORD=${{ secrets.HATCAST_DATASOURCE_PASSWORD }}"
           V="${V},HATCAST_CORS_ALLOWED_ORIGINS=${{ secrets.HATCAST_CORS_ALLOWED_ORIGINS }}"
+          V="${V},GOOGLE_CLOUD_PROJECT=${{ secrets.GCP_PROJECT_ID }}"
           gcloud run deploy "${SERVICE_NAME}" \
             --image "${IMAGE_TAG}" \
             --region "${GCP_REGION}" \

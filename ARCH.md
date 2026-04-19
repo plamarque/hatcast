@@ -6,11 +6,12 @@ Describes the system architecture **as-is** and principles for evolving safely. 
 
 ### Évolution V2 (contrats — prod utilisateur V1 inchangée)
 
-La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/shared/technical/MONOREPO.md`](docs/shared/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/shared/technical/BRANCH_ENVIRONMENTS.md`](docs/shared/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Pour l’authentification Google côté V2 (sans Firebase Auth) :
+La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/shared/technical/MONOREPO.md`](docs/shared/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/shared/technical/BRANCH_ENVIRONMENTS.md`](docs/shared/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Authentification V2 :
 
-- **Décision :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) (ID token Google + session serveur, cookie HttpOnly).
+- **Décision cible :** [docs/adr/0010-v2-auth-identity-platform.md](docs/adr/0010-v2-auth-identity-platform.md) (**Google Cloud Identity Platform** — pas Firebase comme backend V1 ; confort proche de l’auth managée historique : Google + email/mot de passe, reset, multi-appareils ; Postgres reste le référentiel métier).
+- **Implémentation actuelle (slice historique, en attendant migration) :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) — **Deprecated** ; OIDC Google direct + session serveur.
 - **Contrat HTTP (fragment) :** [services/api/openapi/auth.yaml](services/api/openapi/auth.yaml).
-- **Configuration GCP / OAuth (opérateur) :** [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
+- **Configuration GCP / OAuth (opérateur, slice Google OIDC) :** [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 - **Implémentation slice testable :** API Spring sous [services/api/](services/api/) (`./gradlew bootRun`, `./gradlew test`) ; client Angular sous [apps/web/](apps/web/) (`ng serve`, port **4200** par défaut). Voir [DEVELOPMENT.md](DEVELOPMENT.md) section « V2 ».
 
 Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pour la production Firebase décrite ci-dessous jusqu’à bascule explicite.

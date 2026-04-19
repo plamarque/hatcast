@@ -1,6 +1,6 @@
 # ADR-0008: V2 SPA authentication — Google OIDC and server-side sessions
 
-- **Status:** Accepted
+- **Status:** Deprecated — supplanted by [ADR-0010](0010-v2-auth-identity-platform.md) (Identity Platform) pour l’architecture d’identité V2 cible. Conserver ce texte comme trace de la décision **Google OIDC + session JDBC** pour les déploiements qui n’ont pas encore migré.
 - **Context:** The target stack ([`_bmad-output/planning-artifacts/architecture.md`](../../_bmad-output/planning-artifacts/architecture.md)) is an Angular SPA (`apps/web/`) calling a Kotlin Spring Boot API (`services/api/`) on Google Cloud Run, with PostgreSQL (Neon). FR1 requires “Sign in with Google” without relying on Firebase Auth for V2. The PRD also requires email/password, password reset, and long-lived sessions (FR2–FR5); this ADR focuses on **Google** only; local credentials and reset will be covered by follow-on ADRs or the same session mechanism once email/password is implemented.
 
 - **Decision:**

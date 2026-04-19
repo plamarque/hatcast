@@ -8,10 +8,12 @@ import java.util.UUID
 
 /**
  * Principal stocké en session (champs sérialisables ; pas d’entité JPA pour éviter les problèmes de détachement).
+ * Au moins un des identifiants externes (`googleSub` ou `idpUid`) est non null pour un utilisateur valide.
  */
 class SessionUserPrincipal(
     val userId: UUID,
-    val googleSub: String,
+    val googleSub: String?,
+    val idpUid: String?,
     val email: String?,
 ) : UserDetails, Serializable {
     override fun getAuthorities(): MutableCollection<out GrantedAuthority> =
@@ -19,7 +21,7 @@ class SessionUserPrincipal(
 
     override fun getPassword(): String = ""
 
-    override fun getUsername(): String = googleSub
+    override fun getUsername(): String = idpUid ?: googleSub ?: userId.toString()
 
     override fun isAccountNonExpired(): Boolean = true
 

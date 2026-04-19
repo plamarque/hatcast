@@ -85,7 +85,8 @@ _From `architecture.md` — technical constraints for implementation planning:_
 - **Data:** PostgreSQL as system of record for target stack; **single active season per troupe** (SPEC/DOMAIN); migration strategy via PLAN/ADRs.
 - **API:** REST `/v1/...`; **RFC 7807** Problem Details (or single documented envelope); **camelCase** JSON; **ISO 8601 UTC** dates; audit fields on proxy actions (FR17, FR26, FR35).
 - **Persistence ADR:** JPA vs JDBC (or equivalent) — decide before complex persistence stories.
-- **Auth ADR:** Session vs bearer token for SPA↔API — decide before secured API stories.
+- **Auth ADR:** Session vs bearer token for SPA↔API — décision actuelle : [Identity Platform](../../docs/adr/0010-v2-auth-identity-platform.md) pour la cible V2 (voir ADR).
+- **Parité V1 (auth) :** Inscription email/mot de passe ; menu utilisateur (Mon compte, Déconnexion) ; changement de mot de passe **connecté** (distinct du reset par lien — stories 1.6 vs 1.3).
 - **Observability:** Health/readiness for Cloud Run; structured logging; no secrets in logs.
 - **Backend layout:** Spring Initializr baseline under `backend/`; layered packages (`api`, application, domain, infrastructure).
 
@@ -128,9 +129,9 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 
 ### Epic 1 — Compte et authentification
 
-Les utilisateurs peuvent se connecter (Google, email/mot de passe), réinitialiser le mot de passe, rester connectés sur un appareil de confiance, se déconnecter, et gérer la suppression du compte ou les champs de compte supportés.
+Les utilisateurs peuvent **créer un compte** et se connecter (**Google** ou **email/mot de passe**), utiliser **mot de passe oublié** (hors session), **rester connectés** (option type « se souvenir de moi »), **se déconnecter**, accéder à **Mon compte** depuis un **menu utilisateur** (alignement V1), et gérer **changement d’email**, **changement de mot de passe** (connecté), et **suppression** du compte.
 
-**FRs couverts :** FR1, FR2, FR3, FR4, FR5, FR36, FR37
+**FRs couverts :** FR1, FR2, FR3, FR4, FR5, FR36, FR37 — plus **parité fonctionnelle V1** sur l’inscription email/mot de passe et le menu compte (voir stories 1.2, 1.5, 1.6).
 
 ### Epic 2 — Troupes, adhésion et profil membre
 
@@ -214,31 +215,34 @@ afin d’accéder à l’application sans créer un nouveau mot de passe HatCast
 
 ---
 
-#### Story 1.2 : Connexion email et mot de passe
+#### Story 1.2 : Inscription et connexion email / mot de passe
 
 En tant qu’utilisateur,  
-je veux me connecter avec mon adresse email et mon mot de passe,  
-afin d’utiliser HatCast sans compte Google.
+je veux **créer un compte** avec email et mot de passe puis **me connecter** avec ces identifiants,  
+afin d’utiliser HatCast sans compte Google (parité avec la V1).
 
 **Acceptance Criteria**
 
-- **Given** un compte email/mot de passe valide, **when** l’utilisateur soumet identifiants corrects, **then** la session est établie et l’utilisateur accède à l’app.
-- **Given** des identifiants incorrects, **when** la connexion est tentée, **then** un message générique approprié est affiché (pas d’énumération d’utilisateurs).
-- **Couverture :** FR2 ; NFR-S1.
+- **Given** un visiteur sans compte email/mot de passe, **when** il complète le flux **d’inscription** avec des données valides (règles de mot de passe produit), **then** un compte est créé et il peut accéder à l’app (session établie ou invitation à se connecter selon le flux retenu — à documenter, aligné Identity Platform / fournisseur).
+- **Given** un compte email/mot de passe existant, **when** l’utilisateur soumet identifiants corrects sur l’écran de connexion, **then** la session est établie et l’utilisateur accède à l’app.
+- **Given** des identifiants incorrects à la connexion, **when** la tentative a lieu, **then** un message générique approprié est affiché (pas d’énumération d’utilisateurs).
+- **And** l’écran de connexion / inscription expose les chemins **Google** (story 1.1) et **email** de façon cohérente avec la V1.
+- **Couverture :** FR2 ; NFR-S1 ; parité V1 (inscription + connexion email).
 
 ---
 
-#### Story 1.3 : Réinitialisation et récupération de mot de passe par email
+#### Story 1.3 : Mot de passe oublié — récupération par email (hors session)
 
-En tant qu’utilisateur,  
+En tant qu’utilisateur **non connecté** qui a oublié son mot de passe,  
 je veux demander une réinitialisation et définir un nouveau mot de passe via un lien email,  
-afin de récupérer l’accès si j’ai oublié mon mot de passe.
+afin de récupérer l’accès (flux « mot de passe oublié » — **distinct** du changement de mot de passe depuis Mon compte, story 1.6).
 
 **Acceptance Criteria**
 
-- **Given** un email associé à un compte, **when** l’utilisateur lance la demande de reset, **then** un email (ou flux équivalent documenté) est déclenché et une confirmation UI indique que la suite se fait par boîte mail.
+- **Given** un email associé à un compte, **when** l’utilisateur lance la demande depuis le parcours **mot de passe oublié** (sans être authentifié), **then** un email (ou flux équivalent documenté) est déclenché et une confirmation UI indique que la suite se fait par boîte mail.
 - **Given** un lien de reset valide et non expiré, **when** l’utilisateur définit un nouveau mot de passe conforme aux règles produit, **then** il peut se connecter avec ce mot de passe.
 - **Given** un lien invalide ou expiré, **when** il est utilisé, **then** un message clair invite à redemander un reset (NFR-I1).
+- **Hors périmètre de cette story :** changement de mot de passe **en étant déjà connecté** → story 1.6.
 - **Couverture :** FR3 ; NFR-I1.
 
 ---
@@ -246,41 +250,45 @@ afin de récupérer l’accès si j’ai oublié mon mot de passe.
 #### Story 1.4 : Session persistante (« se souvenir de moi »)
 
 En tant qu’utilisateur,  
-je veux rester connecté sur un appareil de confiance lorsque l’option est proposée,  
+je veux rester connecté sur un appareil de confiance lorsque l’option est proposée (ex. **case à cocher** sur l’écran de connexion, comme en V1),  
 afin de ne pas resaisir mes identifiants à chaque visite.
 
 **Acceptance Criteria**
 
-- **Given** l’option « se souvenir de moi » (ou équivalent) cochée à la connexion, **when** l’utilisateur revient dans la fenêtre de validité définie, **then** la session est restaurée sans nouvelle saisie complète des identifiants (selon politique de sécurité retenue).
-- **Given** l’option non cochée, **when** la session expire ou le navigateur est fermé (selon règles), **then** une nouvelle authentification est requise.
+- **Given** l’option « se souvenir de moi » (ou équivalent) **cochée** à la connexion, **when** l’utilisateur revient dans la fenêtre de validité définie, **then** la session est restaurée sans nouvelle saisie complète des identifiants (selon politique du fournisseur / implémentation — ex. persistance refresh côté Identity Platform).
+- **Given** l’option **non** cochée, **when** la session expire ou le navigateur est fermé (selon règles), **then** une nouvelle authentification est requise.
 - **Couverture :** FR4 ; NFR-S1.
 
 ---
 
-#### Story 1.5 : Déconnexion
+#### Story 1.5 : Déconnexion et accès depuis le menu utilisateur
 
 En tant qu’utilisateur connecté,  
-je veux me déconnecter explicitement,  
+je veux **me déconnecter** explicitement depuis le **menu utilisateur** (parité V1),  
 afin de terminer ma session sur cet appareil ou navigateur.
 
 **Acceptance Criteria**
 
-- **Given** une session active, **when** l’utilisateur choisit « Se déconnecter », **then** la session côté client et mécanisme serveur associé est invalidée conformément au modèle d’auth.
+- **Given** une session active, **when** l’utilisateur choisit **« Se déconnecter »** (depuis le menu compte / avatar), **then** la session côté client et mécanisme serveur / fournisseur associé est invalidée conformément au modèle d’auth.
 - **And** l’utilisateur ne peut plus accéder aux écrans membres sans se reconnecter.
-- **Couverture :** FR5.
+- **And** le shell connecté expose un **menu utilisateur** avec au minimum une entrée menant à **la déconnexion** et une entrée vers **Mon compte** (écran ou route défini en story 1.6 — peut être un lien placeholder jusqu’à 1.6 si livraison incrémentale, mais le pattern UI V1 doit être prévu).
+- **Couverture :** FR5 ; UX menu compte (alignement UX-DR1 « user menu » au besoin).
 
 ---
 
-#### Story 1.6 : Mise à jour des identifiants et champs de compte supportés
+#### Story 1.6 : Mon compte — email, mot de passe (connecté), champs supportés
 
 En tant qu’utilisateur authentifié,  
-je veux mettre à jour les informations de compte prévues (ex. flux de changement d’email),  
-afin de garder mes coordonnées à jour.
+je veux accéder à **Mon compte** pour mettre à jour mon **adresse email** (en conservant le même compte), **changer mon mot de passe** lorsque je suis déjà connecté, et les autres champs de compte prévus,  
+afin de garder mes identifiants à jour (parité V1 — **sans confondre** avec le reset « mot de passe oublié » de la story 1.3).
 
 **Acceptance Criteria**
 
-- **Given** les champs supportés par le produit, **when** l’utilisateur modifie une valeur valide, **then** le compte reflète la modification après validation (y compris vérifications email si applicable).
+- **Given** un utilisateur connecté, **when** il ouvre **Mon compte**, **then** il peut lancer un **changement d’email** avec validation (vérification par email / reconnexion selon règles produit et fournisseur).
+- **Given** un utilisateur connecté, **when** il change son **mot de passe** depuis Mon compte (saisie ancien mot de passe ou re-auth selon politique), **then** le nouveau mot de passe s’applique et les sessions non désirées peuvent être invalidées selon le modèle retenu.
+- **Given** les autres champs supportés par le produit, **when** l’utilisateur modifie une valeur valide, **then** le compte reflète la modification après validation.
 - **Given** une modification soumise avec erreur de validation, **when** la sauvegarde est tentée, **then** des messages d’erreur exploitables sont affichés.
+- **Non-objectif de cette story :** parcours **mot de passe oublié** sans session → story 1.3.
 - **Couverture :** FR36 ; NFR-S2, NFR-S3 (processus compte).
 
 ---

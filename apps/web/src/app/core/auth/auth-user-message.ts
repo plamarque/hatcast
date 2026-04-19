@@ -21,3 +21,15 @@ export function userMessageForGoogleSignInFailure(status: number): string {
 export function userMessageForLogoutFailure(): string {
   return 'La déconnexion n’a pas abouti. Réessayez ou rechargez la page.'
 }
+
+/** Erreurs Firebase Auth / Identity Platform — messages génériques (NFR-S1). */
+export function userMessageForIdentityPlatformAuth(_code: string): string {
+  return 'Impossible de finaliser la connexion. Vérifiez vos identifiants ou réessayez plus tard.'
+}
+
+export function userMessageForIdpApiFailure(status: number): string {
+  if (status === 503) {
+    return 'Connexion email indisponible sur ce serveur (Identity Platform / credentials API).'
+  }
+  return userMessageForGoogleSignInFailure(status)
+}

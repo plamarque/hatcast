@@ -14,7 +14,9 @@ npm run dev
 
 Ouvrir **`https://localhost:4200/`** (TLS activé dans `angular.json` pour coller aux exigences Google OAuth en local). Le navigateur peut afficher un avertissement de certificat auto-signé : normal en dev. `proxy.conf.json` proxifie `/v1` et `/actuator` vers l’API sur `http://127.0.0.1:8080`.
 
-Pour Google Identity Services : renseigner `googleOAuthWebClientId` dans `src/environments/environment.development.ts` (profil `development` ; voir `angular.json` → `fileReplacements`).
+Pour Google Identity Services : renseigner `googleOAuthWebClientId` dans `src/environments/environment.development.ts` (profil `development` ; voir `angular.json` → `fileReplacements`). Pour **email / mot de passe (Identity Platform)**, renseigner aussi le bloc `firebase` dans ce fichier.
+
+**Build Docker / CI** : [`scripts/inject-google-client-id.mjs`](scripts/inject-google-client-id.mjs) régénère `environment.ts` avec `GOOGLE_OAUTH_WEB_CLIENT_ID` et, si présents, les secrets `HATCAST_FIREBASE_WEB_API_KEY`, `HATCAST_FIREBASE_AUTH_DOMAIN`, `HATCAST_FIREBASE_PROJECT_ID` (voir [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md)).
 
 ## Code scaffolding
 

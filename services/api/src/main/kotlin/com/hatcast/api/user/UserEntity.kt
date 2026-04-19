@@ -12,8 +12,12 @@ import java.util.UUID
 class UserEntity(
     @Id
     val id: UUID = UUID.randomUUID(),
-    @Column(name = "google_sub", nullable = false, unique = true, length = 255)
-    val googleSub: String,
+    /** Sujet Google OIDC (slice GIS / ADR-0008). Null si compte créé uniquement via Identity Platform email/password. */
+    @Column(name = "google_sub", nullable = true, unique = true, length = 255)
+    var googleSub: String? = null,
+    /** UID Identity Platform / Firebase Auth (`verifyIdToken`). */
+    @Column(name = "idp_uid", nullable = true, unique = true, length = 128)
+    var idpUid: String? = null,
     @Column(length = 320)
     var email: String? = null,
     @Column(name = "display_name", length = 255)

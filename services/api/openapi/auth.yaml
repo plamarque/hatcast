@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
   title: HatCast API — Authentication (fragment)
   description: >
-    Contrat minimal pour l’authentification V2 (Google). Aligné sur
-    [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md).
+    Contrat minimal pour l’authentification V2 (Google OIDC + Identity Platform).
+    Google : [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md) (slice historique).
+    Email/mot de passe : [ADR-0010](../../docs/adr/0010-v2-auth-identity-platform.md).
     Ce fichier pourra être fusionné dans un OpenAPI global `/v1` lorsque le reste de l’API sera publié.
   version: 0.1.0
 
@@ -72,6 +73,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /auth/idp:
+    post:
+      tags: [Auth]
+      summary: Session après ID token Identity Platform (email/mot de passe, etc.)
+      description: >
+        Valide un ID token émis pour le projet Google Cloud Identity Platform (issuer typique
+        `https://securetoken.google.com/...`), crée ou met à jour l’utilisateur (`idp_uid`), établit une session
+        cookie comme `/auth/google`. Même schéma de corps que Google (`idToken`). Retourne 503 si le serveur
+        n’a pas initialisé Firebase Admin (`GOOGLE_APPLICATION_CREDENTIALS`).
+      operationId: signInWithIdentityPlatformToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleSignInRequest'
+      responses:
+        '200':
+          description: Session établie ; même schéma que `/auth/google`.
+          headers:
+            Set-Cookie:
+              description: Cookie de session HttpOnly.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionResponse'
+        '401':
+          description: ID token invalide ou expiré.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Vérification Identity Platform non configurée (credentials serveur absents).
+
   /auth/me:
     get:
       tags: [Auth]
@@ -129,7 +167,9 @@ components:
       properties:
         idToken:
           type: string
-          description: JWT ID token OIDC Google (audience = OAuth Web client ID).
+          description: >
+            JWT ID token : soit OIDC Google (`/auth/google`), soit ID token Identity Platform
+            (`/auth/idp`, issuer `securetoken.google.com`).
 
     AuthSessionResponse:
       type: object

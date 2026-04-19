@@ -8,6 +8,7 @@ import com.hatcast.api.user.UserRepository
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -19,6 +20,10 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
+import org.springframework.core.env.Environment
+import org.springframework.security.oauth2.jwt.JwtException
+import com.google.firebase.FirebaseApp
 import java.time.Instant
 
 @RestController
@@ -27,6 +32,8 @@ class AuthController(
     private val googleIdTokenService: GoogleIdTokenService,
     private val userRepository: UserRepository,
     private val securityContextRepository: SecurityContextRepository,
+    private val idpIdTokenVerifier: ObjectProvider<IdpIdTokenVerifier>,
+    private val environment: Environment,
 ) {
     @PostMapping("/google")
     fun signInWithGoogle(
@@ -52,6 +59,7 @@ class AuthController(
                 userRepository.save(
                     UserEntity(
                         googleSub = sub,
+                        idpUid = null,
                         email = email,
                         displayName = name,
                     ),
@@ -62,6 +70,82 @@ class AuthController(
             SessionUserPrincipal(
                 userId = user.id,
                 googleSub = user.googleSub,
+                idpUid = user.idpUid,
+                email = user.email,
+            )
+        val authentication =
+            UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                principal.authorities,
+            )
+        val context = SecurityContextHolder.createEmptyContext()
+        context.authentication = authentication
+        SecurityContextHolder.setContext(context)
+        securityContextRepository.saveContext(context, request, response)
+
+        return ResponseEntity.ok(
+            AuthSessionResponse(
+                UserSummaryDto(
+                    id = user.id,
+                    email = user.email,
+                    displayName = user.displayName,
+                ),
+            ),
+        )
+    }
+
+    /**
+     * Établit une session applicative après connexion / inscription côté client Identity Platform (email+mot de passe ou autre),
+     * via un ID token vérifié par le serveur (ADR-0010).
+     */
+    @PostMapping("/idp")
+    fun signInWithIdentityPlatformToken(
+        @Valid @RequestBody body: GoogleSignInRequest,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ResponseEntity<AuthSessionResponse> {
+        val verifier =
+            idpIdTokenVerifier.ifAvailable
+                ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE)
+
+        if (!environment.activeProfiles.contains("test") && FirebaseApp.getApps().isEmpty()) {
+            throw ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Identity Platform: configurez GOOGLE_APPLICATION_CREDENTIALS (JSON compte de service, même projet GCP que les tokens).",
+            )
+        }
+
+        val payload =
+            try {
+                verifier.verify(body.idToken)
+            } catch (ex: Exception) {
+                throw JwtException("Invalid Identity Platform ID token", ex)
+            }
+
+        val existingByUid = userRepository.findByIdpUid(payload.uid)
+        val user =
+            if (existingByUid != null) {
+                existingByUid.email = payload.email ?: existingByUid.email
+                existingByUid.displayName = payload.displayName ?: existingByUid.displayName
+                existingByUid.updatedAt = Instant.now()
+                userRepository.save(existingByUid)
+            } else {
+                userRepository.save(
+                    UserEntity(
+                        googleSub = null,
+                        idpUid = payload.uid,
+                        email = payload.email,
+                        displayName = payload.displayName,
+                    ),
+                )
+            }
+
+        val principal =
+            SessionUserPrincipal(
+                userId = user.id,
+                googleSub = user.googleSub,
+                idpUid = user.idpUid,
                 email = user.email,
             )
         val authentication =

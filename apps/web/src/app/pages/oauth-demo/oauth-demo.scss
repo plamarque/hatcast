@@ -18,6 +18,27 @@
   min-height: 44px;
 }
 
+.oauth-demo__divider {
+  height: 1px;
+  background: color-mix(in srgb, var(--mat-sys-outline) 40%, transparent);
+  margin: 0.5rem 0;
+}
+
+.oauth-demo__hint--email {
+  margin-top: 0.25rem;
+}
+
+.oauth-demo__email {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 22rem;
+}
+
+.oauth-demo__email mat-form-field {
+  width: 100%;
+}
+
 .oauth-demo__actions {
   display: flex;
   flex-wrap: wrap;

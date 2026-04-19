@@ -28,6 +28,9 @@ class AuthControllerIntegrationTest {
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
 
+    @MockBean
+    private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
+
     @Test
     fun `POST google returns user and sets session cookie`() {
         val jwt =
@@ -81,5 +84,50 @@ class AuthControllerIntegrationTest {
     @Test
     fun `GET me without session returns 401`() {
         mockMvc.perform(get("/v1/auth/me")).andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    fun `POST idp returns user and sets session cookie`() {
+        whenever(idpIdTokenVerifier.verify(any())).thenReturn(
+            IdpTokenPayload(
+                uid = "firebase-uid-test-1",
+                email = "idp@example.com",
+                displayName = "Idp User",
+            ),
+        )
+
+        val result =
+            mockMvc
+                .perform(
+                    post("/v1/auth/idp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake-idp-token"}"""),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.user.email").value("idp@example.com"))
+                .andReturn()
+
+        val cookie = result.response.getCookie("HATCAST_SESSION")
+        requireNotNull(cookie) { "session cookie expected" }
+
+        mockMvc
+            .perform(
+                get("/v1/auth/me").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.user.email").value("idp@example.com"))
+    }
+
+    @Test
+    fun `POST idp returns 401 when token invalid`() {
+        whenever(idpIdTokenVerifier.verify(any())).thenThrow(
+            RuntimeException("invalid token"),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/auth/idp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"idToken":"bad"}"""),
+            ).andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.code").value("AUTH_INVALID_ID_TOKEN"))
     }
 }

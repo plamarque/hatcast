@@ -33,6 +33,7 @@ class SecurityConfig(
                 csrf.csrfTokenRequestHandler(requestHandler)
                 csrf.ignoringRequestMatchers(
                     AntPathRequestMatcher("/v1/auth/google", HttpMethod.POST.name()),
+                    AntPathRequestMatcher("/v1/auth/idp", HttpMethod.POST.name()),
                     AntPathRequestMatcher("/v1/auth/logout", HttpMethod.POST.name()),
                 )
             }.authorizeHttpRequests { auth ->
@@ -40,6 +41,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/google").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/logout").authenticated()
                     .anyRequest().denyAll()

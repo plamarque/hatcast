@@ -7,7 +7,7 @@ Each ADR documents a significant technical decision: context, decision, conseque
 ### Portée V1 vs V2
 
 - **ADR 0001–0007** décrivent surtout le système **Firebase / client legacy** (`legacy/`, Functions, Firestore). Ils restent la référence « pourquoi » pour la ligne actuelle en production sur Firebase Hosting, pas pour la stack documentée sous [`docs/v2/`](../v2/README.md).
-- **ADR 0008–0009** décrivent des choix **V2** (auth SPA sans Firebase Auth, PostgreSQL Neon par environnement). À lire pour `apps/web/` et `services/api/`.
+- **ADR 0008–0010** décrivent des choix **V2** (auth SPA ; **0010** = Identity Platform cible, **0008** = ancien slice Google OIDC + session, déprécié ; PostgreSQL Neon dans **0009**). À lire pour `apps/web/` et `services/api/`.
 
 ---
 
@@ -29,14 +29,15 @@ Each ADR documents a significant technical decision: context, decision, conseque
 
 | ID | Title | Status |
 |----|-------|--------|
-| [0008](0008-v2-spa-auth-google-session.md) | V2 SPA auth: Google OIDC ID token + server-side session (no Firebase Auth) | Accepted |
+| [0008](0008-v2-spa-auth-google-session.md) | V2 SPA auth (historique): Google OIDC ID token + server-side session | Deprecated → voir 0010 |
 | [0009](0009-neon-postgres-environments.md) | V2 PostgreSQL: Neon + branches dev/staging/prod + secrets GitHub par environnement | Accepted |
+| [0010](0010-v2-auth-identity-platform.md) | V2 auth: Google Cloud Identity Platform (IdP managé GCP ; pas Firebase comme stack V1) | Accepted |
 
 ---
 
 ## Format
 
-New ADRs: copy the template below, use next number (0010, …), and add a row to the index.
+New ADRs: copy the template below, use next number (0011, …), and add a row to the index.
 
 ```markdown
 # ADR-00XX: Short title

@@ -45,6 +45,27 @@ export class AuthApiService {
     }
   }
 
+  /** Après inscription ou connexion Firebase Auth (Identity Platform) : échange ID token → session HatCast. */
+  async signInWithIdentityPlatformIdToken(
+    idToken: string,
+  ): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+    try {
+      const res = await fetch('/v1/auth/idp', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as AuthSessionBody
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async logout(): Promise<boolean> {
     try {
       const res = await fetch('/v1/auth/logout', {
