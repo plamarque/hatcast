@@ -1,16 +1,17 @@
 import { Component, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
+import { MatIconModule } from '@angular/material/icon'
+import { MatMenuModule } from '@angular/material/menu'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { Router } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { userMessageForLogoutFailure } from '../../core/auth/auth-user-message'
-import { clearHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 
 @Component({
   selector: 'app-home-signed-in',
-  imports: [MatButtonModule, MatCardModule],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatMenuModule, RouterLink],
   templateUrl: './home-signed-in.html',
   styleUrl: './home-signed-in.scss',
 })
@@ -41,7 +42,6 @@ export class HomeSignedIn implements OnInit {
   protected async logout(): Promise<void> {
     const ok = await this.auth.logout()
     if (ok) {
-      clearHatcastRememberMePreference()
       this.snack.open('Vous êtes déconnecté.', 'OK', { duration: 4000 })
       await this.router.navigate(['/connexion'])
     } else {

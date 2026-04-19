@@ -1,7 +1,11 @@
 import { inject, Injectable } from '@angular/core'
+import { signOut } from 'firebase/auth'
 
 import { FirebaseAuthService } from './firebase-auth.service'
-import { getHatcastRememberMePreference } from './hatcast-remember-me-storage'
+import {
+  clearHatcastRememberMePreference,
+  getHatcastRememberMePreference,
+} from './hatcast-remember-me-storage'
 
 export interface UserSummary {
   id: string
@@ -97,15 +101,36 @@ export class AuthApiService {
     }
   }
 
+  /**
+   * Invalide la session HatCast (cookie), puis le client Identity Platform (`signOut`).
+   * En cas d’échec du POST, `signOut` est quand même tenté pour limiter un état incohérent (IdP seul).
+   * Efface la préférence « se souvenir de moi » uniquement si le serveur a répondu OK.
+   */
   async logout(): Promise<boolean> {
+    let apiOk = false
     try {
       const res = await fetch('/v1/auth/logout', {
         method: 'POST',
         credentials: 'include',
       })
-      return res.ok
+      apiOk = res.ok
     } catch {
-      return false
+      apiOk = false
     }
+
+    const auth = this.firebaseAuth.getAuthOrNull()
+    if (auth) {
+      try {
+        await signOut(auth)
+      } catch {
+        /* éviter un état IdP persistant même si le serveur a échoué */
+      }
+    }
+
+    if (apiOk) {
+      clearHatcastRememberMePreference()
+    }
+
+    return apiOk
   }
 }

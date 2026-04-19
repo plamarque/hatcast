@@ -110,6 +110,44 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    fun `POST logout invalidates session so GET me returns 401`() {
+        val jwt =
+            Jwt
+                .withTokenValue("header.payload.sig")
+                .header("alg", "RS256")
+                .claim("sub", "google-sub-test-logout")
+                .claim("email", "logout@example.com")
+                .claim("name", "Logout User")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .issuer("https://accounts.google.com")
+                .build()
+        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
+
+        val result =
+            mockMvc
+                .perform(
+                    post("/v1/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"idToken":"fake-jwt"}"""),
+                ).andExpect(status().isOk)
+                .andReturn()
+
+        val cookie = result.response.getCookie("HATCAST_SESSION")
+        requireNotNull(cookie) { "session cookie expected" }
+
+        mockMvc
+            .perform(
+                post("/v1/auth/logout").cookie(cookie),
+            ).andExpect(status().isNoContent)
+
+        mockMvc
+            .perform(
+                get("/v1/auth/me").cookie(cookie),
+            ).andExpect(status().isUnauthorized)
+    }
+
+    @Test
     fun `POST idp returns user and sets session cookie`() {
         whenever(idpIdTokenVerifier.verify(any())).thenReturn(
             IdpTokenPayload(

@@ -7,6 +7,8 @@ import { FirebaseAuthService } from './firebase-auth.service'
 describe('AuthApiService', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+    localStorage.clear()
   })
 
   beforeEach(() => {
@@ -76,5 +78,31 @@ describe('AuthApiService', () => {
         body: JSON.stringify({ idToken: 'jwt-google', rememberMe: false }),
       }),
     )
+  })
+
+  it('logout : POST /v1/auth/logout et efface la préférence « se souvenir de moi » si OK (sans client Firebase)', async () => {
+    localStorage.setItem('hatcastRememberMe', '1')
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const ok = await service().logout()
+
+    expect(ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/auth/logout',
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    )
+    expect(localStorage.getItem('hatcastRememberMe')).toBeNull()
+  })
+
+  it('logout : n’efface pas la préférence si le POST échoue', async () => {
+    localStorage.setItem('hatcastRememberMe', '1')
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const ok = await service().logout()
+
+    expect(ok).toBe(false)
+    expect(localStorage.getItem('hatcastRememberMe')).toBe('1')
   })
 })
