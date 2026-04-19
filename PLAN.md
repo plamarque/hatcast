@@ -9,10 +9,10 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 ## Current status summary
 
 - **Normative docs (v0.1):** AGENTS.md, SPEC.md, DOMAIN.md, ARCH.md, PLAN.md, DEVELOPMENT.md, and `docs/adr/` are in place. Align code and behaviour with them over time.
-- **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/technical/MONOREPO.md](docs/technical/MONOREPO.md) and [docs/technical/BRANCH_ENVIRONMENTS.md](docs/technical/BRANCH_ENVIRONMENTS.md).
+- **Monorepo:** Vue 3 SPA (V1) lives under **`legacy/`**; **`apps/web/`** and **`services/api/`** are reserved for the V2 stack. See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md) and [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 - **Application:** Firebase backend (Functions, Firestore); CI deploys the **legacy** client build to Firebase Hosting (staging/production). Tests: Playwright + custom runners under `legacy/tests/`; some envs require `test:with-server` when dev server cannot be started by Playwright.
 - **Known gaps:** Some docs in `docs/` are topic-heavy and not yet cross-referenced with SPEC/DOMAIN. No formal "definition of done" for feature work beyond "tests pass and deploy works."
-- **V2 deploy (Cloud Run + Neon):** Le déploiement **development** (branche `v2`, environnement GitHub `development`) est en place et validé. Les déploiements **staging** / **production** via la même CI sont documentés mais **non activés / non testés** pour l’instant — promotion reportée à une phase ultérieure (produit pas encore MVP). Voir [docs/technical/BRANCH_ENVIRONMENTS.md](docs/technical/BRANCH_ENVIRONMENTS.md) et [docs/technical/DEPLOY_V2_CLOUD_RUN.md](docs/technical/DEPLOY_V2_CLOUD_RUN.md).
+- **V2 deploy (Cloud Run + Neon):** Le déploiement **development** (branche `v2`, environnement GitHub `development`) est en place et validé. Les déploiements **staging** / **production** via la même CI sont documentés mais **non activés / non testés** pour l’instant — promotion reportée à une phase ultérieure (produit pas encore MVP). Voir [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md) et [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
 
 ---
 
@@ -27,7 +27,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - [x] docs/adr/ index + 6 ADRs created
 - [x] PLAN.md created
 - [x] DEVELOPMENT.md created
-- [x] Step 2 consistency report done: see `docs/STEP2-CONSISTENCY.md` (contradictions, OPEN QUESTIONS, recommended next slice). Quick doc fixes are deferred to Slice 1.
+- [x] Step 2 consistency report done: see `docs/meta/STEP2-CONSISTENCY.md` (contradictions, OPEN QUESTIONS, recommended next slice). Quick doc fixes are deferred to Slice 1.
 
 **DoD:** All normative files exist; ADR index lists 6 ADRs; no production code changed.
 
@@ -38,7 +38,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 - [x] Update README: remove or correct Netlify/Vercel sentence; set deployment authority to Firebase + CI.
 - [x] Update README structure section: replace Grille.vue with GridBoard.vue and current views/ structure (see `src/main.js`, `src/views/`, `src/components/GridBoard.vue`).
 - [x] Add a short "Docs for agents and maintainers" paragraph in README linking to AGENTS.md, SPEC.md, ARCH.md, PLAN.md, DEVELOPMENT.md.
-- [x] Fix audit doc link (README → docs/technical/AUDIT.md). Add normative-docs pointer in docs/README.md.
+- [x] Fix audit doc link (README → docs/v1/technical/AUDIT.md). Add normative-docs pointer in docs/README.md.
 
 **DoD:** README matches current entrypoints and deployment; links to normative docs work. No behaviour change.
 
@@ -46,7 +46,7 @@ Slices are incremental deliverables to stabilise and evolve the repo. SPEC.md de
 
 ### Slice 2: Consistency and open questions
 
-- [x] Run Step 2 checks: list contradictions between new docs and code; list OPEN QUESTIONS that could not be inferred from code. (Done in `docs/STEP2-CONSISTENCY.md`; updated post-Slice 1.)
+- [x] Run Step 2 checks: list contradictions between new docs and code; list OPEN QUESTIONS that could not be inferred from code. (Done in `docs/meta/STEP2-CONSISTENCY.md`; updated post-Slice 1.)
 - [x] For each contradiction: either update the doc or open a tracked issue/task; do not silently change behaviour. (Contradictions 1–2 resolved in Slice 1; 3 resolved by extending `.env.example` and README→DEVELOPMENT link.)
 - [x] Add a "Known open questions" section to PLAN (below) for visibility.
 
@@ -205,7 +205,7 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 
 ## Known open questions
 
-These could not be inferred from code alone; they are tracked here and in `docs/STEP2-CONSISTENCY.md`. Resolve when making related changes or when product decisions are needed.
+These could not be inferred from code alone; they are tracked here and in `docs/meta/STEP2-CONSISTENCY.md`. Resolve when making related changes or when product decisions are needed.
 
 - **Super Admin:** Where the list is stored (Firebase project config, Firestore doc, or code) and how it is updated. Code shows a callable or server-side check; the list itself is not in repo.
 - **Offline behaviour:** Whether the product intends full offline support for draw/admin or only cache-for-read. Code has offline listeners and cache but no explicit "offline mode" guarantee in comments.

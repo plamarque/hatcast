@@ -1,7 +1,7 @@
 /**
  * Unit tests for composition status decision logic.
  * Mirrors the evaluation order and conditions from SelectionModal.vue compositionStatus computed.
- * Source of truth: docs/technical/composition-status-messages.md and SelectionModal.vue.
+ * Source of truth: docs/v1/technical/composition-status-messages.md and SelectionModal.vue.
  */
 import { describe, it, expect } from 'vitest'
 

@@ -238,7 +238,7 @@ Le script utilise des logs colorés avec emojis pour faciliter la lecture:
 ## Documentation complète
 
 Pour plus de détails, consulter:
-- `docs/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md` - Guide complet
+- `docs/v1/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md` - Guide complet
 - `PUSH_NOTIFICATIONS_SUMMARY.md` - Résumé exécutif
 - Firebase Console > Functions > Logs - Logs de production
 

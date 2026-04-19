@@ -6,11 +6,11 @@ Ce document fixe le **mapping** entre branches Git, déploiements et stacks, pou
 |---------|----------------|----------------------------------|-----------------|
 | **`main`** | Ligne **production** actuelle | Build depuis [`legacy/`](../../legacy/) → Firebase Hosting (`firebase.json`, cible `production`) | Cloud Functions + Firestore du projet Firebase prod (voir CI) |
 | **`staging`** | Préproduction / recette V1 | Même client `legacy/` → cible Hosting `staging` | Même projet Firebase, base `staging` (config client `VITE_FIRESTORE_DATABASE`) |
-| **`v2`** | Développement **V2** (client `apps/web`, API `services/api`) jusqu’au go prod | **Cloud Run** : workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) → environnement GitHub `development` (image Docker Nginx + Angular + API). Voir [DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md). | API Spring + **Neon** (branche dev), hors Firebase client legacy |
+| **`v2`** | Développement **V2** (client `apps/web`, API `services/api`) jusqu’au go prod | **Cloud Run** : workflow [`.github/workflows/deploy-v2-cloud-run.yml`](../../.github/workflows/deploy-v2-cloud-run.yml) → environnement GitHub `development` (image Docker Nginx + Angular + API). Voir [DEPLOY_V2_CLOUD_RUN.md](../../v2/technical/DEPLOY_V2_CLOUD_RUN.md). | API Spring + **Neon** (branche dev), hors Firebase client legacy |
 
 ### État V2 — staging / production Cloud Run
 
-Les mêmes workflows peuvent déployer les branches **`staging`** et **`main`** vers les environnements GitHub **`staging`** et **`production`** (services Cloud Run et branches Neon dédiées). **À ce stade**, seul le déploiement **development** (branche `v2`) a été validé ; la promotion **staging** / **production** est **reportée** jusqu’à ce que le produit soit suffisamment mature (pas encore MVP). La documentation opérationnelle ([DEPLOY_V2_CLOUD_RUN.md](DEPLOY_V2_CLOUD_RUN.md)) reste la référence pour activer ces cibles plus tard.
+Les mêmes workflows peuvent déployer les branches **`staging`** et **`main`** vers les environnements GitHub **`staging`** et **`production`** (services Cloud Run et branches Neon dédiées). **À ce stade**, seul le déploiement **development** (branche `v2`) a été validé ; la promotion **staging** / **production** est **reportée** jusqu’à ce que le produit soit suffisamment mature (pas encore MVP). La documentation opérationnelle ([DEPLOY_V2_CLOUD_RUN.md](../../v2/technical/DEPLOY_V2_CLOUD_RUN.md)) reste la référence pour activer ces cibles plus tard.
 
 ## Règles opérationnelles
 

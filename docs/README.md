@@ -1,47 +1,50 @@
 # Documentation HatCast
 
-Ce dossier contient la documentation technique et utilisateur du projet HatCast.
+Ce dossier complète les **docs normatives à la racine du dépôt** : [AGENTS.md](../AGENTS.md), [SPEC.md](../SPEC.md), [DOMAIN.md](../DOMAIN.md), [ARCH.md](../ARCH.md), [PLAN.md](../PLAN.md), [DEVELOPMENT.md](../DEVELOPMENT.md).
 
-**Docs normatives (racine du repo)** : [AGENTS.md](../AGENTS.md), [SPEC.md](../SPEC.md), [DOMAIN.md](../DOMAIN.md), [ARCH.md](../ARCH.md), [PLAN.md](../PLAN.md), [DEVELOPMENT.md](../DEVELOPMENT.md). Elles définissent le fonctionnement du projet et les règles pour les agents ; les documents ci-dessous les complètent par thème.
+## Carte par version
 
-## 📚 Documentation disponible
+| Zone | Rôle |
+|------|------|
+| **[`v1/`](v1/README.md)** | Client **legacy** (Vue + Firebase, `legacy/`) : **référence et compréhension** ; ne décrit **pas** la V2. |
+| **[`v2/`](v2/README.md)** | Stack **cible** (Angular, Spring, Neon, Cloud Run) : guides opérationnels pour `apps/web/` et `services/api/`. |
+| **[`shared/`](shared/README.md)** | Monorepo, branches, conventions de commits — **transverse** au dépôt. |
+| **[`adr/`](adr/README.md)** | Architecture Decision Records (décisions V1 Firebase vs V2 : voir l’index). |
+| **[`meta/`](meta/)** | Méta (ex. rapport de cohérence normative, backlog produit historique). |
 
-### 🎭 Interface utilisateur
-- **[Documentation Utilisateur](user/README.md)** - Guide complet pour les utilisateurs finaux
-- **[Système de Filtres d'Affichage](user/filters.md)** - Guide d'utilisation du nouveau système de filtres de la grille
-- **[Navigation dans la Grille](user/navigation.md)** - Guide d'utilisation des chevrons de scroll horizontal
+## Docs V2 (entrée rapide)
 
-### 🔧 Documentation technique
-- **[Documentation Technique](technical/README.md)** - Guides techniques et d'implémentation
-- **[Hiérarchie des Z-Index](technical/Z_INDEX_HIERARCHY.md)** - Gestion des z-index et modales
-- **[Référence Rapide Z-Index](technical/Z_INDEX_QUICK_REFERENCE.md)** - Guide rapide pour les développeurs
-- **[Implémentation des Filtres](technical/filters-implementation.md)** - Détails techniques du système de filtres
-- **[Système de Scroll Horizontal](technical/scroll-system.md)** - Architecture et implémentation du système de navigation
-- **[AUDIT.md](technical/AUDIT.md)** - Système d'audit et de logs
-- **[STORAGE_SETUP.md](technical/STORAGE_SETUP.md)** - Configuration du stockage
-- **[PWA_TROUBLESHOOTING.md](technical/PWA_TROUBLESHOOTING.md)** - Résolution des problèmes PWA
-- **[REMINDER_SYSTEM_README.md](technical/REMINDER_SYSTEM_README.md)** - Système de rappels
-- **[NAVIGATION_TRACKER.md](technical/NAVIGATION_TRACKER.md)** - Suivi de navigation
-- **[TODO.md](TODO.md)** - Tâches et suivi
+- [Index V2](v2/README.md)
+- [Déploiement Cloud Run](v2/technical/DEPLOY_V2_CLOUD_RUN.md)
+- [OAuth Google (opérateurs)](v2/technical/V2_GOOGLE_OAUTH_SETUP.md)
 
-## 📖 Comment contribuer
+## Docs V1 — référence uniquement (entrée rapide)
 
-1. **Ajouter de la documentation** : Créer un fichier `.md` dans ce dossier
-2. **Mettre à jour ce README** : Ajouter le lien vers la nouvelle documentation
-3. **Format** : Utiliser le format Markdown avec des emojis pour la lisibilité
-4. **Langue** : Préférer le français pour la documentation utilisateur
+- [Index V1](v1/README.md)
+- [Documentation technique legacy](v1/technical/README.md)
+- [Documentation utilisateur (UI legacy)](v1/user/README.md)
 
-## 🎯 Structure recommandée
+## Partagé (monorepo)
+
+- [MONOREPO](shared/technical/MONOREPO.md) — structure `legacy/` / `apps/web/` / `services/api/`
+- [Branches et environnements](shared/technical/BRANCH_ENVIRONMENTS.md)
+- [Messages de commit](shared/technical/COMMIT_MESSAGE_GUIDELINES.md)
+
+## Comment contribuer
+
+1. **Nouveau guide V2** : placer sous `v2/technical/` (ou sous-domaine cohérent) et lier depuis `v2/README.md`.
+2. **Documentation du comportement legacy** : placer sous `v1/technical/` ou `v1/user/`.
+3. **Décision d’architecture** : ajouter un ADR dans `adr/` et une ligne dans `adr/README.md`.
+4. **Langue** : le français est préféré pour la documentation orientée équipe produit ; l’anglais reste acceptable pour les ADR et conventions alignées sur AGENTS.md.
+
+## Structure du dossier `docs/`
 
 ```
 docs/
-├── README.md                    # Ce fichier (index)
-├── user/                        # Documentation utilisateur
-│   ├── filters.md              # Système de filtres
-│   └── ...
-├── technical/                   # Documentation technique
-│   ├── audit.md                # Système d'audit
-│   └── ...
-└── api/                        # Documentation API
-    └── ...
+├── README.md          # Ce fichier
+├── v1/                # Legacy Firebase / Vue (référence)
+├── v2/                # Angular + API + Neon + Cloud Run
+├── shared/            # Monorepo, branches, commits
+├── adr/               # Décisions d’architecture
+└── meta/              # Rapports et listes non normatives
 ```

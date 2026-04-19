@@ -243,7 +243,7 @@ if (totalRoles > 0 && playerCount === 0) {
 
 - **Fichiers modifiés** : `AvailabilityModal.vue`, `GridBoard.vue`, `AvailabilityCell.vue`, `storage.js`
 - **Fonctionnalité liée** : [Composition multi-rôles](../user/selection-multi-roles.md)
-- **Spécifications techniques** : [Composition multi-rôles](../technical/selection-multi-roles-specifications.md)
+- **Spécifications techniques** : [Composition multi-rôles](selection-multi-roles-specifications.md)
 
 ---
 
@@ -542,7 +542,7 @@ class="w-36 p-3 bg-gray-800..." <!-- 144px de largeur -->
 - `src/components/AvailabilityCell.vue` : Optimisation de l'affichage
 - `src/components/EventModal.vue` : Nouveau composant réutilisable
 - `src/services/storage.js` : Constantes et templates de rôles
-- `docs/technical/roles-general-solution.md` : Documentation technique
+- `docs/v1/technical/roles-general-solution.md` : Documentation technique
 
 ---
 

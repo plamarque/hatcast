@@ -223,7 +223,7 @@ The product is an **Angular 21** SPA using **Angular Material** as the primary U
 
 - **Frontend:** Angular SPA consuming **only** the public **REST API**; **Angular Material** for responsive, consistent components.
 - **Backend:** **Spring Boot** (Kotlin) services packaged as **Docker** images deployed to **Google Cloud Run**.
-- **Database:** **PostgreSQL** on **Neon** (managed Postgres). Connection from Cloud Run uses **per-environment** Neon branch connection strings; credentials live in **GitHub Environments secrets** (and optionally GCP Secret Manager), not in the repository—see repository ADR-0009 and `docs/technical/DEPLOY_V2_CLOUD_RUN.md`.
+- **Database:** **PostgreSQL** on **Neon** (managed Postgres). Connection from Cloud Run uses **per-environment** Neon branch connection strings; credentials live in **GitHub Environments secrets** (and optionally GCP Secret Manager), not in the repository—see repository ADR-0009 and `docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`.
 - **Frontend hosting:** Static SPA may be served from **GitHub Pages** or bundled with the API in a **single Cloud Run** container (documented option A: Nginx + Angular + Spring); SPA deep-link routing must be supported in either case.
 - **API contract:** Publish **OpenAPI** (or equivalent) as the integration source of truth; URL versioning strategy **TBD** (e.g. `/v1`).
 

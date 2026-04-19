@@ -43,7 +43,7 @@ console.log(`🗑️ Document ${pushId} supprimé de la queue`)
 
 ### 3. Documentation créée
 
-- ✅ `docs/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md` - Guide complet (630+ lignes)
+- ✅ `docs/v1/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md` - Guide complet (630+ lignes)
   - Architecture du système
   - Checklist de vérification
   - Tests à effectuer
@@ -248,7 +248,7 @@ En cas de problème:
 
 1. Vérifier les logs Cloud Functions
 2. Utiliser le script `test-push-notifications.js`
-3. Consulter `docs/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md`
+3. Consulter `docs/v1/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md`
 4. Vérifier les règles Firestore
 5. Tester avec le script de test sur un utilisateur connu
 

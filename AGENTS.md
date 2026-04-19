@@ -19,9 +19,16 @@ Treat these as authoritative. When they conflict with code, flag the conflict; d
 | **PLAN.md** | Slices, tasks, order, status. Only place for "when / in which order." |
 | **ISSUES.md** | Issue registry (bugs, defects, limitations). Informational; not normative. |
 | **docs/adr/** | Recorded decisions. Refer to ADRs for "why" and alternatives. |
-| **docs/technical/COMMIT_MESSAGE_GUIDELINES.md** | Commit message format (Conventional Commits). Mandatory when creating or suggesting commits. |
+| **docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md** | Commit message format (Conventional Commits). Mandatory when creating or suggesting commits. |
 
 Code and config are the **runtime** source of truth. The docs above describe intent and constraints; when code clearly diverges, report it rather than changing behavior without explicit approval.
+
+### Documentation by product line (V1 vs V2)
+
+- **`docs/v1/`** — Describes the **legacy** stack (Vue + Firebase under `legacy/`): reference for understanding behaviour and UX that shipped on Firebase Hosting; **not** a description of the V2 runtime.
+- **`docs/v2/`** — Operational and stack docs for **Angular + Spring + Neon + Cloud Run** (`apps/web/`, `services/api/`).
+- **`docs/shared/`** — Monorepo layout, branches, merge checklists, commit conventions (applies to the whole repo).
+- **ADRs:** **0001–0007** mainly record the **Firebase-era** system; **0008–0009** record **V2** auth and PostgreSQL/Neon. Read the ADR index in `docs/adr/README.md`.
 
 ---
 
@@ -79,9 +86,9 @@ When adding or editing content, keep this separation. Do not put "Slice 2" or "P
 
 ## Commit messages
 
-When an agent creates or suggests a commit, it **must** follow the [Commit Message Guidelines](docs/technical/COMMIT_MESSAGE_GUIDELINES.md).
+When an agent creates or suggests a commit, it **must** follow the [Commit Message Guidelines](docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md).
 
 - **Format:** Conventional Commits, in **English**. Subject line: `type(scope): Description` — e.g. `feat(auth): Add password reset`, `docs: Update DEVELOPMENT.md`.
 - **Types:** Use one of the allowed types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `perf`, `ci`, `ops`, `build`, `style`, `revert`.
 - **Subject line:** Imperative mood, 50 characters max, no period at the end. First letter capitalized.
-- For scopes, body, footer, and examples, see [docs/technical/COMMIT_MESSAGE_GUIDELINES.md](docs/technical/COMMIT_MESSAGE_GUIDELINES.md).
+- For scopes, body, footer, and examples, see [docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md](docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md).

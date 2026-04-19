@@ -6,7 +6,7 @@ SPA **Vue 3 + Vite + Firebase** — code historique déplacé ici depuis la raci
 
 - **Référence** pour le comportement produit et l’UX lors du développement V2.
 - **Maintenance** / correctifs sur la ligne actuelle jusqu’au bascule prod V2.
-- Ce dossier **n’est pas** une dépendance des builds V2 : pas d’import depuis `apps/web` ou `services/api` vers `legacy/` (voir [MONOREPO.md](../docs/technical/MONOREPO.md)).
+- Ce dossier **n’est pas** une dépendance des builds V2 : pas d’import depuis `apps/web` ou `services/api` vers `legacy/` (voir [MONOREPO.md](../docs/shared/technical/MONOREPO.md)).
 
 ## Commandes
 

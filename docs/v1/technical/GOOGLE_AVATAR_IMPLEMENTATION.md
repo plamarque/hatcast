@@ -43,7 +43,7 @@ Fonction utilitaire qui résout l'avatar à afficher :
 
 ### 4. Documentation technique
 
-Créée dans `docs/technical/GOOGLE_AVATAR_SYNC.md` avec :
+Créée dans `docs/v1/technical/GOOGLE_AVATAR_SYNC.md` avec :
 - Vue d'ensemble du système
 - Description du flux d'authentification
 - Documentation des fonctions

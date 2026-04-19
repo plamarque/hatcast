@@ -147,5 +147,5 @@ Souvent **Nginx** est prêt avant que **Spring** n’écoute sur `HATCAST_SERVER
 
 - [Neon — documentation](https://neon.tech/docs)
 - [V2_GOOGLE_OAUTH_SETUP.md](V2_GOOGLE_OAUTH_SETUP.md)
-- [ADR-0008](../adr/0008-v2-spa-auth-google-session.md)
-- [ADR-0009](../adr/0009-neon-postgres-environments.md)
+- [ADR-0008](../../adr/0008-v2-spa-auth-google-session.md)
+- [ADR-0009](../../adr/0009-neon-postgres-environments.md)

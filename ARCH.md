@@ -6,11 +6,11 @@ Describes the system architecture **as-is** and principles for evolving safely. 
 
 ### Évolution V2 (contrats — prod utilisateur V1 inchangée)
 
-La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/technical/MONOREPO.md`](docs/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/technical/BRANCH_ENVIRONMENTS.md`](docs/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Pour l’authentification Google côté V2 (sans Firebase Auth) :
+La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/shared/technical/MONOREPO.md`](docs/shared/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/shared/technical/BRANCH_ENVIRONMENTS.md`](docs/shared/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Pour l’authentification Google côté V2 (sans Firebase Auth) :
 
 - **Décision :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) (ID token Google + session serveur, cookie HttpOnly).
 - **Contrat HTTP (fragment) :** [services/api/openapi/auth.yaml](services/api/openapi/auth.yaml).
-- **Configuration GCP / OAuth (opérateur) :** [docs/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/technical/V2_GOOGLE_OAUTH_SETUP.md).
+- **Configuration GCP / OAuth (opérateur) :** [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 - **Implémentation slice testable :** API Spring sous [services/api/](services/api/) (`./gradlew bootRun`, `./gradlew test`) ; client Angular sous [apps/web/](apps/web/) (`ng serve`, port **4200** par défaut). Voir [DEVELOPMENT.md](DEVELOPMENT.md) section « V2 ».
 
 Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pour la production Firebase décrite ci-dessous jusqu’à bascule explicite.
@@ -33,7 +33,7 @@ Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pou
 | **Firestore (server)** | Triggers (audit, mail, reminder, push); admin DB access | [functions/](functions/) using `admin.firestore()` |
 | **Hosting** | Serve static `legacy/dist`; SPA fallback | [firebase.json](firebase.json) hosting, [.github/workflows/](.github/workflows/) |
 
-**Monorepo:** V1 client lives under [`legacy/`](legacy/); future V2 client under [`apps/web/`](apps/web/); API V2 under [`services/api/`](services/api/). See [docs/technical/MONOREPO.md](docs/technical/MONOREPO.md).
+**Monorepo:** V1 client lives under [`legacy/`](legacy/); future V2 client under [`apps/web/`](apps/web/); API V2 under [`services/api/`](services/api/). See [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md).
 
 No separate API server; backend is Firebase (Firestore + Auth + Functions).
 

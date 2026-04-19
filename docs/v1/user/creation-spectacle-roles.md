@@ -191,7 +191,7 @@ props.eventRoles = {}  // ❌ Vide à cause de la prop manquante !
 
 - **[Création de spectacle avec rôles](./creation-spectacle-roles.md)** - Ce document
 - **[Composition d'équipe multi-rôles](./selection-multi-roles.md)** - Nouveau système de composition par rôle
-- **[Spécifications techniques](./../technical/selection-multi-roles-specifications.md)** - Détails techniques pour les développeurs
+- **[Spécifications techniques](../technical/selection-multi-roles-specifications.md)** - Détails techniques pour les développeurs
 
 ## 🚀 **Implémentation progressive terminée**
 

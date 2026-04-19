@@ -1,12 +1,8 @@
-# 🔧 Documentation Technique HatCast
+# 🔧 Documentation technique V1 (legacy)
 
-Ce dossier contient la documentation technique et d'implémentation du projet HatCast.
+Ce dossier documente l’implémentation **Vue 3 + Firebase** sous [`legacy/`](../../../legacy/). **Référence uniquement** pour comprendre le produit actuel en production ; la **V2** est décrite sous [`docs/v2/`](../../v2/README.md).
 
-## Monorepo V1 / V2
-
-- **[MONOREPO.md](MONOREPO.md)** — Structure `legacy/`, `apps/web/`, `services/api/` et règles d’import.
-- **[BRANCH_ENVIRONMENTS.md](BRANCH_ENVIRONMENTS.md)** — Branches Git, déploiements, environnements.
-- **[MERGE_V2_TO_MAIN_CHECKLIST.md](MERGE_V2_TO_MAIN_CHECKLIST.md)** — Avant merge `v2` → `main`.
+**Transverse (monorepo, branches, merge `v2` → `main`) :** [`docs/shared/technical/`](../../shared/technical/).
 
 ## 🏗️ Architecture et implémentation
 

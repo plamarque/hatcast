@@ -1,6 +1,6 @@
 # Configuration Google OAuth (V2 — sans Firebase Auth)
 
-Ce guide est destiné aux **opérateurs** et développeurs qui configurent « Se connecter avec Google » pour la stack **Angular + Spring Boot + PostgreSQL**, conformément à [ADR-0008](../adr/0008-v2-spa-auth-google-session.md). Il ne couvre **pas** la V1 (Firebase Auth sous `legacy/`).
+Ce guide est destiné aux **opérateurs** et développeurs qui configurent « Se connecter avec Google » pour la stack **Angular + Spring Boot + PostgreSQL**, conformément à [ADR-0008](../../adr/0008-v2-spa-auth-google-session.md). Il ne couvre **pas** la V1 (Firebase Auth sous `legacy/`).
 
 ## Principes
 
@@ -58,6 +58,6 @@ Voir aussi [`.env.example`](../../.env.example) pour les variables racine utiles
 
 ## Références
 
-- [ADR-0008 — V2 SPA auth (Google + session)](../adr/0008-v2-spa-auth-google-session.md)
+- [ADR-0008 — V2 SPA auth (Google + session)](../../adr/0008-v2-spa-auth-google-session.md)
 - [OpenAPI auth fragment](../../services/api/openapi/auth.yaml)
-- [MONOREPO — séparation V1 / V2](MONOREPO.md)
+- [MONOREPO — séparation V1 / V2](../../shared/technical/MONOREPO.md)

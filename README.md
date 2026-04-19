@@ -10,7 +10,7 @@ Basée sur Vue 3, Firebase et TailwindCSS.
 - Sélection automatique équitable et pondérée (selon les participations passées)
 - Sauvegarde dans Firebase (Firestore)
 - Interface responsive avec TailwindCSS
-- **Audit trail complet** : Traçabilité de toutes les actions utilisateur ([voir documentation](docs/technical/AUDIT.md))
+- **Audit trail complet** : Traçabilité de toutes les actions utilisateur ([voir documentation](docs/v1/technical/AUDIT.md))
 
 ## 🚀 Installation
 
@@ -53,7 +53,7 @@ Le déploiement est géré par **Firebase Hosting** et les **GitHub Actions** (b
 
 ## 📁 Structure (monorepo)
 
-- **`legacy/`** — Client **V1** (Vue 3 + Vite + PWA). Build → `legacy/dist` (Firebase Hosting actuel). Voir [docs/technical/MONOREPO.md](docs/technical/MONOREPO.md).
+- **`legacy/`** — Client **V1** (Vue 3 + Vite + PWA). Build → `legacy/dist` (Firebase Hosting actuel). Voir [docs/shared/technical/MONOREPO.md](docs/shared/technical/MONOREPO.md).
 - **`apps/web/`** — Client **V2** (cible Angular) — scaffold à venir.
 - **`services/api/`** — API **V2** (cible Spring Boot) — scaffold à venir.
 - **`functions/`** — Cloud Functions Firebase (ligne actuelle).
@@ -71,6 +71,7 @@ scripts/
 
 ## 📄 Docs pour agents et mainteneurs
 
+- [docs/README.md](docs/README.md) — Carte de la documentation (V1 référence vs V2, partagé, ADR).
 - [AGENTS.md](AGENTS.md) — Règles pour les agents IA (sources de vérité, spec vs plan, qualité).
 - [SPEC.md](SPEC.md) — Spécification fonctionnelle (vision, acteurs, parcours, critères).
 - [DOMAIN.md](DOMAIN.md) — Modèle de domaine et glossaire.

@@ -82,7 +82,7 @@ This section complements the **legacy** admin behaviour described elsewhere in t
 **Could have / minimal presence:**
 
 - GitHub Pages deploy (workflow exists but secondary to Firebase Hosting).
-- Optional features (e.g. filters, scroll behaviour) documented in `docs/user/`.
+- Optional features (e.g. filters, scroll behaviour) documented in `docs/v1/user/`.
 
 **Won't (out of scope for this spec):**
 
@@ -135,7 +135,7 @@ Slices below describe desired behaviour to be implemented later. Implementation 
   - **Definitions (logical conditions):** *hasSelection* — at least one player in the composition. *hasEmptySlots* — at least one slot has no player. *hasDeclinedPlayersInSlots* — at least one slot is filled by a player whose status is declined. *allFilledSlotsConfirmedLocally* — composition is validated by the organizer, there are no empty slots, and every filled slot has player status confirmed (derived from cast data). *isSelectionConfirmedByOrganizer* — the composition has been locked/validated by the organizer.
   - **Status table (evaluation order):** (1) **À composer** — no player in composition. (2) **Équipe complète** — validated, no empty slots, no declined in slots, all filled slots confirmed. (3) **À compléter** — validated and at least one empty slot. (4) **À vérifier** — validated and at least one slot has a declined player (and no empty slots). (5) **Confirmations en cours** — validated, no empty slots, no declined in slots, not all confirmed. (6) **En préparation** — has selection but not validated (message differs for managers vs non-managers).
   - **Priority rule:** If there is any empty slot, the status is À compléter (evaluated before À vérifier).
-  - **Full message strings and source of truth:** See [docs/technical/composition-status-messages.md](docs/technical/composition-status-messages.md). Implementation: [SelectionModal.vue](legacy/src/components/SelectionModal.vue) (`compositionStatus` computed).
+  - **Full message strings and source of truth:** See [docs/v1/technical/composition-status-messages.md](docs/v1/technical/composition-status-messages.md). Implementation: [SelectionModal.vue](legacy/src/components/SelectionModal.vue) (`compositionStatus` computed).
 
 - **Composition history statistics – selected vs available (Play, Decorum, Volunteer)**
   - In the **composition history view** (CastsView: table of players × events with optional stats columns), the **Play (Jeu)**, **Decorum**, and **Volunteer** stats columns today show only the **number of times** the player was selected in each category.

@@ -243,7 +243,7 @@ console.log('   - pushQueue doit être vide (ou presque)')
 console.log('')
 
 console.log('📚 Documentation complète:')
-console.log('   - docs/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md')
+console.log('   - docs/v1/technical/PUSH_NOTIFICATIONS_TROUBLESHOOTING.md')
 console.log('   - PUSH_NOTIFICATIONS_SUMMARY.md')
 console.log('   - README_PUSH_TEST.md')
 console.log('')

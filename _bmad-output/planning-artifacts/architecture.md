@@ -23,7 +23,7 @@ status: complete
 completedAt: '2026-04-12'
 sprintChangeApproved: '2026-04-18'
 frontendStackNote: 'V2 target client: Angular 21 + Angular Material (approved sprint change); legacy V1 remains Vue until migration.'
-repoStructureNote: 'Monorepo as implemented: legacy/ (Vue V1), apps/web/ (Angular V2 client), services/api/ (Spring V2). Normative repo layout: root ARCH.md, docs/technical/MONOREPO.md.'
+repoStructureNote: 'Monorepo as implemented: legacy/ (Vue V1), apps/web/ (Angular V2 client), services/api/ (Spring V2). Normative repo layout: root ARCH.md, docs/shared/technical/MONOREPO.md.'
 ---
 
 # Architecture Decision Document
@@ -274,7 +274,7 @@ ng serve
 
 ### Complete Project Directory Structure
 
-**As-is monorepo** (aligned with root `ARCH.md` and `docs/technical/MONOREPO.md`): **V1** client is isolated under **`legacy/`**; **V2** client targets **`apps/web/`**; **V2** API targets **`services/api/`**. Firebase Hosting currently serves **`legacy/dist`**.
+**As-is monorepo** (aligned with root `ARCH.md` and `docs/shared/technical/MONOREPO.md`): **V1** client is isolated under **`legacy/`**; **V2** client targets **`apps/web/`**; **V2** API targets **`services/api/`**. Firebase Hosting currently serves **`legacy/dist`**.
 
 ```
 hatcast/
@@ -295,7 +295,7 @@ hatcast/
 │       ├── main/kotlin/com/hatcast/…
 │       └── test/kotlin/…
 ├── backend/                    # Optional / legacy stub if present; prefer services/api/ for V2 API per repo convention
-├── docs/                       # ADRs, technical docs, user docs (incl. docs/technical/MONOREPO.md)
+├── docs/                       # ADRs; docs/v1, docs/v2, docs/shared (incl. docs/shared/technical/MONOREPO.md)
 ├── functions/                  # Firebase Cloud Functions (current production; audit imports may reference legacy/src)
 ├── scripts/                    # DB / maintenance / replay (see AGENTS.md)
 ├── package.json                # Root npm workspaces: legacy, apps/web

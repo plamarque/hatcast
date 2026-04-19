@@ -1,5 +1,5 @@
 # Déploie l’image V2 (Nginx + Angular + Spring) vers Cloud Run.
-# Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/technical/DEPLOY_V2_CLOUD_RUN.md
+# Prérequis : secrets dépôt + secrets par environnement GitHub — voir docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md
 # Branches : v2 → development, staging → staging, main → production (Neon + Cloud Run alignés).
 name: Deploy V2 (Cloud Run)
 

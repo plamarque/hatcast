@@ -55,9 +55,9 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 **Tout-en-un (recommandé) :** `./scripts/start-dev.sh` à la racine — démarre l’API puis le client Angular (`ng serve --host`, HTTPS). Variables `HATCAST_*` lues depuis `.env` si le fichier existe.
 
-Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/technical/V2_GOOGLE_OAUTH_SETUP.md).
+Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
-**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/technical/DEPLOY_V2_CLOUD_RUN.md](docs/technical/DEPLOY_V2_CLOUD_RUN.md) ; branches / environnements : [docs/technical/BRANCH_ENVIRONMENTS.md](docs/technical/BRANCH_ENVIRONMENTS.md).
+**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md](docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md) ; branches / environnements : [docs/shared/technical/BRANCH_ENVIRONMENTS.md](docs/shared/technical/BRANCH_ENVIRONMENTS.md).
 
 ---
 
@@ -130,7 +130,7 @@ Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [
 
 ## Commits
 
-Commit messages must follow the [Commit Message Guidelines](docs/technical/COMMIT_MESSAGE_GUIDELINES.md) (Conventional Commits, in English). Example: `git commit -m "docs: Document release command in DEVELOPMENT.md"` or `feat(auth): Add password reset flow`.
+Commit messages must follow the [Commit Message Guidelines](docs/shared/technical/COMMIT_MESSAGE_GUIDELINES.md) (Conventional Commits, in English). Example: `git commit -m "docs: Document release command in DEVELOPMENT.md"` or `feat(auth): Add password reset flow`.
 
 ---
 
