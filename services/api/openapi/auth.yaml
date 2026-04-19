@@ -5,6 +5,9 @@ info:
     Contrat minimal pour l’authentification V2 (Google OIDC + Identity Platform).
     Google : [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md) (slice historique).
     Email/mot de passe : [ADR-0010](../../docs/adr/0010-v2-auth-identity-platform.md).
+    Réinitialisation du mot de passe (email « mot de passe oublié ») : entièrement gérée par le client
+    Identity Platform (`firebase/auth` : envoi du mail et `confirmPasswordReset`) — **aucun** endpoint REST
+    HatCast pour accepter un mot de passe en clair sur ce flux.
     Ce fichier pourra être fusionné dans un OpenAPI global `/v1` lorsque le reste de l’API sera publié.
   version: 0.1.0
 

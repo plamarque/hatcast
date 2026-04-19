@@ -33,3 +33,22 @@ export function userMessageForIdpApiFailure(status: number): string {
   }
   return userMessageForGoogleSignInFailure(status)
 }
+
+/** Réinitialisation mot de passe (lien email / Identity Platform) — messages sûrs (NFR-S1, NFR-I1). */
+export function userMessageForPasswordResetRequestFailure(): string {
+  return 'Impossible d’envoyer l’email pour le moment. Réessayez plus tard ou vérifiez votre connexion.'
+}
+
+export function userMessageForPasswordResetConfirm(code: string): string {
+  switch (code) {
+    case 'auth/expired-action-code':
+    case 'auth/invalid-action-code':
+      return 'Ce lien de réinitialisation est invalide ou expiré. Demandez un nouvel email depuis la page « mot de passe oublié ».'
+    case 'auth/weak-password':
+      return 'Mot de passe trop faible. Utilisez au moins 8 caractères.'
+    case 'auth/network-request-failed':
+      return 'Réseau indisponible. Réessayez.'
+    default:
+      return 'Impossible de finaliser la réinitialisation. Réessayez ou demandez un nouvel email.'
+  }
+}

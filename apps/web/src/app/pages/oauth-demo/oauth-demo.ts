@@ -5,16 +5,11 @@ import { MatCardModule } from '@angular/material/card'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { Router } from '@angular/router'
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app'
-import {
-  createUserWithEmailAndPassword,
-  getAuth,
-  signInWithEmailAndPassword,
-  type Auth,
-} from 'firebase/auth'
+import { Router, RouterLink } from '@angular/router'
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
 import {
   userMessageForGoogleSignInFailure,
   userMessageForIdpApiFailure,
@@ -49,6 +44,7 @@ declare global {
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,
+    RouterLink,
   ],
   templateUrl: './oauth-demo.html',
   styleUrl: './oauth-demo.scss',
@@ -56,6 +52,7 @@ declare global {
 export class OauthDemo implements AfterViewInit {
   private readonly googleHost = viewChild<ElementRef<HTMLDivElement>>('googleButtonHost')
   private readonly auth = inject(AuthApiService)
+  private readonly firebaseAuth = inject(FirebaseAuthService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly fb = inject(FormBuilder)
@@ -70,7 +67,7 @@ export class OauthDemo implements AfterViewInit {
   })
 
   /** Identity Platform : config Web présente (apiKey + authDomain + projectId). */
-  protected readonly hasEmailAuth = signal(this.computeHasEmailAuth())
+  protected readonly hasEmailAuth = signal(this.firebaseAuth.hasFirebaseWebConfig())
 
   ngAfterViewInit(): void {
     const clientId = environment.googleOAuthWebClientId
@@ -113,25 +110,6 @@ export class OauthDemo implements AfterViewInit {
     }, 12_000)
   }
 
-  private computeHasEmailAuth(): boolean {
-    const f = environment.firebase
-    return Boolean(f?.apiKey && f.authDomain && f.projectId)
-  }
-
-  private getFirebaseAuth(): Auth | null {
-    const f = environment.firebase
-    if (!f?.apiKey || !f.authDomain || !f.projectId) {
-      return null
-    }
-    let app: FirebaseApp
-    if (getApps().length > 0) {
-      app = getApp()
-    } else {
-      app = initializeApp(f)
-    }
-    return getAuth(app)
-  }
-
   private async onGoogleCredential(idToken: string): Promise<void> {
     this.devLog.set(null)
     const r = await this.auth.signInWithGoogleIdToken(idToken)
@@ -150,7 +128,7 @@ export class OauthDemo implements AfterViewInit {
   protected async registerWithEmail(): Promise<void> {
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
-    const auth = this.getFirebaseAuth()
+    const auth = this.firebaseAuth.getAuthOrNull()
     if (!auth) return
     const { email, password } = this.emailForm.getRawValue()
     try {
@@ -169,7 +147,7 @@ export class OauthDemo implements AfterViewInit {
   protected async signInWithEmail(): Promise<void> {
     this.emailForm.markAllAsTouched()
     if (this.emailForm.invalid) return
-    const auth = this.getFirebaseAuth()
+    const auth = this.firebaseAuth.getAuthOrNull()
     if (!auth) return
     const { email, password } = this.emailForm.getRawValue()
     try {

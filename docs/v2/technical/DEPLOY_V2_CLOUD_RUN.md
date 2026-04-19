@@ -155,6 +155,25 @@ L’API initialise **Firebase Admin** pour vérifier les ID tokens côté serveu
 - Le **build Angular** pour cet environnement doit exposer la **même** config Web (`apiKey`, `authDomain`, `projectId`) que ce projet GCP : secrets dépôt `HATCAST_FIREBASE_*` (voir tableau ci-dessus) + `GOOGLE_OAUTH_WEB_CLIENT_ID` dans le workflow.
 - En secours, vous pouvez monter un secret fichier et définir **`GOOGLE_APPLICATION_CREDENTIALS`** sur le service Cloud Run (`gcloud run deploy` / Secret Manager) si vous ne souhaitez pas utiliser ADC.
 
+### 6.2 Mot de passe oublié (réinitialisation par email)
+
+L’envoi du mail et le lien avec `oobCode` sont gérés par **Identity Platform / Firebase Auth** (SDK client `firebase/auth`), pas par l’API Spring.
+
+- **Domaines autorisés :** dans la console GCP (Identity Platform) ou la console Firebase liée au projet, ajoutez le **hostname** du front déployé (ex. `hatcast-xxx.run.app` ou votre domaine custom) dans **Authorized domains**, comme pour les autres flux Auth.
+- **URL de continuation :** le SPA construit une URL absolue vers `/reinitialiser-mot-de-passe` sur **le même origine** que l’utilisateur (`window.location.origin`). Cette origine doit correspondre à un domaine autorisé ; sinon le clic sur le lien email peut échouer côté client.
+- Après définition du nouveau mot de passe, la session applicative HatCast repose toujours sur **`POST /v1/auth/idp`** (échange ID token → cookie), comme pour une connexion classique.
+
+#### Gestionnaire d’actions e-mail (console Firebase)
+
+Le **domaine au début du lien** dans l’e-mail (variable `%LINK%` du modèle, hors `continueUrl`) est défini par la **configuration Auth du projet**, pas par le code Angular.
+
+- **Console Firebase** → **Authentication** → **Settings** (Paramètres) : repérer la section qui fixe l’**URL du gestionnaire d’actions** pour les e-mails (réinitialisation du mot de passe, etc.) — le libellé exact peut varier selon la version de la console.
+- Utiliser l’URL **hébergée par Firebase** pour les actions par e-mail, typiquement  
+  `https://<PROJECT_ID>.firebaseapp.com/__/auth/action`  
+  (ex. projet HatCast V2 : `impro-selector` → `https://impro-selector.firebaseapp.com/__/auth/action`), plutôt qu’un **ancien domaine applicatif** (ex. site V1 sur Firebase Hosting) si ce domaine servait encore de point d’entrée unique et envoyait les utilisateurs vers une page incompatible avec le flux V2.
+- Après changement, vérifier un envoi réel : le lien doit passer par ce gestionnaire, avec le **`continueUrl`** (localhost, origine Cloud Run, etc.) correctement pris en compte une fois le domaine d’origine **autorisé** (voir puces ci-dessus).
+- Référence : [Create custom email action handlers](https://firebase.google.com/docs/auth/custom-email-handler) (Firebase) — le comportement par défaut du gestionnaire `__/auth/action` suffit en général pour HatCast V2.
+
 ## 7. Vérifications post-déploiement
 
 - `https://<service-url>/` charge l’SPA Angular.
@@ -162,6 +181,7 @@ L’API initialise **Firebase Admin** pour vérifier les ID tokens côté serveu
 - Connexion Google sans `origin_mismatch` (origine OAuth + CORS alignés sur cet env).
 - `GET /v1/auth/me` après login.
 - Après déploiement : tester **email / mot de passe** sur `/connexion` ; si **503** sur `POST /v1/auth/idp`, vérifier IAM du compte d’exécution Cloud Run (§6.1) et les logs JVM.
+- Parcours **mot de passe oublié** : `/mot-de-passe-oublie` → email reçu → lien vers `/reinitialiser-mot-de-passe?...` (domaine autorisé, §6.2).
 
 ### 502 sur `/v1/...` (`connect() failed (111: Connection refused)` vers `127.0.0.1:8081`)
 

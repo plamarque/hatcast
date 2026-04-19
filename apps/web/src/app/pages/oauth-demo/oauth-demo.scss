@@ -45,6 +45,15 @@
   gap: 0.75rem;
 }
 
+.oauth-demo__forgot {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.oauth-demo__forgot a {
+  text-decoration: underline;
+}
+
 .oauth-demo__out {
   margin: 0;
   padding: 1rem;

@@ -28,6 +28,9 @@
           <button mat-stroked-button type="button" (click)="registerWithEmail()">Créer un compte</button>
           <button mat-flat-button color="primary" type="submit">Se connecter</button>
         </div>
+        <p class="oauth-demo__forgot">
+          <a routerLink="/mot-de-passe-oublie">Mot de passe oublié ?</a>
+        </p>
       </form>
     } @else {
       <p class="oauth-demo__hint oauth-demo__hint--email">
