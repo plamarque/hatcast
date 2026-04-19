@@ -79,7 +79,7 @@ The underlying need is not "another signup form" but **trust and clarity** when 
 
 ### Technical Success
 
-- **Reliability (target stack):** Core domain operations are enforced by the **API and PostgreSQL-backed** model with **staging/prod** parity; coupled **GitHub Actions** releases reduce client/API drift.
+- **Reliability (target stack):** Core domain operations are enforced by the **API and PostgreSQL-backed** model with **development / staging / production** parity (Neon branches per environment); coupled **GitHub Actions** releases reduce client/API drift.
 - **Deliverability:** Email and **web push** paths meet “good enough” operational standards (failures observable; no silent mass loss of user-visible actions).
 - **Client quality:** **PWA** installability and **post-deploy self-update**; **mobile-first** layouts; critical routes covered by automated tests (**Playwright** and unit tests, e.g. **Jest** with Angular or the test runner chosen in the Angular workspace) without disabling tests to ship.
 - **Legacy note:** Until migration completes, production may still reflect `ARCH.md` (Firebase); success criteria above describe the **intended end state** on Kotlin/Spring Boot + Neon.
@@ -223,15 +223,16 @@ The product is an **Angular 21** SPA using **Angular Material** as the primary U
 
 - **Frontend:** Angular SPA consuming **only** the public **REST API**; **Angular Material** for responsive, consistent components.
 - **Backend:** **Spring Boot** (Kotlin) services packaged as **Docker** images deployed to **Google Cloud Run**.
-- **Database:** **PostgreSQL** on **Neon** (managed Postgres). Connection from Cloud Run uses Neon connection settings; credentials and pooling live in **GCP / GitHub Actions secrets**, not in the repository.
-- **Frontend hosting (initial):** static assets on **GitHub Pages**. SPA routing must be supported (e.g. `404.html` / base-path strategy—implementation detail for the build pipeline).
+- **Database:** **PostgreSQL** on **Neon** (managed Postgres). Connection from Cloud Run uses **per-environment** Neon branch connection strings; credentials live in **GitHub Environments secrets** (and optionally GCP Secret Manager), not in the repository—see repository ADR-0009 and `docs/technical/DEPLOY_V2_CLOUD_RUN.md`.
+- **Frontend hosting:** Static SPA may be served from **GitHub Pages** or bundled with the API in a **single Cloud Run** container (documented option A: Nginx + Angular + Spring); SPA deep-link routing must be supported in either case.
 - **API contract:** Publish **OpenAPI** (or equivalent) as the integration source of truth; URL versioning strategy **TBD** (e.g. `/v1`).
 
 ### Data & environments
 
-- **Staging:** A dedicated **staging** environment is required. Use a **Neon database branch** (or an isolated Neon database) for **staging** data, separate from production.
-- **Production:** Neon production database + Cloud Run production service + GitHub Pages production site (or equivalent naming).
-- **Deployment alignment:** **GitHub Actions** must deploy **frontend and backend together** per environment (single workflow or explicitly coordinated jobs with shared versioning) so **API and UI do not drift**—no production state where one side updates without the other when changes are interdependent. Apply the same **coupled** principle to **staging** releases.
+- **Development:** A dedicated **development** integration environment (e.g. deploys from branch `v2`) uses a **Neon branch** (e.g. `development` or `dev`) separate from staging and production data.
+- **Staging:** A dedicated **staging** environment is required. Use a **Neon database branch** for **staging** data, separate from production and development.
+- **Production:** Neon **primary** branch + Cloud Run production service; SPA origin per deployment model (GitHub Pages or same Cloud Run URL as the API when using the bundled image).
+- **Deployment alignment:** **GitHub Actions** must deploy **frontend and backend together** per environment (single workflow or explicitly coordinated jobs with shared versioning) so **API and UI do not drift**—no environment where one side updates without the other when changes are interdependent. Apply the same **coupled** principle to **development** and **staging** releases.
 
 ### Authentication & Sessions (product-level, V1-like simplicity)
 
@@ -247,7 +248,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ### PWA updates (self-service)
 
-- The app remains a **PWA** (manifest + service worker). After each GitHub Pages deployment, users must **receive new frontend versions** without relying on manual “hard refresh” habits.
+- The app remains a **PWA** (manifest + service worker). After each **frontend** deployment (Pages or Cloud Run bundle), users must **receive new frontend versions** without relying on manual “hard refresh” habits.
 - **Requirement:** a **service worker update strategy** that **automatically activates** new builds on a predictable trigger (e.g. next navigation, app focus, or periodic checks). Goal: **stale clients do not linger** after release. Exact UX (silent vs rare prompt) is an implementation choice (e.g. **@angular/pwa** / Angular service worker), aligned with **coupled front/back releases**.
 
 ### Browser Matrix
@@ -264,7 +265,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ### SEO Strategy
 
-- Public/directory surfaces remain SEO-relevant where content is public; GitHub Pages does not change that intent.
+- Public/directory surfaces remain SEO-relevant where content is public; the choice of static host does not change that intent.
 
 ### Accessibility Level
 
@@ -272,7 +273,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ### Implementation Considerations
 
-- **CORS:** GitHub Pages origin(s) must be allowed to call the Cloud Run API URL(s); build-time configuration of API base URL per environment.
+- **CORS:** The SPA origin(s) for each environment (e.g. Cloud Run URL when the SPA is served from the same service, or GitHub Pages URL) must be allowed to call the API; build-time configuration of API base URL per environment.
 - **Secrets:** GitHub Actions authenticates to GCP for deploy; runtime secrets in GCP (Secret Manager or equivalent).
 - **Migration from V1:** `ARCH.md` describes **Firebase**; this section describes the **target** stack. Migration (data, auth cutover, replacing FCM-based flows with Web Push) is a **program**, not a single PRD bullet.
 
@@ -284,7 +285,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ### MVP Strategy & Philosophy
 
-**MVP Approach:** **Platform + problem-solving MVP** on the **target stack**: prove that a **Kotlin / Spring Boot + PostgreSQL (Neon) + REST** backend and an **Angular 21 + Angular Material** frontend can support the **core troupe loop** (availability → composition → validation → confirmations) with **staging/prod parity**, **coupled CI/CD**, and **non-negotiable UX baselines** (auth simplicity, push, PWA self-update). Defer deep **guest/premium** mechanics until core adoption is validated.
+**MVP Approach:** **Platform + problem-solving MVP** on the **target stack**: prove that a **Kotlin / Spring Boot + PostgreSQL (Neon) + REST** backend and an **Angular 21 + Angular Material** frontend can support the **core troupe loop** (availability → composition → validation → confirmations) with **development / staging / production** parity (Neon branches), **coupled CI/CD**, and **non-negotiable UX baselines** (auth simplicity, push, PWA self-update). Defer deep **guest/premium** mechanics until core adoption is validated.
 
 **Resource Requirements:** Team skills spanning **Angular/TypeScript**, **Kotlin + Spring Boot**, **PostgreSQL (Neon)**, **GCP Cloud Run**, **GitHub Actions**—exact headcount **TBD**.
 
@@ -299,7 +300,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 **Must-Have Capabilities:**
 
-- **REST API** with a published contract baseline; **PostgreSQL on Neon**; **Spring Boot** backend on **Cloud Run**; **GitHub Pages** for the frontend; **staging and production** with isolated Neon databases/branches and **coupled** front/back deployments per environment.
+- **REST API** with a published contract baseline; **PostgreSQL on Neon**; **Spring Boot** backend on **Cloud Run**; frontend as static assets (**GitHub Pages** and/or **same-origin** in the Cloud Run image per deployment choice); **development, staging, and production** with isolated **Neon branches** and **coupled** front/back deployments per environment.
 - **Authentication:** Google and email/password, forgot password, remember-me-style long sessions.
 - **PWA:** manifest and service worker with **automatic update** behaviour after deploy.
 - **Web Push:** opt-in, server-side subscription storage, send path integrated with the backend.
@@ -319,7 +320,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ### Risk Mitigation Strategy
 
-**Technical Risks:** **Big-bang rewrite risk**—mitigate with **staging-first** workflows, **contract-first API**, incremental vertical slices, and explicit **parity checkpoints** against SPEC for critical journeys. **Neon + Cloud Run + GitHub Pages:** validate **CORS**, **secrets**, and **coupled releases** early.
+**Technical Risks:** **Big-bang rewrite risk**—mitigate with **staging-first** workflows, **contract-first API**, incremental vertical slices, and explicit **parity checkpoints** against SPEC for critical journeys. **Neon + Cloud Run** (and optional **GitHub Pages** if used): validate **CORS**, **per-environment secrets**, and **coupled releases** early.
 
 **Market Risks:** Troupes may stay on legacy workflows until the new stack proves value—mitigate with **pilot troupes** and measurable **time-to-compose / time-to-confirm**.
 
@@ -422,7 +423,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 ### Reliability & operations
 
-- **NFR-R1:** Staging and production **frontend and backend** deploy together so client and API versions do not drift unintentionally.
+- **NFR-R1:** For each promoted environment (**development**, **staging**, **production**), **frontend and backend** deploy together so client and API versions do not drift unintentionally.
 - **NFR-R2:** Asynchronous delivery (web push, email) fails gracefully: failures are observable and do not leave core domain state inconsistent.
 
 ### Scalability

@@ -1,0 +1,16 @@
+.git
+.github
+.cursor
+_bmad-output
+**/.gradle
+**/node_modules
+**/dist
+services/api/bin
+functions
+.env
+.env.*
+!.env.example
+
+# Monorepo : npm ci exige le manifest legacy ; pas besoin du reste du client V1.
+legacy/**
+!legacy/package.json

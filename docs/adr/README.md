@@ -18,12 +18,13 @@ Each ADR documents a significant technical decision: context, decision, conseque
 | [0006](0006-queue-based-notifications.md) | Queue-based notifications (mail, reminder, push) | Observed |
 | [0007](0007-multi-select-participants-events.md) | Multi-select participants and events in header selectors | Accepted |
 | [0008](0008-v2-spa-auth-google-session.md) | V2 SPA auth: Google OIDC ID token + server-side session (no Firebase Auth) | Accepted |
+| [0009](0009-neon-postgres-environments.md) | V2 PostgreSQL: Neon + branches dev/staging/prod + secrets GitHub par environnement | Accepted |
 
 ---
 
 ## Format
 
-New ADRs: copy the template below, use next number (0009, …), and add a row to the index.
+New ADRs: copy the template below, use next number (0010, …), and add a row to the index.
 
 ```markdown
 # ADR-00XX: Short title

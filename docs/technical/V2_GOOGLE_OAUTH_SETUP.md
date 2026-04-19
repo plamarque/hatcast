@@ -24,7 +24,8 @@ Ce guide est destiné aux **opérateurs** et développeurs qui configurent « Se
    - Développement local (client V2, `ng serve` avec **`ssl: true`** dans [`apps/web/angular.json`](../../apps/web/angular.json)) : **`https://localhost:4200`** et, si besoin, **`https://127.0.0.1:4200`**.
    - Si vous désactivez SSL en local : ajoutez aussi **`http://localhost:4200`** (et `http://127.0.0.1:4200`).
    - Avec `ng serve --host` (téléphone / LAN) : ajoutez chaque origine utilisée, ex. **`https://192.168.x.x:4200`** (même schéma, hôte et port que dans la barre d’adresse).
-   - Staging / production : origine du SPA (ex. GitHub Pages `https://<org>.github.io` ou domaine custom).
+   - **Cloud Run (V2, option A — SPA + API dans la même image)** : une origine **par environnement** — l’URL HTTPS **exacte** du service Cloud Run pour **development**, **staging** et **production** (ex. `https://hatcast-v2-dev-xxxxx-ew.a.run.app`, idem pour `-staging` et prod). Ces trois URL doivent être ajoutées au même client OAuth Web si vous utilisez un seul Client ID multi-origines ; voir [`DEPLOY_V2_CLOUD_RUN.md`](DEPLOY_V2_CLOUD_RUN.md) pour le mapping branches git ↔ environnements.
+   - Staging / production (autre hébergement SPA) : origine du SPA (ex. GitHub Pages `https://<org>.github.io` ou domaine custom).
 4. **Authorized redirect URIs** : requis si vous utilisez un flux avec **redirection** (authorization code). Pour le flux **ID token → POST `/v1/auth/google`** décrit dans l’ADR, les redirect URIs peuvent rester minimaux ; ajoutez toute URI utilisée par GIS ou par des outils de test OAuth.
 
 > **Note :** Un même **Client ID Web** sert typiquement d’**audience** (`aud`) pour la validation du JWT côté Spring et côté configuration GIS dans le SPA. Ne commitez pas les secrets ; utilisez les variables listées dans [`.env.example`](../../.env.example).
@@ -34,10 +35,11 @@ Ce guide est destiné aux **opérateurs** et développeurs qui configurent « Se
 - L’API déployée sur **Cloud Run** expose une URL HTTPS ; configurez **CORS** pour n’autoriser que l’origine du SPA (voir ADR-0008).
 - Le **Client ID** utilisé pour GIS doit être celui dont l’`aud` est validé par l’API (variable `HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID` ou équivalent documenté).
 
-### 4. Environnements multiples (staging / prod)
+### 4. Environnements multiples (development / staging / production)
 
-- **Option A (courante) :** un client OAuth Web avec **plusieurs** origines et redirect URIs listés.
-- **Option B :** un client par environnement (staging vs production) pour isoler les erreurs de configuration ; l’API et le SPA de chaque env doivent utiliser le **même** Client ID que le front correspondant.
+- **Trois cibles V2 (Neon + Cloud Run)** : en général **trois URL Cloud Run** distinctes (dev, staging, prod). Ajoutez **chaque** origine dans **Authorized JavaScript origins** du client OAuth Web utilisé par GIS.
+- **Option A (courante) :** un client OAuth Web avec **plusieurs** origines et redirect URIs listés (adapté aux trois URL Cloud Run + local).
+- **Option B :** un client par environnement pour isoler les erreurs de configuration ; l’API et le SPA de chaque env doivent utiliser le **même** Client ID que le front correspondant (`HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID` par environnement GitHub).
 
 Alignez les déploiements front et API (NFR-R1) lorsque vous changez origines ou Client ID.
 

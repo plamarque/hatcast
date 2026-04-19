@@ -117,7 +117,7 @@ ng serve
 **Critical (block implementation if unset):**
 
 - **Target runtime stack:** **Angular 21** SPA with **Angular Material** as the primary UI layer; **Kotlin** + **Spring Boot** REST API; **PostgreSQL** on **Neon**; API exposed for SPA-only consumption; **OpenAPI** as contract source of truth (PRD).
-- **Deployment topology:** API on **Google Cloud Run** (container); static SPA on **GitHub Pages**; **staging** and **production** with **Neon** branches/databases; **GitHub Actions** deploy **frontend and backend together** per environment to avoid version skew (NFR-R1).
+- **Deployment topology:** API on **Google Cloud Run** (container); SPA either on **GitHub Pages** or **bundled** with the API (Nginx + static Angular + Spring—documented option A); **development**, **staging**, and **production** each map to a **Neon database branch** and a Cloud Run service; **GitHub Actions** deploy **frontend and backend together** per environment to avoid version skew (NFR-R1). See **ADR-0009** (`docs/adr/0009-neon-postgres-environments.md`).
 - **Data ownership:** Relational model in PostgreSQL is the system of record for the target stack; **migration** from legacy Firebase is **phased** (coexistence / dual-write / cutover to be detailed in PLAN and ADRs—not decided here at wire level).
 
 **Important (shape the system):**
@@ -137,7 +137,7 @@ ng serve
 
 ### Data Architecture
 
-- **Database:** **PostgreSQL** (Neon), separate **staging** and **production** databases or branches (PRD).
+- **Database:** **PostgreSQL** (Neon), one project with **three branches** aligned to **development**, **staging**, and **production** (isolated data per environment; PRD).
 - **Modeling:** Normalized relational schema for seasons, events, troupes, members, availability, casts, draws, audit—aligned with DOMAIN; **single active season per troupe** invariant (SPEC/DOMAIN).
 - **Migration:** From Firestore → PostgreSQL via planned migration steps (ETL, parallel run, or slice-by-slice)—**execution plan in PLAN**, not duplicated here.
 - **Caching:** Start **without** mandatory distributed cache; use HTTP caching headers and DB tuning first; add Redis or similar only if NFR-P1/P2 require it (defer).
@@ -162,20 +162,20 @@ ng serve
 
 ### Infrastructure & Deployment
 
-- **API:** **Docker** image → **Cloud Run**; config via env/secrets; Neon connection pooling compatible with serverless scale-to-zero if used.
-- **Client:** Static build to **GitHub Pages**; SPA fallback (`404.html` or equivalent) for deep links including **canonical event URLs**.
-- **CI/CD:** One pipeline (or explicitly coupled jobs) versioning client + API together per staging/prod.
+- **API:** **Docker** image → **Cloud Run**; config via env/secrets per **GitHub Environment**; Neon connection strings (prefer pooler endpoint for runtime where Neon recommends it) compatible with serverless scale-to-zero.
+- **Client:** Static build deployed with the API (**same container**) or to **GitHub Pages** depending on product ops; SPA fallback for deep links including **canonical event URLs**.
+- **CI/CD:** One pipeline (or explicitly coupled jobs) versioning client + API together per **development / staging / production** (see `.github/workflows/deploy-v2-cloud-run.yml`).
 
 #### Coupled deploy (NFR-R1) — requirements for GitHub Actions
 
-**Goal:** Staging and production must not drift into a state where the **SPA** and **API** were deployed from **independent, unrelated** release decisions. Coupling is **governance + automation**, not “same second” timestamp.
+**Goal:** No environment (**development**, **staging**, **production**) must drift into a state where the **SPA** and **API** were deployed from **independent, unrelated** release decisions. Coupling is **governance + automation**, not “same second” timestamp.
 
 **Minimum rules to implement in CI:**
 
-1. **One workflow per environment line** (e.g. `deploy-staging.yml`, `deploy-production.yml`) or one workflow with **environment matrix**, where **both** artifacts for that promotion are built and deployed in a **single run** triggered by the **same event** (e.g. push to `main` → staging; tag `v*` → production).
-2. **Fail closed:** if the API image push / Cloud Run deploy fails, **do not** deploy the GitHub Pages client (and vice versa: if the static upload fails, the run fails; do not leave “half” updates without remediation). Use **job dependencies** (`needs:`) or a single job with ordered steps so the pipeline outcome reflects **both** sides.
+1. **One workflow per environment line** or one workflow with **GitHub Environments** (`development`, `staging`, `production`) where **both** artifacts for that promotion are built and deployed in a **single run** triggered by the **same event** (e.g. push to `v2` → development; push to `staging` → staging; push to `main` → production for V2 Cloud Run).
+2. **Fail closed:** if the API image push / Cloud Run deploy fails, **do not** complete a partial release (e.g. do not publish a standalone static upload if the pipeline is split; with a **single** Cloud Run image bundling SPA + API, the deploy step is already atomic). Use **job dependencies** (`needs:`) or a single job with ordered steps so the pipeline outcome reflects **both** sides when they are separate artifacts.
 3. **Shared version label:** expose the same **git SHA** (and optionally short ref or tag) as **build metadata** for both client and API builds (e.g. env var `GIT_SHA` baked into client build + API image label or OTEL resource) so support can confirm **what** is live on each side.
-4. **No solo client deploy to prod** for changes that alter the API contract: such changes go through the **same** coupled workflow; hotfix policy (if ever) is documented in repo ops docs, not ad-hoc Pages uploads.
+4. **No solo client deploy** to an environment for changes that alter the API contract: such changes go through the **same** coupled workflow; hotfix policy (if ever) is documented in repo ops docs, not ad-hoc static uploads.
 
 **FR41 interaction:** The client may show an in-app **update** CTA when a new SW/bundle is detected; coupled deploy ensures that when users accept the update, they receive a client build that matches the **intended** API revision for that environment.
 

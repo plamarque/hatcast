@@ -70,7 +70,7 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - **NFR-S1:** Credentials and session tokens are protected in transit (TLS) and handled on client and server according to current best practices.
 - **NFR-S2:** Personal data (email, avatar, troupe display names, participation data) is exposed only to identities and roles allowed by the permission model.
 - **NFR-S3:** Account deletion and personal-data handling support expectations for EU users (e.g. GDPR-oriented processes at the organizational level—detailed in privacy policy and operations).
-- **NFR-R1:** Staging and production **frontend and backend** deploy together so client and API versions do not drift unintentionally.
+- **NFR-R1:** For each environment (**development**, **staging**, **production**), **frontend and backend** deploy together so client and API versions do not drift unintentionally.
 - **NFR-R2:** Asynchronous delivery (web push, email) fails gracefully: failures are observable and do not leave core domain state inconsistent.
 - **NFR-SC1:** The system supports growth from a small number of troupes to a larger base without a redesign of core domain partitioning (horizontal scaling details are architectural).
 - **NFR-A1:** Core member and organizer tasks are operable with keyboard where applicable, with semantic structure and visible focus; contrast meets a pragmatic baseline (formal WCAG level **TBD**).
@@ -80,7 +80,7 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 
 _From `architecture.md` — technical constraints for implementation planning:_
 
-- **Target stack:** **Angular 21** SPA with **Angular Material**; **Kotlin** + **Spring Boot** REST API; **PostgreSQL** on **Neon**; **OpenAPI** as API contract; static SPA on **GitHub Pages**; API on **Google Cloud Run**; **coupled CI** deploys for staging/production (NFR-R1).
+- **Target stack:** **Angular 21** SPA with **Angular Material**; **Kotlin** + **Spring Boot** REST API; **PostgreSQL** on **Neon** (branches per environment); **OpenAPI** as API contract; SPA on **GitHub Pages** and/or **Cloud Run** (bundled image); API on **Google Cloud Run**; **coupled CI** deploys for development/staging/production (NFR-R1).
 - **Brownfield:** Legacy **Firebase** (Firestore, Auth, Functions) remains until migration slices in PLAN; dual paths per feature must stay explicit in stories.
 - **Data:** PostgreSQL as system of record for target stack; **single active season per troupe** (SPEC/DOMAIN); migration strategy via PLAN/ADRs.
 - **API:** REST `/v1/...`; **RFC 7807** Problem Details (or single documented envelope); **camelCase** JSON; **ISO 8601 UTC** dates; audit fields on proxy actions (FR17, FR26, FR35).

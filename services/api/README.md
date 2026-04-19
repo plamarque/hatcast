@@ -1,6 +1,6 @@
 # `services/api` — API HatCast (V2)
 
-Backend **Kotlin / Spring Boot** (cible Cloud Run, PostgreSQL, OpenAPI). **Aucune** dépendance vers le code Vue sous [`legacy/`](../../legacy/).
+Backend **Kotlin / Spring Boot** (cible Cloud Run, PostgreSQL sur **Neon**, OpenAPI). **Aucune** dépendance vers le code Vue sous [`legacy/`](../../legacy/).
 
 ## Prérequis
 
@@ -24,6 +24,7 @@ Profils :
 |--------|--------|
 | `dev` (défaut) | H2 en mémoire, Flyway `users`, tables Spring Session créées au démarrage. |
 | `docker` | PostgreSQL via [`docker-compose.yml`](docker-compose.yml) (port hôte **5433**). |
+| `cloud` | Cloud Run : PostgreSQL **Neon** via `HATCAST_DATASOURCE_*` (une branche Neon par environnement), cookie **Secure** ; voir [`docs/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/technical/DEPLOY_V2_CLOUD_RUN.md). |
 
 Exemple Postgres :
 

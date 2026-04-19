@@ -10,6 +10,11 @@
 | [`functions/`](../../functions/) | Cloud Functions Firebase (ligne actuelle partagée avec la V1). |
 | Racine | `firebase.json`, règles Firestore/Storage, `package.json` **workspace**, scripts transverses (`scripts/`). |
 
+## V2 — stack cible (résumé)
+
+- **API** : Kotlin / Spring Boot sous [`services/api/`](../../services/api/), déployée sur **Google Cloud Run** (image Docker ; option A : Nginx + Angular + API).
+- **Données** : **PostgreSQL** sur **Neon** — un projet Neon, **trois branches** (development, staging, production) alignées sur les environnements GitHub et les services Cloud Run ; détails dans [`DEPLOY_V2_CLOUD_RUN.md`](DEPLOY_V2_CLOUD_RUN.md) et [`docs/adr/0009-neon-postgres-environments.md`](../adr/0009-neon-postgres-environments.md).
+
 ## Règles d’import (anti-mélange)
 
 1. **`apps/web` et `services/api` ne doivent pas importer** de modules depuis `legacy/src` (ni chemins relatifs vers du code Vue).
