@@ -4,9 +4,9 @@
 
 Describes the system architecture **as-is** and principles for evolving safely. For "why" decisions, see `docs/adr/`.
 
-### Évolution V2 (contrats — pas encore le déploiement production actuel)
+### Évolution V2 (contrats — prod utilisateur V1 inchangée)
 
-La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/technical/MONOREPO.md`](docs/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Pour l’authentification Google côté V2 (sans Firebase Auth) :
+La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spring sous [`services/api/`](services/api/), PostgreSQL sur **Neon**, Cloud Run) est décrite dans [`docs/technical/MONOREPO.md`](docs/technical/MONOREPO.md) et les artefacts `_bmad-output/planning-artifacts/`. **Déploiement V2 validé** sur l’environnement **development** (branche `v2`) ; staging/production Cloud Run sont **reportés** (voir [`docs/technical/BRANCH_ENVIRONMENTS.md`](docs/technical/BRANCH_ENVIRONMENTS.md)). Persistance V2 : **ADR-0009** ([docs/adr/0009-neon-postgres-environments.md](docs/adr/0009-neon-postgres-environments.md)). Pour l’authentification Google côté V2 (sans Firebase Auth) :
 
 - **Décision :** [docs/adr/0008-v2-spa-auth-google-session.md](docs/adr/0008-v2-spa-auth-google-session.md) (ID token Google + session serveur, cookie HttpOnly).
 - **Contrat HTTP (fragment) :** [services/api/openapi/auth.yaml](services/api/openapi/auth.yaml).

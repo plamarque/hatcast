@@ -57,6 +57,8 @@ Stack : [`services/api/`](services/api/) (Kotlin / Spring Boot) et [`apps/web/`]
 
 Scripts racine optionnels : `npm run dev:api`, `npm run dev:web:v2`. Détail : [services/api/README.md](services/api/README.md), [apps/web/README.md](apps/web/README.md), [docs/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/technical/V2_GOOGLE_OAUTH_SETUP.md).
 
+**Déploiement V2 (Cloud Run, Neon, GitHub Actions)** : [docs/technical/DEPLOY_V2_CLOUD_RUN.md](docs/technical/DEPLOY_V2_CLOUD_RUN.md) ; branches / environnements : [docs/technical/BRANCH_ENVIRONMENTS.md](docs/technical/BRANCH_ENVIRONMENTS.md).
+
 ---
 
 ## Tests
