@@ -81,7 +81,7 @@ NFRs drive: **performance** under mobile conditions and bounded list loads (NFR-
 | Layer | Option | Notes |
 |-------|--------|--------|
 | **Frontend (greenfield equivalent)** | **Angular CLI** (`ng new`) | Official **Angular 21** application scaffold ([Angular CLI overview](https://angular.dev/tools/cli)). Enable **routing**, **SCSS** (or CSS per team choice), **strict** mode; add **standalone components** as default. **HatCast today** still ships the **Vue + Vite** client from **`legacy/`**; new work scaffolds into **`apps/web/`** — this row documents the **V2** baseline. |
-| **UI library** | **Angular Material** | Add with `ng add @angular/material`; configure theme (prebuilt or custom) per [Angular Material guides](https://material.angular.io/guide/getting-started). |
+| **UI library** | **Angular Material** | Add with `ng add @angular/material`; configure theme (prebuilt or custom) per [Angular Material](https://material.angular.dev/guide/getting-started) and repo guide [`docs/v2/technical/FRONTEND_UI.md`](../../docs/v2/technical/FRONTEND_UI.md). |
 | **Backend (new service)** | **Spring Initializr** ([start.spring.io](https://start.spring.io/)) | Generate **Kotlin** + **Gradle (Kotlin DSL)** project. Select **Spring Boot** version from the **current stable** line offered by the UI at generation time (PRD: use latest stable Spring Boot line when implementing). Typical dependencies: Spring Web, validation, data access (JDBC or JPA as chosen in ADRs), PostgreSQL driver, Actuator; add **OpenAPI** (e.g. springdoc-openapi) in implementation stories. |
 | **CLI alternative (backend)** | `curl https://start.spring.io/starter.zip` with parameters | Same output as the web UI; use for automation in CI once coordinates are fixed. |
 

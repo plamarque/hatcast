@@ -1,6 +1,7 @@
 # HatCast — client V2 (`@hatcast/web`)
 
 SPA **Angular 21** + **Angular Material** (OAuth Google + session API, voir [`docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md`](../../docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md)).  
+**UI / theming / mobile-first :** [`docs/v2/technical/FRONTEND_UI.md`](../../docs/v2/technical/FRONTEND_UI.md).  
 **Déploiement** (Docker + Cloud Run, même image que l’API) : [`docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md`](../../docs/v2/technical/DEPLOY_V2_CLOUD_RUN.md).
 
 Depuis la racine du monorepo : `npm run dev:web:v2` (équivalent à `npm run dev` dans ce workspace).

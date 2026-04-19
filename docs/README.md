@@ -17,6 +17,7 @@ Ce dossier complète les **docs normatives à la racine du dépôt** : [AGENTS.m
 - [Index V2](v2/README.md)
 - [Déploiement Cloud Run](v2/technical/DEPLOY_V2_CLOUD_RUN.md)
 - [OAuth Google (opérateurs)](v2/technical/V2_GOOGLE_OAUTH_SETUP.md)
+- [UI Angular Material, theming, CDK, mobile-first](v2/technical/FRONTEND_UI.md)
 
 ## Docs V1 — référence uniquement (entrée rapide)
 

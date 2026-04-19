@@ -8,6 +8,7 @@
 
 - [`technical/V2_GOOGLE_OAUTH_SETUP.md`](technical/V2_GOOGLE_OAUTH_SETUP.md) — configuration Google OAuth (opérateurs)
 - [`technical/DEPLOY_V2_CLOUD_RUN.md`](technical/DEPLOY_V2_CLOUD_RUN.md) — Cloud Run, Neon, GitHub Actions
+- [`technical/FRONTEND_UI.md`](technical/FRONTEND_UI.md) — Angular Material (références officielles), theming, CDK, **mobile-first** / responsive
 
 ## Décisions (ADR)
 
