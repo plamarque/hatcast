@@ -53,7 +53,7 @@ Composer (implémentation incrément + fermeture story).
 - `src/app/core/auth/auth-user-message.ts` — libellés utilisateur.
 - `src/app/pages/auth-redirect/auth-redirect.ts` — redirection racine selon session.
 - `src/app/pages/home-signed-in/*` — expérience connectée minimale + logout.
-- `src/app/pages/oauth-demo/*` — écran connexion (`/connexion`), GIS + snackbars.
+- `src/app/pages/login/*` — écran connexion (`/connexion`), GIS + snackbars.
 - `src/app/app.routes.ts`, `src/app/app.config.ts` — routes + `provideAnimationsAsync`.
 
 **Suivi**

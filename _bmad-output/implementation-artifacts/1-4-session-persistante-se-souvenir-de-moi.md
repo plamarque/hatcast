@@ -13,7 +13,7 @@ so that I do not re-enter credentials on every visit while still being able to o
 
 ## Acceptance Criteria
 
-1. **Parité V1 — UI :** Given the sign-in experience (`/connexion`, [`oauth-demo`](../../apps/web/src/app/pages/oauth-demo/oauth-demo.ts)), when the user views the form, then a **« Se souvenir de moi »** (or equivalent) **checkbox** is visible for **both** email/password (including **register** → same `POST /v1/auth/idp` via `finishIdpSignIn`) and **Google** sign-in paths where applicable, and it is **checked by default**.
+1. **Parité V1 — UI :** Given the sign-in experience (`/connexion`, [`login`](../../apps/web/src/app/pages/login/login.ts)), when the user views the form, then a **« Se souvenir de moi »** (or equivalent) **checkbox** is visible for **both** email/password (including **register** → same `POST /v1/auth/idp` via `finishIdpSignIn`) and **Google** sign-in paths where applicable, and it is **checked by default**.
 2. **Parité V1 — durée :** Given the checkbox **checked** at successful sign-in, when the user closes the browser and returns **within 30 days** (same device/browser, cookie still valid), then they remain authenticated **without** full credential entry again (session restored per implementation — server session + cookie semantics documented in Dev Agent Record).
 3. **Sans « se souvenir de moi » :** Given the checkbox **unchecked** at successful sign-in, when the **browser session ends** or the **short-lived session policy** applies (per chosen Spring / cookie rules — document explicitly), then the user must **authenticate again** before accessing protected routes; behaviour must be **clearly different** from the 30-day path (no silent 30-day persistence).
 4. **Cohérence IdP :** Identity Platform may keep its own refresh persistence in the browser; the **product-visible** guarantee for this story is the **HatCast server session** (`HATCAST_SESSION` / [`ADR-0010`](../../docs/adr/0010-v2-auth-identity-platform.md)) aligned with the checkbox — document any interaction (e.g. re-exchange of ID token when server session is missing but Firebase user persists).
@@ -44,7 +44,7 @@ so that I do not re-enter credentials on every visit while still being able to o
 |------|---------------------|
 | API | `AuthController.kt`, DTOs auth, `SecurityConfig.kt`, `application*.yml` |
 | OpenAPI | `services/api/openapi/auth.yaml` |
-| Angular | `apps/web/src/app/core/auth/auth-api.service.ts`, `oauth-demo` (ou future page `/connexion` dédiée) |
+| Angular | `apps/web/src/app/core/auth/auth-api.service.ts`, page [`login`](../../apps/web/src/app/pages/login/login.ts) (`/connexion`) |
 
 ### Références
 
@@ -94,9 +94,9 @@ Composer (implémentation story 1.4)
 
 - `apps/web/src/app/core/auth/auth-api.service.ts`
 - `apps/web/src/app/core/auth/auth-api.service.spec.ts`
-- `apps/web/src/app/pages/oauth-demo/oauth-demo.ts`
-- `apps/web/src/app/pages/oauth-demo/oauth-demo.html`
-- `apps/web/src/app/pages/oauth-demo/oauth-demo.scss`
+- `apps/web/src/app/pages/login/login.ts`
+- `apps/web/src/app/pages/login/login.html`
+- `apps/web/src/app/pages/login/login.scss`
 
 **Racine**
 

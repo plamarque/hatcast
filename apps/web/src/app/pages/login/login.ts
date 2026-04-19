@@ -30,7 +30,15 @@ declare global {
           }) => void
           renderButton: (
             el: HTMLElement,
-            opts: { theme?: string; size?: string; type?: string },
+            opts: {
+              theme?: string
+              size?: string
+              type?: string
+              shape?: string
+              text?: string
+              width?: number
+              locale?: string
+            },
           ) => void
         }
       }
@@ -39,7 +47,7 @@ declare global {
 }
 
 @Component({
-  selector: 'app-oauth-demo',
+  selector: 'app-login',
   imports: [
     MatCardModule,
     MatButtonModule,
@@ -49,10 +57,10 @@ declare global {
     ReactiveFormsModule,
     RouterLink,
   ],
-  templateUrl: './oauth-demo.html',
-  styleUrl: './oauth-demo.scss',
+  templateUrl: './login.html',
+  styleUrl: './login.scss',
 })
-export class OauthDemo implements AfterViewInit {
+export class Login implements AfterViewInit {
   private readonly googleHost = viewChild<ElementRef<HTMLDivElement>>('googleButtonHost')
   private readonly auth = inject(AuthApiService)
   private readonly firebaseAuth = inject(FirebaseAuthService)
@@ -95,7 +103,20 @@ export class OauthDemo implements AfterViewInit {
         client_id: clientId,
         callback: (resp) => void this.onGoogleCredential(resp.credential),
       })
-      g.renderButton(host, { theme: 'outline', size: 'large', type: 'standard' })
+      const render = () => {
+        const raw = host.getBoundingClientRect().width
+        const w = raw > 0 ? Math.floor(raw) : 400
+        g.renderButton(host, {
+          theme: 'outline',
+          size: 'large',
+          type: 'standard',
+          shape: 'pill',
+          text: 'continue_with',
+          width: Math.max(w, 280),
+          locale: 'fr',
+        })
+      }
+      requestAnimationFrame(render)
     }
 
     const id = window.setInterval(() => {

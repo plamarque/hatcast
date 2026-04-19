@@ -17,7 +17,7 @@ so that I can use HatCast without a Google account (V1 parity).
 2. **Connexion (FR2) :** Given an existing email/password account, when they submit correct credentials on the sign-in experience, then authenticated access is established per [ADR-0010](../../docs/adr/0010-v2-auth-identity-platform.md) (session cookie and/or validated token flow — document the chosen bridge) and they reach the signed-in experience (e.g. `/accueil` or intended route), NFR-S1.
 3. **Invalid credentials (NFR-S1, anti-énumération) :** Given wrong email and/or password at sign-in, when sign-in is attempted, then the UI shows a **generic** message (no “unknown user” vs “wrong password” distinction).
 4. **Inscription — erreurs :** Given sign-up with an email already in use or invalid data, when submit runs, then the UI shows **safe, generic or provider-aligned** messages without leaking enumeration (same spirit as sign-in).
-5. **Cohérence avec 1.1 :** Same screen area or clear navigation: **Google** (story 1.1) and **email** paths coherent with V1; reuse UX patterns (`AuthApiService` where still valid, MatSnackBar, [`oauth-demo`](../../apps/web/src/app/pages/oauth-demo/oauth-demo.ts) layout as baseline). **Garde-fou :** le slice 1.1 envoie un **JWT Google** (`iss` Google) vers `POST /v1/auth/google` ; **Identity Platform** utilise des **ID tokens** avec issuer typique `https://securetoken.google.com/...` (voir ADR). Pour un référentiel utilisateur unique, prévoir **migration du flux Google** vers le **fournisseur Google du client Identity Platform** (souvent documenté comme `GoogleAuthProvider` dans les guides Google — **nom d’API**, produit = Identity Platform) ou stratégie de liaison documentée — voir Dev Notes.
+5. **Cohérence avec 1.1 :** Same screen area or clear navigation: **Google** (story 1.1) and **email** paths coherent with V1; reuse UX patterns (`AuthApiService` where still valid, MatSnackBar, [`login`](../../apps/web/src/app/pages/login/login.ts) layout as baseline). **Garde-fou :** le slice 1.1 envoie un **JWT Google** (`iss` Google) vers `POST /v1/auth/google` ; **Identity Platform** utilise des **ID tokens** avec issuer typique `https://securetoken.google.com/...` (voir ADR). Pour un référentiel utilisateur unique, prévoir **migration du flux Google** vers le **fournisseur Google du client Identity Platform** (souvent documenté comme `GoogleAuthProvider` dans les guides Google — **nom d’API**, produit = Identity Platform) ou stratégie de liaison documentée — voir Dev Notes.
 6. **Contrat & ADR :** Document auth-related endpoints in [`services/api/openapi/auth.yaml`](../../services/api/openapi/auth.yaml). Target identity model per [ADR-0010](../../docs/adr/0010-v2-auth-identity-platform.md) (IdP-managed passwords, no app-side password storage). If a transitional **Spring session + cookie** bridge remains after token verification (`verifyIdToken` via l’Admin SDK Google — artefact `firebase-admin`), document it explicitly until full Bearer/token model is in place.
 
 ## Tasks / Subtasks
@@ -104,9 +104,9 @@ Composer (implémentation story 1.2)
 - `apps/web/src/environments/environment.development.ts`
 - `apps/web/src/app/core/auth/auth-api.service.ts`
 - `apps/web/src/app/core/auth/auth-user-message.ts`
-- `apps/web/src/app/pages/oauth-demo/oauth-demo.ts`
-- `apps/web/src/app/pages/oauth-demo/oauth-demo.html`
-- `apps/web/src/app/pages/oauth-demo/oauth-demo.scss`
+- `apps/web/src/app/pages/login/login.ts`
+- `apps/web/src/app/pages/login/login.html`
+- `apps/web/src/app/pages/login/login.scss`
 
 **Racine**
 
