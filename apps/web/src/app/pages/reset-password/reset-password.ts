@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { setHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 import {
   userMessageForIdpApiFailure,
   userMessageForPasswordResetConfirm,
@@ -103,6 +104,7 @@ export class ResetPassword implements OnInit {
       const idToken = await cred.user.getIdToken()
       const r = await this.authApi.signInWithIdentityPlatformIdToken(idToken)
       if (r.ok) {
+        setHatcastRememberMePreference(true)
         this.snack.open('Mot de passe mis à jour. Connexion réussie.', 'OK', { duration: 3500 })
         await this.router.navigate(['/accueil'])
         return

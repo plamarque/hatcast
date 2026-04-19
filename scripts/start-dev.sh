@@ -10,6 +10,8 @@
 # reconnues, commentaires `#` ignorés). Utile pour `HATCAST_*`, `VITE_*` (mode --legacy), etc.
 #
 # URLs : API http://127.0.0.1:8080 — front https://localhost:4200 (TLS, `ng serve --host` : aussi sur le LAN).
+# API : PostgreSQL obligatoire (Neon) — exporter HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME,
+# HATCAST_DATASOURCE_PASSWORD dans `.env` (Flyway + Spring Session sur cette base).
 
 set -euo pipefail
 # Contrôle de jobs : le PID du job en arrière-plan devient chef de groupe → `kill -TERM -$pid` arrête Gradle **et** la JVM.

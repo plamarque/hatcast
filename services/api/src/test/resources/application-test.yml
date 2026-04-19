@@ -1,10 +1,17 @@
-# Profil test : H2 isolé + client Google factice (pas d’appel réseau aux JWKS).
+# Profil test : H2 en mémoire uniquement pour CI / `./gradlew test` (pas Neon, pas de Flyway sur une 2e base).
+# Le runtime (dev/cloud) utilise toujours PostgreSQL (Neon).
 spring:
   datasource:
     url: jdbc:h2:mem:hatcast_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: true
   session:
@@ -14,5 +21,8 @@ spring:
 hatcast:
   google:
     oauth-web-client-id: test-google-web-client-id
+  auth:
+    remember-me-seconds: 2592000
+    no-remember-me-seconds: 1800
   cors:
     allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:4200

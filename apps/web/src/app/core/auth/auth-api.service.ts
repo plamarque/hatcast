@@ -1,4 +1,7 @@
-import { Injectable } from '@angular/core'
+import { inject, Injectable } from '@angular/core'
+
+import { FirebaseAuthService } from './firebase-auth.service'
+import { getHatcastRememberMePreference } from './hatcast-remember-me-storage'
 
 export interface UserSummary {
   id: string
@@ -12,6 +15,32 @@ export interface AuthSessionBody {
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
+  private readonly firebaseAuth = inject(FirebaseAuthService)
+
+  /**
+   * GET /v1/auth/me ; si 401 et « se souvenir de moi » + session Firebase encore présente,
+   * rééchange un ID token Identity Platform → session HatCast (redémarrage API / perte cookie serveur).
+   */
+  async ensureHatcastSession(): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+    const first = await this.getMe()
+    if (first.ok) return first
+
+    if (!getHatcastRememberMePreference()) return first
+
+    const auth = this.firebaseAuth.getAuthOrNull()
+    const user = auth?.currentUser
+    if (!user) return first
+
+    try {
+      const idToken = await user.getIdToken(true)
+      const exchanged = await this.signInWithIdentityPlatformIdToken(idToken, true)
+      if (!exchanged.ok) return first
+      return await this.getMe()
+    } catch {
+      return first
+    }
+  }
+
   async getMe(): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
     try {
       const res = await fetch('/v1/auth/me', { credentials: 'include' })
@@ -27,13 +56,14 @@ export class AuthApiService {
 
   async signInWithGoogleIdToken(
     idToken: string,
+    rememberMe = true,
   ): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
     try {
       const res = await fetch('/v1/auth/google', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ idToken, rememberMe }),
       })
       if (!res.ok) {
         return { ok: false, status: res.status }
@@ -48,13 +78,14 @@ export class AuthApiService {
   /** Après inscription ou connexion Firebase Auth (Identity Platform) : échange ID token → session HatCast. */
   async signInWithIdentityPlatformIdToken(
     idToken: string,
+    rememberMe = true,
   ): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
     try {
       const res = await fetch('/v1/auth/idp', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ idToken, rememberMe }),
       })
       if (!res.ok) {
         return { ok: false, status: res.status }

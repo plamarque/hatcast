@@ -173,6 +173,13 @@ components:
           description: >
             JWT ID token : soit OIDC Google (`/auth/google`), soit ID token Identity Platform
             (`/auth/idp`, issuer `securetoken.google.com`).
+        rememberMe:
+          type: boolean
+          default: true
+          description: >
+            Si `true` (défaut, alignée case « Se souvenir de moi » cochée en V1), la session serveur
+            accepte une inactivité prolongée (ex. 30 jours). Si `false`, session courte (navigateur /
+            expiration rapide). Champ omis ⇒ `true`.
 
     AuthSessionResponse:
       type: object

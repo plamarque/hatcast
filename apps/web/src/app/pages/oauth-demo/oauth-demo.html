@@ -10,6 +10,11 @@
       En local : <code>./scripts/start-dev.sh</code>, front <strong>https://localhost:4200</strong>, origine
       enregistrée dans Google Cloud Console.
     </p>
+    <div class="oauth-demo__remember">
+      <mat-checkbox [checked]="rememberMe()" (change)="rememberMe.set($event.checked)">
+        Se souvenir de moi (environ 30&nbsp;jours)
+      </mat-checkbox>
+    </div>
     <div #googleButtonHost class="oauth-demo__gsi"></div>
 
     @if (hasEmailAuth()) {

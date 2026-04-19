@@ -1,14 +1,23 @@
+# Runtime (dev local, CI ad hoc, etc.) : une seule base — PostgreSQL (Neon recommandé).
+# Flyway applique les migrations sur cette URL ; Spring Session JDBC stocke les sessions ici.
+# Variables obligatoires : HATCAST_DATASOURCE_URL, HATCAST_DATASOURCE_USERNAME, HATCAST_DATASOURCE_PASSWORD
 spring:
   application:
     name: hatcast-api
   profiles:
     active: ${HATCAST_SPRING_PROFILE:dev}
+  datasource:
+    url: ${HATCAST_DATASOURCE_URL}
+    username: ${HATCAST_DATASOURCE_USERNAME}
+    password: ${HATCAST_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           time_zone: UTC
   flyway:
@@ -17,12 +26,7 @@ spring:
   session:
     store-type: jdbc
     jdbc:
-      initialize-schema: never
-  datasource:
-    url: jdbc:h2:mem:hatcast;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+      initialize-schema: always
 
 server:
   port: ${HATCAST_SERVER_PORT:8080}
@@ -36,6 +40,9 @@ server:
 hatcast:
   google:
     oauth-web-client-id: ${HATCAST_GOOGLE_OAUTH_WEB_CLIENT_ID:}
+  auth:
+    remember-me-seconds: ${HATCAST_AUTH_REMEMBER_ME_SECONDS:2592000}
+    no-remember-me-seconds: ${HATCAST_AUTH_NO_REMEMBER_ME_SECONDS:1800}
   cors:
     allowed-origins: ${HATCAST_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:4200,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:4200,https://localhost:5173,https://localhost:5174,https://localhost:4200}
 

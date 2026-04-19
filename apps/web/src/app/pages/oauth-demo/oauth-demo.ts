@@ -2,6 +2,7 @@ import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from 
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -10,6 +11,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'fire
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { FirebaseAuthService } from '../../core/auth/firebase-auth.service'
+import { setHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 import {
   userMessageForGoogleSignInFailure,
   userMessageForIdpApiFailure,
@@ -41,6 +43,7 @@ declare global {
   imports: [
     MatCardModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     ReactiveFormsModule,
@@ -68,6 +71,9 @@ export class OauthDemo implements AfterViewInit {
 
   /** Identity Platform : config Web présente (apiKey + authDomain + projectId). */
   protected readonly hasEmailAuth = signal(this.firebaseAuth.hasFirebaseWebConfig())
+
+  /** Parité V1 : coché par défaut (session longue côté API). */
+  protected readonly rememberMe = signal(true)
 
   ngAfterViewInit(): void {
     const clientId = environment.googleOAuthWebClientId
@@ -112,8 +118,9 @@ export class OauthDemo implements AfterViewInit {
 
   private async onGoogleCredential(idToken: string): Promise<void> {
     this.devLog.set(null)
-    const r = await this.auth.signInWithGoogleIdToken(idToken)
+    const r = await this.auth.signInWithGoogleIdToken(idToken, this.rememberMe())
     if (r.ok) {
+      setHatcastRememberMePreference(this.rememberMe())
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
       await this.router.navigate(['/accueil'])
       return
@@ -165,8 +172,9 @@ export class OauthDemo implements AfterViewInit {
 
   private async finishIdpSignIn(idToken: string): Promise<void> {
     this.devLog.set(null)
-    const r = await this.auth.signInWithIdentityPlatformIdToken(idToken)
+    const r = await this.auth.signInWithIdentityPlatformIdToken(idToken, this.rememberMe())
     if (r.ok) {
+      setHatcastRememberMePreference(this.rememberMe())
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
       await this.router.navigate(['/accueil'])
       return

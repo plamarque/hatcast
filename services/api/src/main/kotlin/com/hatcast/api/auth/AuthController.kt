@@ -34,6 +34,7 @@ class AuthController(
     private val securityContextRepository: SecurityContextRepository,
     private val idpIdTokenVerifier: ObjectProvider<IdpIdTokenVerifier>,
     private val environment: Environment,
+    private val authSessionPolicy: AuthSessionPolicy,
 ) {
     @PostMapping("/google")
     fun signInWithGoogle(
@@ -83,6 +84,7 @@ class AuthController(
         context.authentication = authentication
         SecurityContextHolder.setContext(context)
         securityContextRepository.saveContext(context, request, response)
+        authSessionPolicy.applyToSession(request.session, body.rememberMe)
 
         return ResponseEntity.ok(
             AuthSessionResponse(
@@ -158,6 +160,7 @@ class AuthController(
         context.authentication = authentication
         SecurityContextHolder.setContext(context)
         securityContextRepository.saveContext(context, request, response)
+        authSessionPolicy.applyToSession(request.session, body.rememberMe)
 
         return ResponseEntity.ok(
             AuthSessionResponse(
@@ -177,9 +180,8 @@ class AuthController(
         if (principal !is SessionUserPrincipal) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         }
-        val user =
-            userRepository.findById(principal.userId).orElse(null)
-                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        val user = userRepository.findById(principal.userId).orElse(null)
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         return ResponseEntity.ok(
             AuthSessionResponse(
                 UserSummaryDto(

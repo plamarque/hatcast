@@ -67,6 +67,29 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    fun `POST google with rememberMe false returns 200`() {
+        val jwt =
+            Jwt
+                .withTokenValue("header.payload.sig")
+                .header("alg", "RS256")
+                .claim("sub", "google-sub-test-remember-false")
+                .claim("email", "short@example.com")
+                .claim("name", "Short Session")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .issuer("https://accounts.google.com")
+                .build()
+        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
+
+        mockMvc
+            .perform(
+                post("/v1/auth/google")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"idToken":"fake-jwt","rememberMe":false}"""),
+            ).andExpect(status().isOk)
+    }
+
+    @Test
     fun `POST google returns 401 when token invalid`() {
         whenever(googleIdTokenService.validateAndParse(any())).thenThrow(
             BadJwtException("invalid"),
@@ -114,6 +137,24 @@ class AuthControllerIntegrationTest {
                 get("/v1/auth/me").cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.user.email").value("idp@example.com"))
+    }
+
+    @Test
+    fun `POST idp with rememberMe false returns 200`() {
+        whenever(idpIdTokenVerifier.verify(any())).thenReturn(
+            IdpTokenPayload(
+                uid = "firebase-uid-test-short",
+                email = "short-idp@example.com",
+                displayName = "Short",
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/auth/idp")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"idToken":"fake-idp-token","rememberMe":false}"""),
+            ).andExpect(status().isOk)
     }
 
     @Test

@@ -6,6 +6,7 @@ import { Router } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { userMessageForLogoutFailure } from '../../core/auth/auth-user-message'
+import { clearHatcastRememberMePreference } from '../../core/auth/hatcast-remember-me-storage'
 
 @Component({
   selector: 'app-home-signed-in',
@@ -19,9 +20,11 @@ export class HomeSignedIn implements OnInit {
   private readonly snack = inject(MatSnackBar)
 
   protected readonly user = signal<UserSummary | null>(null)
+  /** Évite d’afficher « connecté » avant que GET /v1/auth/me ait validé la session (cookie / serveur). */
+  protected readonly loadingSession = signal(true)
 
   async ngOnInit(): Promise<void> {
-    const r = await this.auth.getMe()
+    const r = await this.auth.ensureHatcastSession()
     if (!r.ok || !r.data) {
       this.snack.open(
         'Votre session a expiré ou vous n’êtes pas connecté.',
@@ -32,11 +35,13 @@ export class HomeSignedIn implements OnInit {
       return
     }
     this.user.set(r.data.user)
+    this.loadingSession.set(false)
   }
 
   protected async logout(): Promise<void> {
     const ok = await this.auth.logout()
     if (ok) {
+      clearHatcastRememberMePreference()
       this.snack.open('Vous êtes déconnecté.', 'OK', { duration: 4000 })
       await this.router.navigate(['/connexion'])
     } else {

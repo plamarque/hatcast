@@ -6,6 +6,8 @@ import java.util.UUID
 
 data class GoogleSignInRequest(
     @field:NotBlank @field:JsonProperty("idToken") val idToken: String,
+    /** Défaut `true` : parité V1 (case cochée par défaut) et compatibilité clients sans champ. */
+    @field:JsonProperty("rememberMe") val rememberMe: Boolean = true,
 )
 
 data class AuthSessionResponse(

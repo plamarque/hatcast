@@ -25,7 +25,7 @@ export class AuthRedirect implements OnInit {
   private readonly router = inject(Router)
 
   async ngOnInit(): Promise<void> {
-    const r = await this.auth.getMe()
+    const r = await this.auth.ensureHatcastSession()
     await this.router.navigate(r.ok ? ['/accueil'] : ['/connexion'], { replaceUrl: true })
   }
 }
