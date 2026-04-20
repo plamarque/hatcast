@@ -1,0 +1,243 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Événements / spectacles (fragment)
+  description: >
+    CRUD spectacles par saison. Liste paginée avec `scope=all` (tous, tri par `startsAt` asc)
+    ou `scope=upcoming` (non archivés, `startsAt` ≥ début du jour civil Europe/Paris).
+    Mutations : CSRF + cookie de session.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Événements
+
+paths:
+  /seasons/{seasonId}/events:
+    get:
+      tags: [Événements]
+      summary: Liste paginée des spectacles d’une saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: scope
+          in: query
+          description: upcoming = non archivés et à partir d’aujourd’hui (fuseau Paris)
+          schema:
+            type: string
+            enum: [all, upcoming]
+            default: all
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedEvents'
+        '400':
+          description: Paramètres invalides (page/size/scope)
+        '401':
+          description: Non authentifié
+        '403':
+          description: Troupe non autorisée
+    post:
+      tags: [Événements]
+      summary: Créer un spectacle
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Validation (titre/date)
+        '401':
+          description: Non authentifié
+        '403':
+          description: Troupe non autorisée
+
+  /seasons/{seasonId}/events/{eventId}:
+    patch:
+      tags: [Événements]
+      summary: Mettre à jour un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Validation (titre/date)
+        '401':
+          description: Non authentifié
+        '403':
+          description: Troupe non autorisée
+        '404':
+          description: Événement ou saison inconnue
+
+  /seasons/{seasonId}/events/{eventId}/actions/archive:
+    post:
+      tags: [Événements]
+      summary: Archiver un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Troupe non autorisée
+        '404':
+          description: Événement ou saison inconnue
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  schemas:
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        seasonId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        startsAt:
+          type: string
+          format: date-time
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateEventRequest:
+      type: object
+      required: [title, startsAt]
+      properties:
+        title:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+        location:
+          type: string
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+        location:
+          type: string
+
+    PagedEvents:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer

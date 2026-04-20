@@ -32,6 +32,11 @@ interface SeasonRepository : JpaRepository<SeasonEntity, UUID> {
         id: UUID,
     ): Boolean
 
+    fun findByTroupe_IdAndSlug(
+        troupeId: UUID,
+        slug: String,
+    ): SeasonEntity?
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(
         """

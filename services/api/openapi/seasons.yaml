@@ -102,6 +102,34 @@ paths:
         '400':
           description: Validation (titre vide ou ne permettant pas de générer un slug)
 
+  /troupes/{troupeId}/seasons/by-slug/{slug}:
+    get:
+      tags: [Saisons]
+      summary: Détail d’une saison par slug (navigation `/saison/:slug`)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+        '404':
+          description: Saison inconnue
+
   /seasons/{seasonId}:
     get:
       tags: [Saisons]
@@ -126,8 +154,11 @@ paths:
       tags: [Saisons]
       summary: Mettre à jour une saison
       description: >
-        Si le titre change, le `slug` est régénéré à partir du nouveau titre avec la même règle
-        d’unicité que à la création (en excluant la saison courante du test de collision).
+        Mise à jour partielle : une propriété **absente** du corps n’est pas modifiée.
+        Une propriété **présente avec la valeur JSON `null`** efface les champs optionnels
+        (`description`, `startDate`, `endDate`). Le titre ne peut pas être effacé : `title: null`
+        est rejeté (400). Si le titre change, le `slug` est régénéré à partir du nouveau titre
+        avec la même règle d’unicité qu’à la création (en excluant la saison courante du test de collision).
       security:
         - cookieAuth: []
       parameters:
@@ -281,14 +312,21 @@ components:
 
     UpdateSeasonRequest:
       type: object
+      description: >
+        Champs optionnels : omettre une clé pour ne pas la modifier ; inclure la clé avec `null`
+        pour effacer `description`, `startDate` ou `endDate`. Pour `title`, `null` n’est pas autorisé.
       properties:
         title:
           type: string
+          nullable: true
         description:
           type: string
+          nullable: true
         startDate:
           type: string
           format: date
+          nullable: true
         endDate:
           type: string
           format: date
+          nullable: true

@@ -1,0 +1,92 @@
+<div class="season">
+  <header class="season__header">
+    <a mat-button routerLink="/seasons" class="season__back">
+      <mat-icon>chevron_left</mat-icon>
+      Saisons
+    </a>
+    @if (season(); as se) {
+      <div class="season__titles">
+        <h1 class="season__title">{{ se.title }}</h1>
+        <p class="season__subtitle">
+          {{ se.eventCount }} événement(s) · Vue {{ showPastAndArchived() ? 'complète' : 'à venir' }}
+        </p>
+      </div>
+    }
+  </header>
+
+  @if (loadingSession()) {
+    <p class="season__status" role="status">Vérification de la session…</p>
+  } @else if (loadingSeason()) {
+    <div class="season__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (!season()) {
+    <p class="season__empty">Saison introuvable.</p>
+  } @else {
+    <div class="season__toolbar">
+      <button mat-flat-button color="primary" type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Nouveau spectacle
+      </button>
+      <mat-slide-toggle
+        [checked]="showPastAndArchived()"
+        (change)="onShowPastToggle($event.checked)"
+      >
+        Afficher passés et archivés
+      </mat-slide-toggle>
+    </div>
+
+    @if (loadingEvents()) {
+      <div class="season__spinner" role="status">
+        <mat-spinner diameter="40" />
+      </div>
+    } @else {
+      <div class="season__list">
+        @for (ev of events(); track ev.id) {
+          <mat-card appearance="outlined" class="event-card">
+            <div class="event-card__row">
+              <div class="event-card__main">
+                <h2 class="event-card__title">{{ ev.title }}</h2>
+                <p class="event-card__when">{{ formatStart(ev.startsAt) }}</p>
+                @if (ev.location) {
+                  <p class="event-card__loc">{{ ev.location }}</p>
+                }
+                @if (ev.archived) {
+                  <span class="event-card__badge">Archivé</span>
+                }
+              </div>
+              <button mat-icon-button type="button" [matMenuTriggerFor]="menu" aria-label="Actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item type="button" (click)="openEdit(ev)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Modifier</span>
+                </button>
+                @if (!ev.archived) {
+                  <button mat-menu-item type="button" (click)="confirmArchive(ev)">
+                    <mat-icon>archive</mat-icon>
+                    <span>Archiver</span>
+                  </button>
+                }
+              </mat-menu>
+            </div>
+          </mat-card>
+        } @empty {
+          <p class="season__empty">Aucun spectacle dans cette vue.</p>
+        }
+      </div>
+
+      @if (totalElements() > pageSize) {
+        <mat-paginator
+          [length]="totalElements()"
+          [pageSize]="pageSize"
+          [pageIndex]="pageIndex()"
+          [hidePageSize]="true"
+          (page)="onPage($event)"
+          showFirstLastButtons
+        />
+      }
+    }
+  }
+</div>

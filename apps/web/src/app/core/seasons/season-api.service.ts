@@ -61,6 +61,40 @@ export class SeasonApiService {
     }
   }
 
+  async getSeason(seasonId: string): Promise<{ ok: boolean; status: number; data?: SeasonResponse }> {
+    try {
+      const res = await fetch(`/v1/seasons/${encodeURIComponent(seasonId)}`, {
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as SeasonResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async getSeasonBySlug(
+    troupeId: string,
+    slug: string,
+  ): Promise<{ ok: boolean; status: number; data?: SeasonResponse }> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/seasons/by-slug/${encodeURIComponent(slug)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as SeasonResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async listSeasons(
     troupeId: string,
     page: number,

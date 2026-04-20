@@ -32,6 +32,12 @@ class SeasonController(
         @Valid @RequestBody body: CreateSeasonRequest,
     ): SeasonResponseDto = seasonService.create(troupeId, body)
 
+    @GetMapping("/troupes/{troupeId}/seasons/by-slug/{slug}")
+    fun getBySlug(
+        @PathVariable troupeId: UUID,
+        @PathVariable slug: String,
+    ): SeasonResponseDto = seasonService.getByTroupeIdAndSlug(troupeId, slug)
+
     @GetMapping("/seasons/{seasonId}")
     fun get(
         @PathVariable seasonId: UUID,

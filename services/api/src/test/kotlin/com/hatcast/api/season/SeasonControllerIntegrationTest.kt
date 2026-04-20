@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
@@ -75,13 +76,19 @@ class SeasonControllerIntegrationTest {
             .andExpect(jsonPath("$.[0].id").value(seedTroupeId.toString()))
             .andExpect(jsonPath("$.[0].slug").value("la-malice"))
 
-        // list : saison seed Flyway V4 (La Malice 2026-2027) + aucune autre
-        mockMvc
+        // list initiale : au moins la saison seed, éventuellement d'autres seeds/fixtures.
+        val initialListRes =
+            mockMvc
             .perform(
                 get("/v1/troupes/$seedTroupeId/seasons?page=0&size=10")
                     .cookie(cookie),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.totalElements").value(1))
+                .andReturn()
+        val initialTotal =
+            com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(initialListRes.response.contentAsString)
+                .get("totalElements")
+                .asInt()
 
         // create
         val createRes =
@@ -169,7 +176,7 @@ class SeasonControllerIntegrationTest {
                     .cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.totalElements").value(3))
+            .andExpect(jsonPath("$.totalElements").value(initialTotal + 2))
 
         // archive s1
         mockMvc
@@ -217,5 +224,242 @@ class SeasonControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.slug").value("saison-jumelle-2"))
+    }
+
+    @Test
+    fun `cannot activate archived season`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-season-4")
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"Saison archivee"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val seasonId =
+            UUID.fromString(
+                com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(createRes.response.contentAsString)
+                    .get("id")
+                    .asText(),
+            )
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/actions/archive")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/actions/activate")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `patch explicit null clears optional description and dates`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-null")
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Patch nullables",
+                              "description": "À effacer",
+                              "startDate": "2026-09-01",
+                              "endDate": "2027-06-30"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.description").value("À effacer"))
+                .andReturn()
+        val seasonId =
+            UUID.fromString(
+                com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(createRes.response.contentAsString)
+                    .get("id")
+                    .asText(),
+            )
+
+        val patchBody =
+            mockMvc
+                .perform(
+                    patch("/v1/seasons/$seasonId")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            { "description": null, "startDate": null }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.endDate").value("2027-06-30"))
+                .andReturn()
+                .response
+                .contentAsString
+        val root = com.fasterxml.jackson.databind.ObjectMapper().readTree(patchBody)
+        assertTrue(root.path("description").isNull)
+        assertTrue(root.path("startDate").isNull)
+    }
+
+    @Test
+    fun `patch title null is bad request`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-title-null")
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"Titre obligatoire reste"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val seasonId =
+            UUID.fromString(
+                com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(createRes.response.contentAsString)
+                    .get("id")
+                    .asText(),
+            )
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"title":null}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `patch empty body is no op`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-empty")
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Corps vide patch",
+                              "description": "inchangé",
+                              "startDate": "2026-04-01",
+                              "endDate": "2027-03-31"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val seasonId =
+            UUID.fromString(
+                com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(createRes.response.contentAsString)
+                    .get("id")
+                    .asText(),
+            )
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.title").value("Corps vide patch"))
+            .andExpect(jsonPath("$.description").value("inchangé"))
+            .andExpect(jsonPath("$.startDate").value("2026-04-01"))
+            .andExpect(jsonPath("$.endDate").value("2027-03-31"))
+    }
+
+    @Test
+    fun `patch endDate null only clears end date`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-end-null")
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Fin seulement",
+                              "startDate": "2026-01-10",
+                              "endDate": "2027-01-10"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val seasonId =
+            UUID.fromString(
+                com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(createRes.response.contentAsString)
+                    .get("id")
+                    .asText(),
+            )
+
+        val patchJson =
+            mockMvc
+                .perform(
+                    patch("/v1/seasons/$seasonId")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"endDate":null}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.startDate").value("2026-01-10"))
+                .andReturn()
+                .response
+                .contentAsString
+        val root = com.fasterxml.jackson.databind.ObjectMapper().readTree(patchJson)
+        assertTrue(root.path("endDate").isNull)
+    }
+
+    @Test
+    fun `patch wrong json type for description is bad request`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-type")
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/troupes/$seedTroupeId/seasons")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"title":"Type JSON"}""")
+                        .with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val seasonId =
+            UUID.fromString(
+                com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(createRes.response.contentAsString)
+                    .get("id")
+                    .asText(),
+            )
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"description":1}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
     }
 }

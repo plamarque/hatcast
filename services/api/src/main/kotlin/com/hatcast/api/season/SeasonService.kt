@@ -95,6 +95,18 @@ class SeasonService(
         return SeasonResponseDto.from(s)
     }
 
+    @Transactional(readOnly = true)
+    fun getByTroupeIdAndSlug(
+        troupeId: UUID,
+        slug: String,
+    ): SeasonResponseDto {
+        troupeAccess.requireCanManageTroupe(troupeId)
+        val s =
+            seasonRepository.findByTroupe_IdAndSlug(troupeId, slug)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue")
+        return SeasonResponseDto.from(s)
+    }
+
     @Transactional
     fun update(
         seasonId: UUID,
@@ -105,33 +117,56 @@ class SeasonService(
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
         troupeAccess.requireCanManageTroupe(s.troupe.id)
-        val newTitle = body.title?.trim()?.takeIf { it.isNotEmpty() }
-        if (newTitle != null && newTitle != s.title) {
-            s.title = newTitle
-            val base = SeasonSlugGenerator.slugify(newTitle)
-            if (base.isEmpty()) {
+        if (body.title.isPresent) {
+            val rawTitle = body.title.get()
+            if (rawTitle == null) {
                 throw ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Le titre ne permet pas de générer un identifiant URL.",
+                    "Le titre ne peut pas être effacé.",
                 )
             }
-            s.slug =
-                SeasonSlugGenerator.allocateUniqueSlug(
-                    s.troupe.id,
-                    base,
-                    seasonRepository,
-                    s.id,
-                )
+            val newTitle = rawTitle.trim()
+            if (newTitle.isEmpty()) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le titre ne peut pas être vide.")
+            }
+            if (newTitle.length > 255) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "title trop long (max 255).")
+            }
+            if (newTitle != s.title) {
+                s.title = newTitle
+                val base = SeasonSlugGenerator.slugify(newTitle)
+                if (base.isEmpty()) {
+                    throw ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Le titre ne permet pas de générer un identifiant URL.",
+                    )
+                }
+                s.slug =
+                    SeasonSlugGenerator.allocateUniqueSlug(
+                        s.troupe.id,
+                        base,
+                        seasonRepository,
+                        s.id,
+                    )
+            }
         }
-        if (body.description != null) {
-            s.description = body.description.trim().takeIf { it.isNotEmpty() }
+        if (body.description.isPresent) {
+            val raw = body.description.get()
+            if (raw == null) {
+                s.description = null
+            } else {
+                if (raw.length > 4000) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "description trop longue (max 4000).")
+                }
+                s.description = raw.trim().takeIf { it.isNotEmpty() }
+            }
         }
-        if (body.startDate != null || body.endDate != null) {
-            val start = body.startDate ?: s.startDate
-            val end = body.endDate ?: s.endDate
+        if (body.startDate.isPresent || body.endDate.isPresent) {
+            val start = if (body.startDate.isPresent) body.startDate.get() else s.startDate
+            val end = if (body.endDate.isPresent) body.endDate.get() else s.endDate
             validateDateRange(start, end)
-            if (body.startDate != null) s.startDate = body.startDate
-            if (body.endDate != null) s.endDate = body.endDate
+            if (body.startDate.isPresent) s.startDate = body.startDate.get()
+            if (body.endDate.isPresent) s.endDate = body.endDate.get()
         }
         s.updatedAt = Instant.now()
         return SeasonResponseDto.from(seasonRepository.save(s))
@@ -157,9 +192,14 @@ class SeasonService(
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
         troupeAccess.requireCanManageTroupe(s.troupe.id)
+        if (s.archived) {
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Impossible d'activer une saison archivée. Désarchivez-la d'abord.",
+            )
+        }
         val now = Instant.now()
         seasonRepository.deactivateAllActiveInTroupe(s.troupe.id, now)
-        s.archived = false
         s.isActive = true
         s.updatedAt = now
         return SeasonResponseDto.from(seasonRepository.save(s))

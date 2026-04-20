@@ -1,9 +1,11 @@
 package com.hatcast.api.season.dto
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.season.SeasonEntity
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import org.openapitools.jackson.nullable.JsonNullable
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -62,12 +64,14 @@ data class CreateSeasonRequest(
     val endDate: LocalDate? = null,
 )
 
+@JsonDeserialize(using = UpdateSeasonRequestDeserializer::class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class UpdateSeasonRequest(
-    @field:Size(max = 255)
-    val title: String? = null,
-    @field:Size(max = 4000)
-    val description: String? = null,
-    val startDate: LocalDate? = null,
-    val endDate: LocalDate? = null,
+    /** Absent = inchangé ; présent avec une chaîne = mise à jour ; présent avec `null` = interdit (le titre est obligatoire). */
+    val title: JsonNullable<String> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = effacer la description. */
+    val description: JsonNullable<String> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = effacer la date. */
+    val startDate: JsonNullable<LocalDate> = JsonNullable.undefined(),
+    val endDate: JsonNullable<LocalDate> = JsonNullable.undefined(),
 )

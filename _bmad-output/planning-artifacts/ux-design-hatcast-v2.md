@@ -85,11 +85,25 @@ Let the user see **all seasons they can access**, choose one to enter, or **crea
 
 ### Purpose
 
-After the user **opens a season** (from `/seasons`), show a **time-ordered** list of **spectacles** (events) for that season, **grouped by month**, in a **calendar-style** layout. The user scans upcoming (and past) shows, sees **composition status** and **their own availability/role** at a glance, and **opens detail** by tapping a card. **Filters** narrow the view by **people** and/or **events**; a control switches to **other season views** — notably [**Historique**](#screen-season--historique-participation-stats) (stats + month-by-month history), available to **all** users alongside **Agenda**.
+After the user **opens a season** (from `/seasons`), show a **time-ordered** list of **spectacles** (events) for that season, **grouped by month**, in a **calendar-style** layout. On the **Agenda** view specifically, the list is **upcoming-only** (see **Agenda content scope** below); **past** shows belong to [**Historique**](#screen-season--historique-participation-stats), not the Agenda list. The user scans upcoming shows, sees **composition status** and **their own availability/role** at a glance, and **opens detail** by tapping a card. **Filters** narrow the view by **people** and/or **events**; a control switches to **other season views** — notably **Historique** (stats + month-by-month history), available to **all** users alongside **Agenda**.
 
 ### Reference capture
 
 - **File:** [`ux-references/season-calendar-v1.png`](ux-references/season-calendar-v1.png) (V1 screenshot, example season **“Malice 2025-2026”**).
+- **V2 reminder (Agenda, upcoming list):** [`ux-references/season-agenda-v2-upcoming-malice-2026.png`](ux-references/season-agenda-v2-upcoming-malice-2026.png) — month grouping, cards, badges composition, avatars (align implementation with this mood).
+
+### Agenda content scope (product rule)
+
+**Vue Agenda — quoi afficher**
+
+- **Uniquement** des spectacles **non archivés** (`archived` / équivalent métier = faux pour l’événement).
+- **Uniquement** des spectacles dont la **date/heure de début** n’est **pas dans le passé** par rapport au **moment présent**, **en incluant toute la journée « aujourd’hui »** : un spectacle prévu **le jour courant** doit apparaître (tant qu’il n’est pas archivé), même si l’heure est déjà passée ou à venir dans la journée — la borne est le **jour civil**, pas l’instant exact, sauf décision produit contraire documentée.
+- **Implémentation :** appliquer la même règle **côté API** (query param dédié, ex. `scope=upcoming`, ou endpoint agenda) **et** côté UI pour éviter les divergences ; trancher explicitement le **fuseau** utilisé pour « aujourd’hui » (recommandation : fuseau **utilisateur** ou **Europe/Paris** pour HatCast — à figer dans le code / config et les tests).
+
+**Ce qui est exclu de l’Agenda**
+
+- Spectacles **archivés** (visibilité admin ailleurs si besoin).
+- Spectacles **passés** (jour civil strictement avant aujourd’hui) → **Historique** ou vues dédiées, pas la liste Agenda.
 
 ### Global chrome (season header)
 
@@ -149,6 +163,7 @@ Each row is a **single primary click** → **event detail** (full screen or rout
 - [ ] Each card shows **date**, **title**, **composition status**, and **current user’s** dispo/role summary.
 - [ ] Card click opens **event detail**; filters and view switcher behave without losing season scope.
 - [ ] **Historique** is reachable from the **view switcher** without ambiguity ([spec](#screen-season--historique-participation-stats)).
+- [ ] **Agenda** liste uniquement spectacles **non archivés** et **à partir d’aujourd’hui** (jour civil inclus), conformément à **Agenda content scope** ci-dessus.
 
 ---
 
