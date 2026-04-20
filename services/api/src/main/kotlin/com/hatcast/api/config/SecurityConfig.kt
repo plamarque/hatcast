@@ -10,7 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
-import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
@@ -23,7 +23,9 @@ class SecurityConfig(
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        val requestHandler = XorCsrfTokenRequestAttributeHandler()
+        // SPA (fetch + cookie lisible) : même valeur cookie → en-tête X-XSRF-TOKEN.
+        // XorCsrfTokenRequestAttributeHandler (défaut SS6) attend un format incompatible avec ce pattern.
+        val requestHandler = CsrfTokenRequestAttributeHandler()
         requestHandler.setCsrfRequestAttributeName("_csrf")
 
         http
@@ -44,6 +46,11 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/logout").authenticated()
+                    .requestMatchers(
+                        "/v1/troupes",
+                        "/v1/troupes/**",
+                        "/v1/seasons/**",
+                    ).authenticated()
                     .anyRequest().denyAll()
             }.exceptionHandling { ex ->
                 ex.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

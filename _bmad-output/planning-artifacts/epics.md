@@ -476,6 +476,19 @@ afin d’analyser la participation sur la saison.
 
 ---
 
+#### Story 3.7 : Suppression de saisons (admin troupe ou admin plateforme)
+
+En tant qu’**administrateur de troupe** ou **administrateur de la plateforme**,  
+je veux **supprimer définitivement** une saison (avec confirmation et garde-fous),  
+afin de nettoyer les erreurs de saisie ou les jeux de test sans n’en rester qu’à l’archivage.
+
+**Acceptance Criteria**
+
+- **Given** un utilisateur autorisé (admin de la troupe concernée **ou** admin plateforme), **when** il confirme la suppression après dialogue explicite, **then** la saison est retirée côté serveur et l’UI reflète l’état ; les non autorisés reçoivent un refus cohérent (NFR-S2).
+- **Couverture :** extension de FR11 ; détail des prérequis métier (données liées, saison active, audit) dans [_bmad-output/implementation-artifacts/requirements-season-delete.md](../implementation-artifacts/requirements-season-delete.md).
+
+---
+
 ### Epic 4 — Découverte publique (annuaire et pages visiteur)
 
 #### Story 4.1 : Annuaire public des troupes

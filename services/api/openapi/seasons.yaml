@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Troupes et saisons (fragment)
+  description: >
+    Contrat pour la gestion des troupes (seed) et des saisons V2 (Postgres, session cookie).
+    Pagination liste : paramètres `page` (0-based) et `size` (défaut côté client 20, max 100 côté API).
+    Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
+    Ce fragment pourra être fusionné dans un OpenAPI global `/v1`.
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Troupes
+  - name: Saisons
+
+paths:
+  /troupes:
+    get:
+      tags: [Troupes]
+      summary: Liste des troupes visibles pour l’admin (seed pour l’instant)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TroupeListItem'
+
+  /troupes/{troupeId}/seasons:
+    get:
+      tags: [Saisons]
+      summary: Liste paginée des saisons d’une troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedSeasons'
+        '403':
+          description: Troupe non autorisée pour ce compte (règle seed / epic-2)
+
+    post:
+      tags: [Saisons]
+      summary: Créer une saison
+      description: >
+        Le champ `slug` n’est pas fourni par le client : il est dérivé du titre (normalisation Unicode,
+        minuscules, tirets) puis rendu unique dans la troupe (`slug`, `slug-2`, `slug-3`, … si besoin).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSeasonRequest'
+      responses:
+        '200':
+          description: Saison créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+        '400':
+          description: Validation (titre vide ou ne permettant pas de générer un slug)
+
+  /seasons/{seasonId}:
+    get:
+      tags: [Saisons]
+      summary: Détail d’une saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+    patch:
+      tags: [Saisons]
+      summary: Mettre à jour une saison
+      description: >
+        Si le titre change, le `slug` est régénéré à partir du nouveau titre avec la même règle
+        d’unicité que à la création (en excluant la saison courante du test de collision).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSeasonRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+  /seasons/{seasonId}/actions/archive:
+    post:
+      tags: [Saisons]
+      summary: Archiver une saison (inactive)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+  /seasons/{seasonId}/actions/activate:
+    post:
+      tags: [Saisons]
+      summary: Activer une saison (désactive les autres actives de la même troupe)
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Season'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  schemas:
+    TroupeListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+
+    Season:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        troupeId:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        archived:
+          type: boolean
+        active:
+          type: boolean
+        eventCount:
+          type: integer
+        participantCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PagedSeasons:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Season'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    CreateSeasonRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+
+    UpdateSeasonRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date

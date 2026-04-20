@@ -17,7 +17,7 @@ This document captures **layout, navigation, and visual intent** from HatCast **
 
 ---
 
-## Screen: Seasons list (`/seasons`)
+## Screen: Seasons list (`/seasons`) {#screen-seasons-list-seasons}
 
 ### Purpose
 

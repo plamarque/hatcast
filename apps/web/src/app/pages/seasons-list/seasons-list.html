@@ -1,0 +1,98 @@
+<div class="seasons">
+  <header class="seasons__header">
+    <a mat-button routerLink="/accueil" class="seasons__back">
+      <mat-icon>chevron_left</mat-icon>
+      Accueil
+    </a>
+    <div class="seasons__titles">
+      <h1 class="seasons__title">Saisons</h1>
+      <p class="seasons__subtitle">Rejoins une saison existante ou crée la tienne</p>
+    </div>
+  </header>
+
+  @if (loadingSession()) {
+    <p class="seasons__status" role="status">Vérification de la session…</p>
+  } @else {
+    <div class="seasons__cta">
+      <button mat-flat-button color="primary" type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Nouvelle saison
+      </button>
+    </div>
+
+    @if (loadingList()) {
+      <div class="seasons__spinner" role="status">
+        <mat-spinner diameter="40" />
+      </div>
+    } @else {
+      <div class="seasons__grid">
+        @for (s of seasons(); track s.id) {
+          <mat-card class="season-card" appearance="outlined">
+            <div class="season-card__toolbar">
+              <button
+                type="button"
+                matIconButton
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
+                [attr.aria-label]="'Actions pour ' + s.title"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button type="button" mat-menu-item (click)="openEdit(s)">Modifier</button>
+                @if (!s.archived) {
+                  <button type="button" mat-menu-item (click)="confirmArchive(s)">Archiver</button>
+                }
+                @if (!s.active && !s.archived) {
+                  <button type="button" mat-menu-item (click)="confirmActivate(s)">Activer</button>
+                }
+              </mat-menu>
+            </div>
+            <button
+              type="button"
+              class="season-card__body"
+              (click)="openCard(s)"
+              [attr.aria-label]="'Ouvrir ' + s.title"
+            >
+              <div class="season-card__logo" aria-hidden="true">
+                <mat-icon class="season-card__logo-icon">theater_comedy</mat-icon>
+              </div>
+              <h2 class="season-card__name">{{ s.title }}</h2>
+              @if (s.description) {
+                <p class="season-card__desc">{{ s.description }}</p>
+              }
+              <div class="season-card__meta">
+                <span [class.season-card__badge]="true" [class.season-card__badge--active]="s.active">
+                  @if (s.archived) {
+                    Archivée
+                  } @else if (s.active) {
+                    Saison active
+                  } @else {
+                    Inactive
+                  }
+                </span>
+              </div>
+              <div class="season-card__stats">
+                <span>Événements {{ s.eventCount }}</span>
+                <span>Participants {{ s.participantCount }}</span>
+              </div>
+            </button>
+          </mat-card>
+        } @empty {
+          <p class="seasons__empty">Aucune saison pour l’instant. Crée-en une avec le bouton ci-dessus.</p>
+        }
+      </div>
+
+      @if (totalElements() > pageSize) {
+        <mat-paginator
+          [length]="totalElements()"
+          [pageSize]="pageSize"
+          [pageIndex]="pageIndex()"
+          [hidePageSize]="true"
+          (page)="onPage($event)"
+          showFirstLastButtons
+        />
+      }
+    }
+  }
+</div>

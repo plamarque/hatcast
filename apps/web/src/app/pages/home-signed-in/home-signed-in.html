@@ -31,6 +31,9 @@
       <p class="home__loading" role="status">Chargement de votre profil…</p>
     } @else if (user(); as u) {
       <p class="home__line">
+        <a mat-stroked-button routerLink="/seasons">Saisons</a>
+      </p>
+      <p class="home__line">
         <span class="home__label">Identité</span>
         <strong>{{ u.displayName || u.email || 'Compte Google' }}</strong>
       </p>
