@@ -101,6 +101,23 @@ export const ROLE_DISPLAY_ORDER = [
   ROLES.STAGE_MANAGER
 ]
 
+/** Abréviations pour l'export CSV des dispos (distinctes des libellés de sélection). */
+export const ROLE_EXPORT_ABBREVIATIONS = {
+  [ROLES.PLAYER]: 'J',
+  [ROLES.MC]: 'MC',
+  [ROLES.DJ]: 'DJ',
+  [ROLES.REFEREE]: 'A',
+  [ROLES.ASSISTANT_REFEREE]: 'AA',
+  [ROLES.COACH]: 'C',
+  [ROLES.VOLUNTEER]: 'B',
+  [ROLES.LIGHTING]: 'L',
+  [ROLES.STAGE_MANAGER]: 'R',
+}
+
+export function getRoleExportAbbrev(role) {
+  return ROLE_EXPORT_ABBREVIATIONS[role] ?? role
+}
+
 // Ordre de priorité pour les tirages (rôles critiques en premier)
 export const ROLE_PRIORITY_ORDER = [
   ROLES.REFEREE,         // Priorité 1 : Arbitre - critique pour les matchs

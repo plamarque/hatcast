@@ -707,7 +707,7 @@ import PlayerAvatar from './PlayerAvatar.vue'
 import SelectionCell from './SelectionCell.vue'
 import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
-import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES, getRoleLabel } from '../services/storage.js'
+import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES, getRoleLabel, ROLE_DISPLAY_ORDER, getRoleExportAbbrev } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import { loadPlayers, loadAvailability } from '../services/storage.js'
 import { calculateAllRoleChances } from '../services/chancesService.js'
@@ -1268,6 +1268,147 @@ function getStatTooltip(selections, dispos, declines) {
   return `${selections} sélection${selections !== 1 ? 's' : ''} sur ${dispos} dispos (dont ${declines} désistement${declines !== 1 ? 's' : ''})`
 }
 
+function formatStatExportValue(selections, dispos, declines) {
+  const sel = selections || 0
+  const d = dispos || 0
+  if (sel === 0 && d === 0) return ''
+  const pct = getStatPercent(sel, d, declines || 0)
+  if (d > 0) {
+    return pct !== null ? `${sel}/${d} (${pct}%)` : `${sel}/${d}`
+  }
+  return sel > 0 ? String(sel) : ''
+}
+
+function formatStatColumnExport(playerName, columnKey, selections) {
+  const dd = playersDisposDeclines.value.get(playerName)?.[columnKey]
+  return formatStatExportValue(selections ?? 0, dd?.dispos ?? 0, dd?.declines ?? 0)
+}
+
+function getAvailableRoleAbbreviationsForExport(player, event) {
+  if (!props.isAvailableForRole) return []
+  const eventRoles = event.roles || (event.playerCount > 0 ? { player: event.playerCount || 6 } : {})
+  const abbrevs = []
+  for (const role of ROLE_DISPLAY_ORDER) {
+    const count = eventRoles[role] || 0
+    if (count > 0 && props.isAvailableForRole(player.name, role, event.id)) {
+      abbrevs.push(getRoleExportAbbrev(role))
+    }
+  }
+  return abbrevs
+}
+
+function formatDispoRolesExport(roles) {
+  if (!roles?.length) return null
+  const sorted = ROLE_DISPLAY_ORDER
+    .filter(r => roles.includes(r))
+    .map(r => getRoleExportAbbrev(r))
+  return sorted.length ? `Dispo (${sorted.join(', ')})` : null
+}
+
+/** Rôles pour lesquels le joueur figure dans cast.declined. */
+function getPlayerDeclinedRolesForExport(playerId, eventId) {
+  const cast = props.casts[eventId]
+  if (!cast?.declined) return []
+  const roles = []
+  for (const [role, playerIds] of Object.entries(cast.declined)) {
+    if (Array.isArray(playerIds) && playerIds.includes(playerId)) {
+      roles.push(role)
+    }
+  }
+  return ROLE_DISPLAY_ORDER.filter(r => roles.includes(r))
+}
+
+function formatDeclinedExportValue(playerId, eventId) {
+  const roles = getPlayerDeclinedRolesForExport(playerId, eventId)
+  if (roles.length) {
+    const abbrevs = roles.map(r => getRoleExportAbbrev(r))
+    return `Décliné (${abbrevs.join(', ')})`
+  }
+  const cast = props.casts[eventId]
+  if (cast?.playerStatuses?.[playerId] === 'declined') {
+    return 'Décliné'
+  }
+  return null
+}
+
+/** Rôles déclarés en dispo (données brutes, sans masquage UI sélection). */
+function getRawAvailabilityRolesForExport(playerName, eventId) {
+  const raw = props.availability?.[playerName]?.[eventId]
+  if (raw == null) return []
+  if (typeof raw === 'object' && raw.available !== undefined) {
+    if (!raw.available) return []
+    return Array.isArray(raw.roles) ? raw.roles : []
+  }
+  if (raw === true) return ['player']
+  return []
+}
+
+/** Dispo export : indépendant des tirets affichés dans SelectionCell (passé / équipe confirmée). */
+function resolveEventDispoExportValue(player, event) {
+  const playerId = player.id
+  const eventId = event.id
+  const gender = player.gender || 'non-specified'
+
+  const rolesAndChances = getPlayerRolesAndChances(playerId, eventId, gender)
+  if (rolesAndChances?.length) {
+    const dispo = formatDispoRolesExport(rolesAndChances.map(rc => rc.role))
+    if (dispo) return dispo
+  }
+
+  const rawRoles = getRawAvailabilityRolesForExport(player.name, eventId)
+  if (rawRoles.length) {
+    const dispo = formatDispoRolesExport(rawRoles)
+    if (dispo) return dispo
+  }
+
+  const availabilityData = props.getAvailabilityData(player.name, eventId)
+  if (
+    availabilityData?.available &&
+    availabilityData?.roles?.length &&
+    !availabilityData.isSelectionDisplay
+  ) {
+    const dispo = formatDispoRolesExport(availabilityData.roles)
+    if (dispo) return dispo
+  }
+
+  const abbrevs = getAvailableRoleAbbreviationsForExport(player, event)
+  if (abbrevs.length > 0) {
+    return `Dispo (${abbrevs.join(', ')})`
+  }
+
+  return null
+}
+
+function getEventCellExportValue(player, event) {
+  const playerId = player.id
+  const eventId = event.id
+  const gender = player.gender || 'non-specified'
+  const isSelected = getPlayerRoleInEvent(playerId, eventId) !== null
+  const isSelectionConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer(eventId)
+  const selectionStatus = getPlayerSelectionStatusFromCast(playerId, eventId)
+
+  const declinedExport = formatDeclinedExportValue(playerId, eventId)
+  if (declinedExport) {
+    return declinedExport
+  }
+
+  if (isSelected && (isSelectionConfirmedByOrganizer || selectionStatus)) {
+    const roleLabel = getPlayerRoleLabelInEvent(playerId, eventId, gender)
+    if (roleLabel) return roleLabel
+    if (selectionStatus) return 'Sélectionné'
+  }
+
+  const dispoExport = resolveEventDispoExportValue(player, event)
+  if (dispoExport) return dispoExport
+
+  const availabilityData = props.getAvailabilityData(player.name, eventId)
+  if (availabilityData?.available === false) {
+    return 'Non dispo'
+  }
+
+  return '-'
+}
+
 // Fonction pour obtenir le rôle d'un joueur dans un événement spécifique
 function getPlayerRoleInEvent(playerId, eventId) {
   const eventCasts = props.casts[eventId] || {}
@@ -1665,33 +1806,35 @@ function exportToExcel() {
     props.displayedPlayers.forEach(player => {
       const stats = playersRoleStats.value.get(player.name) || getDefaultStats()
       const monthStats = playersMonthStats.value.get(player.name)
-      const monthValues = groupedEventsByMonth.value.map(m =>
-        (monthStats?.get(m.monthKey) || {}).participations ?? ''
-      )
-      const eventValues = flattenedEventsForExport.value.map(event => {
-        const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
-        return roleLabel || ''
+      const monthValues = groupedEventsByMonth.value.map(m => {
+        const ms = monthStats?.get(m.monthKey) || {}
+        return formatStatExportValue(ms.participations ?? 0, ms.dispos ?? 0, ms.declines ?? 0)
       })
+      const eventValues = flattenedEventsForExport.value.map(event =>
+        getEventCellExportValue(player, event)
+      )
+      const totalDecorumSelections =
+        stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach
       const playerRow = [
         player.name,
-        stats.jeuMatch,
-        stats.jeuCab,
-        stats.jeuLong,
-        stats.jeuAutre,
-        stats.totalJeu,
-        stats.mc,
-        stats.dj,
-        stats.referee,
-        stats.assistantReferee,
-        stats.coach,
-        stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach,
-        stats.deplacementJeu,
-        stats.deplacementDecorum,
-        stats.totalDeplacement,
-        stats.stageManager,
-        stats.lighting,
-        stats.volunteer,
-        stats.totalBenevole,
+        formatStatColumnExport(player.name, 'jeuMatch', stats.jeuMatch),
+        formatStatColumnExport(player.name, 'jeuCab', stats.jeuCab),
+        formatStatColumnExport(player.name, 'jeuLong', stats.jeuLong),
+        formatStatColumnExport(player.name, 'jeuAutre', stats.jeuAutre),
+        formatStatColumnExport(player.name, 'totalJeu', stats.totalJeu),
+        formatStatColumnExport(player.name, 'mc', stats.mc),
+        formatStatColumnExport(player.name, 'dj', stats.dj),
+        formatStatColumnExport(player.name, 'referee', stats.referee),
+        formatStatColumnExport(player.name, 'assistantReferee', stats.assistantReferee),
+        formatStatColumnExport(player.name, 'coach', stats.coach),
+        formatStatColumnExport(player.name, 'totalDecorum', totalDecorumSelections),
+        formatStatColumnExport(player.name, 'deplacementJeu', stats.deplacementJeu),
+        formatStatColumnExport(player.name, 'deplacementDecorum', stats.deplacementDecorum),
+        formatStatColumnExport(player.name, 'totalDeplacement', stats.totalDeplacement),
+        formatStatColumnExport(player.name, 'stageManager', stats.stageManager),
+        formatStatColumnExport(player.name, 'lighting', stats.lighting),
+        formatStatColumnExport(player.name, 'volunteer', stats.volunteer),
+        formatStatColumnExport(player.name, 'totalBenevole', stats.totalBenevole),
         ...monthValues,
         ...eventValues
       ]
