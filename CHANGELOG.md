@@ -1,12 +1,16 @@
-## [0.47.2] - 2026-04-08
+## [0.48.0] - 2026-05-22
 
 ### 📝 Other Changes
 
-- fix(events): Use Paris EOD for past visibility
+- fix(scripts): Force-delete staging backup after rebase
+- fix(scripts): Avoid popping unrelated stash in dry-run
+- feat(casts): Display sel/dispo ratio in stats cells
+- feat(casts): Enrich CSV export with dispos
 
 
 # Changelog
 
+## [0.48.0] - 2026-05-22
 ## [0.47.2] - 2026-04-08
 ## [0.47.1] - 2026-03-03
 ## [0.47.0] - 2026-02-21

@@ -166,10 +166,13 @@ cleanup_dry_run_sandbox() {
         # Return to original branch
         git checkout staging
         
-        # Restore stashed changes if any
+        # Restore only our dry-run stash (never pop unrelated stashes)
         if [ "$stashed_before_switch" = true ]; then
             echo "   └─ Restoring stashed changes after dry-run..."
-            git stash pop 2>/dev/null || true
+            dry_run_stash=$(git stash list | grep 'dry-run-temp-stash-2' | head -1 | cut -d: -f1)
+            if [ -n "$dry_run_stash" ]; then
+                git stash pop "$dry_run_stash" 2>/dev/null || true
+            fi
         fi
         
         # Delete sandbox branches
@@ -855,11 +858,17 @@ if [ "$CURRENT_BRANCH" != "staging" ]; then
     exit 1
 fi
 
-# Verify staging is clean (only in production mode)
-if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain)" ]; then
+# Verify staging is clean (only in production mode; ignore untracked files)
+if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     echo "❌ Error: Staging branch has uncommitted changes"
     git status
     exit 1
+fi
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    echo "⚠️  WARNING: Tracked uncommitted changes detected — stash or commit them before release"
+elif [ -n "$(git status --porcelain)" ]; then
+    echo "ℹ️  Untracked files present (ignored for release):"
+    git status --porcelain | grep '^??' || true
 fi
 
 # Setup working directory (change to sandbox in dry-run mode)
@@ -914,13 +923,17 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
                 # In dry-run, rebase the sandbox staging on sandbox main
                 git checkout "$DRY_STAGING"
                 
-                # Stash any uncommitted changes for dry-run
-                if [ -n "$(git status --porcelain)" ]; then
+                # Stash tracked changes only (untracked files must not trigger stash pop)
+                stashed=false
+                if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
                     echo "   └─ Stashing uncommitted changes for dry-run rebase..."
-                    git stash push -m "dry-run-temp-stash"
-                    stashed=true
-                else
-                    stashed=false
+                    stash_count_before=$(git stash list | wc -l | tr -d ' ')
+                    if git stash push -m "dry-run-temp-stash" --include-untracked; then
+                        stash_count_after=$(git stash list | wc -l | tr -d ' ')
+                        if [ "$stash_count_after" -gt "$stash_count_before" ]; then
+                            stashed=true
+                        fi
+                    fi
                 fi
                 
                 git rebase "$DRY_MAIN"
@@ -933,10 +946,10 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
                     exit 1
                 fi
                 
-                # Restore stashed changes if any
+                # Restore only the stash we just created (never pop unrelated stashes)
                 if [ "$stashed" = true ]; then
                     echo "   └─ Restoring stashed changes after dry-run rebase..."
-                    git stash pop
+                    git stash pop "$(git stash list | grep 'dry-run-temp-stash' | head -1 | cut -d: -f1)"
                 fi
                 
                 echo "✅ DRY-RUN: Rebase would succeed!"
@@ -963,7 +976,7 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
                 
                 echo "✅ Rebase successful!"
                 echo "🗑️  Cleaning up backup..."
-                git branch -d "$BACKUP_BRANCH"
+                git branch -D "$BACKUP_BRANCH" 2>/dev/null || true
             fi
             ;;
         2)
@@ -1117,12 +1130,15 @@ fi
 
 # Merge to main
 if [ "$DRY_RUN" = true ]; then
-    # Stash any uncommitted changes before switching branches
-    if [ -n "$(git status --porcelain)" ]; then
+    # Stash tracked changes before switching branches (ignore untracked V2 files)
+    stashed_before_switch=false
+    if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+        stash_count_before=$(git stash list | wc -l | tr -d ' ')
         execute_cmd "git stash push -m 'dry-run-temp-stash-2'" "Stash changes before branch switch"
-        stashed_before_switch=true
-    else
-        stashed_before_switch=false
+        stash_count_after=$(git stash list | wc -l | tr -d ' ')
+        if [ "$stash_count_after" -gt "$stash_count_before" ]; then
+            stashed_before_switch=true
+        fi
     fi
     
     # In dry-run mode, we're already in the sandbox, just simulate the merge
