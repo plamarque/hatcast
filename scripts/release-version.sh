@@ -976,7 +976,7 @@ if [ "$COMMITS_MAIN_NOT_IN_STAGING" -gt 0 ]; then
                 
                 echo "✅ Rebase successful!"
                 echo "🗑️  Cleaning up backup..."
-                git branch -d "$BACKUP_BRANCH"
+                git branch -D "$BACKUP_BRANCH" 2>/dev/null || true
             fi
             ;;
         2)
