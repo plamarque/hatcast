@@ -3,6 +3,9 @@ package com.hatcast.api.season
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.support.TestAuthSupport
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -40,10 +43,26 @@ class SeasonControllerIntegrationTest {
     @MockBean
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
+    @Autowired
+    private lateinit var membershipRepository: TroupeMembershipRepository
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
+
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
 
-    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie =
-        TestAuthSupport.memberSessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, googleSub)
+    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie {
+        val cookie = TestAuthSupport.memberSessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, googleSub)
+        promoteSeedMemberToAdmin(googleSub)
+        return cookie
+    }
+
+    private fun promoteSeedMemberToAdmin(googleSub: String) {
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing test user $googleSub")
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id) ?: error("Missing seed membership")
+        membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
+        membershipRepository.save(membership)
+    }
 
     @Test
     fun ` seasons flow list create activate archive pagination`() {

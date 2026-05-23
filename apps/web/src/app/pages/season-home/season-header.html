@@ -9,15 +9,27 @@
     <h1 class="season-header__title">{{ seasonTitle() }}</h1>
   </div>
   <div class="season-header__right">
-    <button
-      mat-icon-button
-      type="button"
-      matTooltip="Réglages saison (bientôt disponible)"
-      aria-label="Réglages saison"
-      (click)="onSettings()"
-    >
-      <mat-icon>settings</mat-icon>
-    </button>
+    @if (canManageSettings()) {
+      <button
+        mat-icon-button
+        type="button"
+        matTooltip="Réglages saison"
+        aria-label="Réglages saison"
+        [matMenuTriggerFor]="settingsMenu"
+      >
+        <mat-icon>settings</mat-icon>
+      </button>
+      <mat-menu #settingsMenu="matMenu">
+        <button type="button" mat-menu-item (click)="onMembers()">
+          <mat-icon>group</mat-icon>
+          <span>Membres</span>
+        </button>
+        <button type="button" mat-menu-item (click)="onOrganizers()">
+          <mat-icon>admin_panel_settings</mat-icon>
+          <span>Organisateur·ices</span>
+        </button>
+      </mat-menu>
+    }
     @if (user(); as u) {
       <button
         type="button"

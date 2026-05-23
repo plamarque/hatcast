@@ -8,6 +8,7 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipRepository
 import com.hatcast.api.troupe.TroupeMembershipStatus
@@ -113,6 +114,23 @@ class OrganizerControllerIntegrationTest {
         )
     }
 
+    private fun signInAdmin(
+        googleSub: String,
+        email: String,
+        displayName: String,
+    ): SessionFixture =
+        signIn(googleSub, email, displayName).also { fixture ->
+            promoteSeedMemberToAdmin(fixture)
+        }
+
+    private fun promoteSeedMemberToAdmin(fixture: SessionFixture) {
+        val membership =
+            troupeMembershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, UUID.fromString(fixture.userId))
+                ?: error("Missing seed membership")
+        membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
+        troupeMembershipRepository.save(membership)
+    }
+
     private fun createSeason(cookie: Cookie): UUID {
         val result =
             mockMvc
@@ -186,7 +204,7 @@ class OrganizerControllerIntegrationTest {
 
     @Test
     fun `season organizer can be added listed idempotently and revoked`() {
-        val manager = signIn("org-manager-1", "manager-1@example.com", "Manager One")
+        val manager = signInAdmin("org-manager-1", "manager-1@example.com", "Manager One")
         val organizer = signIn("org-season-1", "season-organizer@example.com", "Season Organizer")
         val seasonId = createSeason(manager.cookie)
 
@@ -232,7 +250,7 @@ class OrganizerControllerIntegrationTest {
 
     @Test
     fun `event organizer can be added listed idempotently and revoked`() {
-        val manager = signIn("org-manager-2", "manager-2@example.com", "Manager Two")
+        val manager = signInAdmin("org-manager-2", "manager-2@example.com", "Manager Two")
         val organizer = signIn("org-event-1", "event-organizer@example.com", "Event Organizer")
         val seasonId = createSeason(manager.cookie)
         val eventId = createEvent(manager.cookie, seasonId)
@@ -273,7 +291,7 @@ class OrganizerControllerIntegrationTest {
 
     @Test
     fun `adding organizer rejects unknown email`() {
-        val manager = signIn("org-manager-3", "manager-3@example.com", "Manager Three")
+        val manager = signInAdmin("org-manager-3", "manager-3@example.com", "Manager Three")
         val seasonId = createSeason(manager.cookie)
 
         mockMvc
@@ -343,13 +361,17 @@ class OrganizerControllerIntegrationTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.canManageSeasonOrganizers").value(false))
             .andExpect(jsonPath("$.canManageEventOrganizers").value(false))
+            .andExpect(jsonPath("$.canManageMembers").value(false))
+            .andExpect(jsonPath("$.canManageSeasons").value(false))
+            .andExpect(jsonPath("$.canManageEvents").value(false))
+            .andExpect(jsonPath("$.isTroupeAdmin").value(false))
             .andExpect(jsonPath("$.isSeasonOrganizer").value(false))
             .andExpect(jsonPath("$.eventOrganizerFor.length()").value(0))
     }
 
     @Test
     fun `deleting parent rows cascades organizer assignments`() {
-        val manager = signIn("org-manager-6", "manager-6@example.com", "Manager Six")
+        val manager = signInAdmin("org-manager-6", "manager-6@example.com", "Manager Six")
         val seasonOrganizer = signIn("org-season-6", "season-6@example.com", "Season Six")
         val eventOrganizer = signIn("org-event-6", "event-6@example.com", "Event Six")
         val seasonId = createSeason(manager.cookie)

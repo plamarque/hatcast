@@ -80,6 +80,7 @@ describe('SeasonsList', () => {
           id: 'm-1',
           displayName: 'Test',
           status: 'ACTIVE',
+          baselineRole: 'TROUPE_ADMIN',
           createdAt: '',
           updatedAt: '',
         },
@@ -96,6 +97,56 @@ describe('SeasonsList', () => {
     expect(seasonApi.listSeasons).toHaveBeenCalledWith('troupe-1', 0, 20)
     expect(fixture.componentInstance['loadError']()).toBe(false)
     expect(fixture.nativeElement.textContent).not.toContain('Aucune troupe pour l’instant')
+  })
+
+  it('masque les actions admin pour un membre sans TROUPE_ADMIN', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [{
+        id: 'troupe-1',
+        name: 'La Malice',
+        slug: 'la-malice',
+        membership: {
+          id: 'm-1',
+          displayName: 'Membre',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
+    seasonApi.listSeasons.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        content: [{
+          id: 'season-1',
+          troupeId: 'troupe-1',
+          slug: 'saison-a',
+          title: 'Saison A',
+          description: null,
+          startDate: null,
+          endDate: null,
+          archived: false,
+          active: true,
+          eventCount: 0,
+          participantCount: 0,
+          createdAt: '',
+          updatedAt: '',
+        }],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      },
+    })
+
+    await settle(fixture)
+
+    expect(fixture.componentInstance['canManageSeasons']()).toBe(false)
+    expect(fixture.nativeElement.textContent).not.toContain('Nouvelle saison')
   })
 
   it('rejoint la troupe de démonstration puis recharge les troupes', async () => {

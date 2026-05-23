@@ -12,7 +12,9 @@
       [seasonTitle]="se.title"
       [troupeName]="troupeName()"
       [user]="user()"
-      (settingsClick)="onSettings()"
+      [canManageSettings]="canManageSettings()"
+      (membersClick)="openMembersAdmin()"
+      (organizersClick)="openSeasonOrganizers()"
     />
 
     <app-season-view-toolbar
@@ -31,6 +33,7 @@
         [truncated]="eventsTruncated()"
         [totalElements]="totalElements()"
         [loadedEventsCount]="events().length"
+        [canManageEvents]="canManageEvents()"
         (eventClick)="openEvent($event)"
         (editClick)="openEdit($event)"
         (archiveClick)="confirmArchive($event)"

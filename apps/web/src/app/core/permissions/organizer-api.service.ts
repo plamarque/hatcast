@@ -12,6 +12,10 @@ export interface OrganizerResponse {
 export interface MySeasonPermissions {
   canManageSeasonOrganizers: boolean
   canManageEventOrganizers: boolean
+  canManageMembers: boolean
+  canManageSeasons: boolean
+  canManageEvents: boolean
+  isTroupeAdmin: boolean
   isSeasonOrganizer: boolean
   eventOrganizerFor: string[]
 }

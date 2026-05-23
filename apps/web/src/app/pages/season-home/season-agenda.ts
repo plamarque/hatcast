@@ -18,6 +18,7 @@ export class SeasonAgenda {
   readonly truncated = input(false)
   readonly totalElements = input(0)
   readonly loadedEventsCount = input(0)
+  readonly canManageEvents = input(false)
 
   readonly eventClick = output<string>()
   readonly editClick = output<string>()

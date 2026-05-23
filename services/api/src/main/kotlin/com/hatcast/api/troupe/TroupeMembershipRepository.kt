@@ -1,5 +1,7 @@
 package com.hatcast.api.troupe
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -10,6 +12,16 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         troupeId: UUID,
         userId: UUID,
     ): TroupeMembershipEntity?
+
+    fun findByIdAndTroupe_Id(
+        id: UUID,
+        troupeId: UUID,
+    ): TroupeMembershipEntity?
+
+    fun findByTroupe_Id(
+        troupeId: UUID,
+        pageable: Pageable,
+    ): Page<TroupeMembershipEntity>
 
     @Query(
         """
@@ -28,4 +40,10 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         userId: UUID,
         status: TroupeMembershipStatus,
     ): Boolean
+
+    fun countByTroupe_IdAndStatusAndBaselineRole(
+        troupeId: UUID,
+        status: TroupeMembershipStatus,
+        baselineRole: TroupeBaselineRole,
+    ): Long
 }

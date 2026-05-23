@@ -1,14 +1,23 @@
 package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
+import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
+import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
+import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
@@ -53,5 +62,37 @@ class TroupeController(
                     "Adhésion introuvable.",
                 )
         return MembershipSummaryDto.from(membership)
+    }
+
+    @GetMapping("/{troupeId}/members")
+    fun listMembers(
+        @PathVariable troupeId: UUID,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "25") size: Int,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): PagedTroupeMembersResponse = membershipService.listMembersForAdmin(troupeId, page, size, principal)
+
+    @PostMapping("/{troupeId}/members")
+    fun addMember(
+        @PathVariable troupeId: UUID,
+        @Valid @RequestBody body: AddTroupeMemberRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeMemberAdminDto = membershipService.addMemberByEmail(troupeId, body, principal)
+
+    @PatchMapping("/{troupeId}/members/{membershipId}")
+    fun updateMember(
+        @PathVariable troupeId: UUID,
+        @PathVariable membershipId: UUID,
+        @RequestBody body: UpdateTroupeMemberRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): TroupeMemberAdminDto = membershipService.updateMember(troupeId, membershipId, body, principal)
+
+    @DeleteMapping("/{troupeId}/members/{membershipId}")
+    fun deactivateMember(
+        @PathVariable troupeId: UUID,
+        @PathVariable membershipId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) {
+        membershipService.deactivateMember(troupeId, membershipId, principal)
     }
 }

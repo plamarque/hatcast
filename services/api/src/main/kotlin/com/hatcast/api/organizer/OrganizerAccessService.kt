@@ -78,13 +78,13 @@ class OrganizerAccessService(
             seedTroupeId: UUID,
             seasonOrganizers: Map<UUID, Set<UUID>>,
             eventOrganizers: Map<UUID, Set<UUID>>,
-            provisionalAdminSeasonIds: Set<UUID> = emptySet(),
+            troupeAdminSeasonIds: Set<UUID> = emptySet(),
         ): OrganizerAccessRules =
             InMemoryOrganizerAccessRules(
                 seedTroupeId = seedTroupeId,
                 seasonOrganizers = seasonOrganizers,
                 eventOrganizers = eventOrganizers,
-                provisionalAdminSeasonIds = provisionalAdminSeasonIds,
+                troupeAdminSeasonIds = troupeAdminSeasonIds,
             )
     }
 
@@ -192,9 +192,14 @@ class OrganizerAccessService(
     ): MySeasonPermissionsDto {
         val season = loadSeason(seasonId)
         troupeAccess.requireActiveMember(principal, season.troupe.id)
+        val troupeAdmin = isTroupeAdminForSeason(season, principal)
         return MySeasonPermissionsDto(
-            canManageSeasonOrganizers = canManageSeasonOrganizers(seasonId, principal),
-            canManageEventOrganizers = canManageEventOrganizersForSeason(seasonId, principal),
+            canManageSeasonOrganizers = troupeAdmin,
+            canManageEventOrganizers = troupeAdmin,
+            canManageMembers = troupeAdmin,
+            canManageSeasons = troupeAdmin,
+            canManageEvents = troupeAdmin,
+            isTroupeAdmin = troupeAdmin,
             isSeasonOrganizer = isSeasonOrganizer(seasonId, principal),
             eventOrganizerFor =
                 eventOrganizerRepository
@@ -206,13 +211,13 @@ class OrganizerAccessService(
     override fun canManageSeasonOrganizers(
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = isProvisionalSeasonAdmin(seasonId, principal)
+    ): Boolean = isTroupeAdminForSeason(seasonId, principal)
 
     override fun canManageEventOrganizers(
         eventId: UUID,
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = isProvisionalSeasonAdmin(seasonId, principal)
+    ): Boolean = isTroupeAdminForSeason(seasonId, principal)
 
     override fun isSeasonOrganizer(
         seasonId: UUID,
@@ -229,7 +234,7 @@ class OrganizerAccessService(
         seasonId: UUID,
         principal: SessionUserPrincipal,
     ): Boolean =
-        isProvisionalSeasonAdmin(seasonId, principal) ||
+        isTroupeAdminForSeason(seasonId, principal) ||
             isEventOrganizer(eventId, principal) ||
             isSeasonOrganizer(seasonId, principal)
 
@@ -237,18 +242,18 @@ class OrganizerAccessService(
         eventId: UUID,
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = isProvisionalSeasonAdmin(seasonId, principal) || isEventOrganizer(eventId, principal)
+    ): Boolean = isTroupeAdminForSeason(seasonId, principal) || isEventOrganizer(eventId, principal)
 
     override fun canEditEvents(
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = isProvisionalSeasonAdmin(seasonId, principal)
+    ): Boolean = isTroupeAdminForSeason(seasonId, principal)
 
     override fun canCasterEditManually(
         eventId: UUID,
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = isProvisionalSeasonAdmin(seasonId, principal) || isEventOrganizer(eventId, principal)
+    ): Boolean = isTroupeAdminForSeason(seasonId, principal) || isEventOrganizer(eventId, principal)
 
     private fun requireCanManageSeasonOrganizers(
         season: SeasonEntity,
@@ -269,17 +274,19 @@ class OrganizerAccessService(
         }
     }
 
-    private fun canManageEventOrganizersForSeason(
-        seasonId: UUID,
-        principal: SessionUserPrincipal,
-    ): Boolean = isProvisionalSeasonAdmin(seasonId, principal)
-
-    private fun isProvisionalSeasonAdmin(
+    private fun isTroupeAdminForSeason(
         seasonId: UUID,
         principal: SessionUserPrincipal,
     ): Boolean {
         val season = loadSeason(seasonId)
-        return troupeAccess.isProvisionalTroupeAdmin(principal, season.troupe.id)
+        return isTroupeAdminForSeason(season, principal)
+    }
+
+    private fun isTroupeAdminForSeason(
+        season: SeasonEntity,
+        principal: SessionUserPrincipal,
+    ): Boolean {
+        return troupeAccess.isTroupeAdmin(principal, season.troupe.id)
     }
 
     private fun loadSeason(seasonId: UUID): SeasonEntity =
@@ -299,7 +306,7 @@ class OrganizerAccessService(
         if (event.season.id != seasonId) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu")
         }
-        troupeAccess.requireCanManageTroupe(principal, event.season.troupe.id)
+        troupeAccess.requireActiveMember(principal, event.season.troupe.id)
         return event
     }
 
@@ -320,18 +327,18 @@ private class InMemoryOrganizerAccessRules(
     private val seedTroupeId: UUID,
     private val seasonOrganizers: Map<UUID, Set<UUID>>,
     private val eventOrganizers: Map<UUID, Set<UUID>>,
-    private val provisionalAdminSeasonIds: Set<UUID>,
+    private val troupeAdminSeasonIds: Set<UUID>,
 ) : OrganizerAccessRules {
     override fun canManageSeasonOrganizers(
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = seasonId in provisionalAdminSeasonIds
+    ): Boolean = seasonId in troupeAdminSeasonIds
 
     override fun canManageEventOrganizers(
         eventId: UUID,
         seasonId: UUID,
         principal: SessionUserPrincipal,
-    ): Boolean = seasonId in provisionalAdminSeasonIds
+    ): Boolean = seasonId in troupeAdminSeasonIds
 
     override fun isSeasonOrganizer(
         seasonId: UUID,

@@ -27,6 +27,9 @@ class TroupeMembershipEntity(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     var status: TroupeMembershipStatus,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "baseline_role", nullable = false, length = 32)
+    var baselineRole: TroupeBaselineRole = TroupeBaselineRole.MEMBER,
     @Column(name = "display_name", nullable = false, length = 255)
     var displayName: String,
     @Column(name = "created_at", nullable = false)

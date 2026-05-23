@@ -63,6 +63,10 @@ describe('SeasonHome', () => {
         data: {
           canManageSeasonOrganizers: false,
           canManageEventOrganizers: false,
+          canManageMembers: false,
+          canManageSeasons: false,
+          canManageEvents: false,
+          isTroupeAdmin: false,
           isSeasonOrganizer: false,
           eventOrganizerFor: [],
         },
@@ -136,6 +140,10 @@ describe('SeasonHome', () => {
     component.seasonPermissions.set({
       canManageSeasonOrganizers: true,
       canManageEventOrganizers: true,
+      canManageMembers: true,
+      canManageSeasons: true,
+      canManageEvents: true,
+      isTroupeAdmin: true,
       isSeasonOrganizer: false,
       eventOrganizerFor: [],
     })

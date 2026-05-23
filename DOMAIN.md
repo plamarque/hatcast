@@ -9,6 +9,9 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 ## Glossary
 
 - **Troupe:** The performing group / organisation whose **identity** and **seasons** are managed together in admin. (May map 1:1 to a tenant or org in the target data model; legacy code often scopes by **season** only—see ARCH when migrating.)
+- **Troupe membership (V2):** Link between a `users` row and a troupe. `ACTIVE` memberships grant member read access to troupe-scoped V2 data; `INACTIVE` memberships are retained for audit/history but no longer grant troupe access.
+- **Baseline troupe role (V2):** Role stored on a troupe membership. Current values are `MEMBER` and `TROUPE_ADMIN`. `MEMBER` grants active-member read access only. `TROUPE_ADMIN` grants troupe-level administration: members, baseline roles, seasons, events, and organizer delegation.
+- **Organizer delegation (V2):** Narrow season/event-scoped permission represented by `season_organizers` and `event_organizers`. It does not make a user a troupe admin and must not be encoded as a baseline troupe role.
 - **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `legacy/src/services/storage.js`, `seasons.js`). Belongs to a **troupe** in the product sense when multi-season-per-troupe is modelled (V2 admin).
 - **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`). For UI, “past” vs still on the programme follows the **calendar day in `Europe/Paris`** (see `legacy/src/utils/eventPastParis.js`), not raw UTC instant of a date-only field.
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
@@ -37,6 +40,10 @@ Event 1──1 Cast
 Player *──* Availability (per Event)
 Cast *──* Player (with role and status: pending | confirmed | declined)
 User (auth) *──* Player (via claim / association)
+User (V2) *──* Troupe (via troupe_memberships)
+Troupe (V2) 1──* Season
+TroupeMembership (V2) has baseline role MEMBER | TROUPE_ADMIN
+Season/Event organizer delegation (V2) is scoped separately from baseline role
 User 1──* userPreferences, userPushTokens, userNavigation
 ```
 
@@ -49,6 +56,9 @@ User 1──* userPreferences, userPushTokens, userNavigation
 ## Business rules / invariants (must always hold)
 
 - **Single active season (troupe scope):** For a given **troupe**, **at most one** season is **active** at any time. Activating a season **must** deactivate any other previously active season in that scope (explicit user action; auditable if required). Normative product statement; see [SPEC.md — Administration — required capabilities (V2 target)](SPEC.md#administration--required-capabilities-v2-target) and [_bmad-output/planning-artifacts/ux-design-hatcast-v2.md_ — Admin surfaces](_bmad-output/planning-artifacts/ux-design-hatcast-v2.md#admin-functional-scope).
+- **At least one active troupe admin (V2):** A troupe must keep at least one active membership with `baseline_role = TROUPE_ADMIN`; demoting or deactivating the last active admin is rejected.
+- **Soft deactivation for members (V2):** Removing a member sets `troupe_memberships.status = INACTIVE`; membership rows are not hard-deleted by the member-admin flow.
+- **Demo direct join limitation (V2):** Direct self-join remains limited to the seed/demo troupe and creates/reactivates `MEMBER` memberships only. Admin access is managed through the member-admin API.
 - **One cast per event:** For a given event there is at most one cast; the draw produces or updates it (observed in storage/cast usage).
 - **Cast status values:** Player status in a cast is one of: pending, confirmed, declined (see `castService.getPlayerCastStatus`).
 - **Admin access:** Only users in `seasons/{id}/admins` or Super Admin can write/admin that season; enforced by router guard and permission checks (`main.js`, `permissionService.js`) and by Firestore rules where applicable.

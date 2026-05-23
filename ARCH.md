@@ -13,6 +13,8 @@ La cible documentée (Angular SPA sous [`apps/web/`](apps/web/), API Kotlin/Spri
 - **Contrat HTTP (fragment) :** [services/api/openapi/auth.yaml](services/api/openapi/auth.yaml).
 - **Configuration GCP / OAuth (opérateur, slice Google OIDC) :** [docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md](docs/v2/technical/V2_GOOGLE_OAUTH_SETUP.md).
 - **Implémentation slice testable :** API Spring sous [services/api/](services/api/) (`./gradlew bootRun`, `./gradlew test`) ; client Angular sous [apps/web/](apps/web/) (`ng serve`, port **4200** par défaut). Voir [DEVELOPMENT.md](DEVELOPMENT.md) section « V2 ».
+- **Autorisation V2 troupe :** les lectures troupe passent par `TroupeAccessService.requireActiveMember`; les mutations de membres, saisons, événements et délégations passent par une adhésion active `troupe_memberships.baseline_role = TROUPE_ADMIN`. Les délégations `season_organizers` / `event_organizers` restent des pouvoirs plus étroits et ne remplacent pas le rôle de base.
+- **Contrat membres V2 :** `services/api/openapi/seasons.yaml` documente `/v1/troupes/{troupeId}/members*`, la désactivation soft (`status = INACTIVE`), la garde dernier admin actif, les exigences CSRF et la limite demo self-join (`MEMBER` uniquement).
 
 Le client V1 sous [`legacy/`](legacy/) reste la référence runtime actuelle pour la production Firebase décrite ci-dessous jusqu’à bascule explicite.
 

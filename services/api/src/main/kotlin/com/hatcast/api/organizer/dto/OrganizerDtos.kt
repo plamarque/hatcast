@@ -39,6 +39,10 @@ data class OrganizerResponseDto(
 data class MySeasonPermissionsDto(
     val canManageSeasonOrganizers: Boolean,
     val canManageEventOrganizers: Boolean,
+    val canManageMembers: Boolean,
+    val canManageSeasons: Boolean,
+    val canManageEvents: Boolean,
+    val isTroupeAdmin: Boolean,
     val isSeasonOrganizer: Boolean,
     val eventOrganizerFor: List<UUID>,
 )

@@ -23,10 +23,16 @@ export class SeasonHeader {
   readonly seasonTitle = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly user = input<UserSummary | null>(null)
+  readonly canManageSettings = input(false)
 
-  readonly settingsClick = output<void>()
+  readonly membersClick = output<void>()
+  readonly organizersClick = output<void>()
 
-  protected onSettings(): void {
-    this.settingsClick.emit()
+  protected onMembers(): void {
+    this.membersClick.emit()
+  }
+
+  protected onOrganizers(): void {
+    this.organizersClick.emit()
   }
 }

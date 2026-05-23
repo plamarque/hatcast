@@ -49,36 +49,40 @@
       </button>
     </section>
   } @else {
-    <div class="seasons__cta">
-      <button mat-flat-button color="primary" type="button" (click)="openCreate()">
-        <mat-icon>add</mat-icon>
-        Nouvelle saison
-      </button>
-    </div>
+    @if (canManageSeasons()) {
+      <div class="seasons__cta">
+        <button mat-flat-button color="primary" type="button" (click)="openCreate()">
+          <mat-icon>add</mat-icon>
+          Nouvelle saison
+        </button>
+      </div>
+    }
 
     <div class="seasons__grid">
         @for (s of seasons(); track s.id) {
           <mat-card class="season-card" appearance="outlined">
-            <div class="season-card__toolbar">
-              <button
-                type="button"
-                matIconButton
-                [matMenuTriggerFor]="menu"
-                (click)="$event.stopPropagation()"
-                [attr.aria-label]="'Actions pour ' + s.title"
-              >
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button type="button" mat-menu-item (click)="openEdit(s)">Modifier</button>
-                @if (!s.archived) {
-                  <button type="button" mat-menu-item (click)="confirmArchive(s)">Archiver</button>
-                }
-                @if (!s.active && !s.archived) {
-                  <button type="button" mat-menu-item (click)="confirmActivate(s)">Activer</button>
-                }
-              </mat-menu>
-            </div>
+            @if (canManageSeasons()) {
+              <div class="season-card__toolbar">
+                <button
+                  type="button"
+                  matIconButton
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                  [attr.aria-label]="'Actions pour ' + s.title"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button type="button" mat-menu-item (click)="openEdit(s)">Modifier</button>
+                  @if (!s.archived) {
+                    <button type="button" mat-menu-item (click)="confirmArchive(s)">Archiver</button>
+                  }
+                  @if (!s.active && !s.archived) {
+                    <button type="button" mat-menu-item (click)="confirmActivate(s)">Activer</button>
+                  }
+                </mat-menu>
+              </div>
+            }
             <button
               type="button"
               class="season-card__body"
@@ -110,7 +114,13 @@
             </button>
           </mat-card>
         } @empty {
-          <p class="seasons__empty">Aucune saison pour l’instant. Crée-en une avec le bouton ci-dessus.</p>
+          <p class="seasons__empty">
+            @if (canManageSeasons()) {
+              Aucune saison pour l’instant. Crée-en une avec le bouton ci-dessus.
+            } @else {
+              Aucune saison pour l’instant.
+            }
+          </p>
         }
       </div>
 

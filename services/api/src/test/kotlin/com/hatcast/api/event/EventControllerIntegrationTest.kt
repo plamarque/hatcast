@@ -4,6 +4,9 @@ import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.support.TestAuthSupport
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.hatcast.api.troupe.TroupeBaselineRole
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -37,20 +40,37 @@ class EventControllerIntegrationTest {
     @MockBean
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
+    @Autowired
+    private lateinit var membershipRepository: TroupeMembershipRepository
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
+
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
     private val seedSeasonSlug = "la-malice-2026-2027"
 
     private val mapper = ObjectMapper()
 
-    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie =
-        TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie {
+        val cookie =
+            TestAuthSupport.memberSessionCookieFromGoogleSignIn(
             mockMvc,
             googleIdTokenService,
             googleSub,
             email = "event@example.com",
             name = "Event Test",
         )
+        promoteSeedMemberToAdmin(googleSub)
+        return cookie
+    }
+
+    private fun promoteSeedMemberToAdmin(googleSub: String) {
+        val user = userRepository.findByGoogleSub(googleSub) ?: error("Missing test user $googleSub")
+        val membership = membershipRepository.findByTroupe_IdAndUser_Id(seedTroupeId, user.id) ?: error("Missing seed membership")
+        membership.baselineRole = TroupeBaselineRole.TROUPE_ADMIN
+        membershipRepository.save(membership)
+    }
 
     private fun createSeasonForEventsTests(cookie: jakarta.servlet.http.Cookie): UUID {
         val createRes =

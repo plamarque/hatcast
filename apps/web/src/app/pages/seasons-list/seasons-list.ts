@@ -51,6 +51,7 @@ export class SeasonsList implements OnInit {
   protected readonly loadError = signal(false)
   protected readonly joiningDemo = signal(false)
   protected readonly hasMembership = signal(false)
+  protected readonly canManageSeasons = signal(false)
   protected readonly seasons = signal<SeasonResponse[]>([])
   protected readonly troupeId = signal<string | null>(null)
   protected readonly totalElements = signal(0)
@@ -107,6 +108,7 @@ export class SeasonsList implements OnInit {
     if (!tr.data?.length) {
       this.loadError.set(false)
       this.hasMembership.set(false)
+      this.canManageSeasons.set(false)
       this.troupeId.set(null)
       this.seasons.set([])
       this.totalElements.set(0)
@@ -115,8 +117,10 @@ export class SeasonsList implements OnInit {
     }
     this.loadError.set(false)
     this.hasMembership.set(true)
-    const tid = tr.data[0].id
+    const troupe = tr.data[0]
+    const tid = troupe.id
     this.troupeId.set(tid)
+    this.canManageSeasons.set(troupe.membership.baselineRole === 'TROUPE_ADMIN')
     const sr = await this.api.listSeasons(tid, page, PAGE_SIZE)
     this.loadingList.set(false)
     if (!sr.ok || !sr.data) {
@@ -142,6 +146,10 @@ export class SeasonsList implements OnInit {
     if (!tid) {
       return
     }
+    if (!this.canManageSeasons()) {
+      this.snack.open('Vous ne pouvez pas créer de saison dans cette troupe.', 'OK', { duration: 5000 })
+      return
+    }
     const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, boolean>(
       SeasonFormDialog,
       {
@@ -162,6 +170,10 @@ export class SeasonsList implements OnInit {
     if (!tid) {
       return
     }
+    if (!this.canManageSeasons()) {
+      this.snack.open('Vous ne pouvez pas modifier cette saison.', 'OK', { duration: 5000 })
+      return
+    }
     const ref = this.dialog.open<SeasonFormDialog, SeasonFormDialogData, boolean>(
       SeasonFormDialog,
       {
@@ -178,6 +190,10 @@ export class SeasonsList implements OnInit {
   }
 
   protected confirmArchive(season: SeasonResponse): void {
+    if (!this.canManageSeasons()) {
+      this.snack.open('Vous ne pouvez pas archiver cette saison.', 'OK', { duration: 5000 })
+      return
+    }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
         title: 'Archiver la saison',
@@ -203,6 +219,10 @@ export class SeasonsList implements OnInit {
   }
 
   protected confirmActivate(season: SeasonResponse): void {
+    if (!this.canManageSeasons()) {
+      this.snack.open('Vous ne pouvez pas activer cette saison.', 'OK', { duration: 5000 })
+      return
+    }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
         title: 'Activer la saison',

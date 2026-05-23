@@ -2,18 +2,14 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 /**
- * Contrôle d'accès troupe (Epic 2.1).
+ * Contrôle d'accès troupe.
  *
  * - **Lecture membre** : adhésion active dans la troupe.
- * - **Gestion provisoire** (Story 3.x, remplacée en 2.2) : adhésion active **et** troupe seed —
- *   tout membre actif de la troupe seed peut administrer saisons/événements jusqu'à l'introduction
- *   des rôles de base (Story 2.2).
+ * - **Gestion troupe** : adhésion active avec rôle de base `TROUPE_ADMIN`.
  */
 @Component
 class TroupeAccessService(
@@ -35,27 +31,22 @@ class TroupeAccessService(
     }
 
     /**
-     * Gestion provisoire (seed troupe + membre actif). Remplace l'ancienne règle « tout utilisateur
-     * authentifié sur la troupe seed ».
+     * Gestion troupe : administration des membres, saisons, événements et délégations.
      */
     fun requireCanManageTroupe(
         principal: SessionUserPrincipal,
         troupeId: UUID,
-    ) {
-        membershipService.requireActiveMembership(principal.userId, troupeId)
-        if (troupeId != seedTroupeId) {
-            throw ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Accès refusé pour cette troupe.",
-            )
-        }
-    }
+    ) = requireTroupeAdmin(principal, troupeId)
 
-    /** Admin provisoire pour la troupe seed (organisateurs, CRUD saisons/événements). */
-    fun isProvisionalTroupeAdmin(
+    fun requireTroupeAdmin(
         principal: SessionUserPrincipal,
         troupeId: UUID,
-    ): Boolean =
-        troupeId == seedTroupeId &&
-            membershipService.isActiveMember(principal.userId, troupeId)
+    ) {
+        membershipService.requireTroupeAdmin(principal.userId, troupeId)
+    }
+
+    fun isTroupeAdmin(
+        principal: SessionUserPrincipal,
+        troupeId: UUID,
+    ): Boolean = membershipService.isTroupeAdmin(principal.userId, troupeId)
 }

@@ -19,6 +19,12 @@
 - Minimal email validation (`contains("@")` only) in `resolveUserByEmail`.
 - Shared `organizerSaving` flag allows parallel remove clicks before DOM disables buttons.
 
+## Deferred from: code review of 2-2-administration-des-membres-et-roles-de-base.md (2026-05-23)
+
+- Erreurs API sans RFC 7807 Problem Details malgré AC5 — le repo utilise `ResponseStatusException` partout ; alignement global hors périmètre story 2.2.
+- N+1 lazy-load `user.email` sur `GET /members` (`findByTroupe_Id` sans JOIN FETCH), dans `TroupeMembershipRepository.kt`.
+- Retest produit Story 3.5 (organisateurs) non documenté après remplacement de la règle admin provisoire seed-troupe.
+
 ## Deferred from: code review of 2-1-adhesion-a-une-troupe-et-profil-membre-minimal.md (2026-05-23)
 
 - Multi-troupe route resolution still uses the first membership (`tr.data[0]`) in `season-home` and event detail pages; deferred to Story 2.4 navigation/troupe switching.

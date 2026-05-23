@@ -30,6 +30,7 @@ describe('TroupeApiService', () => {
           id: 'm-1',
           displayName: 'Patrice',
           status: 'ACTIVE',
+          baselineRole: 'MEMBER',
           createdAt: '',
           updatedAt: '',
         }),
@@ -63,6 +64,74 @@ describe('TroupeApiService', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/v1/troupes',
       expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
+  it('addMember envoie POST avec credentials, JSON et CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'm-1' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().addMember('troupe 1', {
+      email: ' USER@example.com ',
+      displayName: ' Patrice ',
+      baselineRole: 'TROUPE_ADMIN',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/troupe%201/members',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': 'token',
+        }),
+        body: JSON.stringify({
+          email: 'USER@example.com',
+          displayName: 'Patrice',
+          baselineRole: 'TROUPE_ADMIN',
+        }),
+      }),
+    )
+  })
+
+  it('updateMember envoie PATCH avec CSRF', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ id: 'm-1' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().updateMember('t-1', 'm-1', { status: 'INACTIVE' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/members/m-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        credentials: 'include',
+        body: JSON.stringify({ status: 'INACTIVE' }),
+      }),
+    )
+  })
+
+  it('deactivateMember envoie DELETE avec credentials', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await service().deactivateMember('t-1', 'm-1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/members/m-1',
+      expect.objectContaining({
+        method: 'DELETE',
+        credentials: 'include',
+      }),
     )
   })
 })

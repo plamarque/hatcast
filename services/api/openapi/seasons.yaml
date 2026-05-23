@@ -6,8 +6,8 @@ info:
     `GET /troupes` retourne uniquement les troupes où l'utilisateur connecté a une adhésion active.
     Pagination liste : paramètres `page` (0-based) et `size` (défaut côté client 20, max 100 côté API).
     Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
-    Gestion provisoire (seed) : un membre actif de la troupe seed peut créer/modifier saisons et événements
-    jusqu’à l’Epic 2 Story 2.2 (rôles de base).
+    Les mutations d'administration de troupe exigent une adhésion active avec le rôle de base `TROUPE_ADMIN`.
+    L'adhésion directe à la troupe de démonstration reste limitée au flux demo et crée un rôle `MEMBER`.
   version: 0.1.0
 
 servers:
@@ -18,6 +18,7 @@ servers:
 
 tags:
   - name: Troupes
+  - name: Membres
   - name: Saisons
   - name: Organisateurs
 
@@ -69,8 +70,9 @@ paths:
       tags: [Troupes]
       summary: Rejoindre la troupe de démonstration (adhésion active pour l'utilisateur courant)
       description: >
-        Flux provisoire Story 2.1 limité à la troupe seed/démonstration jusqu'aux invitations
-        et rôles de la Story 2.2. Idempotent : une seconde invocation réactive ou retourne l'adhésion existante.
+        Flux demo limité à la troupe seed/démonstration en attendant les invitations.
+        Idempotent : une seconde invocation réactive ou retourne l'adhésion existante.
+        Les adhésions créées par ce flux ont `baselineRole = MEMBER`.
         Requiert CSRF (`X-XSRF-TOKEN`).
       security:
         - cookieAuth: []
@@ -92,6 +94,161 @@ paths:
           description: Troupe inconnue
         '403':
           description: Adhésion directe refusée hors troupe de démonstration, ou CSRF/session invalide
+
+  /troupes/{troupeId}/members:
+    get:
+      tags: [Membres]
+      summary: Liste paginée des membres d’une troupe
+      description: Réservé aux administrateur·ices de troupe (`TROUPE_ADMIN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTroupeMembers'
+        '400':
+          description: Paramètres de pagination invalides
+        '403':
+          description: Utilisateur non administrateur de troupe
+
+    post:
+      tags: [Membres]
+      summary: Ajouter ou réactiver un membre existant
+      description: >
+        Résout l'utilisateur par email normalisé (`trim().lowercase()`). L'utilisateur doit
+        s'être connecté au moins une fois. Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTroupeMemberRequest'
+            examples:
+              member:
+                value:
+                  email: membre@example.com
+                  displayName: Patrice
+                  baselineRole: MEMBER
+      responses:
+        '200':
+          description: Membre créé, réactivé ou déjà présent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeMemberAdmin'
+        '400':
+          description: Validation invalide
+        '403':
+          description: Utilisateur non administrateur de troupe ou CSRF/session invalide
+        '404':
+          description: Utilisateur ou troupe introuvable
+
+  /troupes/{troupeId}/members/{membershipId}:
+    patch:
+      tags: [Membres]
+      summary: Modifier le profil membre, statut ou rôle de base
+      description: >
+        PATCH partiel : omettre une clé pour ne pas la modifier. Refuse toute mutation qui
+        laisserait la troupe sans administrateur actif. Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: membershipId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTroupeMemberRequest'
+      responses:
+        '200':
+          description: Membre mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TroupeMemberAdmin'
+        '400':
+          description: Validation invalide
+        '403':
+          description: Utilisateur non administrateur de troupe ou CSRF/session invalide
+        '404':
+          description: Adhésion introuvable dans cette troupe
+        '409':
+          description: Mutation refusée car elle retirerait le dernier administrateur actif
+
+    delete:
+      tags: [Membres]
+      summary: Désactiver un membre
+      description: >
+        Soft delete : définit `status = INACTIVE`; ne supprime pas la ligne. Refuse de
+        désactiver le dernier `TROUPE_ADMIN` actif. Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: membershipId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Membre désactivé ou déjà inactif
+        '403':
+          description: Utilisateur non administrateur de troupe ou CSRF/session invalide
+        '404':
+          description: Adhésion introuvable dans cette troupe
+        '409':
+          description: Mutation refusée car elle retirerait le dernier administrateur actif
 
   /troupes/{troupeId}/seasons:
     get:
@@ -402,7 +559,7 @@ components:
 
     MembershipSummary:
       type: object
-      required: [id, displayName, status, createdAt, updatedAt]
+      required: [id, displayName, status, baselineRole, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -410,14 +567,93 @@ components:
         displayName:
           type: string
         status:
-          type: string
-          enum: [ACTIVE, INACTIVE]
+          $ref: '#/components/schemas/TroupeMembershipStatus'
+        baselineRole:
+          $ref: '#/components/schemas/TroupeBaselineRole'
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+
+    TroupeMembershipStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE]
+
+    TroupeBaselineRole:
+      type: string
+      enum: [MEMBER, TROUPE_ADMIN]
+      description: >
+        `MEMBER` donne l'accès membre actif. `TROUPE_ADMIN` autorise l'administration
+        des membres, saisons, événements et délégations d'organisateurs.
+
+    TroupeMemberAdmin:
+      type: object
+      required: [id, userId, displayName, status, baselineRole, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          nullable: true
+        displayName:
+          type: string
+        status:
+          $ref: '#/components/schemas/TroupeMembershipStatus'
+        baselineRole:
+          $ref: '#/components/schemas/TroupeBaselineRole'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PagedTroupeMembers:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TroupeMemberAdmin'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    AddTroupeMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          description: Email utilisateur ; trim + lowercase côté serveur.
+        displayName:
+          type: string
+          maxLength: 255
+        baselineRole:
+          $ref: '#/components/schemas/TroupeBaselineRole'
+
+    UpdateTroupeMemberRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/TroupeMembershipStatus'
+        baselineRole:
+          $ref: '#/components/schemas/TroupeBaselineRole'
 
     Season:
       type: object
@@ -540,6 +776,14 @@ components:
         canManageSeasonOrganizers:
           type: boolean
         canManageEventOrganizers:
+          type: boolean
+        canManageMembers:
+          type: boolean
+        canManageSeasons:
+          type: boolean
+        canManageEvents:
+          type: boolean
+        isTroupeAdmin:
           type: boolean
         isSeasonOrganizer:
           type: boolean
