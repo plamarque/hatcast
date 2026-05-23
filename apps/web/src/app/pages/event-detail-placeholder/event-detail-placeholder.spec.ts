@@ -50,10 +50,48 @@ describe('EventDetailPlaceholder', () => {
   let fixture: ComponentFixture<EventDetailPlaceholder>
   let paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   let listEvents: ReturnType<typeof vi.fn>
+  let listMyTroupes: ReturnType<typeof vi.fn>
+  let getSeasonBySlug: ReturnType<typeof vi.fn>
 
   beforeEach(async () => {
     paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a', eventId: 'event-2' }))
     listEvents = vi.fn()
+    listMyTroupes = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [{
+        id: 'troupe-1',
+        name: 'Troupe',
+        slug: 'troupe',
+        membership: {
+          id: 'm-1',
+          displayName: 'Test',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
+    getSeasonBySlug = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        id: 'season-1',
+        troupeId: 'troupe-1',
+        slug: 'season-a',
+        title: 'Saison',
+        description: null,
+        startDate: null,
+        endDate: null,
+        archived: false,
+        active: true,
+        eventCount: 2,
+        participantCount: 0,
+        createdAt: '',
+        updatedAt: '',
+      },
+    })
 
     await TestBed.configureTestingModule({
       imports: [EventDetailPlaceholder],
@@ -64,46 +102,13 @@ describe('EventDetailPlaceholder', () => {
         {
           provide: TroupeApiService,
           useValue: {
-            listMyTroupes: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: [{
-                id: 'troupe-1',
-                name: 'Troupe',
-                slug: 'troupe',
-                membership: {
-                  id: 'm-1',
-                  displayName: 'Test',
-                  status: 'ACTIVE',
-                  createdAt: '',
-                  updatedAt: '',
-                },
-              }],
-            }),
+            listMyTroupes,
           },
         },
         {
           provide: SeasonApiService,
           useValue: {
-            getSeasonBySlug: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: {
-                id: 'season-1',
-                troupeId: 'troupe-1',
-                slug: 'season-a',
-                title: 'Saison',
-                description: null,
-                startDate: null,
-                endDate: null,
-                archived: false,
-                active: true,
-                eventCount: 2,
-                participantCount: 0,
-                createdAt: '',
-                updatedAt: '',
-              },
-            }),
+            getSeasonBySlug,
           },
         },
         { provide: EventApiService, useValue: { listEvents } },
@@ -146,6 +151,48 @@ describe('EventDetailPlaceholder', () => {
     })
   })
 
+  it('résout la saison dans la bonne troupe avant de lister les spectacles', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-1')
+    listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [
+        troupe('troupe-1', 'Première troupe'),
+        troupe('troupe-2', 'Troupe propriétaire'),
+      ],
+    })
+    getSeasonBySlug
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: {
+          id: 'season-2',
+          troupeId: 'troupe-2',
+          slug: 'season-a',
+          title: 'Saison',
+          description: null,
+          startDate: null,
+          endDate: null,
+          archived: false,
+          active: true,
+          eventCount: 1,
+          participantCount: 0,
+          createdAt: '',
+          updatedAt: '',
+        },
+      })
+    listEvents.mockResolvedValue(page([ev('event-2')], 0, 1))
+
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(listEvents).toHaveBeenCalledWith('season-2', 0, 100, 'all')
+    })
+    expect(getSeasonBySlug).toHaveBeenNthCalledWith(1, 'troupe-1', 'season-a')
+    expect(getSeasonBySlug).toHaveBeenNthCalledWith(2, 'troupe-2', 'season-a')
+  })
+
   it('formats dates in the Paris timezone', () => {
     const formatted = (fixture.componentInstance as unknown as EventDetailHarness).formatStart(
       '2026-05-31T22:30:00.000Z',
@@ -154,3 +201,19 @@ describe('EventDetailPlaceholder', () => {
     expect(formatted).toContain('1 juin 2026')
   })
 })
+
+function troupe(id: string, name: string) {
+  return {
+    id,
+    name,
+    slug: id,
+    membership: {
+      id: `membership-${id}`,
+      displayName: name,
+      status: 'ACTIVE',
+      baselineRole: 'MEMBER',
+      createdAt: '',
+      updatedAt: '',
+    },
+  }
+}

@@ -16,7 +16,26 @@ describe('AdminMembres', () => {
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
   const queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
 
-  async function setup(permissions: MySeasonPermissions, query: Record<string, string> = {}) {
+  async function setup(
+    permissions: MySeasonPermissions,
+    query: Record<string, string> = {},
+    options: {
+      troupes?: Array<{
+        id: string
+        name: string
+        slug: string
+        membership: {
+          id: string
+          displayName: string
+          status: 'ACTIVE'
+          baselineRole: 'MEMBER' | 'TROUPE_ADMIN'
+          createdAt: string
+          updatedAt: string
+        }
+      }>
+      getSeasonBySlug?: ReturnType<typeof vi.fn>
+    } = {},
+  ) {
     const router = { navigate: vi.fn().mockResolvedValue(true) }
     const snack = { open: vi.fn() }
     const queryMap = convertToParamMap(query)
@@ -29,7 +48,7 @@ describe('AdminMembres', () => {
       listMyTroupes: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        data: [{ id: 't1', name: 'Ma Troupe', slug: 'troupe', membership: {
+        data: options.troupes ?? [{ id: 't1', name: 'Ma Troupe', slug: 'troupe', membership: {
           id: 'm-1',
           displayName: 'Admin',
           status: 'ACTIVE',
@@ -40,7 +59,7 @@ describe('AdminMembres', () => {
       }),
     }
     const seasonsApi = {
-      getSeasonBySlug: vi.fn().mockResolvedValue({
+      getSeasonBySlug: options.getSeasonBySlug ?? vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
         data: season('s1'),
@@ -86,7 +105,7 @@ describe('AdminMembres', () => {
     await fixture.whenStable()
     await waitForPageLoad(fixture)
     fixture.detectChanges()
-    return { fixture, router, snack, seasonsApi, organizerApi }
+    return { fixture, router, snack, seasonsApi, organizerApi, troupeApi }
   }
 
   it('redirects unauthorized users to season agenda', async () => {
@@ -121,6 +140,28 @@ describe('AdminMembres', () => {
     const cmp = fixture.componentInstance as AdminMembres & { activeTab: () => string }
     expect(cmp.activeTab()).toBe('organisateurs')
   })
+
+  it('résout une route admin directe dans la troupe propriétaire du slug', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 't1')
+    const getSeasonBySlug = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: season('s2', 't2') })
+
+    const { fixture, seasonsApi, organizerApi } = await setup(bothPermissions(), {}, {
+      troupes: [
+        troupe('t1', 'Première troupe'),
+        troupe('t2', 'Troupe propriétaire'),
+      ],
+      getSeasonBySlug,
+    })
+
+    await vi.waitFor(() => {
+      expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('s2')
+    })
+    expect(seasonsApi.getSeasonBySlug).toHaveBeenNthCalledWith(1, 't1', 'season-a')
+    expect(seasonsApi.getSeasonBySlug).toHaveBeenNthCalledWith(2, 't2', 'season-a')
+    expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('t2')
+  })
 })
 
 async function waitForPageLoad(fixture: ComponentFixture<unknown>): Promise<void> {
@@ -138,10 +179,26 @@ function text(fixture: ComponentFixture<unknown>): string {
   return (fixture.nativeElement as HTMLElement).textContent ?? ''
 }
 
-function season(id: string): SeasonResponse {
+function troupe(id: string, name: string) {
   return {
     id,
-    troupeId: 't1',
+    name,
+    slug: id,
+    membership: {
+      id: `membership-${id}`,
+      displayName: name,
+      status: 'ACTIVE' as const,
+      baselineRole: 'TROUPE_ADMIN' as const,
+      createdAt: '',
+      updatedAt: '',
+    },
+  }
+}
+
+function season(id: string, troupeId = 't1'): SeasonResponse {
+  return {
+    id,
+    troupeId,
     slug: 'season-a',
     title: 'Saison A',
     description: null,

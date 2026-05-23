@@ -2,10 +2,12 @@ import { Component, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatSelectChange, MatSelectModule } from '@angular/material/select'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
@@ -15,6 +17,7 @@ import {
   SeasonApiService,
 } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { environment } from '../../../environments/environment'
 import { ConfirmDialog, type ConfirmDialogData } from './confirm-dialog'
 import { SeasonFormDialog, type SeasonFormDialogData } from './season-form-dialog'
@@ -28,10 +31,12 @@ const PAGE_SIZE = 20
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
+    MatFormFieldModule,
     MatIconModule,
     MatMenuModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     MatSnackBarModule,
     RouterLink,
   ],
@@ -42,6 +47,7 @@ export class SeasonsList implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly api = inject(SeasonApiService)
   private readonly troupeApi = inject(TroupeApiService)
+  private readonly troupeContext = inject(TroupeContextService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
@@ -57,6 +63,8 @@ export class SeasonsList implements OnInit {
   protected readonly totalElements = signal(0)
   protected readonly pageIndex = signal(0)
   protected readonly pageSize = PAGE_SIZE
+  protected readonly activeTroupes = this.troupeContext.activeTroupes
+  protected readonly selectedTroupe = this.troupeContext.selectedTroupe
 
   async ngOnInit(): Promise<void> {
     const r = await this.auth.ensureHatcastSession()
@@ -87,8 +95,12 @@ export class SeasonsList implements OnInit {
       return
     }
     this.snack.open('Vous avez rejoint la troupe de démonstration.', 'OK', { duration: 4000 })
-    const refreshed = await this.loadTroupeAndSeasons(0)
-    if (!refreshed) {
+    this.loadingList.set(true)
+    const refreshed = await this.troupeContext.reloadAndSelect(demoId)
+    if (refreshed) {
+      await this.loadSelectedTroupeSeasons(0)
+    } else {
+      this.loadingList.set(false)
       this.snack.open('Adhésion enregistrée, mais le rechargement des troupes a échoué.', 'OK', {
         duration: 6000,
       })
@@ -98,14 +110,19 @@ export class SeasonsList implements OnInit {
   protected async loadTroupeAndSeasons(page: number): Promise<boolean> {
     this.loadingList.set(true)
     this.loadError.set(false)
-    const tr = await this.troupeApi.listMyTroupes()
-    if (!tr.ok) {
+    const loaded = await this.troupeContext.load()
+    if (!loaded) {
       this.loadingList.set(false)
       this.loadError.set(true)
       this.snack.open('Impossible de charger vos troupes.', 'OK', { duration: 6000 })
       return false
     }
-    if (!tr.data?.length) {
+    return this.loadSelectedTroupeSeasons(page)
+  }
+
+  private async loadSelectedTroupeSeasons(page: number): Promise<boolean> {
+    const troupe = this.selectedTroupe()
+    if (!troupe) {
       this.loadError.set(false)
       this.hasMembership.set(false)
       this.canManageSeasons.set(false)
@@ -117,7 +134,6 @@ export class SeasonsList implements OnInit {
     }
     this.loadError.set(false)
     this.hasMembership.set(true)
-    const troupe = tr.data[0]
     const tid = troupe.id
     this.troupeId.set(tid)
     this.canManageSeasons.set(troupe.membership.baselineRole === 'TROUPE_ADMIN')
@@ -135,6 +151,21 @@ export class SeasonsList implements OnInit {
 
   protected onPage(ev: PageEvent): void {
     void this.loadTroupeAndSeasons(ev.pageIndex)
+  }
+
+  protected onTroupeChange(ev: MatSelectChange): void {
+    const troupeId = String(ev.value)
+    if (troupeId === this.troupeId()) {
+      return
+    }
+    if (!this.troupeContext.selectTroupe(troupeId)) {
+      this.snack.open('Troupe introuvable.', 'OK', { duration: 5000 })
+      return
+    }
+    this.dialog.closeAll()
+    this.pageIndex.set(0)
+    this.loadingList.set(true)
+    void this.loadSelectedTroupeSeasons(0)
   }
 
   protected openCard(season: SeasonResponse): void {

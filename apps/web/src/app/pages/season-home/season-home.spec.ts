@@ -4,13 +4,14 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { OrganizerApiService, type MySeasonPermissions } from '../../core/permissions/organizer-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { AGENDA_UPCOMING_CAP } from './season-events.utils'
 import { SeasonHome } from './season-home'
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -49,12 +50,46 @@ describe('SeasonHome', () => {
   let dialog: { open: ReturnType<typeof vi.fn> }
   let snack: { open: ReturnType<typeof vi.fn> }
   let organizerApi: { mySeasonPermissions: ReturnType<typeof vi.fn> }
+  let authApi: { ensureHatcastSession: ReturnType<typeof vi.fn> }
+  let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn> }
+  let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn>; getSeason: ReturnType<typeof vi.fn> }
+  let eventsApi: { listEvents: ReturnType<typeof vi.fn> }
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
 
+  afterEach(() => {
+    localStorage.clear()
+  })
+
   beforeEach(async () => {
+    localStorage.clear()
+    paramMap$.next(convertToParamMap({ slug: 'season-a' }))
     router = { navigate: vi.fn() }
     dialog = { open: vi.fn() }
     snack = { open: vi.fn() }
+    authApi = {
+      ensureHatcastSession: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+      }),
+    }
+    troupeApi = {
+      listMyTroupes: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: [troupe('troupe-1'), troupe('troupe-2')],
+      }),
+    }
+    seasonsApi = {
+      getSeasonBySlug: vi.fn().mockResolvedValue({ ok: true, status: 200, data: season('season-1', 'troupe-1') }),
+      getSeason: vi.fn(),
+    }
+    eventsApi = {
+      listEvents: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { content: [], page: 0, size: 50, totalElements: 0, totalPages: 0 },
+      }),
+    }
     organizerApi = {
       mySeasonPermissions: vi.fn().mockResolvedValue({
         ok: true,
@@ -79,12 +114,15 @@ describe('SeasonHome', () => {
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snack },
-        { provide: AuthApiService, useValue: { ensureHatcastSession: vi.fn() } },
-        { provide: SeasonApiService, useValue: {} },
-        { provide: EventApiService, useValue: {} },
+        { provide: AuthApiService, useValue: authApi },
+        { provide: SeasonApiService, useValue: seasonsApi },
+        { provide: EventApiService, useValue: eventsApi },
+        { provide: TroupeApiService, useValue: troupeApi },
         { provide: OrganizerApiService, useValue: organizerApi },
       ],
     }).compileComponents()
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack })
+    TestBed.overrideProvider(MatDialog, { useValue: dialog })
 
     fixture = TestBed.createComponent(SeasonHome)
   })
@@ -116,4 +154,88 @@ describe('SeasonHome', () => {
 
     expect(component.selectedEventId()).toBeNull()
   })
+
+  it('résout la saison dans la troupe sélectionnée avant les autres', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-2')
+    seasonsApi.getSeasonBySlug.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: season('season-2', 'troupe-2'),
+    })
+
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('season-2')
+    })
+    expect(seasonsApi.getSeasonBySlug).toHaveBeenCalledWith('troupe-2', 'season-a')
+    expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
+  })
+
+  it('bascule vers une autre troupe quand elle est seule à posséder le slug', async () => {
+    localStorage.setItem('hatcast.selectedTroupeId', 'troupe-1')
+    seasonsApi.getSeasonBySlug
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce({ ok: true, status: 200, data: season('season-2', 'troupe-2') })
+
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('season-2')
+    })
+    expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
+    expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-2')
+  })
+
+  it('ne charge pas une saison quand le slug est ambigu', async () => {
+    Object.defineProperty(fixture.componentInstance, 'troupeSeasonResolver', {
+      value: {
+        resolveSeasonSlug: vi.fn().mockResolvedValue({ kind: 'ambiguous', matches: [] }),
+      },
+    })
+
+    await fixture.componentInstance['loadTroupeAndSeason']('season-a')
+
+    expect(snack.open).toHaveBeenCalledWith(
+      expect.stringContaining('plusieurs troupes'),
+      'OK',
+      expect.any(Object),
+    )
+    expect(organizerApi.mySeasonPermissions).not.toHaveBeenCalled()
+    expect(eventsApi.listEvents).not.toHaveBeenCalled()
+  })
 })
+
+function troupe(id: string): TroupeListItem {
+  return {
+    id,
+    name: `Troupe ${id}`,
+    slug: id,
+    membership: {
+      id: `membership-${id}`,
+      displayName: id,
+      status: 'ACTIVE',
+      baselineRole: 'MEMBER',
+      createdAt: '',
+      updatedAt: '',
+    },
+  }
+}
+
+function season(id: string, troupeId: string): SeasonResponse {
+  return {
+    id,
+    troupeId,
+    slug: 'season-a',
+    title: `Saison ${id}`,
+    description: null,
+    startDate: null,
+    endDate: null,
+    archived: false,
+    active: true,
+    eventCount: 0,
+    participantCount: 0,
+    createdAt: '',
+    updatedAt: '',
+  }
+}

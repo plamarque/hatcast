@@ -13,7 +13,7 @@ import {
   EventApiService,
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
-import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
@@ -56,7 +56,7 @@ const FETCH_PAGE_SIZE = 50
 export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly seasonsApi = inject(SeasonApiService)
-  private readonly troupeApi = inject(TroupeApiService)
+  private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
@@ -164,29 +164,37 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
     this.resetSeasonState()
     this.loadingSeason.set(true)
-    const tr = await this.troupeApi.listMyTroupes()
+    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
     if (requestId !== this.seasonLoadRequestId) {
       return
     }
-    if (!tr.ok || !tr.data?.length) {
+    if (resolved.kind === 'no-membership') {
       this.loadingSeason.set(false)
       this.snack.open('Vous n’appartenez à aucune troupe.', 'OK', { duration: 6000 })
       return
     }
-    const troupe = tr.data[0]
-    this.troupeId.set(troupe.id)
-    this.troupeName.set(troupe.name)
-    const sr = await this.seasonsApi.getSeasonBySlug(troupe.id, slug)
-    if (requestId !== this.seasonLoadRequestId) {
+    if (resolved.kind === 'ambiguous') {
+      this.loadingSeason.set(false)
+      this.snack.open('Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.', 'OK', {
+        duration: 8000,
+      })
       return
     }
-    this.loadingSeason.set(false)
-    if (!sr.ok || !sr.data) {
+    if (resolved.kind === 'not-found') {
+      this.loadingSeason.set(false)
       this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
       return
     }
-    this.season.set(sr.data)
-    await this.loadSeasonPermissions(sr.data.id)
+    if (resolved.kind === 'error') {
+      this.loadingSeason.set(false)
+      this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
+      return
+    }
+    this.loadingSeason.set(false)
+    this.troupeId.set(resolved.troupe.id)
+    this.troupeName.set(resolved.troupe.name)
+    this.season.set(resolved.season)
+    await this.loadSeasonPermissions(resolved.season.id)
     await this.loadUpcomingEvents()
   }
 

@@ -15,8 +15,8 @@ import {
   OrganizerApiService,
   type MySeasonPermissions,
 } from '../../core/permissions/organizer-api.service'
-import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
-import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import type { SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { MembresTab } from './membres-tab'
 import { OrganisateursTab } from './organisateurs-tab'
 
@@ -40,8 +40,7 @@ export type AdminMembresTab = 'membres' | 'organisateurs'
 })
 export class AdminMembres implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
-  private readonly seasonsApi = inject(SeasonApiService)
-  private readonly troupeApi = inject(TroupeApiService)
+  private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -147,28 +146,30 @@ export class AdminMembres implements OnDestroy, OnInit {
       return
     }
 
-    const tr = await this.troupeApi.listMyTroupes()
+    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
     if (requestId !== this.loadRequestId) return
-    if (!tr.ok || !tr.data?.length) {
+    if (resolved.kind === 'no-membership' || resolved.kind === 'error') {
       this.loading.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
     }
-
-    const troupe = tr.data[0]
-    this.troupeId.set(troupe.id)
-    this.troupeName.set(troupe.name)
-
-    const sr = await this.seasonsApi.getSeasonBySlug(troupe.id, slug)
-    if (requestId !== this.loadRequestId) return
-    if (!sr.ok || !sr.data) {
+    if (resolved.kind === 'ambiguous') {
+      this.loading.set(false)
+      this.snack.open('Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.', 'OK', {
+        duration: 8000,
+      })
+      return
+    }
+    if (resolved.kind === 'not-found') {
       this.loading.set(false)
       this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
       return
     }
 
-    this.season.set(sr.data)
-    const pr = await this.organizerApi.mySeasonPermissions(sr.data.id)
+    this.troupeId.set(resolved.troupe.id)
+    this.troupeName.set(resolved.troupe.name)
+    this.season.set(resolved.season)
+    const pr = await this.organizerApi.mySeasonPermissions(resolved.season.id)
     if (requestId !== this.loadRequestId) return
 
     const perms = pr.ok && pr.data ? pr.data : null

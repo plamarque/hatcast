@@ -34,6 +34,35 @@
   margin-bottom: 1.5rem;
 }
 
+.seasons__troupe-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 35%, transparent);
+  border-radius: 1rem;
+}
+
+.seasons__troupe-label {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.seasons__troupe-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.seasons__troupe-switcher {
+  width: min(100%, 16rem);
+}
+
 .seasons__status,
 .seasons__empty {
   text-align: center;

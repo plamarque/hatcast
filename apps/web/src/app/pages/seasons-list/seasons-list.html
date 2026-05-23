@@ -49,6 +49,25 @@
       </button>
     </section>
   } @else {
+    @if (selectedTroupe(); as troupe) {
+      <section class="seasons__troupe-context" aria-label="Troupe courante">
+        <div>
+          <p class="seasons__troupe-label">Troupe</p>
+          <p class="seasons__troupe-name">{{ troupe.name }}</p>
+        </div>
+        @if (activeTroupes().length > 1) {
+          <mat-form-field class="seasons__troupe-switcher" appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Changer de troupe</mat-label>
+            <mat-select [value]="troupe.id" (selectionChange)="onTroupeChange($event)">
+              @for (option of activeTroupes(); track option.id) {
+                <mat-option [value]="option.id">{{ option.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+      </section>
+    }
+
     @if (canManageSeasons()) {
       <div class="seasons__cta">
         <button mat-flat-button color="primary" type="button" (click)="openCreate()">

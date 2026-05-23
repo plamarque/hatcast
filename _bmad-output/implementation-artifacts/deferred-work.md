@@ -37,3 +37,7 @@
 ## Deferred from: code review of 2-8-admin-membres-route-ui-ux-dr10.md (2026-05-23)
 
 - Multi-troupe route resolution uses the first membership in `AdminMembres.loadPage`; deferred to Story 2.4 because multi-troupe switching is explicitly out of scope for Story 2.8.
+
+## Deferred from: code review of 2-4-navigation-entre-troupes.md (2026-05-23)
+
+- localStorage indisponible : `selectTroupe` met à jour le signal en mémoire mais si `writeStoredTroupeId` échoue, un `load()` ultérieur peut restaurer une préférence périmée depuis le stockage — edge case navigateurs durcis, commentaire déjà présent dans le service.

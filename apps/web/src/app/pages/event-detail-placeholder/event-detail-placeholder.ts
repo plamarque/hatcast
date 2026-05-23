@@ -10,8 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
-import { SeasonApiService } from '../../core/seasons/season-api.service'
-import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import { getEventTypeIcon } from '../../core/events/event-types'
 
@@ -31,8 +30,7 @@ const EVENT_DETAIL_PAGE_SIZE = 100
 })
 export class EventDetailPlaceholder implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
-  private readonly seasonsApi = inject(SeasonApiService)
-  private readonly troupeApi = inject(TroupeApiService)
+  private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly eventsApi = inject(EventApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -84,27 +82,29 @@ export class EventDetailPlaceholder implements OnDestroy, OnInit {
       return
     }
 
-    const tr = await this.troupeApi.listMyTroupes()
+    const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(slug)
     if (requestId !== this.loadRequestId) {
       return
     }
-    if (!tr.ok || !tr.data?.length) {
+    if (resolved.kind === 'no-membership' || resolved.kind === 'error') {
       this.loading.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
     }
-
-    const sr = await this.seasonsApi.getSeasonBySlug(tr.data[0].id, slug)
-    if (requestId !== this.loadRequestId) {
+    if (resolved.kind === 'ambiguous') {
+      this.loading.set(false)
+      this.snack.open('Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.', 'OK', {
+        duration: 8000,
+      })
       return
     }
-    if (!sr.ok || !sr.data) {
+    if (resolved.kind === 'not-found') {
       this.loading.set(false)
       this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
       return
     }
 
-    const found = await this.findEventInSeason(sr.data.id, eventId)
+    const found = await this.findEventInSeason(resolved.season.id, eventId)
     if (requestId !== this.loadRequestId) {
       return
     }
