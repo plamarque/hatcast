@@ -119,10 +119,11 @@ echo "→ Démarrage du client Angular (ng serve, port 4200 par défaut)…"
 echo ""
 echo "  Stack V2 :"
 echo "    • API   : http://127.0.0.1:8080"
-echo "    • Front : https://localhost:4200  (TLS ; toutes interfaces avec --host)"
+echo "    • Front : https://0.0.0.0:4200  (TLS ; accessible sur le LAN via l’IP locale)"
 echo ""
 echo "  Ctrl+C arrête le front puis l’API."
 echo ""
 
 cd "$ROOT"
-npm run dev:web:v2 -- --host
+# `--` obligatoire : transmet `--host 0.0.0.0` à `ng serve` (pas à npm intermédiaire).
+npm run dev -w @hatcast/web -- --host 0.0.0.0
