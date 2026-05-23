@@ -27,6 +27,7 @@ import {
   type TroupeMemberAdmin,
   TroupeApiService,
 } from '../../core/troupes/troupe-api.service'
+import { ConfirmDialog, type ConfirmDialogData } from '../seasons-list/confirm-dialog'
 import { AddMemberDialog, type AddMemberDialogData } from './add-member-dialog'
 import { ImportResultsDialog, type ImportResultsDialogData } from './import-results-dialog'
 
@@ -208,6 +209,26 @@ export class MembresTab implements OnInit, OnDestroy {
     await this.patchMember(member, { status: nextStatus })
   }
 
+  protected retirerMembre(member: TroupeMemberAdmin): void {
+    if (member.status !== 'ACTIVE' || this.isLastAdmin(member) || this.saving()) {
+      return
+    }
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Retirer ce membre de la troupe ?',
+        message:
+          "Cette action retire le membre de la troupe et lui enlève l'accès associé. Son compte HatCast n'est pas supprimé.",
+        confirmLabel: 'Retirer',
+      },
+      width: 'min(100vw - 2rem, 28rem)',
+    })
+    ref.afterClosed().subscribe((confirmed) => {
+      if (confirmed) {
+        void this.confirmRetirerMembre(member)
+      }
+    })
+  }
+
   protected async nommerOrganisateur(member: TroupeMemberAdmin): Promise<void> {
     const email = member.email
     if (!email) {
@@ -334,6 +355,30 @@ export class MembresTab implements OnInit, OnDestroy {
     } catch {
       this.revertMember(previous)
       this.snack.open('Enregistrement impossible', 'OK', { duration: 5000 })
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  private async confirmRetirerMembre(member: TroupeMemberAdmin): Promise<void> {
+    const previous = { ...member }
+    this.applyOptimistic(member.id, { status: 'INACTIVE' })
+    this.saving.set(true)
+    try {
+      const r = await this.api.deactivateMember(this.troupeId(), member.id)
+      if (!r.ok) {
+        this.revertMember(previous)
+        this.snack.open(this.errorMessage(r.status, 'Retrait impossible'), 'OK', {
+          duration: 5000,
+        })
+        return
+      }
+      this.snack.open('Membre retiré de la troupe.', 'OK', { duration: 4000 })
+      this.membersChanged.emit()
+      await this.reload()
+    } catch {
+      this.revertMember(previous)
+      this.snack.open('Retrait impossible', 'OK', { duration: 5000 })
     } finally {
       this.saving.set(false)
     }

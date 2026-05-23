@@ -419,7 +419,7 @@ Requirements are listed in numeric order (FR1–FR47).
 ### Troupe & membership
 
 - FR6: A user can belong to a troupe as a member with a member profile for that troupe. Active troupe members have default access to **active seasons** for that troupe.
-- FR7: A **troupe administrator** can manage which users are members and their baseline troupe roles. Troupe membership is distinct from season/event participation records.
+- FR7: A **troupe administrator** can manage which users are members and their baseline troupe roles, including removing a user from the troupe after confirmation. Removing a member revokes that troupe membership only; it does not delete the user account. Troupe membership is distinct from season/event participation records.
 - FR8: A user can navigate between troupes they belong to when multiple membership exists.
 
 ### Profile & representation

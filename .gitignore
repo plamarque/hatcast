@@ -53,6 +53,10 @@ firebase-debug.log
 # Replay algorithm simulation output
 scripts/replay/output/
 
+# Local V1→V2 migration CSV exports (PII — do not commit)
+/members.csv
+/users.csv
+
 # BMad standard skills (installed locally; identical copies — regenerate from BMad if needed)
 .agents/skills/
 .cursor/skills/

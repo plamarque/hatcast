@@ -10,7 +10,10 @@ import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { MembresTab } from './membres-tab'
 
 describe('MembresTab', () => {
-  async function setup() {
+  async function setup(options: {
+    confirmRemoval?: boolean
+    deactivateResult?: { ok: boolean; status: number }
+  } = {}) {
     const api = {
       listMembers: vi.fn().mockResolvedValue({
         ok: true,
@@ -55,6 +58,7 @@ describe('MembresTab', () => {
         },
       }),
       updateMember: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { id: 'm1' } }),
+      deactivateMember: vi.fn().mockResolvedValue(options.deactivateResult ?? { ok: true, status: 204 }),
       exportMembersCsv: vi.fn().mockResolvedValue({ ok: true, status: 200, data: new Blob(['email\n']) }),
       importMembersCsv: vi.fn().mockResolvedValue({
         ok: true,
@@ -78,7 +82,9 @@ describe('MembresTab', () => {
       listSeasonOrganizers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
       addSeasonOrganizer: vi.fn(),
     }
-    const dialog = { open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }) }
+    const dialog = {
+      open: vi.fn().mockReturnValue({ afterClosed: () => of(options.confirmRemoval ?? false) }),
+    }
     const snack = { open: vi.fn() }
 
     await TestBed.configureTestingModule({
@@ -97,7 +103,7 @@ describe('MembresTab', () => {
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    return { fixture, api, snack }
+    return { fixture, api, dialog, snack }
   }
 
   it('hides inactive members by default and filters by search', async () => {
@@ -182,6 +188,69 @@ describe('MembresTab', () => {
     await cmp.onImportUsersFileSelected({ target: input } as unknown as Event)
 
     expect(api.importUsersCsv).toHaveBeenCalledWith('t1', expect.any(File))
+  })
+
+  it('opens a removal confirmation that distinguishes troupe removal from account deletion', async () => {
+    const { fixture, api, dialog } = await setup()
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      retirerMembre(member: unknown): void
+    }
+    const member = cmp.members().find((m) => m.id === 'm2')!
+
+    cmp.retirerMembre(member)
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: 'Retirer ce membre de la troupe ?',
+          message: expect.stringContaining("Son compte HatCast n'est pas supprimé."),
+          confirmLabel: 'Retirer',
+        }),
+      }),
+    )
+    expect(api.deactivateMember).not.toHaveBeenCalled()
+  })
+
+  it('soft-deactivates a member after confirmed removal', async () => {
+    const { fixture, api, snack } = await setup({ confirmRemoval: true })
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      retirerMembre(member: unknown): void
+    }
+    const member = cmp.members().find((m) => m.id === 'm2')!
+
+    cmp.retirerMembre(member)
+    await fixture.whenStable()
+
+    expect(api.deactivateMember).toHaveBeenCalledWith('t1', 'm2')
+    expect(snack.open).toHaveBeenCalledWith('Membre retiré de la troupe.', 'OK', {
+      duration: 4000,
+    })
+    expect(api.listMembers).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the last-admin message when removal is rejected by the API', async () => {
+    const { fixture, api, snack } = await setup({
+      confirmRemoval: true,
+      deactivateResult: { ok: false, status: 409 },
+    })
+    const cmp = fixture.componentInstance as MembresTab & {
+      members: () => Array<{ id: string }>
+      retirerMembre(member: unknown): void
+    }
+    const member = cmp.members().find((m) => m.id === 'm2')!
+
+    cmp.retirerMembre(member)
+    await fixture.whenStable()
+
+    expect(api.deactivateMember).toHaveBeenCalledWith('t1', 'm2')
+    expect(snack.open).toHaveBeenCalledWith(
+      'La troupe doit conserver au moins un administrateur actif.',
+      'OK',
+      { duration: 5000 },
+    )
   })
 })
 

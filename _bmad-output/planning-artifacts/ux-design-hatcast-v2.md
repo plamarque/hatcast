@@ -744,7 +744,7 @@ Stakeholders expect administrators (and roles defined in SPEC) to be able to:
 
 | Area | Capability |
 |------|------------|
-| **Membres & organisateurs** | **Manage troupe members** from route `/saison/:slug/admin/membres` (menu **Membres**); **season organizers** on second tab. **Export** + **Importer ▾** toolbar; add via modal; search; compact list; **slide toggle** active; **inactive hidden by default** (*Afficher les inactifs*); no dates; **Nommer orga saison** shortcut. **Participants** (season/event rosters, Story 3.8) use label **Participants**, not Membres. |
+| **Membres & organisateurs** | **Manage troupe members** from route `/saison/:slug/admin/membres` (menu **Membres**); **season organizers** on second tab. **Export** + **Importer ▾** toolbar; add via modal; search; compact list; **slide toggle** active; **Retirer** with confirmation (removes troupe membership only, not the user account); **inactive hidden by default** (*Afficher les inactifs*); no dates; **Nommer orga saison** shortcut. **Participants** (season/event rosters, Story 3.8) use label **Participants**, not Membres. |
 | **Spectacles** | **Manage spectacles** (CRUD, dates, types, venues, status) for the relevant scope (season / troupe). |
 | **Troupe & saisons** | **Manage troupe** identity and **seasons**: create, rename, archive; **at most one season active at a time** for a given troupe context (activate/deactivate explicitly—rules in DOMAIN/SPEC). |
 
@@ -781,7 +781,7 @@ Filter: *Afficher les inactifs* (default off) between toolbar and list.
 
 ### Membres tab
 
-Compact rows: avatar, inline name edit, email, role chip+menu, active toggle, **Nommer orga saison** link. Auto-save. Last admin protected.
+Compact rows: avatar, inline name edit, email, role chip+menu, active toggle, **Retirer** with confirmation, **Nommer orga saison** link. Auto-save. Last admin protected. **Retirer** soft-deactivates the troupe membership only; it never deletes the HatCast user account.
 
 ### Organisateur·ices tab
 

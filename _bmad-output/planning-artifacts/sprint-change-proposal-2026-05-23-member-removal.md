@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-23  
 **Project:** hatcast  
+**Status:** Approved for implementation (Patrice, 2026-05-23)  
 **Trigger:** Stakeholder request: administrators must be able to remove members after confirmation. Removing a member must not delete the HatCast user account; it only removes the person from the troupe.
 
 ## 1. Issue Summary

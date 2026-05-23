@@ -398,6 +398,7 @@ afin de contrôler qui accède à quoi au sein de la troupe.
 **Acceptance Criteria**
 
 - **Given** des droits administrateur sur la troupe, **when** l’admin ajoute, retire ou ajuste un rôle de base autorisé, **then** l’état persisté reflète le changement et l’UI des membres est à jour.
+- **And** retirer un membre exige une confirmation explicite et ne supprime jamais le compte utilisateur HatCast ; seule l’adhésion troupe est désactivée / retirée.
 - **Given** une action non autorisée, **when** elle est tentée, **then** elle est refusée avec retour API/UI cohérent (NFR-S2).
 - **Note :** cette story couvre **uniquement l’adhésion troupe** (`troupe_memberships`), pas les rosters participants saison/événement (Story 3.8).
 - **Couverture :** FR7 ; UX-DR10 (surfaces admin membres troupe) ; NFR-S2.
@@ -434,7 +435,7 @@ afin de suivre l’expérience approuvée (liste compacte, recherche, CSV en bar
 
 - **Given** des droits `canManageMembers` et/ou `canManageSeasonOrganizers`, **when** l’utilisateur ouvre `/saison/:slug/admin/membres`, **then** l’écran conforme à [ux-design-specification.md](./ux-design-specification.md) s’affiche (onglets, toolbar, liste compacte, modales d’ajout uniquement).
 - **Given** aucun droit admin people, **when** la route est accédée, **then** redirection agenda + message (NFR-S2).
-- **Given** les API Stories 2.2 / 2.3 existantes, **when** l’UI est utilisée, **then** aucune régression sur CRUD membres ni import/export CSV.
+- **Given** les API Stories 2.2 / 2.3 existantes, **when** l’UI est utilisée, **then** aucune régression sur CRUD membres ni import/export CSV ; la liste Membres expose une action **Retirer** avec confirmation, qui retire uniquement l’adhésion troupe sans supprimer l’utilisateur.
 - **Couverture :** FR7, FR42 (UI) ; UX-DR10 ; NFR-S2.
 
 **Dépendances :** Stories 2.2, 2.3, 3.5 (organisateurs).

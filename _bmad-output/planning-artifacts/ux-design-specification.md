@@ -150,7 +150,10 @@ When the user has **only one** permitted tab, **hide the tab bar** entirely (no 
 | **Email** | Read-only, muted | — |
 | **Baseline role** | **`mat-chip` + menu**: *Membre* / *Admin troupe* | **Auto-save** on menu choice |
 | **Actif toggle** | `mat-slide-toggle` | **Auto-save** on change |
+| **Retirer** | Text button or icon button on active memberships; opens confirmation *« Retirer ce membre de la troupe ? »* | Soft-deactivates the troupe membership only; does **not** delete the HatCast user account |
 | **Nommer orga saison** | Text button or link; visible if viewer has `canManageSeasonOrganizers` and user is not already a season organizer; adds delegation without retyping email | POST organizer |
+
+**Remove member confirmation:** The confirmation dialog must state that the action removes the member from the troupe and revokes associated access, but **does not delete** the HatCast user account. Removed members follow the inactive-members rule: hidden by default, visible only when *Afficher les inactifs* is enabled.
 
 **Auto-save:**
 
