@@ -12,7 +12,21 @@
 
   @if (loadingSession()) {
     <p class="seasons__status" role="status">Vérification de la session…</p>
-  } @else if (!hasMembership() && !loadingList()) {
+  } @else if (loadingList()) {
+    <div class="seasons__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (loadError()) {
+    <section class="seasons__empty-membership" aria-labelledby="troupe-load-error-heading">
+      <h2 id="troupe-load-error-heading" class="seasons__empty-title">Chargement impossible</h2>
+      <p class="seasons__empty-text">
+        Nous n’avons pas pu charger tes troupes. Réessaie dans un instant.
+      </p>
+      <button mat-flat-button color="primary" type="button" (click)="loadTroupeAndSeasons(pageIndex())">
+        Réessayer
+      </button>
+    </section>
+  } @else if (!hasMembership()) {
     <section class="seasons__empty-membership" aria-labelledby="no-troupe-heading">
       <h2 id="no-troupe-heading" class="seasons__empty-title">Aucune troupe pour l’instant</h2>
       <p class="seasons__empty-text">
@@ -42,12 +56,7 @@
       </button>
     </div>
 
-    @if (loadingList()) {
-      <div class="seasons__spinner" role="status">
-        <mat-spinner diameter="40" />
-      </div>
-    } @else {
-      <div class="seasons__grid">
+    <div class="seasons__grid">
         @for (s of seasons(); track s.id) {
           <mat-card class="season-card" appearance="outlined">
             <div class="season-card__toolbar">
@@ -115,6 +124,5 @@
           showFirstLastButtons
         />
       }
-    }
   }
 </div>

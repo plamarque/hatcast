@@ -67,9 +67,10 @@ paths:
 
     post:
       tags: [Troupes]
-      summary: Rejoindre une troupe (adhésion active pour l'utilisateur courant)
+      summary: Rejoindre la troupe de démonstration (adhésion active pour l'utilisateur courant)
       description: >
-        Idempotent : une seconde invocation réactive ou retourne l'adhésion existante.
+        Flux provisoire Story 2.1 limité à la troupe seed/démonstration jusqu'aux invitations
+        et rôles de la Story 2.2. Idempotent : une seconde invocation réactive ou retourne l'adhésion existante.
         Requiert CSRF (`X-XSRF-TOKEN`).
       security:
         - cookieAuth: []
@@ -90,7 +91,7 @@ paths:
         '404':
           description: Troupe inconnue
         '403':
-          description: Accès refusé
+          description: Adhésion directe refusée hors troupe de démonstration, ou CSRF/session invalide
 
   /troupes/{troupeId}/seasons:
     get:
@@ -186,6 +187,8 @@ paths:
                 $ref: '#/components/schemas/Season'
         '404':
           description: Saison inconnue
+        '403':
+          description: Utilisateur non membre actif de la troupe
 
   /seasons/{seasonId}:
     get:
@@ -206,6 +209,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Season'
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Saison inconnue
 
     patch:
       tags: [Saisons]
@@ -357,6 +364,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MySeasonPermissions'
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Saison inconnue
 
 components:
   securitySchemes:

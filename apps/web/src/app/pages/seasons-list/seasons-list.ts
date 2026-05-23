@@ -48,6 +48,7 @@ export class SeasonsList implements OnInit {
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingList = signal(false)
+  protected readonly loadError = signal(false)
   protected readonly joiningDemo = signal(false)
   protected readonly hasMembership = signal(false)
   protected readonly seasons = signal<SeasonResponse[]>([])
@@ -85,26 +86,34 @@ export class SeasonsList implements OnInit {
       return
     }
     this.snack.open('Vous avez rejoint la troupe de démonstration.', 'OK', { duration: 4000 })
-    await this.loadTroupeAndSeasons(0)
+    const refreshed = await this.loadTroupeAndSeasons(0)
+    if (!refreshed) {
+      this.snack.open('Adhésion enregistrée, mais le rechargement des troupes a échoué.', 'OK', {
+        duration: 6000,
+      })
+    }
   }
 
-  protected async loadTroupeAndSeasons(page: number): Promise<void> {
+  protected async loadTroupeAndSeasons(page: number): Promise<boolean> {
     this.loadingList.set(true)
+    this.loadError.set(false)
     const tr = await this.troupeApi.listMyTroupes()
     if (!tr.ok) {
       this.loadingList.set(false)
-      this.hasMembership.set(false)
+      this.loadError.set(true)
       this.snack.open('Impossible de charger vos troupes.', 'OK', { duration: 6000 })
-      return
+      return false
     }
     if (!tr.data?.length) {
+      this.loadError.set(false)
       this.hasMembership.set(false)
       this.troupeId.set(null)
       this.seasons.set([])
       this.totalElements.set(0)
       this.loadingList.set(false)
-      return
+      return true
     }
+    this.loadError.set(false)
     this.hasMembership.set(true)
     const tid = tr.data[0].id
     this.troupeId.set(tid)
@@ -112,11 +121,12 @@ export class SeasonsList implements OnInit {
     this.loadingList.set(false)
     if (!sr.ok || !sr.data) {
       this.snack.open('Impossible de charger les saisons.', 'OK', { duration: 6000 })
-      return
+      return false
     }
     this.seasons.set(sr.data.content)
     this.totalElements.set(sr.data.totalElements)
     this.pageIndex.set(sr.data.page)
+    return true
   }
 
   protected onPage(ev: PageEvent): void {

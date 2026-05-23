@@ -26,6 +26,9 @@ class TroupeMembershipIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
 
+    @Autowired
+    private lateinit var troupeRepository: TroupeRepository
+
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
 
@@ -33,6 +36,8 @@ class TroupeMembershipIntegrationTest {
     private lateinit var idpIdTokenVerifier: IdpIdTokenVerifier
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
+    private val seedSeasonId: UUID = UUID.fromString("b0000001-0000-4000-8000-000000000001")
+    private val seedSeasonSlug = "la-malice-2026-2027"
 
     @Test
     fun `join seed troupe is idempotent and lists membership troupes only`() {
@@ -75,6 +80,63 @@ class TroupeMembershipIntegrationTest {
         mockMvc
             .perform(get("/v1/troupes/$seedTroupeId/seasons").cookie(cookie))
             .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `non member cannot access member only season event and permission routes`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-4")
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/seasons/by-slug/$seedSeasonSlug").cookie(cookie))
+            .andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seedSeasonId/events").cookie(cookie))
+            .andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(get("/v1/seasons/$seedSeasonId/permissions/me").cookie(cookie))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `membership lookup returns not found for non member`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-5")
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/memberships/me").cookie(cookie))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
+    fun `direct join is limited to seed troupe`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-6")
+        val otherTroupeId = UUID.randomUUID()
+        troupeRepository.save(
+            TroupeEntity(
+                id = otherTroupeId,
+                name = "Private ${otherTroupeId.toString().take(8)}",
+                slug = "private-${otherTroupeId.toString().take(8)}",
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$otherTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `join seed troupe requires csrf`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-membership-7")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie),
+            ).andExpect(status().isForbidden)
     }
 
     @Test

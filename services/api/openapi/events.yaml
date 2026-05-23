@@ -63,7 +63,7 @@ paths:
         '401':
           description: Non authentifié
         '403':
-          description: Troupe non autorisée
+          description: Utilisateur non membre actif de la troupe de la saison
     post:
       tags: [Événements]
       summary: Créer un spectacle
@@ -87,7 +87,7 @@ paths:
         '401':
           description: Non authentifié
         '403':
-          description: Troupe non autorisée
+          description: Gestion refusée (hors règle provisoire seed/admin)
 
   /seasons/{seasonId}/events/{eventId}:
     patch:
@@ -125,7 +125,7 @@ paths:
         '401':
           description: Non authentifié
         '403':
-          description: Troupe non autorisée
+          description: Gestion refusée (hors règle provisoire seed/admin)
         '404':
           description: Événement ou saison inconnue
 
@@ -158,7 +158,7 @@ paths:
         '401':
           description: Non authentifié
         '403':
-          description: Troupe non autorisée
+          description: Gestion refusée (hors règle provisoire seed/admin)
         '404':
           description: Événement ou saison inconnue
 

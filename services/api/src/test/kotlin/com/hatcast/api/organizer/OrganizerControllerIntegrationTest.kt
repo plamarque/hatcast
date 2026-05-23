@@ -8,7 +8,11 @@ import com.hatcast.api.event.EventRepository
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeEntity
+import com.hatcast.api.troupe.TroupeMembershipEntity
+import com.hatcast.api.troupe.TroupeMembershipRepository
+import com.hatcast.api.troupe.TroupeMembershipStatus
 import com.hatcast.api.troupe.TroupeRepository
+import com.hatcast.api.user.UserRepository
 import com.hatcast.api.support.TestAuthSupport
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -59,6 +63,12 @@ class OrganizerControllerIntegrationTest {
 
     @Autowired
     private lateinit var eventOrganizerRepository: EventOrganizerRepository
+
+    @Autowired
+    private lateinit var troupeMembershipRepository: TroupeMembershipRepository
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val mapper = ObjectMapper()
@@ -155,6 +165,21 @@ class OrganizerControllerIntegrationTest {
                 troupe = troupe,
                 slug = "non-seed-season-${UUID.randomUUID().toString().take(8)}",
                 title = "Non seed season",
+            ),
+        )
+    }
+
+    private fun addDirectMembership(
+        fixture: SessionFixture,
+        troupe: TroupeEntity,
+    ) {
+        val user = userRepository.findById(UUID.fromString(fixture.userId)).orElseThrow()
+        troupeMembershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                displayName = user.displayName ?: "Test member",
             ),
         )
     }
@@ -311,13 +336,7 @@ class OrganizerControllerIntegrationTest {
     fun `permissions endpoint exposes organizer flags for non seed seasons without failing`() {
         val user = signIn("org-manager-5", "manager-5@example.com", "Manager Five")
         val season = createNonSeedSeason()
-
-        mockMvc
-            .perform(
-                post("/v1/troupes/${season.troupe.id}/memberships/me")
-                    .cookie(user.cookie)
-                    .with(csrf()),
-            ).andExpect(status().isOk)
+        addDirectMembership(user, season.troupe)
 
         mockMvc
             .perform(get("/v1/seasons/${season.id}/permissions/me").cookie(user.cookie))

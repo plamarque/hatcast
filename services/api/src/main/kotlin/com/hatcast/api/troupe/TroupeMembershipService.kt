@@ -4,6 +4,7 @@ import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -55,8 +56,8 @@ class TroupeMembershipService(
     ): TroupeMembershipEntity {
         val troupe =
             troupeRepository
-                .findById(troupeId)
-                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue") }
+                .findByIdForMembershipJoin(troupeId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
         val user =
             userRepository
                 .findById(userId)
@@ -70,7 +71,7 @@ class TroupeMembershipService(
             }
             return membershipRepository.save(existing)
         }
-        return membershipRepository.save(
+        val membership =
             TroupeMembershipEntity(
                 troupe = troupe,
                 user = user,
@@ -78,8 +79,13 @@ class TroupeMembershipService(
                 displayName = MemberDisplayNameResolver.resolve(user),
                 createdAt = now,
                 updatedAt = now,
-            ),
-        )
+            )
+        return try {
+            membershipRepository.saveAndFlush(membership)
+        } catch (ex: DataIntegrityViolationException) {
+            membershipRepository.findByTroupe_IdAndUser_Id(troupeId, userId)
+                ?: throw ex
+        }
     }
 
     @Transactional(readOnly = true)
