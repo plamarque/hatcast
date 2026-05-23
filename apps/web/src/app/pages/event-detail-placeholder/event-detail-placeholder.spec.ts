@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { EventDetailPlaceholder } from './event-detail-placeholder'
 import { emptyRoleSlots } from '../../core/events/event-types'
 
@@ -61,13 +62,29 @@ describe('EventDetailPlaceholder', () => {
         { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
         { provide: AuthApiService, useValue: { ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true }) } },
         {
-          provide: SeasonApiService,
+          provide: TroupeApiService,
           useValue: {
-            listTroupes: vi.fn().mockResolvedValue({
+            listMyTroupes: vi.fn().mockResolvedValue({
               ok: true,
               status: 200,
-              data: [{ id: 'troupe-1', name: 'Troupe', slug: 'troupe' }],
+              data: [{
+                id: 'troupe-1',
+                name: 'Troupe',
+                slug: 'troupe',
+                membership: {
+                  id: 'm-1',
+                  displayName: 'Test',
+                  status: 'ACTIVE',
+                  createdAt: '',
+                  updatedAt: '',
+                },
+              }],
             }),
+          },
+        },
+        {
+          provide: SeasonApiService,
+          useValue: {
             getSeasonBySlug: vi.fn().mockResolvedValue({
               ok: true,
               status: 200,

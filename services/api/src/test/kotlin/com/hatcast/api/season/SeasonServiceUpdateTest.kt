@@ -1,6 +1,7 @@
 package com.hatcast.api.season
 
 import com.hatcast.api.season.dto.UpdateSeasonRequest
+import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeRepository
@@ -39,9 +40,11 @@ class SeasonServiceUpdateTest {
             slug = "troupe-slug",
         )
 
+    private val principal = TestAuthSupport.testPrincipal()
+
     @BeforeEach
     fun setup() {
-        doNothing().whenever(troupeAccess).requireCanManageTroupe(any())
+        doNothing().whenever(troupeAccess).requireCanManageTroupe(any(), any())
         whenever(seasonRepository.save(any())).thenAnswer { it.getArgument(0) }
         whenever(seasonRepository.existsByTroupe_IdAndSlugAndIdNot(any(), any(), any())).thenReturn(false)
     }
@@ -65,7 +68,7 @@ class SeasonServiceUpdateTest {
     fun `update leaves fields when body empty`() {
         val s = baseSeason()
         stubFind(s)
-        val out = service.update(seasonId, UpdateSeasonRequest())
+        val out = service.update(seasonId, UpdateSeasonRequest(), principal)
         assertEquals("Old Title", out.title)
         assertEquals("Description initiale", out.description)
         assertEquals(LocalDate.of(2026, 6, 1), out.startDate)
@@ -80,6 +83,7 @@ class SeasonServiceUpdateTest {
             service.update(
                 seasonId,
                 UpdateSeasonRequest(description = JsonNullable.of(null)),
+                principal,
             )
         assertNull(out.description)
     }
@@ -92,6 +96,7 @@ class SeasonServiceUpdateTest {
             service.update(
                 seasonId,
                 UpdateSeasonRequest(description = JsonNullable.of("  hello  ")),
+                principal,
             )
         assertEquals("hello", out.description)
     }
@@ -107,6 +112,7 @@ class SeasonServiceUpdateTest {
                     startDate = JsonNullable.of(null),
                     endDate = JsonNullable.of(null),
                 ),
+                principal,
             )
         assertNull(out.startDate)
         assertNull(out.endDate)
@@ -117,7 +123,7 @@ class SeasonServiceUpdateTest {
         stubFind(baseSeason())
         val ex =
             assertThrows<ResponseStatusException> {
-                service.update(seasonId, UpdateSeasonRequest(title = JsonNullable.of(null)))
+                service.update(seasonId, UpdateSeasonRequest(title = JsonNullable.of(null)), principal)
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
     }
@@ -127,7 +133,7 @@ class SeasonServiceUpdateTest {
         stubFind(baseSeason())
         val ex =
             assertThrows<ResponseStatusException> {
-                service.update(seasonId, UpdateSeasonRequest(title = JsonNullable.of("   ")))
+                service.update(seasonId, UpdateSeasonRequest(title = JsonNullable.of("   ")), principal)
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
     }
@@ -140,6 +146,7 @@ class SeasonServiceUpdateTest {
                 service.update(
                     seasonId,
                     UpdateSeasonRequest(title = JsonNullable.of("x".repeat(256))),
+                    principal,
                 )
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
@@ -153,6 +160,7 @@ class SeasonServiceUpdateTest {
                 service.update(
                     seasonId,
                     UpdateSeasonRequest(description = JsonNullable.of("x".repeat(4001))),
+                    principal,
                 )
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
@@ -167,6 +175,7 @@ class SeasonServiceUpdateTest {
                 service.update(
                     seasonId,
                     UpdateSeasonRequest(endDate = JsonNullable.of(LocalDate.of(2026, 1, 1))),
+                    principal,
                 )
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
@@ -180,6 +189,7 @@ class SeasonServiceUpdateTest {
             service.update(
                 seasonId,
                 UpdateSeasonRequest(title = JsonNullable.of("Nouvelle saison théâtre")),
+                principal,
             )
         assertEquals("Nouvelle saison théâtre", out.title)
         assertEquals("nouvelle-saison-theatre", out.slug)

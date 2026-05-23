@@ -1,5 +1,6 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.dto.CreateEventRequest
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.event.dto.PagedEventsResponse
@@ -34,12 +35,13 @@ class EventService(
         page: Int,
         size: Int,
         scope: EventListScope,
+        principal: SessionUserPrincipal,
     ): PagedEventsResponse {
         val season =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireCanManageTroupe(season.troupe.id)
+        troupeAccess.requireActiveMember(principal, season.troupe.id)
         if (size < 1 || size > 100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "size doit être entre 1 et 100")
         }
@@ -69,12 +71,13 @@ class EventService(
     fun create(
         seasonId: UUID,
         body: CreateEventRequest,
+        principal: SessionUserPrincipal,
     ): EventResponseDto {
         val season =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireCanManageTroupe(season.troupe.id)
+        troupeAccess.requireCanManageTroupe(principal, season.troupe.id)
         val titleTrim = body.title.trim()
         val templateType = body.templateType?.trim()?.takeIf { it.isNotEmpty() } ?: EventTypes.DEFAULT_CREATE
         EventTypes.requireValid(templateType)
@@ -110,9 +113,10 @@ class EventService(
         seasonId: UUID,
         eventId: UUID,
         body: UpdateEventRequest,
+        principal: SessionUserPrincipal,
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
-        troupeAccess.requireCanManageTroupe(e.season.troupe.id)
+        troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
         if (body.title.isPresent) {
             val rawTitle = body.title.get()
             if (rawTitle == null) {
@@ -189,9 +193,10 @@ class EventService(
     fun archive(
         seasonId: UUID,
         eventId: UUID,
+        principal: SessionUserPrincipal,
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
-        troupeAccess.requireCanManageTroupe(e.season.troupe.id)
+        troupeAccess.requireCanManageTroupe(principal, e.season.troupe.id)
         e.archived = true
         e.updatedAt = Instant.now()
         return EventResponseDto.from(eventRepository.save(e))

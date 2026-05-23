@@ -3,6 +3,7 @@ package com.hatcast.api.event
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
+import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeEntity
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -31,9 +32,11 @@ class EventServiceUpdateTest {
     private val seasonId = UUID.fromString("22222222-2222-2222-2222-222222222222")
     private val eventId = UUID.fromString("33333333-3333-3333-3333-333333333333")
 
+    private val principal = TestAuthSupport.testPrincipal()
+
     @BeforeEach
     fun setup() {
-        doNothing().whenever(troupeAccess).requireCanManageTroupe(any())
+        doNothing().whenever(troupeAccess).requireCanManageTroupe(any(), any())
         whenever(eventRepository.save(any())).thenAnswer { it.getArgument(0) }
     }
 
@@ -70,6 +73,7 @@ class EventServiceUpdateTest {
             seasonId,
             eventId,
             UpdateEventRequest(description = JsonNullable.of(null)),
+            principal,
         )
 
         assertNull(event.description)
@@ -84,6 +88,7 @@ class EventServiceUpdateTest {
             seasonId,
             eventId,
             UpdateEventRequest(location = JsonNullable.of(null)),
+            principal,
         )
 
         assertNull(event.location)
@@ -100,6 +105,7 @@ class EventServiceUpdateTest {
                     seasonId,
                     eventId,
                     UpdateEventRequest(title = JsonNullable.of(null)),
+                    principal,
                 )
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
@@ -116,6 +122,7 @@ class EventServiceUpdateTest {
                     seasonId,
                     eventId,
                     UpdateEventRequest(startsAt = JsonNullable.of(null)),
+                    principal,
                 )
             }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)

@@ -27,6 +27,14 @@ inputDocuments:
   - PLAN.md
   - AGENTS.md
 workflowType: prd
+lastEdited: '2026-05-23'
+editHistory:
+  - date: '2026-05-23'
+    workflow: bmad-validate-prd
+    changes: 'Fix Executive Summary typo non-meimportmbers → non-members'
+  - date: '2026-05-23'
+    workflow: bmad-edit-prd
+    changes: 'Add FR42 troupe member CSV import/export, NFR-S4 data safety, MVP admin journey, migration note (Correct Course 2026-05-23)'
 documentCounts:
   briefCount: 1
   researchCount: 0
@@ -55,12 +63,14 @@ The underlying need is not "another signup form" but **trust and clarity** when 
 
 ## Project Classification
 
-| Dimension | Value |
-|-----------|--------|
-| **Project type** | **Web application** — SPA + PWA, browser-first, responsive |
-| **Domain** | **General software** (non-regulated vertical); product sub-domain: **live performance / improvisation troupe coordination** |
-| **Complexity (regulatory / compliance)** | **Low** — standard security, privacy, UX, and performance expectations; no default assumption of HIPAA/PCI-style regimes |
-| **Project context** | **Brownfield** — existing production system and repository documentation; PRD informs evolution and rewrite planning without replacing normative repo specs by default |
+
+| Dimension                                | Value                                                                                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project type**                         | **Web application** — SPA + PWA, browser-first, responsive                                                                                                             |
+| **Domain**                               | **General software** (non-regulated vertical); product sub-domain: **live performance / improvisation troupe coordination**                                            |
+| **Complexity (regulatory / compliance)** | **Low** — standard security, privacy, UX, and performance expectations; no default assumption of HIPAA/PCI-style regimes                                               |
+| **Project context**                      | **Brownfield** — existing production system and repository documentation; PRD informs evolution and rewrite planning without replacing normative repo specs by default |
+
 
 ## Success Criteria
 
@@ -132,11 +142,11 @@ Must preserve and stabilize what **SPEC** marks as **Must have** today: seasons/
 
 **Opening:** Amira gère la structure de la saison : types de spectacles, rôles requis, organisateurs par spectacle.
 
-**Rising action:** Elle crée/édite des **spectacles**, assigne des **permissions** (saison / spectacle), et règle un cas où une organisatrice a **modifié la dispo** d’un membre : elle consulte la **piste d’audit** (acteur vs sujet, horodatage).
+**Rising action:** Elle crée/édite des **spectacles**, assigne des **permissions** (saison / spectacle), **importe ou exporte la liste des membres** (CSV documenté) pour migrer depuis HatCast V1, initialiser une nouvelle troupe, ou déplacer des membres entre troupes, et règle un cas où une organisatrice a **modifié la dispo** d’un membre : elle consulte la **piste d’audit** (acteur vs sujet, horodatage).
 
 **Climax:** Elle peut expliquer à la troupe *qui* a fait *quoi*, sans ambiguïté.
 
-**Resolution:** Gouvernance acceptable pour une communauté bénévole. **Requirements surfaced:** admin UI, rôles et granularité, audit consultable, cohérence avec règles Firestore / permissions.
+**Resolution:** Gouvernance acceptable pour une communauté bénévole. **Requirements surfaced:** admin UI, rôles et granularité, import/export membres CSV (migration V1→V2 et réutilisation inter-troupes), audit consultable, cohérence avec le modèle de permissions V2.
 
 ### 4) Julien — Anonymous visitor (directory → public discovery)
 
@@ -275,7 +285,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 - **CORS:** The SPA origin(s) for each environment (e.g. Cloud Run URL when the SPA is served from the same service, or GitHub Pages URL) must be allowed to call the API; build-time configuration of API base URL per environment.
 - **Secrets:** GitHub Actions authenticates to GCP for deploy; runtime secrets in GCP (Secret Manager or equivalent).
-- **Migration from V1:** `ARCH.md` describes **Firebase**; this section describes the **target** stack. Migration (data, auth cutover, replacing FCM-based flows with Web Push) is a **program**, not a single PRD bullet.
+- **Migration from V1:** `ARCH.md` describes **Firebase**; this section describes the **target** stack. Migration (data, auth cutover, replacing FCM-based flows with Web Push) is a **program**, not a single PRD bullet. **Troupe member onboarding** for cutover includes a **documented CSV import/export** path (FR42) so administrators can migrate member lists from HatCast V1 and reuse the capability for troupe-to-troupe moves or rapid troupe initialization.
 
 ### REST API Expectations (product-level)
 
@@ -295,7 +305,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 
 - Troupe **member**: sign in (Google or email/password, reset, long session), set availability, view composition and odds where the product surfaces them, confirm or decline participation, receive **web push** (opt-in).
 - **Organizer**: compose and validate lineups, handle gaps and withdrawals using manual or partial draw paths as scoped for MVP.
-- **Admin**: administer seasons, events, and members within the permission model; consult **audit** trails for sensitive actions where implemented.
+- **Admin**: administer seasons, events, and members within the permission model; **export and import troupe member lists** (documented CSV) when authorized—to support HatCast V1→V2 migration, troupe-to-troupe moves, or rapid initialization of a new troupe; consult **audit** trails for sensitive actions where implemented.
 - **Visitor** (as scoped for MVP): **public discovery** of troupes and public seasons/events per freemium rules—or a **deliberately reduced** surface if the program stages cutover (**delivery decision**).
 
 **Must-Have Capabilities:**
@@ -305,6 +315,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 - **PWA:** manifest and service worker with **automatic update** behaviour after deploy.
 - **Web Push:** opt-in, server-side subscription storage, send path integrated with the backend.
 - **Core domain:** seasons, events, players, availability, weighted draw / cast workflow, confirmations—aligned with SPEC intent, delivered on the new stack (full **UI parity** with legacy is not assumed for the first cut).
+- **Troupe member import/export (MVP-enabling):** authorized administrators can export and import troupe member lists in a documented CSV format to support V1→V2 cutover and ongoing troupe administration (FR42).
 
 ### Post-MVP Features
 
@@ -341,6 +352,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 - FR6: A user can belong to a troupe as a member with a member profile for that troupe.
 - FR7: A troupe administrator can manage which users are members and their baseline roles for that troupe, within the permission model.
 - FR8: A user can navigate between troupes they belong to (when multiple membership exists).
+- FR42: A troupe administrator can export and import troupe member lists in a documented CSV format, within the permission model, to support HatCast V1-to-V2 migration, migration from one troupe to another, and rapid initialization of a new troupe.
 
 ### Profile & representation
 
@@ -420,6 +432,7 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 - **NFR-S1:** Credentials and session tokens are protected in transit (TLS) and handled on client and server according to current best practices.
 - **NFR-S2:** Personal data (email, avatar, troupe display names, participation data) is exposed only to identities and roles allowed by the permission model.
 - **NFR-S3:** Account deletion and personal-data handling support expectations for EU users (e.g. GDPR-oriented processes at the organizational level—detailed in privacy policy and operations).
+- **NFR-S4:** Member import/export handles personal data safely: only authorized administrators can access it; exports include only documented fields; imports validate input before persistence; import results expose actionable row-level outcomes without leaking data to unauthorized users.
 
 ### Reliability & operations
 
@@ -437,3 +450,4 @@ Users must be able to sign in with **Google** or **email + password**. Required 
 ### Integration
 
 - **NFR-I1:** Google sign-in and email used for password reset integrate reliably with provider behaviour; failures surface clearly to the user.
+

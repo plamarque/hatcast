@@ -1,9 +1,11 @@
 package com.hatcast.api.season
 
+import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.season.dto.CreateSeasonRequest
 import com.hatcast.api.season.dto.SeasonResponseDto
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -24,38 +26,45 @@ class SeasonController(
         @PathVariable troupeId: UUID,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
-    ) = seasonService.listForTroupe(troupeId, page, size)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) = seasonService.listForTroupe(troupeId, page, size, principal)
 
     @PostMapping("/troupes/{troupeId}/seasons")
     fun create(
         @PathVariable troupeId: UUID,
         @Valid @RequestBody body: CreateSeasonRequest,
-    ): SeasonResponseDto = seasonService.create(troupeId, body)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonResponseDto = seasonService.create(troupeId, body, principal)
 
     @GetMapping("/troupes/{troupeId}/seasons/by-slug/{slug}")
     fun getBySlug(
         @PathVariable troupeId: UUID,
         @PathVariable slug: String,
-    ): SeasonResponseDto = seasonService.getByTroupeIdAndSlug(troupeId, slug)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonResponseDto = seasonService.getByTroupeIdAndSlug(troupeId, slug, principal)
 
     @GetMapping("/seasons/{seasonId}")
     fun get(
         @PathVariable seasonId: UUID,
-    ): SeasonResponseDto = seasonService.getById(seasonId)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonResponseDto = seasonService.getById(seasonId, principal)
 
     @PatchMapping("/seasons/{seasonId}")
     fun update(
         @PathVariable seasonId: UUID,
         @Valid @RequestBody body: UpdateSeasonRequest,
-    ): SeasonResponseDto = seasonService.update(seasonId, body)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonResponseDto = seasonService.update(seasonId, body, principal)
 
     @PostMapping("/seasons/{seasonId}/actions/archive")
     fun archive(
         @PathVariable seasonId: UUID,
-    ): SeasonResponseDto = seasonService.archive(seasonId)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonResponseDto = seasonService.archive(seasonId, principal)
 
     @PostMapping("/seasons/{seasonId}/actions/activate")
     fun activate(
         @PathVariable seasonId: UUID,
-    ): SeasonResponseDto = seasonService.activate(seasonId)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): SeasonResponseDto = seasonService.activate(seasonId, principal)
 }

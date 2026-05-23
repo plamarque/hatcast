@@ -1,11 +1,13 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.event.dto.CreateEventRequest
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.event.dto.PagedEventsResponse
 import com.hatcast.api.event.dto.UpdateEventRequest
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -28,6 +30,7 @@ class EventController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
         @RequestParam(defaultValue = "all") scope: String,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): PagedEventsResponse {
         val s =
             when (scope.lowercase()) {
@@ -39,25 +42,28 @@ class EventController(
                         "scope doit être all ou upcoming",
                     )
             }
-        return eventService.listForSeason(seasonId, page, size, s)
+        return eventService.listForSeason(seasonId, page, size, s, principal)
     }
 
     @PostMapping
     fun create(
         @PathVariable seasonId: UUID,
         @Valid @RequestBody body: CreateEventRequest,
-    ): EventResponseDto = eventService.create(seasonId, body)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.create(seasonId, body, principal)
 
     @PatchMapping("/{eventId}")
     fun update(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
         @Valid @RequestBody body: UpdateEventRequest,
-    ): EventResponseDto = eventService.update(seasonId, eventId, body)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.update(seasonId, eventId, body, principal)
 
     @PostMapping("/{eventId}/actions/archive")
     fun archive(
         @PathVariable seasonId: UUID,
         @PathVariable eventId: UUID,
-    ): EventResponseDto = eventService.archive(seasonId, eventId)
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.archive(seasonId, eventId, principal)
 }

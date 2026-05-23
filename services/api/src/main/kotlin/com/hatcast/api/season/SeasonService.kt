@@ -1,5 +1,6 @@
 package com.hatcast.api.season
 
+import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.season.dto.CreateSeasonRequest
 import com.hatcast.api.season.dto.PagedSeasonsResponse
 import com.hatcast.api.season.dto.SeasonResponseDto
@@ -26,8 +27,9 @@ class SeasonService(
         troupeId: UUID,
         page: Int,
         size: Int,
+        principal: SessionUserPrincipal,
     ): PagedSeasonsResponse {
-        troupeAccess.requireCanManageTroupe(troupeId)
+        troupeAccess.requireActiveMember(principal, troupeId)
         if (size < 1 || size > 100) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "size doit être entre 1 et 100")
         }
@@ -49,8 +51,9 @@ class SeasonService(
     fun create(
         troupeId: UUID,
         body: CreateSeasonRequest,
+        principal: SessionUserPrincipal,
     ): SeasonResponseDto {
-        troupeAccess.requireCanManageTroupe(troupeId)
+        troupeAccess.requireCanManageTroupe(principal, troupeId)
         validateDateRange(body.startDate, body.endDate)
         val troupe =
             troupeRepository
@@ -86,12 +89,15 @@ class SeasonService(
     }
 
     @Transactional(readOnly = true)
-    fun getById(seasonId: UUID): SeasonResponseDto {
+    fun getById(
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): SeasonResponseDto {
         val s =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireCanManageTroupe(s.troupe.id)
+        troupeAccess.requireActiveMember(principal, s.troupe.id)
         return SeasonResponseDto.from(s)
     }
 
@@ -99,8 +105,9 @@ class SeasonService(
     fun getByTroupeIdAndSlug(
         troupeId: UUID,
         slug: String,
+        principal: SessionUserPrincipal,
     ): SeasonResponseDto {
-        troupeAccess.requireCanManageTroupe(troupeId)
+        troupeAccess.requireActiveMember(principal, troupeId)
         val s =
             seasonRepository.findByTroupe_IdAndSlug(troupeId, slug)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue")
@@ -111,12 +118,13 @@ class SeasonService(
     fun update(
         seasonId: UUID,
         body: UpdateSeasonRequest,
+        principal: SessionUserPrincipal,
     ): SeasonResponseDto {
         val s =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireCanManageTroupe(s.troupe.id)
+        troupeAccess.requireCanManageTroupe(principal, s.troupe.id)
         if (body.title.isPresent) {
             val rawTitle = body.title.get()
             if (rawTitle == null) {
@@ -173,12 +181,15 @@ class SeasonService(
     }
 
     @Transactional
-    fun archive(seasonId: UUID): SeasonResponseDto {
+    fun archive(
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): SeasonResponseDto {
         val s =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireCanManageTroupe(s.troupe.id)
+        troupeAccess.requireCanManageTroupe(principal, s.troupe.id)
         s.archived = true
         s.isActive = false
         s.updatedAt = Instant.now()
@@ -186,12 +197,15 @@ class SeasonService(
     }
 
     @Transactional
-    fun activate(seasonId: UUID): SeasonResponseDto {
+    fun activate(
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ): SeasonResponseDto {
         val s =
             seasonRepository
                 .findById(seasonId)
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
-        troupeAccess.requireCanManageTroupe(s.troupe.id)
+        troupeAccess.requireCanManageTroupe(principal, s.troupe.id)
         if (s.archived) {
             throw ResponseStatusException(
                 HttpStatus.CONFLICT,

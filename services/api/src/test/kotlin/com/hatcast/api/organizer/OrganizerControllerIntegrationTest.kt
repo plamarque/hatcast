@@ -9,6 +9,7 @@ import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
 import com.hatcast.api.troupe.TroupeEntity
 import com.hatcast.api.troupe.TroupeRepository
+import com.hatcast.api.support.TestAuthSupport
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -94,7 +95,10 @@ class OrganizerControllerIntegrationTest {
                 .andReturn()
         val root = mapper.readTree(result.response.contentAsString)
         return SessionFixture(
-            cookie = result.response.getCookie("HATCAST_SESSION")!!,
+            cookie =
+                result.response.getCookie("HATCAST_SESSION")!!.also { cookie ->
+                    TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+                },
             userId = root.path("user").path("id").asText(),
         )
     }
@@ -307,6 +311,13 @@ class OrganizerControllerIntegrationTest {
     fun `permissions endpoint exposes organizer flags for non seed seasons without failing`() {
         val user = signIn("org-manager-5", "manager-5@example.com", "Manager Five")
         val season = createNonSeedSeason()
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/${season.troupe.id}/memberships/me")
+                    .cookie(user.cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
 
         mockMvc
             .perform(get("/v1/seasons/${season.id}/permissions/me").cookie(user.cookie))

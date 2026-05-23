@@ -14,6 +14,8 @@ import {
   type SeasonResponse,
   SeasonApiService,
 } from '../../core/seasons/season-api.service'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
+import { environment } from '../../../environments/environment'
 import { ConfirmDialog, type ConfirmDialogData } from './confirm-dialog'
 import { SeasonFormDialog, type SeasonFormDialogData } from './season-form-dialog'
 
@@ -39,12 +41,15 @@ const PAGE_SIZE = 20
 export class SeasonsList implements OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly api = inject(SeasonApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
 
   protected readonly loadingSession = signal(true)
   protected readonly loadingList = signal(false)
+  protected readonly joiningDemo = signal(false)
+  protected readonly hasMembership = signal(false)
   protected readonly seasons = signal<SeasonResponse[]>([])
   protected readonly troupeId = signal<string | null>(null)
   protected readonly totalElements = signal(0)
@@ -66,14 +71,41 @@ export class SeasonsList implements OnInit {
     await this.loadTroupeAndSeasons(0)
   }
 
-  protected async loadTroupeAndSeasons(page: number): Promise<void> {
-    this.loadingList.set(true)
-    const tr = await this.api.listTroupes()
-    if (!tr.ok || !tr.data?.length) {
-      this.loadingList.set(false)
-      this.snack.open('Impossible de charger les troupes.', 'OK', { duration: 6000 })
+  protected async joinDemoTroupe(): Promise<void> {
+    const demoId = environment.demoTroupeId
+    if (!demoId) {
+      this.snack.open('Troupe de démonstration indisponible.', 'OK', { duration: 6000 })
       return
     }
+    this.joiningDemo.set(true)
+    const jr = await this.troupeApi.joinTroupe(demoId)
+    this.joiningDemo.set(false)
+    if (!jr.ok) {
+      this.snack.open('Impossible de rejoindre la troupe de démonstration.', 'OK', { duration: 6000 })
+      return
+    }
+    this.snack.open('Vous avez rejoint la troupe de démonstration.', 'OK', { duration: 4000 })
+    await this.loadTroupeAndSeasons(0)
+  }
+
+  protected async loadTroupeAndSeasons(page: number): Promise<void> {
+    this.loadingList.set(true)
+    const tr = await this.troupeApi.listMyTroupes()
+    if (!tr.ok) {
+      this.loadingList.set(false)
+      this.hasMembership.set(false)
+      this.snack.open('Impossible de charger vos troupes.', 'OK', { duration: 6000 })
+      return
+    }
+    if (!tr.data?.length) {
+      this.hasMembership.set(false)
+      this.troupeId.set(null)
+      this.seasons.set([])
+      this.totalElements.set(0)
+      this.loadingList.set(false)
+      return
+    }
+    this.hasMembership.set(true)
     const tid = tr.data[0].id
     this.troupeId.set(tid)
     const sr = await this.api.listSeasons(tid, page, PAGE_SIZE)

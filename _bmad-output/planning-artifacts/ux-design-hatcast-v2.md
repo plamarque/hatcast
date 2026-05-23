@@ -742,7 +742,7 @@ Stakeholders expect administrators (and roles defined in SPEC) to be able to:
 
 | Area | Capability |
 |------|------------|
-| **Membres** | **Manage members** of the troupe/season: invite, remove or deactivate, assign **roles** (organisateur, admin, membre, … — exact set in DOMAIN/SPEC). |
+| **Membres** | **Manage members** of the troupe/season: invite, remove or deactivate, assign **roles** (organisateur, admin, membre, … — exact set in DOMAIN/SPEC). **Export and import** member lists as **documented CSV** (FR42) for V1→V2 migration, troupe-to-troupe moves, or rapid troupe initialization — admin-only; row-level import results (NFR-S4). |
 | **Spectacles** | **Manage spectacles** (CRUD, dates, types, venues, status) for the relevant scope (season / troupe). |
 | **Troupe & saisons** | **Manage troupe** identity and **seasons**: create, rename, archive; **at most one season active at a time** for a given troupe context (activate/deactivate explicitly—rules in DOMAIN/SPEC). |
 
@@ -751,6 +751,7 @@ Stakeholders expect administrators (and roles defined in SPEC) to be able to:
 - [ ] All three capability areas are **reachable** from admin navigation (exact IA left to implementation).
 - [ ] **Single active season** is **enforced** in UI and API; switching active season is **explicit** and **auditable** if required by SPEC.
 - [ ] Member **role** changes are **permission-gated** and **consistent** with in-app behaviour (organizer/admin powers elsewhere in this document).
+- [ ] **CSV import/export** (FR42) is reachable from the **Membres** admin area; import shows **per-row outcomes** without exposing personal data to unauthorized users.
 
 ---
 

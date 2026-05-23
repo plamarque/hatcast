@@ -62,6 +62,7 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - FR39: An invited non-member can submit availability for the invited scope without being subject to the same default draw rules as full members when the troupe configures alternative selection modes (e.g. organizer pick, last-resort/joker).
 - FR40: A user can install or add the web application for quick access on supported platforms (PWA installability).
 - FR41: After the organization deploys a new client version, users receive updated client behaviour without being expected to perform a technical manual cache-clear as the only remedy.
+- FR42: A troupe administrator can export and import troupe member lists in a documented CSV format, within the permission model, to support HatCast V1-to-V2 migration, migration from one troupe to another, and rapid initialization of a new troupe.
 
 ### NonFunctional Requirements
 
@@ -70,6 +71,7 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 - **NFR-S1:** Credentials and session tokens are protected in transit (TLS) and handled on client and server according to current best practices.
 - **NFR-S2:** Personal data (email, avatar, troupe display names, participation data) is exposed only to identities and roles allowed by the permission model.
 - **NFR-S3:** Account deletion and personal-data handling support expectations for EU users (e.g. GDPR-oriented processes at the organizational level—detailed in privacy policy and operations).
+- **NFR-S4:** Member import/export handles personal data safely: only authorized administrators can access it; exports include only documented fields; imports validate input before persistence; import results expose actionable row-level outcomes without leaking data to unauthorized users.
 - **NFR-R1:** For each environment (**development**, **staging**, **production**), **frontend and backend** deploy together so client and API versions do not drift unintentionally.
 - **NFR-R2:** Asynchronous delivery (web push, email) fails gracefully: failures are observable and do not leave core domain state inconsistent.
 - **NFR-SC1:** The system supports growth from a small number of troupes to a larger base without a redesign of core domain partitioning (horizontal scaling details are architectural).
@@ -111,7 +113,7 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 | FR | Epic | Résumé |
 |----|------|--------|
 | FR1–FR5, FR36–FR37 | Epic 1 | Auth, session, compte |
-| FR6–FR10 | Epic 2 | Troupes, membres, profil |
+| FR6–FR10, FR42 | Epic 2 | Troupes, membres, profil, import/export CSV |
 | FR11–FR14, FR34, FR13 | Epic 3 | Saisons, spectacles, orga |
 | FR32–FR33 | Epic 4 | Public / visiteurs |
 | FR15–FR19 | Epic 5 | Disponibilités |
@@ -121,7 +123,7 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 | FR35 | Epic 9 | Audit |
 | FR40–FR41 | Epic 10 | PWA et mises à jour client |
 
-**NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10 ; NFR-S1/S2/S3 — Epics 1, 2, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9 (UI) ; NFR-I1 — Epic 1.
+**NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10 ; NFR-S1/S2/S3/S4 — Epics 1, 2, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9 (UI) ; NFR-I1 — Epic 1.
 
 **UX-DR :** UX-DR1–3 → Epics 3, 5 ; UX-DR4–7 → Epic 6 ; UX-DR5 aussi Epic 5 ; UX-DR8–9 → Epics 5, 6 ; UX-DR10 → Epics 2, 3 ; UX-DR11 → transverse (tous epics UI).
 
@@ -135,9 +137,9 @@ Les utilisateurs peuvent **créer un compte** et se connecter (**Google** ou **e
 
 ### Epic 2 — Troupes, adhésion et profil membre
 
-Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, navigation entre troupes, pseudo par troupe et avatar (y compris image Google).
+Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des membres et rôles de base par les admins, **import/export CSV des membres** (migration V1→V2 et administration), navigation entre troupes, pseudo par troupe et avatar (y compris image Google).
 
-**FRs couverts :** FR6, FR7, FR8, FR9, FR10
+**FRs couverts :** FR6, FR7, FR8, FR9, FR10, FR42
 
 ### Epic 3 — Saisons, spectacles et gouvernance organisateur
 
@@ -337,7 +339,27 @@ afin de contrôler qui accède à quoi au sein de la troupe.
 
 ---
 
-#### Story 2.3 : Navigation entre troupes
+#### Story 2.3 : Import/export CSV des membres de troupe
+
+En tant qu’administrateur de troupe,  
+je veux exporter et importer la liste des membres au format CSV documenté,  
+afin de migrer depuis HatCast V1, initialiser rapidement une nouvelle troupe, ou déplacer des membres entre troupes.
+
+**Acceptance Criteria**
+
+- **Given** des droits administrateur sur la troupe, **when** l’admin lance un export, **then** un fichier CSV est produit avec **uniquement** les champs documentés (contrat CSV — voir story) et sans données accessibles aux non-admins (NFR-S4).
+- **Given** un fichier CSV conforme au contrat, **when** l’admin lance un import, **then** les lignes valides créent ou mettent à jour les memberships selon les règles documentées ; les lignes invalides sont rejetées **sans** persister de données partielles incohérentes.
+- **Given** un import terminé, **when** l’admin consulte le résultat, **then** un rapport actionnable par ligne (succès, ignoré, erreur + motif) est affiché ; aucune fuite de données personnelles vers des utilisateurs non autorisés (NFR-S4).
+- **Given** une tentative par un utilisateur sans droits admin troupe, **when** export ou import est demandé, **then** l’action est refusée (403) avec retour API/UI cohérent (NFR-S2).
+- **Couverture :** FR42 ; UX-DR10 (surfaces admin membres) ; NFR-S2, NFR-S4.
+
+**Dépendances :** Story 2.1 (membership PostgreSQL) ; Story 2.2 recommandée (rôles de base et UI admin membres) avant livraison UI complète.
+
+**Notes :** Distinct de la story 3.6 (export CSV historique de participation). Le contrat CSV (colonnes, encodage, mapping V1) est documenté dans cette story et référencé depuis l’architecture.
+
+---
+
+#### Story 2.4 : Navigation entre troupes
 
 En tant que membre de plusieurs troupes,  
 je veux basculer de troupe en troupe,  
@@ -350,7 +372,7 @@ afin de gérer chaque contexte séparément.
 
 ---
 
-#### Story 2.4 : Pseudo affiché par troupe
+#### Story 2.5 : Pseudo affiché par troupe
 
 En tant que membre,  
 je veux définir un pseudo visible dans cette troupe,  
@@ -363,7 +385,7 @@ afin d’être reconnu avec le nom d’usage de la troupe.
 
 ---
 
-#### Story 2.5 : Avatar et option image de profil Google
+#### Story 2.6 : Avatar et option image de profil Google
 
 En tant qu’utilisateur,  
 je veux définir ou mettre à jour mon avatar, y compris utiliser la photo du compte Google si je me connecte ainsi,  
@@ -377,7 +399,7 @@ afin d’être visuellement identifié dans l’interface.
 
 ---
 
-#### Story 2.6 : Popover profil membre (stats saison, grille mensuelle, rôles favoris)
+#### Story 2.7 : Popover profil membre (stats saison, grille mensuelle, rôles favoris)
 
 En tant que membre,  
 je veux ouvrir un aperçu profil depuis un avatar avec statistiques de saison, grille mensuelle et rôles favoris, avec un accès rapide au planning,  

@@ -13,6 +13,7 @@ import {
   EventApiService,
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import {
   OrganizerApiService,
   type MySeasonPermissions,
@@ -59,6 +60,7 @@ const FETCH_PAGE_SIZE = 50
 export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly seasonsApi = inject(SeasonApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
@@ -159,13 +161,13 @@ export class SeasonHome implements OnDestroy, OnInit {
     }
     this.resetSeasonState()
     this.loadingSeason.set(true)
-    const tr = await this.seasonsApi.listTroupes()
+    const tr = await this.troupeApi.listMyTroupes()
     if (requestId !== this.seasonLoadRequestId) {
       return
     }
     if (!tr.ok || !tr.data?.length) {
       this.loadingSeason.set(false)
-      this.snack.open('Impossible de charger les troupes.', 'OK', { duration: 6000 })
+      this.snack.open('Vous n’appartenez à aucune troupe.', 'OK', { duration: 6000 })
       return
     }
     const troupe = tr.data[0]

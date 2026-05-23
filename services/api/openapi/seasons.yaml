@@ -2,10 +2,12 @@ openapi: 3.0.3
 info:
   title: HatCast API — Troupes et saisons (fragment)
   description: >
-    Contrat pour la gestion des troupes (seed) et des saisons V2 (Postgres, session cookie).
+    Contrat pour la gestion des troupes, adhésions membres et saisons V2 (Postgres, session cookie).
+    `GET /troupes` retourne uniquement les troupes où l'utilisateur connecté a une adhésion active.
     Pagination liste : paramètres `page` (0-based) et `size` (défaut côté client 20, max 100 côté API).
     Les mutations exigent le cookie de session et l’en-tête CSRF `X-XSRF-TOKEN` (voir Spring Security).
-    Ce fragment pourra être fusionné dans un OpenAPI global `/v1`.
+    Gestion provisoire (seed) : un membre actif de la troupe seed peut créer/modifier saisons et événements
+    jusqu’à l’Epic 2 Story 2.2 (rôles de base).
   version: 0.1.0
 
 servers:
@@ -23,18 +25,72 @@ paths:
   /troupes:
     get:
       tags: [Troupes]
-      summary: Liste des troupes visibles pour l’admin (seed pour l’instant)
+      summary: Liste des troupes où l'utilisateur est membre actif
       security:
         - cookieAuth: []
       responses:
         '200':
-          description: OK
+          description: OK (tableau vide si aucune adhésion active)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/TroupeListItem'
+        '401':
+          description: Non authentifié
+
+  /troupes/{troupeId}/memberships/me:
+    get:
+      tags: [Troupes]
+      summary: Adhésion de l'utilisateur courant à une troupe
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipSummary'
+        '404':
+          description: Pas membre actif de cette troupe
+        '403':
+          description: Accès refusé
+
+    post:
+      tags: [Troupes]
+      summary: Rejoindre une troupe (adhésion active pour l'utilisateur courant)
+      description: >
+        Idempotent : une seconde invocation réactive ou retourne l'adhésion existante.
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Adhésion créée ou déjà active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipSummary'
+        '404':
+          description: Troupe inconnue
+        '403':
+          description: Accès refusé
 
   /troupes/{troupeId}/seasons:
     get:
@@ -70,7 +126,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PagedSeasons'
         '403':
-          description: Troupe non autorisée pour ce compte (règle seed / epic-2)
+          description: Utilisateur non membre actif de la troupe
 
     post:
       tags: [Saisons]
@@ -321,6 +377,7 @@ components:
   schemas:
     TroupeListItem:
       type: object
+      required: [id, name, slug, membership]
       properties:
         id:
           type: string
@@ -329,6 +386,27 @@ components:
           type: string
         slug:
           type: string
+        membership:
+          $ref: '#/components/schemas/MembershipSummary'
+
+    MembershipSummary:
+      type: object
+      required: [id, displayName, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     Season:
       type: object

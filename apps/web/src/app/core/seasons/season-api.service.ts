@@ -2,12 +2,6 @@ import { Injectable } from '@angular/core'
 
 import { csrfHeaders } from '../http/hatcast-csrf'
 
-export interface TroupeListItem {
-  id: string
-  name: string
-  slug: string
-}
-
 export interface SeasonResponse {
   id: string
   troupeId: string
@@ -48,19 +42,6 @@ export interface UpdateSeasonBody {
 
 @Injectable({ providedIn: 'root' })
 export class SeasonApiService {
-  async listTroupes(): Promise<{ ok: boolean; status: number; data?: TroupeListItem[] }> {
-    try {
-      const res = await fetch('/v1/troupes', { credentials: 'include' })
-      if (!res.ok) {
-        return { ok: false, status: res.status }
-      }
-      const data = (await res.json()) as TroupeListItem[]
-      return { ok: true, status: res.status, data }
-    } catch {
-      return { ok: false, status: 0 }
-    }
-  }
-
   async getSeason(seasonId: string): Promise<{ ok: boolean; status: number; data?: SeasonResponse }> {
     try {
       const res = await fetch(`/v1/seasons/${encodeURIComponent(seasonId)}`, {

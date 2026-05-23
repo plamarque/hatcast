@@ -11,6 +11,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
+import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
 import { getEventTypeIcon } from '../../core/events/event-types'
 
@@ -31,6 +32,7 @@ const EVENT_DETAIL_PAGE_SIZE = 100
 export class EventDetailPlaceholder implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly seasonsApi = inject(SeasonApiService)
+  private readonly troupeApi = inject(TroupeApiService)
   private readonly eventsApi = inject(EventApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
@@ -82,7 +84,7 @@ export class EventDetailPlaceholder implements OnDestroy, OnInit {
       return
     }
 
-    const tr = await this.seasonsApi.listTroupes()
+    const tr = await this.troupeApi.listMyTroupes()
     if (requestId !== this.loadRequestId) {
       return
     }

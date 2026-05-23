@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-23T16:12:00Z"
+last_updated: "2026-05-23T18:00:00Z"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -52,13 +52,14 @@ development_status:
   1-7-suppression-de-compte: backlog
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-adhesion-a-une-troupe-et-profil-membre-minimal: backlog
+  epic-2: in-progress
+  2-1-adhesion-a-une-troupe-et-profil-membre-minimal: in-progress
   2-2-administration-des-membres-et-roles-de-base: backlog
-  2-3-navigation-entre-troupes: backlog
-  2-4-pseudo-affiche-par-troupe: backlog
-  2-5-avatar-et-option-image-de-profil-google: backlog
-  2-6-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: backlog
+  2-3-import-export-csv-des-membres-de-troupe: backlog
+  2-4-navigation-entre-troupes: backlog
+  2-5-pseudo-affiche-par-troupe: backlog
+  2-6-avatar-et-option-image-de-profil-google: backlog
+  2-7-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: backlog
   epic-2-retrospective: optional
 
   epic-3: in-progress

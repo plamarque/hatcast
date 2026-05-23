@@ -12,6 +12,28 @@
 
   @if (loadingSession()) {
     <p class="seasons__status" role="status">Vérification de la session…</p>
+  } @else if (!hasMembership() && !loadingList()) {
+    <section class="seasons__empty-membership" aria-labelledby="no-troupe-heading">
+      <h2 id="no-troupe-heading" class="seasons__empty-title">Aucune troupe pour l’instant</h2>
+      <p class="seasons__empty-text">
+        Pour accéder aux saisons, rejoins d’abord une troupe. En attendant le système d’invitations,
+        tu peux rejoindre la troupe de démonstration.
+      </p>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        [disabled]="joiningDemo()"
+        (click)="joinDemoTroupe()"
+      >
+        @if (joiningDemo()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          <mat-icon>group_add</mat-icon>
+        }
+        Rejoindre la troupe de démonstration
+      </button>
+    </section>
   } @else {
     <div class="seasons__cta">
       <button mat-flat-button color="primary" type="button" (click)="openCreate()">

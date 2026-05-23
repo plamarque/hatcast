@@ -40,6 +40,28 @@
   opacity: 0.9;
 }
 
+.seasons__empty-membership {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 28rem;
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.seasons__empty-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.seasons__empty-text {
+  margin: 0;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
 .seasons__spinner {
   display: flex;
   justify-content: center;

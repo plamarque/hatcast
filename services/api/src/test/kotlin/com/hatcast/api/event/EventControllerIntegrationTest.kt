@@ -2,6 +2,7 @@ package com.hatcast.api.event
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.support.TestAuthSupport
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -42,29 +43,14 @@ class EventControllerIntegrationTest {
 
     private val mapper = ObjectMapper()
 
-    private fun sessionCookieFromGoogleSignIn(googleSub: String): jakarta.servlet.http.Cookie {
-        val jwt =
-            Jwt
-                .withTokenValue("header.payload.sig")
-                .header("alg", "RS256")
-                .claim("sub", googleSub)
-                .claim("email", "event@example.com")
-                .claim("name", "Event Test")
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600))
-                .issuer("https://accounts.google.com")
-                .build()
-        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
-        val result =
-            mockMvc
-                .perform(
-                    post("/v1/auth/google")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"idToken":"fake","rememberMe":true}"""),
-                ).andExpect(status().isOk)
-                .andReturn()
-        return result.response.getCookie("HATCAST_SESSION")!!
-    }
+    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie =
+        TestAuthSupport.memberSessionCookieFromGoogleSignIn(
+            mockMvc,
+            googleIdTokenService,
+            googleSub,
+            email = "event@example.com",
+            name = "Event Test",
+        )
 
     private fun createSeasonForEventsTests(cookie: jakarta.servlet.http.Cookie): UUID {
         val createRes =
@@ -88,7 +74,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `season by slug and events crud list scopes`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-1")
+        val cookie = memberCookie("sub-event-1")
 
         mockMvc
             .perform(
@@ -170,7 +156,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `patch clears optional fields with explicit null`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-3")
+        val cookie = memberCookie("sub-event-3")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
 
@@ -214,7 +200,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `create event with cabaret type and role slots`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-4")
+        val cookie = memberCookie("sub-event-4")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
 
@@ -247,7 +233,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `create event rejects invalid template type`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-5")
+        val cookie = memberCookie("sub-event-5")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
 
@@ -270,7 +256,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `create event rejects invalid role count`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-6")
+        val cookie = memberCookie("sub-event-6")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
 
@@ -293,7 +279,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `seed season events expose templateType after migration`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-7")
+        val cookie = memberCookie("sub-event-7")
         mockMvc
             .perform(
                 get("/v1/seasons/$seedSeasonId/events?page=0&size=1&scope=all").cookie(cookie),
@@ -304,7 +290,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `patch updates templateType and roleSlots`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-8")
+        val cookie = memberCookie("sub-event-8")
         val seasonId = createSeasonForEventsTests(cookie)
         val future = Instant.parse("2030-06-15T18:00:00Z")
 
@@ -350,7 +336,7 @@ class EventControllerIntegrationTest {
 
     @Test
     fun `invalid scope returns 400`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-event-2")
+        val cookie = memberCookie("sub-event-2")
         val seasonId = createSeasonForEventsTests(cookie)
         mockMvc
             .perform(

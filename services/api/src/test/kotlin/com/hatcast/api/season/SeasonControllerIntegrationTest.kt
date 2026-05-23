@@ -2,6 +2,7 @@ package com.hatcast.api.season
 
 import com.hatcast.api.auth.GoogleIdTokenService
 import com.hatcast.api.auth.IdpIdTokenVerifier
+import com.hatcast.api.support.TestAuthSupport
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -41,40 +42,20 @@ class SeasonControllerIntegrationTest {
 
     private val seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001")
 
-    private fun sessionCookieFromGoogleSignIn(googleSub: String): jakarta.servlet.http.Cookie {
-        val jwt =
-            Jwt
-                .withTokenValue("header.payload.sig")
-                .header("alg", "RS256")
-                .claim("sub", googleSub)
-                .claim("email", "season@example.com")
-                .claim("name", "Season Test")
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600))
-                .issuer("https://accounts.google.com")
-                .build()
-        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
-        val result =
-            mockMvc
-                .perform(
-                    post("/v1/auth/google")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"idToken":"fake","rememberMe":true}"""),
-                ).andExpect(status().isOk)
-                .andReturn()
-        return result.response.getCookie("HATCAST_SESSION")!!
-    }
+    private fun memberCookie(googleSub: String): jakarta.servlet.http.Cookie =
+        TestAuthSupport.memberSessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, googleSub)
 
     @Test
     fun ` seasons flow list create activate archive pagination`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-1")
-        // GET /v1/troupes
+        val cookie = memberCookie("sub-season-1")
+        // GET /v1/troupes — uniquement les troupes où l'utilisateur est membre actif
         mockMvc
             .perform(
                 get("/v1/troupes").cookie(cookie),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.[0].id").value(seedTroupeId.toString()))
             .andExpect(jsonPath("$.[0].slug").value("la-malice"))
+            .andExpect(jsonPath("$.[0].membership.status").value("ACTIVE"))
 
         // list initiale : au moins la saison seed, éventuellement d'autres seeds/fixtures.
         val initialListRes =
@@ -190,7 +171,8 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `forbidden for non-seed troupe`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-2")
+        val cookie =
+            TestAuthSupport.sessionCookieFromGoogleSignIn(mockMvc, googleIdTokenService, "sub-season-2")
         val other = "00000000-0000-0000-0000-00000000feed"
         mockMvc
             .perform(
@@ -201,7 +183,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `same title twice yields unique slugs a and a-2`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-3")
+        val cookie = memberCookie("sub-season-3")
         val json =
             """
             { "title": "Saison jumelle" }
@@ -228,7 +210,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `cannot activate archived season`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-4")
+        val cookie = memberCookie("sub-season-4")
         val createRes =
             mockMvc
                 .perform(
@@ -264,7 +246,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `patch explicit null clears optional description and dates`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-null")
+        val cookie = memberCookie("sub-season-patch-null")
         val createRes =
             mockMvc
                 .perform(
@@ -315,7 +297,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `patch title null is bad request`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-title-null")
+        val cookie = memberCookie("sub-season-patch-title-null")
         val createRes =
             mockMvc
                 .perform(
@@ -346,7 +328,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `patch empty body is no op`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-empty")
+        val cookie = memberCookie("sub-season-patch-empty")
         val createRes =
             mockMvc
                 .perform(
@@ -389,7 +371,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `patch endDate null only clears end date`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-end-null")
+        val cookie = memberCookie("sub-season-patch-end-null")
         val createRes =
             mockMvc
                 .perform(
@@ -434,7 +416,7 @@ class SeasonControllerIntegrationTest {
 
     @Test
     fun `patch wrong json type for description is bad request`() {
-        val cookie = sessionCookieFromGoogleSignIn("sub-season-patch-type")
+        val cookie = memberCookie("sub-season-patch-type")
         val createRes =
             mockMvc
                 .perform(
