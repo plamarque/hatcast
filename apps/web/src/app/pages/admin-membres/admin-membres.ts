@@ -10,7 +10,6 @@ import { MatTabsModule } from '@angular/material/tabs'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
-import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import {
@@ -74,12 +73,6 @@ export class AdminMembres implements OnDestroy, OnInit {
   private querySubscription = Subscription.EMPTY
   private loadRequestId = 0
 
-  /** Legacy alias route `/saison/:slug/admin/membres` — pre-selects season for organizers tab. */
-  protected readonly legacySeasonSlug = toSignal(
-    this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
-    { initialValue: '' },
-  )
-
   protected readonly loading = signal(true)
   protected readonly season = signal<SeasonResponse | null>(null)
   protected readonly seasons = signal<SeasonResponse[]>([])
@@ -132,11 +125,17 @@ export class AdminMembres implements OnDestroy, OnInit {
 
     this.routeSubscription = this.route.paramMap
       .pipe(
-        map((p) => p.get('slug') ?? ''),
-        distinctUntilChanged(),
+        map((p) => ({
+          troupeSlug: p.get('troupeSlug') ?? '',
+          legacySeasonSlug: p.get('slug') ?? '',
+        })),
+        distinctUntilChanged(
+          (a, b) =>
+            a.troupeSlug === b.troupeSlug && a.legacySeasonSlug === b.legacySeasonSlug,
+        ),
       )
-      .subscribe((slug) => {
-        void this.loadPage(slug)
+      .subscribe((params) => {
+        void this.loadPage(params)
       })
 
     this.querySubscription = this.route.queryParamMap
@@ -178,7 +177,10 @@ export class AdminMembres implements OnDestroy, OnInit {
     }
   }
 
-  private async loadPage(legacySlug: string): Promise<void> {
+  private async loadPage(routeParams: {
+    troupeSlug: string
+    legacySeasonSlug: string
+  }): Promise<void> {
     const requestId = ++this.loadRequestId
     this.loading.set(true)
     this.season.set(null)
@@ -196,16 +198,22 @@ export class AdminMembres implements OnDestroy, OnInit {
     }
 
     let troupe = this.troupeContext.selectedTroupe()
-    if (!troupe) {
-      this.loading.set(false)
-      await this.router.navigate(['/seasons'])
-      return
-    }
-
     let selectedSeason: SeasonResponse | null = null
+    const { troupeSlug, legacySeasonSlug } = routeParams
+    const isTroupeRoute = legacySeasonSlug === ''
 
-    if (legacySlug) {
-      const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(legacySlug)
+    if (troupeSlug) {
+      const match = this.troupeContext.activeTroupes().find((t) => t.slug === troupeSlug)
+      if (!match) {
+        this.loading.set(false)
+        this.snack.open('Troupe introuvable.', 'OK', { duration: 6000 })
+        await this.router.navigate(['/seasons'])
+        return
+      }
+      this.troupeContext.selectTroupe(match.id)
+      troupe = match
+    } else if (legacySeasonSlug) {
+      const resolved = await this.troupeSeasonResolver.resolveSeasonSlug(legacySeasonSlug)
       if (requestId !== this.loadRequestId) return
       if (resolved.kind === 'resolved') {
         this.troupeContext.selectTroupe(resolved.troupe.id)
@@ -223,6 +231,12 @@ export class AdminMembres implements OnDestroy, OnInit {
       }
     }
 
+    if (!troupe) {
+      this.loading.set(false)
+      await this.router.navigate(['/seasons'])
+      return
+    }
+
     this.troupeId.set(troupe.id)
     this.troupeName.set(troupe.name)
     this.isTroupeAdmin.set(troupe.membership.baselineRole === 'TROUPE_ADMIN')
@@ -234,7 +248,7 @@ export class AdminMembres implements OnDestroy, OnInit {
     this.seasons.set(troupeSeasons)
 
     if (!selectedSeason) {
-      selectedSeason = pickDefaultSeason(troupeSeasons, legacySlug || undefined)
+      selectedSeason = pickDefaultSeason(troupeSeasons, legacySeasonSlug || undefined)
     }
     this.season.set(selectedSeason)
 
@@ -249,7 +263,7 @@ export class AdminMembres implements OnDestroy, OnInit {
 
     this.loading.set(false)
 
-    const canAccess = this.isTroupeAdmin() || seasonOrganizerPerms
+    const canAccess = this.isTroupeAdmin() || (!isTroupeRoute && seasonOrganizerPerms)
     if (!canAccess) {
       this.snack.open('Accès non autorisé', 'OK', { duration: 5000 })
       await this.router.navigate(['/seasons'])

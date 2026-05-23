@@ -221,6 +221,94 @@ describe('SeasonHome', () => {
     ])
   })
 
+  it('masque le menu réglages pour un admin troupe sans droit participants ni orga saison', () => {
+    const cmp = fixture.componentInstance as unknown as {
+      seasonPermissions: { set: (v: MySeasonPermissions) => void }
+      canManageSettings: () => boolean
+    }
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: true,
+      canManageSeasons: true,
+      canManageEvents: true,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: true,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+
+    expect(cmp.canManageSettings()).toBe(false)
+  })
+
+  it('affiche le menu réglages pour participants ou orga saison sans admin troupe', () => {
+    const cmp = fixture.componentInstance as unknown as {
+      seasonPermissions: { set: (v: MySeasonPermissions) => void }
+      canManageSettings: () => boolean
+      canManageSeasonOrganizersOnly: () => boolean
+    }
+
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: false,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: true,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    expect(cmp.canManageSettings()).toBe(true)
+
+    cmp.seasonPermissions.set({
+      canManageSeasonOrganizers: true,
+      canManageEventOrganizers: false,
+      canManageMembers: false,
+      canManageSeasons: false,
+      canManageEvents: false,
+      canManageSeasonParticipants: false,
+      canManageEventParticipants: false,
+      isTroupeAdmin: false,
+      isSeasonOrganizer: true,
+      eventOrganizerFor: [],
+      eventParticipantAdminFor: [],
+    })
+    expect(cmp.canManageSeasonOrganizersOnly()).toBe(true)
+    expect(cmp.canManageSettings()).toBe(true)
+  })
+
+  it('loads upcoming events after season resolves', async () => {
+    eventsApi.listEvents.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        content: [ev('event-1')],
+        page: 0,
+        size: 50,
+        totalElements: 1,
+        totalPages: 1,
+      },
+    })
+
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(eventsApi.listEvents).toHaveBeenCalledWith('season-1', 0, 50, 'upcoming')
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      events: () => EventResponse[]
+      monthGroups: () => Array<{ events: EventResponse[] }>
+    }
+    expect(cmp.events()).toHaveLength(1)
+    expect(cmp.monthGroups()[0]?.events[0]?.title).toBe('Spectacle event-1')
+  })
+
   it('ne charge pas une saison quand le slug est ambigu', async () => {
     Object.defineProperty(fixture.componentInstance, 'troupeSeasonResolver', {
       value: {

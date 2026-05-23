@@ -35,6 +35,7 @@ describe('AdminMembres', () => {
       }>
       seasons?: SeasonResponse[]
       slug?: string
+      troupeSlug?: string
       getSeasonBySlug?: ReturnType<typeof vi.fn>
     } = {},
   ) {
@@ -43,8 +44,10 @@ describe('AdminMembres', () => {
     const queryMap = convertToParamMap(query)
     if (options.slug) {
       paramMap$.next(convertToParamMap({ slug: options.slug }))
+    } else if (options.troupeSlug) {
+      paramMap$.next(convertToParamMap({ troupeSlug: options.troupeSlug }))
     } else {
-      paramMap$.next(convertToParamMap({}))
+      paramMap$.next(convertToParamMap({ troupeSlug: 't1' }))
     }
     const route = {
       paramMap: paramMap$.asObservable(),
@@ -123,6 +126,7 @@ describe('AdminMembres', () => {
 
   it('redirects unauthorized users to seasons list', async () => {
     const { router, organizerApi } = await setup(noPermissions(), {}, {
+      troupeSlug: 'troupe',
       troupes: [{
         id: 't1',
         name: 'Ma Troupe',
@@ -141,6 +145,29 @@ describe('AdminMembres', () => {
     await vi.waitFor(() => {
       expect(organizerApi.mySeasonPermissions).toHaveBeenCalled()
     })
+    await vi.waitFor(() => {
+      expect(router.navigate).toHaveBeenCalledWith(['/seasons'])
+    })
+  })
+
+  it('refuse la route troupe à un organisateur saison sans rôle admin troupe', async () => {
+    const { router } = await setup(bothPermissions(), { onglet: 'organisateurs' }, {
+      troupeSlug: 'troupe',
+      troupes: [{
+        id: 't1',
+        name: 'Ma Troupe',
+        slug: 'troupe',
+        membership: {
+          id: 'm-1',
+          displayName: 'Orga',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
+
     await vi.waitFor(() => {
       expect(router.navigate).toHaveBeenCalledWith(['/seasons'])
     })
@@ -173,6 +200,16 @@ describe('AdminMembres', () => {
 
     expect(router.navigate).not.toHaveBeenCalledWith(['/seasons'])
     expect(text(fixture)).toContain('Membres')
+  })
+
+  it('résout la troupe depuis le slug de route', async () => {
+    const { fixture } = await setup(membersOnly(), {}, {
+      troupeSlug: 't2',
+      troupes: [troupe('t1', 'Première troupe'), troupe('t2', 'Troupe propriétaire')],
+    })
+
+    expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('t2')
+    expect(text(fixture)).toContain('Troupe propriétaire')
   })
 
   it('résout une route legacy slug dans la troupe propriétaire', async () => {

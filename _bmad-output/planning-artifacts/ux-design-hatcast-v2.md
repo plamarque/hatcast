@@ -744,13 +744,13 @@ Stakeholders expect administrators (and roles defined in SPEC) to be able to:
 
 | Area | Capability |
 |------|------------|
-| **Membres & organisateurs** | **Manage troupe members** from route `/saison/:slug/admin/membres` (menu **Membres**); **season organizers** on second tab. **Export** + **Importer ▾** toolbar; add via modal; search; compact list; **slide toggle** active; **Retirer** with confirmation (removes troupe membership only, not the user account); **inactive hidden by default** (*Afficher les inactifs*); no dates; **Nommer orga saison** shortcut. **Participants** (season/event rosters, Story 3.8) use label **Participants**, not Membres. |
+| **Membres & organisateurs** | **Manage troupe members** from route **`/troupe/:troupeSlug/admin/membres`** (entry on **`/seasons`**, legacy alias **`/troupe/admin/membres`**); **season organizers** on second tab. Legacy alias **`/saison/:slug/admin/membres?onglet=organisateurs`** for season-only organizers. **Export** + **Importer ▾** toolbar; add via modal; search; compact list; **slide toggle** active; **Retirer** with confirmation (removes troupe membership only, not the user account); **inactive hidden by default** (*Afficher les inactifs*); no dates; **Nommer orga saison** shortcut. **Participants** (season/event rosters, Story 3.8) via season ⚙ menu — label **Participants**, not Membres. |
 | **Spectacles** | **Manage spectacles** (CRUD, dates, types, venues, status) for the relevant scope (season / troupe). |
 | **Troupe & saisons** | **Manage troupe** identity and **seasons**: create, rename, archive; **at most one season active at a time** for a given troupe context (activate/deactivate explicitly—rules in DOMAIN/SPEC). |
 
 ---
 
-## Screen: Admin Membres (`/saison/:slug/admin/membres`) {#screen-admin-membres}
+## Screen: Admin Membres (`/troupe/:troupeSlug/admin/membres`) {#screen-admin-membres}
 
 ### Purpose
 
@@ -762,7 +762,8 @@ Unified **troupe members** (tab **Membres**) and **season organizers** (tab **Or
 
 ### Entry
 
-- Season header **⚙** → **Membres** → route (default tab Membres).
+- **`/seasons`** → **Membres** → route (default tab Membres).
+- Season header **⚙** → **Participants** ; **Organisateur·ices** (orga saison sans admin troupe) → legacy `/saison/:slug/admin/membres?onglet=organisateurs`.
 - Tabs: **Membres** | **Organisateur·ices** (hide tab bar if only one permitted).
 
 ### Chrome

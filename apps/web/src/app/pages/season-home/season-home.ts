@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Component, computed, inject, model, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
@@ -92,9 +92,9 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly eventsTruncated = signal(false)
   protected readonly eventLoadLimit = signal(AGENDA_UPCOMING_CAP)
 
-  protected readonly seasonView = signal<SeasonView>('agenda')
-  protected readonly selectedParticipantId = signal<string | null>(null)
-  protected readonly selectedEventId = signal<string | null>(null)
+  protected readonly seasonView = model<SeasonView>('agenda')
+  protected readonly selectedParticipantId = model<string | null>(null)
+  protected readonly selectedEventId = model<string | null>(null)
 
   protected readonly participantSelectors = signal<ParticipantSelector[]>([])
 
@@ -237,20 +237,28 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
     this.season.set(resolved.season)
-    await this.loadSeasonPermissions(resolved.season.id)
-    await this.loadParticipantSelectors(resolved.season.id)
-    await this.loadUpcomingEvents()
+    await Promise.all([
+      this.loadSeasonPermissions(resolved.season.id, requestId),
+      this.loadParticipantSelectors(resolved.season.id, requestId),
+      this.loadUpcomingEvents(),
+    ])
   }
 
-  private async loadParticipantSelectors(seasonId: string): Promise<void> {
+  private async loadParticipantSelectors(seasonId: string, requestId: number): Promise<void> {
     const r = await this.participantApi.listSeasonParticipantSelectors(seasonId)
+    if (requestId !== this.seasonLoadRequestId) {
+      return
+    }
     if (r.ok && r.data) {
       this.participantSelectors.set(r.data)
     }
   }
 
-  private async loadSeasonPermissions(seasonId: string): Promise<void> {
+  private async loadSeasonPermissions(seasonId: string, requestId: number): Promise<void> {
     const r = await this.organizerApi.mySeasonPermissions(seasonId)
+    if (requestId !== this.seasonLoadRequestId) {
+      return
+    }
     this.seasonPermissions.set(r.ok && r.data ? r.data : null)
   }
 
@@ -270,45 +278,53 @@ export class SeasonHome implements OnDestroy, OnInit {
     const requestId = ++this.eventLoadRequestId
     const seasonId = s.id
     this.loadingEvents.set(true)
-    let page = 0
-    let collected: EventResponse[] = []
-    let total = 0
+    try {
+      let page = 0
+      let collected: EventResponse[] = []
+      let total = 0
 
-    const limit = this.eventLoadLimit()
-    while (collected.length < limit) {
-      const r = await this.eventsApi.listEvents(
-        seasonId,
-        page,
-        FETCH_PAGE_SIZE,
-        'upcoming',
-      )
+      const limit = this.eventLoadLimit()
+      while (collected.length < limit) {
+        const r = await this.eventsApi.listEvents(
+          seasonId,
+          page,
+          FETCH_PAGE_SIZE,
+          'upcoming',
+        )
+        if (requestId !== this.eventLoadRequestId) {
+          return
+        }
+        if (!r.ok || !r.data) {
+          this.snack.open('Impossible de charger les spectacles.', 'OK', { duration: 6000 })
+          return
+        }
+        total = r.data.totalElements
+        collected = collected.concat(r.data.content)
+        if (
+          collected.length >= total ||
+          r.data.content.length === 0 ||
+          page >= r.data.totalPages - 1
+        ) {
+          break
+        }
+        page += 1
+      }
+
       if (requestId !== this.eventLoadRequestId) {
         return
       }
-      if (!r.ok || !r.data) {
-        this.loadingEvents.set(false)
-        this.snack.open('Impossible de charger les spectacles.', 'OK', { duration: 6000 })
-        return
-      }
-      total = r.data.totalElements
-      collected = collected.concat(r.data.content)
-      if (
-        collected.length >= total ||
-        r.data.content.length === 0 ||
-        page >= r.data.totalPages - 1
-      ) {
-        break
-      }
-      page += 1
-    }
 
-    const visibleEvents = collected.slice(0, limit)
-    const truncated = total > visibleEvents.length
-    this.eventsTruncated.set(truncated)
-    this.events.set(visibleEvents)
-    this.totalElements.set(total)
-    this.resetStaleEventFilter(visibleEvents)
-    this.loadingEvents.set(false)
+      const visibleEvents = collected.slice(0, limit)
+      const truncated = total > visibleEvents.length
+      this.eventsTruncated.set(truncated)
+      this.events.set(visibleEvents)
+      this.totalElements.set(total)
+      this.resetStaleEventFilter(visibleEvents)
+    } finally {
+      if (requestId === this.eventLoadRequestId) {
+        this.loadingEvents.set(false)
+      }
+    }
   }
 
   protected openEvent(eventId: string): void {

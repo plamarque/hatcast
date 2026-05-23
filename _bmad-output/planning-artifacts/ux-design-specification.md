@@ -97,9 +97,10 @@ Patrice requested a **single admin route** for **troupe members** and **season o
 
 | Topic | Decision | Status |
 |-------|----------|--------|
-| Route | `/saison/:slug/admin/membres` | **Locked** |
+| Route | **`/troupe/:troupeSlug/admin/membres`** (alias legacy **`/troupe/admin/membres`** and **`/saison/:slug/admin/membres`**) | **Locked** |
 | Deep link to tab | Query `?onglet=membres` (default) \| `organisateurs` | **Locked** |
-| Settings menu label | **« Membres »** | **Locked** |
+| Settings menu label (saison) | **Participants** ; **Organisateur·ices** si orga saison sans admin troupe | **Locked** |
+| Entry **Membres** (troupe) | **`/seasons`** → **`/troupe/:troupeSlug/admin/membres`** | **Locked** |
 | Page title (H1) | **« Membres »** on Membres tab; **« Organisateur·ices »** when that tab is active | **Locked** |
 | Subtitle | Season title + troupe name, muted | **Locked** |
 
@@ -238,7 +239,7 @@ Retirer button full-width below on organizers tab.
 
 ---
 
-## Screen: Admin Membres (`/saison/:slug/admin/membres`)
+## Screen: Admin Membres (`/troupe/:troupeSlug/admin/membres`)
 
 ### Purpose
 
@@ -253,7 +254,8 @@ Replaces:
 
 | From | Action |
 |------|--------|
-| Season header **settings (⚙)** menu | Single item: **« Membres »** → this route (default tab Membres) |
+| `/seasons` (admin troupe) | **Membres** → **`/troupe/:troupeSlug/admin/membres`** (default tab Membres) |
+| Season header **settings (⚙)** menu | **Participants** (story 3.8) ; **Organisateur·ices** si orga saison sans admin troupe → legacy route with `?onglet=organisateurs` |
 | Direct URL | Bookmarkable for admins |
 
 **Permission gating:**
@@ -357,7 +359,7 @@ Export: immediate browser download; optional snack *« Export téléchargé »*.
 
 | Current | Target |
 |---------|--------|
-| Settings menu → **Membres** + **Organisateur·ices** (2 items) | Settings menu → **Membres** (1 item → route with tabs) |
+| Settings menu → **Membres** + **Organisateur·ices** (2 items) | **`/seasons`** → **Membres** at **`/troupe/:troupeSlug/admin/membres`** ; season ⚙ → **Participants** + orga-only **Organisateur·ices** |
 | `TroupeMembersDialog` | Route + Membres tab |
 | `SeasonOrganizersDialog` | Route + Organisateur·ices tab |
 | Inline add section + CSV sections in dialog | Toolbar buttons + modals |
@@ -369,9 +371,10 @@ Export: immediate browser download; optional snack *« Export téléchargé »*.
 
 ## Acceptance hints
 
-- [ ] **One route** `/saison/:slug/admin/membres` for troupe members + season organizers.
+- [ ] **One route** `/troupe/:troupeSlug/admin/membres` for troupe members + season organizers (legacy aliases preserved).
 - [ ] **Vocabulary:** troupe scope = **Membres**; future season/event rosters = **Participants** (Story 3.8).
-- [ ] Settings menu: **Membres** (single entry).
+- [ ] Entry **Membres** from **`/seasons`** → **`/troupe/:troupeSlug/admin/membres`**.
+- [ ] Season settings menu: **Participants** ; **Organisateur·ices** when orga-only.
 - [ ] H1 follows **active tab** (Membres | Organisateur·ices).
 - [ ] **Search** (client-side) on active tab; respects inactive filter.
 - [ ] **Inactive members hidden by default**; *Afficher les inactifs* reveals muted rows.

@@ -21,6 +21,7 @@ export const routes: Routes = [
   { path: 'compte', component: AccountPlaceholder },
   { path: 'seasons', component: SeasonsList },
   { path: 'troupe/admin/membres', component: AdminMembres },
+  { path: 'troupe/:troupeSlug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug', component: SeasonHome },
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },

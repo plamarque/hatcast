@@ -160,7 +160,8 @@ describe('SeasonsList', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance['canManageMembers']()).toBe(true)
-    expect(fixture.nativeElement.querySelector('a[href*="troupe/admin/membres"]')).toBeTruthy()
+    expect(fixture.nativeElement.textContent).toContain('Administration troupe')
+    expect(fixture.nativeElement.querySelector('a[href*="troupe/troupe-1/admin/membres"]')).toBeTruthy()
   })
 
   it('rejoint la troupe de démonstration puis recharge les troupes', async () => {

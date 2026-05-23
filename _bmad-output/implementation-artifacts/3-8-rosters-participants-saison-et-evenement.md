@@ -373,3 +373,6 @@ _(none)_
 - [x] [Review][Patch] No unit test for ensureMembershipParticipants idempotency [SeasonParticipantService.kt:177] — Explicitly listed in story testing requirements.
 - [x] [Review][Defer] GET list/selectors mutate DB via membership sync [SeasonParticipantService.kt:46-52] — Intentional per Dev Notes (sync on GET); note for future caching/perf tuning.
 - [x] [Review][Defer] Admin DTO exposes normalized (lowercase) email [ParticipantDtos.kt:40] — Functional but differs from user-entered casing; cosmetic UX only.
+- [x] [Review][Patch] Membres troupe route is inconsistent and legacy route was removed [apps/web/src/app/app.routes.ts:23, _bmad-output/planning-artifacts/ux-design-specification.md:100]
+- [x] [Review][Patch] Troupe members route can authorize a season-only organizer against an arbitrary default season [apps/web/src/app/pages/admin-membres/admin-membres.ts:249]
+- [x] [Review][Patch] Season permissions and participant selector loaders can write stale state after rapid season navigation [apps/web/src/app/pages/season-home/season-home.ts:240]

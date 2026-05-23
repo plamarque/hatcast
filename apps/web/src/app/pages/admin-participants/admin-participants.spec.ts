@@ -120,6 +120,7 @@ describe('AdminParticipants', () => {
         },
       ],
     }).compileComponents()
+    TestBed.overrideProvider(MatSnackBar, { useValue: snack })
 
     const fixture = TestBed.createComponent(AdminParticipants)
     fixture.detectChanges()
