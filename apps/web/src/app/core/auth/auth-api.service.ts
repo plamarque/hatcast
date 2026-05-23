@@ -19,6 +19,7 @@ export interface UserSummary {
 export interface AuthSessionBody {
   user: UserSummary
   googlePictureUrl?: string | null
+  platformAdmin?: boolean
 }
 
 @Injectable({ providedIn: 'root' })

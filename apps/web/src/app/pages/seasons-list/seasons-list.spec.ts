@@ -27,7 +27,7 @@ async function settle(fixture: ComponentFixture<SeasonsList>): Promise<void> {
 describe('SeasonsList', () => {
   let fixture: ComponentFixture<SeasonsList>
   let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn>; joinTroupe: ReturnType<typeof vi.fn> }
-  let seasonApi: { listSeasons: ReturnType<typeof vi.fn> }
+  let seasonApi: { listSeasons: ReturnType<typeof vi.fn>; deleteSeason: ReturnType<typeof vi.fn> }
   let dialog: { open: ReturnType<typeof vi.fn>; closeAll: ReturnType<typeof vi.fn> }
 
   afterEach(() => {
@@ -42,6 +42,7 @@ describe('SeasonsList', () => {
     }
     seasonApi = {
       listSeasons: vi.fn(),
+      deleteSeason: vi.fn(),
     }
     dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of(false) }),
@@ -56,7 +57,12 @@ describe('SeasonsList', () => {
         { provide: MatSnackBar, useValue: { open: vi.fn() } },
         {
           provide: AuthApiService,
-          useValue: { ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true, data: { user: {} } }) },
+          useValue: {
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { user: {}, platformAdmin: false },
+            }),
+          },
         },
         { provide: TroupeApiService, useValue: troupeApi },
         { provide: SeasonApiService, useValue: seasonApi },
@@ -251,6 +257,99 @@ describe('SeasonsList', () => {
       data: expect.objectContaining({ mode: 'create', troupeId: 'troupe-2' }),
     }))
   })
+
+  it('masque Supprimer pour un membre sans droit admin', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice', 'MEMBER')],
+    })
+    seasonApi.listSeasons.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        content: [season('season-1', 'Saison A')],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      },
+    })
+
+    await settle(fixture)
+
+    expect(fixture.componentInstance['canDeleteSeason']()).toBe(false)
+    expect(fixture.nativeElement.textContent).not.toContain('Supprimer')
+  })
+
+  it('supprime une saison après confirmation et recharge la liste', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+    })
+    seasonApi.listSeasons.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        content: [season('season-del', 'Saison à effacer')],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      },
+    })
+    seasonApi.deleteSeason.mockResolvedValue({ ok: true, status: 204 })
+    dialog.open.mockReturnValue({ afterClosed: () => of(true) })
+
+    await settle(fixture)
+
+    fixture.componentInstance['confirmDelete'](season('season-del', 'Saison à effacer'))
+    await fixture.whenStable()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          destructive: true,
+          confirmLabel: 'Supprimer définitivement',
+          message: expect.stringContaining('0 événement(s) et 0 participant(s)'),
+        }),
+      }),
+    )
+    expect(seasonApi.deleteSeason).toHaveBeenCalledWith('season-del')
+    expect(seasonApi.listSeasons).toHaveBeenCalledTimes(2)
+  })
+
+  it('revient à la page précédente quand le dernier élément paginé est supprimé', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+    })
+    seasonApi.listSeasons.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        content: [season('season-last', 'Dernière saison')],
+        page: 1,
+        size: 20,
+        totalElements: 21,
+        totalPages: 2,
+      },
+    })
+    seasonApi.deleteSeason.mockResolvedValue({ ok: true, status: 204 })
+    dialog.open.mockReturnValue({ afterClosed: () => of(true) })
+
+    await settle(fixture)
+
+    fixture.componentInstance['confirmDelete'](season('season-last', 'Dernière saison'))
+    await fixture.whenStable()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(seasonApi.listSeasons).toHaveBeenLastCalledWith('troupe-1', 0, 20)
+  })
 })
 
 function troupe(
@@ -270,5 +369,23 @@ function troupe(
       createdAt: '',
       updatedAt: '',
     },
+  }
+}
+
+function season(id: string, title: string) {
+  return {
+    id,
+    troupeId: 'troupe-1',
+    slug: 'slug',
+    title,
+    description: null,
+    startDate: null,
+    endDate: null,
+    archived: false,
+    active: false,
+    eventCount: 0,
+    participantCount: 0,
+    createdAt: '',
+    updatedAt: '',
   }
 }

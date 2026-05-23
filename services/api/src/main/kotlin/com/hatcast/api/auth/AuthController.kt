@@ -37,6 +37,7 @@ class AuthController(
     private val environment: Environment,
     private val authSessionPolicy: AuthSessionPolicy,
     private val avatarService: AvatarService,
+    private val platformAdminService: PlatformAdminService,
 ) {
     @PostMapping("/google")
     fun signInWithGoogle(
@@ -82,8 +83,9 @@ class AuthController(
             if (userSummary.avatarUrl == null && !picture.isNullOrBlank()) picture else null
 
         return ResponseEntity.ok(
-            AuthSessionResponse(
+            toAuthSessionResponse(
                 user = userSummary,
+                principal = principal,
                 googlePictureUrl = googlePictureForPrompt,
             ),
         )
@@ -144,8 +146,9 @@ class AuthController(
         authSessionPolicy.applyToSession(request.session, body.rememberMe)
 
         return ResponseEntity.ok(
-            AuthSessionResponse(
+            toAuthSessionResponse(
                 user = avatarService.toUserSummary(user),
+                principal = principal,
             ),
         )
     }
@@ -160,8 +163,9 @@ class AuthController(
         val user = userRepository.findById(principal.userId).orElse(null)
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         return ResponseEntity.ok(
-            AuthSessionResponse(
+            toAuthSessionResponse(
                 user = avatarService.toUserSummary(user),
+                principal = principal,
             ),
         )
     }
@@ -174,4 +178,15 @@ class AuthController(
         SecurityContextLogoutHandler().logout(request, response, null)
         return ResponseEntity.noContent().build()
     }
+
+    private fun toAuthSessionResponse(
+        user: com.hatcast.api.auth.dto.UserSummaryDto,
+        principal: SessionUserPrincipal,
+        googlePictureUrl: String? = null,
+    ): AuthSessionResponse =
+        AuthSessionResponse(
+            user = user,
+            googlePictureUrl = googlePictureUrl,
+            platformAdmin = platformAdminService.isPlatformAdmin(principal),
+        )
 }

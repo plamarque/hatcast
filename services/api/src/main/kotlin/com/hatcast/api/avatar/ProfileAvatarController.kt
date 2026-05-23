@@ -1,6 +1,7 @@
 package com.hatcast.api.avatar
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.hatcast.api.auth.PlatformAdminService
 import com.hatcast.api.auth.dto.AuthSessionResponse
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.user.UserRepository
@@ -26,6 +27,7 @@ import java.util.UUID
 @RequestMapping("/v1/auth/me/avatar")
 class ProfileAvatarController(
     private val avatarService: AvatarService,
+    private val platformAdminService: PlatformAdminService,
 ) {
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun uploadAvatar(
@@ -38,7 +40,7 @@ class ProfileAvatarController(
                 file.bytes,
                 file.contentType,
             )
-        return AuthSessionResponse(user = user)
+        return avatarSessionResponse(user, principal)
     }
 
     @PostMapping("/google", consumes = [MediaType.APPLICATION_JSON_VALUE])
@@ -55,7 +57,7 @@ class ProfileAvatarController(
                     "Aucune photo Google disponible.",
                 )
         val user = avatarService.importGoogleAvatar(principal.userId, pictureUrl)
-        return AuthSessionResponse(user = user)
+        return avatarSessionResponse(user, principal)
     }
 
     @DeleteMapping
@@ -63,8 +65,17 @@ class ProfileAvatarController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): AuthSessionResponse {
         val user = avatarService.deleteAvatar(principal.userId)
-        return AuthSessionResponse(user = user)
+        return avatarSessionResponse(user, principal)
     }
+
+    private fun avatarSessionResponse(
+        user: com.hatcast.api.auth.dto.UserSummaryDto,
+        principal: SessionUserPrincipal,
+    ): AuthSessionResponse =
+        AuthSessionResponse(
+            user = user,
+            platformAdmin = platformAdminService.isPlatformAdmin(principal),
+        )
 }
 
 @RestController

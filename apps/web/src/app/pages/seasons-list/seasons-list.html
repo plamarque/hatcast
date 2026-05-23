@@ -96,7 +96,7 @@
     <div class="seasons__grid">
         @for (s of seasons(); track s.id) {
           <mat-card class="season-card" appearance="outlined">
-            @if (canManageSeasons()) {
+            @if (canManageSeasons() || canDeleteSeason()) {
               <div class="season-card__toolbar">
                 <button
                   type="button"
@@ -108,12 +108,19 @@
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button type="button" mat-menu-item (click)="openEdit(s)">Modifier</button>
-                  @if (!s.archived) {
-                    <button type="button" mat-menu-item (click)="confirmArchive(s)">Archiver</button>
+                  @if (canManageSeasons()) {
+                    <button type="button" mat-menu-item (click)="openEdit(s)">Modifier</button>
+                    @if (!s.archived) {
+                      <button type="button" mat-menu-item (click)="confirmArchive(s)">Archiver</button>
+                    }
+                    @if (!s.active && !s.archived) {
+                      <button type="button" mat-menu-item (click)="confirmActivate(s)">Activer</button>
+                    }
                   }
-                  @if (!s.active && !s.archived) {
-                    <button type="button" mat-menu-item (click)="confirmActivate(s)">Activer</button>
+                  @if (canDeleteSeason()) {
+                    <button type="button" mat-menu-item class="season-card__delete" (click)="confirmDelete(s)">
+                      Supprimer
+                    </button>
                   }
                 </mat-menu>
               </div>

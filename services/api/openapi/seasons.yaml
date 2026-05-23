@@ -673,6 +673,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/Season'
 
+    delete:
+      tags: [Saisons]
+      summary: Supprimer définitivement une saison
+      description: >
+        Suppression irréversible : la ligne `seasons` est effacée et les données dépendantes
+        sont supprimées via `ON DELETE CASCADE` (événements, disponibilités, participants, organisateurs).
+        Réservé aux administrateurs de troupe ou aux administrateurs plateforme (email configuré).
+        Requiert CSRF (`X-XSRF-TOKEN`). Un second appel sur la même saison retourne **404**.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Saison supprimée (corps vide)
+        '403':
+          description: Utilisateur non autorisé (membre sans rôle admin troupe)
+        '404':
+          description: Saison inconnue (y compris après suppression — idempotent côté état)
+        '401':
+          description: Non authentifié
+
   /seasons/{seasonId}/actions/archive:
     post:
       tags: [Saisons]

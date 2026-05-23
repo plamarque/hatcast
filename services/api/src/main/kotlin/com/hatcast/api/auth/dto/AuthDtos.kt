@@ -14,6 +14,8 @@ data class AuthSessionResponse(
     val user: UserSummaryDto,
     /** Photo Google disponible pour proposition d’import (première connexion, pas d’avatar). */
     val googlePictureUrl: String? = null,
+    /** True si l’email de session figure dans `hatcast.auth.super-admin-emails`. */
+    val platformAdmin: Boolean = false,
 )
 
 data class UserSummaryDto(

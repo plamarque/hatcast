@@ -313,6 +313,12 @@ components:
           nullable: true
           description: >
             Photo Google proposée à l’import (première connexion sans avatar). Absent après import ou refus.
+        platformAdmin:
+          type: boolean
+          description: >
+            True si l’email de l’utilisateur courant figure dans `hatcast.auth.super-admin-emails`
+            (administrateur plateforme — ops/support).
+          default: false
 
     GoogleAvatarImportRequest:
       type: object
@@ -328,6 +334,10 @@ components:
       properties:
         user:
           $ref: '#/components/schemas/UserSummary'
+        platformAdmin:
+          type: boolean
+          description: True si administrateur plateforme (email configuré).
+          default: false
 
     UserSummary:
       type: object

@@ -82,4 +82,41 @@ describe('SeasonApiService', () => {
       expect.objectContaining({ credentials: 'include' }),
     )
   })
+
+  it('deleteSeason envoie DELETE avec credentials et CSRF et attend 204', async () => {
+    document.cookie = 'XSRF-TOKEN=del%3D'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const r = await service().deleteSeason('season-99')
+
+    expect(r.ok).toBe(true)
+    expect(r.status).toBe(204)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/seasons/season-99',
+      expect.objectContaining({
+        method: 'DELETE',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'X-XSRF-TOKEN': 'del=',
+        }),
+      }),
+    )
+  })
+
+  it('deleteSeason refuse un succès HTTP qui ne respecte pas le 204 attendu', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 202,
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const r = await service().deleteSeason('season-202')
+
+    expect(r.ok).toBe(false)
+    expect(r.status).toBe(202)
+  })
 })

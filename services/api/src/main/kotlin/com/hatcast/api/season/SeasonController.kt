@@ -6,7 +6,10 @@ import com.hatcast.api.season.dto.SeasonResponseDto
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -67,4 +70,13 @@ class SeasonController(
         @PathVariable seasonId: UUID,
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ): SeasonResponseDto = seasonService.activate(seasonId, principal)
+
+    @DeleteMapping("/seasons/{seasonId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun delete(
+        @PathVariable seasonId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ) {
+        seasonService.delete(seasonId, principal)
+    }
 }

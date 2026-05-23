@@ -143,6 +143,10 @@
   z-index: 1;
 }
 
+.season-card__delete {
+  color: var(--mat-sys-error);
+}
+
 .season-card__body {
   display: flex;
   flex-direction: column;

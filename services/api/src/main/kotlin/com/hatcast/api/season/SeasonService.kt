@@ -7,11 +7,14 @@ import com.hatcast.api.season.dto.SeasonResponseDto
 import com.hatcast.api.season.dto.UpdateSeasonRequest
 import com.hatcast.api.troupe.TroupeAccessService
 import com.hatcast.api.troupe.TroupeRepository
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 import java.util.UUID
@@ -21,7 +24,9 @@ class SeasonService(
     private val seasonRepository: SeasonRepository,
     private val troupeRepository: TroupeRepository,
     private val troupeAccess: TroupeAccessService,
+    private val seasonAccess: SeasonAccessService,
 ) {
+    private val log = LoggerFactory.getLogger(SeasonService::class.java)
     @Transactional(readOnly = true)
     fun listForTroupe(
         troupeId: UUID,
@@ -217,6 +222,41 @@ class SeasonService(
         s.isActive = true
         s.updatedAt = now
         return SeasonResponseDto.from(seasonRepository.save(s))
+    }
+
+    @Transactional
+    fun delete(
+        seasonId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        val s =
+            seasonRepository
+                .findById(seasonId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
+        seasonAccess.requireCanDeleteSeason(principal, s.troupe.id)
+        val actorUserId = principal.userId
+        val deletedSeasonId = s.id
+        val troupeId = s.troupe.id
+        val title = s.title
+        val eventCount = s.eventCount
+        val participantCount = s.participantCount
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    log.info(
+                        "Season deleted: userId={}, seasonId={}, troupeId={}, title={}, eventCount={}, participantCount={}, timestamp={}",
+                        actorUserId,
+                        deletedSeasonId,
+                        troupeId,
+                        title,
+                        eventCount,
+                        participantCount,
+                        Instant.now(),
+                    )
+                }
+            },
+        )
+        seasonRepository.delete(s)
     }
 
     private fun validateDateRange(

@@ -58,6 +58,10 @@ export class SeasonsList implements OnInit {
   protected readonly joiningDemo = signal(false)
   protected readonly hasMembership = signal(false)
   protected readonly canManageSeasons = signal(false)
+  protected readonly platformAdmin = signal(false)
+  protected readonly canDeleteSeason = computed(
+    () => this.canManageSeasons() || this.platformAdmin(),
+  )
   protected readonly canManageMembers = computed(
     () => this.selectedTroupe()?.membership.baselineRole === 'TROUPE_ADMIN',
   )
@@ -81,6 +85,7 @@ export class SeasonsList implements OnInit {
       return
     }
     this.loadingSession.set(false)
+    this.platformAdmin.set(r.data.platformAdmin === true)
     await this.loadTroupeAndSeasons(0)
   }
 
@@ -280,4 +285,63 @@ export class SeasonsList implements OnInit {
       this.snack.open('Activation impossible.', 'OK', { duration: 6000 })
     }
   }
+
+  protected confirmDelete(season: SeasonResponse): void {
+    if (!this.canDeleteSeason()) {
+      this.snack.open('Vous ne pouvez pas supprimer cette saison.', 'OK', { duration: 5000 })
+      return
+    }
+    const datePart = formatSeasonDates(season.startDate, season.endDate)
+    const activeWarning = season.active
+      ? ' Attention : cette saison est actuellement active.'
+      : ''
+    const counts = `\n\nCette saison contient ${season.eventCount} événement(s) et ${season.participantCount} participant(s).`
+    const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Supprimer la saison',
+        message:
+          `Supprimer définitivement « ${season.title} » (${season.slug})${datePart ? ` — ${datePart}` : ''} ?${counts}` +
+          `\n\nCette action est irréversible et supprimera tous les événements, disponibilités, participants et délégations organisateur associés.${activeWarning}`,
+        confirmLabel: 'Supprimer définitivement',
+        destructive: true,
+      },
+    })
+    ref.afterClosed().subscribe((ok) => {
+      if (ok) {
+        void this.runDelete(season.id)
+      }
+    })
+  }
+
+  private async runDelete(seasonId: string): Promise<void> {
+    const targetPage =
+      this.seasons().length === 1 && this.pageIndex() > 0
+        ? this.pageIndex() - 1
+        : this.pageIndex()
+    const r = await this.api.deleteSeason(seasonId)
+    if (r.ok) {
+      this.snack.open('Saison supprimée.', 'OK', { duration: 4000 })
+      await this.loadTroupeAndSeasons(targetPage)
+    } else if (r.status === 403) {
+      this.snack.open('Vous ne pouvez pas supprimer cette saison.', 'OK', { duration: 6000 })
+    } else if (r.status === 404) {
+      this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
+      await this.loadTroupeAndSeasons(targetPage)
+    } else {
+      this.snack.open('Suppression impossible.', 'OK', { duration: 6000 })
+    }
+  }
+}
+
+function formatSeasonDates(start: string | null, end: string | null): string {
+  if (start && end) {
+    return `${start} → ${end}`
+  }
+  if (start) {
+    return `à partir du ${start}`
+  }
+  if (end) {
+    return `jusqu’au ${end}`
+  }
+  return ''
 }

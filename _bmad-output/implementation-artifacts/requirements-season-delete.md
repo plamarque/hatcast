@@ -1,8 +1,8 @@
-# Exigences — Suppression de saison (reportée)
+# Exigences — Suppression de saison
 
-Document de cadrage pour une implémentation ultérieure. **Aucune livraison associée à ce fichier pour l’instant.**
+**Implémenté** par story **3-7-suppression-de-saisons-admins-troupe-ou-plateforme** (`review`) — voir [`3-7-suppression-de-saisons-admins-troupe-ou-plateforme.md`](./3-7-suppression-de-saisons-admins-troupe-ou-plateforme.md).
 
-**Backlog :** story **3-7-suppression-de-saisons-admins-troupe-ou-plateforme** (`backlog`) dans [`sprint-status.yaml`](./sprint-status.yaml) ; récit utilisateur dans [`epics.md`](../planning-artifacts/epics.md) (Story 3.7).
+**Backlog :** story **3-7-suppression-de-saisons-admins-troupe-ou-plateforme** (`review`) dans [`sprint-status.yaml`](./sprint-status.yaml) ; récit utilisateur dans [`epics.md`](../planning-artifacts/epics.md) (Story 3.7).
 
 ## Objectif
 

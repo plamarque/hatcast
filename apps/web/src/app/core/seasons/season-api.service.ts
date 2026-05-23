@@ -187,4 +187,20 @@ export class SeasonApiService {
       return { ok: false, status: 0 }
     }
   }
+
+  async deleteSeason(seasonId: string): Promise<{ ok: boolean; status: number }> {
+    try {
+      const res = await fetch(`/v1/seasons/${encodeURIComponent(seasonId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { ...csrfHeaders() },
+      })
+      if (res.status !== 204) {
+        return { ok: false, status: res.status }
+      }
+      return { ok: true, status: res.status }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
 }

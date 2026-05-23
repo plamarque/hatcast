@@ -28,7 +28,8 @@ class SeasonServiceUpdateTest {
     private val seasonRepository = mock<SeasonRepository>()
     private val troupeRepository = mock<TroupeRepository>()
     private val troupeAccess = mock<TroupeAccessService>()
-    private val service = SeasonService(seasonRepository, troupeRepository, troupeAccess)
+    private val seasonAccess = mock<SeasonAccessService>()
+    private val service = SeasonService(seasonRepository, troupeRepository, troupeAccess, seasonAccess)
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seasonId = UUID.fromString("22222222-2222-2222-2222-222222222222")
