@@ -3,6 +3,7 @@ package com.hatcast.api.event.dto
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.event.EventEntity
+import com.hatcast.api.event.RoleTemplates
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
@@ -18,6 +19,8 @@ data class EventResponseDto(
     val location: String?,
     val startsAt: Instant,
     val archived: Boolean,
+    val templateType: String,
+    val roleSlots: Map<String, Int>,
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
@@ -31,6 +34,8 @@ data class EventResponseDto(
                 location = e.location,
                 startsAt = e.startsAt,
                 archived = e.archived,
+                templateType = e.templateType,
+                roleSlots = RoleTemplates.normalize(e.roleSlots),
                 createdAt = e.createdAt,
                 updatedAt = e.updatedAt,
             )
@@ -56,6 +61,8 @@ data class CreateEventRequest(
     val description: String? = null,
     @field:Size(max = 512)
     val location: String? = null,
+    val templateType: String? = null,
+    val roleSlots: Map<String, Int>? = null,
 )
 
 @JsonDeserialize(using = UpdateEventRequestDeserializer::class)
@@ -69,4 +76,11 @@ data class UpdateEventRequest(
     val description: JsonNullable<String> = JsonNullable.undefined(),
     /** Absent = inchangé ; `null` explicite = effacer. */
     val location: JsonNullable<String> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = interdit (400). */
+    val templateType: JsonNullable<String> = JsonNullable.undefined(),
+    /**
+     * Absent = inchangé ; `null` explicite = interdit (400).
+     * Présent = remplacement complet de la map (pas de merge partiel).
+     */
+    val roleSlots: JsonNullable<Map<String, Int>> = JsonNullable.undefined(),
 )

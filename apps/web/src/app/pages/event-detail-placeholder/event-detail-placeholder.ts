@@ -12,6 +12,7 @@ import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { AGENDA_TIME_ZONE } from '../season-home/season-events.utils'
+import { getEventTypeIcon } from '../../core/events/event-types'
 
 const EVENT_DETAIL_PAGE_SIZE = 100
 
@@ -145,5 +146,9 @@ export class EventDetailPlaceholder implements OnDestroy, OnInit {
       minute: '2-digit',
       timeZone: AGENDA_TIME_ZONE,
     }).format(new Date(iso))
+  }
+
+  protected typeIcon(templateType: string): string {
+    return getEventTypeIcon(templateType)
   }
 }

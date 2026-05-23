@@ -6,6 +6,7 @@ import {
   groupEventsByMonth,
 } from './season-events.utils'
 import type { EventResponse } from '../../core/events/event-api.service'
+import { emptyRoleSlots } from '../../core/events/event-types'
 
 function ev(id: string, startsAt: string, title = 'T'): EventResponse {
   return {
@@ -16,6 +17,8 @@ function ev(id: string, startsAt: string, title = 'T'): EventResponse {
     location: null,
     startsAt,
     archived: false,
+    templateType: 'custom',
+    roleSlots: emptyRoleSlots(),
     createdAt: '',
     updatedAt: '',
   }

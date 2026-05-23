@@ -57,6 +57,8 @@ describe('EventApiService', () => {
           location: null,
           startsAt: '2030-01-01T12:00:00Z',
           archived: false,
+          templateType: 'cabaret',
+          roleSlots: { player: 5, mc: 1, dj: 1 },
           createdAt: '',
           updatedAt: '',
         }),

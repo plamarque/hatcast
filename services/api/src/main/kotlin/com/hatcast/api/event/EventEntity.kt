@@ -2,6 +2,7 @@ package com.hatcast.api.event
 
 import com.hatcast.api.season.SeasonEntity
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
@@ -29,6 +30,11 @@ class EventEntity(
     var startsAt: Instant,
     @Column(nullable = false)
     var archived: Boolean = false,
+    @Column(name = "template_type", nullable = false, length = 32)
+    var templateType: String = EventTypes.DEFAULT_LEGACY,
+    @Convert(converter = RoleSlotsJsonConverter::class)
+    @Column(name = "role_slots", nullable = false, length = 4096)
+    var roleSlots: Map<String, Int> = RoleTemplates.emptySlots(),
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)

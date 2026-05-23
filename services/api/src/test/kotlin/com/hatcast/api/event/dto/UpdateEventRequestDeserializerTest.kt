@@ -25,6 +25,8 @@ class UpdateEventRequestDeserializerTest {
         assertFalse(r.startsAt.isPresent)
         assertFalse(r.description.isPresent)
         assertFalse(r.location.isPresent)
+        assertFalse(r.templateType.isPresent)
+        assertFalse(r.roleSlots.isPresent)
     }
 
     @Test
@@ -49,6 +51,25 @@ class UpdateEventRequestDeserializerTest {
             )
         assertTrue(r.startsAt.isPresent)
         assertEquals(Instant.parse("2030-06-15T18:00:00Z"), r.startsAt.get())
+    }
+
+    @Test
+    fun `parses roleSlots object`() {
+        val r =
+            mapper.readValue(
+                """{"roleSlots":{"player":5,"mc":1}}""",
+                UpdateEventRequest::class.java,
+            )
+        assertTrue(r.roleSlots.isPresent)
+        assertEquals(5, r.roleSlots.get()!!["player"])
+        assertEquals(1, r.roleSlots.get()!!["mc"])
+    }
+
+    @Test
+    fun `explicit null roleSlots yields present with null`() {
+        val r = mapper.readValue("""{"roleSlots":null}""", UpdateEventRequest::class.java)
+        assertTrue(r.roleSlots.isPresent)
+        assertEquals(null, r.roleSlots.get())
     }
 
     @ParameterizedTest

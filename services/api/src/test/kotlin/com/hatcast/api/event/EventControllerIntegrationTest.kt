@@ -213,6 +213,142 @@ class EventControllerIntegrationTest {
     }
 
     @Test
+    fun `create event with cabaret type and role slots`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-event-4")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Soirée cab",
+                          "startsAt": "${future}",
+                          "templateType": "cabaret",
+                          "roleSlots": {
+                            "player": 5,
+                            "mc": 1,
+                            "dj": 1
+                          }
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.templateType").value("cabaret"))
+            .andExpect(jsonPath("$.roleSlots.player").value(5))
+            .andExpect(jsonPath("$.roleSlots.mc").value(1))
+            .andExpect(jsonPath("$.roleSlots.dj").value(1))
+            .andExpect(jsonPath("$.roleSlots.referee").value(0))
+    }
+
+    @Test
+    fun `create event rejects invalid template type`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-event-5")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Bad type",
+                          "startsAt": "${future}",
+                          "templateType": "invalid"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `create event rejects invalid role count`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-event-6")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        mockMvc
+            .perform(
+                post("/v1/seasons/$seasonId/events")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "title": "Bad count",
+                          "startsAt": "${future}",
+                          "roleSlots": { "player": 99 }
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `seed season events expose templateType after migration`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-event-7")
+        mockMvc
+            .perform(
+                get("/v1/seasons/$seedSeasonId/events?page=0&size=1&scope=all").cookie(cookie),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[0].templateType").value("custom"))
+            .andExpect(jsonPath("$.content[0].roleSlots.player").value(0))
+    }
+
+    @Test
+    fun `patch updates templateType and roleSlots`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-event-8")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Avant patch",
+                              "startsAt": "${future}",
+                              "templateType": "cabaret",
+                              "roleSlots": { "player": 5, "mc": 1, "dj": 1 }
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/events/$eventId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "templateType": "deplacement",
+                          "roleSlots": { "player": 5, "mc": 0, "dj": 0, "volunteer": 0, "referee": 0, "assistant_referee": 0, "lighting": 0, "coach": 0, "stage_manager": 0 }
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.templateType").value("deplacement"))
+            .andExpect(jsonPath("$.roleSlots.player").value(5))
+            .andExpect(jsonPath("$.roleSlots.mc").value(0))
+            .andExpect(jsonPath("$.title").value("Avant patch"))
+    }
+
+    @Test
     fun `invalid scope returns 400`() {
         val cookie = sessionCookieFromGoogleSignIn("sub-event-2")
         val seasonId = createSeasonForEventsTests(cookie)

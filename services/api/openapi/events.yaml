@@ -191,6 +191,15 @@ components:
           format: date-time
         archived:
           type: boolean
+        templateType:
+          type: string
+          enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+        roleSlots:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+            maximum: 20
         createdAt:
           type: string
           format: date-time
@@ -211,6 +220,17 @@ components:
           type: string
         location:
           type: string
+        templateType:
+          type: string
+          enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+          description: Défaut serveur cabaret si absent
+        roleSlots:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+            maximum: 20
+          description: Défaut = slots du templateType
 
     UpdateEventRequest:
       type: object
@@ -224,8 +244,16 @@ components:
           type: string
         location:
           type: string
-
-    PagedEvents:
+        templateType:
+          type: string
+          enum: [cabaret, longform, freeform, match, catch, deplacement, survey, custom]
+        roleSlots:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+            maximum: 20
+          description: Remplacement complet si présent (PATCH)
       type: object
       properties:
         content:

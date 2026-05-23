@@ -76,6 +76,14 @@ class EventService(
                 .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
         troupeAccess.requireCanManageTroupe(season.troupe.id)
         val titleTrim = body.title.trim()
+        val templateType = body.templateType?.trim()?.takeIf { it.isNotEmpty() } ?: EventTypes.DEFAULT_CREATE
+        EventTypes.requireValid(templateType)
+        val roleSlots =
+            if (body.roleSlots != null) {
+                RoleTemplates.normalize(body.roleSlots)
+            } else {
+                RoleTemplates.slotsFor(templateType)
+            }
         val now = Instant.now()
         val entity =
             EventEntity(
@@ -85,6 +93,8 @@ class EventService(
                 location = body.location?.trim()?.takeIf { it.isNotEmpty() },
                 startsAt = body.startsAt,
                 archived = false,
+                templateType = templateType,
+                roleSlots = roleSlots,
                 createdAt = now,
                 updatedAt = now,
             )
@@ -148,6 +158,28 @@ class EventService(
                 }
                 e.location = raw.trim().takeIf { it.isNotEmpty() }
             }
+        }
+        if (body.templateType.isPresent) {
+            val raw = body.templateType.get()
+            if (raw == null) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Le type de spectacle ne peut pas être effacé.",
+                )
+            }
+            val t = raw.trim()
+            EventTypes.requireValid(t)
+            e.templateType = t
+        }
+        if (body.roleSlots.isPresent) {
+            val raw = body.roleSlots.get()
+            if (raw == null) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "roleSlots doit être un objet.",
+                )
+            }
+            e.roleSlots = RoleTemplates.normalize(raw)
         }
         e.updatedAt = Instant.now()
         return EventResponseDto.from(eventRepository.save(e))

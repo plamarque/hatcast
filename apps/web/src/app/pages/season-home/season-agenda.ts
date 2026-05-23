@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 
 import type { MonthEventGroup } from './season-events.utils'
+import { getEventTypeIcon } from '../../core/events/event-types'
 
 @Component({
   selector: 'app-season-agenda',
@@ -36,5 +37,9 @@ export class SeasonAgenda {
   protected onArchive(id: string, event: Event): void {
     event.stopPropagation()
     this.archiveClick.emit(id)
+  }
+
+  protected typeIcon(templateType: string): string {
+    return getEventTypeIcon(templateType)
   }
 }

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { SeasonAgenda } from './season-agenda'
 import type { MonthEventGroup } from './season-events.utils'
+import { emptyRoleSlots } from '../../core/events/event-types'
 
 const monthGroups: MonthEventGroup[] = [
   {
@@ -17,6 +18,8 @@ const monthGroups: MonthEventGroup[] = [
         location: 'Salle A',
         startsAt: '2026-05-12T19:00:00.000Z',
         archived: false,
+        templateType: 'cabaret',
+        roleSlots: emptyRoleSlots(),
         createdAt: '',
         updatedAt: '',
         dayNumber: 12,

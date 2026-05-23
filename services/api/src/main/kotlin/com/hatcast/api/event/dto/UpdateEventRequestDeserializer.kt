@@ -27,7 +27,30 @@ class UpdateEventRequestDeserializer : JsonDeserializer<UpdateEventRequest>() {
             startsAt = instantField(p, node, "startsAt"),
             description = stringField(p, node, "description"),
             location = stringField(p, node, "location"),
+            templateType = stringField(p, node, "templateType"),
+            roleSlots = roleSlotsField(p, node, "roleSlots"),
         )
+    }
+
+    private fun roleSlotsField(
+        p: JsonParser,
+        node: JsonNode,
+        name: String,
+    ): JsonNullable<Map<String, Int>> {
+        if (!node.has(name)) return JsonNullable.undefined()
+        val v = node.get(name)
+        if (v.isNull) return JsonNullable.of(null)
+        if (!v.isObject) {
+            throw JsonMappingException.from(p, "Champ « $name » : objet attendu")
+        }
+        val map = mutableMapOf<String, Int>()
+        v.fields().forEachRemaining { (key, value) ->
+            if (!value.isNumber) {
+                throw JsonMappingException.from(p, "Champ « $name.$key » : entier attendu")
+            }
+            map[key] = value.asInt()
+        }
+        return JsonNullable.of(map)
     }
 
     private fun stringField(

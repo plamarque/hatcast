@@ -8,6 +8,7 @@ import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { EventDetailPlaceholder } from './event-detail-placeholder'
+import { emptyRoleSlots } from '../../core/events/event-types'
 
 type EventDetailHarness = {
   event: WritableSignal<EventResponse | null>
@@ -23,6 +24,8 @@ function ev(id: string, startsAt = '2026-05-12T19:00:00.000Z'): EventResponse {
     location: null,
     startsAt,
     archived: false,
+    templateType: 'custom',
+    roleSlots: emptyRoleSlots(),
     createdAt: '',
     updatedAt: '',
   }

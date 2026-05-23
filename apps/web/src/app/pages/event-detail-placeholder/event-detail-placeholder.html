@@ -10,7 +10,7 @@
     </a>
     @if (event(); as ev) {
       <div class="event-detail__titles">
-        <mat-icon class="event-detail__icon" aria-hidden="true">celebration</mat-icon>
+        <span class="event-detail__icon" aria-hidden="true">{{ typeIcon(ev.templateType) }}</span>
         <div>
           <h1 class="event-detail__title">{{ ev.title }}</h1>
           <p class="event-detail__when">{{ formatStart(ev.startsAt) }}</p>

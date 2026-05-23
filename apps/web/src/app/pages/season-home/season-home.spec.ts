@@ -9,6 +9,7 @@ import { EventApiService, type EventResponse } from '../../core/events/event-api
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import { AGENDA_UPCOMING_CAP } from './season-events.utils'
 import { SeasonHome } from './season-home'
+import { emptyRoleSlots } from '../../core/events/event-types'
 
 type SeasonHomeHarness = {
   loadingEvents: WritableSignal<boolean>
@@ -29,6 +30,8 @@ function ev(id: string): EventResponse {
     location: null,
     startsAt: '2026-05-12T19:00:00.000Z',
     archived: false,
+    templateType: 'custom',
+    roleSlots: emptyRoleSlots(),
     createdAt: '',
     updatedAt: '',
   }

@@ -10,6 +10,8 @@ export interface EventResponse {
   location: string | null
   startsAt: string
   archived: boolean
+  templateType: string
+  roleSlots: Record<string, number>
   createdAt: string
   updatedAt: string
 }
@@ -27,6 +29,8 @@ export interface CreateEventBody {
   startsAt: string
   description?: string | null
   location?: string | null
+  templateType?: string
+  roleSlots?: Record<string, number>
 }
 
 export interface UpdateEventBody {
@@ -34,6 +38,8 @@ export interface UpdateEventBody {
   startsAt?: string | null
   description?: string | null
   location?: string | null
+  templateType?: string
+  roleSlots?: Record<string, number>
 }
 
 export type EventListScope = 'all' | 'upcoming'

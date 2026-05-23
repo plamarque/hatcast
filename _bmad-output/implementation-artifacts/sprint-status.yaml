@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-23T13:17:00Z"
+last_updated: "2026-05-23T15:43:00Z"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -65,7 +65,7 @@ development_status:
   3-1-gestion-des-saisons-creation-edition-archivage-et-liste-saisons: done
   3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: done
   3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
-  3-4-types-devenement-et-roles-requis-optionnels: backlog
+  3-4-types-devenement-et-roles-requis-optionnels: done
   3-5-delegation-des-organisateurs-perimetre-saison-evenement: backlog
   3-6-vue-historique-colonnes-roles-mois-export-masquage: ready-for-dev
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: backlog
