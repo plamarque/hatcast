@@ -23,7 +23,6 @@ type SeasonHomeHarness = {
   season: WritableSignal<SeasonResponse | null>
   seasonPermissions: WritableSignal<MySeasonPermissions | null>
   openEvent(eventId: string): void
-  onSettings(): Promise<void>
   loadMoreEvents(): void
   resetStaleEventFilter(events: EventResponse[]): void
 }
@@ -117,57 +116,4 @@ describe('SeasonHome', () => {
 
     expect(component.selectedEventId()).toBeNull()
   })
-
-  it('does not open season organizer settings without permission', async () => {
-    const component = fixture.componentInstance as unknown as SeasonHomeHarness
-    Object.assign(fixture.componentInstance as object, { dialog, organizerApi, snack })
-    component.season.set(season('season-1'))
-
-    await component.onSettings()
-
-    expect(dialog.open).not.toHaveBeenCalled()
-    expect(snack.open).toHaveBeenCalledWith(
-      'Vous ne pouvez pas gérer les organisateur·ices de cette saison.',
-      'OK',
-      { duration: 5000 },
-    )
-  })
-
-  it('opens season organizer settings with permission', async () => {
-    const component = fixture.componentInstance as unknown as SeasonHomeHarness
-    Object.assign(fixture.componentInstance as object, { dialog, organizerApi, snack })
-    component.season.set(season('season-1'))
-    component.seasonPermissions.set({
-      canManageSeasonOrganizers: true,
-      canManageEventOrganizers: true,
-      canManageMembers: true,
-      canManageSeasons: true,
-      canManageEvents: true,
-      isTroupeAdmin: true,
-      isSeasonOrganizer: false,
-      eventOrganizerFor: [],
-    })
-
-    await component.onSettings()
-
-    expect(dialog.open).toHaveBeenCalled()
-  })
 })
-
-function season(id: string): SeasonResponse {
-  return {
-    id,
-    troupeId: 'troupe-1',
-    slug: 'season-a',
-    title: 'Saison A',
-    description: null,
-    startDate: null,
-    endDate: null,
-    archived: false,
-    active: true,
-    eventCount: 0,
-    participantCount: 0,
-    createdAt: '',
-    updatedAt: '',
-  }
-}

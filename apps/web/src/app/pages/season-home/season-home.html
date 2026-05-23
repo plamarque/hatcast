@@ -10,11 +10,10 @@
   } @else if (season(); as se) {
     <app-season-header
       [seasonTitle]="se.title"
+      [seasonSlug]="slug()"
       [troupeName]="troupeName()"
       [user]="user()"
       [canManageSettings]="canManageSettings()"
-      (membersClick)="openMembersAdmin()"
-      (organizersClick)="openSeasonOrganizers()"
     />
 
     <app-season-view-toolbar

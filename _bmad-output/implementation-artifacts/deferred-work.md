@@ -33,3 +33,7 @@
 ## Deferred from: code review of 2-3-import-export-csv-des-membres-de-troupe.md (2026-05-23)
 
 - Limite taille upload multipart non documentée — pattern Spring global préexistant, pas introduit par cette story.
+
+## Deferred from: code review of 2-8-admin-membres-route-ui-ux-dr10.md (2026-05-23)
+
+- Multi-troupe route resolution uses the first membership in `AdminMembres.loadPage`; deferred to Story 2.4 because multi-troupe switching is explicitly out of scope for Story 2.8.

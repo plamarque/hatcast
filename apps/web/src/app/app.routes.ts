@@ -7,6 +7,7 @@ import { HomeSignedIn } from './pages/home-signed-in/home-signed-in';
 import { Login } from './pages/login/login';
 import { ResetPassword } from './pages/reset-password/reset-password';
 import { EventDetailPlaceholder } from './pages/event-detail-placeholder/event-detail-placeholder';
+import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { SeasonHome } from './pages/season-home/season-home';
 import { SeasonsList } from './pages/seasons-list/seasons-list';
 
@@ -19,5 +20,6 @@ export const routes: Routes = [
   { path: 'compte', component: AccountPlaceholder },
   { path: 'seasons', component: SeasonsList },
   { path: 'saison/:slug', component: SeasonHome },
+  { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/event/:eventId', component: EventDetailPlaceholder },
 ];

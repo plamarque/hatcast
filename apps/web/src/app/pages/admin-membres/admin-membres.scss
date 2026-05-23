@@ -1,0 +1,63 @@
+.admin-membres {
+  display: grid;
+  gap: 1rem;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.admin-membres__header {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.admin-membres__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-membres__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-membres__subtitle {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.9rem;
+  margin: 0.15rem 0 0;
+}
+
+.admin-membres__user {
+  max-width: 10rem;
+  padding-inline: 0.5rem 0.65rem;
+}
+
+.admin-membres__user-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-membres__spinner {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.admin-membres__tabs {
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 480px) {
+  .admin-membres__user-label {
+    display: none;
+  }
+
+  .admin-membres__user {
+    min-width: unset;
+    padding-inline: 0.35rem;
+  }
+}

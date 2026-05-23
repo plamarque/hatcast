@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core'
+import { Component, input } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
@@ -21,18 +21,8 @@ import type { UserSummary } from '../../core/auth/auth-api.service'
 })
 export class SeasonHeader {
   readonly seasonTitle = input.required<string>()
+  readonly seasonSlug = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly user = input<UserSummary | null>(null)
   readonly canManageSettings = input(false)
-
-  readonly membersClick = output<void>()
-  readonly organizersClick = output<void>()
-
-  protected onMembers(): void {
-    this.membersClick.emit()
-  }
-
-  protected onOrganizers(): void {
-    this.organizersClick.emit()
-  }
 }

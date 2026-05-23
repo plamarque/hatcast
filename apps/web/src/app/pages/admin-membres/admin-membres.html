@@ -1,0 +1,72 @@
+<div class="admin-membres">
+  <header class="admin-membres__header">
+    <a
+      mat-icon-button
+      [routerLink]="['/saison', slug()]"
+      class="admin-membres__back"
+      aria-label="Retour à l’agenda"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </a>
+    <div class="admin-membres__titles">
+      <h1 class="admin-membres__title">{{ pageTitle() }}</h1>
+      @if (subtitle()) {
+        <p class="admin-membres__subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+    @if (user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="admin-membres__user"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + (u.displayName || u.email || 'Utilisateur')"
+      >
+        <mat-icon class="admin-membres__user-icon">account_circle</mat-icon>
+        <span class="admin-membres__user-label">{{ u.displayName || u.email || 'Compte' }}</span>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+      </mat-menu>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="admin-membres__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (season(); as se) {
+    @if (showTabBar()) {
+      <mat-tab-group
+        class="admin-membres__tabs"
+        [selectedIndex]="tabIndex()"
+        (selectedIndexChange)="onTabChange($event)"
+      >
+        @if (canManageMembers()) {
+          <mat-tab label="Membres">
+            <app-membres-tab
+              [troupeId]="troupeId()!"
+              [seasonId]="se.id"
+              [canManageSeasonOrganizers]="canManageSeasonOrganizers()"
+              (membersChanged)="refreshPermissionsAfterMemberMutation()"
+            />
+          </mat-tab>
+        }
+        @if (canManageSeasonOrganizers()) {
+          <mat-tab label="Organisateur·ices">
+            <app-organisateurs-tab [seasonId]="se.id" [troupeId]="troupeId()!" />
+          </mat-tab>
+        }
+      </mat-tab-group>
+    } @else if (canManageMembers()) {
+      <app-membres-tab
+        [troupeId]="troupeId()!"
+        [seasonId]="se.id"
+        [canManageSeasonOrganizers]="canManageSeasonOrganizers()"
+        (membersChanged)="refreshPermissionsAfterMemberMutation()"
+      />
+    } @else if (canManageSeasonOrganizers()) {
+      <app-organisateurs-tab [seasonId]="se.id" [troupeId]="troupeId()!" />
+    }
+  }
+</div>

@@ -20,14 +20,10 @@
         <mat-icon>settings</mat-icon>
       </button>
       <mat-menu #settingsMenu="matMenu">
-        <button type="button" mat-menu-item (click)="onMembers()">
+        <a mat-menu-item [routerLink]="['/saison', seasonSlug(), 'admin', 'membres']">
           <mat-icon>group</mat-icon>
           <span>Membres</span>
-        </button>
-        <button type="button" mat-menu-item (click)="onOrganizers()">
-          <mat-icon>admin_panel_settings</mat-icon>
-          <span>Organisateur·ices</span>
-        </button>
+        </a>
       </mat-menu>
     }
     @if (user(); as u) {

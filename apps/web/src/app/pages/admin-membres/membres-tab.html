@@ -1,0 +1,156 @@
+<section class="membres-tab" aria-label="Membres de la troupe">
+  <div class="membres-tab__toolbar">
+    <mat-form-field appearance="outline" class="membres-tab__search">
+      <mat-label>Rechercher</mat-label>
+      <input
+        matInput
+        [value]="searchQuery()"
+        (input)="onSearchInput($any($event.target).value)"
+        placeholder="Nom ou email"
+      />
+      @if (searchQuery()) {
+        <button
+          type="button"
+          mat-icon-button
+          matSuffix
+          aria-label="Effacer la recherche"
+          (click)="clearSearch()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+    <div class="membres-tab__toolbar-actions">
+      <button type="button" mat-flat-button color="primary" [disabled]="saving()" (click)="openAddMember()">
+        Ajouter
+      </button>
+      <button type="button" mat-stroked-button [disabled]="saving()" (click)="exportCsv()">
+        Exporter
+      </button>
+      <button type="button" mat-stroked-button [disabled]="saving()" [matMenuTriggerFor]="importMenu">
+        Importer ▾
+      </button>
+      <input
+        #usersCsvInput
+        class="membres-tab__file-input"
+        type="file"
+        accept=".csv,text/csv"
+        [disabled]="saving()"
+        (change)="onImportUsersFileSelected($event)"
+      />
+      <input
+        #membersCsvInput
+        class="membres-tab__file-input"
+        type="file"
+        accept=".csv,text/csv"
+        [disabled]="saving()"
+        (change)="onImportMembersFileSelected($event)"
+      />
+      <mat-menu #importMenu="matMenu">
+        <button type="button" mat-menu-item (click)="usersCsvInput.click()">
+          Utilisateurs
+        </button>
+        <button type="button" mat-menu-item (click)="membersCsvInput.click()">
+          Membres
+        </button>
+      </mat-menu>
+    </div>
+  </div>
+
+  <mat-slide-toggle
+    class="membres-tab__inactive-toggle"
+    [checked]="showInactive()"
+    (change)="showInactive.set($event.checked)"
+  >
+    Afficher les inactifs
+  </mat-slide-toggle>
+
+  @if (loading()) {
+    <div class="membres-tab__spinner" role="status">
+      <mat-spinner diameter="32" />
+    </div>
+  } @else if (filteredMembers().length === 0) {
+    <p class="membres-tab__empty">Aucun membre dans cette troupe.</p>
+    <button type="button" mat-flat-button color="primary" (click)="openAddMember()">Ajouter</button>
+  } @else {
+    <ul class="membres-tab__list">
+      @for (member of filteredMembers(); track member.id) {
+        <li
+          class="membres-tab__row"
+          [class.membres-tab__row--inactive]="member.status === 'INACTIVE'"
+        >
+          <span class="membres-tab__avatar" aria-hidden="true">{{ avatarInitial(member) }}</span>
+          <div class="membres-tab__identity">
+            @if (editingMemberId() === member.id) {
+              <input
+                class="membres-tab__name-input"
+                [value]="editingName()"
+                (input)="editingName.set($any($event.target).value)"
+                (blur)="saveDisplayName(member)"
+                (keydown)="onNameKeydown($event, member)"
+              />
+            } @else {
+              <button
+                type="button"
+                class="membres-tab__name-btn"
+                (click)="startNameEdit(member)"
+              >
+                {{ member.displayName }}
+              </button>
+            }
+            <span class="membres-tab__email">{{ member.email || 'Email indisponible' }}</span>
+            @if (canNommerOrganisateur(member)) {
+              <button
+                type="button"
+                class="membres-tab__orga-link"
+                [disabled]="saving()"
+                (click)="nommerOrganisateur(member)"
+              >
+                Nommer organisateur·ice de saison
+              </button>
+            }
+          </div>
+          <div class="membres-tab__controls">
+            <mat-chip
+              class="membres-tab__role-chip"
+              [matMenuTriggerFor]="roleMenu"
+              [disabled]="isLastAdmin(member) || saving()"
+              [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
+              (click)="openRoleMenu(member)"
+            >
+              {{ roleLabel(member.baselineRole) }} ▾
+            </mat-chip>
+            <mat-slide-toggle
+              [checked]="member.status === 'ACTIVE'"
+              [disabled]="isLastAdmin(member) || saving()"
+              [matTooltip]="isLastAdmin(member) ? 'La troupe doit conserver au moins un administrateur actif.' : ''"
+              (change)="onActiveToggle(member, $event.checked)"
+            >
+              Actif
+            </mat-slide-toggle>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <mat-expansion-panel class="membres-tab__help">
+    <mat-expansion-panel-header>
+      <mat-panel-title>Aide migration V1</mat-panel-title>
+    </mat-expansion-panel-header>
+    <p>
+      Pour une migration V1, importez d'abord les utilisateurs (email, nom affiché), puis les
+      membres (email, nom, rôle, statut). Chaque utilisateur importé devra se connecter une fois
+      en V2 pour activer son compte.
+    </p>
+    <p><strong>Utilisateurs :</strong> email, displayName — à importer avant les membres.</p>
+    <p><strong>Membres :</strong> email, displayName, baselineRole, status</p>
+  </mat-expansion-panel>
+
+  <mat-menu #roleMenu="matMenu">
+    <button type="button" mat-menu-item (click)="selectRole('MEMBER')">Membre</button>
+    <button type="button" mat-menu-item (click)="selectRole('TROUPE_ADMIN')">
+      Administrateur·ice de troupe
+    </button>
+  </mat-menu>
+</section>

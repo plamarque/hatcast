@@ -1,0 +1,154 @@
+.membres-tab {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.membres-tab__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.membres-tab__search {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.membres-tab__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.membres-tab__file-input {
+  display: none;
+}
+
+.membres-tab__inactive-toggle {
+  margin-bottom: 0.25rem;
+}
+
+.membres-tab__spinner {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.membres-tab__empty {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.membres-tab__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.membres-tab__row {
+  align-items: center;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.5rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto 1fr auto;
+  min-height: 3.25rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.membres-tab__row--inactive {
+  opacity: 0.6;
+}
+
+.membres-tab__avatar {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  display: flex;
+  font-weight: 600;
+  height: 2rem;
+  justify-content: center;
+  width: 2rem;
+}
+
+.membres-tab__identity {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.membres-tab__name-btn,
+.membres-tab__name-input {
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.membres-tab__name-input {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.38);
+  cursor: text;
+  width: 100%;
+}
+
+.membres-tab__email {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.85rem;
+}
+
+.membres-tab__orga-link {
+  background: none;
+  border: none;
+  color: #1565c0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.membres-tab__controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.membres-tab__role-chip {
+  cursor: pointer;
+  min-width: unset;
+}
+
+.membres-tab__help p {
+  margin: 0 0 0.5rem;
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .membres-tab__toolbar {
+    flex-direction: column;
+  }
+
+  .membres-tab__toolbar-actions {
+    width: 100%;
+  }
+
+  .membres-tab__row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .membres-tab__controls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

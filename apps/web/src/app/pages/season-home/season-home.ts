@@ -36,14 +36,6 @@ import {
   EventFormDialog,
   type EventFormDialogData,
 } from './event-form-dialog'
-import {
-  SeasonOrganizersDialog,
-  type SeasonOrganizersDialogData,
-} from './season-organizers-dialog'
-import {
-  TroupeMembersDialog,
-  type TroupeMembersDialogData,
-} from './troupe-members-dialog'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -251,60 +243,6 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.totalElements.set(total)
     this.resetStaleEventFilter(visibleEvents)
     this.loadingEvents.set(false)
-  }
-
-  protected async openMembersAdmin(): Promise<void> {
-    const troupeId = this.troupeId()
-    const s = this.season()
-    if (!troupeId || !s) {
-      return
-    }
-    if (this.seasonPermissions()?.canManageMembers !== true) {
-      await this.loadSeasonPermissions(s.id)
-    }
-    if (this.seasonPermissions()?.canManageMembers !== true) {
-      this.snack.open('Vous ne pouvez pas administrer les membres de cette troupe.', 'OK', {
-        duration: 5000,
-      })
-      return
-    }
-    const ref = this.dialog.open<TroupeMembersDialog, TroupeMembersDialogData, boolean>(
-      TroupeMembersDialog,
-      {
-        data: { troupeId },
-        width: 'min(100vw - 2rem, 60rem)',
-      },
-    )
-    ref.afterClosed().subscribe((changed) => {
-      if (changed) void this.loadSeasonPermissions(s.id)
-    })
-  }
-
-  protected async openSeasonOrganizers(): Promise<void> {
-    const s = this.season()
-    if (!s) {
-      return
-    }
-    if (this.seasonPermissions()?.canManageSeasonOrganizers !== true) {
-      await this.loadSeasonPermissions(s.id)
-    }
-    if (this.seasonPermissions()?.canManageSeasonOrganizers !== true) {
-      this.snack.open('Vous ne pouvez pas gérer les organisateur·ices de cette saison.', 'OK', {
-        duration: 5000,
-      })
-      return
-    }
-    this.dialog.open<SeasonOrganizersDialog, SeasonOrganizersDialogData, boolean>(
-      SeasonOrganizersDialog,
-      {
-        data: { seasonId: s.id },
-        width: 'min(100vw - 2rem, 34rem)',
-      },
-    )
-  }
-
-  protected async onSettings(): Promise<void> {
-    await this.openSeasonOrganizers()
   }
 
   protected openEvent(eventId: string): void {

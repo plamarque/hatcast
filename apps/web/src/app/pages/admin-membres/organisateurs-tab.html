@@ -1,0 +1,62 @@
+<section class="organisateurs-tab" aria-label="Organisateur·ices de saison">
+  <p class="organisateurs-tab__help">
+    Peut préparer les tirages et annoncer les compositions. Pas un administrateur de troupe.
+    Les organisateur·ices de spectacle se gèrent dans les réglages de chaque spectacle.
+  </p>
+
+  <div class="organisateurs-tab__toolbar">
+    <mat-form-field appearance="outline" class="organisateurs-tab__search">
+      <mat-label>Rechercher</mat-label>
+      <input
+        matInput
+        [value]="searchQuery()"
+        (input)="onSearchInput($any($event.target).value)"
+        placeholder="Nom ou email"
+      />
+      @if (searchQuery()) {
+        <button
+          type="button"
+          mat-icon-button
+          matSuffix
+          aria-label="Effacer la recherche"
+          (click)="clearSearch()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+    <button type="button" mat-flat-button color="primary" [disabled]="saving()" (click)="openAddOrganizer()">
+      Ajouter
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="organisateurs-tab__spinner" role="status">
+      <mat-spinner diameter="32" />
+    </div>
+  } @else if (filteredOrganizers().length === 0) {
+    <p class="organisateurs-tab__empty">Aucun·e organisateur·ice pour cette saison.</p>
+  } @else {
+    <ul class="organisateurs-tab__list">
+      @for (organizer of filteredOrganizers(); track organizer.userId) {
+        <li class="organisateurs-tab__row">
+          <div class="organisateurs-tab__identity">
+            <strong>{{ displayLabel(organizer) }}</strong>
+            @if (organizer.displayName) {
+              <span class="organisateurs-tab__email">{{ organizer.email }}</span>
+            }
+          </div>
+          <button
+            type="button"
+            mat-button
+            color="warn"
+            [disabled]="saving()"
+            (click)="confirmRemove(organizer)"
+          >
+            Retirer
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>
