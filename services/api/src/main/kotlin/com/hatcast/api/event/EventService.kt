@@ -103,21 +103,51 @@ class EventService(
     ): EventResponseDto {
         val e = loadEventInSeason(seasonId, eventId)
         troupeAccess.requireCanManageTroupe(e.season.troupe.id)
-        if (body.title != null) {
-            val t = body.title.trim()
+        if (body.title.isPresent) {
+            val rawTitle = body.title.get()
+            if (rawTitle == null) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le titre ne peut pas être effacé.")
+            }
+            val t = rawTitle.trim()
             if (t.isEmpty()) {
                 throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Titre vide")
             }
+            if (t.length > 255) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "title trop long (max 255).")
+            }
             e.title = t
         }
-        if (body.startsAt != null) {
-            e.startsAt = body.startsAt
+        if (body.startsAt.isPresent) {
+            val rawStartsAt = body.startsAt.get()
+            if (rawStartsAt == null) {
+                throw ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La date de début ne peut pas être effacée.",
+                )
+            }
+            e.startsAt = rawStartsAt
         }
-        if (body.description != null) {
-            e.description = body.description.trim().takeIf { it.isNotEmpty() }
+        if (body.description.isPresent) {
+            val raw = body.description.get()
+            if (raw == null) {
+                e.description = null
+            } else {
+                if (raw.length > 4000) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "description trop longue (max 4000).")
+                }
+                e.description = raw.trim().takeIf { it.isNotEmpty() }
+            }
         }
-        if (body.location != null) {
-            e.location = body.location.trim().takeIf { it.isNotEmpty() }
+        if (body.location.isPresent) {
+            val raw = body.location.get()
+            if (raw == null) {
+                e.location = null
+            } else {
+                if (raw.length > 512) {
+                    throw ResponseStatusException(HttpStatus.BAD_REQUEST, "location trop longue (max 512).")
+                }
+                e.location = raw.trim().takeIf { it.isNotEmpty() }
+            }
         }
         e.updatedAt = Instant.now()
         return EventResponseDto.from(eventRepository.save(e))

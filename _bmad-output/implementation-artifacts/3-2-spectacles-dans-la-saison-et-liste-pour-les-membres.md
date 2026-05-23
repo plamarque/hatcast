@@ -1,6 +1,6 @@
 # Story 3.2 : Spectacles dans la saison et liste pour les membres
 
-Status: in-progress
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -150,6 +150,7 @@ _(aucun)_
 
 - 2026-04-21 : Implémentation spectacles par saison (API + UI), story passée en **review**.
 - 2026-04-21 : PATCH saisons — `null` explicite efface `description` / dates ; `title: null` interdit (400) ; tests d’intégration.
+- 2026-05-23 : Code review — PATCH événements aligné JsonNullable (effacement champs optionnels) ; en-tête saison basé sur `totalElements` ; story **done**.
 
 ---
 

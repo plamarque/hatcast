@@ -8,7 +8,10 @@
       <div class="season__titles">
         <h1 class="season__title">{{ se.title }}</h1>
         <p class="season__subtitle">
-          {{ se.eventCount }} événement(s) · Vue {{ showPastAndArchived() ? 'complète' : 'à venir' }}
+          {{ totalElements() }} spectacle(s) · Vue {{ showPastAndArchived() ? 'complète' : 'à venir' }}
+          @if (!showPastAndArchived()) {
+            <span class="season__subtitle-total">({{ se.eventCount }} au total)</span>
+          }
         </p>
       </div>
     }

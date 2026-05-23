@@ -1,10 +1,12 @@
 package com.hatcast.api.event.dto
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.hatcast.api.event.EventEntity
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
+import org.openapitools.jackson.nullable.JsonNullable
 import java.time.Instant
 import java.util.UUID
 
@@ -56,13 +58,15 @@ data class CreateEventRequest(
     val location: String? = null,
 )
 
+@JsonDeserialize(using = UpdateEventRequestDeserializer::class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class UpdateEventRequest(
-    @field:Size(max = 255)
-    val title: String? = null,
-    val startsAt: Instant? = null,
-    @field:Size(max = 4000)
-    val description: String? = null,
-    @field:Size(max = 512)
-    val location: String? = null,
+    /** Absent = inchangé ; `null` explicite = interdit (titre obligatoire). */
+    val title: JsonNullable<String> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = interdit (date obligatoire). */
+    val startsAt: JsonNullable<Instant> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = effacer. */
+    val description: JsonNullable<String> = JsonNullable.undefined(),
+    /** Absent = inchangé ; `null` explicite = effacer. */
+    val location: JsonNullable<String> = JsonNullable.undefined(),
 )

@@ -169,6 +169,50 @@ class EventControllerIntegrationTest {
     }
 
     @Test
+    fun `patch clears optional fields with explicit null`() {
+        val cookie = sessionCookieFromGoogleSignIn("sub-event-3")
+        val seasonId = createSeasonForEventsTests(cookie)
+        val future = Instant.parse("2030-06-15T18:00:00Z")
+
+        val createRes =
+            mockMvc
+                .perform(
+                    post("/v1/seasons/$seasonId/events")
+                        .cookie(cookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                            """
+                            {
+                              "title": "Avec détails",
+                              "startsAt": "${future}",
+                              "description": "Texte",
+                              "location": "Salle B"
+                            }
+                            """.trimIndent(),
+                        ).with(csrf()),
+                ).andExpect(status().isOk)
+                .andReturn()
+        val eventId = mapper.readTree(createRes.response.contentAsString).get("id").asText()
+
+        mockMvc
+            .perform(
+                patch("/v1/seasons/$seasonId/events/$eventId")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "description": null,
+                          "location": null
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.description").doesNotExist())
+            .andExpect(jsonPath("$.location").doesNotExist())
+    }
+
+    @Test
     fun `invalid scope returns 400`() {
         val cookie = sessionCookieFromGoogleSignIn("sub-event-2")
         val seasonId = createSeasonForEventsTests(cookie)
