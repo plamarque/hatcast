@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import com.hatcast.api.user.UserEntity
+import com.hatcast.api.user.UserRepository
 import java.time.Instant
 
 @SpringBootTest
@@ -24,6 +26,9 @@ import java.time.Instant
 class AuthControllerIntegrationTest {
     @Autowired
     private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
 
     @MockBean
     private lateinit var googleIdTokenService: GoogleIdTokenService
@@ -193,6 +198,41 @@ class AuthControllerIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"idToken":"fake-idp-token","rememberMe":false}"""),
             ).andExpect(status().isOk)
+    }
+
+    @Test
+    fun `POST google links pre-provisioned migration user by email`() {
+        userRepository.save(
+            UserEntity(
+                email = "migrated@example.com",
+                displayName = "Stub User",
+            ),
+        )
+
+        val jwt =
+            Jwt
+                .withTokenValue("header.payload.sig")
+                .header("alg", "RS256")
+                .claim("sub", "google-sub-migrated-1")
+                .claim("email", "migrated@example.com")
+                .claim("name", "Google Display")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .issuer("https://accounts.google.com")
+                .build()
+        whenever(googleIdTokenService.validateAndParse(any())).thenReturn(jwt)
+
+        mockMvc
+            .perform(
+                post("/v1/auth/google")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"idToken":"fake-jwt"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.user.email").value("migrated@example.com"))
+
+        val linked = userRepository.findByGoogleSub("google-sub-migrated-1")
+        requireNotNull(linked)
+        org.junit.jupiter.api.Assertions.assertEquals("migrated@example.com", linked.email)
     }
 
     @Test

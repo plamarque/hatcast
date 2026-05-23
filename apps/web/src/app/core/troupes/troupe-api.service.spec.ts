@@ -134,4 +134,50 @@ describe('TroupeApiService', () => {
       }),
     )
   })
+
+  it('exportMembersCsv télécharge le CSV', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: () => Promise.resolve(new Blob(['email,displayName\n'])),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const r = await service().exportMembersCsv('t-1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/members/export',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+    expect(r.ok).toBe(true)
+    expect(r.data).toBeInstanceOf(Blob)
+  })
+
+  it('importMembersCsv envoie multipart avec CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          summary: { success: 1, skipped: 0, error: 0 },
+          rows: [],
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const file = new File(['email\ntest@example.com\n'], 'members.csv', { type: 'text/csv' })
+
+    await service().importMembersCsv('t-1', file)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/members/import',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({ 'X-XSRF-TOKEN': 'token' }),
+      }),
+    )
+    const body = fetchMock.mock.calls[0][1].body as FormData
+    expect(body.get('file')).toBeInstanceOf(File)
+  })
 })

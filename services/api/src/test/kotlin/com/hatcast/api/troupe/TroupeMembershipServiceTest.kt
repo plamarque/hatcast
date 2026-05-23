@@ -3,6 +3,7 @@ package com.hatcast.api.troupe
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,7 +23,10 @@ class TroupeMembershipServiceTest {
     private val membershipRepository = mock<TroupeMembershipRepository>()
     private val troupeRepository = mock<TroupeRepository>()
     private val userRepository = mock<UserRepository>()
-    private val service = TroupeMembershipService(membershipRepository, troupeRepository, userRepository)
+    private val userAccountService = mock<UserAccountService>()
+    private val csvImportService = mock<TroupeMemberCsvImportService>()
+    private val service =
+        TroupeMembershipService(membershipRepository, troupeRepository, userRepository, userAccountService, csvImportService)
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val troupe = TroupeEntity(id = troupeId, name = "La Malice", slug = "la-malice")
@@ -49,7 +53,7 @@ class TroupeMembershipServiceTest {
         whenever(membershipRepository.findByTroupe_IdAndUser_Id(troupeId, principal.userId)).thenReturn(adminMembership)
         whenever(membershipRepository.findByTroupe_IdAndUser_Id(troupeId, target.id)).thenReturn(null)
         whenever(troupeRepository.findByIdForMembershipJoin(troupeId)).thenReturn(troupe)
-        whenever(userRepository.findFirstByEmailIgnoreCase("target@example.com")).thenReturn(target)
+        whenever(userAccountService.ensureUserByEmail("target@example.com")).thenReturn(target)
         whenever(membershipRepository.saveAndFlush(any())).thenAnswer { it.getArgument(0) }
 
         val saved =
@@ -60,7 +64,7 @@ class TroupeMembershipServiceTest {
             )
 
         assertEquals(TroupeBaselineRole.MEMBER, saved.baselineRole)
-        verify(userRepository).findFirstByEmailIgnoreCase("target@example.com")
+        verify(userAccountService).ensureUserByEmail("target@example.com")
     }
 
     @Test
@@ -100,7 +104,7 @@ class TroupeMembershipServiceTest {
         )
         whenever(membershipRepository.findByTroupe_IdAndUser_Id(troupeId, target.id)).thenReturn(adminMembership)
         whenever(troupeRepository.findByIdForMembershipJoin(troupeId)).thenReturn(troupe)
-        whenever(userRepository.findFirstByEmailIgnoreCase("target@example.com")).thenReturn(target)
+        whenever(userAccountService.ensureUserByEmail("target@example.com")).thenReturn(target)
         whenever(
             membershipRepository.countByTroupe_IdAndStatusAndBaselineRole(
                 troupeId,

@@ -52,6 +52,54 @@ export interface UpdateTroupeMemberRequest {
   baselineRole?: TroupeBaselineRole
 }
 
+export type MemberImportRowOutcome = 'SUCCESS' | 'SKIPPED' | 'ERROR'
+
+export type MemberImportErrorCode =
+  | 'INVALID_EMAIL'
+  | 'USER_NOT_FOUND'
+  | 'INVALID_BASELINE_ROLE'
+  | 'INVALID_STATUS'
+  | 'LAST_ADMIN_VIOLATION'
+  | 'PARSE_ERROR'
+
+export interface MemberImportRowResult {
+  rowNumber: number
+  outcome: MemberImportRowOutcome
+  email: string | null
+  code: MemberImportErrorCode | null
+  message: string | null
+}
+
+export interface MemberImportResult {
+  summary: {
+    success: number
+    skipped: number
+    error: number
+  }
+  rows: MemberImportRowResult[]
+}
+
+export type UserImportRowOutcome = 'SUCCESS' | 'SKIPPED' | 'ERROR'
+
+export type UserImportErrorCode = 'INVALID_EMAIL' | 'PARSE_ERROR'
+
+export interface UserImportRowResult {
+  rowNumber: number
+  outcome: UserImportRowOutcome
+  email: string | null
+  code: UserImportErrorCode | null
+  message: string | null
+}
+
+export interface UserImportResult {
+  summary: {
+    success: number
+    skipped: number
+    error: number
+  }
+  rows: UserImportRowResult[]
+}
+
 type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>
 
 @Injectable({ providedIn: 'root' })
@@ -170,6 +218,65 @@ export class TroupeApiService {
         },
       )
       return { ok: res.ok, status: res.status }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async exportMembersCsv(troupeId: string): ApiResult<Blob> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/members/export`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: await res.blob() }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async importMembersCsv(
+    troupeId: string,
+    file: File,
+  ): ApiResult<MemberImportResult> {
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/members/import`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+          body,
+        },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as MemberImportResult }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async importUsersCsv(
+    troupeId: string,
+    file: File,
+  ): ApiResult<UserImportResult> {
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/users/import`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { ...csrfHeaders() },
+          body,
+        },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as UserImportResult }
     } catch {
       return { ok: false, status: 0 }
     }

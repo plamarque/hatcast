@@ -46,4 +46,10 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         status: TroupeMembershipStatus,
         baselineRole: TroupeBaselineRole,
     ): Long
+
+    fun findByTroupe_IdAndStatusOrderByDisplayNameAsc(
+        troupeId: UUID,
+        status: TroupeMembershipStatus,
+        pageable: Pageable,
+    ): Page<TroupeMembershipEntity>
 }

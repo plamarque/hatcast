@@ -27,7 +27,7 @@ object TestAuthSupport {
         mockMvc: MockMvc,
         googleIdTokenService: GoogleIdTokenService,
         googleSub: String,
-        email: String = "season@example.com",
+        email: String = "$googleSub@example.com",
         name: String = "Season Test",
     ): Cookie {
         val jwt =
@@ -70,7 +70,7 @@ object TestAuthSupport {
         mockMvc: MockMvc,
         googleIdTokenService: GoogleIdTokenService,
         googleSub: String,
-        email: String = "season@example.com",
+        email: String = "$googleSub@example.com",
         name: String = "Season Test",
         seedTroupeId: UUID = UUID.fromString("a0000001-0000-4000-8000-000000000001"),
     ): Cookie {

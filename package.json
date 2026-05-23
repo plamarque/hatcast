@@ -19,7 +19,9 @@
     "test:ci": "npm run test:ci -w hatcast-legacy",
     "test:with-server": "npm run test:with-server -w hatcast-legacy",
     "test:unit": "npm run test:unit -w hatcast-legacy",
-    "replay": "node scripts/replay-season.js"
+    "replay": "node scripts/replay-season.js",
+    "export:v1-members": "node scripts/v1-export-troupe-members-csv.js",
+    "export:v1-users": "node scripts/v1-export-season-users-csv.js"
   },
   "engines": {
     "node": ">=20"

@@ -5,6 +5,7 @@ import com.hatcast.api.auth.IdpIdTokenVerifier
 import com.hatcast.api.support.TestAuthSupport
 import com.hatcast.api.user.UserRepository
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -18,8 +19,11 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
@@ -343,6 +347,244 @@ class TroupeMembershipIntegrationTest {
             .andExpect(jsonPath("$.status").value("ACTIVE"))
             .andExpect(jsonPath("$.displayName").value("Reactivated"))
             .andExpect(jsonPath("$.baselineRole").value("MEMBER"))
+    }
+
+    @Test
+    fun `troupe admin can export and import members csv`() {
+        val adminCookie = signInAndJoin("sub-csv-admin-1", "csv-admin-1@example.com", "CSV Admin")
+        promoteSeedMemberToAdmin("sub-csv-admin-1")
+        signIn("sub-csv-target-1", "csv-target-1@example.com", "CSV Target")
+        signIn("sub-csv-target-2", "csv-target-2@example.com", "CSV Target 2")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"csv-target-1@example.com","displayName":"Export Target"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val exportResult =
+            mockMvc
+                .perform(get("/v1/troupes/$seedTroupeId/members/export").cookie(adminCookie))
+                .andExpect(status().isOk)
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment")))
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andReturn()
+
+        val exportedCsv = exportResult.response.contentAsString
+        assertTrue(exportedCsv.contains("email,displayName,baselineRole,status"))
+        assertTrue(exportedCsv.contains("csv-target-1@example.com"))
+
+        val importCsv =
+            """
+            email,displayName,baselineRole,status
+            csv-target-1@example.com,Export Target Updated,MEMBER,active
+            csv-target-2@example.com,Nouveau membre,MEMBER,active
+            unknown-user@example.com,Missing,,active
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            importCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.success").value(2))
+            .andExpect(jsonPath("$.summary.error").value(1))
+            .andExpect(jsonPath("$.rows[?(@.email == 'unknown-user@example.com')].code").value("USER_NOT_FOUND"))
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/members?page=0&size=100").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.email == 'csv-target-2@example.com')].displayName").value("Nouveau membre"))
+            .andExpect(
+                jsonPath("$.content[?(@.email == 'csv-target-1@example.com')].displayName").value("Export Target Updated"),
+            )
+    }
+
+    @Test
+    fun `non admin cannot export or import members csv`() {
+        val cookie = signInAndJoin("sub-csv-ordinary-1", "csv-ordinary-1@example.com", "CSV Ordinary")
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/members/export").cookie(cookie))
+            .andExpect(status().isForbidden)
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            "email\ntest@example.com\n".toByteArray(),
+                        ),
+                    ).cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `import duplicate email is idempotent update`() {
+        val adminCookie = signInAndJoin("sub-csv-idempotent-1", "csv-idempotent-admin@example.com", "CSV Idempotent Admin")
+        promoteSeedMemberToAdmin("sub-csv-idempotent-1")
+        signIn("sub-csv-idempotent-target", "csv-idempotent-target@example.com", "CSV Idempotent Target")
+
+        mockMvc
+            .perform(
+                post("/v1/troupes/$seedTroupeId/members")
+                    .cookie(adminCookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"csv-idempotent-target@example.com","displayName":"Original"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        val importCsv =
+            """
+            email,displayName,baselineRole,status
+            csv-idempotent-target@example.com,Updated Name,MEMBER,active
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            importCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.success").value(1))
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            importCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.skipped").value(1))
+    }
+
+    @Test
+    fun `last active troupe admin cannot be demoted via members csv import`() {
+        val troupeId = UUID.randomUUID()
+        val cookie = signIn("sub-last-admin-csv-1", "last-admin-csv-1@example.com", "Last Admin CSV")
+        val troupe =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = troupeId,
+                    name = "Guard CSV ${troupeId.toString().take(8)}",
+                    slug = "guard-csv-${troupeId.toString().take(8)}",
+                ),
+            )
+        val user = userRepository.findByGoogleSub("sub-last-admin-csv-1")!!
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupe,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.TROUPE_ADMIN,
+                displayName = "Last Admin CSV",
+            ),
+        )
+
+        val importCsv =
+            """
+            email,displayName,baselineRole,status
+            last-admin-csv-1@example.com,Last Admin CSV,MEMBER,active
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$troupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            importCsv.toByteArray(),
+                        ),
+                    ).cookie(cookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.error").value(1))
+            .andExpect(jsonPath("$.rows[0].code").value("LAST_ADMIN_VIOLATION"))
+    }
+
+    @Test
+    fun `troupe admin can import users then members csv`() {
+        val adminCookie = signInAndJoin("sub-csv-users-admin", "csv-users-admin@example.com", "Users Admin")
+        promoteSeedMemberToAdmin("sub-csv-users-admin")
+
+        val usersCsv =
+            """
+            email,displayName
+            csv-migrated-1@example.com,Migré Un
+            csv-migrated-2@example.com,Migré Deux
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/users/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "users.csv",
+                            "text/csv",
+                            usersCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.success").value(2))
+
+        val membersCsv =
+            """
+            email,displayName,baselineRole,status
+            csv-migrated-1@example.com,Migré Un,MEMBER,active
+            csv-migrated-2@example.com,Migré Deux,TROUPE_ADMIN,active
+            """.trimIndent()
+
+        mockMvc
+            .perform(
+                multipart("/v1/troupes/$seedTroupeId/members/import")
+                    .file(
+                        org.springframework.mock.web.MockMultipartFile(
+                            "file",
+                            "members.csv",
+                            "text/csv",
+                            membersCsv.toByteArray(),
+                        ),
+                    ).cookie(adminCookie)
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.summary.success").value(2))
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/members?page=0&size=100").cookie(adminCookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.content[?(@.email == 'csv-migrated-2@example.com')].baselineRole").value("TROUPE_ADMIN"))
     }
 
     private fun signInAndJoin(

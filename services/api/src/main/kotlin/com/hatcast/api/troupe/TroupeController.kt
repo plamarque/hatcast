@@ -2,13 +2,19 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
+import com.hatcast.api.troupe.dto.MemberImportResultDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import com.hatcast.api.user.UserImportService
+import com.hatcast.api.user.dto.UserImportResultDto
 import jakarta.validation.Valid
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -19,13 +25,16 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 @RestController
 @RequestMapping("/v1/troupes")
 class TroupeController(
     private val membershipService: TroupeMembershipService,
+    private val userImportService: UserImportService,
     private val troupeAccess: TroupeAccessService,
 ) {
     /** Troupe(s) où l'utilisateur courant a une adhésion active. */
@@ -94,5 +103,44 @@ class TroupeController(
         @AuthenticationPrincipal principal: SessionUserPrincipal,
     ) {
         membershipService.deactivateMember(troupeId, membershipId, principal)
+    }
+
+    @GetMapping("/{troupeId}/members/export", produces = ["text/csv"])
+    fun exportMembers(
+        @PathVariable troupeId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): ResponseEntity<ByteArray> {
+        val csv = membershipService.exportActiveMembersCsv(troupeId, principal)
+        return ResponseEntity
+            .ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"troupe-members-$troupeId.csv\"")
+            .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+            .body(csv.toByteArray(StandardCharsets.UTF_8))
+    }
+
+    @PostMapping("/{troupeId}/members/import", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun importMembers(
+        @PathVariable troupeId: UUID,
+        @RequestParam("file") file: MultipartFile,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): MemberImportResultDto {
+        if (file.isEmpty) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le fichier CSV est vide.")
+        }
+        val content = file.bytes.toString(StandardCharsets.UTF_8)
+        return membershipService.importMembersCsv(troupeId, content, principal)
+    }
+
+    @PostMapping("/{troupeId}/users/import", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun importUsers(
+        @PathVariable troupeId: UUID,
+        @RequestParam("file") file: MultipartFile,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): UserImportResultDto {
+        if (file.isEmpty) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le fichier CSV est vide.")
+        }
+        val content = file.bytes.toString(StandardCharsets.UTF_8)
+        return userImportService.importUsersCsv(troupeId, content, principal)
     }
 }

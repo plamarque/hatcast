@@ -29,3 +29,7 @@
 
 - Multi-troupe route resolution still uses the first membership (`tr.data[0]`) in `season-home` and event detail pages; deferred to Story 2.4 navigation/troupe switching.
 - Admin CRUD actions are still visible for non-admin troupe members; deferred to Story 2.2 role/permission UI while backend enforcement remains authoritative.
+
+## Deferred from: code review of 2-3-import-export-csv-des-membres-de-troupe.md (2026-05-23)
+
+- Limite taille upload multipart non documentée — pattern Spring global préexistant, pas introduit par cette story.

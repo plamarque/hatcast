@@ -3,7 +3,6 @@ package com.hatcast.api.auth
 import com.hatcast.api.auth.dto.AuthSessionResponse
 import com.hatcast.api.auth.dto.GoogleSignInRequest
 import com.hatcast.api.auth.dto.UserSummaryDto
-import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -31,6 +30,7 @@ import java.time.Instant
 class AuthController(
     private val googleIdTokenService: GoogleIdTokenService,
     private val userRepository: UserRepository,
+    private val authUserLinkService: AuthUserLinkService,
     private val securityContextRepository: SecurityContextRepository,
     private val idpIdTokenVerifier: ObjectProvider<IdpIdTokenVerifier>,
     private val environment: Environment,
@@ -49,23 +49,7 @@ class AuthController(
         val email = jwt.getClaimAsString("email")
         val name = jwt.getClaimAsString("name")
 
-        val existing = userRepository.findByGoogleSub(sub)
-        val user =
-            if (existing != null) {
-                existing.email = email
-                existing.displayName = name ?: existing.displayName
-                existing.updatedAt = Instant.now()
-                userRepository.save(existing)
-            } else {
-                userRepository.save(
-                    UserEntity(
-                        googleSub = sub,
-                        idpUid = null,
-                        email = email,
-                        displayName = name,
-                    ),
-                )
-            }
+        val user = authUserLinkService.resolveGoogleSignInUser(sub, email, name)
 
         val principal =
             SessionUserPrincipal(
@@ -125,23 +109,12 @@ class AuthController(
                 throw JwtException("Invalid Identity Platform ID token", ex)
             }
 
-        val existingByUid = userRepository.findByIdpUid(payload.uid)
         val user =
-            if (existingByUid != null) {
-                existingByUid.email = payload.email ?: existingByUid.email
-                existingByUid.displayName = payload.displayName ?: existingByUid.displayName
-                existingByUid.updatedAt = Instant.now()
-                userRepository.save(existingByUid)
-            } else {
-                userRepository.save(
-                    UserEntity(
-                        googleSub = null,
-                        idpUid = payload.uid,
-                        email = payload.email,
-                        displayName = payload.displayName,
-                    ),
-                )
-            }
+            authUserLinkService.resolveIdpSignInUser(
+                idpUid = payload.uid,
+                email = payload.email,
+                displayName = payload.displayName,
+            )
 
         val principal =
             SessionUserPrincipal(

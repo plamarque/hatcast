@@ -35,6 +35,23 @@ describe('TroupeMembersDialog', () => {
       addMember: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { id: 'm2' } }),
       updateMember: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { id: 'm1' } }),
       deactivateMember: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+      exportMembersCsv: vi.fn().mockResolvedValue({ ok: true, status: 200, data: new Blob(['email\n']) }),
+      importMembersCsv: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          summary: { success: 1, skipped: 0, error: 0 },
+          rows: [{ rowNumber: 2, outcome: 'SUCCESS', email: 'new@example.com', code: null, message: null }],
+        },
+      }),
+      importUsersCsv: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          summary: { success: 1, skipped: 0, error: 0 },
+          rows: [{ rowNumber: 2, outcome: 'SUCCESS', email: 'user@example.com', code: null, message: 'Compte créé' }],
+        },
+      }),
     }
     const dialog = {
       open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }),
@@ -59,7 +76,9 @@ describe('TroupeMembersDialog', () => {
 
     expect(api.listMembers).toHaveBeenCalledWith('t1', 0, 100)
     expect(text(fixture)).toContain('admin@example.com')
-    expect(text(fixture)).toContain('Importer / exporter CSV')
+    expect(text(fixture)).toContain('Exporter CSV')
+    expect(text(fixture)).toContain('Importer utilisateurs CSV')
+    expect(text(fixture)).toContain('Importer membres CSV')
   })
 
   it('adds a member and refreshes the list', async () => {

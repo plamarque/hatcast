@@ -2,11 +2,14 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.troupe.dto.AddTroupeMemberRequest
+import com.hatcast.api.troupe.dto.MemberImportResultDto
+import com.hatcast.api.troupe.dto.MemberImportSummaryDto
 import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
+import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
@@ -24,6 +27,8 @@ class TroupeMembershipService(
     private val membershipRepository: TroupeMembershipRepository,
     private val troupeRepository: TroupeRepository,
     private val userRepository: UserRepository,
+    private val userAccountService: UserAccountService,
+    private val csvImportService: TroupeMemberCsvImportService,
 ) {
     @Transactional(readOnly = true)
     fun listActiveTroupesForUser(userId: UUID): List<TroupeListItemDto> =
@@ -229,6 +234,62 @@ class TroupeMembershipService(
         return TroupeMemberAdminDto.from(membershipRepository.save(membership))
     }
 
+    @Transactional(readOnly = true)
+    fun exportActiveMembersCsv(
+        troupeId: UUID,
+        principal: SessionUserPrincipal,
+    ): String {
+        requireTroupeAdmin(principal.userId, troupeId)
+        val memberships = sequence {
+            var page = 0
+            while (true) {
+                val batch =
+                    membershipRepository.findByTroupe_IdAndStatusOrderByDisplayNameAsc(
+                        troupeId,
+                        TroupeMembershipStatus.ACTIVE,
+                        PageRequest.of(page, EXPORT_BATCH_SIZE, Sort.by(Sort.Direction.ASC, "displayName")),
+                    )
+                if (batch.isEmpty) break
+                batch.forEach { yield(it) }
+                if (!batch.hasNext()) break
+                page++
+            }
+        }
+        return TroupeMemberCsvCodec.formatExport(memberships)
+    }
+
+    @Transactional
+    fun importMembersCsv(
+        troupeId: UUID,
+        csvContent: String,
+        principal: SessionUserPrincipal,
+    ): MemberImportResultDto {
+        requireTroupeAdmin(principal.userId, troupeId)
+        troupeRepository.findByIdForMembershipJoin(troupeId)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Troupe inconnue")
+        val parsed = TroupeMemberCsvCodec.parse(csvContent)
+        parsed.fileError?.let { error ->
+            val message =
+                when (error) {
+                    MemberCsvFileError.EMPTY_FILE -> "Le fichier CSV est vide."
+                    MemberCsvFileError.MISSING_EMAIL_COLUMN -> "La colonne email est obligatoire dans l'en-tête."
+                    MemberCsvFileError.TOO_MANY_ROWS ->
+                        "Le fichier dépasse la limite de ${TroupeMemberCsvCodec.MAX_IMPORT_ROWS} lignes."
+                }
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, message)
+        }
+        val rowResults = parsed.rows.map { row -> csvImportService.importRow(troupeId, row) }
+        return MemberImportResultDto(
+            summary =
+                MemberImportSummaryDto(
+                    success = rowResults.count { it.outcome == MemberImportRowOutcome.SUCCESS },
+                    skipped = rowResults.count { it.outcome == MemberImportRowOutcome.SKIPPED },
+                    error = rowResults.count { it.outcome == MemberImportRowOutcome.ERROR },
+                ),
+            rows = rowResults,
+        )
+    }
+
     @Transactional
     fun deactivateMember(
         troupeId: UUID,
@@ -266,14 +327,14 @@ class TroupeMembershipService(
         if (email.isEmpty() || !email.contains("@")) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Email invalide.")
         }
-        return userRepository.findFirstByEmailIgnoreCase(email)
-            ?: throw ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "L'utilisateur doit se connecter une première fois avant d'être ajouté.",
-            )
+        return userAccountService.ensureUserByEmail(email)
     }
 
     private fun normalizeDisplayName(value: String?): String? = value?.trim()?.takeIf { it.isNotEmpty() }
+
+    companion object {
+        private const val EXPORT_BATCH_SIZE = 100
+    }
 
     private fun ensureLastAdminRemains(
         membership: TroupeMembershipEntity,

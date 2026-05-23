@@ -5,6 +5,7 @@ Ce dossier contient les scripts utiles pour les migrations, le déploiement, la 
 ## Scripts disponibles
 
 ### 🔄 Migration de base de données
+- **`v1-export-troupe-members-csv.js`** : Exporte les membres d'une saison V1 (Firestore) vers le CSV d'import troupe V2. Voir `docs/v2/migration/v1-troupe-members-csv-recipe.md`.
 - **`restore-development-db.sh`** : Restaure la base de données development à son état original
 - **`verify-db-import.sh`** : Vérifie que l'import des données s'est bien passé
 - **`DATABASE_MIGRATION.md`** : Documentation complète de la migration

@@ -22,6 +22,9 @@ class UserEntity(
     var email: String? = null,
     @Column(name = "display_name", length = 255)
     var displayName: String? = null,
+    /** Null pour les comptes importés (migration) jusqu'à la première connexion V2. */
+    @Column(name = "activated_at", nullable = true)
+    var activatedAt: Instant? = null,
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)

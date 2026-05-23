@@ -6,10 +6,14 @@
 import { initializeApp, cert, applicationDefault } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 
-let db = null
+/** @type {Map<string, import('firebase-admin/firestore').Firestore>} */
+const dbByDatabase = new Map()
 
-function getDb() {
-  if (!db) {
+/**
+ * @param {string} [databaseId='development']
+ */
+export function getDb(databaseId = 'development') {
+  if (!dbByDatabase.has(databaseId)) {
     const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
@@ -20,30 +24,30 @@ function getDb() {
         credential: cert({
           projectId,
           clientEmail,
-          privateKey
-        })
+          privateKey,
+        }),
       })
     } else if (projectId) {
       try {
         app = initializeApp({
           credential: applicationDefault(),
-          projectId
+          projectId,
         })
       } catch (err) {
         throw new Error(
           'Firebase Admin: use either (1) FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY in .env.local, ' +
-          'or (2) VITE_FIREBASE_PROJECT_ID + gcloud auth application-default login (or GOOGLE_APPLICATION_CREDENTIALS).'
+            'or (2) VITE_FIREBASE_PROJECT_ID + gcloud auth application-default login (or GOOGLE_APPLICATION_CREDENTIALS).',
         )
       }
     } else {
       throw new Error(
-        'Firebase project ID required. Set FIREBASE_PROJECT_ID or VITE_FIREBASE_PROJECT_ID in .env.local.'
+        'Firebase project ID required. Set FIREBASE_PROJECT_ID or VITE_FIREBASE_PROJECT_ID in .env.local.',
       )
     }
 
-    db = getFirestore(app, 'development')
+    dbByDatabase.set(databaseId, getFirestore(app, databaseId))
   }
-  return db
+  return dbByDatabase.get(databaseId)
 }
 
 function toDate(v) {

@@ -250,6 +250,143 @@ paths:
         '409':
           description: Mutation refusée car elle retirerait le dernier administrateur actif
 
+  /troupes/{troupeId}/members/export:
+    get:
+      tags: [Membres]
+      summary: Exporter les membres actifs en CSV
+      description: >
+        Retourne un fichier CSV UTF-8 (membres actifs uniquement) avec les colonnes
+        `email`, `displayName`, `baselineRole`, `status`. Réservé aux administrateur·ices
+        de troupe (`TROUPE_ADMIN`). Contrat détaillé : story 2.3 Member CSV contract v1.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Fichier CSV
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Utilisateur non administrateur de troupe
+
+  /troupes/{troupeId}/members/import:
+    post:
+      tags: [Membres]
+      summary: Importer des membres depuis un CSV
+      description: >
+        Parse et valide le CSV avant persistance ligne par ligne. Les lignes invalides ne
+        sont pas persistées ; chaque ligne produit un résultat `SUCCESS`, `SKIPPED` ou
+        `ERROR` avec un code stable. Chaque email doit exister dans `users` (import CSV
+        utilisateurs ou connexion préalable). Requiert CSRF (`X-XSRF-TOKEN`) et
+        `multipart/form-data` avec le champ `file`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Résultat d'import ligne par ligne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberImportResult'
+              examples:
+                mixed:
+                  value:
+                    summary:
+                      success: 2
+                      skipped: 1
+                      error: 1
+                    rows:
+                      - rowNumber: 2
+                        outcome: SUCCESS
+                        email: alice@example.com
+                        code: null
+                        message: null
+                      - rowNumber: 3
+                        outcome: SKIPPED
+                        email: bob@example.com
+                        code: null
+                        message: Aucune modification nécessaire.
+                      - rowNumber: 4
+                        outcome: ERROR
+                        email: unknown@example.com
+                        code: USER_NOT_FOUND
+                        message: Importez d'abord cet utilisateur via le CSV utilisateurs.
+        '400':
+          description: Fichier vide, en-tête invalide ou trop de lignes
+        '403':
+          description: Utilisateur non administrateur de troupe ou CSRF/session invalide
+        '404':
+          description: Troupe inconnue
+
+  /troupes/{troupeId}/users/import:
+    post:
+      tags: [Membres]
+      summary: Importer des utilisateurs depuis un CSV (migration)
+      description: >
+        Crée des comptes applicatifs `users` (email + nom affiché) en attente de première
+        connexion V2 (`activated_at` null). À exécuter avant l'import CSV membres.
+        Requiert CSRF (`X-XSRF-TOKEN`) et `multipart/form-data` avec le champ `file`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Résultat d'import ligne par ligne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserImportResult'
+        '400':
+          description: Fichier vide, en-tête invalide ou trop de lignes
+        '403':
+          description: Utilisateur non administrateur de troupe ou CSRF/session invalide
+        '404':
+          description: Troupe inconnue
+
   /troupes/{troupeId}/seasons:
     get:
       tags: [Saisons]
@@ -630,6 +767,103 @@ components:
           format: int64
         totalPages:
           type: integer
+
+    MemberImportSummary:
+      type: object
+      required: [success, skipped, error]
+      properties:
+        success:
+          type: integer
+        skipped:
+          type: integer
+        error:
+          type: integer
+
+    MemberImportRowOutcome:
+      type: string
+      enum: [SUCCESS, SKIPPED, ERROR]
+
+    MemberImportErrorCode:
+      type: string
+      enum:
+        - INVALID_EMAIL
+        - USER_NOT_FOUND
+        - INVALID_BASELINE_ROLE
+        - INVALID_STATUS
+        - LAST_ADMIN_VIOLATION
+        - PARSE_ERROR
+
+    MemberImportRowResult:
+      type: object
+      required: [rowNumber, outcome]
+      properties:
+        rowNumber:
+          type: integer
+          minimum: 1
+        outcome:
+          $ref: '#/components/schemas/MemberImportRowOutcome'
+        email:
+          type: string
+          nullable: true
+        code:
+          allOf:
+            - $ref: '#/components/schemas/MemberImportErrorCode'
+          nullable: true
+        message:
+          type: string
+          nullable: true
+
+    MemberImportResult:
+      type: object
+      required: [summary, rows]
+      properties:
+        summary:
+          $ref: '#/components/schemas/MemberImportSummary'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberImportRowResult'
+
+    UserImportRowOutcome:
+      type: string
+      enum: [SUCCESS, SKIPPED, ERROR]
+
+    UserImportErrorCode:
+      type: string
+      enum:
+        - INVALID_EMAIL
+        - PARSE_ERROR
+
+    UserImportRowResult:
+      type: object
+      required: [rowNumber, outcome]
+      properties:
+        rowNumber:
+          type: integer
+          minimum: 1
+        outcome:
+          $ref: '#/components/schemas/UserImportRowOutcome'
+        email:
+          type: string
+          nullable: true
+        code:
+          allOf:
+            - $ref: '#/components/schemas/UserImportErrorCode'
+          nullable: true
+        message:
+          type: string
+          nullable: true
+
+    UserImportResult:
+      type: object
+      required: [summary, rows]
+      properties:
+        summary:
+          $ref: '#/components/schemas/MemberImportSummary'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserImportRowResult'
 
     AddTroupeMemberRequest:
       type: object

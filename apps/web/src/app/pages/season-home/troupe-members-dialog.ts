@@ -8,6 +8,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSelectModule } from '@angular/material/select'
 
 import {
+  type MemberImportResult,
+  type UserImportResult,
   type TroupeBaselineRole,
   type TroupeMemberAdmin,
   type TroupeMembershipStatus,
@@ -40,8 +42,9 @@ type MemberDraft = {
     <h2 mat-dialog-title>Membres</h2>
     <mat-dialog-content class="members">
       <p class="members__help">
-        Gérez les membres actifs ou désactivés de la troupe. Les actions CSV sont prévues
-        pour la prochaine story et restent réservées ici.
+        Gérez les membres actifs ou désactivés de la troupe. Pour une migration V1, importez d'abord
+        les utilisateurs (email, nom affiché), puis les membres (email, nom, rôle, statut).
+        Chaque utilisateur importé devra se connecter une fois en V2 pour activer son compte.
       </p>
 
       <section class="members__add" aria-label="Ajouter un membre">
@@ -76,8 +79,92 @@ type MemberDraft = {
       </section>
 
       <section class="members__csv" aria-label="Actions CSV">
-        <strong>Importer / exporter CSV</strong>
-        <span>Point d’extension réservé pour la Story 2.3.</span>
+        <h3 class="members__csv-title">Utilisateurs (migration)</h3>
+        <p class="members__csv-hint">Format : email, displayName — à importer avant les membres.</p>
+        <div class="members__csv-actions">
+          <label class="members__import-label">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              [disabled]="saving()"
+              (change)="onImportUsersFileSelected($event)"
+            />
+            <span mat-stroked-button>Importer utilisateurs CSV</span>
+          </label>
+        </div>
+        @if (userImportResult()) {
+          <div class="members__import-summary" role="status">
+            Import utilisateurs :
+            {{ userImportResult()!.summary.success }} succès,
+            {{ userImportResult()!.summary.skipped }} ignorées,
+            {{ userImportResult()!.summary.error }} erreurs.
+          </div>
+          <table class="members__import-table">
+            <thead>
+              <tr>
+                <th scope="col">Ligne</th>
+                <th scope="col">Email</th>
+                <th scope="col">Résultat</th>
+                <th scope="col">Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of userImportResult()!.rows; track row.rowNumber) {
+                <tr [class.members__import-row--error]="row.outcome === 'ERROR'">
+                  <td>{{ row.rowNumber }}</td>
+                  <td>{{ row.email || '—' }}</td>
+                  <td>{{ importOutcomeLabel(row.outcome) }}</td>
+                  <td>{{ row.message || '' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <h3 class="members__csv-title">Membres de troupe</h3>
+        <p class="members__csv-hint">Format : email, displayName, baselineRole, status</p>
+        <div class="members__csv-actions">
+          <button type="button" mat-stroked-button [disabled]="saving()" (click)="exportCsv()">
+            Exporter CSV
+          </button>
+          <label class="members__import-label">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              [disabled]="saving()"
+              (change)="onImportFileSelected($event)"
+            />
+            <span mat-stroked-button>Importer membres CSV</span>
+          </label>
+        </div>
+        @if (importResult()) {
+          <div class="members__import-summary" role="status">
+            Import terminé :
+            {{ importResult()!.summary.success }} succès,
+            {{ importResult()!.summary.skipped }} ignorées,
+            {{ importResult()!.summary.error }} erreurs.
+          </div>
+          <table class="members__import-table">
+            <thead>
+              <tr>
+                <th scope="col">Ligne</th>
+                <th scope="col">Email</th>
+                <th scope="col">Résultat</th>
+                <th scope="col">Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of importResult()!.rows; track row.rowNumber) {
+                <tr [class.members__import-row--error]="row.outcome === 'ERROR'">
+                  <td>{{ row.rowNumber }}</td>
+                  <td>{{ row.email || '—' }}</td>
+                  <td>{{ importOutcomeLabel(row.outcome) }}</td>
+                  <td>{{ row.message || importErrorLabel(row.code) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
       </section>
 
       @if (loading()) {
@@ -158,7 +245,7 @@ type MemberDraft = {
       .members__help,
       .members__empty,
       .members__message,
-      .members__csv span {
+      .members__import-summary {
         color: rgba(0, 0, 0, 0.65);
         margin: 0;
       }
@@ -179,7 +266,49 @@ type MemberDraft = {
       }
       .members__csv {
         display: grid;
-        gap: 0.25rem;
+        gap: 0.75rem;
+      }
+      .members__csv-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .members__csv-hint {
+        margin: 0;
+        font-size: 0.85rem;
+        color: rgba(0, 0, 0, 0.55);
+      }
+      .members__csv-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .members__import-label input[type='file'] {
+        display: none;
+      }
+      .members__import-label span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.25rem;
+        padding: 0 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.38);
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .members__import-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+      .members__import-table th,
+      .members__import-table td {
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+      }
+      .members__import-row--error {
+        background: rgba(211, 47, 47, 0.08);
       }
       .members__list {
         display: grid;
@@ -218,6 +347,8 @@ export class TroupeMembersDialog implements OnInit {
   protected readonly saving = signal(false)
   protected readonly changed = signal(false)
   protected readonly message = signal('')
+  protected readonly importResult = signal<MemberImportResult | null>(null)
+  protected readonly userImportResult = signal<UserImportResult | null>(null)
 
   addEmail = ''
   addDisplayName = ''
@@ -309,6 +440,92 @@ export class TroupeMembersDialog implements OnInit {
     })
   }
 
+  protected async exportCsv(): Promise<void> {
+    this.saving.set(true)
+    try {
+      const r = await this.api.exportMembersCsv(this.data.troupeId)
+      if (!r.ok || !r.data) {
+        this.message.set(this.errorMessage(r.status, 'Export CSV impossible.'))
+        return
+      }
+      const url = URL.createObjectURL(r.data)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `troupe-members-${this.data.troupeId}.csv`
+      anchor.click()
+      URL.revokeObjectURL(url)
+      this.message.set('Export CSV téléchargé.')
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  protected async onImportUsersFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+    this.saving.set(true)
+    try {
+      const r = await this.api.importUsersCsv(this.data.troupeId, file)
+      if (!r.ok || !r.data) {
+        this.message.set(this.errorMessage(r.status, 'Import utilisateurs impossible.'))
+        this.userImportResult.set(null)
+        return
+      }
+      this.userImportResult.set(r.data)
+      this.message.set('Import utilisateurs terminé.')
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  protected async onImportFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+    this.saving.set(true)
+    try {
+      const r = await this.api.importMembersCsv(this.data.troupeId, file)
+      if (!r.ok || !r.data) {
+        this.message.set(this.errorMessage(r.status, 'Import CSV impossible.'))
+        this.importResult.set(null)
+        return
+      }
+      this.importResult.set(r.data)
+      this.changed.set(true)
+      this.message.set('Import CSV terminé.')
+      await this.reload()
+    } finally {
+      this.saving.set(false)
+    }
+  }
+
+  protected importOutcomeLabel(outcome: MemberImportResult['rows'][number]['outcome']): string {
+    switch (outcome) {
+      case 'SUCCESS':
+        return 'Succès'
+      case 'SKIPPED':
+        return 'Ignorée'
+      case 'ERROR':
+        return 'Erreur'
+    }
+  }
+
+  protected importErrorLabel(code: MemberImportResult['rows'][number]['code']): string {
+    switch (code) {
+      case 'USER_NOT_FOUND':
+        return 'Utilisateur non importé — importez d\'abord le CSV utilisateurs.'
+      case 'INVALID_EMAIL':
+        return 'Email invalide.'
+      case 'LAST_ADMIN_VIOLATION':
+        return 'Dernier administrateur actif.'
+      default:
+        return ''
+    }
+  }
+
   private async deactivateMember(member: TroupeMemberAdmin): Promise<void> {
     this.saving.set(true)
     try {
@@ -352,7 +569,7 @@ export class TroupeMembersDialog implements OnInit {
   }
 
   private errorMessage(status: number, fallback: string): string {
-    if (status === 404) return 'L’utilisateur doit se connecter une première fois avant d’être ajouté.'
+    if (status === 404) return 'Ressource introuvable.'
     if (status === 409) return 'La troupe doit conserver au moins un administrateur actif.'
     if (status === 403) return 'Vous ne pouvez pas administrer les membres de cette troupe.'
     return fallback
