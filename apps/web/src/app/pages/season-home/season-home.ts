@@ -1,22 +1,16 @@
-import { Component, inject, OnInit, signal } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatCardModule } from '@angular/material/card'
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
-import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { map } from 'rxjs/operators'
+import { ActivatedRoute, Router } from '@angular/router'
+import { Subscription } from 'rxjs'
+import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
-import { AuthApiService } from '../../core/auth/auth-api.service'
+import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import {
   type EventResponse,
   EventApiService,
-  type EventListScope,
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
 import {
@@ -24,30 +18,37 @@ import {
   type ConfirmDialogData,
 } from '../seasons-list/confirm-dialog'
 import {
+  AGENDA_UPCOMING_CAP,
+  filterEventsByIds,
+  groupEventsByMonth,
+} from './season-events.utils'
+import { SeasonAgenda } from './season-agenda'
+import { SeasonHeader } from './season-header'
+import { SeasonHistoryShell } from './season-history-shell'
+import { SeasonViewToolbar } from './season-view-toolbar'
+import type { EventFilterOption, ParticipantFilterOption, SeasonView } from './season-view.types'
+import {
   EventFormDialog,
   type EventFormDialogData,
 } from './event-form-dialog'
 
-const PAGE_SIZE = 20
+const FETCH_PAGE_SIZE = 50
 
 @Component({
   selector: 'app-season-home',
   imports: [
-    MatButtonModule,
-    MatCardModule,
     MatDialogModule,
-    MatIconModule,
-    MatMenuModule,
-    MatPaginatorModule,
     MatProgressSpinnerModule,
-    MatSlideToggleModule,
     MatSnackBarModule,
-    RouterLink,
+    SeasonHeader,
+    SeasonViewToolbar,
+    SeasonAgenda,
+    SeasonHistoryShell,
   ],
   templateUrl: './season-home.html',
   styleUrl: './season-home.scss',
 })
-export class SeasonHome implements OnInit {
+export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly eventsApi = inject(EventApiService)
@@ -55,6 +56,9 @@ export class SeasonHome implements OnInit {
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly dialog = inject(MatDialog)
+  private routeSubscription = Subscription.EMPTY
+  private seasonLoadRequestId = 0
+  private eventLoadRequestId = 0
 
   protected readonly slug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('slug') ?? '')),
@@ -65,14 +69,35 @@ export class SeasonHome implements OnInit {
   protected readonly loadingSeason = signal(false)
   protected readonly loadingEvents = signal(false)
   protected readonly troupeId = signal<string | null>(null)
+  protected readonly troupeName = signal<string | null>(null)
   protected readonly season = signal<SeasonResponse | null>(null)
+  protected readonly user = signal<UserSummary | null>(null)
   protected readonly events = signal<EventResponse[]>([])
   protected readonly totalElements = signal(0)
-  protected readonly pageIndex = signal(0)
-  protected readonly pageSize = PAGE_SIZE
+  protected readonly eventsTruncated = signal(false)
+  protected readonly eventLoadLimit = signal(AGENDA_UPCOMING_CAP)
 
-  /** Si true : liste `all` (passés + archivés visibles). Si false : `upcoming` (agenda). */
-  protected readonly showPastAndArchived = signal(false)
+  protected readonly seasonView = signal<SeasonView>('agenda')
+  protected readonly selectedParticipantId = signal<string | null>(null)
+  protected readonly selectedEventId = signal<string | null>(null)
+
+  protected readonly participantOptions = computed<ParticipantFilterOption[]>(() => {
+    // No player/availability API exists yet; keep the visible filter honest.
+    return [{ id: null, label: 'Tous' }]
+  })
+
+  protected readonly eventFilterOptions = computed<EventFilterOption[]>(() =>
+    this.events().map((e) => ({ id: e.id, title: e.title })),
+  )
+
+  protected readonly filteredEvents = computed(() => {
+    const ids = this.selectedEventId()
+    return filterEventsByIds(this.events(), ids ? [ids] : null)
+  })
+
+  protected readonly monthGroups = computed(() =>
+    groupEventsByMonth(this.filteredEvents()),
+  )
 
   async ngOnInit(): Promise<void> {
     try {
@@ -86,93 +111,132 @@ export class SeasonHome implements OnInit {
         await this.router.navigate(['/connexion'], { replaceUrl: true })
         return
       }
-      await this.loadTroupeAndSeason()
+      this.user.set(r.data.user)
+      this.routeSubscription = this.route.paramMap
+        .pipe(
+          map((p) => p.get('slug') ?? ''),
+          distinctUntilChanged(),
+        )
+        .subscribe((slug) => {
+          void this.loadTroupeAndSeason(slug)
+        })
     } finally {
       this.loadingSession.set(false)
     }
   }
 
-  protected scope(): EventListScope {
-    return this.showPastAndArchived() ? 'all' : 'upcoming'
+  ngOnDestroy(): void {
+    this.routeSubscription.unsubscribe()
   }
 
-  protected onShowPastToggle(checked: boolean): void {
-    this.showPastAndArchived.set(checked)
-    this.pageIndex.set(0)
-    void this.loadEvents()
+  private resetSeasonState(): void {
+    this.season.set(null)
+    this.events.set([])
+    this.totalElements.set(0)
+    this.eventsTruncated.set(false)
+    this.loadingEvents.set(false)
+    this.eventLoadLimit.set(AGENDA_UPCOMING_CAP)
+    this.selectedEventId.set(null)
   }
 
-  protected onPage(ev: PageEvent): void {
-    this.pageIndex.set(ev.pageIndex)
-    void this.loadEvents()
-  }
-
-  private async loadTroupeAndSeason(): Promise<void> {
-    const slug = this.slug()
+  private async loadTroupeAndSeason(slug: string): Promise<void> {
+    const requestId = ++this.seasonLoadRequestId
+    this.eventLoadRequestId += 1
     if (!slug) {
+      this.resetSeasonState()
       return
     }
+    this.resetSeasonState()
     this.loadingSeason.set(true)
     const tr = await this.seasonsApi.listTroupes()
+    if (requestId !== this.seasonLoadRequestId) {
+      return
+    }
     if (!tr.ok || !tr.data?.length) {
       this.loadingSeason.set(false)
       this.snack.open('Impossible de charger les troupes.', 'OK', { duration: 6000 })
       return
     }
-    const tid = tr.data[0].id
-    this.troupeId.set(tid)
-    const sr = await this.seasonsApi.getSeasonBySlug(tid, slug)
+    const troupe = tr.data[0]
+    this.troupeId.set(troupe.id)
+    this.troupeName.set(troupe.name)
+    const sr = await this.seasonsApi.getSeasonBySlug(troupe.id, slug)
+    if (requestId !== this.seasonLoadRequestId) {
+      return
+    }
     this.loadingSeason.set(false)
     if (!sr.ok || !sr.data) {
       this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
       return
     }
     this.season.set(sr.data)
-    await this.loadEvents()
+    await this.loadUpcomingEvents()
   }
 
-  private async loadEvents(allowPageFallback = true): Promise<void> {
+  /** Loads upcoming events up to the current cap (story 3.3 option C). */
+  private async loadUpcomingEvents(options: { force?: boolean } = {}): Promise<void> {
     const s = this.season()
-    if (!s) {
+    if (!s || (this.loadingEvents() && !options.force)) {
       return
     }
+    const requestId = ++this.eventLoadRequestId
+    const seasonId = s.id
     this.loadingEvents.set(true)
-    const r = await this.eventsApi.listEvents(
-      s.id,
-      this.pageIndex(),
-      PAGE_SIZE,
-      this.scope(),
-    )
+    let page = 0
+    let collected: EventResponse[] = []
+    let total = 0
+
+    const limit = this.eventLoadLimit()
+    while (collected.length < limit) {
+      const r = await this.eventsApi.listEvents(
+        seasonId,
+        page,
+        FETCH_PAGE_SIZE,
+        'upcoming',
+      )
+      if (requestId !== this.eventLoadRequestId) {
+        return
+      }
+      if (!r.ok || !r.data) {
+        this.loadingEvents.set(false)
+        this.snack.open('Impossible de charger les spectacles.', 'OK', { duration: 6000 })
+        return
+      }
+      total = r.data.totalElements
+      collected = collected.concat(r.data.content)
+      if (
+        collected.length >= total ||
+        r.data.content.length === 0 ||
+        page >= r.data.totalPages - 1
+      ) {
+        break
+      }
+      page += 1
+    }
+
+    const visibleEvents = collected.slice(0, limit)
+    const truncated = total > visibleEvents.length
+    this.eventsTruncated.set(truncated)
+    this.events.set(visibleEvents)
+    this.totalElements.set(total)
+    this.resetStaleEventFilter(visibleEvents)
     this.loadingEvents.set(false)
-    if (!r.ok || !r.data) {
-      this.snack.open('Impossible de charger les spectacles.', 'OK', { duration: 6000 })
-      return
-    }
-
-    if (
-      allowPageFallback &&
-      r.data.content.length === 0 &&
-      r.data.totalElements > 0 &&
-      this.pageIndex() > 0
-    ) {
-      this.pageIndex.set(this.pageIndex() - 1)
-      await this.loadEvents(false)
-      return
-    }
-
-    this.events.set(r.data.content)
-    this.totalElements.set(r.data.totalElements)
   }
 
-  protected formatStart(iso: string): string {
-    return new Intl.DateTimeFormat('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(iso))
+  protected onSettings(): void {
+    this.snack.open('Réglages saison — bientôt disponible.', 'OK', { duration: 4000 })
+  }
+
+  protected openEvent(eventId: string): void {
+    void this.router.navigate(['/saison', this.slug(), 'event', eventId])
+  }
+
+  protected loadMoreEvents(): void {
+    if (this.loadingEvents() || !this.eventsTruncated()) {
+      return
+    }
+    this.eventLoadLimit.update((current) => current + AGENDA_UPCOMING_CAP)
+    void this.loadUpcomingEvents()
   }
 
   protected openCreate(): void {
@@ -189,15 +253,15 @@ export class SeasonHome implements OnInit {
     )
     ref.afterClosed().subscribe((ok) => {
       if (ok) {
-        void this.loadTroupeAndSeason()
-        this.snack.open('Spectacle créé.', 'OK', { duration: 4000 })
+        void this.reloadAfterMutation('Spectacle créé.')
       }
     })
   }
 
-  protected openEdit(ev: EventResponse): void {
+  protected openEdit(eventId: string): void {
     const s = this.season()
-    if (!s) {
+    const ev = this.events().find((e) => e.id === eventId)
+    if (!s || !ev) {
       return
     }
     const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(
@@ -209,18 +273,20 @@ export class SeasonHome implements OnInit {
     )
     ref.afterClosed().subscribe((ok) => {
       if (ok) {
-        void this.loadEvents()
-        void this.refreshSeasonCounts()
-        this.snack.open('Spectacle mis à jour.', 'OK', { duration: 4000 })
+        void this.reloadAfterMutation('Spectacle mis à jour.')
       }
     })
   }
 
-  protected confirmArchive(ev: EventResponse): void {
+  protected confirmArchive(eventId: string): void {
+    const ev = this.events().find((e) => e.id === eventId)
+    if (!ev) {
+      return
+    }
     const ref = this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
       data: {
         title: 'Archiver le spectacle',
-        message: `Archiver « ${ev.title} » ? Il disparaîtra de la vue « à venir » pour les membres.`,
+        message: `Archiver « ${ev.title} » ? Il disparaîtra de l’agenda.`,
         confirmLabel: 'Archiver',
       },
     })
@@ -238,18 +304,28 @@ export class SeasonHome implements OnInit {
     }
     const r = await this.eventsApi.archiveEvent(s.id, ev.id)
     if (r.ok) {
-      this.snack.open('Spectacle archivé.', 'OK', { duration: 4000 })
-      await this.loadEvents()
-      await this.refreshSeasonCounts()
+      await this.reloadAfterMutation('Spectacle archivé.')
     } else {
       this.snack.open('Archivage impossible.', 'OK', { duration: 6000 })
     }
   }
 
+  private async reloadAfterMutation(message: string): Promise<void> {
+    await this.loadUpcomingEvents({ force: true })
+    await this.refreshSeasonCounts()
+    this.snack.open(message, 'OK', { duration: 4000 })
+  }
+
+  private resetStaleEventFilter(events: EventResponse[]): void {
+    const selected = this.selectedEventId()
+    if (selected && !events.some((e) => e.id === selected)) {
+      this.selectedEventId.set(null)
+    }
+  }
+
   private async refreshSeasonCounts(): Promise<void> {
     const s = this.season()
-    const tid = this.troupeId()
-    if (!s || !tid) {
+    if (!s) {
       return
     }
     const r = await this.seasonsApi.getSeason(s.id)

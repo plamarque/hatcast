@@ -1,0 +1,55 @@
+<div class="season-toolbar">
+  @if (showFilters() && seasonView() === 'agenda') {
+    <div class="season-toolbar__filters">
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__filter"
+        [matMenuTriggerFor]="participantMenu"
+        aria-label="Filtrer par participant"
+      >
+        <mat-icon>group</mat-icon>
+        <span>{{ participantLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #participantMenu="matMenu">
+        @for (opt of participantOptions(); track opt.id ?? 'all') {
+          <button mat-menu-item type="button" (click)="selectParticipant(opt.id)">
+            {{ opt.label }}
+          </button>
+        }
+      </mat-menu>
+
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-toolbar__filter"
+        [matMenuTriggerFor]="eventMenu"
+        aria-label="Filtrer par spectacle"
+      >
+        <mat-icon>event</mat-icon>
+        <span>{{ eventLabel() }}</span>
+        <mat-icon class="season-toolbar__caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #eventMenu="matMenu">
+        <button mat-menu-item type="button" (click)="selectEvent(null)">Tous</button>
+        @for (opt of eventOptions(); track opt.id) {
+          <button mat-menu-item type="button" (click)="selectEvent(opt.id)">
+            {{ opt.title }}
+          </button>
+        }
+      </mat-menu>
+    </div>
+  }
+
+  <mat-button-toggle-group
+    class="season-toolbar__views"
+    [value]="seasonView()"
+    (change)="seasonView.set($event.value)"
+    hideSingleSelectionIndicator
+    aria-label="Changer de vue saison"
+  >
+    <mat-button-toggle value="agenda">Agenda</mat-button-toggle>
+    <mat-button-toggle value="history">Historique</mat-button-toggle>
+  </mat-button-toggle-group>
+</div>

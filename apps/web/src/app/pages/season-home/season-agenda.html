@@ -1,0 +1,87 @@
+<div class="season-agenda">
+  <div class="season-agenda__admin">
+    <button mat-flat-button color="primary" type="button" (click)="createClick.emit()">
+      <mat-icon>add</mat-icon>
+      Nouveau spectacle
+    </button>
+  </div>
+
+  @if (loading() && monthGroups().length === 0) {
+    <p class="season-agenda__status" role="status">Chargement de l’agenda…</p>
+  } @else if (monthGroups().length === 0) {
+    <p class="season-agenda__empty">Aucun spectacle à venir dans cette vue.</p>
+  } @else {
+    @if (truncated()) {
+      <div class="season-agenda__notice" role="status">
+        <span>
+          Affichage limité aux {{ loadedEventsCount() }} prochains spectacles
+          sur {{ totalElements() }} au total.
+        </span>
+        <button mat-stroked-button type="button" [disabled]="loading()" (click)="loadMoreClick.emit()">
+          {{ loading() ? 'Chargement…' : 'Charger plus' }}
+        </button>
+      </div>
+    }
+
+    @for (group of monthGroups(); track group.monthKey) {
+      <section class="season-agenda__month">
+        <div class="season-agenda__month-divider">
+          <span class="season-agenda__month-pill">{{ group.monthLabel }}</span>
+        </div>
+
+        @for (ev of group.events; track ev.id) {
+          <article
+            class="agenda-card"
+            role="button"
+            tabindex="0"
+            (click)="openEvent(ev.id)"
+            (keydown.enter)="openEvent(ev.id)"
+            (keydown.space)="openEvent(ev.id); $event.preventDefault()"
+          >
+            <div class="agenda-card__date">
+              <span class="agenda-card__day">{{ ev.dayNumber }}</span>
+              <span class="agenda-card__weekday">{{ ev.dayName }}</span>
+            </div>
+            <div class="agenda-card__body">
+              <div class="agenda-card__title-row">
+                <mat-icon class="agenda-card__type-icon" aria-hidden="true">celebration</mat-icon>
+                <h2 class="agenda-card__title">{{ ev.title }}</h2>
+              </div>
+              @if (ev.location) {
+                <p class="agenda-card__loc">{{ ev.location }}</p>
+              }
+              <div class="agenda-card__badges">
+                <span class="agenda-card__badge agenda-card__badge--composition" aria-hidden="true">
+                  &nbsp;
+                </span>
+                <span class="agenda-card__badge agenda-card__badge--dispo">Non renseigné</span>
+              </div>
+            </div>
+            <button
+              mat-icon-button
+              type="button"
+              class="agenda-card__menu"
+              [matMenuTriggerFor]="menu"
+              aria-label="Actions spectacle"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item type="button" (click)="onEdit(ev.id, $event)">
+                <mat-icon>edit</mat-icon>
+                <span>Modifier</span>
+              </button>
+              @if (!ev.archived) {
+                <button mat-menu-item type="button" (click)="onArchive(ev.id, $event)">
+                  <mat-icon>archive</mat-icon>
+                  <span>Archiver</span>
+                </button>
+              }
+            </mat-menu>
+          </article>
+        }
+      </section>
+    }
+  }
+</div>

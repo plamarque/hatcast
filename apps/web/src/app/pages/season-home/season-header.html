@@ -1,0 +1,37 @@
+<header class="season-header">
+  <div class="season-header__left">
+    <a mat-icon-button routerLink="/seasons" class="season-header__back" aria-label="Retour aux saisons">
+      <mat-icon>chevron_left</mat-icon>
+    </a>
+    <div class="season-header__logo" aria-hidden="true">
+      <mat-icon>theater_comedy</mat-icon>
+    </div>
+    <h1 class="season-header__title">{{ seasonTitle() }}</h1>
+  </div>
+  <div class="season-header__right">
+    <button
+      mat-icon-button
+      type="button"
+      matTooltip="Réglages saison (bientôt disponible)"
+      aria-label="Réglages saison"
+      (click)="onSettings()"
+    >
+      <mat-icon>settings</mat-icon>
+    </button>
+    @if (user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="season-header__user"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + (u.displayName || u.email || 'Utilisateur')"
+      >
+        <mat-icon class="season-header__user-icon">account_circle</mat-icon>
+        <span class="season-header__user-label">{{ u.displayName || u.email || 'Compte' }}</span>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+      </mat-menu>
+    }
+  </div>
+</header>

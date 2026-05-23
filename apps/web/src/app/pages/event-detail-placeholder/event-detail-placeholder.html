@@ -1,0 +1,41 @@
+<div class="event-detail">
+  <header class="event-detail__header">
+    <a
+      mat-icon-button
+      [routerLink]="['/saison', slug()]"
+      class="event-detail__back"
+      aria-label="Retour à l’agenda"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </a>
+    @if (event(); as ev) {
+      <div class="event-detail__titles">
+        <mat-icon class="event-detail__icon" aria-hidden="true">celebration</mat-icon>
+        <div>
+          <h1 class="event-detail__title">{{ ev.title }}</h1>
+          <p class="event-detail__when">{{ formatStart(ev.startsAt) }}</p>
+        </div>
+      </div>
+    } @else if (!loading()) {
+      <h1 class="event-detail__title">Spectacle</h1>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="event-detail__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (event(); as ev) {
+    <main class="event-detail__main">
+      @if (ev.location) {
+        <p class="event-detail__loc">{{ ev.location }}</p>
+      }
+      @if (ev.description) {
+        <p class="event-detail__desc">{{ ev.description }}</p>
+      }
+      <p class="event-detail__placeholder">
+        Le détail complet (Infos, Dispos, Équipe) sera disponible dans une prochaine version.
+      </p>
+    </main>
+  }
+</div>
