@@ -2,7 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, ParamMap, Router } from '@angular/router'
 import { Subscription } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -72,6 +72,8 @@ export class SeasonHome implements OnDestroy, OnInit {
     { initialValue: '' },
   )
 
+  private querySubscription = Subscription.EMPTY
+
   protected readonly loadingSession = signal(true)
   protected readonly loadingSeason = signal(false)
   protected readonly loadingEvents = signal(false)
@@ -127,6 +129,10 @@ export class SeasonHome implements OnDestroy, OnInit {
         return
       }
       this.user.set(r.data.user)
+      const snapshotParams = this.route.snapshot?.queryParamMap
+      if (snapshotParams) {
+        this.applyQueryParams(snapshotParams)
+      }
       this.routeSubscription = this.route.paramMap
         .pipe(
           map((p) => p.get('slug') ?? ''),
@@ -135,6 +141,9 @@ export class SeasonHome implements OnDestroy, OnInit {
         .subscribe((slug) => {
           void this.loadTroupeAndSeason(slug)
         })
+      this.querySubscription = this.route.queryParamMap?.subscribe((params) => {
+        this.applyQueryParams(params)
+      }) ?? Subscription.EMPTY
     } finally {
       this.loadingSession.set(false)
     }
@@ -142,6 +151,18 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   ngOnDestroy(): void {
     this.routeSubscription.unsubscribe()
+    this.querySubscription.unsubscribe()
+  }
+
+  private applyQueryParams(params: ParamMap): void {
+    const view = params.get('view')
+    if (view === 'agenda' || view === 'history') {
+      this.seasonView.set(view)
+    }
+    const participant = params.get('participant')
+    if (participant) {
+      this.selectedParticipantId.set(participant)
+    }
   }
 
   private resetSeasonState(): void {

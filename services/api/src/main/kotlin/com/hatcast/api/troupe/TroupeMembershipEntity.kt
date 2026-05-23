@@ -2,6 +2,7 @@ package com.hatcast.api.troupe
 
 import com.hatcast.api.user.UserEntity
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -32,6 +33,9 @@ class TroupeMembershipEntity(
     var baselineRole: TroupeBaselineRole = TroupeBaselineRole.MEMBER,
     @Column(name = "display_name", nullable = false, length = 255)
     var displayName: String,
+    @Convert(converter = PreferredRoleKeysJsonConverter::class)
+    @Column(name = "preferred_role_keys", nullable = false, length = 1024)
+    var preferredRoleKeys: List<String> = emptyList(),
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)

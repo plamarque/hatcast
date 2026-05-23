@@ -40,6 +40,8 @@
           [displayName]="userDisplayLabel()"
           [avatarUrl]="u.avatarUrl ?? null"
           [size]="24"
+          [clickable]="true"
+          (avatarClick)="openSelfProfile()"
         />
         <span class="season-header__user-label">{{ userDisplayLabel() }}</span>
       </button>

@@ -1,13 +1,27 @@
 @if (showImage()) {
   <img
     class="user-avatar__img"
+    [class.user-avatar__img--clickable]="clickable()"
     [src]="avatarUrl()"
     [style.width.px]="size()"
     [style.height.px]="size()"
     [attr.alt]="'Photo de ' + displayName()"
+    [attr.role]="clickable() ? 'button' : null"
+    [attr.tabindex]="clickable() ? 0 : null"
     loading="lazy"
     (error)="onImageError()"
+    (click)="onAvatarClick($event)"
+    (keydown)="onAvatarKeydown($event)"
   />
 } @else {
-  <span class="user-avatar__initial" aria-hidden="true">{{ initial() }}</span>
+  <span
+    class="user-avatar__initial"
+    [class.user-avatar__initial--clickable]="clickable()"
+    [attr.role]="clickable() ? 'button' : null"
+    [attr.tabindex]="clickable() ? 0 : null"
+    [attr.aria-label]="clickable() ? 'Ouvrir le profil de ' + displayName() : null"
+    [attr.aria-hidden]="clickable() ? null : 'true'"
+    (click)="onAvatarClick($event)"
+    (keydown)="onAvatarKeydown($event)"
+  >{{ initial() }}</span>
 }

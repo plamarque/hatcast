@@ -53,6 +53,7 @@
             <app-membres-tab
               [troupeId]="troupeId()!"
               [seasonId]="se.id"
+              [seasonSlug]="slug()"
               [canManageSeasonOrganizers]="canManageSeasonOrganizers()"
               (membersChanged)="refreshPermissionsAfterMemberMutation()"
             />
@@ -68,6 +69,7 @@
       <app-membres-tab
         [troupeId]="troupeId()!"
         [seasonId]="se.id"
+        [seasonSlug]="slug()"
         [canManageSeasonOrganizers]="canManageSeasonOrganizers()"
         (membersChanged)="refreshPermissionsAfterMemberMutation()"
       />

@@ -131,6 +131,69 @@ paths:
         '404':
           description: Troupe inconnue
 
+  /troupes/{troupeId}/memberships/me/preferred-roles:
+    get:
+      tags: [Troupes]
+      summary: Rôles préférés de l'utilisateur courant dans la troupe (FR46)
+      description: >
+        Retourne les clés de rôles événement pré-cochés pour la saisie de disponibilité (Story 5.2).
+        Si jamais enregistré (colonne vide), retourne tous les rôles valides (parité V1).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferredRolesResponse'
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '401':
+          description: Non authentifié
+
+    put:
+      tags: [Troupes]
+      summary: Remplacer les rôles préférés de l'utilisateur courant dans la troupe
+      description: >
+        Remplace l'ensemble des rôles préférés (idempotent). Le rôle `volunteer` est toujours inclus.
+        Clés valides : celles de `RoleKeys.ALL` côté serveur. Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferredRolesRequest'
+      responses:
+        '200':
+          description: Préférences enregistrées
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferredRolesResponse'
+        '400':
+          description: Clé de rôle invalide
+        '403':
+          description: Utilisateur non membre actif ou CSRF/session invalide
+        '401':
+          description: Non authentifié
+
   /troupes/{troupeId}/members:
     get:
       tags: [Membres]
@@ -519,6 +582,42 @@ paths:
           description: Saison inconnue
         '403':
           description: Utilisateur non membre actif de la troupe
+
+  /seasons/{seasonId}/member-profile/{userId}:
+    get:
+      tags: [Saisons]
+      summary: Résumé profil membre pour une saison (UX-DR8)
+      description: >
+        Identité troupe-scopée, stats/chart vides tant que les disponibilités/compositions n'existent pas.
+        `preferredRoleKeys` présent uniquement lorsque le sujet est l'utilisateur courant.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: seasonId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfileSummary'
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Saison ou membre cible introuvable
+        '401':
+          description: Non authentifié
 
   /seasons/{seasonId}:
     get:
@@ -926,6 +1025,111 @@ components:
           type: string
           maxLength: 255
           description: Pseudo affiché dans la troupe ; trim côté serveur.
+
+    PreferredRolesResponse:
+      type: object
+      required: [preferredRoleKeys]
+      properties:
+        preferredRoleKeys:
+          type: array
+          items:
+            type: string
+          description: Clés de rôles événement (RoleKeys.ALL). `volunteer` toujours présent après enregistrement.
+
+    UpdatePreferredRolesRequest:
+      type: object
+      required: [preferredRoleKeys]
+      properties:
+        preferredRoleKeys:
+          type: array
+          items:
+            type: string
+
+    MemberProfileStat:
+      type: object
+      properties:
+        count:
+          type: integer
+        percent:
+          type: integer
+        tooltip:
+          type: string
+          nullable: true
+
+    MemberProfileStats:
+      type: object
+      properties:
+        availabilities:
+          $ref: '#/components/schemas/MemberProfileStat'
+        selections:
+          $ref: '#/components/schemas/MemberProfileStat'
+        declines:
+          $ref: '#/components/schemas/MemberProfileStat'
+
+    MemberProfileChartBlock:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        roleKey:
+          type: string
+          nullable: true
+
+    MemberProfileMonth:
+      type: object
+      properties:
+        monthKey:
+          type: string
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberProfileChartBlock'
+
+    FavoriteRoleCount:
+      type: object
+      properties:
+        roleKey:
+          type: string
+        count:
+          type: integer
+
+    MemberProfileSummary:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        membershipId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        isSelf:
+          type: boolean
+        stats:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/MemberProfileStats'
+        monthlyChart:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberProfileMonth'
+        favoriteRoleCounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/FavoriteRoleCount'
+        preferredRoleKeys:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Présent uniquement si isSelf
 
     UpdateTroupeMemberRequest:
       type: object

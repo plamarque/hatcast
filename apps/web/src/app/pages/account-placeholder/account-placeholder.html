@@ -134,6 +134,56 @@
           }
         </mat-card-content>
       </mat-card>
+
+      <mat-card appearance="outlined" class="account-ph__card">
+        <mat-card-header>
+          <mat-card-title>Rôles préférés par troupe</mat-card-title>
+          <mat-card-subtitle>
+            Rôles pré-cochés par défaut lors de la saisie de disponibilité. Chaque troupe conserve
+            ses propres préférences.
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content class="account-ph__roles-list">
+          @if (preferredRolesLoading()) {
+            <mat-spinner diameter="24" />
+          } @else {
+            @for (troupe of troupes(); track troupe.id) {
+              <div class="account-ph__roles-row">
+                <p class="account-ph__troupe-name">{{ troupe.name }}</p>
+                <div class="account-ph__roles-grid">
+                  @for (key of roleKeys; track key) {
+                    <label class="account-ph__role-option">
+                      <mat-checkbox
+                        [checked]="isPreferredRoleSelected(troupe.id, key)"
+                        [disabled]="
+                          !canToggleRole(key) || savingPreferredRolesTroupeId() === troupe.id
+                        "
+                        (change)="togglePreferredRole(troupe.id, key, $event.checked)"
+                      />
+                      <span class="account-ph__role-label">
+                        <span aria-hidden="true">{{ roleEmoji(key) }}</span>
+                        {{ roleLabel(key) }}
+                      </span>
+                    </label>
+                  }
+                </div>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="savingPreferredRolesTroupeId() === troupe.id"
+                  (click)="savePreferredRoles(troupe)"
+                >
+                  @if (savingPreferredRolesTroupeId() === troupe.id) {
+                    <mat-spinner diameter="20" />
+                  } @else {
+                    Enregistrer
+                  }
+                </button>
+              </div>
+            }
+          }
+        </mat-card-content>
+      </mat-card>
     }
   }
 

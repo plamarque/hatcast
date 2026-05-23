@@ -22,6 +22,7 @@ import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
 import { OrganizerApiService } from '../../core/permissions/organizer-api.service'
+import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import {
   type TroupeBaselineRole,
   type TroupeMemberAdmin,
@@ -53,12 +54,14 @@ import { ImportResultsDialog, type ImportResultsDialogData } from './import-resu
 export class MembresTab implements OnInit, OnDestroy {
   readonly troupeId = input.required<string>()
   readonly seasonId = input.required<string>()
+  readonly seasonSlug = input.required<string>()
   readonly canManageSeasonOrganizers = input(false)
 
   readonly membersChanged = output<void>()
 
   private readonly api = inject(TroupeApiService)
   private readonly organizerApi = inject(OrganizerApiService)
+  private readonly memberProfile = inject(MemberProfileService)
   private readonly dialog = inject(MatDialog)
   private readonly snack = inject(MatSnackBar)
 
@@ -430,6 +433,15 @@ export class MembresTab implements OnInit, OnDestroy {
     if (r.ok && r.data) {
       this.seasonOrganizerUserIds.set(new Set(r.data.map((o) => o.userId)))
     }
+  }
+
+  protected openMemberProfile(userId: string): void {
+    this.memberProfile.openProfileDialog({
+      seasonId: this.seasonId(),
+      troupeId: this.troupeId(),
+      userId,
+      seasonSlug: this.seasonSlug(),
+    })
   }
 
   private errorMessage(status: number, fallback: string): string {

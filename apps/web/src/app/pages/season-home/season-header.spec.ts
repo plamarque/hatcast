@@ -2,8 +2,9 @@ import { OverlayContainer } from '@angular/cdk/overlay'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter } from '@angular/router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
+import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { SeasonHeader } from './season-header'
 
@@ -15,18 +16,22 @@ describe('SeasonHeader', () => {
         return user?.displayName || user?.email || 'Compte'
       },
     }
+    const memberProfile = { openProfileDialog: vi.fn() }
 
     await TestBed.configureTestingModule({
       imports: [SeasonHeader, NoopAnimationsModule],
       providers: [
         provideRouter([]),
         { provide: TroupeContextService, useValue: troupeContext },
+        { provide: MemberProfileService, useValue: memberProfile },
       ],
     }).compileComponents()
 
     const fixture = TestBed.createComponent(SeasonHeader)
     fixture.componentRef.setInput('seasonTitle', 'Saison A')
     fixture.componentRef.setInput('seasonSlug', 'season-a')
+    fixture.componentRef.setInput('seasonId', 'season-id-1')
+    fixture.componentRef.setInput('troupeId', 'troupe-id-1')
     fixture.componentRef.setInput('user', {
       id: 'u1',
       email: 'a@example.com',
@@ -34,11 +39,11 @@ describe('SeasonHeader', () => {
       avatarUrl: '/v1/users/u1/avatar?v=1',
     })
     fixture.detectChanges()
-    return fixture
+    return { fixture, memberProfile }
   }
 
   it('shows a single Membres settings link to admin route', async () => {
-    const fixture = await setup()
+    const { fixture } = await setup()
     fixture.componentRef.setInput('canManageSettings', true)
     fixture.detectChanges()
 
@@ -57,14 +62,30 @@ describe('SeasonHeader', () => {
   })
 
   it('affiche le pseudo troupe plutôt que le nom de compte quand le contexte le fournit', async () => {
-    const fixture = await setup({ troupeDisplayName: 'Patou' })
+    const { fixture } = await setup({ troupeDisplayName: 'Patou' })
 
     expect(fixture.nativeElement.textContent).toContain('Patou')
     expect(fixture.nativeElement.textContent).not.toContain('Account Name')
   })
 
   it('affiche une image avatar dans le menu compte quand avatarUrl est présent', async () => {
-    const fixture = await setup()
+    const { fixture } = await setup()
     expect(fixture.nativeElement.querySelector('app-user-avatar img')).toBeTruthy()
+  })
+
+  it('ouvre le profil membre au clic sur l’avatar', async () => {
+    const { fixture, memberProfile } = await setup()
+    const avatar = fixture.nativeElement.querySelector(
+      'app-user-avatar img, app-user-avatar .user-avatar__initial',
+    ) as HTMLElement
+    avatar.click()
+    expect(memberProfile.openProfileDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seasonId: 'season-id-1',
+        troupeId: 'troupe-id-1',
+        userId: 'u1',
+        seasonSlug: 'season-a',
+      }),
+    )
   })
 })

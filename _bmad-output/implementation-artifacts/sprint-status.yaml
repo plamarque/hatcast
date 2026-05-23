@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-23T21:30:00Z"
+last_updated: "2026-05-23T22:01:00Z"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -60,7 +60,7 @@ development_status:
   2-4-navigation-entre-troupes: done
   2-5-pseudo-affiche-par-troupe: done
   2-6-avatar-et-option-image-de-profil-google: done
-  2-7-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: backlog
+  2-7-popover-profil-membre-stats-saison-grille-mensuelle-roles-favoris: done
   epic-2-retrospective: optional
 
   epic-3: in-progress

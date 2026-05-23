@@ -33,6 +33,36 @@
   gap: 0.5rem;
 }
 
+.account-ph__roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.account-ph__roles-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.account-ph__roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.account-ph__role-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.account-ph__role-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .account-ph__troupe-name {
   margin: 0;
   font-weight: 600;

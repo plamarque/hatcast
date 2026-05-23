@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -10,8 +11,16 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import {
+  canDisablePreferredRole,
+  orderedRoleKeys,
+  roleEmoji,
+  roleLabelSingular,
+  type RoleKey,
+} from '../../shared/event-roles/event-roles'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024
@@ -23,6 +32,7 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024
     FormsModule,
     MatButtonModule,
     MatCardModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -36,6 +46,7 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024
 })
 export class AccountPlaceholder implements OnInit {
   private readonly auth = inject(AuthApiService)
+  private readonly memberProfileApi = inject(MemberProfileApiService)
   private readonly troupeApi = inject(TroupeApiService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly router = inject(Router)
@@ -49,6 +60,10 @@ export class AccountPlaceholder implements OnInit {
   protected readonly savingTroupeId = signal<string | null>(null)
   protected readonly validationErrorByTroupeId = signal<Record<string, boolean>>({})
   protected readonly avatarSaving = signal(false)
+  protected readonly roleKeys = orderedRoleKeys()
+  protected readonly preferredRolesByTroupeId = signal<Record<string, string[]>>({})
+  protected readonly preferredRolesLoading = signal(false)
+  protected readonly savingPreferredRolesTroupeId = signal<string | null>(null)
 
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -70,6 +85,7 @@ export class AccountPlaceholder implements OnInit {
     this.pseudoByTroupeId.set(
       Object.fromEntries(active.map((troupe) => [troupe.id, troupe.membership.displayName])),
     )
+    await this.loadPreferredRoles(active)
   }
 
   protected avatarDisplayName(): string {
@@ -171,6 +187,83 @@ export class AccountPlaceholder implements OnInit {
       this.snack.open('Pseudo enregistré', 'OK', { duration: 3000 })
     } finally {
       this.savingTroupeId.set(null)
+    }
+  }
+
+  protected roleLabel(key: RoleKey): string {
+    return roleLabelSingular(key)
+  }
+
+  protected roleEmoji(key: RoleKey): string {
+    return roleEmoji(key)
+  }
+
+  protected canToggleRole(key: RoleKey): boolean {
+    return canDisablePreferredRole(key)
+  }
+
+  protected isPreferredRoleSelected(
+    troupeId: string,
+    key: RoleKey,
+  ): boolean {
+    return this.preferredRolesByTroupeId()[troupeId]?.includes(key) ?? false
+  }
+
+  protected togglePreferredRole(
+    troupeId: string,
+    key: RoleKey,
+    checked: boolean,
+  ): void {
+    if (!canDisablePreferredRole(key)) {
+      return
+    }
+    const current = new Set(this.preferredRolesByTroupeId()[troupeId] ?? [])
+    if (checked) {
+      current.add(key)
+    } else {
+      current.delete(key)
+    }
+    current.add('volunteer')
+    this.preferredRolesByTroupeId.update((roles) => ({
+      ...roles,
+      [troupeId]: [...current],
+    }))
+  }
+
+  protected async savePreferredRoles(troupe: TroupeListItem): Promise<void> {
+    const keys = this.preferredRolesByTroupeId()[troupe.id]
+    if (!keys) {
+      return
+    }
+    this.savingPreferredRolesTroupeId.set(troupe.id)
+    try {
+      const result = await this.memberProfileApi.updatePreferredRoles(troupe.id, keys)
+      if (!result.ok || !result.data) {
+        this.snack.open('Enregistrement des rôles impossible', 'OK', { duration: 5000 })
+        return
+      }
+      this.preferredRolesByTroupeId.update((roles) => ({
+        ...roles,
+        [troupe.id]: result.data!.preferredRoleKeys,
+      }))
+      this.snack.open('Rôles préférés enregistrés', 'OK', { duration: 3000 })
+    } finally {
+      this.savingPreferredRolesTroupeId.set(null)
+    }
+  }
+
+  private async loadPreferredRoles(troupes: TroupeListItem[]): Promise<void> {
+    this.preferredRolesLoading.set(true)
+    try {
+      const entries = await Promise.all(
+        troupes.map(async (troupe) => {
+          const result = await this.memberProfileApi.getPreferredRoles(troupe.id)
+          return [troupe.id, result.ok && result.data ? result.data.preferredRoleKeys : []] as const
+        }),
+      )
+      this.preferredRolesByTroupeId.set(Object.fromEntries(entries))
+    } finally {
+      this.preferredRolesLoading.set(false)
     }
   }
 }

@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
+import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { AccountPlaceholder } from './account-placeholder'
@@ -33,6 +34,18 @@ describe('AccountPlaceholder', () => {
         },
       ),
     }
+    const memberProfileApi = {
+      getPreferredRoles: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { preferredRoleKeys: ['player', 'volunteer'] },
+      }),
+      updatePreferredRoles: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { preferredRoleKeys: ['mc', 'volunteer'] },
+      }),
+    }
 
     await TestBed.configureTestingModule({
       imports: [AccountPlaceholder, NoopAnimationsModule],
@@ -51,6 +64,7 @@ describe('AccountPlaceholder', () => {
           },
         },
         { provide: TroupeApiService, useValue: troupeApi },
+        { provide: MemberProfileApiService, useValue: memberProfileApi },
       ],
     }).compileComponents()
 
@@ -67,7 +81,7 @@ describe('AccountPlaceholder', () => {
 
     expect(fixture.componentInstance['loading']()).toBe(false)
 
-    return { fixture, troupeApi, snack }
+    return { fixture, troupeApi, memberProfileApi, snack }
   }
 
   function troupe(id: string, name: string, displayName: string): TroupeListItem {
@@ -155,5 +169,25 @@ describe('AccountPlaceholder', () => {
 
     expect(troupeApi.updateMyMembership).toHaveBeenCalledWith('t1', { displayName: 'Mon Pseudo' })
     expect(component['pseudoByTroupeId']()['t1']).toBe('Mon Pseudo')
+  })
+
+  it('affiche et enregistre les rôles préférés par troupe', async () => {
+    const { fixture, memberProfileApi } = await setup({
+      troupes: [troupe('t1', 'La Malice', 'Patrice')],
+    })
+
+    const component = fixture.componentInstance
+    expect(memberProfileApi.getPreferredRoles).toHaveBeenCalledWith('t1')
+    expect(fixture.nativeElement.textContent).toContain('Rôles préférés par troupe')
+    expect(component['preferredRolesByTroupeId']()['t1']).toEqual(['player', 'volunteer'])
+
+    component['togglePreferredRole']('t1', 'mc', true)
+    await component['savePreferredRoles'](component['troupes']()[0])
+
+    expect(memberProfileApi.updatePreferredRoles).toHaveBeenCalledWith(
+      't1',
+      expect.arrayContaining(['mc', 'volunteer']),
+    )
+    expect(component['preferredRolesByTroupeId']()['t1']).toEqual(['mc', 'volunteer'])
   })
 })

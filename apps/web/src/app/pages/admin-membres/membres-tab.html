@@ -85,6 +85,8 @@
             [displayName]="member.displayName"
             [avatarUrl]="member.avatarUrl ?? null"
             [size]="32"
+            [clickable]="true"
+            (avatarClick)="openMemberProfile(member.userId)"
           />
           <div class="membres-tab__identity">
             @if (editingMemberId() === member.id) {

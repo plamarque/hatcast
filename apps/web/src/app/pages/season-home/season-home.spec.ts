@@ -55,6 +55,7 @@ describe('SeasonHome', () => {
   let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn>; getSeason: ReturnType<typeof vi.fn> }
   let eventsApi: { listEvents: ReturnType<typeof vi.fn> }
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
+  const queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
 
   afterEach(() => {
     localStorage.clear()
@@ -110,7 +111,11 @@ describe('SeasonHome', () => {
     await TestBed.configureTestingModule({
       imports: [SeasonHome],
       providers: [
-        { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
+        { provide: ActivatedRoute, useValue: {
+          paramMap: paramMap$.asObservable(),
+          queryParamMap: queryParamMap$.asObservable(),
+          snapshot: { queryParamMap: convertToParamMap({}) },
+        } },
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snack },
