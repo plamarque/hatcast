@@ -15,6 +15,7 @@ servers:
 
 tags:
   - name: Événements
+  - name: Organisateurs
 
 paths:
   /seasons/{seasonId}/events:
@@ -161,12 +162,96 @@ paths:
         '404':
           description: Événement ou saison inconnue
 
+  /seasons/{seasonId}/events/{eventId}/organizers:
+    get:
+      tags: [Organisateurs]
+      summary: Lister les organisateur·ices d’un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organizer'
+        '403':
+          description: Accès refusé
+    post:
+      tags: [Organisateurs]
+      summary: Ajouter un·e organisateur·ice d’un spectacle
+      description: Réservé aux admins de saison (règle provisoire seed jusqu’à epic-2) ; ajout idempotent.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizerAssignmentRequest'
+      responses:
+        '200':
+          description: Organisateur·ice ajouté·e ou déjà présent·e
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organizer'
+        '403':
+          description: Accès refusé
+        '404':
+          description: Événement ou utilisateur introuvable
+
+  /seasons/{seasonId}/events/{eventId}/organizers/{userId}:
+    delete:
+      tags: [Organisateurs]
+      summary: Retirer un·e organisateur·ice d’un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Retiré ou déjà absent
+        '403':
+          description: Accès refusé
+
 components:
   securitySchemes:
     cookieAuth:
       type: apiKey
       in: cookie
       name: HATCAST_SESSION
+
+  parameters:
+    SeasonId:
+      name: seasonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     Event:
@@ -254,6 +339,8 @@ components:
             minimum: 0
             maximum: 20
           description: Remplacement complet si présent (PATCH)
+
+    PagedEvents:
       type: object
       properties:
         content:
@@ -269,3 +356,26 @@ components:
           format: int64
         totalPages:
           type: integer
+
+    OrganizerAssignmentRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          description: Email utilisateur ; trim + lowercase côté serveur.
+
+    Organizer:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        grantedAt:
+          type: string
+          format: date-time

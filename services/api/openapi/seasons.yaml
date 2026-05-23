@@ -17,6 +17,7 @@ servers:
 tags:
   - name: Troupes
   - name: Saisons
+  - name: Organisateurs
 
 paths:
   /troupes:
@@ -220,12 +221,102 @@ paths:
               schema:
                 $ref: '#/components/schemas/Season'
 
+  /seasons/{seasonId}/organizers:
+    get:
+      tags: [Organisateurs]
+      summary: Lister les organisateur·ices de saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organizer'
+        '403':
+          description: Accès refusé
+    post:
+      tags: [Organisateurs]
+      summary: Ajouter un·e organisateur·ice de saison
+      description: Email normalisé (trim + lowercase) ; ajout idempotent.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizerAssignmentRequest'
+      responses:
+        '200':
+          description: Organisateur·ice ajouté·e ou déjà présent·e
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organizer'
+        '403':
+          description: Accès refusé
+        '404':
+          description: Utilisateur introuvable pour cet email
+
+  /seasons/{seasonId}/organizers/{userId}:
+    delete:
+      tags: [Organisateurs]
+      summary: Retirer un·e organisateur·ice de saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Retiré ou déjà absent
+        '403':
+          description: Accès refusé
+
+  /seasons/{seasonId}/permissions/me:
+    get:
+      tags: [Organisateurs]
+      summary: Permissions organisateur de l’utilisateur courant sur une saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MySeasonPermissions'
+
 components:
   securitySchemes:
     cookieAuth:
       type: apiKey
       in: cookie
       name: HATCAST_SESSION
+
+  parameters:
+    SeasonId:
+      name: seasonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     TroupeListItem:
@@ -330,3 +421,41 @@ components:
           type: string
           format: date
           nullable: true
+
+    OrganizerAssignmentRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          description: Email utilisateur ; trim + lowercase côté serveur.
+
+    Organizer:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        grantedAt:
+          type: string
+          format: date-time
+
+    MySeasonPermissions:
+      type: object
+      properties:
+        canManageSeasonOrganizers:
+          type: boolean
+        canManageEventOrganizers:
+          type: boolean
+        isSeasonOrganizer:
+          type: boolean
+        eventOrganizerFor:
+          type: array
+          items:
+            type: string
+            format: uuid

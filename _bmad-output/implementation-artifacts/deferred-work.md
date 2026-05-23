@@ -9,3 +9,12 @@
 ## Deferred from: code review of 3-4-types-devenement-et-roles-requis-optionnels.md (2026-05-23)
 
 - Seed events (V6) keep `custom`/zero slots — agenda icons stay ❓ for titled spectacles (migration scope only; optional follow-up seed script to infer types from titles).
+
+## Deferred from: code review of 3-5-delegation-des-organisateurs-perimetre-saison-evenement.md (2026-05-23)
+
+- Race condition check-then-insert on concurrent organizer grant (composite PK may surface 500 instead of idempotent 200), in `OrganizerAccessService.kt`.
+- FK `granted_by_user_id` without `ON DELETE SET NULL` — deleting a grantor user may be blocked, in `V8__season_and_event_organizers.sql`.
+- Potential N+1 on user fetch when listing organizers (no JOIN FETCH on repository queries).
+- Super-admin stub not wired in `canManageComposition` (documented placeholder until config/epic-2).
+- Minimal email validation (`contains("@")` only) in `resolveUserByEmail`.
+- Shared `organizerSaving` flag allows parallel remove clicks before DOM disables buttons.

@@ -1,12 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { WritableSignal } from '@angular/core'
+import { MatDialog } from '@angular/material/dialog'
+import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
+import { OrganizerApiService, type MySeasonPermissions } from '../../core/permissions/organizer-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
+import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { AGENDA_UPCOMING_CAP } from './season-events.utils'
 import { SeasonHome } from './season-home'
 import { emptyRoleSlots } from '../../core/events/event-types'
@@ -16,7 +20,10 @@ type SeasonHomeHarness = {
   eventsTruncated: WritableSignal<boolean>
   eventLoadLimit: WritableSignal<number>
   selectedEventId: WritableSignal<string | null>
+  season: WritableSignal<SeasonResponse | null>
+  seasonPermissions: WritableSignal<MySeasonPermissions | null>
   openEvent(eventId: string): void
+  onSettings(): Promise<void>
   loadMoreEvents(): void
   resetStaleEventFilter(events: EventResponse[]): void
 }
@@ -40,19 +47,39 @@ function ev(id: string): EventResponse {
 describe('SeasonHome', () => {
   let fixture: ComponentFixture<SeasonHome>
   let router: { navigate: ReturnType<typeof vi.fn> }
+  let dialog: { open: ReturnType<typeof vi.fn> }
+  let snack: { open: ReturnType<typeof vi.fn> }
+  let organizerApi: { mySeasonPermissions: ReturnType<typeof vi.fn> }
   const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
 
   beforeEach(async () => {
     router = { navigate: vi.fn() }
+    dialog = { open: vi.fn() }
+    snack = { open: vi.fn() }
+    organizerApi = {
+      mySeasonPermissions: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          canManageSeasonOrganizers: false,
+          canManageEventOrganizers: false,
+          isSeasonOrganizer: false,
+          eventOrganizerFor: [],
+        },
+      }),
+    }
 
     await TestBed.configureTestingModule({
       imports: [SeasonHome],
       providers: [
         { provide: ActivatedRoute, useValue: { paramMap: paramMap$.asObservable() } },
         { provide: Router, useValue: router },
+        { provide: MatDialog, useValue: dialog },
+        { provide: MatSnackBar, useValue: snack },
         { provide: AuthApiService, useValue: { ensureHatcastSession: vi.fn() } },
         { provide: SeasonApiService, useValue: {} },
         { provide: EventApiService, useValue: {} },
+        { provide: OrganizerApiService, useValue: organizerApi },
       ],
     }).compileComponents()
 
@@ -86,4 +113,53 @@ describe('SeasonHome', () => {
 
     expect(component.selectedEventId()).toBeNull()
   })
+
+  it('does not open season organizer settings without permission', async () => {
+    const component = fixture.componentInstance as unknown as SeasonHomeHarness
+    Object.assign(fixture.componentInstance as object, { dialog, organizerApi, snack })
+    component.season.set(season('season-1'))
+
+    await component.onSettings()
+
+    expect(dialog.open).not.toHaveBeenCalled()
+    expect(snack.open).toHaveBeenCalledWith(
+      'Vous ne pouvez pas gérer les organisateur·ices de cette saison.',
+      'OK',
+      { duration: 5000 },
+    )
+  })
+
+  it('opens season organizer settings with permission', async () => {
+    const component = fixture.componentInstance as unknown as SeasonHomeHarness
+    Object.assign(fixture.componentInstance as object, { dialog, organizerApi, snack })
+    component.season.set(season('season-1'))
+    component.seasonPermissions.set({
+      canManageSeasonOrganizers: true,
+      canManageEventOrganizers: true,
+      isSeasonOrganizer: false,
+      eventOrganizerFor: [],
+    })
+
+    await component.onSettings()
+
+    expect(dialog.open).toHaveBeenCalled()
+  })
 })
+
+function season(id: string): SeasonResponse {
+  return {
+    id,
+    troupeId: 'troupe-1',
+    slug: 'season-a',
+    title: 'Saison A',
+    description: null,
+    startDate: null,
+    endDate: null,
+    archived: false,
+    active: true,
+    eventCount: 0,
+    participantCount: 0,
+    createdAt: '',
+    updatedAt: '',
+  }
+}

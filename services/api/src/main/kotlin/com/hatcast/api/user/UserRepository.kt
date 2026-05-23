@@ -7,4 +7,6 @@ interface UserRepository : JpaRepository<UserEntity, UUID> {
     fun findByGoogleSub(googleSub: String): UserEntity?
 
     fun findByIdpUid(idpUid: String): UserEntity?
+
+    fun findFirstByEmailIgnoreCase(email: String): UserEntity?
 }

@@ -14,6 +14,10 @@ import {
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
 import {
+  OrganizerApiService,
+  type MySeasonPermissions,
+} from '../../core/permissions/organizer-api.service'
+import {
   ConfirmDialog,
   type ConfirmDialogData,
 } from '../seasons-list/confirm-dialog'
@@ -31,6 +35,10 @@ import {
   EventFormDialog,
   type EventFormDialogData,
 } from './event-form-dialog'
+import {
+  SeasonOrganizersDialog,
+  type SeasonOrganizersDialogData,
+} from './season-organizers-dialog'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -52,6 +60,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly eventsApi = inject(EventApiService)
+  private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
@@ -71,6 +80,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly troupeId = signal<string | null>(null)
   protected readonly troupeName = signal<string | null>(null)
   protected readonly season = signal<SeasonResponse | null>(null)
+  protected readonly seasonPermissions = signal<MySeasonPermissions | null>(null)
   protected readonly user = signal<UserSummary | null>(null)
   protected readonly events = signal<EventResponse[]>([])
   protected readonly totalElements = signal(0)
@@ -131,6 +141,7 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   private resetSeasonState(): void {
     this.season.set(null)
+    this.seasonPermissions.set(null)
     this.events.set([])
     this.totalElements.set(0)
     this.eventsTruncated.set(false)
@@ -170,7 +181,13 @@ export class SeasonHome implements OnDestroy, OnInit {
       return
     }
     this.season.set(sr.data)
+    await this.loadSeasonPermissions(sr.data.id)
     await this.loadUpcomingEvents()
+  }
+
+  private async loadSeasonPermissions(seasonId: string): Promise<void> {
+    const r = await this.organizerApi.mySeasonPermissions(seasonId)
+    this.seasonPermissions.set(r.ok && r.data ? r.data : null)
   }
 
   /** Loads upcoming events up to the current cap (story 3.3 option C). */
@@ -223,8 +240,27 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.loadingEvents.set(false)
   }
 
-  protected onSettings(): void {
-    this.snack.open('Réglages saison — bientôt disponible.', 'OK', { duration: 4000 })
+  protected async onSettings(): Promise<void> {
+    const s = this.season()
+    if (!s) {
+      return
+    }
+    if (this.seasonPermissions()?.canManageSeasonOrganizers !== true) {
+      await this.loadSeasonPermissions(s.id)
+    }
+    if (this.seasonPermissions()?.canManageSeasonOrganizers !== true) {
+      this.snack.open('Vous ne pouvez pas gérer les organisateur·ices de cette saison.', 'OK', {
+        duration: 5000,
+      })
+      return
+    }
+    this.dialog.open<SeasonOrganizersDialog, SeasonOrganizersDialogData, boolean>(
+      SeasonOrganizersDialog,
+      {
+        data: { seasonId: s.id },
+        width: 'min(100vw - 2rem, 34rem)',
+      },
+    )
   }
 
   protected openEvent(eventId: string): void {
@@ -267,7 +303,12 @@ export class SeasonHome implements OnDestroy, OnInit {
     const ref = this.dialog.open<EventFormDialog, EventFormDialogData, boolean>(
       EventFormDialog,
       {
-        data: { mode: 'edit', seasonId: s.id, event: ev },
+        data: {
+          mode: 'edit',
+          seasonId: s.id,
+          event: ev,
+          canManageEventOrganizers: this.seasonPermissions()?.canManageEventOrganizers === true,
+        },
         width: 'min(100vw - 2rem, 28rem)',
       },
     )

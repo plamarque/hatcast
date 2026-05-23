@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core'
+import { Component, inject, OnInit, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import {
@@ -33,11 +33,16 @@ import {
   TEMPLATE_DISPLAY_ORDER,
   type RoleSlots,
 } from '../../core/events/event-types'
+import {
+  OrganizerApiService,
+  type OrganizerResponse,
+} from '../../core/permissions/organizer-api.service'
 
 export interface EventFormDialogData {
   mode: 'create' | 'edit'
   seasonId: string
   event?: EventResponse
+  canManageEventOrganizers?: boolean
 }
 
 /** Instant ISO → valeur `datetime-local` (heure locale). */
@@ -63,10 +68,14 @@ function toDatetimeLocalValue(iso: string): string {
 export class EventFormDialog implements OnInit {
   private readonly fb = inject(FormBuilder)
   private readonly api = inject(EventApiService)
+  private readonly organizerApi = inject(OrganizerApiService)
   private readonly ref = inject(MatDialogRef<EventFormDialog, boolean>)
   protected readonly data = inject<EventFormDialogData>(MAT_DIALOG_DATA)
 
   protected saving = false
+  protected organizerSaving = false
+  protected organizerEmail = ''
+  protected organizerMessage = ''
   protected showRoleInputs = false
   protected showTemplateChangeConfirmation = false
   protected pendingTemplateId: EventTypeId | null = null
@@ -80,6 +89,7 @@ export class EventFormDialog implements OnInit {
 
   protected selectedTemplateType: EventTypeId = DEFAULT_CREATE_EVENT_TYPE
   protected roleSlots: RoleSlots = applyTemplate(DEFAULT_CREATE_EVENT_TYPE)
+  protected readonly eventOrganizers = signal<OrganizerResponse[]>([])
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -103,11 +113,73 @@ export class EventFormDialog implements OnInit {
         description: e.description ?? '',
         templateType: this.selectedTemplateType,
       })
+      if (this.canManageEventOrganizers()) {
+        void this.loadEventOrganizers()
+      }
     } else {
       this.selectedTemplateType = DEFAULT_CREATE_EVENT_TYPE
       this.roleSlots = applyTemplate(DEFAULT_CREATE_EVENT_TYPE)
       this.form.patchValue({ templateType: DEFAULT_CREATE_EVENT_TYPE })
     }
+  }
+
+  protected async addEventOrganizer(): Promise<void> {
+    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventOrganizers()) return
+    const email = this.organizerEmail.trim()
+    if (!email) {
+      this.organizerMessage = 'Saisissez un email.'
+      return
+    }
+    this.organizerSaving = true
+    try {
+      const r = await this.organizerApi.addEventOrganizer(
+        this.data.seasonId,
+        this.data.event.id,
+        email,
+      )
+      if (!r.ok) {
+        this.organizerMessage =
+          r.status === 404 ? 'Utilisateur introuvable.' : 'Ajout impossible.'
+        return
+      }
+      this.organizerEmail = ''
+      this.organizerMessage = 'Organisateur·ice ajouté·e.'
+      await this.loadEventOrganizers()
+    } finally {
+      this.organizerSaving = false
+    }
+  }
+
+  protected async removeEventOrganizer(userId: string): Promise<void> {
+    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventOrganizers()) return
+    this.organizerSaving = true
+    try {
+      const r = await this.organizerApi.removeEventOrganizer(
+        this.data.seasonId,
+        this.data.event.id,
+        userId,
+      )
+      if (!r.ok) {
+        this.organizerMessage = 'Retrait impossible.'
+        return
+      }
+      this.organizerMessage = 'Organisateur·ice retiré·e.'
+      await this.loadEventOrganizers()
+    } finally {
+      this.organizerSaving = false
+    }
+  }
+
+  private async loadEventOrganizers(): Promise<void> {
+    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventOrganizers()) return
+    const r = await this.organizerApi.listEventOrganizers(this.data.seasonId, this.data.event.id)
+    if (r.ok && r.data) {
+      this.eventOrganizers.set(r.data)
+    }
+  }
+
+  protected canManageEventOrganizers(): boolean {
+    return this.data.canManageEventOrganizers === true
   }
 
   protected summaryRoles(): RoleKey[] {
