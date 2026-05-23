@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatFormFieldModule } from '@angular/material/form-field'
+import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
@@ -53,6 +54,7 @@ declare global {
     MatButtonModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     ReactiveFormsModule,
     RouterLink,
@@ -103,20 +105,9 @@ export class Login implements AfterViewInit {
         client_id: clientId,
         callback: (resp) => void this.onGoogleCredential(resp.credential),
       })
-      const render = () => {
-        const raw = host.getBoundingClientRect().width
-        const w = raw > 0 ? Math.floor(raw) : 400
-        g.renderButton(host, {
-          theme: 'outline',
-          size: 'large',
-          type: 'standard',
-          shape: 'pill',
-          text: 'continue_with',
-          width: Math.max(w, 280),
-          locale: 'fr',
-        })
-      }
-      requestAnimationFrame(render)
+      const render = () =>
+        requestAnimationFrame(() => requestAnimationFrame(() => this.renderGoogleSignInButton()))
+      render()
     }
 
     const id = window.setInterval(() => {
@@ -135,6 +126,27 @@ export class Login implements AfterViewInit {
         )
       }
     }, 12_000)
+  }
+
+  /** Widget GSI superposé au bouton Material (voir template) : largeur = pile parent. */
+  private renderGoogleSignInButton(): void {
+    const g = window.google?.accounts?.id
+    const host = this.googleHost()?.nativeElement
+    if (!g || !host) return
+    const stack = host.parentElement
+    const rawW = stack?.getBoundingClientRect().width ?? 0
+    const w = Math.max(Math.floor(rawW), 280)
+    host.replaceChildren()
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    g.renderButton(host, {
+      theme: dark ? 'filled_black' : 'outline',
+      type: 'standard',
+      size: 'large',
+      shape: 'pill',
+      text: 'continue_with',
+      width: w,
+      locale: 'fr',
+    })
   }
 
   private async onGoogleCredential(idToken: string): Promise<void> {

@@ -40,6 +40,44 @@
   gap: 0.5rem;
 }
 
+/* Logo fichier : OK en clair. En sombre, mot-mark (icône + texte) sans pastille ni PNG à fond blanc. */
+.login__brand-mark--light {
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.login__brand-mark--dark {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.login__wordmark-icon {
+  color: var(--mat-sys-primary);
+  font-size: 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.login__wordmark-text {
+  font: var(--mat-sys-headline-medium);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--mat-sys-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .login__brand-mark--light {
+    display: none;
+  }
+
+  .login__brand-mark--dark {
+    display: flex;
+  }
+}
+
 .login__logo {
   display: block;
   height: 3rem;
@@ -60,12 +98,42 @@
   color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, var(--mat-sys-surface));
 }
 
-.login__gsi {
+/* Décor Material en dessous ; widget GSI au-dessus (invisible) reçoit les vrais clics. */
+.login__google-block {
+  position: relative;
   width: 100%;
-  min-height: 48px;
+}
+
+.login__google-stack {
+  position: relative;
+  width: 100%;
+  min-height: 3rem;
+}
+
+.login__google-visual {
+  width: 100%;
+  min-height: 3rem;
+  justify-content: center;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.login__google-g {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.login__gsi-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
+  align-items: stretch;
   justify-content: stretch;
-  align-items: center;
+  /* invisible mais reçoit pointer (contrairement au widget hors-écran + .click() JS) */
+  opacity: 0;
+  cursor: pointer;
 }
 
 .login__between {
