@@ -1,5 +1,5 @@
 # generated: 2026-04-18T12:00:00Z
-# last_updated: 2026-04-20T22:56:02Z
+# last_updated: 2026-05-24T00:35:00Z
 # project: hatcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-23T22:01:00Z"
+last_updated: "2026-05-24T22:24:00Z"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -68,9 +68,10 @@ development_status:
   3-2-spectacles-dans-la-saison-et-liste-pour-les-membres: done
   3-3-vue-calendrier-agenda-saison-filtres-bascule-agenda-historique: done
   3-4-types-devenement-et-roles-requis-optionnels: done
-  3-5-delegation-des-organisateurs-perimetre-saison-evenement: review
+  3-5-delegation-des-organisateurs-perimetre-saison-evenement: done
   3-6-vue-historique-colonnes-roles-mois-export-masquage: ready-for-dev
   3-7-suppression-de-saisons-admins-troupe-ou-plateforme: backlog
+  3-8-rosters-participants-saison-et-evenement: done
   epic-3-retrospective: optional
 
   epic-4: backlog
@@ -78,8 +79,8 @@ development_status:
   4-2-pages-publiques-saison-et-evenements: backlog
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: backlog
+  epic-5: in-progress
+  5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: ready-for-dev
   5-2-disponibilite-par-role-lorsque-le-type-devenement-lexige: backlog
   5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous: backlog
   5-4-commentaire-optionnel-sur-la-disponibilite: backlog

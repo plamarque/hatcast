@@ -199,12 +199,22 @@ class OrganizerAccessService(
             canManageMembers = troupeAdmin,
             canManageSeasons = troupeAdmin,
             canManageEvents = troupeAdmin,
+            canManageSeasonParticipants = troupeAdmin,
+            canManageEventParticipants = troupeAdmin,
             isTroupeAdmin = troupeAdmin,
             isSeasonOrganizer = isSeasonOrganizer(seasonId, principal),
             eventOrganizerFor =
                 eventOrganizerRepository
                     .findByEvent_Season_IdAndUser_Id(seasonId, principal.userId)
                     .map { it.event.id },
+            eventParticipantAdminFor =
+                if (troupeAdmin) {
+                    emptyList()
+                } else {
+                    eventOrganizerRepository
+                        .findByEvent_Season_IdAndUser_Id(seasonId, principal.userId)
+                        .map { it.event.id }
+                },
         )
     }
 

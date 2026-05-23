@@ -13,7 +13,7 @@ import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { AdminMembres } from './admin-membres'
 
 describe('AdminMembres', () => {
-  const paramMap$ = new BehaviorSubject(convertToParamMap({ slug: 'season-a' }))
+  const paramMap$ = new BehaviorSubject(convertToParamMap({}))
   const queryParamMap$ = new BehaviorSubject(convertToParamMap({}))
 
   async function setup(
@@ -33,12 +33,19 @@ describe('AdminMembres', () => {
           updatedAt: string
         }
       }>
+      seasons?: SeasonResponse[]
+      slug?: string
       getSeasonBySlug?: ReturnType<typeof vi.fn>
     } = {},
   ) {
     const router = { navigate: vi.fn().mockResolvedValue(true) }
     const snack = { open: vi.fn() }
     const queryMap = convertToParamMap(query)
+    if (options.slug) {
+      paramMap$.next(convertToParamMap({ slug: options.slug }))
+    } else {
+      paramMap$.next(convertToParamMap({}))
+    }
     const route = {
       paramMap: paramMap$.asObservable(),
       queryParamMap: queryParamMap$.asObservable(),
@@ -48,17 +55,26 @@ describe('AdminMembres', () => {
       listMyTroupes: vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        data: options.troupes ?? [{ id: 't1', name: 'Ma Troupe', slug: 'troupe', membership: {
-          id: 'm-1',
-          displayName: 'Admin',
-          status: 'ACTIVE',
-          baselineRole: 'TROUPE_ADMIN',
-          createdAt: '',
-          updatedAt: '',
-        } }],
+        data: options.troupes ?? [troupe('t1', 'Ma Troupe')],
+      }),
+      listMembers: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: { content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 },
       }),
     }
     const seasonsApi = {
+      listSeasons: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          content: options.seasons ?? [season('s1')],
+          page: 0,
+          size: 100,
+          totalElements: 1,
+          totalPages: 1,
+        },
+      }),
       getSeasonBySlug: options.getSeasonBySlug ?? vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
@@ -73,13 +89,6 @@ describe('AdminMembres', () => {
       }),
       listSeasonOrganizers: vi.fn().mockResolvedValue({ ok: true, status: 200, data: [] }),
     }
-    const troupeMembersApi = {
-      listMembers: vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        data: { content: [], page: 0, size: 100, totalElements: 0, totalPages: 0 },
-      }),
-    }
 
     await TestBed.configureTestingModule({
       imports: [AdminMembres, NoopAnimationsModule],
@@ -91,11 +100,15 @@ describe('AdminMembres', () => {
         {
           provide: AuthApiService,
           useValue: {
-            ensureHatcastSession: vi.fn().mockResolvedValue({ ok: true, status: 200, data: { user: { email: 'a@example.com', displayName: 'Admin' } } }),
+            ensureHatcastSession: vi.fn().mockResolvedValue({
+              ok: true,
+              status: 200,
+              data: { user: { email: 'a@example.com', displayName: 'Admin' } },
+            }),
           },
         },
         { provide: SeasonApiService, useValue: seasonsApi },
-        { provide: TroupeApiService, useValue: { ...troupeApi, ...troupeMembersApi } },
+        { provide: TroupeApiService, useValue: troupeApi },
         { provide: OrganizerApiService, useValue: organizerApi },
       ],
     }).compileComponents()
@@ -108,22 +121,36 @@ describe('AdminMembres', () => {
     return { fixture, router, snack, seasonsApi, organizerApi, troupeApi }
   }
 
-  it('redirects unauthorized users to season agenda', async () => {
-    const { router, seasonsApi, organizerApi } = await setup(noPermissions())
+  it('redirects unauthorized users to seasons list', async () => {
+    const { router, organizerApi } = await setup(noPermissions(), {}, {
+      troupes: [{
+        id: 't1',
+        name: 'Ma Troupe',
+        slug: 'troupe',
+        membership: {
+          id: 'm-1',
+          displayName: 'Membre',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
 
     await vi.waitFor(() => {
-      expect(seasonsApi.getSeasonBySlug).toHaveBeenCalled()
       expect(organizerApi.mySeasonPermissions).toHaveBeenCalled()
     })
     await vi.waitFor(() => {
-      expect(router.navigate).toHaveBeenCalledWith(['/saison', 'season-a'])
+      expect(router.navigate).toHaveBeenCalledWith(['/seasons'])
     })
   })
 
-  it('shows Membres title when member admin only', async () => {
+  it('shows Membres title when troupe admin only', async () => {
     const { fixture } = await setup(membersOnly())
 
     expect(text(fixture)).toContain('Membres')
+    expect(text(fixture)).toContain('Ma Troupe')
   })
 
   it('shows tab bar when both permissions granted', async () => {
@@ -141,31 +168,34 @@ describe('AdminMembres', () => {
     expect(cmp.activeTab()).toBe('organisateurs')
   })
 
-  it('résout une route admin directe dans la troupe propriétaire du slug', async () => {
+  it('loads membres without season when troupe has no seasons', async () => {
+    const { fixture, router } = await setup(membersOnly(), {}, { seasons: [] })
+
+    expect(router.navigate).not.toHaveBeenCalledWith(['/seasons'])
+    expect(text(fixture)).toContain('Membres')
+  })
+
+  it('résout une route legacy slug dans la troupe propriétaire', async () => {
     localStorage.setItem('hatcast.selectedTroupeId', 't1')
     const getSeasonBySlug = vi.fn()
       .mockResolvedValueOnce({ ok: false, status: 404 })
       .mockResolvedValueOnce({ ok: true, status: 200, data: season('s2', 't2') })
 
-    const { fixture, seasonsApi, organizerApi } = await setup(bothPermissions(), {}, {
-      troupes: [
-        troupe('t1', 'Première troupe'),
-        troupe('t2', 'Troupe propriétaire'),
-      ],
+    const { fixture, organizerApi } = await setup(bothPermissions(), {}, {
+      slug: 'season-a',
+      troupes: [troupe('t1', 'Première troupe'), troupe('t2', 'Troupe propriétaire')],
       getSeasonBySlug,
     })
 
     await vi.waitFor(() => {
       expect(organizerApi.mySeasonPermissions).toHaveBeenCalledWith('s2')
     })
-    expect(seasonsApi.getSeasonBySlug).toHaveBeenNthCalledWith(1, 't1', 'season-a')
-    expect(seasonsApi.getSeasonBySlug).toHaveBeenNthCalledWith(2, 't2', 'season-a')
     expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('t2')
   })
 })
 
 async function waitForPageLoad(fixture: ComponentFixture<unknown>): Promise<void> {
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 30; i++) {
     await fixture.whenStable()
     await new Promise((r) => setTimeout(r, 0))
     const cmp = fixture.componentInstance as { loading: () => boolean }
@@ -220,19 +250,22 @@ function noPermissions(): MySeasonPermissions {
     canManageMembers: false,
     canManageSeasons: false,
     canManageEvents: false,
+    canManageSeasonParticipants: false,
+    canManageEventParticipants: false,
     isTroupeAdmin: false,
     isSeasonOrganizer: false,
     eventOrganizerFor: [],
+    eventParticipantAdminFor: [],
   }
 }
 
 function membersOnly(): MySeasonPermissions {
-  return { ...noPermissions(), canManageMembers: true, isTroupeAdmin: true }
+  return { ...noPermissions(), canManageMembers: false, canManageSeasonOrganizers: false }
 }
 
 function bothPermissions(): MySeasonPermissions {
   return {
-    ...membersOnly(),
+    ...noPermissions(),
     canManageSeasonOrganizers: true,
   }
 }

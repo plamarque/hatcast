@@ -142,6 +142,25 @@ describe('SeasonsList', () => {
 
     expect(fixture.componentInstance['canManageSeasons']()).toBe(false)
     expect(fixture.nativeElement.textContent).not.toContain('Nouvelle saison')
+    expect(fixture.nativeElement.textContent).not.toContain('Membres')
+  })
+
+  it('affiche le lien Membres pour un admin troupe', async () => {
+    troupeApi.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice', 'TROUPE_ADMIN')],
+    })
+    seasonApi.listSeasons.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 },
+    })
+
+    await settle(fixture)
+
+    expect(fixture.componentInstance['canManageMembers']()).toBe(true)
+    expect(fixture.nativeElement.querySelector('a[href*="troupe/admin/membres"]')).toBeTruthy()
   })
 
   it('rejoint la troupe de démonstration puis recharge les troupes', async () => {

@@ -1,5 +1,6 @@
 package com.hatcast.api.auth
 
+import com.hatcast.api.participant.ParticipantLinkService
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
@@ -19,7 +20,8 @@ import java.util.UUID
 class AuthUserLinkServiceTest {
     private val userRepository = mock<UserRepository>()
     private val userAccountService = mock<UserAccountService>()
-    private val service = AuthUserLinkService(userRepository, userAccountService)
+    private val participantLinkService = mock<ParticipantLinkService>()
+    private val service = AuthUserLinkService(userRepository, userAccountService, participantLinkService)
 
     @Test
     fun `google sign in links migration stub by email`() {
@@ -40,6 +42,7 @@ class AuthUserLinkServiceTest {
         assertEquals("migrated@example.com", linked.email)
         assertEquals("Google Name", linked.displayName)
         verify(userAccountService).markActivated(any())
+        verify(participantLinkService).linkPendingParticipantsOnLogin(any())
     }
 
     @Test
@@ -54,6 +57,7 @@ class AuthUserLinkServiceTest {
 
         assertEquals("idp-uid-1", linked.idpUid)
         assertNull(linked.googleSub)
+        verify(participantLinkService).linkPendingParticipantsOnLogin(any())
     }
 
     @Test
@@ -86,5 +90,6 @@ class AuthUserLinkServiceTest {
         assertNotNull(created)
         assertEquals("google-new", created.googleSub)
         verify(userRepository).save(any())
+        verify(participantLinkService).linkPendingParticipantsOnLogin(any())
     }
 }

@@ -42,9 +42,10 @@ describe('SeasonHeader', () => {
     return { fixture, memberProfile }
   }
 
-  it('shows a single Membres settings link to admin route', async () => {
+  it('shows Participants in settings when permitted', async () => {
     const { fixture } = await setup()
     fixture.componentRef.setInput('canManageSettings', true)
+    fixture.componentRef.setInput('canManageSeasonParticipants', true)
     fixture.detectChanges()
 
     const settingsBtn = fixture.nativeElement.querySelector(
@@ -56,8 +57,27 @@ describe('SeasonHeader', () => {
     fixture.detectChanges()
 
     const overlayEl = TestBed.inject(OverlayContainer).getContainerElement()
-    expect(overlayEl.textContent).toContain('Membres')
-    expect(overlayEl.textContent).not.toContain('Organisateur')
+    expect(overlayEl.textContent).toContain('Participants')
+    expect(overlayEl.textContent).not.toContain('Membres')
+    expect(overlayEl.querySelector('a[href*="admin/participants"]')).toBeTruthy()
+  })
+
+  it('shows Organisateur·ices link for season organizers without troupe admin', async () => {
+    const { fixture } = await setup()
+    fixture.componentRef.setInput('canManageSettings', true)
+    fixture.componentRef.setInput('canManageSeasonOrganizersOnly', true)
+    fixture.detectChanges()
+
+    const settingsBtn = fixture.nativeElement.querySelector(
+      '[aria-label="Réglages saison"]',
+    ) as HTMLButtonElement
+    settingsBtn.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const overlayEl = TestBed.inject(OverlayContainer).getContainerElement()
+    expect(overlayEl.textContent).toContain('Organisateur')
     expect(overlayEl.querySelector('a[href*="admin/membres"]')).toBeTruthy()
   })
 

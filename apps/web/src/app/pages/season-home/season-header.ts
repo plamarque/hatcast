@@ -34,6 +34,8 @@ export class SeasonHeader {
   readonly troupeName = input<string | null>(null)
   readonly user = input<UserSummary | null>(null)
   readonly canManageSettings = input(false)
+  readonly canManageSeasonParticipants = input(false)
+  readonly canManageSeasonOrganizersOnly = input(false)
 
   userDisplayLabel(): string {
     return this.troupeContext.currentUserDisplayLabel(this.user())

@@ -37,12 +37,17 @@ import {
   OrganizerApiService,
   type OrganizerResponse,
 } from '../../core/permissions/organizer-api.service'
+import {
+  ParticipantApiService,
+  type EventParticipantAdmin,
+} from '../../core/participants/participant-api.service'
 
 export interface EventFormDialogData {
   mode: 'create' | 'edit'
   seasonId: string
   event?: EventResponse
   canManageEventOrganizers?: boolean
+  canManageEventParticipants?: boolean
 }
 
 /** Instant ISO → valeur `datetime-local` (heure locale). */
@@ -69,13 +74,18 @@ export class EventFormDialog implements OnInit {
   private readonly fb = inject(FormBuilder)
   private readonly api = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
+  private readonly participantApi = inject(ParticipantApiService)
   private readonly ref = inject(MatDialogRef<EventFormDialog, boolean>)
   protected readonly data = inject<EventFormDialogData>(MAT_DIALOG_DATA)
 
   protected saving = false
   protected organizerSaving = false
+  protected participantSaving = false
   protected organizerEmail = ''
+  protected participantDisplayName = ''
+  protected participantEmail = ''
   protected organizerMessage = ''
+  protected participantMessage = ''
   protected showRoleInputs = false
   protected showTemplateChangeConfirmation = false
   protected pendingTemplateId: EventTypeId | null = null
@@ -90,6 +100,7 @@ export class EventFormDialog implements OnInit {
   protected selectedTemplateType: EventTypeId = DEFAULT_CREATE_EVENT_TYPE
   protected roleSlots: RoleSlots = applyTemplate(DEFAULT_CREATE_EVENT_TYPE)
   protected readonly eventOrganizers = signal<OrganizerResponse[]>([])
+  protected readonly eventParticipants = signal<EventParticipantAdmin[]>([])
 
   protected readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -115,6 +126,9 @@ export class EventFormDialog implements OnInit {
       })
       if (this.canManageEventOrganizers()) {
         void this.loadEventOrganizers()
+      }
+      if (this.canManageEventParticipants()) {
+        void this.loadEventParticipants()
       }
     } else {
       this.selectedTemplateType = DEFAULT_CREATE_EVENT_TYPE
@@ -180,6 +194,66 @@ export class EventFormDialog implements OnInit {
 
   protected canManageEventOrganizers(): boolean {
     return this.data.canManageEventOrganizers === true
+  }
+
+  protected canManageEventParticipants(): boolean {
+    return this.data.canManageEventParticipants === true
+  }
+
+  protected async addEventParticipant(): Promise<void> {
+    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventParticipants()) return
+    const displayName = this.participantDisplayName.trim()
+    if (!displayName) {
+      this.participantMessage = 'Saisissez un nom.'
+      return
+    }
+    this.participantSaving = true
+    try {
+      const email = this.participantEmail.trim()
+      const r = await this.participantApi.createEventParticipant(
+        this.data.seasonId,
+        this.data.event.id,
+        { displayName, email: email || undefined },
+      )
+      if (!r.ok) {
+        this.participantMessage = r.status === 403 ? 'Accès non autorisé.' : 'Ajout impossible.'
+        return
+      }
+      this.participantDisplayName = ''
+      this.participantEmail = ''
+      this.participantMessage = 'Participant ajouté.'
+      await this.loadEventParticipants()
+    } finally {
+      this.participantSaving = false
+    }
+  }
+
+  protected async removeEventParticipant(participantId: string): Promise<void> {
+    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventParticipants()) return
+    this.participantSaving = true
+    try {
+      const r = await this.participantApi.removeEventParticipant(
+        this.data.seasonId,
+        this.data.event.id,
+        participantId,
+      )
+      if (!r.ok) {
+        this.participantMessage = 'Retrait impossible.'
+        return
+      }
+      this.participantMessage = 'Participant retiré.'
+      await this.loadEventParticipants()
+    } finally {
+      this.participantSaving = false
+    }
+  }
+
+  private async loadEventParticipants(): Promise<void> {
+    if (this.data.mode !== 'edit' || !this.data.event || !this.canManageEventParticipants()) return
+    const r = await this.participantApi.listEventParticipants(this.data.seasonId, this.data.event.id)
+    if (r.ok && r.data) {
+      this.eventParticipants.set(r.data)
+    }
   }
 
   protected summaryRoles(): RoleKey[] {

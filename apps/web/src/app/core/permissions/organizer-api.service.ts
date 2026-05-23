@@ -15,9 +15,12 @@ export interface MySeasonPermissions {
   canManageMembers: boolean
   canManageSeasons: boolean
   canManageEvents: boolean
+  canManageSeasonParticipants: boolean
+  canManageEventParticipants: boolean
   isTroupeAdmin: boolean
   isSeasonOrganizer: boolean
   eventOrganizerFor: string[]
+  eventParticipantAdminFor: string[]
 }
 
 type ApiResult<T> = Promise<{ ok: boolean; status: number; data?: T }>

@@ -20,10 +20,22 @@
         <mat-icon>settings</mat-icon>
       </button>
       <mat-menu #settingsMenu="matMenu">
-        <a mat-menu-item [routerLink]="['/saison', seasonSlug(), 'admin', 'membres']">
-          <mat-icon>group</mat-icon>
-          <span>Membres</span>
-        </a>
+        @if (canManageSeasonParticipants()) {
+          <a mat-menu-item [routerLink]="['/saison', seasonSlug(), 'admin', 'participants']">
+            <mat-icon>person_add</mat-icon>
+            <span>Participants</span>
+          </a>
+        }
+        @if (canManageSeasonOrganizersOnly()) {
+          <a
+            mat-menu-item
+            [routerLink]="['/saison', seasonSlug(), 'admin', 'membres']"
+            [queryParams]="{ onglet: 'organisateurs' }"
+          >
+            <mat-icon>badge</mat-icon>
+            <span>Organisateur·ices</span>
+          </a>
+        }
       </mat-menu>
     }
     @if (user(); as u) {

@@ -19,6 +19,10 @@ import {
   type MySeasonPermissions,
 } from '../../core/permissions/organizer-api.service'
 import {
+  ParticipantApiService,
+  type ParticipantSelector,
+} from '../../core/participants/participant-api.service'
+import {
   ConfirmDialog,
   type ConfirmDialogData,
 } from '../seasons-list/confirm-dialog'
@@ -59,6 +63,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
+  private readonly participantApi = inject(ParticipantApiService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
@@ -91,9 +96,14 @@ export class SeasonHome implements OnDestroy, OnInit {
   protected readonly selectedParticipantId = signal<string | null>(null)
   protected readonly selectedEventId = signal<string | null>(null)
 
+  protected readonly participantSelectors = signal<ParticipantSelector[]>([])
+
   protected readonly participantOptions = computed<ParticipantFilterOption[]>(() => {
-    // No player/availability API exists yet; keep the visible filter honest.
-    return [{ id: null, label: 'Tous' }]
+    const opts: ParticipantFilterOption[] = [{ id: null, label: 'Tous' }]
+    for (const p of this.participantSelectors()) {
+      opts.push({ id: p.id, label: p.displayName })
+    }
+    return opts
   })
 
   protected readonly eventFilterOptions = computed<EventFilterOption[]>(() =>
@@ -110,10 +120,21 @@ export class SeasonHome implements OnDestroy, OnInit {
   )
   protected readonly canManageMembers = computed(() => this.seasonPermissions()?.canManageMembers === true)
   protected readonly canManageEvents = computed(() => this.seasonPermissions()?.canManageEvents === true)
+  protected readonly canManageSeasonParticipants = computed(
+    () => this.seasonPermissions()?.canManageSeasonParticipants === true,
+  )
+  protected readonly canManageSeasonOrganizers = computed(
+    () => this.seasonPermissions()?.canManageSeasonOrganizers === true,
+  )
+  protected readonly canManageSeasonOrganizersOnly = computed(
+    () =>
+      this.canManageSeasonOrganizers() &&
+      this.seasonPermissions()?.canManageMembers !== true,
+  )
   protected readonly canManageSettings = computed(
     () =>
-      this.seasonPermissions()?.canManageMembers === true ||
-      this.seasonPermissions()?.canManageSeasonOrganizers === true,
+      this.canManageSeasonParticipants() ||
+      this.canManageSeasonOrganizersOnly(),
   )
 
   async ngOnInit(): Promise<void> {
@@ -168,6 +189,7 @@ export class SeasonHome implements OnDestroy, OnInit {
   private resetSeasonState(): void {
     this.season.set(null)
     this.seasonPermissions.set(null)
+    this.participantSelectors.set([])
     this.events.set([])
     this.totalElements.set(0)
     this.eventsTruncated.set(false)
@@ -216,12 +238,27 @@ export class SeasonHome implements OnDestroy, OnInit {
     this.troupeName.set(resolved.troupe.name)
     this.season.set(resolved.season)
     await this.loadSeasonPermissions(resolved.season.id)
+    await this.loadParticipantSelectors(resolved.season.id)
     await this.loadUpcomingEvents()
+  }
+
+  private async loadParticipantSelectors(seasonId: string): Promise<void> {
+    const r = await this.participantApi.listSeasonParticipantSelectors(seasonId)
+    if (r.ok && r.data) {
+      this.participantSelectors.set(r.data)
+    }
   }
 
   private async loadSeasonPermissions(seasonId: string): Promise<void> {
     const r = await this.organizerApi.mySeasonPermissions(seasonId)
     this.seasonPermissions.set(r.ok && r.data ? r.data : null)
+  }
+
+  private canManageEventParticipantsFor(eventId: string): boolean {
+    const perms = this.seasonPermissions()
+    if (!perms) return false
+    if (perms.canManageEventParticipants) return true
+    return perms.eventParticipantAdminFor.includes(eventId)
   }
 
   /** Loads upcoming events up to the current cap (story 3.3 option C). */
@@ -327,6 +364,7 @@ export class SeasonHome implements OnDestroy, OnInit {
           seasonId: s.id,
           event: ev,
           canManageEventOrganizers: this.seasonPermissions()?.canManageEventOrganizers === true,
+          canManageEventParticipants: this.canManageEventParticipantsFor(ev.id),
         },
         width: 'min(100vw - 2rem, 28rem)',
       },

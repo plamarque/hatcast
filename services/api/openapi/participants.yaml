@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Participants (fragment)
+  description: >
+    Rosters participants saison et spectacle (story 3.8). Les champs email sont réservés aux appels admin autorisés.
+    Mutations : cookie session + CSRF `X-XSRF-TOKEN`.
+  version: 0.1.0
+
+tags:
+  - name: Participants
+
+paths:
+  /seasons/{seasonId}/participants:
+    get:
+      tags: [Participants]
+      summary: Liste admin des participants de saison
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+      responses:
+        '200':
+          description: OK (emails si autorisé)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SeasonParticipantAdmin'
+        '403':
+          description: Accès refusé
+    post:
+      tags: [Participants]
+      summary: Ajouter un participant de saison (nom ± email)
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipantCreateRequest'
+      responses:
+        '200':
+          description: Créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonParticipantAdmin'
+        '403':
+          description: Accès refusé
+        '409':
+          description: Nom en doublon
+
+  /seasons/{seasonId}/participants/{participantId}:
+    patch:
+      tags: [Participants]
+      summary: Mettre à jour un participant explicite (non membre sync)
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+        - $ref: '#/components/parameters/participantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipantUpdateRequest'
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Accès refusé
+        '404':
+          description: Inconnu
+    delete:
+      tags: [Participants]
+      summary: Retirer (soft delete) un participant explicite
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+        - $ref: '#/components/parameters/participantId'
+      responses:
+        '204':
+          description: Retiré
+        '400':
+          description: Participant synchronisé depuis Membres
+        '403':
+          description: Accès refusé
+
+  /seasons/{seasonId}/participants/selectors:
+    get:
+      tags: [Participants]
+      summary: Liste réduite pour filtres agenda (sans email)
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParticipantSelector'
+
+  /seasons/{seasonId}/events/{eventId}/participants:
+    get:
+      tags: [Participants]
+      summary: Liste admin participants spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+        - $ref: '#/components/parameters/eventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventParticipantAdmin'
+        '403':
+          description: Accès refusé
+    post:
+      tags: [Participants]
+      summary: Ajouter un participant dédié au spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+        - $ref: '#/components/parameters/eventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipantCreateRequest'
+      responses:
+        '200':
+          description: Créé
+        '403':
+          description: Accès refusé
+
+  /seasons/{seasonId}/events/{eventId}/participants/{participantId}:
+    delete:
+      tags: [Participants]
+      summary: Retirer un participant spectacle (soft delete)
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/seasonId'
+        - $ref: '#/components/parameters/eventId'
+        - $ref: '#/components/parameters/participantId'
+      responses:
+        '204':
+          description: Retiré
+        '403':
+          description: Accès refusé
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  parameters:
+    seasonId:
+      name: seasonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    eventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    participantId:
+      name: participantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ParticipantCreateRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+
+    ParticipantUpdateRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+
+    ParticipantKind:
+      type: string
+      enum: [MEMBER, LINKED, MANAGED, NAME_ONLY]
+
+    SeasonParticipantAdmin:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        email:
+          type: string
+          nullable: true
+          description: Admin only
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+        troupeMembershipId:
+          type: string
+          format: uuid
+          nullable: true
+        kind:
+          $ref: '#/components/schemas/ParticipantKind'
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
+        removable:
+          type: boolean
+
+    EventParticipantAdmin:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+        kind:
+          $ref: '#/components/schemas/ParticipantKind'
+        status:
+          type: string
+          enum: [ACTIVE, REMOVED]
+
+    ParticipantSelector:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        kind:
+          $ref: '#/components/schemas/ParticipantKind'

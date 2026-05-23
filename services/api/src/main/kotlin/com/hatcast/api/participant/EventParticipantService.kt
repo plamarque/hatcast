@@ -1,0 +1,93 @@
+package com.hatcast.api.participant
+
+import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.event.EventRepository
+import com.hatcast.api.participant.dto.EventParticipantAdminDto
+import com.hatcast.api.participant.dto.ParticipantCreateRequest
+import com.hatcast.api.user.UserRepository
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
+import java.util.UUID
+
+@Service
+class EventParticipantService(
+    private val eventParticipantRepository: EventParticipantRepository,
+    private val eventRepository: EventRepository,
+    private val userRepository: UserRepository,
+    private val participantAccess: ParticipantAccessService,
+    private val participantLink: ParticipantLinkService,
+) {
+    @Transactional(readOnly = true)
+    fun listAdmin(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): List<EventParticipantAdminDto> {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val includeEmail = participantAccess.canViewEventParticipantEmail(eventId, seasonId, principal)
+        return eventParticipantRepository
+            .findByEvent_IdAndStatusOrderByDisplayNameAsc(eventId, ParticipantStatus.ACTIVE)
+            .map { EventParticipantAdminDto.from(it, includeEmail) }
+    }
+
+    @Transactional
+    fun create(
+        seasonId: UUID,
+        eventId: UUID,
+        body: ParticipantCreateRequest,
+        principal: SessionUserPrincipal,
+    ): EventParticipantAdminDto {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val event =
+            eventRepository
+                .findById(eventId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Événement inconnu") }
+        val displayName = body.displayName.trim()
+        if (displayName.isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Nom d'affichage requis.")
+        }
+        val normalizedEmail = participantLink.normalizeEmail(body.email)
+        val linkedUser = participantLink.resolveUserId(normalizedEmail)?.let { userRepository.findById(it).orElse(null) }
+        val now = Instant.now()
+        val saved =
+            eventParticipantRepository.save(
+                EventParticipantEntity(
+                    event = event,
+                    displayName = displayName,
+                    normalizedEmail = normalizedEmail,
+                    user = linkedUser,
+                    status = ParticipantStatus.ACTIVE,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        return EventParticipantAdminDto.from(saved, includeEmail = true)
+    }
+
+    @Transactional
+    fun remove(
+        seasonId: UUID,
+        eventId: UUID,
+        participantId: UUID,
+        principal: SessionUserPrincipal,
+    ) {
+        participantAccess.loadEventInSeason(seasonId, eventId, principal)
+        participantAccess.requireCanManageEventParticipants(eventId, seasonId, principal)
+        val existing =
+            eventParticipantRepository.findByIdAndEvent_Id(participantId, eventId)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Participant inconnu")
+        if (existing.status != ParticipantStatus.ACTIVE) {
+            return
+        }
+        val now = Instant.now()
+        existing.status = ParticipantStatus.REMOVED
+        existing.removedAt = now
+        existing.updatedAt = now
+        eventParticipantRepository.save(existing)
+    }
+}

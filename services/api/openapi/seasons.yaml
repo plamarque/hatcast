@@ -1279,3 +1279,12 @@ components:
           items:
             type: string
             format: uuid
+        canManageSeasonParticipants:
+          type: boolean
+        canManageEventParticipants:
+          type: boolean
+        eventParticipantAdminFor:
+          type: array
+          items:
+            type: string
+            format: uuid

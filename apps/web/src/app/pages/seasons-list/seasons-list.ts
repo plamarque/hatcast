@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core'
+import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
@@ -58,6 +58,9 @@ export class SeasonsList implements OnInit {
   protected readonly joiningDemo = signal(false)
   protected readonly hasMembership = signal(false)
   protected readonly canManageSeasons = signal(false)
+  protected readonly canManageMembers = computed(
+    () => this.selectedTroupe()?.membership.baselineRole === 'TROUPE_ADMIN',
+  )
   protected readonly seasons = signal<SeasonResponse[]>([])
   protected readonly troupeId = signal<string | null>(null)
   protected readonly totalElements = signal(0)

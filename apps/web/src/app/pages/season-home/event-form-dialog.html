@@ -153,6 +153,70 @@
         }
       </section>
     }
+
+    @if (data.mode === 'edit' && canManageEventParticipants()) {
+      <section class="organizers-section" aria-labelledby="event-participants-title">
+        <h3 id="event-participants-title">Participants du spectacle</h3>
+        <p>Personnes présentes uniquement pour ce spectacle (sans effet sur le roster saison).</p>
+
+        @if (eventParticipants().length === 0) {
+          <p class="organizers-section__empty">Aucun participant dédié.</p>
+        } @else {
+          <div class="organizers-section__list">
+            @for (participant of eventParticipants(); track participant.id) {
+              <div class="organizers-section__row">
+                <span>
+                  <strong>{{ participant.displayName }}</strong>
+                  @if (participant.email) {
+                    <small>{{ participant.email }}</small>
+                  }
+                </span>
+                <button
+                  type="button"
+                  mat-button
+                  color="warn"
+                  [disabled]="participantSaving"
+                  (click)="removeEventParticipant(participant.id)"
+                >
+                  Retirer
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="organizers-section__add">
+          <mat-form-field appearance="outline">
+            <mat-label>Nom affiché</mat-label>
+            <input
+              matInput
+              [value]="participantDisplayName"
+              (input)="participantDisplayName = $any($event.target).value"
+            />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Email (optionnel)</mat-label>
+            <input
+              matInput
+              [value]="participantEmail"
+              (input)="participantEmail = $any($event.target).value"
+            />
+          </mat-form-field>
+          <button
+            type="button"
+            mat-button
+            [disabled]="participantSaving"
+            (click)="addEventParticipant()"
+          >
+            Ajouter
+          </button>
+        </div>
+
+        @if (participantMessage) {
+          <p class="organizers-section__message" role="status">{{ participantMessage }}</p>
+        }
+      </section>
+    }
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">

@@ -364,9 +364,12 @@ class OrganizerControllerIntegrationTest {
             .andExpect(jsonPath("$.canManageMembers").value(false))
             .andExpect(jsonPath("$.canManageSeasons").value(false))
             .andExpect(jsonPath("$.canManageEvents").value(false))
+            .andExpect(jsonPath("$.canManageSeasonParticipants").value(false))
+            .andExpect(jsonPath("$.canManageEventParticipants").value(false))
             .andExpect(jsonPath("$.isTroupeAdmin").value(false))
             .andExpect(jsonPath("$.isSeasonOrganizer").value(false))
             .andExpect(jsonPath("$.eventOrganizerFor.length()").value(0))
+            .andExpect(jsonPath("$.eventParticipantAdminFor.length()").value(0))
     }
 
     @Test

@@ -1,0 +1,91 @@
+<div class="admin-participants">
+  <header class="admin-participants__header">
+    <a
+      mat-icon-button
+      [routerLink]="['/saison', slug()]"
+      class="admin-participants__back"
+      aria-label="Retour à l’agenda"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </a>
+    <div class="admin-participants__titles">
+      <h1 class="admin-participants__title">Participants</h1>
+      @if (subtitle()) {
+        <p class="admin-participants__subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+    @if (user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="admin-participants__user"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel()"
+      >
+        <app-user-avatar
+          class="admin-participants__user-avatar"
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel()"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="admin-participants__user-label">{{ userDisplayLabel() }}</span>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+      </mat-menu>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="admin-participants__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (season()) {
+    <div class="admin-participants__toolbar">
+      <mat-form-field appearance="outline" class="admin-participants__search">
+        <mat-label>Rechercher</mat-label>
+        <input
+          matInput
+          [value]="searchQuery()"
+          (input)="onSearchInput($any($event.target).value)"
+          placeholder="Nom ou email"
+        />
+      </mat-form-field>
+      <button type="button" mat-flat-button color="primary" (click)="openAddDialog()">
+        Ajouter
+      </button>
+    </div>
+
+    @if (filteredParticipants().length === 0) {
+      <p class="admin-participants__empty">Aucun participant.</p>
+    } @else {
+      <ul class="admin-participants__list">
+        @for (p of filteredParticipants(); track p.id) {
+          <li class="admin-participants__row">
+            <div class="admin-participants__row-main">
+              <strong>{{ p.displayName }}</strong>
+              @if (p.email) {
+                <span class="admin-participants__email">{{ p.email }}</span>
+              }
+              <mat-chip-set>
+                <mat-chip>{{ kindLabel(p.kind) }}</mat-chip>
+              </mat-chip-set>
+            </div>
+            @if (p.removable) {
+              <button
+                type="button"
+                mat-button
+                color="warn"
+                [disabled]="saving()"
+                (click)="confirmRemove(p)"
+              >
+                Retirer
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

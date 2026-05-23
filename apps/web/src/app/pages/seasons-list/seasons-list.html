@@ -68,6 +68,15 @@
       </section>
     }
 
+    @if (canManageMembers()) {
+      <div class="seasons__admin-troupe">
+        <a mat-stroked-button routerLink="/troupe/admin/membres">
+          <mat-icon>group</mat-icon>
+          Membres
+        </a>
+      </div>
+    }
+
     @if (canManageSeasons()) {
       <div class="seasons__cta">
         <button mat-flat-button color="primary" type="button" (click)="openCreate()">

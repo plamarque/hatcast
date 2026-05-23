@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthApiService } from '../../core/auth/auth-api.service'
 import { EventApiService, type EventResponse } from '../../core/events/event-api.service'
 import { OrganizerApiService, type MySeasonPermissions } from '../../core/permissions/organizer-api.service'
+import { ParticipantApiService } from '../../core/participants/participant-api.service'
 import { SeasonApiService } from '../../core/seasons/season-api.service'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
@@ -50,6 +51,7 @@ describe('SeasonHome', () => {
   let dialog: { open: ReturnType<typeof vi.fn> }
   let snack: { open: ReturnType<typeof vi.fn> }
   let organizerApi: { mySeasonPermissions: ReturnType<typeof vi.fn> }
+  let participantApi: { listSeasonParticipantSelectors: ReturnType<typeof vi.fn> }
   let authApi: { ensureHatcastSession: ReturnType<typeof vi.fn> }
   let troupeApi: { listMyTroupes: ReturnType<typeof vi.fn> }
   let seasonsApi: { getSeasonBySlug: ReturnType<typeof vi.fn>; getSeason: ReturnType<typeof vi.fn> }
@@ -101,10 +103,20 @@ describe('SeasonHome', () => {
           canManageMembers: false,
           canManageSeasons: false,
           canManageEvents: false,
+          canManageSeasonParticipants: false,
+          canManageEventParticipants: false,
           isTroupeAdmin: false,
           isSeasonOrganizer: false,
           eventOrganizerFor: [],
+          eventParticipantAdminFor: [],
         },
+      }),
+    }
+    participantApi = {
+      listSeasonParticipantSelectors: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: [{ id: 'p-1', displayName: 'Alice', avatarUrl: null, kind: 'MEMBER' }],
       }),
     }
 
@@ -124,6 +136,7 @@ describe('SeasonHome', () => {
         { provide: EventApiService, useValue: eventsApi },
         { provide: TroupeApiService, useValue: troupeApi },
         { provide: OrganizerApiService, useValue: organizerApi },
+        { provide: ParticipantApiService, useValue: participantApi },
       ],
     }).compileComponents()
     TestBed.overrideProvider(MatSnackBar, { useValue: snack })
@@ -190,6 +203,22 @@ describe('SeasonHome', () => {
     })
     expect((fixture.componentInstance as unknown as { troupeId: () => string | null }).troupeId()).toBe('troupe-2')
     expect(localStorage.getItem('hatcast.selectedTroupeId')).toBe('troupe-2')
+  })
+
+  it('populates participant filter options from selectors API', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(participantApi.listSeasonParticipantSelectors).toHaveBeenCalledWith('season-1')
+    })
+
+    const cmp = fixture.componentInstance as unknown as {
+      participantOptions: () => Array<{ id: string | null; label: string }>
+    }
+    expect(cmp.participantOptions()).toEqual([
+      { id: null, label: 'Tous' },
+      { id: 'p-1', label: 'Alice' },
+    ])
   })
 
   it('ne charge pas une saison quand le slug est ambigu', async () => {

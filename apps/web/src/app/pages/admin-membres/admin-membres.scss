@@ -51,6 +51,15 @@
   margin-top: 0.25rem;
 }
 
+.admin-membres__season-select {
+  max-width: 20rem;
+}
+
+.admin-membres__empty-season {
+  color: rgba(0, 0, 0, 0.55);
+  margin: 1rem 0;
+}
+
 @media (max-width: 480px) {
   .admin-membres__user-label {
     display: none;

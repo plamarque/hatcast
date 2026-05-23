@@ -1,5 +1,6 @@
 package com.hatcast.api.auth
 
+import com.hatcast.api.participant.ParticipantLinkService
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
 import com.hatcast.api.user.UserRepository
@@ -15,6 +16,7 @@ import java.time.Instant
 class AuthUserLinkService(
     private val userRepository: UserRepository,
     private val userAccountService: UserAccountService,
+    private val participantLinkService: ParticipantLinkService,
 ) {
     fun resolveGoogleSignInUser(
         googleSub: String,
@@ -22,7 +24,9 @@ class AuthUserLinkService(
         displayName: String?,
     ): UserEntity {
         userRepository.findByGoogleSub(googleSub)?.let { existing ->
-            return userAccountService.markActivated(updateProfile(existing, email, displayName))
+            val user = userAccountService.markActivated(updateProfile(existing, email, displayName))
+            participantLinkService.linkPendingParticipantsOnLogin(user)
+            return user
         }
 
         val normalizedEmail = email?.trim()?.lowercase()?.takeIf { it.contains("@") }
@@ -35,22 +39,27 @@ class AuthUserLinkService(
                     )
                 }
                 byEmail.googleSub = googleSub
-                return userAccountService.markActivated(updateProfile(byEmail, normalizedEmail, displayName))
+                val user = userAccountService.markActivated(updateProfile(byEmail, normalizedEmail, displayName))
+                participantLinkService.linkPendingParticipantsOnLogin(user)
+                return user
             }
         }
 
         val now = Instant.now()
-        return userRepository.save(
-            UserEntity(
-                googleSub = googleSub,
-                idpUid = null,
-                email = normalizedEmail ?: email,
-                displayName = displayName,
-                activatedAt = now,
-                createdAt = now,
-                updatedAt = now,
-            ),
-        )
+        val created =
+            userRepository.save(
+                UserEntity(
+                    googleSub = googleSub,
+                    idpUid = null,
+                    email = normalizedEmail ?: email,
+                    displayName = displayName,
+                    activatedAt = now,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        participantLinkService.linkPendingParticipantsOnLogin(created)
+        return created
     }
 
     fun resolveIdpSignInUser(
@@ -59,7 +68,9 @@ class AuthUserLinkService(
         displayName: String?,
     ): UserEntity {
         userRepository.findByIdpUid(idpUid)?.let { existing ->
-            return userAccountService.markActivated(updateProfile(existing, email, displayName))
+            val user = userAccountService.markActivated(updateProfile(existing, email, displayName))
+            participantLinkService.linkPendingParticipantsOnLogin(user)
+            return user
         }
 
         val normalizedEmail = email?.trim()?.lowercase()?.takeIf { it.contains("@") }
@@ -72,22 +83,27 @@ class AuthUserLinkService(
                     )
                 }
                 byEmail.idpUid = idpUid
-                return userAccountService.markActivated(updateProfile(byEmail, normalizedEmail, displayName))
+                val user = userAccountService.markActivated(updateProfile(byEmail, normalizedEmail, displayName))
+                participantLinkService.linkPendingParticipantsOnLogin(user)
+                return user
             }
         }
 
         val now = Instant.now()
-        return userRepository.save(
-            UserEntity(
-                googleSub = null,
-                idpUid = idpUid,
-                email = normalizedEmail ?: email,
-                displayName = displayName,
-                activatedAt = now,
-                createdAt = now,
-                updatedAt = now,
-            ),
-        )
+        val created =
+            userRepository.save(
+                UserEntity(
+                    googleSub = null,
+                    idpUid = idpUid,
+                    email = normalizedEmail ?: email,
+                    displayName = displayName,
+                    activatedAt = now,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        participantLinkService.linkPendingParticipantsOnLogin(created)
+        return created
     }
 
     private fun updateProfile(

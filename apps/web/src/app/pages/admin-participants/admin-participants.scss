@@ -1,0 +1,96 @@
+.admin-participants {
+  display: grid;
+  gap: 1rem;
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.admin-participants__header {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.admin-participants__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-participants__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-participants__subtitle {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.9rem;
+  margin: 0.15rem 0 0;
+}
+
+.admin-participants__user {
+  max-width: 10rem;
+  padding-inline: 0.5rem 0.65rem;
+}
+
+.admin-participants__user-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-participants__spinner {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.admin-participants__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-participants__search {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.admin-participants__empty {
+  color: rgba(0, 0, 0, 0.55);
+  margin: 1rem 0;
+}
+
+.admin-participants__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-participants__row {
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.65rem 0;
+}
+
+.admin-participants__row-main {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.admin-participants__email {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 480px) {
+  .admin-participants__user-label {
+    display: none;
+  }
+}

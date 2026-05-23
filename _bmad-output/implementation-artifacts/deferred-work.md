@@ -49,3 +49,8 @@
 ## Deferred from: code review of 2-6-avatar-et-option-image-de-profil-google.md (2026-05-23)
 
 - `AvatarConfig` lève `IllegalStateException` si `HATCAST_AVATAR_STORAGE=gcs` au lieu d’un warning au démarrage comme suggéré dans Dev Notes — prod GCS hors périmètre MVP.
+
+## Deferred from: code review of 3-8-rosters-participants-saison-et-evenement.md (2026-05-24)
+
+- GET list/selectors mutate DB via `ensureMembershipParticipants` on every call — intentional per Dev Notes (sync on GET); revisit if caching or read replicas are introduced.
+- Admin DTO exposes normalized (lowercase) email instead of user-entered casing — cosmetic UX only.
