@@ -128,6 +128,13 @@ describe('AccountPlaceholder', () => {
     expect(component['validationErrorByTroupeId']()['t1']).toBe(true)
   })
 
+  it('affiche la section photo de profil', async () => {
+    const { fixture } = await setup({
+      troupes: [troupe('t1', 'La Malice', 'Patrice')],
+    })
+    expect(fixture.nativeElement.textContent).toContain('Photo de profil')
+  })
+
   it('affiche le pseudo défini par un admin et permet de le modifier (AC6)', async () => {
     const adminSetName = 'Nom Admin'
     const { fixture, troupeApi } = await setup({

@@ -8,10 +8,11 @@ import { Router, RouterLink } from '@angular/router'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { userMessageForLogoutFailure } from '../../core/auth/auth-user-message'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 @Component({
   selector: 'app-home-signed-in',
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatMenuModule, RouterLink],
+  imports: [MatButtonModule, MatCardModule, MatIconModule, MatMenuModule, RouterLink, UserAvatarComponent],
   templateUrl: './home-signed-in.html',
   styleUrl: './home-signed-in.scss',
 })
@@ -37,6 +38,10 @@ export class HomeSignedIn implements OnInit {
     }
     this.user.set(r.data.user)
     this.loadingSession.set(false)
+  }
+
+  protected userDisplayLabel(u: UserSummary): string {
+    return u.displayName || u.email || 'Compte'
   }
 
   protected async logout(): Promise<void> {

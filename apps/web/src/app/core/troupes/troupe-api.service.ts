@@ -26,6 +26,7 @@ export interface TroupeMemberAdmin {
   userId: string
   email: string | null
   displayName: string
+  avatarUrl?: string | null
   status: TroupeMembershipStatus
   baselineRole: TroupeBaselineRole
   createdAt: string

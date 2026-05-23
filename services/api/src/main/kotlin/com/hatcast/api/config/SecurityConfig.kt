@@ -46,6 +46,10 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.POST, "/v1/auth/idp").permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/auth/me").authenticated()
                     .requestMatchers(HttpMethod.POST, "/v1/auth/logout").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/v1/auth/me/avatar/google").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/v1/auth/me/avatar").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/v1/users/*/avatar").authenticated()
                     .requestMatchers(
                         "/v1/troupes",
                         "/v1/troupes/**",

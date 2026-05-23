@@ -22,6 +22,11 @@ class UserEntity(
     var email: String? = null,
     @Column(name = "display_name", length = 255)
     var displayName: String? = null,
+    /** Clé de stockage interne (LocalAvatarStorage / GCS), pas une URL publique. */
+    @Column(name = "avatar_url", length = 2048)
+    var avatarUrl: String? = null,
+    @Column(name = "avatar_updated_at", nullable = true)
+    var avatarUpdatedAt: Instant? = null,
     /** Null pour les comptes importés (migration) jusqu'à la première connexion V2. */
     @Column(name = "activated_at", nullable = true)
     var activatedAt: Instant? = null,

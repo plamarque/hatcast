@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCardModule } from '@angular/material/card'
 import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
@@ -18,7 +19,12 @@ import {
   userMessageForIdpApiFailure,
   userMessageForIdentityPlatformAuth,
 } from '../../core/auth/auth-user-message'
+import { firstValueFrom } from 'rxjs'
+
 import { environment } from '../../../environments/environment'
+import { GoogleAvatarPromptDialog } from './google-avatar-prompt-dialog'
+
+const GOOGLE_AVATAR_PROMPT_DISMISSED_KEY = 'hatcast.googleAvatarPromptDismissed'
 
 declare global {
   interface Window {
@@ -56,6 +62,7 @@ declare global {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatDialogModule,
     ReactiveFormsModule,
     RouterLink,
   ],
@@ -69,6 +76,7 @@ export class Login implements AfterViewInit {
   private readonly router = inject(Router)
   private readonly snack = inject(MatSnackBar)
   private readonly fb = inject(FormBuilder)
+  private readonly dialog = inject(MatDialog)
 
   protected readonly isDev = !environment.production
   /** Journal technique réservé au dev local (pas affiché en production). */
@@ -152,8 +160,9 @@ export class Login implements AfterViewInit {
   private async onGoogleCredential(idToken: string): Promise<void> {
     this.devLog.set(null)
     const r = await this.auth.signInWithGoogleIdToken(idToken, this.rememberMe())
-    if (r.ok) {
+    if (r.ok && r.data) {
       setHatcastRememberMePreference(this.rememberMe())
+      await this.maybePromptGoogleAvatarImport(r.data)
       this.snack.open('Connexion réussie.', 'OK', { duration: 3500 })
       await this.router.navigate(['/accueil'])
       return
@@ -216,6 +225,26 @@ export class Login implements AfterViewInit {
     this.snack.open(msg, 'OK', { duration: 8000 })
     if (this.isDev) {
       this.devLog.set(JSON.stringify({ status: r.status }, null, 2))
+    }
+  }
+
+  private async maybePromptGoogleAvatarImport(data: {
+    user: { id: string; avatarUrl?: string | null }
+    googlePictureUrl?: string | null
+  }): Promise<void> {
+    if (data.user.avatarUrl) return
+    if (!data.googlePictureUrl) return
+    const dismissedKey = `${GOOGLE_AVATAR_PROMPT_DISMISSED_KEY}.${data.user.id}`
+    if (localStorage.getItem(dismissedKey)) return
+
+    const accepted = await firstValueFrom(
+      this.dialog.open(GoogleAvatarPromptDialog, { width: '22rem', disableClose: false }).afterClosed(),
+    )
+
+    if (accepted) {
+      await this.auth.importGoogleAvatar(data.googlePictureUrl)
+    } else {
+      localStorage.setItem(dismissedKey, '1')
     }
   }
 }

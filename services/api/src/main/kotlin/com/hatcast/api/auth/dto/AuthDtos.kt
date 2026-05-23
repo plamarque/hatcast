@@ -12,12 +12,16 @@ data class GoogleSignInRequest(
 
 data class AuthSessionResponse(
     val user: UserSummaryDto,
+    /** Photo Google disponible pour proposition d’import (première connexion, pas d’avatar). */
+    val googlePictureUrl: String? = null,
 )
 
 data class UserSummaryDto(
     val id: UUID,
     val email: String?,
     val displayName: String?,
+    val avatarUrl: String? = null,
+    val hasGoogleAccount: Boolean = false,
 )
 
 data class ErrorResponseBody(

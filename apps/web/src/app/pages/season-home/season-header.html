@@ -34,7 +34,13 @@
         [matMenuTriggerFor]="userMenu"
         [attr.aria-label]="'Menu compte : ' + userDisplayLabel()"
       >
-        <mat-icon class="season-header__user-icon">account_circle</mat-icon>
+        <app-user-avatar
+          class="season-header__user-avatar"
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel()"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
         <span class="season-header__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">

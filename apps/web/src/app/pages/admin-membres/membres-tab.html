@@ -79,7 +79,13 @@
           class="membres-tab__row"
           [class.membres-tab__row--inactive]="member.status === 'INACTIVE'"
         >
-          <span class="membres-tab__avatar" aria-hidden="true">{{ avatarInitial(member) }}</span>
+          <app-user-avatar
+            class="membres-tab__avatar"
+            [style.--user-avatar-size.px]="32"
+            [displayName]="member.displayName"
+            [avatarUrl]="member.avatarUrl ?? null"
+            [size]="32"
+          />
           <div class="membres-tab__identity">
             @if (editingMemberId() === member.id) {
               <input

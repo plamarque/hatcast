@@ -28,3 +28,7 @@ hatcast:
     no-remember-me-seconds: 1800
   cors:
     allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:4200
+  avatar:
+    storage: local
+    local-base-path: ${java.io.tmpdir}/hatcast-avatars-test
+    max-bytes: 2097152

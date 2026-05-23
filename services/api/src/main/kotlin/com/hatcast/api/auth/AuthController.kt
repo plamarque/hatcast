@@ -2,7 +2,8 @@ package com.hatcast.api.auth
 
 import com.hatcast.api.auth.dto.AuthSessionResponse
 import com.hatcast.api.auth.dto.GoogleSignInRequest
-import com.hatcast.api.auth.dto.UserSummaryDto
+import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.avatar.GooglePictureSessionKeys
 import com.hatcast.api.user.UserRepository
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -35,6 +36,7 @@ class AuthController(
     private val idpIdTokenVerifier: ObjectProvider<IdpIdTokenVerifier>,
     private val environment: Environment,
     private val authSessionPolicy: AuthSessionPolicy,
+    private val avatarService: AvatarService,
 ) {
     @PostMapping("/google")
     fun signInWithGoogle(
@@ -48,6 +50,7 @@ class AuthController(
                 ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val email = jwt.getClaimAsString("email")
         val name = jwt.getClaimAsString("name")
+        val picture = jwt.getClaimAsString("picture")
 
         val user = authUserLinkService.resolveGoogleSignInUser(sub, email, name)
 
@@ -70,13 +73,18 @@ class AuthController(
         securityContextRepository.saveContext(context, request, response)
         authSessionPolicy.applyToSession(request.session, body.rememberMe)
 
+        if (!picture.isNullOrBlank()) {
+            request.session.setAttribute(GooglePictureSessionKeys.PICTURE_URL, picture)
+        }
+
+        val userSummary = avatarService.toUserSummary(user)
+        val googlePictureForPrompt =
+            if (userSummary.avatarUrl == null && !picture.isNullOrBlank()) picture else null
+
         return ResponseEntity.ok(
             AuthSessionResponse(
-                UserSummaryDto(
-                    id = user.id,
-                    email = user.email,
-                    displayName = user.displayName,
-                ),
+                user = userSummary,
+                googlePictureUrl = googlePictureForPrompt,
             ),
         )
     }
@@ -137,11 +145,7 @@ class AuthController(
 
         return ResponseEntity.ok(
             AuthSessionResponse(
-                UserSummaryDto(
-                    id = user.id,
-                    email = user.email,
-                    displayName = user.displayName,
-                ),
+                user = avatarService.toUserSummary(user),
             ),
         )
     }
@@ -157,11 +161,7 @@ class AuthController(
             ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         return ResponseEntity.ok(
             AuthSessionResponse(
-                UserSummaryDto(
-                    id = user.id,
-                    email = user.email,
-                    displayName = user.displayName,
-                ),
+                user = avatarService.toUserSummary(user),
             ),
         )
     }

@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { signOut } from 'firebase/auth'
 
+import { csrfHeaders } from '../http/hatcast-csrf'
 import { FirebaseAuthService } from './firebase-auth.service'
 import {
   clearHatcastRememberMePreference,
@@ -11,10 +12,13 @@ export interface UserSummary {
   id: string
   email: string | null
   displayName: string | null
+  avatarUrl?: string | null
+  hasGoogleAccount?: boolean
 }
 
 export interface AuthSessionBody {
   user: UserSummary
+  googlePictureUrl?: string | null
 }
 
 @Injectable({ providedIn: 'root' })
@@ -132,5 +136,62 @@ export class AuthApiService {
     }
 
     return apiOk
+  }
+
+  async uploadAvatar(file: File): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/v1/auth/me/avatar', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { ...csrfHeaders() },
+        body,
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as AuthSessionBody }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async importGoogleAvatar(
+    pictureUrl?: string,
+  ): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+    try {
+      const res = await fetch('/v1/auth/me/avatar/google', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...csrfHeaders(),
+        },
+        body: JSON.stringify(pictureUrl ? { pictureUrl } : {}),
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as AuthSessionBody }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async deleteAvatar(): Promise<{ ok: boolean; status: number; data?: AuthSessionBody }> {
+    try {
+      const res = await fetch('/v1/auth/me/avatar', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { ...csrfHeaders() },
+      })
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      return { ok: true, status: res.status, data: (await res.json()) as AuthSessionBody }
+    } catch {
+      return { ok: false, status: 0 }
+    }
   }
 }

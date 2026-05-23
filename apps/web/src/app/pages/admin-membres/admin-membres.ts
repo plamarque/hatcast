@@ -20,6 +20,7 @@ import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-re
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MembresTab } from './membres-tab'
 import { OrganisateursTab } from './organisateurs-tab'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 export type AdminMembresTab = 'membres' | 'organisateurs'
 
@@ -35,6 +36,7 @@ export type AdminMembresTab = 'membres' | 'organisateurs'
     RouterLink,
     MembresTab,
     OrganisateursTab,
+    UserAvatarComponent,
   ],
   templateUrl: './admin-membres.html',
   styleUrl: './admin-membres.scss',

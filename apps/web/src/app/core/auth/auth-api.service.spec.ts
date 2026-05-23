@@ -105,4 +105,29 @@ describe('AuthApiService', () => {
     expect(ok).toBe(false)
     expect(localStorage.getItem('hatcastRememberMe')).toBe('1')
   })
+
+  it('uploadAvatar envoie multipart avec CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=csrf-avatar; path=/'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          user: { id: 'u1', email: null, displayName: 'Pat', avatarUrl: '/v1/users/u1/avatar?v=1' },
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const file = new File([new Uint8Array([1, 2, 3])], 'a.png', { type: 'image/png' })
+    await service().uploadAvatar(file)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/auth/me/avatar',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({ 'X-XSRF-TOKEN': 'csrf-avatar' }),
+      }),
+    )
+  })
 })

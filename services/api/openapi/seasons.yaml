@@ -776,6 +776,10 @@ components:
           nullable: true
         displayName:
           type: string
+        avatarUrl:
+          type: string
+          nullable: true
+          description: Photo de profil compte (same-origin GET /users/{userId}/avatar).
         status:
           $ref: '#/components/schemas/TroupeMembershipStatus'
         baselineRole:

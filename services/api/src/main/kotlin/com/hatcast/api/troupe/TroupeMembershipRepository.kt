@@ -52,4 +52,19 @@ interface TroupeMembershipRepository : JpaRepository<TroupeMembershipEntity, UUI
         status: TroupeMembershipStatus,
         pageable: Pageable,
     ): Page<TroupeMembershipEntity>
+
+    @Query(
+        """
+        SELECT CASE WHEN COUNT(m1) > 0 THEN true ELSE false END
+        FROM TroupeMembershipEntity m1, TroupeMembershipEntity m2
+        WHERE m1.user.id = :viewerId AND m2.user.id = :targetUserId
+        AND m1.troupe.id = m2.troupe.id
+        AND m1.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+        AND m2.status = com.hatcast.api.troupe.TroupeMembershipStatus.ACTIVE
+        """,
+    )
+    fun existsSharedActiveTroupe(
+        @Param("viewerId") viewerId: UUID,
+        @Param("targetUserId") targetUserId: UUID,
+    ): Boolean
 }

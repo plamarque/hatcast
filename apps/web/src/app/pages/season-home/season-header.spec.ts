@@ -28,8 +28,10 @@ describe('SeasonHeader', () => {
     fixture.componentRef.setInput('seasonTitle', 'Saison A')
     fixture.componentRef.setInput('seasonSlug', 'season-a')
     fixture.componentRef.setInput('user', {
+      id: 'u1',
       email: 'a@example.com',
       displayName: 'Account Name',
+      avatarUrl: '/v1/users/u1/avatar?v=1',
     })
     fixture.detectChanges()
     return fixture
@@ -59,5 +61,10 @@ describe('SeasonHeader', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Patou')
     expect(fixture.nativeElement.textContent).not.toContain('Account Name')
+  })
+
+  it('affiche une image avatar dans le menu compte quand avatarUrl est présent', async () => {
+    const fixture = await setup()
+    expect(fixture.nativeElement.querySelector('app-user-avatar img')).toBeTruthy()
   })
 })

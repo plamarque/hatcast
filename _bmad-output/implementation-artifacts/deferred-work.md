@@ -45,3 +45,7 @@
 ## Deferred from: code review of 2-5-pseudo-affiche-par-troupe.md (2026-05-23)
 
 - Correction email dupliqué dans `EventControllerIntegrationTest` (email fixe `event@example.com` remplacé par email par sub) — correctif flaky test hors périmètre story 2.5, conservé dans le diff.
+
+## Deferred from: code review of 2-6-avatar-et-option-image-de-profil-google.md (2026-05-23)
+
+- `AvatarConfig` lève `IllegalStateException` si `HATCAST_AVATAR_STORAGE=gcs` au lieu d’un warning au démarrage comme suggéré dans Dev Notes — prod GCS hors périmètre MVP.

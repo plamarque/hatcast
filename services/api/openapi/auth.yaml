@@ -153,6 +153,127 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /auth/me/avatar:
+    post:
+      tags: [Auth]
+      summary: Téléverser ou remplacer la photo de profil
+      description: >
+        Multipart `file` (JPEG, PNG, WebP, AVIF ; max 2 Mo). Requiert session + en-tête CSRF `X-XSRF-TOKEN`.
+      operationId: uploadAvatar
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Avatar enregistré ; `user.avatarUrl` pointe vers `GET /users/{id}/avatar`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionResponse'
+        '400':
+          description: Format ou taille invalide.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Session requise.
+    delete:
+      tags: [Auth]
+      summary: Supprimer la photo de profil
+      operationId: deleteAvatar
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Avatar supprimé ; `user.avatarUrl` absent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionResponse'
+        '401':
+          description: Session requise.
+
+  /auth/me/avatar/google:
+    post:
+      tags: [Auth]
+      summary: Importer la photo Google du compte
+      description: >
+        Copie la photo Google (URL validée `*.googleusercontent.com`) dans le stockage HatCast.
+        Corps optionnel `{ "pictureUrl": "..." }` ; sinon URL stockée en session lors de la connexion Google.
+      operationId: importGoogleAvatar
+      security:
+        - SessionCookie: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleAvatarImportRequest'
+      responses:
+        '200':
+          description: Avatar importé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSessionResponse'
+        '400':
+          description: URL Google invalide ou indisponible.
+        '401':
+          description: Session requise.
+
+  /users/{userId}/avatar:
+    get:
+      tags: [Auth]
+      summary: Contenu binaire de l’avatar d’un utilisateur
+      description: >
+        Session requise. Accès si `userId` = utilisateur courant ou membre actif d’une troupe commune.
+      operationId: getUserAvatarContent
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image (JPEG, PNG ou WebP) ; `Cache-Control: private, max-age=3600`.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            image/avif:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Session requise.
+        '403':
+          description: Pas de troupe commune avec l’utilisateur cible.
+        '404':
+          description: Avatar absent.
+
 components:
   securitySchemes:
     SessionCookie:
@@ -187,6 +308,19 @@ components:
       properties:
         user:
           $ref: '#/components/schemas/UserSummary'
+        googlePictureUrl:
+          type: string
+          nullable: true
+          description: >
+            Photo Google proposée à l’import (première connexion sans avatar). Absent après import ou refus.
+
+    GoogleAvatarImportRequest:
+      type: object
+      properties:
+        pictureUrl:
+          type: string
+          nullable: true
+          description: URL Google `*.googleusercontent.com` ; omis si stockée en session.
 
     CurrentUserResponse:
       type: object
@@ -210,6 +344,14 @@ components:
         displayName:
           type: string
           nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+          description: >
+            Chemin same-origin vers `GET /users/{id}/avatar` (avec paramètre `v` pour invalidation cache).
+        hasGoogleAccount:
+          type: boolean
+          description: True si le compte est lié à Google (`google_sub` non null).
 
     ErrorResponse:
       type: object

@@ -16,62 +16,125 @@
     <div class="account-ph__spinner" role="status">
       <mat-spinner diameter="40" />
     </div>
-  } @else if (loadError()) {
-    <mat-card appearance="outlined" class="account-ph__card">
-      <mat-card-content>
-        <p class="account-ph__text">Impossible de charger vos troupes. Réessayez plus tard.</p>
-      </mat-card-content>
-    </mat-card>
-  } @else if (troupes().length === 0) {
-    <mat-card appearance="outlined" class="account-ph__card">
-      <mat-card-content>
-        <p class="account-ph__text">
-          Pour définir un pseudo, rejoignez d’abord une troupe depuis la liste des saisons.
-        </p>
-        <a mat-button routerLink="/seasons">Voir les saisons</a>
-      </mat-card-content>
-    </mat-card>
   } @else {
-    <mat-card appearance="outlined" class="account-ph__card">
-      <mat-card-header>
-        <mat-card-title>Pseudo par troupe</mat-card-title>
-        <mat-card-subtitle>
-          Nom affiché aux autres membres de la troupe. Chaque troupe a son propre pseudo.
-        </mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content class="account-ph__pseudo-list">
-        @for (troupe of troupes(); track troupe.id) {
-          <div class="account-ph__pseudo-row">
-            <p class="account-ph__troupe-name">{{ troupe.name }}</p>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-ph__field">
-              <mat-label>Pseudo</mat-label>
-              <input
-                matInput
-                maxlength="255"
-                [ngModel]="pseudoByTroupeId()[troupe.id]"
-                (ngModelChange)="onPseudoInput(troupe.id, $event)"
-                (keydown.enter)="savePseudo(troupe)"
-              />
-              @if (validationErrorByTroupeId()[troupe.id]) {
-                <mat-error>Le pseudo ne peut pas être vide.</mat-error>
-              }
-            </mat-form-field>
+    @if (user(); as u) {
+      <mat-card appearance="outlined" class="account-ph__card">
+        <mat-card-header>
+          <mat-card-title>Photo de profil</mat-card-title>
+          <mat-card-subtitle>
+            Visible dans l’application (menu compte, listes de membres). Formats : JPEG, PNG, WebP, AVIF — 2 Mo max.
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content class="account-ph__avatar-section">
+          <app-user-avatar
+            class="account-ph__avatar-preview"
+            [style.--user-avatar-size.px]="72"
+            [displayName]="avatarDisplayName()"
+            [avatarUrl]="u.avatarUrl ?? null"
+            [size]="72"
+          />
+          <div class="account-ph__avatar-actions">
+            <input
+              #avatarFileInput
+              class="account-ph__file-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              [disabled]="avatarSaving()"
+              (change)="onAvatarFileSelected($event)"
+            />
             <button
-              mat-stroked-button
               type="button"
-              [disabled]="savingTroupeId() === troupe.id"
-              (click)="savePseudo(troupe)"
+              mat-stroked-button
+              [disabled]="avatarSaving()"
+              (click)="avatarFileInput.click()"
             >
-              @if (savingTroupeId() === troupe.id) {
-                <mat-spinner diameter="20" />
-              } @else {
-                Enregistrer
-              }
+              Choisir une image
             </button>
+            @if (u.hasGoogleAccount) {
+              <button
+                type="button"
+                mat-stroked-button
+                [disabled]="avatarSaving()"
+                (click)="importGoogleAvatar()"
+              >
+                Utiliser ma photo Google
+              </button>
+            }
+            @if (u.avatarUrl) {
+              <button
+                type="button"
+                mat-stroked-button
+                [disabled]="avatarSaving()"
+                (click)="deleteAvatar()"
+              >
+                Supprimer la photo
+              </button>
+            }
+            @if (avatarSaving()) {
+              <mat-spinner diameter="24" />
+            }
           </div>
-        }
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (loadError()) {
+      <mat-card appearance="outlined" class="account-ph__card">
+        <mat-card-content>
+          <p class="account-ph__text">Impossible de charger vos troupes. Réessayez plus tard.</p>
+        </mat-card-content>
+      </mat-card>
+    } @else if (troupes().length === 0) {
+      <mat-card appearance="outlined" class="account-ph__card">
+        <mat-card-content>
+          <p class="account-ph__text">
+            Pour définir un pseudo, rejoignez d’abord une troupe depuis la liste des saisons.
+          </p>
+          <a mat-button routerLink="/seasons">Voir les saisons</a>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card appearance="outlined" class="account-ph__card">
+        <mat-card-header>
+          <mat-card-title>Pseudo par troupe</mat-card-title>
+          <mat-card-subtitle>
+            Nom affiché aux autres membres de la troupe. Chaque troupe a son propre pseudo.
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content class="account-ph__pseudo-list">
+          @for (troupe of troupes(); track troupe.id) {
+            <div class="account-ph__pseudo-row">
+              <p class="account-ph__troupe-name">{{ troupe.name }}</p>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-ph__field">
+                <mat-label>Pseudo</mat-label>
+                <input
+                  matInput
+                  maxlength="255"
+                  [ngModel]="pseudoByTroupeId()[troupe.id]"
+                  (ngModelChange)="onPseudoInput(troupe.id, $event)"
+                  (keydown.enter)="savePseudo(troupe)"
+                />
+                @if (validationErrorByTroupeId()[troupe.id]) {
+                  <mat-error>Le pseudo ne peut pas être vide.</mat-error>
+                }
+              </mat-form-field>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="savingTroupeId() === troupe.id"
+                (click)="savePseudo(troupe)"
+              >
+                @if (savingTroupeId() === troupe.id) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Enregistrer
+                }
+              </button>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
   }
 
   <a mat-button routerLink="/accueil" class="account-ph__back">Retour à l’accueil</a>

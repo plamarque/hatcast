@@ -45,3 +45,27 @@
 .account-ph__back {
   align-self: flex-start;
 }
+
+.account-ph__avatar-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.account-ph__avatar-preview {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 1.5rem;
+}
+
+.account-ph__avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.account-ph__file-input {
+  display: none;
+}

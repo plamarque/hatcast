@@ -9,11 +9,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
-import { AuthApiService } from '../../core/auth/auth-api.service'
+import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { TroupeApiService, type TroupeListItem } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
-/** Placeholder story 1.6 — paramètres de compte (email, mot de passe connecté). Story 2.5 — pseudo par troupe. */
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024
+
+/** Placeholder story 1.6 — paramètres de compte (email, mot de passe connecté). Story 2.5 — pseudo par troupe. Story 2.6 — avatar. */
 @Component({
   selector: 'app-account-placeholder',
   imports: [
@@ -26,6 +29,7 @@ import { TroupeContextService } from '../../core/troupes/troupe-context.service'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     RouterLink,
+    UserAvatarComponent,
   ],
   templateUrl: './account-placeholder.html',
   styleUrl: './account-placeholder.scss',
@@ -39,10 +43,12 @@ export class AccountPlaceholder implements OnInit {
 
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
+  protected readonly user = signal<UserSummary | null>(null)
   protected readonly troupes = signal<TroupeListItem[]>([])
   protected readonly pseudoByTroupeId = signal<Record<string, string>>({})
   protected readonly savingTroupeId = signal<string | null>(null)
   protected readonly validationErrorByTroupeId = signal<Record<string, boolean>>({})
+  protected readonly avatarSaving = signal(false)
 
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -50,6 +56,7 @@ export class AccountPlaceholder implements OnInit {
       await this.router.navigate(['/connexion'], { replaceUrl: true })
       return
     }
+    this.user.set(session.data.user)
 
     const loaded = await this.troupeContext.load()
     this.loading.set(false)
@@ -63,6 +70,67 @@ export class AccountPlaceholder implements OnInit {
     this.pseudoByTroupeId.set(
       Object.fromEntries(active.map((troupe) => [troupe.id, troupe.membership.displayName])),
     )
+  }
+
+  protected avatarDisplayName(): string {
+    const u = this.user()
+    if (!u) return '?'
+    return this.troupeContext.currentUserDisplayLabel(u)
+  }
+
+  protected async onAvatarFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      this.snack.open('Fichier trop volumineux (2 Mo max.)', 'OK', { duration: 5000 })
+      return
+    }
+
+    this.avatarSaving.set(true)
+    try {
+      const result = await this.auth.uploadAvatar(file)
+      if (!result.ok || !result.data) {
+        this.snack.open('Format non pris en charge ou erreur serveur', 'OK', { duration: 5000 })
+        return
+      }
+      this.user.set(result.data.user)
+      this.snack.open('Photo enregistrée', 'OK', { duration: 3000 })
+    } finally {
+      this.avatarSaving.set(false)
+    }
+  }
+
+  protected async importGoogleAvatar(): Promise<void> {
+    this.avatarSaving.set(true)
+    try {
+      const result = await this.auth.importGoogleAvatar()
+      if (!result.ok || !result.data) {
+        this.snack.open('Impossible d’importer la photo Google', 'OK', { duration: 5000 })
+        return
+      }
+      this.user.set(result.data.user)
+      this.snack.open('Photo enregistrée', 'OK', { duration: 3000 })
+    } finally {
+      this.avatarSaving.set(false)
+    }
+  }
+
+  protected async deleteAvatar(): Promise<void> {
+    this.avatarSaving.set(true)
+    try {
+      const result = await this.auth.deleteAvatar()
+      if (!result.ok || !result.data) {
+        this.snack.open('Suppression impossible', 'OK', { duration: 5000 })
+        return
+      }
+      this.user.set(result.data.user)
+      this.snack.open('Photo supprimée', 'OK', { duration: 3000 })
+    } finally {
+      this.avatarSaving.set(false)
+    }
   }
 
   protected onPseudoInput(troupeId: string, value: string): void {

@@ -2,6 +2,7 @@ package com.hatcast.api.troupe.dto
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import com.hatcast.api.avatar.AvatarService
 import com.hatcast.api.troupe.TroupeBaselineRole
 import com.hatcast.api.troupe.TroupeMembershipEntity
 import com.hatcast.api.troupe.TroupeMembershipStatus
@@ -44,6 +45,7 @@ data class TroupeMemberAdminDto(
     val userId: UUID,
     val email: String?,
     val displayName: String,
+    val avatarUrl: String?,
     val status: TroupeMembershipStatus,
     val baselineRole: TroupeBaselineRole,
     val createdAt: Instant,
@@ -56,6 +58,7 @@ data class TroupeMemberAdminDto(
                 userId = entity.user.id,
                 email = entity.user.email,
                 displayName = entity.displayName,
+                avatarUrl = AvatarService.publicAvatarUrl(entity.user.id, entity.user.avatarUpdatedAt),
                 status = entity.status,
                 baselineRole = entity.baselineRole,
                 createdAt = entity.createdAt,

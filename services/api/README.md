@@ -34,6 +34,18 @@ cd services/api
 
 Par défaut, origines autorisées incluent `http://localhost:5173` (V1), **`http://localhost:4200`** et **`https://localhost:4200`** (Angular V2), etc. Surcharge : `HATCAST_CORS_ALLOWED_ORIGINS` (liste séparée par des virgules).
 
+## Avatars de profil
+
+Stockage local par défaut (dev / tests) ; GCS prévu pour la production.
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `HATCAST_AVATAR_STORAGE` | `local` | `local` (filesystem) ou `gcs` (non implémenté — l’API échoue au démarrage si `gcs` sans impl.). |
+| `HATCAST_AVATAR_LOCAL_PATH` | `${java.io.tmpdir}/hatcast-avatars` | Répertoire racine pour `LocalAvatarStorage`. |
+| `HATCAST_GCS_AVATAR_BUCKET` | — | Réservé pour `GcsAvatarStorage` (future livraison). |
+
+Endpoints : `POST /v1/auth/me/avatar` (multipart), `POST /v1/auth/me/avatar/google`, `DELETE /v1/auth/me/avatar`, `GET /v1/users/{userId}/avatar` (session + troupe commune ou self).
+
 ## Tests
 
 ```bash
@@ -46,7 +58,7 @@ Les tests d’intégration utilisent le profil `test` et **H2** uniquement pour 
 
 | Fichier | Contenu |
 |---------|---------|
-| [`openapi/auth.yaml`](openapi/auth.yaml) | Auth V2 : `POST /v1/auth/google`, `POST /v1/auth/idp` (Identity Platform), `GET /v1/auth/me`, `POST /v1/auth/logout` — [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md) + [ADR-0010](../../docs/adr/0010-v2-auth-identity-platform.md). |
+| [`openapi/auth.yaml`](openapi/auth.yaml) | Auth V2 : `POST /v1/auth/google`, `POST /v1/auth/idp` (Identity Platform), `GET /v1/auth/me`, `POST /v1/auth/logout`, avatar (`/auth/me/avatar`, `/users/{id}/avatar`) — [ADR-0008](../../docs/adr/0008-v2-spa-auth-google-session.md) + [ADR-0010](../../docs/adr/0010-v2-auth-identity-platform.md). |
 
 Les fragments pourront être fusionnés en un seul `openapi.yaml` lorsque l’API complète sera modélisée.
 

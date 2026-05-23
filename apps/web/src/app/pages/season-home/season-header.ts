@@ -7,6 +7,7 @@ import { RouterLink } from '@angular/router'
 
 import type { UserSummary } from '../../core/auth/auth-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 
 @Component({
   selector: 'app-season-header',
@@ -16,6 +17,7 @@ import { TroupeContextService } from '../../core/troupes/troupe-context.service'
     MatMenuModule,
     MatTooltipModule,
     RouterLink,
+    UserAvatarComponent,
   ],
   templateUrl: './season-header.html',
   styleUrl: './season-header.scss',

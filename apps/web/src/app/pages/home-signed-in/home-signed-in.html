@@ -14,10 +14,16 @@
         mat-stroked-button
         class="home__menu-trigger"
         [matMenuTriggerFor]="userMenu"
-        [attr.aria-label]="'Menu compte : ' + (u.displayName || u.email || 'Utilisateur')"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
       >
-        <mat-icon class="home__menu-icon">account_circle</mat-icon>
-        <span class="home__menu-label">{{ u.displayName || u.email || 'Compte' }}</span>
+        <app-user-avatar
+          class="home__menu-avatar"
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel(u)"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="home__menu-label">{{ userDisplayLabel(u) }}</span>
         <mat-icon class="home__menu-caret">expand_more</mat-icon>
       </button>
       <mat-menu #userMenu="matMenu">
