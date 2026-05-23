@@ -444,27 +444,23 @@
             <!-- Colonnes de jeu - Détails (affichées conditionnellement) -->
             <template v-if="showJeuDetails">
               <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200 cursor-pointer touch-manipulation" style="width: 90px; min-width: 90px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuMatch || 0, (playersDisposDeclines.get(player.name) || {})['jeuMatch']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuMatch']?.declines || 0), $event)">
-                  <span>{{ stats.jeuMatch || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).jeuMatch?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuMatch?.declines || 0) > 0" class="text-xs font-normal text-amber-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.jeuMatch || 0, (playersDisposDeclines.get(player.name) || {}).jeuMatch?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuMatch?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuMatch || 0, (playersDisposDeclines.get(player.name) || {})['jeuMatch']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuMatch']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.jeuMatch || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).jeuMatch?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).jeuMatch?.declines || 0" />
                 </div>
               </td>
               <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200 cursor-pointer touch-manipulation" style="width: 85px; min-width: 85px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuCab || 0, (playersDisposDeclines.get(player.name) || {})['jeuCab']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuCab']?.declines || 0), $event)">
-                  <span>{{ stats.jeuCab || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).jeuCab?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuCab?.declines || 0) > 0" class="text-xs font-normal text-amber-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.jeuCab || 0, (playersDisposDeclines.get(player.name) || {}).jeuCab?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuCab?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuCab || 0, (playersDisposDeclines.get(player.name) || {})['jeuCab']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuCab']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.jeuCab || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).jeuCab?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).jeuCab?.declines || 0" />
                 </div>
               </td>
               <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200 cursor-pointer touch-manipulation" style="width: 90px; min-width: 90px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuLong || 0, (playersDisposDeclines.get(player.name) || {})['jeuLong']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuLong']?.declines || 0), $event)">
-                  <span>{{ stats.jeuLong || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).jeuLong?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuLong?.declines || 0) > 0" class="text-xs font-normal text-amber-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.jeuLong || 0, (playersDisposDeclines.get(player.name) || {}).jeuLong?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuLong?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuLong || 0, (playersDisposDeclines.get(player.name) || {})['jeuLong']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuLong']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.jeuLong || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).jeuLong?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).jeuLong?.declines || 0" />
                 </div>
               </td>
               <td class="bg-amber-50 text-amber-700 text-center text-sm border-r border-b border-amber-200 cursor-pointer touch-manipulation" style="width: 90px; min-width: 90px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuAutre || 0, (playersDisposDeclines.get(player.name) || {})['jeuAutre']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuAutre']?.declines || 0), $event)">
-                  <span>{{ stats.jeuAutre || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).jeuAutre?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuAutre?.declines || 0) > 0" class="text-xs font-normal text-amber-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.jeuAutre || 0, (playersDisposDeclines.get(player.name) || {}).jeuAutre?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).jeuAutre?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.jeuAutre || 0, (playersDisposDeclines.get(player.name) || {})['jeuAutre']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['jeuAutre']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.jeuAutre || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).jeuAutre?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).jeuAutre?.declines || 0" />
                 </div>
               </td>
             </template>
@@ -473,42 +469,36 @@
               class="bg-amber-100 text-amber-800 text-center text-sm font-bold border-l-2 border-r border-b border-amber-200 cursor-pointer touch-manipulation"
               :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 80px; min-width: 80px;'"
             >
-              <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.totalJeu || 0, (playersDisposDeclines.get(player.name) || {})['totalJeu']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalJeu']?.declines || 0), $event)">
-                <span>{{ stats.totalJeu || '' }}</span>
-                <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).totalJeu?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalJeu?.declines || 0) > 0" class="text-xs font-normal text-amber-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.totalJeu || 0, (playersDisposDeclines.get(player.name) || {}).totalJeu?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalJeu?.declines || 0) }}%)</span>
+              <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.totalJeu || 0, (playersDisposDeclines.get(player.name) || {})['totalJeu']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalJeu']?.declines || 0), $event)">
+                <StatRatioDisplay :selections="stats.totalJeu || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).totalJeu?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).totalJeu?.declines || 0" />
               </div>
             </td>
             
             <!-- Colonnes de décorum - Détails (affichées conditionnellement) -->
             <template v-if="showDecorumDetails">
               <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200 cursor-pointer touch-manipulation" style="width: 60px; min-width: 60px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.mc || 0, (playersDisposDeclines.get(player.name) || {})['mc']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['mc']?.declines || 0), $event)">
-                  <span>{{ stats.mc || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).mc?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).mc?.declines || 0) > 0" class="text-xs font-normal text-violet-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.mc || 0, (playersDisposDeclines.get(player.name) || {}).mc?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).mc?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.mc || 0, (playersDisposDeclines.get(player.name) || {})['mc']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['mc']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.mc || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).mc?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).mc?.declines || 0" />
                 </div>
               </td>
               <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200 cursor-pointer touch-manipulation" style="width: 60px; min-width: 60px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.dj || 0, (playersDisposDeclines.get(player.name) || {})['dj']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['dj']?.declines || 0), $event)">
-                  <span>{{ stats.dj || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).dj?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).dj?.declines || 0) > 0" class="text-xs font-normal text-violet-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.dj || 0, (playersDisposDeclines.get(player.name) || {}).dj?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).dj?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.dj || 0, (playersDisposDeclines.get(player.name) || {})['dj']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['dj']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.dj || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).dj?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).dj?.declines || 0" />
                 </div>
               </td>
               <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200 cursor-pointer touch-manipulation" style="width: 80px; min-width: 80px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.referee || 0, (playersDisposDeclines.get(player.name) || {})['referee']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['referee']?.declines || 0), $event)">
-                  <span>{{ stats.referee || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).referee?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).referee?.declines || 0) > 0" class="text-xs font-normal text-violet-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.referee || 0, (playersDisposDeclines.get(player.name) || {}).referee?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).referee?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.referee || 0, (playersDisposDeclines.get(player.name) || {})['referee']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['referee']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.referee || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).referee?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).referee?.declines || 0" />
                 </div>
               </td>
               <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200 cursor-pointer touch-manipulation" style="width: 75px; min-width: 75px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.assistantReferee || 0, (playersDisposDeclines.get(player.name) || {})['assistantReferee']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['assistantReferee']?.declines || 0), $event)">
-                  <span>{{ stats.assistantReferee || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).assistantReferee?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).assistantReferee?.declines || 0) > 0" class="text-xs font-normal text-violet-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.assistantReferee || 0, (playersDisposDeclines.get(player.name) || {}).assistantReferee?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).assistantReferee?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.assistantReferee || 0, (playersDisposDeclines.get(player.name) || {})['assistantReferee']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['assistantReferee']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.assistantReferee || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).assistantReferee?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).assistantReferee?.declines || 0" />
                 </div>
               </td>
               <td class="bg-violet-50 text-violet-700 text-center text-sm border-r border-b border-violet-200 cursor-pointer touch-manipulation" style="width: 70px; min-width: 70px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.coach || 0, (playersDisposDeclines.get(player.name) || {})['coach']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['coach']?.declines || 0), $event)">
-                  <span>{{ stats.coach || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).coach?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).coach?.declines || 0) > 0" class="text-xs font-normal text-violet-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.coach || 0, (playersDisposDeclines.get(player.name) || {}).coach?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).coach?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.coach || 0, (playersDisposDeclines.get(player.name) || {})['coach']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['coach']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.coach || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).coach?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).coach?.declines || 0" />
                 </div>
               </td>
             </template>
@@ -517,24 +507,21 @@
               class="bg-violet-100 text-violet-800 text-center text-sm font-bold border-l-2 border-r border-b border-violet-200 cursor-pointer touch-manipulation"
               :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 100px; min-width: 100px;'"
             >
-              <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip((stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || 0, (playersDisposDeclines.get(player.name) || {})['totalDecorum']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalDecorum']?.declines || 0), $event)">
-                <span>{{ (stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || '' }}</span>
-                <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).totalDecorum?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalDecorum?.declines || 0) > 0" class="text-xs font-normal text-violet-600/80 cursor-pointer touch-manipulation">({{ getStatPercent((stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || 0, (playersDisposDeclines.get(player.name) || {}).totalDecorum?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalDecorum?.declines || 0) }}%)</span>
+              <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip((stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || 0, (playersDisposDeclines.get(player.name) || {})['totalDecorum']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalDecorum']?.declines || 0), $event)">
+                <StatRatioDisplay :selections="(stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach) || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).totalDecorum?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).totalDecorum?.declines || 0" />
               </div>
             </td>
             
             <!-- Colonnes DEPLAC. - Détails (affichées conditionnellement) -->
             <template v-if="showDeplacementDetails">
               <td class="bg-teal-50 text-teal-700 text-center text-sm border-r border-b border-teal-200 cursor-pointer touch-manipulation" style="width: 70px; min-width: 70px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.deplacementJeu || 0, (playersDisposDeclines.get(player.name) || {})['deplacementJeu']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['deplacementJeu']?.declines || 0), $event)">
-                  <span>{{ stats.deplacementJeu || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).deplacementJeu?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).deplacementJeu?.declines || 0) > 0" class="text-xs font-normal text-teal-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.deplacementJeu || 0, (playersDisposDeclines.get(player.name) || {}).deplacementJeu?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).deplacementJeu?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.deplacementJeu || 0, (playersDisposDeclines.get(player.name) || {})['deplacementJeu']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['deplacementJeu']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.deplacementJeu || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).deplacementJeu?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).deplacementJeu?.declines || 0" />
                 </div>
               </td>
               <td class="bg-teal-50 text-teal-700 text-center text-sm border-r border-b border-teal-200 cursor-pointer touch-manipulation" style="width: 75px; min-width: 75px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.deplacementDecorum || 0, (playersDisposDeclines.get(player.name) || {})['deplacementDecorum']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['deplacementDecorum']?.declines || 0), $event)">
-                  <span>{{ stats.deplacementDecorum || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).deplacementDecorum?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).deplacementDecorum?.declines || 0) > 0" class="text-xs font-normal text-teal-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.deplacementDecorum || 0, (playersDisposDeclines.get(player.name) || {}).deplacementDecorum?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).deplacementDecorum?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.deplacementDecorum || 0, (playersDisposDeclines.get(player.name) || {})['deplacementDecorum']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['deplacementDecorum']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.deplacementDecorum || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).deplacementDecorum?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).deplacementDecorum?.declines || 0" />
                 </div>
               </td>
             </template>
@@ -543,30 +530,26 @@
               class="bg-teal-100 text-teal-800 text-center text-sm font-bold border-l-2 border-r border-b border-teal-200 cursor-pointer touch-manipulation"
               :style="!showDeplacementDetails ? 'width: 85px; min-width: 85px;' : 'width: 80px; min-width: 80px;'"
             >
-              <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.totalDeplacement || 0, (playersDisposDeclines.get(player.name) || {})['totalDeplacement']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalDeplacement']?.declines || 0), $event)">
-                <span>{{ stats.totalDeplacement || '' }}</span>
-                <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).totalDeplacement?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalDeplacement?.declines || 0) > 0" class="text-xs font-normal text-teal-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.totalDeplacement || 0, (playersDisposDeclines.get(player.name) || {}).totalDeplacement?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalDeplacement?.declines || 0) }}%)</span>
+              <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.totalDeplacement || 0, (playersDisposDeclines.get(player.name) || {})['totalDeplacement']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalDeplacement']?.declines || 0), $event)">
+                <StatRatioDisplay :selections="stats.totalDeplacement || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).totalDeplacement?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).totalDeplacement?.declines || 0" />
               </div>
             </td>
             
             <!-- Colonnes BÉNÉVOLE - Détails (affichées conditionnellement) -->
             <template v-if="showBenevoleDetails">
               <td class="bg-slate-50 text-slate-700 text-center text-sm border-r border-b border-slate-200 cursor-pointer touch-manipulation" style="width: 70px; min-width: 70px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.stageManager || 0, (playersDisposDeclines.get(player.name) || {})['stageManager']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['stageManager']?.declines || 0), $event)">
-                  <span>{{ stats.stageManager || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).stageManager?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).stageManager?.declines || 0) > 0" class="text-xs font-normal text-slate-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.stageManager || 0, (playersDisposDeclines.get(player.name) || {}).stageManager?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).stageManager?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.stageManager || 0, (playersDisposDeclines.get(player.name) || {})['stageManager']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['stageManager']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.stageManager || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).stageManager?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).stageManager?.declines || 0" />
                 </div>
               </td>
               <td class="bg-slate-50 text-slate-700 text-center text-sm border-r border-b border-slate-200 cursor-pointer touch-manipulation" style="width: 65px; min-width: 65px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.lighting || 0, (playersDisposDeclines.get(player.name) || {})['lighting']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['lighting']?.declines || 0), $event)">
-                  <span>{{ stats.lighting || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).lighting?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).lighting?.declines || 0) > 0" class="text-xs font-normal text-slate-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.lighting || 0, (playersDisposDeclines.get(player.name) || {}).lighting?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).lighting?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.lighting || 0, (playersDisposDeclines.get(player.name) || {})['lighting']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['lighting']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.lighting || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).lighting?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).lighting?.declines || 0" />
                 </div>
               </td>
               <td class="bg-slate-50 text-slate-700 text-center text-sm border-r border-b border-slate-200 cursor-pointer touch-manipulation" style="width: 70px; min-width: 70px;">
-                <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.volunteer || 0, (playersDisposDeclines.get(player.name) || {})['volunteer']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['volunteer']?.declines || 0), $event)">
-                  <span>{{ stats.volunteer || '' }}</span>
-                  <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).volunteer?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).volunteer?.declines || 0) > 0" class="text-xs font-normal text-slate-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.volunteer || 0, (playersDisposDeclines.get(player.name) || {}).volunteer?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).volunteer?.declines || 0) }}%)</span>
+                <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.volunteer || 0, (playersDisposDeclines.get(player.name) || {})['volunteer']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['volunteer']?.declines || 0), $event)">
+                  <StatRatioDisplay :selections="stats.volunteer || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).volunteer?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).volunteer?.declines || 0" />
                 </div>
               </td>
             </template>
@@ -575,9 +558,8 @@
               class="bg-slate-100 text-slate-700 text-center text-sm font-bold border-l-2 border-r border-b border-slate-200 cursor-pointer touch-manipulation"
               :style="!showJeuDetails && !showDecorumDetails && !showDeplacementDetails && !showBenevoleDetails ? 'width: 90px; min-width: 90px;' : 'width: 85px; min-width: 85px;'"
             >
-              <div class="flex flex-col items-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.totalBenevole || 0, (playersDisposDeclines.get(player.name) || {})['totalBenevole']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalBenevole']?.declines || 0), $event)">
-                <span>{{ stats.totalBenevole || '' }}</span>
-                <span v-if="getEffectiveDispos((playersDisposDeclines.get(player.name) || {}).totalBenevole?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalBenevole?.declines || 0) > 0" class="text-xs font-normal text-slate-600/80 cursor-pointer touch-manipulation">({{ getStatPercent(stats.totalBenevole || 0, (playersDisposDeclines.get(player.name) || {}).totalBenevole?.dispos || 0, (playersDisposDeclines.get(player.name) || {}).totalBenevole?.declines || 0) }}%)</span>
+              <div class="flex items-center justify-center w-full" @click.stop="openStatPopover(getStatTooltip(stats.totalBenevole || 0, (playersDisposDeclines.get(player.name) || {})['totalBenevole']?.dispos || 0, (playersDisposDeclines.get(player.name) || {})['totalBenevole']?.declines || 0), $event)">
+                <StatRatioDisplay :selections="stats.totalBenevole || 0" :dispos="(playersDisposDeclines.get(player.name) || {}).totalBenevole?.dispos || 0" :declines="(playersDisposDeclines.get(player.name) || {}).totalBenevole?.declines || 0" />
               </div>
             </td>
           </template>
@@ -595,21 +577,13 @@
               (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
             ), $event)"
           >
-            <div class="flex flex-col items-center justify-center w-full h-full">
-              <span class="text-indigo-200 font-semibold">{{ (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || '' }}</span>
-              <span
-                v-if="getEffectiveDispos(
-                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
-                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
-                ) > 0"
-                class="text-xs text-indigo-400/90"
-              >
-                ({{ getStatPercent(
-                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0,
-                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
-                  (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
-                ) }}%)
-              </span>
+            <div class="flex items-center justify-center w-full h-full">
+              <StatRatioDisplay
+                variant="indigo"
+                :selections="(playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0"
+                :dispos="(playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0"
+                :declines="(playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0"
+              />
             </div>
           </td>
           <!-- Mois expanded : cellule résumé + cellules événements -->
@@ -623,21 +597,13 @@
                 (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
               ), $event)"
             >
-              <div class="flex flex-col items-center justify-center w-full h-full">
-                <span class="text-indigo-200 font-semibold">{{ (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || '' }}</span>
-                <span
-                  v-if="getEffectiveDispos(
-                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
-                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
-                  ) > 0"
-                  class="text-xs text-indigo-400/90"
-                >
-                  ({{ getStatPercent(
-                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0,
-                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0,
-                    (playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0
-                  ) }}%)
-                </span>
+              <div class="flex items-center justify-center w-full h-full">
+                <StatRatioDisplay
+                  variant="indigo"
+                  :selections="(playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).participations || 0"
+                  :dispos="(playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).dispos || 0"
+                  :declines="(playersMonthStats.get(player.name)?.get(monthData.monthKey) || {}).declines || 0"
+                />
               </div>
             </td>
             <td
@@ -705,9 +671,10 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 import SelectionCell from './SelectionCell.vue'
+import StatRatioDisplay from './StatRatioDisplay.vue'
 import StatusBadge from './StatusBadge.vue'
 import { formatEventDate } from '../utils/dateUtils.js'
-import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES, getRoleLabel } from '../services/storage.js'
+import { EVENT_TYPE_ICONS, ROLE_TEMPLATES, ROLES, getRoleLabel, ROLE_DISPLAY_ORDER, getRoleExportAbbrev } from '../services/storage.js'
 import { getEventStatusWithSelection } from '../services/eventStatusService.js'
 import { loadPlayers, loadAvailability } from '../services/storage.js'
 import { calculateAllRoleChances } from '../services/chancesService.js'
@@ -1268,6 +1235,147 @@ function getStatTooltip(selections, dispos, declines) {
   return `${selections} sélection${selections !== 1 ? 's' : ''} sur ${dispos} dispos (dont ${declines} désistement${declines !== 1 ? 's' : ''})`
 }
 
+function formatStatExportValue(selections, dispos, declines) {
+  const sel = selections || 0
+  const d = dispos || 0
+  if (sel === 0 && d === 0) return ''
+  const pct = getStatPercent(sel, d, declines || 0)
+  if (d > 0) {
+    return pct !== null ? `${sel}/${d} (${pct}%)` : `${sel}/${d}`
+  }
+  return sel > 0 ? String(sel) : ''
+}
+
+function formatStatColumnExport(playerName, columnKey, selections) {
+  const dd = playersDisposDeclines.value.get(playerName)?.[columnKey]
+  return formatStatExportValue(selections ?? 0, dd?.dispos ?? 0, dd?.declines ?? 0)
+}
+
+function getAvailableRoleAbbreviationsForExport(player, event) {
+  if (!props.isAvailableForRole) return []
+  const eventRoles = event.roles || (event.playerCount > 0 ? { player: event.playerCount || 6 } : {})
+  const abbrevs = []
+  for (const role of ROLE_DISPLAY_ORDER) {
+    const count = eventRoles[role] || 0
+    if (count > 0 && props.isAvailableForRole(player.name, role, event.id)) {
+      abbrevs.push(getRoleExportAbbrev(role))
+    }
+  }
+  return abbrevs
+}
+
+function formatDispoRolesExport(roles) {
+  if (!roles?.length) return null
+  const sorted = ROLE_DISPLAY_ORDER
+    .filter(r => roles.includes(r))
+    .map(r => getRoleExportAbbrev(r))
+  return sorted.length ? `Dispo (${sorted.join(', ')})` : null
+}
+
+/** Rôles pour lesquels le joueur figure dans cast.declined. */
+function getPlayerDeclinedRolesForExport(playerId, eventId) {
+  const cast = props.casts[eventId]
+  if (!cast?.declined) return []
+  const roles = []
+  for (const [role, playerIds] of Object.entries(cast.declined)) {
+    if (Array.isArray(playerIds) && playerIds.includes(playerId)) {
+      roles.push(role)
+    }
+  }
+  return ROLE_DISPLAY_ORDER.filter(r => roles.includes(r))
+}
+
+function formatDeclinedExportValue(playerId, eventId) {
+  const roles = getPlayerDeclinedRolesForExport(playerId, eventId)
+  if (roles.length) {
+    const abbrevs = roles.map(r => getRoleExportAbbrev(r))
+    return `Décliné (${abbrevs.join(', ')})`
+  }
+  const cast = props.casts[eventId]
+  if (cast?.playerStatuses?.[playerId] === 'declined') {
+    return 'Décliné'
+  }
+  return null
+}
+
+/** Rôles déclarés en dispo (données brutes, sans masquage UI sélection). */
+function getRawAvailabilityRolesForExport(playerName, eventId) {
+  const raw = props.availability?.[playerName]?.[eventId]
+  if (raw == null) return []
+  if (typeof raw === 'object' && raw.available !== undefined) {
+    if (!raw.available) return []
+    return Array.isArray(raw.roles) ? raw.roles : []
+  }
+  if (raw === true) return ['player']
+  return []
+}
+
+/** Dispo export : indépendant des tirets affichés dans SelectionCell (passé / équipe confirmée). */
+function resolveEventDispoExportValue(player, event) {
+  const playerId = player.id
+  const eventId = event.id
+  const gender = player.gender || 'non-specified'
+
+  const rolesAndChances = getPlayerRolesAndChances(playerId, eventId, gender)
+  if (rolesAndChances?.length) {
+    const dispo = formatDispoRolesExport(rolesAndChances.map(rc => rc.role))
+    if (dispo) return dispo
+  }
+
+  const rawRoles = getRawAvailabilityRolesForExport(player.name, eventId)
+  if (rawRoles.length) {
+    const dispo = formatDispoRolesExport(rawRoles)
+    if (dispo) return dispo
+  }
+
+  const availabilityData = props.getAvailabilityData(player.name, eventId)
+  if (
+    availabilityData?.available &&
+    availabilityData?.roles?.length &&
+    !availabilityData.isSelectionDisplay
+  ) {
+    const dispo = formatDispoRolesExport(availabilityData.roles)
+    if (dispo) return dispo
+  }
+
+  const abbrevs = getAvailableRoleAbbreviationsForExport(player, event)
+  if (abbrevs.length > 0) {
+    return `Dispo (${abbrevs.join(', ')})`
+  }
+
+  return null
+}
+
+function getEventCellExportValue(player, event) {
+  const playerId = player.id
+  const eventId = event.id
+  const gender = player.gender || 'non-specified'
+  const isSelected = getPlayerRoleInEvent(playerId, eventId) !== null
+  const isSelectionConfirmedByOrganizer = props.isSelectionConfirmedByOrganizer(eventId)
+  const selectionStatus = getPlayerSelectionStatusFromCast(playerId, eventId)
+
+  const declinedExport = formatDeclinedExportValue(playerId, eventId)
+  if (declinedExport) {
+    return declinedExport
+  }
+
+  if (isSelected && (isSelectionConfirmedByOrganizer || selectionStatus)) {
+    const roleLabel = getPlayerRoleLabelInEvent(playerId, eventId, gender)
+    if (roleLabel) return roleLabel
+    if (selectionStatus) return 'Sélectionné'
+  }
+
+  const dispoExport = resolveEventDispoExportValue(player, event)
+  if (dispoExport) return dispoExport
+
+  const availabilityData = props.getAvailabilityData(player.name, eventId)
+  if (availabilityData?.available === false) {
+    return 'Non dispo'
+  }
+
+  return '-'
+}
+
 // Fonction pour obtenir le rôle d'un joueur dans un événement spécifique
 function getPlayerRoleInEvent(playerId, eventId) {
   const eventCasts = props.casts[eventId] || {}
@@ -1665,33 +1773,35 @@ function exportToExcel() {
     props.displayedPlayers.forEach(player => {
       const stats = playersRoleStats.value.get(player.name) || getDefaultStats()
       const monthStats = playersMonthStats.value.get(player.name)
-      const monthValues = groupedEventsByMonth.value.map(m =>
-        (monthStats?.get(m.monthKey) || {}).participations ?? ''
-      )
-      const eventValues = flattenedEventsForExport.value.map(event => {
-        const roleLabel = getPlayerRoleLabelInEvent(player.id, event.id, player.gender || 'non-specified')
-        return roleLabel || ''
+      const monthValues = groupedEventsByMonth.value.map(m => {
+        const ms = monthStats?.get(m.monthKey) || {}
+        return formatStatExportValue(ms.participations ?? 0, ms.dispos ?? 0, ms.declines ?? 0)
       })
+      const eventValues = flattenedEventsForExport.value.map(event =>
+        getEventCellExportValue(player, event)
+      )
+      const totalDecorumSelections =
+        stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach
       const playerRow = [
         player.name,
-        stats.jeuMatch,
-        stats.jeuCab,
-        stats.jeuLong,
-        stats.jeuAutre,
-        stats.totalJeu,
-        stats.mc,
-        stats.dj,
-        stats.referee,
-        stats.assistantReferee,
-        stats.coach,
-        stats.mc + stats.dj + stats.referee + stats.assistantReferee + stats.coach,
-        stats.deplacementJeu,
-        stats.deplacementDecorum,
-        stats.totalDeplacement,
-        stats.stageManager,
-        stats.lighting,
-        stats.volunteer,
-        stats.totalBenevole,
+        formatStatColumnExport(player.name, 'jeuMatch', stats.jeuMatch),
+        formatStatColumnExport(player.name, 'jeuCab', stats.jeuCab),
+        formatStatColumnExport(player.name, 'jeuLong', stats.jeuLong),
+        formatStatColumnExport(player.name, 'jeuAutre', stats.jeuAutre),
+        formatStatColumnExport(player.name, 'totalJeu', stats.totalJeu),
+        formatStatColumnExport(player.name, 'mc', stats.mc),
+        formatStatColumnExport(player.name, 'dj', stats.dj),
+        formatStatColumnExport(player.name, 'referee', stats.referee),
+        formatStatColumnExport(player.name, 'assistantReferee', stats.assistantReferee),
+        formatStatColumnExport(player.name, 'coach', stats.coach),
+        formatStatColumnExport(player.name, 'totalDecorum', totalDecorumSelections),
+        formatStatColumnExport(player.name, 'deplacementJeu', stats.deplacementJeu),
+        formatStatColumnExport(player.name, 'deplacementDecorum', stats.deplacementDecorum),
+        formatStatColumnExport(player.name, 'totalDeplacement', stats.totalDeplacement),
+        formatStatColumnExport(player.name, 'stageManager', stats.stageManager),
+        formatStatColumnExport(player.name, 'lighting', stats.lighting),
+        formatStatColumnExport(player.name, 'volunteer', stats.volunteer),
+        formatStatColumnExport(player.name, 'totalBenevole', stats.totalBenevole),
         ...monthValues,
         ...eventValues
       ]

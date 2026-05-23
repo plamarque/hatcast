@@ -19,14 +19,18 @@ const showFiltersDropdown = ref(false) // État d'ouverture du dropdown
 
 ## 🎯 Logique de filtrage
 
+Un événement est considéré **passé** (`isPast` / `_isPast`) seulement **après la fin du jour civil en `Europe/Paris`** (23:59:59.999), pas dès que l’instant UTC dépasse minuit pour une date `YYYY-MM-DD`. Voir [`src/utils/eventPastParis.js`](../../src/utils/eventPastParis.js) (`isEventPastParis`).
+
 ### Fonction `displayedEvents`
 ```javascript
+import { isEventPastParis } from '../utils/eventPastParis.js'
+
 const displayedEvents = computed(() => {
   const list = sortedEvents.value
+  const now = new Date()
   return list.filter(e => {
-    const eventDate = toDateObject(e.date)
     const isArchived = !!e.archived
-    const isPast = eventDate && eventDate < new Date()
+    const isPast = !!(e.date && isEventPastParis(e.date, now))
     
     // Si les deux filtres sont cochés, afficher tout
     if (showArchived.value && showPast.value) {
