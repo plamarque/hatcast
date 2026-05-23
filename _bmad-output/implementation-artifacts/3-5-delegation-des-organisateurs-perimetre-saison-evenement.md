@@ -298,6 +298,7 @@ GPT-5.5 (Cursor)
 ### Review Findings
 
 - [ ] [Review][Retest] Retester l’acceptation produit après livraison de l’UI d’ajout/invitation d’utilisateurs ou de membres (epic-2), car la délégation actuelle échoue légitimement si l’email n’existe pas encore dans `users`.
+- [ ] [Review][Retest] **UX-DR10 follow-up:** Season organizer UI moves from `SeasonOrganizersDialog` to Organisateur·ices tab on `/saison/:slug/admin/membres`. Retest organizer add/remove after Story 2.8.
 - [x] [Review][Patch] `canManageEventOrganizers` absent de `MySeasonPermissionsDto` et du schéma OpenAPI [`OrganizerDtos.kt:39`](../../services/api/src/main/kotlin/com/hatcast/api/organizer/dto/OrganizerDtos.kt)
 - [x] [Review][Patch] `/permissions/me` exige `requireCanManageTroupe` — inaccessible aux organisateurs délégués qui devraient pouvoir lire leurs propres flags [`OrganizerAccessService.kt:193`](../../services/api/src/main/kotlin/com/hatcast/api/organizer/OrganizerAccessService.kt)
 - [x] [Review][Patch] Aucun test d'intégration 403 pour utilisateur non-manager sur les endpoints organisateurs [`OrganizerControllerIntegrationTest.kt`](../../services/api/src/test/kotlin/com/hatcast/api/organizer/OrganizerControllerIntegrationTest.kt)

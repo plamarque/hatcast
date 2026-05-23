@@ -736,25 +736,61 @@ Typical row (see draft capture):
 
 **Normative mirror:** [SPEC.md](../../SPEC.md#administration--required-capabilities-v2-target) (required capabilities) and [DOMAIN.md](../../DOMAIN.md) (glossary **Troupe**, invariant **single active season**).
 
+**Detailed people admin spec:** [ux-design-specification.md](./ux-design-specification.md) (Stories 2.2, 2.3, 3.5).
+
 ### Required capabilities
 
 Stakeholders expect administrators (and roles defined in SPEC) to be able to:
 
 | Area | Capability |
 |------|------------|
-| **Membres** | **Manage members** of the troupe/season: invite, remove or deactivate, assign **roles** (organisateur, admin, membre, … — exact set in DOMAIN/SPEC). **Export and import** member lists as **documented CSV** (FR42) for V1→V2 migration, troupe-to-troupe moves, or rapid troupe initialization — admin-only; row-level import results (NFR-S4). |
+| **Membres & organisateurs** | **Manage troupe members** from route `/saison/:slug/admin/membres` (menu **Membres**); **season organizers** on second tab. **Export** + **Importer ▾** toolbar; add via modal; search; compact list; **slide toggle** active; **inactive hidden by default** (*Afficher les inactifs*); no dates; **Nommer orga saison** shortcut. **Participants** (season/event rosters, Story 3.8) use label **Participants**, not Membres. |
 | **Spectacles** | **Manage spectacles** (CRUD, dates, types, venues, status) for the relevant scope (season / troupe). |
 | **Troupe & saisons** | **Manage troupe** identity and **seasons**: create, rename, archive; **at most one season active at a time** for a given troupe context (activate/deactivate explicitly—rules in DOMAIN/SPEC). |
 
-### Acceptance hints (for QA / design review)
+---
 
-- [ ] All three capability areas are **reachable** from admin navigation (exact IA left to implementation).
-- [ ] **Single active season** is **enforced** in UI and API; switching active season is **explicit** and **auditable** if required by SPEC.
-- [ ] Member **role** changes are **permission-gated** and **consistent** with in-app behaviour (organizer/admin powers elsewhere in this document).
-- [ ] **CSV import/export** (FR42) is reachable from the **Membres** admin area; import shows **per-row outcomes** without exposing personal data to unauthorized users.
+## Screen: Admin Membres (`/saison/:slug/admin/membres`) {#screen-admin-membres}
+
+### Purpose
+
+Unified **troupe members** (tab **Membres**) and **season organizers** (tab **Organisateur·ices**) inside the season context. Replaces separate modals from the settings menu.
+
+**Vocabulary (locked):** **Membres** = troupe scope; **Participants** = season/event participant rosters (Story 3.8, future screen).
+
+**Stakeholder sign-off (2026-05-23):** one route; CSV via **Exporter** + **Importer ▾**; compact list; slide toggle; hide dates; add via modal; search; inactive filtered by default; **Nommer orga saison** shortcut.
+
+### Entry
+
+- Season header **⚙** → **Membres** → route (default tab Membres).
+- Tabs: **Membres** | **Organisateur·ices** (hide tab bar if only one permitted).
+
+### Chrome
+
+| Zone | Behaviour |
+|------|-----------|
+| **Back** | → season agenda |
+| **H1** | Active tab name |
+| **Style** | Material defaults |
+
+### Toolbar (Membres tab)
+
+Search · **Ajouter** · **Exporter** · **Importer ▾** (utilisateurs \| membres)
+
+Filter: *Afficher les inactifs* (default off) between toolbar and list.
+
+### Membres tab
+
+Compact rows: avatar, inline name edit, email, role chip+menu, active toggle, **Nommer orga saison** link. Auto-save. Last admin protected.
+
+### Organisateur·ices tab
+
+Compact list; add modal with autocomplete; Retirer + confirm.
+
+Full spec: [ux-design-specification.md](./ux-design-specification.md).
 
 ---
 
 ## Future sections (to extend)
 
-- Optional: dedicated **screenshots** or **wireframes** for admin once a visual direction is chosen. Same structure: **purpose → reference image → chrome → blocks → style → acceptance hints**.
+- Admin **spectacles** and **troupe/saisons** screens once visual direction is chosen. Same structure: **purpose → reference image → chrome → blocks → style → acceptance hints**.

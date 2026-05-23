@@ -93,6 +93,7 @@ Documented format for FR42. Architecture may reference this section; changes req
 - Backend: `TroupeMemberCsvCodec`, `TroupeMemberCsvImportService`, export/import on `TroupeController` / `TroupeMembershipService`.
 - AC6: import CSV rejette les emails inconnus avec `USER_NOT_FOUND` (users CSV ou connexion préalable). L’**ajout manuel** reste permissif : `ensureUserByEmail` crée un stub si besoin (décision review 2026-05-23).
 - Frontend: export/import wired in `TroupeMembersDialog` + `TroupeApiService`.
+- **Correct Course 2026-05-23 (UX-DR10):** CSV export/import UI embedded in `TroupeMembersDialog`. Target: toolbar **Exporter** + **Importer ▾** on Membres route tab; import results in dedicated MatDialog per spec. API unchanged; UI migration = **Story 2.8**.
 
 ### Completion Notes
 
@@ -101,6 +102,7 @@ Documented format for FR42. Architecture may reference this section; changes req
 - ✅ Admin UI on Membres dialog with download, upload, and results table.
 - ✅ OpenAPI + ARCH.md + V1 migration recipe documented.
 - ⏭️ Audit log hook deferred (optional Epic 9).
+- **Correct Course 2026-05-23 (UX-DR10):** CSV UI in dialog superseded by route toolbar per [ux-design-specification.md](../planning-artifacts/ux-design-specification.md); migration = **Story 2.8**.
 
 ## File List
 

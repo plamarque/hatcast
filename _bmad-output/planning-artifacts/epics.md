@@ -3,10 +3,15 @@ stepsCompleted:
   - step-01-validate-prerequisites
   - step-02-design-epics
   - step-03-create-stories
+  - step-04-final-validation
+lastUpdated: 2026-05-23
+updateMode: incremental
+status: ready-for-development
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/ux-design-hatcast-v2.md
+  - _bmad-output/planning-artifacts/sprint-change-proposal-2026-05-23.md
   - SPEC.md
   - DOMAIN.md
 ---
@@ -21,62 +26,75 @@ This document provides the complete epic and story breakdown for **hatcast**, de
 
 ### Functional Requirements
 
-- FR1: A user can sign in with an OAuth identity provider associated with "sign in with Google" (or equivalent) where offered.
+- FR1: A user can sign in with **Google** in MVP. Additional third-party identity options may be added later using the same account-linking rules.
 - FR2: A user can sign in with email address and password.
 - FR3: A user can request a password reset and complete password recovery via email.
-- FR4: A user can stay signed in across visits on a trusted device when "remember me" (or equivalent) is selected.
+- FR4: A user can stay signed in across visits when **"remember me"** (or equivalent) is selected. In MVP, a remembered session remains valid for **at least 30 days** or until the user signs out, changes password, or deletes the account—whichever occurs first.
 - FR5: A signed-in user can sign out.
-- FR6: A user can belong to a troupe as a member with a member profile for that troupe.
-- FR7: A troupe administrator can manage which users are members and their baseline roles for that troupe, within the permission model.
+- FR6: A user can belong to a troupe as a member with a member profile for that troupe. Active troupe members have default access to **active seasons** for that troupe.
+- FR7: A **troupe administrator** can manage which users are members and their baseline troupe roles. Troupe membership is distinct from season/event participation records.
 - FR8: A user can navigate between troupes they belong to (when multiple membership exists).
 - FR9: A member can edit a **troupe-specific display name (pseudo)** that the application uses as their visible name when identifying them **within that troupe**.
-- FR10: A user can add or change a **profile avatar** image shown in the interface; when the user signs in with Google, they can **use the Google account profile image** as their avatar (or keep a custom image, according to product rules).
+- FR10: A user can upload or replace a **profile avatar** image (accepted formats: **JPEG, PNG, WebP**; maximum **2 MB**). A user who signs in with **Google** can **import the Google profile photo once** from account settings or at first Google sign-in; after import, the user may replace it with a custom upload at any time.
 - FR11: An administrator can create, edit, and archive seasons for a troupe.
-- FR12: An administrator can create, edit, and archive events (spectacles) within a season, including scheduling and venue-related information as supported by the product.
-- FR13: A member can view the list of events in a season they belong to.
-- FR14: An administrator can configure event types and required/optional roles for events according to troupe rules.
-- FR15: A member can record availability (available / unavailable / unknown as applicable) per event.
-- FR16: A member can indicate role-level availability when the event type requires role choices.
-- FR17: An organizer or administrator can record or adjust availability on behalf of a member when permitted, with auditability of who acted.
-- FR18: A member can add an optional comment on availability when the product provides that field.
-- FR19: An organizer can view who is available for each role for an event.
-- FR20: An organizer can run a weighted random draw to fill roles according to troupe/event rules.
-- FR21: An organizer can manually assign or reassign players to roles when permitted.
-- FR22: An organizer can save a draft composition that is not yet visible to ordinary members when the workflow defines draft visibility.
-- FR23: An organizer can validate (lock) a composition when the workflow requires validation before confirmations.
-- FR24: A member can view explainability information for selection odds when the product surfaces it for that event.
-- FR25: A member can confirm or decline participation for their assigned role when a composition is in the confirmation phase.
-- FR26: An organizer or administrator can confirm or decline on behalf of a member when permitted, with auditability.
-- FR27: When a member withdraws or declines, organizers can see resulting gaps and take follow-up actions supported by the product (e.g. refill slot).
-- FR28: The product can represent composition lifecycle states (e.g. preparing, awaiting confirmations, complete) consistently for an event.
-- FR29: A user can opt in to browser push notifications globally or per relevant categories when offered.
-- FR30: A user can manage notification preferences when the product defines notification types.
-- FR31: The product can deliver notifications for key workflow events (e.g. availability open, composition ready, confirmation prompts) according to policy.
-- FR32: A visitor without membership can browse the public troupe directory when the troupe is listed publicly.
-- FR33: A visitor can view public season and event information for troupes and content marked public.
-- FR34: A troupe administrator can configure who may act as organizer at season or event scope when the model supports it.
-- FR35: An authorized user can view an audit trail of significant changes (including availability and composition changes and impersonation-style actions) with actor and timestamp.
-- FR36: A user can update account credentials and profile fields supported by the product (e.g. email change flow).
-- FR37: A user can delete their account when the product supports account deletion.
-- FR38: An organizer can invite a non-member to contribute to a specific role for a specific event or set of events when that capability is enabled for the troupe.
-- FR39: An invited non-member can submit availability for the invited scope without being subject to the same default draw rules as full members when the troupe configures alternative selection modes (e.g. organizer pick, last-resort/joker).
+- FR12: An administrator can create, edit, and archive events (spectacles) within a season. Each event includes at minimum: **title**, **date and time** (or start/end window), **location or venue label**, **description** (optional), **event type**, and **lifecycle status** (active vs inactive/archived). Inactive or archived events are hidden from ordinary members and visitors; administrators and authorized organizers retain access.
+- FR13: Active troupe members can view **active** seasons and events for their troupe by default. Inactive or archived events are not listed on member and visitor surfaces. Authorized season/event participants who are not troupe members can access only the active season or event scope granted to them, according to the permission model.
+- FR14: An administrator can configure event types and required/optional roles for events according to troupe rules, including whether **volunteer availability is mandatory** when a participant marks a play role as available.
+- FR15: A **linked participant** can record availability per event as **available**, **unavailable**, or **unknown**, within their authorized season or event scope.
+- FR16: A linked participant can indicate role-level availability when the event type requires role choices. When a play role is marked available and the event type has **mandatory volunteer coverage** configured (FR14), volunteer availability is recorded as available for that event unless the participant explicitly marks volunteer unavailable.
+- FR17: A **season organizer, event organizer, or troupe administrator** can record or adjust availability on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability of who acted.
+- FR18: In MVP, a linked participant can add an optional free-text **availability comment** (maximum **500 characters**) on their availability submission for an event. A **season organizer, event organizer, or troupe administrator** (same scope as FR17) can add or edit the same field on behalf of a participant. Comments appear to organizers and administrators on the event availability view; they are not shown on public discovery pages.
+- FR19: An organizer can view eligible participants who are available for each role for an event.
+- FR20: An organizer can run a weighted random draw to fill roles according to troupe/event eligibility rules.
+- FR21: A **season organizer, event organizer, or troupe administrator** can manually assign or reassign participants to roles for events in their scope. A single participant **may hold multiple roles** on the same event; role-stacking is **allowed by default** per event type unless an administrator disables it in event-type configuration (FR14).
+- FR22: An organizer can save a **draft composition** that is **hidden from ordinary troupe members by default**. The organizer **publishes** the draft via an explicit action to make it visible to members; until published, only organizers and administrators see draft slot assignments.
+- FR23: An organizer can **validate (lock)** a composition **before confirmation requests are sent** to participants. A **season organizer, event organizer, or troupe administrator** can **unlock or invalidate** a validated composition to return it to an editable state, which re-opens confirmation requirements for affected slots.
+- FR24: For events using weighted draw, included participants can view **per-role selection odds** (or equivalent explainability summary) on the event composition view **after the organizer publishes the draft (FR22)** or **after validation (FR23)**. Odds are not shown for events or roles excluded from the draw model (e.g. direct-assignment slots).
+- FR25: A linked participant can confirm or decline participation for their assigned role **after the composition is validated (FR23)** and while the event is in **awaiting confirmations** or **gaps to fill** (FR28).
+- FR26: A **season organizer, event organizer, or troupe administrator** can confirm or decline on behalf of a participant in their authorized scope, including name-only or not-yet-linked participants, with auditability.
+- FR27: When a participant withdraws or declines during **awaiting confirmations** or **gaps to fill** (FR28), organizers see the resulting **open slot(s)** on the event composition view and can: **view gap details**, **manually assign a replacement**, **run a partial weighted draw** for the open role(s), and **trigger a targeted confirmation notification** to affected participants.
+- FR28: The product represents composition lifecycle states consistently for each event using at minimum: **preparing** (availability collection), **draft composition** (editable, not yet validated), **awaiting confirmations** (validated lineup), **gaps to fill** (open slots after decline/withdrawal), and **complete** (all required roles confirmed or explicitly waived by a **season organizer, event organizer, or troupe administrator**).
+- FR29: In MVP, a user can **opt in or out of browser push notifications globally** (same scope as FR30). Per-category push preferences are post-MVP.
+- FR30: In MVP, users can opt in or out of browser push notifications **globally**. Category-level preferences (e.g. availability vs confirmation) are **deferred post-MVP**; global push opt-in governs all notification types that use push.
+- FR31: The product delivers **distinct notification intents** for: **availability collection opened**, **draft composition shared** (on **publish** per FR22), **confirmation request** (on **validate** per FR23), and **team-confirmed recap** (on transition to **complete** per FR28). Delivery channels: **browser push** if the user has global push opt-in (FR29); **email** if the troupe has email delivery enabled for that intent.
+- FR32: A visitor **without a HatCast account** can browse the **public troupe directory**. Freemium troupes are **listed by default** (non-opt-out); a troupe administrator can hide a troupe from the directory.
+- FR33: A visitor **without a HatCast account** can view **public** season and event pages for troupes listed in the directory. Content marked non-public is not shown on visitor surfaces.
+- FR34: A troupe administrator can designate **season-level organizers** and **event-level organizers**. Season organizers can manage all events in the season; event organizers can manage only assigned events. Delegation does not grant troupe-administration rights unless the user also holds troupe administrator role.
+- FR35: A **troupe administrator, season organizer, or event organizer** can view an audit trail with **actor identity**, **subject identity** (when acting for another participant), **action type**, and **timestamp to second precision**. Tracked actions include at minimum: availability create/update/delete, availability comments, confirmations and withdrawals, composition draft/validate/unlock changes, **manual vs lottery slot assignments**, **slot removals**, and proxy actions on behalf of participants. Property-level **before/after values** are recorded at minimum for **availability status**, **role selections**, and **composition slot assignments**.
+- FR36: A user can update account-level profile fields (display name, avatar per FR10) and **change password** when signed in with email/password. A user can initiate **email change with verification** when email/password auth is used. Google-only users manage profile fields not sourced from Google per product rules.
+- FR37: A user can **request account deletion** from account settings. The product requires **explicit confirmation**, then **anonymizes or deletes personal data** per retention policy, **revokes active sessions**, and **preserves non-personal audit records** required for troupe governance. Deletion does not remove historical troupe audit entries that reference anonymized actor identifiers.
+- FR38: **(Growth / post-MVP.)** After a troupe administrator **enables self-service guest invitations** for the troupe, an organizer can send an invitation for a **specific role and event scope** so an external contributor can onboard without prior troupe membership. MVP managed participants remain covered by FR43–FR45.
+- FR39: **(Growth / post-MVP.)** External contributors invited under FR38 can be assigned using **organizer direct pick** or **last-resort/joker** modes configured per event. They are **excluded from the default weighted draw pool** unless an administrator explicitly includes them for that event. Basic admin-created season/event participants remain covered by FR43–FR45.
 - FR40: A user can install or add the web application for quick access on supported platforms (PWA installability).
 - FR41: After the organization deploys a new client version, users receive updated client behaviour without being expected to perform a technical manual cache-clear as the only remedy.
-- FR42: A troupe administrator can export and import troupe member lists in a documented CSV format, within the permission model, to support HatCast V1-to-V2 migration, migration from one troupe to another, and rapid initialization of a new troupe.
+- FR42: A **troupe administrator** can export and import troupe member lists in a documented CSV format to support HatCast V1-to-V2 migration, migration from one troupe to another, and rapid initialization of a new troupe.
+
+### Participation scopes
+
+- FR43: A season administrator can manage a season participant roster that includes troupe members by default and can also include non-member participants. A non-member participant may be a name-only managed participant, an existing HatCast user, or an email-prelinked participant awaiting first login.
+- FR44: An event administrator can add or manage participants for a single event without making them troupe members or season-wide participants. Event participants may be name-only, linked to an existing HatCast user, or prelinked by email awaiting first login.
+- FR45: When an administrator provides an email for a season or event participant, the product attempts to link the participant to an existing user account with that email. If no activated account exists, the participant remains usable as a managed participant and is **linked automatically on first successful sign-in** with the same email. Email is optional.
+- FR46: When a troupe member has configured **preferred roles** for the troupe, the availability form for applicable event types **pre-selects** those roles; the member can change selections before submitting.
+
+### Product analytics & observability (product-level)
+
+- FR47: The product records **anonymized workflow analytics events** sufficient to compute Success Criteria leading indicators: time from participant availability window open to first submission, time from composition validation to full required confirmations, and notification link follow-through when canonical event URLs are present. In MVP, analytics access is limited to **product operators**; troupe-visible analytics dashboards are post-MVP.
 
 ### NonFunctional Requirements
 
-- **NFR-P1:** Primary interactive flows (season grid, event view, submit availability, open composition) remain usable on typical mobile network conditions; list views use paging or equivalent so loads do not transfer unbounded rows in one request.
-- **NFR-P2:** API responses for common read operations stay within an acceptable interactive window for expected troupe sizes (numeric thresholds belong in service-level objectives outside this PRD).
-- **NFR-S1:** Credentials and session tokens are protected in transit (TLS) and handled on client and server according to current best practices.
-- **NFR-S2:** Personal data (email, avatar, troupe display names, participation data) is exposed only to identities and roles allowed by the permission model.
-- **NFR-S3:** Account deletion and personal-data handling support expectations for EU users (e.g. GDPR-oriented processes at the organizational level—detailed in privacy policy and operations).
-- **NFR-S4:** Member import/export handles personal data safely: only authorized administrators can access it; exports include only documented fields; imports validate input before persistence; import results expose actionable row-level outcomes without leaking data to unauthorized users.
-- **NFR-R1:** For each environment (**development**, **staging**, **production**), **frontend and backend** deploy together so client and API versions do not drift unintentionally.
-- **NFR-R2:** Asynchronous delivery (web push, email) fails gracefully: failures are observable and do not leave core domain state inconsistent.
-- **NFR-SC1:** The system supports growth from a small number of troupes to a larger base without a redesign of core domain partitioning (horizontal scaling details are architectural).
-- **NFR-A1:** Core member and organizer tasks are operable with keyboard where applicable, with semantic structure and visible focus; contrast meets a pragmatic baseline (formal WCAG level **TBD**).
-- **NFR-I1:** Google sign-in and email used for password reset integrate reliably with provider behaviour; failures surface clearly to the user.
+- **NFR-P1:** Primary interactive flows (season grid, event view, availability submit, composition open) remain responsive on mobile networks — **≤ 3 s p95 TTI** on Fast 3G–equivalent profile; list views use paging (default **≤ 50** rows). Context: troupes up to **100 members**, **50 events** per active season.
+- **NFR-P2:** Common read operations — server-side read latency **≤ 500 ms p95** for season list, event detail, and availability summary under nominal load (**10 concurrent organizers**, **50 concurrent members**).
+- **NFR-S1:** **100%** auth/API traffic over **TLS 1.2+**; no credentials in client logs; session tokens with httpOnly/secure cookie or equivalent.
+- **NFR-S2:** **0** unauthorized cross-troupe/cross-role data exposures in permission test suite; **100%** protected endpoints enforce role checks in automated API tests. Context: email, avatar, pseudo, participant names/emails, availability, composition data.
+- **NFR-S3:** Account deletion completes within **30 days** of confirmed request; export/deletion runbook documented; **100%** deletion requests logged (GDPR-oriented processes at organizational level).
+- **NFR-S4:** Member import/export — only troupe administrators; exports contain only documented fields; imports reject invalid rows with row-level error reporting; **0** data leaks to unauthorized roles (FR42).
+- **NFR-S5:** Season/event participant administration protects optional email and linking data — participant email visible only to authorized admin/organizer roles; name-only participants function without email in **100%** of MVP test scenarios (FR43–FR45).
+- **NFR-R1:** **0** known P0 defects from client/server version skew lasting **> 24 h** after coupled deploy; post-deploy smoke tests pass on **100%** of production releases.
+- **NFR-R2:** Push/email send failures logged with correlation ID; core writes remain consistent (**0** orphaned confirmation states in integration tests); retry or dead-letter path documented.
+- **NFR-SC1:** Staging load test supports **50 troupes × 100 members × 50 events/season** with NFR-P2 still met at p95.
+- **NFR-A1:** Core member and organizer tasks meet **WCAG 2.1 Level AA** baseline — **0** critical axe-core violations on primary flows; contrast **≥ 4.5:1**; keyboard operability for availability submit, composition view, and confirmation actions.
+- **NFR-I1:** Auth provider success rate **≥ 99%** over rolling 7 days (excluding user-caused errors); failed auth surfaces user-actionable message in **100%** of tested error codes.
+- **NFR-Q1:** **≥ 80%** line coverage on domain-critical backend modules; **100%** of FR1–FR5, FR15–FR16, FR19–FR23, FR25, FR32 auth/availability/composition paths covered by at least one automated test; **0** disabled tests to merge without explicit waiver.
 
 ### Additional Requirements
 
@@ -85,6 +103,8 @@ _From `architecture.md` — technical constraints for implementation planning:_
 - **Target stack:** **Angular 21** SPA with **Angular Material**; **Kotlin** + **Spring Boot** REST API; **PostgreSQL** on **Neon** (branches per environment); **OpenAPI** as API contract; SPA on **GitHub Pages** and/or **Cloud Run** (bundled image); API on **Google Cloud Run**; **coupled CI** deploys for development/staging/production (NFR-R1).
 - **Brownfield:** Legacy **Firebase** (Firestore, Auth, Functions) remains until migration slices in PLAN; dual paths per feature must stay explicit in stories.
 - **Data:** PostgreSQL as system of record for target stack; **single active season per troupe** (SPEC/DOMAIN); migration strategy via PLAN/ADRs.
+- **Participation model (V2):** `troupe_memberships` grants troupe access and baseline governance. **Season participants** (`season_participants`) and **event participants** (`event_participants`) are separate domain identities — optional link to `users`, optional `troupe_membership_id`, optional normalized email, display name, status. Availability and composition reference **participant identities**, not raw users or memberships alone (FR43–FR45; sprint-change-proposal 2026-05-23).
+- **Authorization (participants):** Troupe admins manage troupe members and all participant scopes. Season admins manage season participants. Event admins manage event-only participants. Organizer permissions grant workflow scope; they do not create troupe membership.
 - **API:** REST `/v1/...`; **RFC 7807** Problem Details (or single documented envelope); **camelCase** JSON; **ISO 8601 UTC** dates; audit fields on proxy actions (FR17, FR26, FR35).
 - **Persistence ADR:** JPA vs JDBC (or equivalent) — decide before complex persistence stories.
 - **Auth ADR:** Session vs bearer token for SPA↔API — décision actuelle : [Identity Platform](../../docs/adr/0010-v2-auth-identity-platform.md) pour la cible V2 (voir ADR).
@@ -105,27 +125,65 @@ _Actionable items from `ux-design-hatcast-v2.md` (UX continuity V1 → V2, Angul
 - **UX-DR7:** **Share & announce modal:** editable generated message, WhatsApp, push/email recipient list — reusable for spectacle / tirage / compo.
 - **UX-DR8:** **Member profile popover:** avatar click → season stats + month grid + favourite roles; Planning CTA.
 - **UX-DR9:** **Historique view:** role columns (JEU, DECORUM, etc.) + monthly columns; expand/collapse details; exporter / masquer.
-- **UX-DR10:** **Admin surfaces:** functional scope (members/roles, spectacles, troupe & seasons, one active season) — design flexible; **Angular Material** defaults acceptable.
+- **UX-DR10:** **Admin surfaces:** Route **`/saison/:slug/admin/membres`** (menu **Membres**) — troupe **members** + season **organizers**; compact list, search, add modal, active **slide toggle**, inactive **hidden by default**, CSV **Exporter** + **Importer ▾**. Label **Participants** reserved for season/event participant rosters (Story 3.8). Spec: [ux-design-specification.md](./ux-design-specification.md), [ux-design-hatcast-v2.md § Admin Membres](./ux-design-hatcast-v2.md#screen-admin-membres).
 - **UX-DR11:** **Theming:** Angular Material + design tokens; do not use Tailwind as primary styling surface (PRD); preserve V1 mood where referenced.
+- **UX-DR12:** **Agenda content scope:** Agenda lists **non-archived** events with start date on **today or future** (civil-day boundary, timezone explicit — user or Europe/Paris); past/archived events excluded from Agenda (→ Historique). Same rule enforced **API-side** (e.g. `scope=upcoming`) and UI-side.
 
 ### FR Coverage Map
 
 | FR | Epic | Résumé |
 |----|------|--------|
-| FR1–FR5, FR36–FR37 | Epic 1 | Auth, session, compte |
-| FR6–FR10, FR42 | Epic 2 | Troupes, membres, profil, import/export CSV |
-| FR11–FR14, FR34, FR13 | Epic 3 | Saisons, spectacles, orga |
-| FR32–FR33 | Epic 4 | Public / visiteurs |
-| FR15–FR19 | Epic 5 | Disponibilités |
-| FR20–FR28 | Epic 6 | Tirage, composition, confirmations |
-| FR38–FR39 | Epic 7 | Invitations contributeurs externes |
-| FR29–FR31 | Epic 8 | Notifications |
-| FR35 | Epic 9 | Audit |
-| FR40–FR41 | Epic 10 | PWA et mises à jour client |
+| FR1 | Epic 1 | Connexion Google (MVP) |
+| FR2 | Epic 1 | Connexion email/mot de passe |
+| FR3 | Epic 1 | Reset mot de passe par email |
+| FR4 | Epic 1 | Session persistante (« se souvenir de moi ») |
+| FR5 | Epic 1 | Déconnexion |
+| FR6 | Epic 2 | Adhésion troupe + accès saisons actives |
+| FR7 | Epic 2 | Admin membres troupe et rôles de base |
+| FR8 | Epic 2 | Navigation multi-troupes |
+| FR9 | Epic 2 | Pseudo affiché par troupe |
+| FR10 | Epic 2 | Avatar (upload + import Google) |
+| FR11 | Epic 3 | CRUD saisons |
+| FR12 | Epic 3 | CRUD spectacles |
+| FR13 | Epic 3 | Consultation saisons/événements (membres + participants autorisés) |
+| FR14 | Epic 3 | Types d’événement et rôles requis/optionnels |
+| FR15 | Epic 5 | Saisie disponibilité (Dispo / Pas dispo / Non renseigné) |
+| FR16 | Epic 5 | Disponibilité par rôle + bénévolat obligatoire |
+| FR17 | Epic 5 | Proxy disponibilité (organisateur/admin) |
+| FR18 | Epic 5 | Commentaire disponibilité (500 car.) |
+| FR19 | Epic 5 | Vue organisateur dispos par rôle |
+| FR20 | Epic 6 | Tirage aléatoire pondéré |
+| FR21 | Epic 6 | Assignation manuelle / multi-rôles |
+| FR22 | Epic 6 | Composition brouillon + publication |
+| FR23 | Epic 6 | Validation / déverrouillage composition |
+| FR24 | Epic 6 | Explainability cotes (post-publication/validation) |
+| FR25 | Epic 6 | Confirmation/declinaison participant lié |
+| FR26 | Epic 6 | Confirmation/declinaison proxy |
+| FR27 | Epic 6 | Créneaux vacants et actions de suivi |
+| FR28 | Epic 6 | États cycle de vie composition |
+| FR29 | Epic 8 | Opt-in push global (MVP) |
+| FR30 | Epic 8 | Préférences notification (catégories post-MVP) |
+| FR31 | Epic 8 | Intents notification (dispos, brouillon, confirmation, recap) |
+| FR32 | Epic 4 | Annuaire public troupes |
+| FR33 | Epic 4 | Pages publiques saison/événement |
+| FR34 | Epic 3 | Organisateurs saison / événement |
+| FR35 | Epic 9 | Piste d’audit |
+| FR36 | Epic 1 | Mon compte (email, mot de passe connecté) |
+| FR37 | Epic 1 | Suppression compte |
+| FR38 | Epic 7 | Invitations self-service *(post-MVP)* |
+| FR39 | Epic 7 | Modes sélection alternatifs invités *(post-MVP)* |
+| FR40 | Epic 10 | Installabilité PWA |
+| FR41 | Epic 10 | Mise à jour client sans « vide le cache » |
+| FR42 | Epic 2 | Import/export CSV membres troupe |
+| FR43 | Epic 3 | Roster participants saison |
+| FR44 | Epic 3 | Participants événement-only |
+| FR45 | Epic 3 | Liaison email optionnelle → compte utilisateur |
+| FR46 | Epic 5 | Pré-sélection rôles favoris |
+| FR47 | Epic 11 | Analytics workflow anonymisés |
 
-**NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10 ; NFR-S1/S2/S3/S4 — Epics 1, 2, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9 (UI) ; NFR-I1 — Epic 1.
+**NFR (adressées au fil des epics / transverses) :** NFR-P1/P2 (perf, pagination) — surtout Epics 3, 5, 6, 10 ; NFR-S1/S2/S3/S4/S5 — Epics 1, 2, 3, 9 ; NFR-R1/R2 — Epics 8, 10 + pipeline ; NFR-SC1 — architecture ; NFR-A1 — Epics 1–9 (UI) ; NFR-I1 — Epic 1 ; NFR-Q1 — transverse CI/tests.
 
-**UX-DR :** UX-DR1–3 → Epics 3, 5 ; UX-DR4–7 → Epic 6 ; UX-DR5 aussi Epic 5 ; UX-DR8–9 → Epics 5, 6 ; UX-DR10 → Epics 2, 3 ; UX-DR11 → transverse (tous epics UI).
+**UX-DR :** UX-DR1–3 → Epics 3, 5 ; UX-DR4–7 → Epic 6 ; UX-DR5 aussi Epic 5 ; UX-DR8–9 → Epics 5, 6 ; UX-DR10 → Epics 2, 3 ; UX-DR11 → transverse (tous epics UI) ; UX-DR12 → Epic 3 (Story 3.3).
 
 ## Epic List
 
@@ -143,9 +201,9 @@ Les personnes peuvent appartenir à une ou plusieurs troupes, avec gestion des m
 
 ### Epic 3 — Saisons, spectacles et gouvernance organisateur
 
-Les administrateurs gèrent saisons et spectacles (CRUD, archivage), configurent types d’événements et rôles requis/optionnels, et qui peut agir comme organisateur ; les membres voient la liste des événements de la saison.
+Les administrateurs gèrent saisons et spectacles (CRUD, archivage), configurent types d’événements et rôles requis/optionnels, désignent organisateurs saison/événement, et **administrent les rosters participants** (saison et événement, y compris participants gérés sans compte HatCast) ; les membres et participants autorisés voient les événements de leur périmètre.
 
-**FRs couverts :** FR11, FR12, FR13, FR14, FR34
+**FRs couverts :** FR11, FR12, FR13, FR14, FR34, FR43, FR44, FR45
 
 ### Epic 4 — Découverte publique (annuaire et pages visiteur)
 
@@ -153,23 +211,23 @@ Un visiteur sans adhésion peut parcourir l’annuaire public des troupes et con
 
 **FRs couverts :** FR32, FR33
 
-### Epic 5 — Disponibilités (membres et organisations)
+### Epic 5 — Disponibilités (participants et organisations)
 
-Les membres enregistrent leur disponibilité par événement (y compris par rôle et commentaire), les orgas/admins peuvent agir pour autrui avec traçabilité ; les organisateurs voient qui est disponible par rôle.
+Les **participants** (membres troupe liés, participants saison/événement, y compris gérés sans compte) enregistrent leur disponibilité par événement (y compris par rôle, commentaire, et **pré-sélection des rôles favoris**), les orgas/admins peuvent agir pour autrui avec traçabilité ; les organisateurs voient qui est disponible par rôle.
 
-**FRs couverts :** FR15, FR16, FR17, FR18, FR19
+**FRs couverts :** FR15, FR16, FR17, FR18, FR19, FR46
 
 ### Epic 6 — Tirage, composition et cycle de vie des confirmations
 
-Les organisateurs utilisent tirage pondéré et assignation manuelle, brouillon vs composition validée, états de cycle de vie, transparence des cotes ; les membres confirment ou déclinent ; gestion des retraits et créneaux à combler.
+Les organisateurs utilisent tirage pondéré et assignation manuelle, brouillon vs composition validée, états de cycle de vie, transparence des cotes ; les **participants liés** confirment ou déclinent ; gestion des retraits et créneaux à combler.
 
 **FRs couverts :** FR20, FR21, FR22, FR23, FR24, FR25, FR26, FR27, FR28
 
-### Epic 7 — Invitations et contributeurs externes
+### Epic 7 — Invitations self-service et contributeurs externes (post-MVP)
 
-Les organisateurs invitent des non-membres sur un périmètre rôle/événement ; les invités soumettent des dispos selon les modes alternatifs configurés (hors règles de tirage par défaut des membres pleins).
+**Growth / post-MVP :** une fois FR43–FR45 en place, les organisateurs peuvent activer des **invitations self-service** et des modes de sélection alternatifs (direct pick, joker) pour contributeurs externes — distincts de l’administration basique des participants gérés.
 
-**FRs couverts :** FR38, FR39
+**FRs couverts :** FR38, FR39 *(post-MVP)*
 
 ### Epic 8 — Notifications (push, email, préférences)
 
@@ -189,9 +247,15 @@ Installation/raccourci PWA et garantie que les déploiements de nouvelle version
 
 **FRs couverts :** FR40, FR41
 
+### Epic 11 — Analytics workflow (opérateurs produit)
+
+Le produit enregistre des événements analytics anonymisés pour mesurer les indicateurs avancés (délai dispos, délai confirmations, suivi des liens de notification). Accès MVP réservé aux opérateurs produit.
+
+**FRs couverts :** FR47
+
 ---
 
-**Dépendances naturelles (ordre de valeur, pas de couches techniques) :** Epic 1 → 2 → 3 ; Epic 4 peut être livré en parallèle tôt dès que le modèle « public » existe ; Epic 5 dépend des événements (Epic 3) ; Epic 6 dépend des dispos (Epic 5) ; Epic 7 s’appuie sur 3 et recoupe 5–6 ; Epic 8 recoupe plusieurs epics métier ; Epic 9 dès qu’il y a des actions auditables ; Epic 10 en continu sur le socle SPA.
+**Dépendances naturelles (ordre de valeur, pas de couches techniques) :** Epic 1 → 2 → 3 (incl. Story **3.8** participants **avant** Epic 5) ; Epic 4 en parallèle tôt ; Epic 5 dépend de 3 + 3.8 ; Epic 6 dépend de 5 ; Epic 7 post-MVP après 3.8 ; Epic 8 recoupe plusieurs epics ; Epic 9 dès actions auditables ; Epic 10 en continu ; Epic 11 en parallèle une fois les flux métier instrumentables.
 
 ---
 
@@ -335,7 +399,8 @@ afin de contrôler qui accède à quoi au sein de la troupe.
 
 - **Given** des droits administrateur sur la troupe, **when** l’admin ajoute, retire ou ajuste un rôle de base autorisé, **then** l’état persisté reflète le changement et l’UI des membres est à jour.
 - **Given** une action non autorisée, **when** elle est tentée, **then** elle est refusée avec retour API/UI cohérent (NFR-S2).
-- **Couverture :** FR7 ; UX-DR10 (surfaces admin membres) ; NFR-S2.
+- **Note :** cette story couvre **uniquement l’adhésion troupe** (`troupe_memberships`), pas les rosters participants saison/événement (Story 3.8).
+- **Couverture :** FR7 ; UX-DR10 (surfaces admin membres troupe) ; NFR-S2.
 
 ---
 
@@ -356,6 +421,25 @@ afin de migrer depuis HatCast V1, initialiser rapidement une nouvelle troupe, ou
 **Dépendances :** Story 2.1 (membership PostgreSQL) ; Story 2.2 recommandée (rôles de base et UI admin membres) avant livraison UI complète.
 
 **Notes :** Distinct de la story 3.6 (export CSV historique de participation). Le contrat CSV (colonnes, encodage, mapping V1) est documenté dans cette story et référencé depuis l’architecture.
+
+---
+
+#### Story 2.8 : Route admin Membres (UX-DR10)
+
+En tant qu’administrateur de troupe ou organisateur·ice de saison autorisé·e,  
+je veux gérer membres de troupe et organisateur·ices de saison depuis une route admin unique,  
+afin de suivre l’expérience approuvée (liste compacte, recherche, CSV en barre d’outils) sans modales séparées.
+
+**Acceptance Criteria**
+
+- **Given** des droits `canManageMembers` et/ou `canManageSeasonOrganizers`, **when** l’utilisateur ouvre `/saison/:slug/admin/membres`, **then** l’écran conforme à [ux-design-specification.md](./ux-design-specification.md) s’affiche (onglets, toolbar, liste compacte, modales d’ajout uniquement).
+- **Given** aucun droit admin people, **when** la route est accédée, **then** redirection agenda + message (NFR-S2).
+- **Given** les API Stories 2.2 / 2.3 existantes, **when** l’UI est utilisée, **then** aucune régression sur CRUD membres ni import/export CSV.
+- **Couverture :** FR7, FR42 (UI) ; UX-DR10 ; NFR-S2.
+
+**Dépendances :** Stories 2.2, 2.3, 3.5 (organisateurs).
+
+**Notes :** Remplace l’UI modale livrée en 2.2/2.3 ; backend inchangé. Voir [sprint-change-proposal-2026-05-23-ux-dr10.md](./sprint-change-proposal-2026-05-23-ux-dr10.md).
 
 ---
 
@@ -408,8 +492,9 @@ afin de comprendre mon activité dans la saison.
 **Acceptance Criteria**
 
 - **Given** un avatar cliquable dans le contexte saison (SPEC), **when** l’utilisateur ouvre le popover, **then** les blocs prévus (stats, grille, rôles favoris) s’affichent avec données cohérentes avec le domaine.
+- **Given** le périmètre produit pour les rôles favoris troupe, **when** le membre configure ses rôles favoris depuis le popover ou l’écran associé, **then** ces préférences sont persistées et utilisées pour la pré-sélection en Story 5.2 (FR46).
 - **Given** le CTA « Planning » (ou libellé équivalent), **when** l’utilisateur l’active, **then** il est conduit au flux agenda/liste prévu.
-- **Couverture :** UX-DR8 ; croise FR9/FR10 (affichage identité).
+- **Couverture :** UX-DR8 ; FR46 (configuration rôles favoris) ; croise FR9/FR10 (affichage identité).
 
 ---
 
@@ -430,16 +515,17 @@ afin d’organiser le travail par saison (y compris une seule saison active par 
 
 ---
 
-#### Story 3.2 : Spectacles dans la saison et liste pour les membres
+#### Story 3.2 : Spectacles dans la saison et liste pour les membres et participants
 
-En tant qu’administrateur ou membre,  
-je veux gérer les spectacles (CRUD côté admin) et voir la liste des événements de la saison côté membre,  
+En tant qu’administrateur, membre ou **participant autorisé**,  
+je veux gérer les spectacles (CRUD côté admin) et voir la liste des **événements actifs** de la saison,  
 afin de planifier et consulter l’agenda de la troupe.
 
 **Acceptance Criteria**
 
-- **Given** une saison existante, **when** un admin crée ou modifie un spectacle avec date/lieu/champs supportés, **then** l’événement est listé pour les membres autorisés.
-- **Given** un membre de la saison, **when** il ouvre la liste des événements, **then** il voit les spectacles auxquels il a accès, sans chargement illimité (pagination ou équivalent, NFR-P1).
+- **Given** une saison existante, **when** un admin crée ou modifie un spectacle avec les champs requis (titre, date/heure, lieu, type, statut actif/inactif — FR12), **then** l’événement est persisté.
+- **Given** un événement **inactif ou archivé**, **when** un membre ordinaire ou visiteur consulte les listes, **then** il n’apparaît pas (FR12, FR13).
+- **Given** un membre troupe actif ou participant autorisé (FR13), **when** il ouvre la liste des événements actifs, **then** il voit les spectacles de son périmètre, sans chargement illimité (pagination, NFR-P1).
 - **Couverture :** FR12, FR13 ; NFR-P1, NFR-P2.
 
 ---
@@ -454,7 +540,7 @@ afin de parcourir les spectacles par mois avec statut de composition et accès a
 
 - **Given** une saison avec événements, **when** l’utilisateur ouvre la vue agenda, **then** les lignes groupées par mois affichent date, titre, statut de composition, pastille dispo/rôle selon UX-DR2.
 - **Given** un clic sur une ligne/carte, **when** l’utilisateur navigue, **then** il accède au détail événement (route canonique SPEC).
-- **Couverture :** UX-DR2 ; appuie FR12, FR13.
+- **Couverture :** UX-DR2, UX-DR12 ; appuie FR12, FR13.
 
 ---
 
@@ -480,6 +566,7 @@ afin de répartir l’organisation sans élargir les droits admin.
 **Acceptance Criteria**
 
 - **Given** le modèle de permissions (SPEC), **when** l’admin affecte ou retire des organisateurs sur le périmètre supporté, **then** les capacités organisateur (dispos, composition) suivent cette configuration.
+- **Note :** l’affectation organisateur cible des **utilisateurs** (`users`) pour les permissions — distinct de l’ajout de participants (Story 3.8).
 - **Couverture :** FR34 ; NFR-S2.
 
 ---
@@ -513,6 +600,29 @@ afin de nettoyer les erreurs de saisie ou les jeux de test sans n’en rester qu
 
 ---
 
+#### Story 3.8 : Rosters participants saison et événement
+
+En tant qu’**administrateur de saison ou d’événement** autorisé,  
+je veux ajouter et gérer des **participants** au niveau saison ou événement — y compris personnes **name-only** et personnes **pré-liées par email** —  
+afin d’inclure membres troupe, contributeurs externes et participants ponctuels **sans** leur accorder l’adhésion troupe.
+
+**Acceptance Criteria**
+
+- **Given** un administrateur de saison, **when** il ajoute un participant saison avec nom affiché et email optionnel, **then** le participant apparaît dans les sélecteurs saison et peut être utilisé par les flux dispos/composition selon permissions (FR43).
+- **Given** un administrateur d’événement, **when** il ajoute un participant événement-only, **then** le participant n’est disponible que pour cet événement et ne devient pas membre troupe ni participant saison entier (FR44).
+- **Given** un email correspondant à un utilisateur HatCast existant, **when** le participant est créé, **then** il est lié à cet utilisateur où permis (FR45).
+- **Given** un email sans compte activé, **when** le participant est créé, **then** il reste un participant géré et peut être lié automatiquement à la **première connexion** avec le même email (FR45).
+- **Given** aucun email, **when** le participant est créé, **then** il reste name-only et admin-géré (FR45).
+- **Given** un utilisateur non autorisé, **when** il liste les participants, **then** les emails privés ne sont pas exposés (NFR-S5).
+- **Given** un admin retire un participant, **then** l’historique dispos/composition/audit est préservé selon la politique de cycle de vie documentée.
+- **Non-objectif :** CSV import/export participants (reste sur membres troupe — Story 2.3) ; invitations self-service (Epic 7 post-MVP).
+
+**Dépendances :** Story 2.2 (permissions admin troupe) ; Story 3.5 (organisateurs saison/événement). **Doit être livrée avant Stories 5.1–5.5 et 6.4–6.9.**
+
+**Couverture :** FR43, FR44, FR45 ; UX-DR10 ; NFR-S5.
+
+---
+
 ### Epic 4 — Découverte publique (annuaire et pages visiteur)
 
 #### Story 4.1 : Annuaire public des troupes
@@ -541,32 +651,34 @@ afin de m’informer sans adhésion.
 
 ---
 
-### Epic 5 — Disponibilités (membres et organisations)
+### Epic 5 — Disponibilités (participants et organisations)
 
 #### Story 5.1 : Saisie de disponibilité par événement (états Dispo / Pas dispo / Non renseigné)
 
-En tant que membre,  
+En tant que **participant lié** (membre troupe ou participant saison/événement avec compte),  
 je veux enregistrer ma disponibilité pour chaque spectacle avec les trois états prévus,  
 afin que les organisateurs planifient la présence.
 
 **Acceptance Criteria**
 
-- **Given** un spectacle auquel j’ai accès, **when** j’ouvre la modale de disponibilité (UX-DR3, **MatDialog**), **then** je peux choisir Dispo / Pas dispo / Non renseigné et enregistrer.
+- **Given** un spectacle auquel j’ai accès en tant que participant autorisé, **when** j’ouvre la modale de disponibilité (UX-DR3, **MatDialog**), **then** je peux choisir Dispo / Pas dispo / Non renseigné et enregistrer.
 - **And** le titre de la modale indique clairement pour qui porte la saisie lorsque pertinent.
 - **Couverture :** FR15 ; UX-DR3 ; NFR-A1 (focus clavier sur dialog).
 
 ---
 
-#### Story 5.2 : Disponibilité par rôle lorsque le type d’événement l’exige
+#### Story 5.2 : Disponibilité par rôle et rôles favoris pré-sélectionnés
 
-En tant que membre,  
-je veux indiquer ma disponibilité au niveau des rôles requis,  
-afin de signaler sur quels postes je peux jouer.
+En tant que **participant lié**,  
+je veux indiquer ma disponibilité au niveau des rôles requis, avec **pré-sélection de mes rôles favoris** troupe lorsque configurés,  
+afin de signaler rapidement sur quels postes je peux jouer.
 
 **Acceptance Criteria**
 
-- **Given** un type d’événement avec choix de rôles (DOMAIN), **when** je suis « Dispo », **then** je peux exprimer la candidature par rôle conformément aux règles.
-- **Couverture :** FR16 ; UX-DR5 (candidature rôle si Dispo).
+- **Given** un type d’événement avec choix de rôles (DOMAIN), **when** je suis « Dispo », **then** je peux exprimer la candidature par rôle conformément aux règles (FR16).
+- **Given** des rôles favoris troupe configurés (FR46), **when** j’ouvre le formulaire pour un type d’événement applicable, **then** ces rôles sont **pré-cochés** et je peux les modifier avant soumission.
+- **Given** couverture bénévole obligatoire (FR14), **when** un rôle jeu est marqué Dispo, **then** le bénévolat est enregistré Dispo sauf décochage explicite.
+- **Couverture :** FR16, FR46 ; UX-DR5 (candidature rôle si Dispo).
 
 ---
 
@@ -585,26 +697,27 @@ afin de préparer la composition.
 
 #### Story 5.4 : Commentaire optionnel sur la disponibilité
 
-En tant que membre,  
-je veux ajouter un commentaire facultatif à ma disponibilité,  
+En tant que **participant lié**,  
+je veux ajouter un commentaire facultatif (max **500 caractères**) à ma disponibilité,  
 afin de préciser des contraintes utiles aux organisateurs.
 
 **Acceptance Criteria**
 
-- **Given** le champ commentaire activé, **when** je sauvegarde une dispo avec texte dans les limites, **then** le commentaire est stocké et visible aux rôles autorisés.
+- **Given** le champ commentaire activé, **when** je sauvegarde une dispo avec texte **≤ 500 caractères**, **then** le commentaire est stocké et visible aux orgas/admins sur la vue dispos — **pas** sur les pages publiques (FR18).
+- **Given** un texte > 500 caractères, **when** je tente de sauvegarder, **then** une erreur de validation est affichée.
 - **Couverture :** FR18 ; NFR-S2.
 
 ---
 
-#### Story 5.5 : Saisie de disponibilité pour un autre membre (proxy) avec audit
+#### Story 5.5 : Saisie de disponibilité pour un autre participant (proxy) avec audit
 
 En tant qu’organisateur ou administrateur autorisé,  
-je veux saisir ou ajuster la disponibilité pour le compte d’un membre,  
+je veux saisir ou ajuster la disponibilité pour le compte d’un **participant** (y compris name-only ou non encore lié),  
 afin de corriger des cas réels tout en laissant une trace d’audit.
 
 **Acceptance Criteria**
 
-- **Given** les permissions proxy (SPEC), **when** l’orga enregistre une dispo pour un membre cible, **then** l’enregistrement inclut l’identité de l’acteur réel pour audit (FR35 lié, FR17).
+- **Given** les permissions proxy (SPEC), **when** l’orga enregistre une dispo pour un participant cible (membre lié, participant géré, etc.), **then** l’enregistrement inclut l’identité de l’acteur réel pour audit (FR35 lié, FR17).
 - **Given** un utilisateur sans droit proxy, **when** il tente l’action, **then** elle est refusée.
 - **Couverture :** FR17 ; prépare FR35 ; NFR-S2.
 
@@ -638,16 +751,17 @@ afin de naviguer clairement dans le spectacle.
 
 ---
 
-#### Story 6.3 : Composition brouillon non visible aux membres ordinaires
+#### Story 6.3 : Composition brouillon, publication et visibilité
 
 En tant qu’organisateur,  
-je veux enregistrer une composition en brouillon invisible aux membres non autorisés tant que le workflow l’exige,  
-afin d’itérer avant publication.
+je veux enregistrer une composition en **brouillon** invisible aux membres ordinaires, puis la **publier** explicitement,  
+afin d’itérer en privé avant de rendre la proposition visible (FR22).
 
 **Acceptance Criteria**
 
-- **Given** une composition en draft selon règles de visibilité, **when** un membre ordinaire consulte l’événement, **then** il ne voit pas la composition draft (FR22).
+- **Given** une composition en draft, **when** un membre ordinaire consulte l’événement, **then** il ne voit pas les assignations draft (FR22).
 - **Given** un organisateur, **when** il consulte l’onglet Équipe, **then** il voit le draft.
+- **Given** un brouillon prêt, **when** l’organisateur exécute l’action **« Publier »**, **then** la composition devient visible aux membres autorisés et déclenche l’intent notification « draft composition shared » si configuré (FR22, FR31).
 - **Couverture :** FR22 ; UX-DR6 (draft vs validée).
 
 ---
@@ -655,13 +769,13 @@ afin d’itérer avant publication.
 #### Story 6.4 : Tirage aléatoire pondéré et affichage des cotes (explainability)
 
 En tant qu’organisateur,  
-je veux lancer un tirage pondéré pour remplir les rôles et voir les informations de cotes/explicabilité pour les membres lorsque le produit les affiche,  
+je veux lancer un tirage pondéré pour remplir les rôles parmi les **participants éligibles** et voir les informations de cotes/explicabilité lorsque le produit les affiche,  
 afin d’alléger le travail manuel tout en restant transparent.
 
 **Acceptance Criteria**
 
-- **Given** des dispos et règles de tirage (DOMAIN), **when** l’organisateur lance le tirage, **then** les rôles sont pourvus selon les règles et le résultat est persisté.
-- **Given** un membre autorisé, **when** il consulte l’info de cotes pour l’événement, **then** les données affichées correspondent aux règles d’explainability (FR24).
+- **Given** des dispos et règles de tirage (DOMAIN), **when** l’organisateur lance le tirage, **then** les rôles sont pourvus selon les règles et le résultat est persisté pour des **identités participant** (FR20).
+- **Given** un participant autorisé, **when** il consulte l’info de cotes **après publication du brouillon ou validation**, **then** les données affichées correspondent aux règles d’explainability (FR24).
 - **Couverture :** FR20, FR24 ; UX-DR6 (animation barre proportionnelle + curseur si applicable).
 
 ---
@@ -669,51 +783,52 @@ afin d’alléger le travail manuel tout en restant transparent.
 #### Story 6.5 : Assignation manuelle et réassignation des rôles
 
 En tant qu’organisateur,  
-je veux assigner ou réassigner manuellement des joueurs aux rôles depuis les listes ordonnées,  
+je veux assigner ou réassigner manuellement des **participants** aux rôles depuis les listes ordonnées (membres, participants saison/événement),  
 afin d’ajuster le tirage ou gérer des cas particuliers.
 
 **Acceptance Criteria**
 
-- **Given** des candidats éligibles pour un rôle, **when** l’organisateur sélectionne un membre pour un créneau, **then** la composition reflète le choix (FR21).
+- **Given** des candidats éligibles pour un rôle, **when** l’organisateur sélectionne un participant pour un créneau, **then** la composition reflète le choix ; un même participant peut occuper **plusieurs rôles** sauf interdiction par type d’événement (FR21).
 - **Couverture :** FR21 ; UX-DR6 (sélection dans liste ordonnée).
 
 ---
 
-#### Story 6.6 : Validation (verrouillage) de la composition
+#### Story 6.6 : Validation (verrouillage) et déverrouillage de la composition
 
 En tant qu’organisateur,  
-je veux valider/verrouiller la composition lorsque le workflow l’exige avant confirmations,  
-afin de figer la proposition officielle.
+je veux **valider/verrouiller** la composition avant envoi des demandes de confirmation, et **déverrouiller** si nécessaire,  
+afin de figer ou rouvrir la proposition officielle (FR23).
 
 **Acceptance Criteria**
 
-- **Given** une composition prête et les prérequis métier, **when** l’organisateur valide, **then** l’état passe en « validé » et les règles de confirmation s’appliquent (FR23, FR28).
-- **Couverture :** FR23.
+- **Given** une composition prête, **when** l’organisateur **valide**, **then** l’état passe en « validé » / awaiting confirmations et l’intent notification confirmation request est émis si configuré (FR23, FR28, FR31).
+- **Given** une composition validée, **when** un organisateur autorisé **déverrouille/invalide**, **then** la composition redevient éditable et les exigences de confirmation sont réouvertes pour les créneaux affectés (FR23).
+- **Couverture :** FR23, FR28.
 
 ---
 
-#### Story 6.7 : Confirmation ou déclinaison de participation (membre)
+#### Story 6.7 : Confirmation ou déclinaison de participation (participant lié)
 
-En tant que membre avec un rôle assigné en phase de confirmation,  
-je veux confirmer ou décliner ma participation,  
+En tant que **participant lié** avec un rôle assigné en phase de confirmation,  
+je veux confirmer ou décliner ma participation **après validation de la composition**,  
 afin de verrouiller mon engagement ou signaler mon indisponibilité.
 
 **Acceptance Criteria**
 
-- **Given** une composition en phase confirmation, **when** le membre choisit Confirmer ou Décliner, **then** l’état de participation est mis à jour et visible aux rôles autorisés (FR25).
+- **Given** une composition **validée** en phase confirmation ou gaps to fill, **when** le participant lié choisit Confirmer ou Décliner, **then** l’état de participation est mis à jour et visible aux rôles autorisés (FR25).
 - **Couverture :** FR25 ; UX-DR6 (modale participation).
 
 ---
 
-#### Story 6.8 : Confirmation ou déclinaison pour le compte d’un membre (proxy)
+#### Story 6.8 : Confirmation ou déclinaison pour le compte d’un participant (proxy)
 
 En tant qu’organisateur ou administrateur autorisé,  
-je veux confirmer ou décliner pour le compte d’un membre avec traçabilité,  
-afin de débloquer la situation lorsque c’est légitime.
+je veux confirmer ou décliner pour le compte d’un **participant** (y compris name-only) avec traçabilité,  
+afin de débloquer la situation lorsque le participant n’a pas de compte ou ne peut pas agir lui-même.
 
 **Acceptance Criteria**
 
-- **Given** les permissions proxy, **when** l’orga enregistre une décision pour un membre, **then** l’audit enregistre l’acteur réel (FR26, lien FR35).
+- **Given** les permissions proxy, **when** l’orga enregistre une décision pour un participant, **then** l’audit enregistre acteur et sujet (FR26, lien FR35).
 - **Couverture :** FR26.
 
 ---
@@ -721,12 +836,12 @@ afin de débloquer la situation lorsque c’est légitime.
 #### Story 6.9 : Créneaux vacants après déclin et actions de suivi
 
 En tant qu’organisateur,  
-je veux voir les trous laissés par un déclin ou retrait et agir (ex. recréneau, nouveau tirage) selon ce que le produit supporte,  
+je veux voir les créneaux ouverts après déclin/retrait et agir (**assignation manuelle**, **tirage partiel**, **notification ciblée**),  
 afin de compléter l’équipe.
 
 **Acceptance Criteria**
 
-- **Given** un déclin ou retrait, **when** l’organisateur consulte l’événement, **then** les gaps sont mis en évidence et les actions supportées sont proposées (FR27).
+- **Given** un déclin ou retrait en phase awaiting confirmations / gaps to fill, **when** l’organisateur consulte l’événement, **then** les gaps sont mis en évidence et les actions supportées sont proposées (FR27).
 - **Couverture :** FR27.
 
 ---
@@ -744,60 +859,61 @@ afin de communiquer sur le spectacle ou la composition.
 
 ---
 
-### Epic 7 — Invitations et contributeurs externes
+### Epic 7 — Invitations self-service et contributeurs externes (post-MVP)
 
-#### Story 7.1 : Inviter un non-membre sur un rôle et un périmètre d’événements
+#### Story 7.1 : Invitations self-service pour contributeurs externes *(post-MVP)*
 
 En tant qu’organisateur,  
-je veux inviter une personne externe à contribuer sur un rôle pour un ou plusieurs spectacles lorsque la troupe l’autorise,  
-afin d’élargir le vivier sans adhésion complète.
+je veux envoyer une **invitation self-service** pour un rôle et un périmètre d’événements lorsque la troupe a activé cette capacité,  
+afin de faire onboarder un contributeur externe **sans** adhésion troupe préalable (s’appuie sur FR43–FR45 pour les participants gérés en MVP).
 
 **Acceptance Criteria**
 
-- **Given** la capacité activée pour la troupe, **when** l’organisateur crée une invitation avec rôle et périmètre, **then** l’invité reçoit le flux prévu (lien, email, etc.) et l’invitation est traçable.
-- **Couverture :** FR38 ; NFR-S2.
+- **Given** la capacité self-service activée pour la troupe, **when** l’organisateur crée une invitation avec rôle et périmètre, **then** l’invité reçoit le flux prévu (lien, email, etc.) et l’invitation est traçable.
+- **Couverture :** FR38 *(post-MVP)* ; NFR-S2.
 
 ---
 
-#### Story 7.2 : Disponibilités invité et modes de sélection alternatifs
+#### Story 7.2 : Modes de sélection alternatifs pour contributeurs externes *(post-MVP)*
 
-En tant qu’invité non-membre,  
-je veux soumettre mes disponibilités sur le périmètre invité selon des modes alternatifs (ex. choix organisateur, joker) sans les mêmes règles de tirage par défaut que les membres complets,  
+En tant qu’organisateur,  
+je veux configurer des modes alternatifs (direct pick, joker) pour les contributeurs invités sous FR38, **exclus du tirage pondéré par défaut** sauf inclusion explicite,  
 afin de respecter le cadre convenu avec la troupe.
 
 **Acceptance Criteria**
 
-- **Given** une invitation valide, **when** l’invité saisit ses dispos, **then** elles s’appliquent au scope invité uniquement.
-- **Given** la configuration de mode alternatif, **when** l’organisateur constitue l’équipe, **then** les règles FR39 sont respectées (pas de tirage par défaut des membres pleins sur cet invité si configuré ainsi).
-- **Couverture :** FR39 ; aligné DOMAIN/SPEC.
+- **Given** une invitation valide sous FR38, **when** l’organisateur constitue l’équipe, **then** les règles FR39 sont respectées (exclusion du pool de tirage par défaut sauf configuration explicite).
+- **Couverture :** FR39 *(post-MVP)* ; aligné DOMAIN/SPEC.
 
 ---
 
 ### Epic 8 — Notifications (push, email, préférences)
 
-#### Story 8.1 : Opt-in aux notifications navigateur et catégories
+#### Story 8.1 : Opt-in global aux notifications push navigateur
 
 En tant qu’utilisateur,  
-je veux activer les notifications push du navigateur globalement ou par catégories pertinentes,  
-afin d’être informé des événements importants.
+je veux activer ou désactiver les **notifications push du navigateur globalement**,  
+afin d’être informé des événements importants (MVP : pas de préférences par catégorie).
 
 **Acceptance Criteria**
 
-- **Given** un navigateur supporté, **when** l’utilisateur accepte les permissions, **then** l’inscription push est enregistrée côté serveur et l’état UI reflète l’opt-in (FR29).
-- **Couverture :** FR29 ; NFR-R2 (gestion erreurs livraison).
+- **Given** un navigateur supporté, **when** l’utilisateur accepte les permissions push, **then** l’inscription push est enregistrée côté serveur et l’état UI reflète l’opt-in global (FR29).
+- **Given** l’utilisateur refuse ou révoque les permissions, **then** aucune notification push n’est envoyée (FR29/FR30).
+- **Couverture :** FR29, FR30 ; NFR-R2 (gestion erreurs livraison).
 
 ---
 
-#### Story 8.2 : Préférences de notification
+#### Story 8.2 : Préférences de notification *(post-MVP pour catégories)*
 
 En tant qu’utilisateur,  
-je veux gérer mes préférences pour les types de notifications définis par le produit,  
-afin de réduire le bruit.
+je veux gérer mes préférences pour les types de notifications lorsque le produit les expose au-delà de l’opt-in global,  
+afin de réduire le bruit *(catégories différées post-MVP — FR30)*.
 
 **Acceptance Criteria**
 
-- **Given** les types exposés par le produit, **when** l’utilisateur modifie ses préférences, **then** seuls les canaux/types autorisés sont modifiés et appliqués aux envois futurs (FR30).
-- **Couverture :** FR30.
+- **Given** les types exposés par le produit (post-MVP catégories), **when** l’utilisateur modifie ses préférences, **then** seuls les canaux/types autorisés sont modifiés et appliqués aux envois futurs (FR30).
+- **MVP :** l’opt-in global (Story 8.1) gouverne tous les types push ; cette story peut rester en backlog jusqu’à activation catégories.
+- **Couverture :** FR30 *(post-MVP catégories)*.
 
 ---
 
@@ -820,13 +936,14 @@ afin de **ne pas rater une étape** et de faire avancer le spectacle sans dépen
 
 #### Story 9.1 : Consultation de la piste d’audit pour utilisateurs autorisés
 
-En tant qu’utilisateur autorisé,  
-je veux consulter une piste d’audit des changements significatifs (dispos, composition, actions pour le compte de, etc.) avec acteur et horodatage,  
-afin de comprendre ce qui s’est passé.
+En tant qu’**administrateur troupe, organisateur saison ou organisateur événement** autorisé,  
+je veux consulter une piste d’audit des changements significatifs avec **acteur**, **sujet**, **type d’action**, **horodatage à la seconde** et **valeurs avant/après** pour dispos et composition,  
+afin de comprendre ce qui s’est passé (FR35).
 
 **Acceptance Criteria**
 
-- **Given** des événements d’audit enregistrés pour les actions couvertes, **when** un utilisateur avec droit de lecture ouvre la vue audit, **then** les entrées affichent action, cible, acteur réel, horodatage (FR35).
+- **Given** des événements d’audit enregistrés, **when** un utilisateur autorisé ouvre la vue audit, **then** chaque entrée affiche acteur, sujet (si proxy), type d’action, horodatage (FR35).
+- **Given** une modification de disponibilité, sélection de rôle ou assignation de créneau, **when** l’entrée est consultée, **then** les valeurs **avant/après** minimales requises sont visibles (FR35).
 - **Given** un utilisateur non autorisé, **when** il tente l’accès, **then** il est refusé (NFR-S2).
 - **Couverture :** FR35 ; prolonge FR17, FR26 ; NFR-S2.
 
@@ -863,18 +980,37 @@ afin de **passer au nouveau comportement** sans devoir vider le cache manuelleme
 
 ---
 
+### Epic 11 — Analytics workflow (opérateurs produit)
+
+#### Story 11.1 : Événements analytics anonymisés pour indicateurs Success Criteria
+
+En tant qu’**opérateur produit**,  
+je veux que l’application enregistre des **événements analytics anonymisés** sur les jalons workflow clés,  
+afin de mesurer les indicateurs avancés (délai première dispo, délai confirmations complètes, suivi des liens notification).
+
+**Acceptance Criteria**
+
+- **Given** l’ouverture d’une fenêtre de disponibilités pour un événement, **when** un participant soumet sa première dispo, **then** un événement permettant de calculer le délai ouverture→première soumission est enregistré (FR47).
+- **Given** une composition validée, **when** toutes les confirmations requises sont obtenues, **then** un événement permettant de calculer le délai validation→confirmations complètes est enregistré (FR47).
+- **Given** une notification avec URL canonique événement, **when** le destinataire suit le lien, **then** un événement de follow-through est enregistré si applicable (FR47).
+- **Given** un utilisateur troupe ordinaire, **when** il tente d’accéder aux analytics, **then** l’accès est refusé (MVP : opérateurs produit uniquement).
+- **And** les événements sont **anonymisés** conformément à la politique produit (NFR-S2/S3).
+- **Couverture :** FR47 ; NFR-S2.
+
+---
+
 ### Couverture UX-DR (contrôle croisé)
 
 | UX-DR | Story(s) principale(s) |
 |-------|-------------------------|
 | UX-DR1 | 3.1 |
-| UX-DR2 | 3.3 |
+| UX-DR2, UX-DR12 | 3.3 |
 | UX-DR3 | 5.1 |
 | UX-DR4 | 6.1, 6.2 |
 | UX-DR5 | 5.2, 5.3 |
 | UX-DR6 | 6.3–6.7 |
 | UX-DR7 | 6.10 |
-| UX-DR8 | 2.6 |
+| UX-DR8 | 2.7 |
 | UX-DR9 | 3.6 |
-| UX-DR10 | 2.2, 3.4, 3.5 |
+| UX-DR10 | 2.2, 2.3, **2.8**, 3.4, 3.5, **3.8** |
 | UX-DR11 | (critères transverses NFR-A1 + Angular Material + tokens — intégrer en revue/recette par epic UI) |
