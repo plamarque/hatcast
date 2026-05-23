@@ -1,5 +1,6 @@
 package com.hatcast.api.event
 
+import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.event.dto.UpdateEventRequest
 import com.hatcast.api.season.SeasonEntity
 import com.hatcast.api.season.SeasonRepository
@@ -26,7 +27,8 @@ class EventServiceUpdateTest {
     private val eventRepository = mock<EventRepository>()
     private val seasonRepository = mock<SeasonRepository>()
     private val troupeAccess = mock<TroupeAccessService>()
-    private val service = EventService(eventRepository, seasonRepository, troupeAccess)
+    private val availabilityService = mock<AvailabilityService>()
+    private val service = EventService(eventRepository, seasonRepository, troupeAccess, availabilityService)
 
     private val troupeId = UUID.fromString("a0000001-0000-4000-8000-000000000001")
     private val seasonId = UUID.fromString("22222222-2222-2222-2222-222222222222")

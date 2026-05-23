@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 
+import type { AvailabilityStatus } from '../availability/availability-status'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export interface EventResponse {
@@ -14,6 +15,7 @@ export interface EventResponse {
   roleSlots: Record<string, number>
   createdAt: string
   updatedAt: string
+  myAvailabilityStatus?: AvailabilityStatus
 }
 
 export interface PagedEventsResponse {

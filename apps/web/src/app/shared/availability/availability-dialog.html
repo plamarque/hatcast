@@ -1,0 +1,60 @@
+<h2 mat-dialog-title cdkFocusInitial>
+  Disponibilité de {{ data.subjectDisplayName }}
+</h2>
+
+<mat-dialog-content class="availability-dialog">
+  <div class="availability-dialog__context">
+    <p class="availability-dialog__event-title">{{ data.eventTitle }}</p>
+    <p class="availability-dialog__event-date">{{ formattedDate }}</p>
+  </div>
+
+  <div class="availability-dialog__choices" role="group" aria-label="Choix de disponibilité">
+    <button
+      mat-flat-button
+      type="button"
+      class="availability-dialog__choice availability-dialog__choice--available"
+      [class.availability-dialog__choice--active]="isSelected('available')"
+      [disabled]="saving()"
+      (click)="choose('available')"
+    >
+      @if (isSelected('available')) {
+        <span class="availability-dialog__check" aria-hidden="true">✓</span>
+      }
+      Dispo
+    </button>
+    <button
+      mat-flat-button
+      type="button"
+      class="availability-dialog__choice availability-dialog__choice--unavailable"
+      [class.availability-dialog__choice--active]="isSelected('unavailable')"
+      [disabled]="saving()"
+      (click)="choose('unavailable')"
+    >
+      @if (isSelected('unavailable')) {
+        <span class="availability-dialog__check" aria-hidden="true">✓</span>
+      }
+      Pas dispo
+    </button>
+    <button
+      mat-flat-button
+      type="button"
+      class="availability-dialog__choice availability-dialog__choice--unknown"
+      [class.availability-dialog__choice--active]="isSelected('unknown')"
+      [disabled]="saving()"
+      (click)="choose('unknown')"
+    >
+      @if (isSelected('unknown')) {
+        <span class="availability-dialog__check" aria-hidden="true">✓</span>
+      }
+      Non renseigné
+    </button>
+  </div>
+
+  @if (feedbackText(); as feedback) {
+    <p class="availability-dialog__feedback">{{ feedback }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close [disabled]="saving()">Fermer</button>
+</mat-dialog-actions>

@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: HatCast API — Disponibilités (fragment)
+  description: >
+    Saisie de disponibilité par événement pour le membre connecté.
+    Trois états API : available, unavailable, unknown (absence de ligne en base).
+  version: 0.1.0
+
+servers:
+  - url: https://{apiHost}/v1
+    variables:
+      apiHost:
+        default: localhost:8080
+
+tags:
+  - name: Disponibilités
+
+paths:
+  /seasons/{seasonId}/events/{eventId}/availability/me:
+    get:
+      tags: [Disponibilités]
+      summary: Lire ma disponibilité pour un spectacle
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyAvailabilityResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Saison ou événement inconnu
+    put:
+      tags: [Disponibilités]
+      summary: Enregistrer ma disponibilité pour un spectacle
+      description: >
+        `unknown` supprime toute ligne existante (Non renseigné).
+        PUT idempotent pour available/unavailable.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetMyAvailabilityRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyAvailabilityResponse'
+        '400':
+          description: status invalide
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Saison ou événement inconnu
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: HATCAST_SESSION
+
+  parameters:
+    SeasonId:
+      name: seasonId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    AvailabilityStatus:
+      type: string
+      enum: [available, unavailable, unknown]
+
+    MyAvailabilityResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    SetMyAvailabilityRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/AvailabilityStatus'

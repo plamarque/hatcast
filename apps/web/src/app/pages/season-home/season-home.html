@@ -37,11 +37,13 @@
         [totalElements]="totalElements()"
         [loadedEventsCount]="events().length"
         [canManageEvents]="canManageEvents()"
+        [canEditAvailability]="canEditAvailability()"
         (eventClick)="openEvent($event)"
         (editClick)="openEdit($event)"
         (archiveClick)="confirmArchive($event)"
         (createClick)="openCreate()"
         (loadMoreClick)="loadMoreEvents()"
+        (availabilityClick)="openAvailability($event)"
       />
     } @else {
       <app-season-history-shell />

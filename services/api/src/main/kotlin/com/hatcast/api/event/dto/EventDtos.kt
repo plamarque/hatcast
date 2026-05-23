@@ -23,9 +23,13 @@ data class EventResponseDto(
     val roleSlots: Map<String, Int>,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val myAvailabilityStatus: String? = null,
 ) {
     companion object {
-        fun from(e: EventEntity): EventResponseDto =
+        fun from(
+            e: EventEntity,
+            myAvailabilityStatus: String? = null,
+        ): EventResponseDto =
             EventResponseDto(
                 id = e.id,
                 seasonId = e.season.id,
@@ -38,6 +42,7 @@ data class EventResponseDto(
                 roleSlots = RoleTemplates.normalize(e.roleSlots),
                 createdAt = e.createdAt,
                 updatedAt = e.updatedAt,
+                myAvailabilityStatus = myAvailabilityStatus,
             )
     }
 }

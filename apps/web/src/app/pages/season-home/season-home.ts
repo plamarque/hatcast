@@ -8,11 +8,13 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
   type EventResponse,
   EventApiService,
 } from '../../core/events/event-api.service'
 import { SeasonApiService, type SeasonResponse } from '../../core/seasons/season-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
 import {
   OrganizerApiService,
@@ -40,6 +42,11 @@ import {
   EventFormDialog,
   type EventFormDialogData,
 } from './event-form-dialog'
+import {
+  AvailabilityDialog,
+  type AvailabilityDialogData,
+  type AvailabilityDialogResult,
+} from '../../shared/availability/availability-dialog'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -60,6 +67,7 @@ const FETCH_PAGE_SIZE = 50
 export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
   private readonly seasonsApi = inject(SeasonApiService)
+  private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly eventsApi = inject(EventApiService)
   private readonly organizerApi = inject(OrganizerApiService)
@@ -135,6 +143,21 @@ export class SeasonHome implements OnDestroy, OnInit {
     () =>
       this.canManageSeasonParticipants() ||
       this.canManageSeasonOrganizersOnly(),
+  )
+
+  protected readonly canEditAvailability = computed(() => {
+    const user = this.user()
+    const season = this.season()
+    if (!user || !season) {
+      return false
+    }
+    return this.troupeContext
+      .activeTroupes()
+      .some((troupe) => troupe.id === season.troupeId && troupe.membership.status === 'ACTIVE')
+  })
+
+  protected readonly myDisplayName = computed(() =>
+    this.troupeContext.currentUserDisplayLabel(this.user()),
   )
 
   async ngOnInit(): Promise<void> {
@@ -329,6 +352,39 @@ export class SeasonHome implements OnDestroy, OnInit {
 
   protected openEvent(eventId: string): void {
     void this.router.navigate(['/saison', this.slug(), 'event', eventId])
+  }
+
+  protected openAvailability(payload: { eventId: string; status: AvailabilityStatus }): void {
+    const s = this.season()
+    const ev = this.events().find((e) => e.id === payload.eventId)
+    if (!s || !ev || !this.canEditAvailability()) {
+      return
+    }
+    const ref = this.dialog.open<AvailabilityDialog, AvailabilityDialogData, AvailabilityDialogResult>(
+      AvailabilityDialog,
+      {
+        data: {
+          seasonId: s.id,
+          eventId: ev.id,
+          eventTitle: ev.title,
+          eventStartsAt: ev.startsAt,
+          subjectDisplayName: this.myDisplayName(),
+          initialStatus: payload.status,
+        },
+        width: 'min(100vw - 2rem, 26rem)',
+        autoFocus: 'first-tabbable',
+      },
+    )
+    ref.afterClosed().subscribe((result) => {
+      if (!result) {
+        return
+      }
+      this.events.update((list) =>
+        list.map((e) =>
+          e.id === ev.id ? { ...e, myAvailabilityStatus: result.status } : e,
+        ),
+      )
+    })
   }
 
   protected loadMoreEvents(): void {

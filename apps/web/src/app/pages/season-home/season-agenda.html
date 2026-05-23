@@ -56,7 +56,17 @@
                 <span class="agenda-card__badge agenda-card__badge--composition" aria-hidden="true">
                   &nbsp;
                 </span>
-                <span class="agenda-card__badge agenda-card__badge--dispo">Non renseigné</span>
+                @if (canEditAvailability()) {
+                  <button
+                    type="button"
+                    class="agenda-card__badge agenda-card__badge--dispo agenda-card__badge--dispo{{ dispoModifier(dispoStatus(ev)) }}"
+                    (click)="onAvailabilityClick(ev.id, dispoStatus(ev), $event)"
+                    (keydown.enter)="onAvailabilityClick(ev.id, dispoStatus(ev), $event)"
+                    (keydown.space)="onAvailabilityClick(ev.id, dispoStatus(ev), $event); $event.preventDefault()"
+                  >
+                    {{ dispoLabel(dispoStatus(ev)) }}
+                  </button>
+                }
               </div>
             </div>
             @if (canManageEvents()) {

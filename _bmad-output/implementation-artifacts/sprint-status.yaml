@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-24T22:24:00Z"
+last_updated: "2026-05-24T23:45:00Z"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -80,7 +80,7 @@ development_status:
   epic-4-retrospective: optional
 
   epic-5: in-progress
-  5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: ready-for-dev
+  5-1-saisie-de-disponibilite-par-evenement-etats-dispo-pas-dispo-non-renseigne: done
   5-2-disponibilite-par-role-lorsque-le-type-devenement-lexige: backlog
   5-3-vue-organisateur-disponibilites-par-role-et-vues-moi-tous: backlog
   5-4-commentaire-optionnel-sur-la-disponibilite: backlog

@@ -1,6 +1,7 @@
 package com.hatcast.api.event
 
 import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.availability.AvailabilityService
 import com.hatcast.api.event.dto.CreateEventRequest
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.event.dto.PagedEventsResponse
@@ -23,6 +24,7 @@ class EventService(
     private val eventRepository: EventRepository,
     private val seasonRepository: SeasonRepository,
     private val troupeAccess: TroupeAccessService,
+    private val availabilityService: AvailabilityService,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -58,8 +60,16 @@ class EventService(
                     eventRepository.findUpcomingNonArchived(seasonId, from, pr)
                 }
             }
+        val eventIds = p.content.map { it.id }
+        val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
         return PagedEventsResponse(
-            content = p.content.map { EventResponseDto.from(it) },
+            content =
+                p.content.map { event ->
+                    EventResponseDto.from(
+                        event,
+                        myAvailabilityStatus = availabilityByEvent[event.id],
+                    )
+                },
             page = p.number,
             size = p.size,
             totalElements = p.totalElements,

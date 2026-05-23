@@ -62,6 +62,45 @@ describe('SeasonAgenda', () => {
     expect(spy).toHaveBeenCalledWith('event-1')
   })
 
+  it('hides the dispo badge when availability editing is disabled', () => {
+    fixture.componentRef.setInput('canEditAvailability', false)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.agenda-card__badge--dispo')).toBeNull()
+  })
+
+  it('emits availabilityClick without opening the event when the badge is clicked', () => {
+    const eventSpy = vi.fn()
+    const availabilitySpy = vi.fn()
+    fixture.componentRef.setInput('canEditAvailability', true)
+    fixture.detectChanges()
+    fixture.componentInstance.eventClick.subscribe(eventSpy)
+    fixture.componentInstance.availabilityClick.subscribe(availabilitySpy)
+
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo') as HTMLElement
+    badge.click()
+
+    expect(availabilitySpy).toHaveBeenCalledWith({ eventId: 'event-1', status: 'unknown' })
+    expect(eventSpy).not.toHaveBeenCalled()
+  })
+
+  it('emits availabilityClick without opening the event when the badge is activated by keyboard', () => {
+    const eventSpy = vi.fn()
+    const availabilitySpy = vi.fn()
+    fixture.componentRef.setInput('canEditAvailability', true)
+    fixture.detectChanges()
+    fixture.componentInstance.eventClick.subscribe(eventSpy)
+    fixture.componentInstance.availabilityClick.subscribe(availabilitySpy)
+
+    const badge = fixture.nativeElement.querySelector('.agenda-card__badge--dispo') as HTMLElement
+    badge.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    badge.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+
+    expect(availabilitySpy).toHaveBeenCalledTimes(2)
+    expect(availabilitySpy).toHaveBeenCalledWith({ eventId: 'event-1', status: 'unknown' })
+    expect(eventSpy).not.toHaveBeenCalled()
+  })
+
   it('keeps cards visible and disables load more while refreshing', () => {
     fixture.componentRef.setInput('loading', true)
     fixture.componentRef.setInput('truncated', true)

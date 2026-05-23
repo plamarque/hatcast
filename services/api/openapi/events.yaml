@@ -291,6 +291,10 @@ components:
         updatedAt:
           type: string
           format: date-time
+        myAvailabilityStatus:
+          type: string
+          enum: [available, unavailable, unknown]
+          description: Présent pour un membre authentifié lors de la liste des spectacles
 
     CreateEventRequest:
       type: object
