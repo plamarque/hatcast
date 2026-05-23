@@ -471,7 +471,9 @@ afin d’analyser la participation sur la saison.
 **Acceptance Criteria**
 
 - **Given** des données d’historique disponibles pour la saison, **when** l’utilisateur ouvre la vue historique, **then** la grille colonnes rôles × mois est affichée avec lignes expand/collapse (UX-DR9).
-- **Given** les actions « exporter » / « masquer » si offertes, **when** l’utilisateur les déclenche, **then** le comportement suit SPEC (formats, permissions).
+- **Given** les colonnes stats (JEU, DECORUM, DEPLAC., BÉNÉVOLE) et mois, **when** dispos et sélections existent, **then** chaque cellule affiche le ratio **sélectionné/disponible** avec **pourcentage arrondi** (ex. `2/7 (29%)`) — règles détaillées SPEC slice 12 et story file 3.6.
+- **Given** l’action **Exporter**, **when** l’utilisateur télécharge le CSV, **then** le format suit SPEC (stats/mois `sel/avail (%)`, cellules événement Dispo/Décliné/Non dispo/-) — référence V1 0.48 dans `legacy/`.
+- **Given** les actions « masquer », **when** l’utilisateur les déclenche, **then** le comportement suit SPEC (formats, permissions).
 - **Couverture :** UX-DR9 ; NFR-P1.
 
 ---

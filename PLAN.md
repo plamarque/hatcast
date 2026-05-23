@@ -166,7 +166,8 @@ Specification: SPEC.md, section **« Event details as full screen (specification
 
 - **Spec:** SPEC.md, slice « Composition history statistics – selected vs available (Play, Decorum, Volunteer) ».
 - **Summary:** In CastsView stats columns (Play, Decorum, Volunteer), display selected/available (e.g. 2/7) and optionally a rounded percentage below. Enables comparison of how often players were selected vs how often they were available.
-- No development plan yet; to be scheduled later.
+- **V1 (main 0.48):** Implemented — `StatRatioDisplay`, CSV export sel/dispo, cherry-picked to `legacy/` on branch `v2`.
+- **V2:** Scheduled in story 3.6 — [_bmad-output/implementation-artifacts/3-6-vue-historique-colonnes-roles-mois-export-masquage.md](_bmad-output/implementation-artifacts/3-6-vue-historique-colonnes-roles-mois-export-masquage.md).
 
 ---
 
