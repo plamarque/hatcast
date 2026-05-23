@@ -95,6 +95,42 @@ paths:
         '403':
           description: Adhésion directe refusée hors troupe de démonstration, ou CSRF/session invalide
 
+    patch:
+      tags: [Troupes]
+      summary: Mettre à jour le pseudo affiché de l'utilisateur courant dans la troupe
+      description: >
+        Self-service : seul `displayName` peut être modifié (pas le rôle ni le statut).
+        Trim côté serveur ; pseudo non vide après trim ; max 255 caractères.
+        Requiert CSRF (`X-XSRF-TOKEN`).
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: troupeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMyMembershipRequest'
+      responses:
+        '200':
+          description: Adhésion mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipSummary'
+        '400':
+          description: Pseudo vide ou trop long
+        '403':
+          description: Utilisateur non membre actif de la troupe
+        '404':
+          description: Troupe inconnue
+
   /troupes/{troupeId}/members:
     get:
       tags: [Membres]
@@ -877,6 +913,15 @@ components:
           maxLength: 255
         baselineRole:
           $ref: '#/components/schemas/TroupeBaselineRole'
+
+    UpdateMyMembershipRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+          maxLength: 255
+          description: Pseudo affiché dans la troupe ; trim côté serveur.
 
     UpdateTroupeMemberRequest:
       type: object

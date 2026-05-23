@@ -1,9 +1,47 @@
 .account-ph {
-  max-width: 32rem;
+  max-width: 40rem;
   margin: 2rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.account-ph__card {
+  width: 100%;
 }
 
 .account-ph__text {
   margin: 0 0 1rem;
   line-height: 1.5;
+}
+
+.account-ph__spinner {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.account-ph__pseudo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.account-ph__pseudo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.account-ph__troupe-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.account-ph__field {
+  width: 100%;
+}
+
+.account-ph__back {
+  align-self: flex-start;
 }

@@ -8,6 +8,7 @@ import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
+import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.user.UserAccountService
 import com.hatcast.api.user.UserEntity
@@ -200,6 +201,20 @@ class TroupeMembershipService(
             val concurrent = membershipRepository.findByTroupe_IdAndUser_Id(troupeId, user.id) ?: throw ex
             TroupeMemberAdminDto.from(concurrent)
         }
+    }
+
+    @Transactional
+    fun updateMyMembership(
+        userId: UUID,
+        troupeId: UUID,
+        body: UpdateMyMembershipRequest,
+    ): MembershipSummaryDto {
+        val membership = requireActiveMembership(userId, troupeId)
+        membership.displayName =
+            normalizeDisplayName(body.displayName)
+                ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom affiché ne peut pas être vide.")
+        membership.updatedAt = Instant.now()
+        return MembershipSummaryDto.from(membershipRepository.save(membership))
     }
 
     @Transactional

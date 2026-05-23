@@ -100,6 +100,51 @@ describe('TroupeApiService', () => {
     )
   })
 
+  it('updateMyMembership envoie PATCH avec trim, credentials et CSRF', async () => {
+    document.cookie = 'XSRF-TOKEN=token'
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          id: 'm-1',
+          displayName: 'Patou',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().updateMyMembership('t-1', { displayName: '  Patou  ' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/v1/troupes/t-1/memberships/me',
+      expect.objectContaining({
+        method: 'PATCH',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': 'token',
+        }),
+        body: JSON.stringify({ displayName: 'Patou' }),
+      }),
+    )
+    expect(result.ok).toBe(true)
+    expect(result.data?.displayName).toBe('Patou')
+  })
+
+  it('updateMyMembership remonte le statut HTTP en erreur', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400 })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service().updateMyMembership('t-1', { displayName: 'Patou' })
+
+    expect(result.ok).toBe(false)
+    expect(result.status).toBe(400)
+  })
+
   it('updateMember envoie PATCH avec CSRF', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

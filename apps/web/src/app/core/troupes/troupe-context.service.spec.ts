@@ -81,6 +81,36 @@ describe('TroupeContextService', () => {
     expect(service().selectedTroupe()?.id).toBe('troupe-2')
   })
 
+  it('priorise le pseudo troupe pour le libellé utilisateur courant', async () => {
+    api.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice', 'ACTIVE', 'Patou')],
+    })
+    await service().load()
+
+    expect(
+      service().currentUserDisplayLabel({
+        displayName: 'Account Name',
+        email: 'a@example.com',
+      }),
+    ).toBe('Patou')
+  })
+
+  it('met à jour localement le pseudo après patchMembershipDisplayName', async () => {
+    api.listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [troupe('troupe-1', 'La Malice', 'ACTIVE', 'Avant')],
+    })
+    await service().load()
+
+    service().patchMembershipDisplayName('troupe-1', 'Après')
+
+    expect(service().selectedTroupe()?.membership.displayName).toBe('Après')
+    expect(service().activeTroupes()[0].membership.displayName).toBe('Après')
+  })
+
   function service(): TroupeContextService {
     return TestBed.inject(TroupeContextService)
   }
@@ -90,6 +120,7 @@ function troupe(
   id: string,
   name: string,
   status: 'ACTIVE' | 'INACTIVE' = 'ACTIVE',
+  displayName = name,
 ): TroupeListItem {
   return {
     id,
@@ -97,7 +128,7 @@ function troupe(
     slug: id,
     membership: {
       id: `membership-${id}`,
-      displayName: name,
+      displayName,
       status,
       baselineRole: 'MEMBER',
       createdAt: '',

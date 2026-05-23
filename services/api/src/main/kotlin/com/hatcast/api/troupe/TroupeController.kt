@@ -7,6 +7,7 @@ import com.hatcast.api.troupe.dto.MembershipSummaryDto
 import com.hatcast.api.troupe.dto.PagedTroupeMembersResponse
 import com.hatcast.api.troupe.dto.TroupeMemberAdminDto
 import com.hatcast.api.troupe.dto.TroupeListItemDto
+import com.hatcast.api.troupe.dto.UpdateMyMembershipRequest
 import com.hatcast.api.troupe.dto.UpdateTroupeMemberRequest
 import com.hatcast.api.user.UserImportService
 import com.hatcast.api.user.dto.UserImportResultDto
@@ -72,6 +73,14 @@ class TroupeController(
                 )
         return MembershipSummaryDto.from(membership)
     }
+
+    @PatchMapping("/{troupeId}/memberships/me")
+    fun updateMyMembership(
+        @PathVariable troupeId: UUID,
+        @Valid @RequestBody body: UpdateMyMembershipRequest,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): MembershipSummaryDto =
+        membershipService.updateMyMembership(principal.userId, troupeId, body)
 
     @GetMapping("/{troupeId}/members")
     fun listMembers(

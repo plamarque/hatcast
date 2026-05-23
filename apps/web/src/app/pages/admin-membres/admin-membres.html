@@ -20,10 +20,10 @@
         mat-stroked-button
         class="admin-membres__user"
         [matMenuTriggerFor]="userMenu"
-        [attr.aria-label]="'Menu compte : ' + (u.displayName || u.email || 'Utilisateur')"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel()"
       >
         <mat-icon class="admin-membres__user-icon">account_circle</mat-icon>
-        <span class="admin-membres__user-label">{{ u.displayName || u.email || 'Compte' }}</span>
+        <span class="admin-membres__user-label">{{ userDisplayLabel() }}</span>
       </button>
       <mat-menu #userMenu="matMenu">
         <a mat-menu-item routerLink="/compte">Mon compte</a>

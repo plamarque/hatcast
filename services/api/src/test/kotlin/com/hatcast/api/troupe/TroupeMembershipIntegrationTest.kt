@@ -169,6 +169,142 @@ class TroupeMembershipIntegrationTest {
     }
 
     @Test
+    fun `member can patch own display name via memberships me`() {
+        val cookie = signInAndJoin("sub-self-pseudo-1", "self-pseudo-1@example.com", "Self Pseudo")
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"  Patou  "}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Patou"))
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.baselineRole").value("MEMBER"))
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/memberships/me").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Patou"))
+    }
+
+    @Test
+    fun `empty display name on self patch returns 400`() {
+        val cookie = signInAndJoin("sub-self-pseudo-empty", "self-pseudo-empty@example.com", "Self Empty")
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"   "}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+
+        mockMvc
+            .perform(get("/v1/troupes/$seedTroupeId/memberships/me").cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Self Empty"))
+    }
+
+    @Test
+    fun `display name longer than 255 on self patch returns 400`() {
+        val cookie = signInAndJoin("sub-self-pseudo-long", "self-pseudo-long@example.com", "Self Long")
+        val tooLong = "x".repeat(256)
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"$tooLong"}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `non member cannot patch own membership display name`() {
+        val cookie = TestAuthSupport.sessionCookieFromGoogleSignIn(
+            mockMvc,
+            googleIdTokenService,
+            "sub-self-pseudo-nonmember",
+        )
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Hacker"}""")
+                    .with(csrf()),
+            ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `self patch display name in troupe A does not change troupe B`() {
+        val troupeBId = UUID.randomUUID()
+        val troupeB =
+            troupeRepository.save(
+                TroupeEntity(
+                    id = troupeBId,
+                    name = "Other ${troupeBId.toString().take(8)}",
+                    slug = "other-${troupeBId.toString().take(8)}",
+                ),
+            )
+        val cookie = signIn("sub-self-pseudo-cross", "self-pseudo-cross@example.com", "Cross User")
+        val user = userRepository.findByGoogleSub("sub-self-pseudo-cross")!!
+        TestAuthSupport.joinSeedTroupe(mockMvc, cookie, seedTroupeId)
+        membershipRepository.save(
+            TroupeMembershipEntity(
+                troupe = troupeB,
+                user = user,
+                status = TroupeMembershipStatus.ACTIVE,
+                baselineRole = TroupeBaselineRole.MEMBER,
+                displayName = "Troupe B Name",
+            ),
+        )
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Troupe A Name"}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Troupe A Name"))
+
+        val troupeBMembership = membershipRepository.findByTroupe_IdAndUser_Id(troupeBId, user.id)!!
+        org.junit.jupiter.api.Assertions.assertEquals("Troupe B Name", troupeBMembership.displayName)
+    }
+
+    @Test
+    fun `self patch ignores role and status fields`() {
+        val cookie = signInAndJoin("sub-self-pseudo-fields", "self-pseudo-fields@example.com", "Self Fields")
+
+        mockMvc
+            .perform(
+                patch("/v1/troupes/$seedTroupeId/memberships/me")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "displayName":"Updated Name",
+                          "baselineRole":"TROUPE_ADMIN",
+                          "status":"INACTIVE"
+                        }
+                        """.trimIndent(),
+                    ).with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.displayName").value("Updated Name"))
+            .andExpect(jsonPath("$.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.baselineRole").value("MEMBER"))
+    }
+
+    @Test
     fun `troupe admin can list add update and deactivate members`() {
         val adminCookie = signInAndJoin("sub-admin-members-1", "admin-members-1@example.com", "Admin Members")
         promoteSeedMemberToAdmin("sub-admin-members-1")

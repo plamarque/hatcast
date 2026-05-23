@@ -44,6 +44,31 @@ export class TroupeContextService {
     return this.load(troupeId)
   }
 
+  currentUserDisplayLabel(user: { displayName: string | null; email: string | null } | null): string {
+    const membershipName = this.selectedTroupe()?.membership.displayName.trim()
+    if (membershipName) return membershipName
+    const accountName = user?.displayName?.trim()
+    if (accountName) return accountName
+    if (user?.email) return user.email
+    return 'Compte'
+  }
+
+  patchMembershipDisplayName(troupeId: string, displayName: string): void {
+    const active = this.activeTroupes().map((troupe) =>
+      troupe.id === troupeId
+        ? { ...troupe, membership: { ...troupe.membership, displayName } }
+        : troupe,
+    )
+    this.activeTroupes.set(active)
+    const selected = this.selectedTroupe()
+    if (selected?.id === troupeId) {
+      this.selectedTroupe.set({
+        ...selected,
+        membership: { ...selected.membership, displayName },
+      })
+    }
+  }
+
   selectTroupe(troupeId: string): boolean {
     const selected = this.activeTroupes().find((troupe) => troupe.id === troupeId)
     if (!selected) {

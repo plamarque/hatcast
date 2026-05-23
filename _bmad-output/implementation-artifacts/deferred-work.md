@@ -41,3 +41,7 @@
 ## Deferred from: code review of 2-4-navigation-entre-troupes.md (2026-05-23)
 
 - localStorage indisponible : `selectTroupe` met à jour le signal en mémoire mais si `writeStoredTroupeId` échoue, un `load()` ultérieur peut restaurer une préférence périmée depuis le stockage — edge case navigateurs durcis, commentaire déjà présent dans le service.
+
+## Deferred from: code review of 2-5-pseudo-affiche-par-troupe.md (2026-05-23)
+
+- Correction email dupliqué dans `EventControllerIntegrationTest` (email fixe `event@example.com` remplacé par email par sub) — correctif flaky test hors périmètre story 2.5, conservé dans le diff.

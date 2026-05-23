@@ -81,6 +81,13 @@ data class AddTroupeMemberRequest(
     val baselineRole: TroupeBaselineRole? = null,
 )
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateMyMembershipRequest(
+    @field:NotBlank(message = "Le nom affiché ne peut pas être vide.")
+    @field:Size(max = 255)
+    val displayName: String,
+)
+
 @JsonDeserialize(using = UpdateTroupeMemberRequestDeserializer::class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class UpdateTroupeMemberRequest(

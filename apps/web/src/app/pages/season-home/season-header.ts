@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core'
+import { Component, inject, input } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
@@ -6,6 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterLink } from '@angular/router'
 
 import type { UserSummary } from '../../core/auth/auth-api.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 
 @Component({
   selector: 'app-season-header',
@@ -20,9 +21,15 @@ import type { UserSummary } from '../../core/auth/auth-api.service'
   styleUrl: './season-header.scss',
 })
 export class SeasonHeader {
+  private readonly troupeContext = inject(TroupeContextService)
+
   readonly seasonTitle = input.required<string>()
   readonly seasonSlug = input.required<string>()
   readonly troupeName = input<string | null>(null)
   readonly user = input<UserSummary | null>(null)
   readonly canManageSettings = input(false)
+
+  userDisplayLabel(): string {
+    return this.troupeContext.currentUserDisplayLabel(this.user())
+  }
 }

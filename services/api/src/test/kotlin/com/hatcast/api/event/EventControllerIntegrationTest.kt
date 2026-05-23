@@ -58,7 +58,7 @@ class EventControllerIntegrationTest {
             mockMvc,
             googleIdTokenService,
             googleSub,
-            email = "event@example.com",
+            email = "$googleSub@example.com",
             name = "Event Test",
         )
         promoteSeedMemberToAdmin(googleSub)

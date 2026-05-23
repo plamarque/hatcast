@@ -17,6 +17,7 @@ import {
 } from '../../core/permissions/organizer-api.service'
 import type { SeasonResponse } from '../../core/seasons/season-api.service'
 import { TroupeSeasonResolverService } from '../../core/troupes/troupe-season-resolver.service'
+import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { MembresTab } from './membres-tab'
 import { OrganisateursTab } from './organisateurs-tab'
 
@@ -40,6 +41,7 @@ export type AdminMembresTab = 'membres' | 'organisateurs'
 })
 export class AdminMembres implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
+  private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
   private readonly organizerApi = inject(OrganizerApiService)
   private readonly route = inject(ActivatedRoute)
@@ -80,6 +82,10 @@ export class AdminMembres implements OnDestroy, OnInit {
     if (!se) return ''
     return troupe ? `${se.title} · ${troupe}` : se.title
   })
+
+  protected userDisplayLabel(): string {
+    return this.troupeContext.currentUserDisplayLabel(this.user())
+  }
 
   async ngOnInit(): Promise<void> {
     const session = await this.auth.ensureHatcastSession()
@@ -168,6 +174,7 @@ export class AdminMembres implements OnDestroy, OnInit {
 
     this.troupeId.set(resolved.troupe.id)
     this.troupeName.set(resolved.troupe.name)
+    this.troupeContext.selectTroupe(resolved.troupe.id)
     this.season.set(resolved.season)
     const pr = await this.organizerApi.mySeasonPermissions(resolved.season.id)
     if (requestId !== this.loadRequestId) return

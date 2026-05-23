@@ -1,13 +1,78 @@
-<mat-card appearance="outlined" class="account-ph">
-  <mat-card-header>
-    <mat-card-title>Mon compte</mat-card-title>
-    <mat-card-subtitle>Paramètres du compte</mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <p class="account-ph__text">
-      La gestion détaillée du compte (e-mail, mot de passe lorsque vous êtes connecté, etc.) arrive
-      dans une prochaine livraison.
-    </p>
-    <a mat-button routerLink="/accueil">Retour à l’accueil</a>
-  </mat-card-content>
-</mat-card>
+<div class="account-ph">
+  <mat-card appearance="outlined" class="account-ph__card">
+    <mat-card-header>
+      <mat-card-title>Mon compte</mat-card-title>
+      <mat-card-subtitle>Paramètres du compte</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="account-ph__text">
+        La gestion détaillée du compte (e-mail, mot de passe lorsque vous êtes connecté, etc.) arrive
+        dans une prochaine livraison.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  @if (loading()) {
+    <div class="account-ph__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (loadError()) {
+    <mat-card appearance="outlined" class="account-ph__card">
+      <mat-card-content>
+        <p class="account-ph__text">Impossible de charger vos troupes. Réessayez plus tard.</p>
+      </mat-card-content>
+    </mat-card>
+  } @else if (troupes().length === 0) {
+    <mat-card appearance="outlined" class="account-ph__card">
+      <mat-card-content>
+        <p class="account-ph__text">
+          Pour définir un pseudo, rejoignez d’abord une troupe depuis la liste des saisons.
+        </p>
+        <a mat-button routerLink="/seasons">Voir les saisons</a>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card appearance="outlined" class="account-ph__card">
+      <mat-card-header>
+        <mat-card-title>Pseudo par troupe</mat-card-title>
+        <mat-card-subtitle>
+          Nom affiché aux autres membres de la troupe. Chaque troupe a son propre pseudo.
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content class="account-ph__pseudo-list">
+        @for (troupe of troupes(); track troupe.id) {
+          <div class="account-ph__pseudo-row">
+            <p class="account-ph__troupe-name">{{ troupe.name }}</p>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="account-ph__field">
+              <mat-label>Pseudo</mat-label>
+              <input
+                matInput
+                maxlength="255"
+                [ngModel]="pseudoByTroupeId()[troupe.id]"
+                (ngModelChange)="onPseudoInput(troupe.id, $event)"
+                (keydown.enter)="savePseudo(troupe)"
+              />
+              @if (validationErrorByTroupeId()[troupe.id]) {
+                <mat-error>Le pseudo ne peut pas être vide.</mat-error>
+              }
+            </mat-form-field>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="savingTroupeId() === troupe.id"
+              (click)="savePseudo(troupe)"
+            >
+              @if (savingTroupeId() === troupe.id) {
+                <mat-spinner diameter="20" />
+              } @else {
+                Enregistrer
+              }
+            </button>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <a mat-button routerLink="/accueil" class="account-ph__back">Retour à l’accueil</a>
+</div>

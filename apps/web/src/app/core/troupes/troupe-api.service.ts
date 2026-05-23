@@ -46,6 +46,10 @@ export interface AddTroupeMemberRequest {
   baselineRole?: TroupeBaselineRole
 }
 
+export interface UpdateMyMembershipRequest {
+  displayName: string
+}
+
 export interface UpdateTroupeMemberRequest {
   displayName?: string
   status?: TroupeMembershipStatus
@@ -131,6 +135,30 @@ export class TroupeApiService {
       }
       const data = (await res.json()) as MembershipSummary
       return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
+  async updateMyMembership(
+    troupeId: string,
+    body: UpdateMyMembershipRequest,
+  ): ApiResult<MembershipSummary> {
+    try {
+      const res = await fetch(
+        `/v1/troupes/${encodeURIComponent(troupeId)}/memberships/me`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...csrfHeaders(),
+          },
+          body: JSON.stringify({ displayName: body.displayName.trim() }),
+        },
+      )
+      if (!res.ok) return { ok: false, status: res.status }
+      return { ok: true, status: res.status, data: (await res.json()) as MembershipSummary }
     } catch {
       return { ok: false, status: 0 }
     }
