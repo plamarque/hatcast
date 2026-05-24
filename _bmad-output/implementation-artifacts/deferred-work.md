@@ -1,3 +1,8 @@
+## Deferred from: code review of 12-2-ecran-mon-agenda.md (2026-05-24)
+
+- Silent truncation beyond 50 events — story explicitly defers load-more / pagination UI to a later slice.
+- Duplicated agenda-card SCSS vs season-agenda — story guardrails allow minimal duplication until shared extraction is warranted.
+
 ## Deferred from: code review of 2-9-post-login-et-derniere-ligue-visitee-v1-parity.md (2026-05-24)
 
 - Appels concurrents à `navigateAfterSignIn` (double-clic / double flux OAuth) — aucun verrou in-flight dans `Login`. Pattern pré-existant avant cette story. À adresser dans une passe dédiée à la robustesse des auth flows (stories Epic 1 rétrospective ou Epic 12).

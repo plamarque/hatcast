@@ -1,6 +1,6 @@
 # Story 12.2: Mon agenda screen (`/agenda`)
 
-Status: review
+Status: in-progress
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -66,6 +66,22 @@ so that I can immediately know what is coming next without visiting each league 
   - [x] Error-state test with retry action.
   - [x] 401 redirect test.
   - [x] Keyboard activation test for row navigation.
+
+### Review Findings
+
+- [ ] [Review][Decision] Retro-document `noParticipation` in Story 12.1 — The 12.2 implementation added `noParticipation` to the API contract (`me-agenda.yaml`, `UserAgendaService`, integration tests) to distinguish AC5 vs AC6 empty states. Story 12.1 AC9 only describes empty `content` + `filterBarVisible: false`. Should 12.1 / epics be updated retroactively, or is the 12.2 completion note sufficient?
+
+- [x] [Review][Patch] Missing Space key keyboard test [apps/web/src/app/pages/user-agenda/user-agenda.spec.ts] — AC10 requires keyboard activation; Enter is tested but Space is not, despite `(keydown.space)` in the template.
+
+- [x] [Review][Patch] Unused `response` signal [apps/web/src/app/pages/user-agenda/user-agenda.ts:49] — Set in `loadAgenda()` but never read in template or computed; remove or use.
+
+- [x] [Review][Patch] Loading spinner lacks accessible label [apps/web/src/app/pages/user-agenda/user-agenda.html:40] — `role="status"` wrapper has no text; `SeasonAgenda` uses visible status copy. Add sr-only or inline status text for screen readers.
+
+- [x] [Review][Patch] Defensive default for `noParticipation` [apps/web/src/app/pages/user-agenda/user-agenda.ts:85] — Use `r.data.noParticipation ?? false` so a partial/old API response does not mis-route empty states.
+
+- [x] [Review][Defer] Silent truncation beyond 50 events [apps/web/src/app/pages/user-agenda/user-agenda.ts] — deferred, story explicitly defers load-more / pagination UI to a later slice.
+
+- [x] [Review][Defer] Duplicated agenda-card SCSS vs season-agenda [apps/web/src/app/pages/user-agenda/user-agenda.scss] — deferred, story guardrails allow minimal markup/style duplication until shared extraction is warranted.
 
 ## Dev Notes
 

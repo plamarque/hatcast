@@ -130,7 +130,7 @@ development_status:
 
   epic-12: in-progress
   12-1-api-agenda-utilisateur: review
-  12-2-ecran-mon-agenda: review
+  12-2-ecran-mon-agenda: in-progress
   12-3-filtres-troupe-ligue-agenda: backlog
   12-4-bandeau-contexte-evenement: backlog
   12-5-routage-post-connexion-agenda: backlog

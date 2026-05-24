@@ -235,6 +235,25 @@ describe('UserAgenda', () => {
       'event-keyboard',
     ])
   })
+
+  it('active une ligne avec la touche Space', async () => {
+    agendaApi.listAgenda.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: agendaResponse([
+        agendaItem('event-space', 'Cabaret espace', '2026-05-04T18:00:00Z', {
+          leagueSlug: 'ligue-espace',
+        }),
+      ]),
+    })
+
+    await settle(fixture)
+
+    const card = fixture.nativeElement.querySelector('.agenda-card') as HTMLElement
+    card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }))
+
+    expect(navigateSpy).toHaveBeenCalledWith(['/saison', 'ligue-espace', 'event', 'event-space'])
+  })
 })
 
 function agendaResponse(

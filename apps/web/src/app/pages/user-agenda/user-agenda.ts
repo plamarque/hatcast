@@ -15,7 +15,6 @@ import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.servi
 import {
   UserAgendaApiService,
   type UserAgendaItem,
-  type UserAgendaResponse,
 } from '../../core/agenda/user-agenda-api.service'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { groupEventsByMonth, type MonthEventGroup } from '../season-home/season-events.utils'
@@ -46,7 +45,6 @@ export class UserAgenda implements OnInit {
   protected readonly loadingAgenda = signal(false)
   protected readonly loadError = signal(false)
   protected readonly user = signal<UserSummary | null>(null)
-  protected readonly response = signal<UserAgendaResponse | null>(null)
   protected readonly items = signal<UserAgendaItem[]>([])
   protected readonly noParticipation = signal(false)
   protected readonly monthGroups = computed<MonthEventGroup<UserAgendaItem>[]>(() =>
@@ -80,9 +78,8 @@ export class UserAgenda implements OnInit {
     this.loadingAgenda.set(false)
 
     if (r.ok && r.data) {
-      this.response.set(r.data)
       this.items.set(r.data.content)
-      this.noParticipation.set(r.data.noParticipation)
+      this.noParticipation.set(r.data.noParticipation ?? false)
       return
     }
 

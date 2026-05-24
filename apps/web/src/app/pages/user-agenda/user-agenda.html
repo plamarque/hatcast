@@ -38,6 +38,7 @@
     <p class="user-agenda__status" role="status">Vérification de la session…</p>
   } @else if (loadingAgenda()) {
     <div class="user-agenda__spinner" role="status">
+      <p class="user-agenda__status">Chargement de l’agenda…</p>
       <mat-spinner diameter="40" />
     </div>
   } @else if (loadError()) {
