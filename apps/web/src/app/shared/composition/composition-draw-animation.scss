@@ -1,0 +1,78 @@
+.composition-draw-animation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.composition-draw-animation__banner {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.composition-draw-animation__progress {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.composition-draw-animation__bar {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.composition-draw-animation__segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.25rem 0.35rem;
+  background: linear-gradient(135deg, rgba(233, 30, 99, 0.55) 0%, rgba(156, 39, 176, 0.55) 100%);
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+
+  &:last-of-type {
+    border-right: none;
+  }
+}
+
+.composition-draw-animation__segment-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.composition-draw-animation__cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1.5px;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
+  transition: left 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.composition-draw-animation__winner {
+  margin: 0;
+  font-weight: 600;
+}
+
+.composition-draw-animation__winner--empty {
+  font-weight: 400;
+  opacity: 0.8;
+}

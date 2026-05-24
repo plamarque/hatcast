@@ -1,5 +1,6 @@
 package com.hatcast.api.composition.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.time.Instant
 import java.util.UUID
 
@@ -9,6 +10,8 @@ data class CompositionSlotDto(
     val participantId: UUID?,
     val participantDisplayName: String?,
     val participationStatus: String,
+    val chancePercent: Int? = null,
+    val pastSelectionCount: Int? = null,
 )
 
 data class CompositionResponseDto(
@@ -16,4 +19,49 @@ data class CompositionResponseDto(
     val validatedAt: Instant?,
     val visibility: String,
     val slots: List<CompositionSlotDto>,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class DrawCompositionRequestDto(
+    val mode: String? = null,
+)
+
+data class CompositionDrawStepCandidateDto(
+    val participantId: UUID,
+    val displayName: String,
+    val chancePercent: Int,
+    val weight: Double,
+)
+
+data class CompositionDrawStepDto(
+    val roleKey: String,
+    val slotIndex: Int,
+    val candidates: List<CompositionDrawStepCandidateDto>,
+    val selectedParticipantId: UUID?,
+    val randomValue: Double?,
+    val totalWeight: Double,
+)
+
+data class CompositionDrawResponseDto(
+    val composition: CompositionResponseDto,
+    val steps: List<CompositionDrawStepDto>,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class AssignSlotRequestDto(
+    val participantId: UUID? = null,
+)
+
+data class CompositionCandidateDto(
+    val participantId: UUID,
+    val displayName: String,
+    val chancePercent: Int,
+    val pastSelectionCount: Int,
+    val alreadyAssignedRoleKeys: List<String>? = null,
+)
+
+data class CompositionCandidateListResponseDto(
+    val roleKey: String,
+    val requiredCount: Int,
+    val candidates: List<CompositionCandidateDto>,
 )

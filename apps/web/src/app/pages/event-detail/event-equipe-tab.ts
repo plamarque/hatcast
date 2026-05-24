@@ -1,11 +1,14 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core'
+import { firstValueFrom } from 'rxjs'
 import { MatButtonModule } from '@angular/material/button'
+import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 
 import {
   CompositionApiService,
+  type CompositionDrawStep,
   type CompositionResponse,
   type CompositionSlot,
 } from '../../core/composition/composition-api.service'
@@ -18,6 +21,11 @@ import {
   ROLE_LABELS,
   type RoleKey,
 } from '../../core/events/event-types'
+import { CompositionDrawAnimation } from '../../shared/composition/composition-draw-animation'
+import {
+  CompositionSlotPickerDialog,
+  type CompositionSlotPickerDialogResult,
+} from '../../shared/composition/composition-slot-picker-dialog'
 import { EventEquipeEmpty } from './event-equipe-empty'
 
 interface SlotRow {
@@ -32,10 +40,12 @@ interface SlotRow {
   selector: 'app-event-equipe-tab',
   imports: [
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     EventEquipeEmpty,
+    CompositionDrawAnimation,
   ],
   templateUrl: './event-equipe-tab.html',
   styleUrl: './event-equipe-tab.scss',
@@ -43,6 +53,9 @@ interface SlotRow {
 export class EventEquipeTab {
   private readonly compositionApi = inject(CompositionApiService)
   private readonly snack = inject(MatSnackBar)
+  private readonly dialog = inject(MatDialog)
+
+  private readonly drawAnimation = viewChild(CompositionDrawAnimation)
 
   readonly seasonId = input.required<string>()
   readonly event = input.required<EventResponse>()
@@ -54,11 +67,36 @@ export class EventEquipeTab {
   protected readonly loading = signal(true)
   protected readonly loadError = signal(false)
   protected readonly publishing = signal(false)
+  protected readonly drawing = signal(false)
+  protected readonly assigning = signal(false)
   protected readonly composition = signal<CompositionResponse | null>(null)
+  protected readonly drawSteps = signal<CompositionDrawStep[]>([])
+  protected readonly drawStepIndex = signal(0)
+  protected readonly animatingDraw = signal(false)
 
-  protected readonly showEmptyState = computed(
-    () => !this.loading() && !this.loadError() && this.slotRows().length === 0,
+  protected readonly prefersReducedMotion = signal(false)
+
+  protected readonly isCompositionLocked = computed(
+    () => this.composition()?.validatedAt != null,
   )
+
+  protected readonly showOrganizerPlaceholders = computed(
+    () =>
+      this.canManageComposition() &&
+      !this.isCompositionLocked() &&
+      !this.loading() &&
+      !this.loadError(),
+  )
+
+  protected readonly showEmptyState = computed(() => {
+    if (this.loading() || this.loadError() || this.animatingDraw()) {
+      return false
+    }
+    if (this.showOrganizerPlaceholders()) {
+      return false
+    }
+    return this.slotRows().length === 0
+  })
 
   protected readonly showDraftBanner = computed(() => {
     const comp = this.composition()
@@ -69,17 +107,54 @@ export class EventEquipeTab {
     showPublishButton(this.composition(), this.canManageComposition()),
   )
 
+  protected readonly canDraw = computed(
+    () =>
+      this.canManageComposition() &&
+      !this.isCompositionLocked() &&
+      !this.publishing() &&
+      !this.drawing() &&
+      !this.animatingDraw() &&
+      !this.assigning(),
+  )
+
+  protected readonly canEditSlots = computed(
+    () =>
+      this.canManageComposition() &&
+      !this.isCompositionLocked() &&
+      !this.publishing() &&
+      !this.drawing() &&
+      !this.animatingDraw() &&
+      !this.assigning(),
+  )
+
+  protected readonly currentDrawStep = computed(() => {
+    const steps = this.drawSteps()
+    const index = this.drawStepIndex()
+    return steps[index] ?? null
+  })
+
   protected readonly slotRows = computed((): SlotRow[] => {
     const ev = this.event()
     const comp = this.composition()
-    if (!comp || comp.slots.length === 0) {
+    const roleSlots = normalizeRoleSlots(ev.roleSlots)
+    const hasRequiredSlots = Object.values(roleSlots).some((n) => n > 0)
+    if (!hasRequiredSlots) {
       return []
     }
-    const roleSlots = normalizeRoleSlots(ev.roleSlots)
+
+    const showPlaceholders = this.showOrganizerPlaceholders()
+    if (!comp && !showPlaceholders) {
+      return []
+    }
+    if (comp && comp.slots.length === 0 && !showPlaceholders) {
+      return []
+    }
+
     const slotsByKey = new Map<string, CompositionSlot>()
-    for (const slot of comp.slots) {
+    for (const slot of comp?.slots ?? []) {
       slotsByKey.set(`${slot.roleKey}:${slot.slotIndex}`, slot)
     }
+
     const rows: SlotRow[] = []
     for (const roleKey of ROLE_DISPLAY_ORDER) {
       const count = roleSlots[roleKey] ?? 0
@@ -102,6 +177,12 @@ export class EventEquipeTab {
   private loadRequestId = 0
 
   constructor() {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      this.prefersReducedMotion.set(
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      )
+    }
+
     let previousEventId: string | null = null
     effect(() => {
       const eventId = this.event().id
@@ -111,6 +192,161 @@ export class EventEquipeTab {
         void this.load(seasonId, eventId)
       }
     })
+
+    effect(() => {
+      const step = this.currentDrawStep()
+      const anim = this.drawAnimation()
+      if (!step || !anim || !this.animatingDraw()) {
+        return
+      }
+      queueMicrotask(() => anim.play())
+    })
+  }
+
+  protected async draw(): Promise<void> {
+    if (!this.canDraw()) {
+      return
+    }
+    this.drawing.set(true)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.drawComposition(seasonId, eventId, 'full')
+    this.drawing.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      const message =
+        result.status === 403
+          ? 'Vous ne pouvez pas lancer le tirage au sort.'
+          : result.status === 409
+            ? 'La composition est verrouillée.'
+            : 'Tirage au sort impossible.'
+      this.snack.open(message, 'OK', { duration: 6000 })
+      return
+    }
+
+    if (this.prefersReducedMotion() || result.data.steps.length === 0) {
+      this.composition.set(result.data.composition)
+      return
+    }
+
+    this.drawSteps.set(result.data.steps)
+    this.drawStepIndex.set(0)
+    this.animatingDraw.set(true)
+  }
+
+  protected onDrawStepFinished(): void {
+    const next = this.drawStepIndex() + 1
+    if (next < this.drawSteps().length) {
+      this.drawStepIndex.set(next)
+      return
+    }
+    this.animatingDraw.set(false)
+    this.drawSteps.set([])
+    void this.load(this.seasonId(), this.event().id)
+  }
+
+  protected async openSlotPicker(row: SlotRow): Promise<void> {
+    if (!this.canEditSlots()) {
+      return
+    }
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const dialogRef = this.dialog.open<
+      CompositionSlotPickerDialog,
+      {
+        roleLabel: string
+        candidates: []
+        loading: boolean
+        error: string | null
+      },
+      CompositionSlotPickerDialogResult | undefined
+    >(CompositionSlotPickerDialog, {
+      data: {
+        roleLabel: row.roleLabel,
+        candidates: [],
+        loading: true,
+        error: null,
+      },
+      autoFocus: 'first-titled-element',
+    })
+
+    const candidatesResult = await this.compositionApi.getCompositionCandidates(
+      seasonId,
+      eventId,
+      row.roleKey,
+      row.slotIndex,
+    )
+    if (this.event().id !== eventId) {
+      dialogRef.close()
+      return
+    }
+
+    const component = dialogRef.componentInstance
+    if (!candidatesResult.ok || !candidatesResult.data) {
+      const errorMessage =
+        candidatesResult.status === 403
+          ? 'Accès refusé.'
+          : candidatesResult.status === 409
+            ? 'La composition est verrouillée.'
+            : 'Impossible de charger les candidats.'
+      component.updateState([], false, errorMessage)
+      return
+    }
+
+    component.updateState(candidatesResult.data.candidates, false, null)
+
+    const pick = await firstValueFrom(dialogRef.afterClosed())
+    if (!pick?.participantId || this.event().id !== eventId) {
+      return
+    }
+
+    await this.assignSlot(row, pick.participantId)
+  }
+
+  protected async clearSlot(row: SlotRow, event: Event): Promise<void> {
+    event.stopPropagation()
+    if (!this.canEditSlots() || !row.slot?.participantId) {
+      return
+    }
+    await this.assignSlot(row, null)
+  }
+
+  private async assignSlot(row: SlotRow, participantId: string | null): Promise<void> {
+    if (this.assigning()) {
+      return
+    }
+    this.assigning.set(true)
+    const seasonId = this.seasonId()
+    const eventId = this.event().id
+    const result = await this.compositionApi.assignCompositionSlot(
+      seasonId,
+      eventId,
+      row.roleKey,
+      row.slotIndex,
+      participantId,
+    )
+    this.assigning.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
+    if (!result.ok || !result.data) {
+      this.snack.open(this.assignErrorMessage(result.status), 'OK', { duration: 6000 })
+      return
+    }
+    this.composition.set(result.data)
+  }
+
+  private assignErrorMessage(status: number): string {
+    switch (status) {
+      case 403:
+        return 'Vous ne pouvez pas modifier cette composition.'
+      case 409:
+        return 'Assignation impossible (composition verrouillée ou candidat non éligible).'
+      default:
+        return 'Assignation impossible.'
+    }
   }
 
   protected async publish(): Promise<void> {

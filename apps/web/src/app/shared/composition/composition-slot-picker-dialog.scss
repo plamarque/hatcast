@@ -1,0 +1,91 @@
+.composition-slot-picker {
+  min-width: min(24rem, calc(100vw - 3rem));
+  max-height: min(28rem, calc(100vh - 12rem));
+  padding-top: 0.25rem;
+}
+
+.composition-slot-picker__loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.composition-slot-picker__error {
+  margin: 0;
+  color: #b71c1c;
+  font-size: 0.875rem;
+}
+
+.composition-slot-picker__empty {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.composition-slot-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.composition-slot-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+  }
+}
+
+.composition-slot-picker__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(0, 188, 212, 0.25);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.composition-slot-picker__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.composition-slot-picker__name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composition-slot-picker__subtitle {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.composition-slot-picker__odds {
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(156, 39, 176, 0.35);
+}

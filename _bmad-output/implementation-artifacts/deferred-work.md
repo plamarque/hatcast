@@ -89,3 +89,8 @@
 - **D5** — `resolveDraftVisibility` ignore `hasAssignedSlots` (écart sémantique avec `buildResponse`) : aucune conséquence fonctionnelle actuelle dans `CompositionLifecycleEnrichmentService.kt`.
 - **D6** — Toutes les erreurs 409 mappées au même message UX "Rien à publier" côté Angular (`event-equipe-tab.ts` L132-133) : les trois cas backend distincts (pas de composition, déjà validée, aucun slot assigné) ne sont pas différenciés pour l'organisateur.
 - **D7** — Publish autorisé avec slots tous en statut `DECLINED` (`CompositionService.kt` L60 : `assignedCount` compte tous les `participantId != null`) : logique de participation 6.7+, sans conséquence fonctionnelle en 6.3.
+
+## Deferred from: code review of 6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability.md (2026-05-24)
+
+- Duplicate eligible-participant loading in `CompositionDrawService` and `CompositionService` — refactor when a shared helper is warranted.
+- `prefers-reduced-motion` read once at `EventEquipeTab` init — user toggling OS reduced-motion without reload will not update until navigation.

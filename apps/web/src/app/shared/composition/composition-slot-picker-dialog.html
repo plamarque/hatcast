@@ -1,0 +1,39 @@
+<h2 mat-dialog-title>Choisir pour {{ data.roleLabel }}</h2>
+<mat-dialog-content class="composition-slot-picker">
+  @if (loading()) {
+    <div class="composition-slot-picker__loading" role="status">
+      <mat-spinner diameter="32" />
+    </div>
+  } @else if (error()) {
+    <p class="composition-slot-picker__error" role="alert">{{ error() }}</p>
+  } @else if (candidates().length === 0) {
+    <p class="composition-slot-picker__empty">Aucun candidat disponible pour ce rôle.</p>
+  } @else {
+    <ul class="composition-slot-picker__list" role="listbox" aria-label="Candidats">
+      @for (candidate of candidates(); track candidate.participantId) {
+        <li>
+          <button
+            type="button"
+            class="composition-slot-picker__row"
+            role="option"
+            (click)="select(candidate.participantId)"
+          >
+            <span class="composition-slot-picker__avatar" aria-hidden="true">
+              {{ initial(candidate.displayName) }}
+            </span>
+            <span class="composition-slot-picker__meta">
+              <span class="composition-slot-picker__name">{{ candidate.displayName }}</span>
+              @if (assignedElsewhereLabel(candidate.alreadyAssignedRoleKeys); as subtitle) {
+                <span class="composition-slot-picker__subtitle">{{ subtitle }}</span>
+              }
+            </span>
+            <span class="composition-slot-picker__odds">{{ candidate.chancePercent }}&nbsp;%</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button type="button" mat-button (click)="cancel()">Annuler</button>
+</mat-dialog-actions>

@@ -8,6 +8,7 @@ import com.hatcast.api.availability.dto.SummaryParticipantDto
 import com.hatcast.api.availability.dto.SummaryRoleCandidateDto
 import com.hatcast.api.availability.dto.SummaryRoleDto
 import com.hatcast.api.avatar.AvatarService
+import com.hatcast.api.composition.CompositionSelectionHistoryService
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.event.EventRepository
 import com.hatcast.api.participant.EventParticipantRepository
@@ -36,6 +37,7 @@ class AvailabilityService(
     private val eventParticipantRepository: EventParticipantRepository,
     private val troupeAccess: TroupeAccessService,
     private val userRepository: UserRepository,
+    private val selectionHistory: CompositionSelectionHistoryService,
 ) {
     @Transactional(readOnly = true)
     fun getMyStatus(
@@ -157,10 +159,14 @@ class AvailabilityService(
                 )
             }
 
+        val historyCounts =
+            selectionHistory.pastSelectionCountByParticipantAndRole(seasonId, event.id)
         val requiredRoles = AvailabilityRoleRules.rolesRequiredForEvent(event.roleSlots)
         val roles =
             requiredRoles.map { roleKey ->
                 val requiredCount = event.roleSlots[roleKey] ?: 0
+                val pastByParticipant =
+                    selectionHistory.pastSelectionCountByParticipant(historyCounts, roleKey)
                 val roleCandidates =
                     participants.filter { participant ->
                         AvailabilityRoleRules.isCandidateForRole(
@@ -179,6 +185,7 @@ class AvailabilityService(
                             )
                         },
                         requiredCount,
+                        pastByParticipant,
                     )
                 SummaryRoleDto(
                     roleKey = roleKey,

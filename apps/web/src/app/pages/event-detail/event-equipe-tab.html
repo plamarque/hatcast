@@ -16,24 +16,103 @@
       </p>
     }
 
+    @if (animatingDraw() && currentDrawStep(); as drawStep) {
+      <app-composition-draw-animation
+        [step]="drawStep"
+        [stepIndex]="drawStepIndex()"
+        [totalSteps]="drawSteps().length"
+        (finished)="onDrawStepFinished()"
+      />
+    }
+
+    @if (canDraw()) {
+      <div class="event-equipe-tab__draw-toolbar">
+        <button
+          type="button"
+          class="event-equipe-tab__draw"
+          [disabled]="drawing()"
+          (click)="draw()"
+        >
+          @if (drawing()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Tirer au sort
+          }
+        </button>
+        <p class="event-equipe-tab__draw-hint">
+          Proposition automatique selon les dispos et l’historique des sélections — à publier
+          ensuite.
+        </p>
+      </div>
+    }
+
+    @if (canEditSlots()) {
+      <p class="event-equipe-tab__manual-hint">
+        Cliquez sur un rôle pour choisir manuellement, ou utilisez Tirer au sort.
+      </p>
+    }
+
     <ul class="event-equipe-tab__grid" aria-label="Composition de l'équipe">
       @for (row of slotRows(); track row.roleKey + ':' + row.slotIndex) {
         <li
           class="event-equipe-tab__row"
           [class.event-equipe-tab__row--filled]="row.slot?.participantId"
           [class.event-equipe-tab__row--pending]="row.slot?.participationStatus === 'pending'"
+          [class.event-equipe-tab__row--empty]="!row.slot?.participantId"
+          [class.event-equipe-tab__row--editable]="canEditSlots()"
         >
           <span class="event-equipe-tab__role" aria-hidden="true">{{ row.roleEmoji }}</span>
-          <div class="event-equipe-tab__slot">
-            @if (row.slot?.participantDisplayName; as name) {
-              <span class="event-equipe-tab__avatar" aria-hidden="true">
-                {{ name.charAt(0).toUpperCase() }}
-              </span>
-              <span class="event-equipe-tab__name">{{ name }}</span>
-            } @else {
-              <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
+          @if (canEditSlots()) {
+            <button
+              type="button"
+              class="event-equipe-tab__slot event-equipe-tab__slot-button"
+              (click)="openSlotPicker(row)"
+            >
+              @if (row.slot?.participantDisplayName; as name) {
+                <span class="event-equipe-tab__avatar" aria-hidden="true">
+                  {{ name.charAt(0).toUpperCase() }}
+                </span>
+                <span class="event-equipe-tab__name">{{ name }}</span>
+                @if (row.slot; as slot) {
+                  @if (slot.chancePercent != null) {
+                    <span class="event-equipe-tab__odds" title="Chance au tirage">
+                      {{ slot.chancePercent }}&nbsp;%
+                    </span>
+                  }
+                }
+              } @else {
+                <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
+              }
+            </button>
+            @if (row.slot?.participantId) {
+              <button
+                type="button"
+                class="event-equipe-tab__clear"
+                aria-label="Retirer l'assignation"
+                (click)="clearSlot(row, $event)"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
             }
-          </div>
+          } @else {
+            <div class="event-equipe-tab__slot">
+              @if (row.slot?.participantDisplayName; as name) {
+                <span class="event-equipe-tab__avatar" aria-hidden="true">
+                  {{ name.charAt(0).toUpperCase() }}
+                </span>
+                <span class="event-equipe-tab__name">{{ name }}</span>
+                @if (row.slot; as slot) {
+                  @if (slot.chancePercent != null) {
+                    <span class="event-equipe-tab__odds" title="Chance au tirage">
+                      {{ slot.chancePercent }}&nbsp;%
+                    </span>
+                  }
+                }
+              } @else {
+                <span class="event-equipe-tab__placeholder">{{ row.roleLabel }}</span>
+              }
+            </div>
+          }
         </li>
       }
     </ul>

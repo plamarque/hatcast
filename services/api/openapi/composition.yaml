@@ -68,6 +68,125 @@ paths:
         '409':
           description: Rien à publier (pas de composition ou aucun slot assigné)
 
+  /seasons/{seasonId}/events/{eventId}/composition/draw:
+    post:
+      tags: [Composition]
+      summary: Tirer au sort la composition (pondéré)
+      description: >
+        Exécute un tirage pondéré par rôle pour les slots vides ou, en mode `full`,
+        refait les rôles déjà complets. Requiert `canManageComposition`.
+        Retourne la composition mise à jour et les étapes pour l’animation client.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DrawCompositionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionDrawResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: Composition validée (verrouillée)
+
+  /seasons/{seasonId}/events/{eventId}/composition/candidates:
+    get:
+      tags: [Composition]
+      summary: Candidats éligibles pour assignation manuelle d’un rôle
+      description: >
+        Liste ordonnée par chance décroissante pour le picker organisateur.
+        Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: roleKey
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: slotIndex
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Index du slot en cours d'édition (exclut son assigné de la liste d'exclusion)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionCandidateListResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: Composition validée (verrouillée)
+
+  /seasons/{seasonId}/events/{eventId}/composition/slots/{roleKey}/{slotIndex}:
+    put:
+      tags: [Composition]
+      summary: Assigner ou retirer un participant sur un slot
+      description: >
+        Assignation manuelle ou réassignation (`participantId`) ou retrait (`participantId` null).
+        Requiert `canManageComposition`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+        - name: roleKey
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slotIndex
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignSlotRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositionResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Accès refusé
+        '404':
+          description: Saison ou événement inconnu
+        '409':
+          description: >
+            Composition verrouillée, participant non éligible, ou conflit même rôle
+
 components:
   securitySchemes:
     cookieAuth:
@@ -114,6 +233,110 @@ components:
         participationStatus:
           type: string
           enum: [pending, confirmed, declined]
+        chancePercent:
+          type: integer
+          nullable: true
+        pastSelectionCount:
+          type: integer
+          nullable: true
+
+    DrawCompositionRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [full, fillEmpty]
+          default: full
+
+    CompositionDrawStepCandidate:
+      type: object
+      required: [participantId, displayName, chancePercent, weight]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        chancePercent:
+          type: integer
+        weight:
+          type: number
+          format: double
+
+    CompositionDrawStep:
+      type: object
+      required: [roleKey, slotIndex, candidates, totalWeight]
+      properties:
+        roleKey:
+          type: string
+        slotIndex:
+          type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionDrawStepCandidate'
+        selectedParticipantId:
+          type: string
+          format: uuid
+          nullable: true
+        randomValue:
+          type: number
+          format: double
+          nullable: true
+        totalWeight:
+          type: number
+          format: double
+
+    CompositionDrawResponse:
+      type: object
+      required: [composition, steps]
+      properties:
+        composition:
+          $ref: '#/components/schemas/CompositionResponse'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionDrawStep'
+
+    AssignSlotRequest:
+      type: object
+      properties:
+        participantId:
+          type: string
+          format: uuid
+          nullable: true
+
+    CompositionCandidate:
+      type: object
+      required: [participantId, displayName, chancePercent, pastSelectionCount]
+      properties:
+        participantId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        chancePercent:
+          type: integer
+        pastSelectionCount:
+          type: integer
+        alreadyAssignedRoleKeys:
+          type: array
+          items:
+            type: string
+          nullable: true
+
+    CompositionCandidateListResponse:
+      type: object
+      required: [roleKey, requiredCount, candidates]
+      properties:
+        roleKey:
+          type: string
+        requiredCount:
+          type: integer
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompositionCandidate'
 
     CompositionResponse:
       type: object
