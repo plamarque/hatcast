@@ -34,4 +34,9 @@ interface EventOrganizerRepository : JpaRepository<EventOrganizerEntity, EventOr
         eventId: UUID,
         userId: UUID,
     ): Boolean
+
+    fun findByEvent_IdInAndUser_Id(
+        eventIds: Collection<UUID>,
+        userId: UUID,
+    ): List<EventOrganizerEntity>
 }

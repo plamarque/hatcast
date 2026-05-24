@@ -8,6 +8,8 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import org.openapitools.jackson.nullable.JsonNullable
+import com.hatcast.api.composition.CompositionLifecycleView
+import com.hatcast.api.composition.TeamStatusBadgeDto
 import java.time.Instant
 import java.util.UUID
 
@@ -24,11 +26,14 @@ data class EventResponseDto(
     val createdAt: Instant,
     val updatedAt: Instant,
     val myAvailabilityStatus: String? = null,
+    val compositionLifecycle: String? = null,
+    val teamStatusBadge: TeamStatusBadgeDto? = null,
 ) {
     companion object {
         fun from(
             e: EventEntity,
             myAvailabilityStatus: String? = null,
+            compositionView: CompositionLifecycleView? = null,
         ): EventResponseDto =
             EventResponseDto(
                 id = e.id,
@@ -43,6 +48,8 @@ data class EventResponseDto(
                 createdAt = e.createdAt,
                 updatedAt = e.updatedAt,
                 myAvailabilityStatus = myAvailabilityStatus,
+                compositionLifecycle = compositionView?.compositionLifecycle?.toApiValue(),
+                teamStatusBadge = compositionView?.teamStatusBadge?.toDto(),
             )
     }
 }

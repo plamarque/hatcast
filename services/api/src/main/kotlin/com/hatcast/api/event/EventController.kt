@@ -45,6 +45,13 @@ class EventController(
         return eventService.listForSeason(seasonId, page, size, s, principal)
     }
 
+    @GetMapping("/{eventId}")
+    fun getById(
+        @PathVariable seasonId: UUID,
+        @PathVariable eventId: UUID,
+        @AuthenticationPrincipal principal: SessionUserPrincipal,
+    ): EventResponseDto = eventService.getById(seasonId, eventId, principal)
+
     @PostMapping
     fun create(
         @PathVariable seasonId: UUID,

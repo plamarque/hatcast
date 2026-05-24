@@ -1,3 +1,7 @@
+## Deferred from: code review of 6-2-detail-evenement-plein-ecran-onglets-infos-dispos-equipe.md (2026-05-24)
+
+- Duplicated date formatting in event-detail header and Infos tab — same pattern as agenda; extract shared helper only if a third consumer appears.
+
 ## Deferred from: code review of 3-2-spectacles-dans-la-saison-et-liste-pour-les-membres.md (2026-04-21)
 
 - Revue limitée au diff non commité : périmètre incomplet vs story (API événements, UI `season-home`, migrations, tests unitaires PATCH hors `SeasonControllerIntegrationTest`) — valider sur la branche `v2` ou l’historique de commits avant merge.
@@ -62,3 +66,7 @@
 - W3 — Accordéons Tous réinitialisés (tous ouverts) à chaque reload du summary post-save — UX mineure ; conserver l'état replié/déplié par rôle lors du rechargement.
 - W4 — `requiredCount` algébriquement neutre dans le stub (annulé dans le ratio malus/total) — deviendra pertinent quand Epic 6 introduira des `pastSelectionCount` variables entre candidats.
 - W5 — Purple active state Moi/Tous toggle non vérifiable sans contenu SCSS dans le diff — audit SCSS `event-dispos-tab.scss` avant merge.
+
+## Deferred from: code review of 6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui.md (2026-05-24)
+
+- Réponses POST/PATCH event sans enrichment lifecycle — les endpoints mutation renvoient `compositionLifecycle`/`teamStatusBadge` null ; acceptable pour 6.1 (rechargement via list/detail).

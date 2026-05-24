@@ -6,7 +6,7 @@ import { ForgotPassword } from './pages/forgot-password/forgot-password';
 import { HomeSignedIn } from './pages/home-signed-in/home-signed-in';
 import { Login } from './pages/login/login';
 import { ResetPassword } from './pages/reset-password/reset-password';
-import { EventDetailPlaceholder } from './pages/event-detail-placeholder/event-detail-placeholder';
+import { EventDetail } from './pages/event-detail/event-detail';
 import { AdminMembres } from './pages/admin-membres/admin-membres';
 import { AdminParticipants } from './pages/admin-participants/admin-participants';
 import { SeasonHome } from './pages/season-home/season-home';
@@ -25,5 +25,5 @@ export const routes: Routes = [
   { path: 'saison/:slug', component: SeasonHome },
   { path: 'saison/:slug/admin/membres', component: AdminMembres },
   { path: 'saison/:slug/admin/participants', component: AdminParticipants },
-  { path: 'saison/:slug/event/:eventId', component: EventDetailPlaceholder },
+  { path: 'saison/:slug/event/:eventId', component: EventDetail },
 ];

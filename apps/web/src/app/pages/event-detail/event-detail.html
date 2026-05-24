@@ -1,0 +1,68 @@
+<div class="event-detail">
+  <app-event-detail-header
+    [seasonSlug]="slug()"
+    [seasonId]="seasonId()"
+    [troupeId]="troupeId()"
+    [event]="event()"
+    [user]="user()"
+    [canManageSettings]="canManageSettings()"
+    [canManageSeasonParticipants]="canManageSeasonParticipants()"
+    [canManageSeasonOrganizersOnly]="canManageSeasonOrganizersOnly()"
+  />
+
+  @if (loading()) {
+    <div class="event-detail__spinner" role="status">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (event(); as ev) {
+    <mat-tab-group
+      class="event-detail__tabs"
+      [selectedIndex]="tabIndex()"
+      (selectedIndexChange)="onTabChange($event)"
+      dynamicHeight
+    >
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="event-detail__tab-icon" aria-hidden="true">info</mat-icon>
+          Infos
+        </ng-template>
+        @if (activeTab() === 'infos') {
+          <app-event-infos-tab
+            [event]="ev"
+            [canManageEvents]="canManageEvents()"
+            (editRequested)="openEdit()"
+            (archiveRequested)="confirmArchive()"
+          />
+        }
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="event-detail__tab-icon" aria-hidden="true">grid_on</mat-icon>
+          Dispos
+        </ng-template>
+        @if (activeTab() === 'dispos') {
+          <section class="event-detail__tab-panel">
+            <app-event-dispos-tab
+              [seasonId]="seasonId()"
+              [troupeId]="troupeId()"
+              [event]="ev"
+              [currentUserId]="user()?.id ?? ''"
+              [canSwitchSubject]="canSwitchSubject()"
+            />
+          </section>
+        }
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="event-detail__tab-icon" aria-hidden="true">groups</mat-icon>
+          Équipe
+        </ng-template>
+        @if (activeTab() === 'equipe') {
+          <app-event-equipe-empty [showConfirmPending]="showConfirmPending()" />
+        }
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

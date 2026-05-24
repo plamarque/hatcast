@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core'
 
 import type { AvailabilityStatus } from '../availability/availability-status'
+import type { TeamStatusBadge } from '../composition/composition-lifecycle'
 import { csrfHeaders } from '../http/hatcast-csrf'
 
 export interface EventResponse {
@@ -16,6 +17,8 @@ export interface EventResponse {
   createdAt: string
   updatedAt: string
   myAvailabilityStatus?: AvailabilityStatus
+  compositionLifecycle?: string
+  teamStatusBadge?: TeamStatusBadge
 }
 
 export interface PagedEventsResponse {
@@ -48,6 +51,25 @@ export type EventListScope = 'all' | 'upcoming'
 
 @Injectable({ providedIn: 'root' })
 export class EventApiService {
+  async getEvent(
+    seasonId: string,
+    eventId: string,
+  ): Promise<{ ok: boolean; status: number; data?: EventResponse }> {
+    try {
+      const res = await fetch(
+        `/v1/seasons/${encodeURIComponent(seasonId)}/events/${encodeURIComponent(eventId)}`,
+        { credentials: 'include' },
+      )
+      if (!res.ok) {
+        return { ok: false, status: res.status }
+      }
+      const data = (await res.json()) as EventResponse
+      return { ok: true, status: res.status, data }
+    } catch {
+      return { ok: false, status: 0 }
+    }
+  }
+
   async listEvents(
     seasonId: string,
     page: number,

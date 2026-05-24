@@ -1,0 +1,80 @@
+package com.hatcast.api.composition
+
+import com.hatcast.api.auth.SessionUserPrincipal
+import com.hatcast.api.event.EventEntity
+import com.hatcast.api.organizer.EventOrganizerRepository
+import com.hatcast.api.organizer.OrganizerAccessRules
+import com.hatcast.api.season.SeasonEntity
+import com.hatcast.api.troupe.TroupeAccessService
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
+
+@Service
+class CompositionLifecycleEnrichmentService(
+    private val compositionRepository: EventCompositionRepository,
+    private val slotRepository: EventCompositionSlotRepository,
+    private val lifecycleService: CompositionLifecycleService,
+    private val organizerAccess: OrganizerAccessRules,
+    private val eventOrganizerRepository: EventOrganizerRepository,
+    private val troupeAccess: TroupeAccessService,
+) {
+    @Transactional(readOnly = true)
+    fun loadViewsByEventIds(
+        events: List<EventEntity>,
+        season: SeasonEntity,
+        principal: SessionUserPrincipal,
+    ): Map<UUID, CompositionLifecycleView> {
+        if (events.isEmpty()) {
+            return emptyMap()
+        }
+        val eventIds = events.map { it.id }
+        val compositions = compositionRepository.findByEventIdIn(eventIds).associateBy { it.eventId }
+        val slotsByEvent =
+            slotRepository
+                .findByEventIdIn(eventIds)
+                .groupBy { it.eventId }
+        val draftVisibleForEvent = resolveDraftVisibility(eventIds, season, principal)
+        return events.associate { event ->
+            val slots = slotsByEvent[event.id].orEmpty().map { it.toSnapshot() }
+            val composition = compositions[event.id]?.let { CompositionSnapshot(it.validatedAt) }
+            event.id to
+                lifecycleService.computeLifecycle(
+                    composition = composition,
+                    slots = slots,
+                    roleSlots = event.roleSlots,
+                    viewerCanSeeDraft = draftVisibleForEvent[event.id] == true,
+                )
+        }
+    }
+
+    private fun resolveDraftVisibility(
+        eventIds: Collection<UUID>,
+        season: SeasonEntity,
+        principal: SessionUserPrincipal,
+    ): Map<UUID, Boolean> {
+        val troupeAdmin = troupeAccess.isTroupeAdmin(principal, season.troupe.id)
+        val seasonOrganizer = organizerAccess.isSeasonOrganizer(season.id, principal)
+        val eventOrganizerIds =
+            if (troupeAdmin || seasonOrganizer) {
+                eventIds.toSet()
+            } else {
+                eventOrganizerRepository
+                    .findByEvent_IdInAndUser_Id(eventIds, principal.userId)
+                    .map { it.event.id }
+                    .toSet()
+            }
+        return eventIds.associateWith { eventId ->
+            troupeAdmin || seasonOrganizer || eventId in eventOrganizerIds
+        }
+    }
+}
+
+private fun EventCompositionSlotEntity.toSnapshot(): CompositionSlotSnapshot =
+    CompositionSlotSnapshot(
+        roleKey = roleKey,
+        slotIndex = slotIndex,
+        participantId = participantId,
+        participationStatus = participationStatus,
+        waived = waived,
+    )

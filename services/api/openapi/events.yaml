@@ -90,6 +90,27 @@ paths:
           description: Gestion refusée (hors règle provisoire seed/admin)
 
   /seasons/{seasonId}/events/{eventId}:
+    get:
+      tags: [Événements]
+      summary: Détail d’un spectacle (cycle de vie composition inclus)
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SeasonId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Utilisateur non membre actif de la troupe de la saison
+        '404':
+          description: Spectacle ou saison introuvable
     patch:
       tags: [Événements]
       summary: Mettre à jour un spectacle
@@ -295,6 +316,30 @@ components:
           type: string
           enum: [available, unavailable, unknown]
           description: Présent pour un membre authentifié lors de la liste des spectacles
+        compositionLifecycle:
+          type: string
+          enum: [preparing, draftComposition, awaitingConfirmations, gapsToFill, complete]
+          description: Cycle de vie FR28 (membres authentifiés de la troupe)
+        teamStatusBadge:
+          $ref: '#/components/schemas/TeamStatusBadge'
+
+    TeamStatusBadge:
+      type: object
+      required: [key, label, tone, shortLabel]
+      properties:
+        key:
+          type: string
+          enum: [collecting, preparing, confirmed]
+        label:
+          type: string
+          description: Libellé complet (agenda détail Infos)
+        tone:
+          type: string
+          enum: [collecting, preparing, confirmed]
+          description: Modificateur SCSS
+        shortLabel:
+          type: string
+          description: Libellé court pour l’agenda
 
     CreateEventRequest:
       type: object

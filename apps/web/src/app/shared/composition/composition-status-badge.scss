@@ -1,0 +1,26 @@
+.composition-status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+
+  &--collecting {
+    color: #a5f3fc;
+    background: rgba(6, 182, 212, 0.28);
+    border-color: rgba(34, 211, 238, 0.35);
+  }
+
+  &--preparing {
+    color: #fed7aa;
+    background: rgba(234, 88, 12, 0.32);
+    border-color: rgba(251, 146, 60, 0.4);
+  }
+
+  &--confirmed {
+    color: #bbf7d0;
+    background: rgba(22, 163, 74, 0.35);
+    border-color: rgba(74, 222, 128, 0.35);
+  }
+}

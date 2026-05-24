@@ -202,6 +202,29 @@ export class SeasonHome implements OnDestroy, OnInit {
   }
 
   private applyQueryParams(params: ParamMap): void {
+    const eventId = params.get('event')
+    const modal = params.get('modal')
+    if (eventId && modal === 'event_details') {
+      const slug = this.slug()
+      if (slug) {
+        const queryParams: Record<string, string> = {}
+        for (const key of params.keys) {
+          if (key === 'event' || key === 'modal') {
+            continue
+          }
+          const value = params.get(key)
+          if (value != null) {
+            queryParams[key] = value
+          }
+        }
+        void this.router.navigate(['/saison', slug, 'event', eventId], {
+          queryParams,
+          replaceUrl: true,
+        })
+        return
+      }
+    }
+
     const view = params.get('view')
     if (view === 'agenda' || view === 'history') {
       this.seasonView.set(view)

@@ -10,10 +10,11 @@ import {
 } from '../../core/availability/availability-status'
 import type { MonthEventGroup } from './season-events.utils'
 import { getEventTypeIcon } from '../../core/events/event-types'
+import { CompositionStatusBadge } from '../../shared/composition/composition-status-badge'
 
 @Component({
   selector: 'app-season-agenda',
-  imports: [MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [MatButtonModule, MatIconModule, MatMenuModule, CompositionStatusBadge],
   templateUrl: './season-agenda.html',
   styleUrl: './season-agenda.scss',
 })

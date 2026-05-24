@@ -53,9 +53,7 @@
                 <p class="agenda-card__loc">{{ ev.location }}</p>
               }
               <div class="agenda-card__badges">
-                <span class="agenda-card__badge agenda-card__badge--composition" aria-hidden="true">
-                  &nbsp;
-                </span>
+                <app-composition-status-badge [badge]="ev.teamStatusBadge" />
                 @if (canEditAvailability()) {
                   <button
                     type="button"

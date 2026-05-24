@@ -1,0 +1,77 @@
+<header class="event-detail-header">
+  <div class="event-detail-header__left">
+    <a
+      mat-icon-button
+      [routerLink]="['/saison', seasonSlug()]"
+      class="event-detail-header__back"
+      aria-label="Retour à l’agenda"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </a>
+    @if (event(); as ev) {
+      <div class="event-detail-header__titles">
+        <span class="event-detail-header__icon" aria-hidden="true">{{ typeIcon(ev.templateType) }}</span>
+        <div class="event-detail-header__text">
+          <h1 class="event-detail-header__title">{{ ev.title }}</h1>
+          <p class="event-detail-header__when">{{ formatStart(ev.startsAt) }}</p>
+        </div>
+      </div>
+    } @else {
+      <h1 class="event-detail-header__title">Spectacle</h1>
+    }
+  </div>
+  <div class="event-detail-header__right">
+    @if (canManageSettings()) {
+      <button
+        mat-icon-button
+        type="button"
+        matTooltip="Réglages saison"
+        aria-label="Réglages saison"
+        [matMenuTriggerFor]="settingsMenu"
+      >
+        <mat-icon>settings</mat-icon>
+      </button>
+      <mat-menu #settingsMenu="matMenu">
+        @if (canManageSeasonParticipants()) {
+          <a mat-menu-item [routerLink]="['/saison', seasonSlug(), 'admin', 'participants']">
+            <mat-icon>person_add</mat-icon>
+            <span>Participants</span>
+          </a>
+        }
+        @if (canManageSeasonOrganizersOnly()) {
+          <a
+            mat-menu-item
+            [routerLink]="['/saison', seasonSlug(), 'admin', 'membres']"
+            [queryParams]="{ onglet: 'organisateurs' }"
+          >
+            <mat-icon>badge</mat-icon>
+            <span>Organisateur·ices</span>
+          </a>
+        }
+      </mat-menu>
+    }
+    @if (user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="event-detail-header__user"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel()"
+      >
+        <app-user-avatar
+          class="event-detail-header__user-avatar"
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel()"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+          [clickable]="profileContextReady()"
+          (avatarClick)="openSelfProfile()"
+        />
+        <span class="event-detail-header__user-label">{{ userDisplayLabel() }}</span>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+      </mat-menu>
+    }
+  </div>
+</header>

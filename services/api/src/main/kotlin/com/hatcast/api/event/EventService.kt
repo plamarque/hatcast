@@ -2,6 +2,7 @@ package com.hatcast.api.event
 
 import com.hatcast.api.auth.SessionUserPrincipal
 import com.hatcast.api.availability.AvailabilityService
+import com.hatcast.api.composition.CompositionLifecycleEnrichmentService
 import com.hatcast.api.event.dto.CreateEventRequest
 import com.hatcast.api.event.dto.EventResponseDto
 import com.hatcast.api.event.dto.PagedEventsResponse
@@ -25,6 +26,7 @@ class EventService(
     private val seasonRepository: SeasonRepository,
     private val troupeAccess: TroupeAccessService,
     private val availabilityService: AvailabilityService,
+    private val compositionLifecycleEnrichment: CompositionLifecycleEnrichmentService,
 ) {
     companion object {
         /** Fuseau pour la borne « début du jour civil » (liste à venir / agenda). */
@@ -62,12 +64,15 @@ class EventService(
             }
         val eventIds = p.content.map { it.id }
         val availabilityByEvent = availabilityService.myStatusByEventIds(eventIds, principal.userId)
+        val lifecycleByEvent =
+            compositionLifecycleEnrichment.loadViewsByEventIds(p.content, season, principal)
         return PagedEventsResponse(
             content =
                 p.content.map { event ->
                     EventResponseDto.from(
                         event,
                         myAvailabilityStatus = availabilityByEvent[event.id],
+                        compositionView = lifecycleByEvent[event.id],
                     )
                 },
             page = p.number,
@@ -197,6 +202,29 @@ class EventService(
         }
         e.updatedAt = Instant.now()
         return EventResponseDto.from(eventRepository.save(e))
+    }
+
+    @Transactional(readOnly = true)
+    fun getById(
+        seasonId: UUID,
+        eventId: UUID,
+        principal: SessionUserPrincipal,
+    ): EventResponseDto {
+        val e = loadEventInSeason(seasonId, eventId)
+        val season =
+            seasonRepository
+                .findById(seasonId)
+                .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Saison inconnue") }
+        troupeAccess.requireActiveMember(principal, season.troupe.id)
+        val availability = availabilityService.myStatusByEventIds(listOf(eventId), principal.userId)
+        val lifecycle =
+            compositionLifecycleEnrichment
+                .loadViewsByEventIds(listOf(e), season, principal)[eventId]
+        return EventResponseDto.from(
+            e,
+            myAvailabilityStatus = availability[eventId],
+            compositionView = lifecycle,
+        )
     }
 
     @Transactional

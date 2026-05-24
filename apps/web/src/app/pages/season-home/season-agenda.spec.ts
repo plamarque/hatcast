@@ -22,6 +22,13 @@ const monthGroups: MonthEventGroup[] = [
         roleSlots: emptyRoleSlots(),
         createdAt: '',
         updatedAt: '',
+        compositionLifecycle: 'preparing',
+        teamStatusBadge: {
+          key: 'collecting',
+          label: 'Collecte des dispos',
+          tone: 'collecting',
+          shortLabel: 'Collecte',
+        },
         dayNumber: 12,
         dayName: 'mardi',
       },
@@ -60,6 +67,11 @@ describe('SeasonAgenda', () => {
     card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
 
     expect(spy).toHaveBeenCalledWith('event-1')
+  })
+
+  it('renders composition team status badge on agenda cards', () => {
+    const badge = fixture.nativeElement.querySelector('.composition-status-badge--collecting')
+    expect(badge?.textContent?.trim()).toBe('Collecte')
   })
 
   it('hides the dispo badge when availability editing is disabled', () => {
