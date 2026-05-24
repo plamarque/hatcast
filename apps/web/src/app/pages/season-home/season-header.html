@@ -59,6 +59,7 @@
       </button>
       <mat-menu #userMenu="matMenu">
         <a mat-menu-item routerLink="/compte">Mon compte</a>
+        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
       </mat-menu>
     }
   </div>

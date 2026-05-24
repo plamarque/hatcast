@@ -4,6 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { provideRouter } from '@angular/router'
 import { describe, expect, it, vi } from 'vitest'
 
+import { AuthApiService } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { SeasonHeader } from './season-header'
@@ -17,6 +18,7 @@ describe('SeasonHeader', () => {
       },
     }
     const memberProfile = { openProfileDialog: vi.fn() }
+    const authApi = { logout: vi.fn().mockResolvedValue(true) }
 
     await TestBed.configureTestingModule({
       imports: [SeasonHeader, NoopAnimationsModule],
@@ -24,6 +26,7 @@ describe('SeasonHeader', () => {
         provideRouter([]),
         { provide: TroupeContextService, useValue: troupeContext },
         { provide: MemberProfileService, useValue: memberProfile },
+        { provide: AuthApiService, useValue: authApi },
       ],
     }).compileComponents()
 

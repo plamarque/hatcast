@@ -3,9 +3,9 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { RouterLink } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 
-import type { UserSummary } from '../../core/auth/auth-api.service'
+import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { MemberProfileService } from '../../core/member-profile/member-profile.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
 import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
@@ -26,6 +26,8 @@ import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 export class SeasonHeader {
   private readonly troupeContext = inject(TroupeContextService)
   private readonly memberProfile = inject(MemberProfileService)
+  private readonly auth = inject(AuthApiService)
+  private readonly router = inject(Router)
 
   readonly seasonTitle = input.required<string>()
   readonly seasonSlug = input.required<string>()
@@ -52,5 +54,10 @@ export class SeasonHeader {
       userId: u.id,
       seasonSlug: this.seasonSlug(),
     })
+  }
+
+  async logout(): Promise<void> {
+    await this.auth.logout()
+    await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 }

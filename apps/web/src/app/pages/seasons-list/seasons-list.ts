@@ -11,7 +11,7 @@ import { MatSelectChange, MatSelectModule } from '@angular/material/select'
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'
 import { Router, RouterLink } from '@angular/router'
 
-import { AuthApiService } from '../../core/auth/auth-api.service'
+import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
 import { clearLastVisitedSeasonSlug } from '../../core/navigation/last-visited-league-storage'
 import {
   type SeasonResponse,
@@ -19,6 +19,7 @@ import {
 } from '../../core/seasons/season-api.service'
 import { TroupeApiService } from '../../core/troupes/troupe-api.service'
 import { TroupeContextService } from '../../core/troupes/troupe-context.service'
+import { UserAvatarComponent } from '../../shared/user-avatar/user-avatar'
 import { environment } from '../../../environments/environment'
 import { ConfirmDialog, type ConfirmDialogData } from './confirm-dialog'
 import { SeasonFormDialog, type SeasonFormDialogData } from './season-form-dialog'
@@ -40,6 +41,7 @@ const PAGE_SIZE = 20
     MatSelectModule,
     MatSnackBarModule,
     RouterLink,
+    UserAvatarComponent,
   ],
   templateUrl: './seasons-list.html',
   styleUrl: './seasons-list.scss',
@@ -60,6 +62,7 @@ export class SeasonsList implements OnInit {
   protected readonly hasMembership = signal(false)
   protected readonly canManageSeasons = signal(false)
   protected readonly platformAdmin = signal(false)
+  protected readonly user = signal<UserSummary | null>(null)
   protected readonly canDeleteSeason = computed(
     () => this.canManageSeasons() || this.platformAdmin(),
   )
@@ -88,7 +91,17 @@ export class SeasonsList implements OnInit {
     }
     this.loadingSession.set(false)
     this.platformAdmin.set(r.data.platformAdmin === true)
+    this.user.set(r.data.user)
     await this.loadTroupeAndSeasons(0)
+  }
+
+  protected userDisplayLabel(u: UserSummary): string {
+    return this.troupeContext.currentUserDisplayLabel(u)
+  }
+
+  protected async logout(): Promise<void> {
+    await this.auth.logout()
+    await this.router.navigate(['/connexion'], { replaceUrl: true })
   }
 
   protected async joinDemoTroupe(): Promise<void> {

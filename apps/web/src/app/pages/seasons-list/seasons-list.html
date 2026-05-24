@@ -4,6 +4,28 @@
       <h1 class="seasons__title">Saisons</h1>
       <p class="seasons__subtitle">Rejoins une saison existante ou crée la tienne</p>
     </div>
+    @if (!loadingSession() && user(); as u) {
+      <button
+        type="button"
+        mat-stroked-button
+        class="seasons__user-btn"
+        [matMenuTriggerFor]="userMenu"
+        [attr.aria-label]="'Menu compte : ' + userDisplayLabel(u)"
+      >
+        <app-user-avatar
+          [style.--user-avatar-size.px]="24"
+          [displayName]="userDisplayLabel(u)"
+          [avatarUrl]="u.avatarUrl ?? null"
+          [size]="24"
+        />
+        <span class="seasons__user-label">{{ userDisplayLabel(u) }}</span>
+        <mat-icon>expand_more</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <a mat-menu-item routerLink="/compte">Mon compte</a>
+        <button mat-menu-item type="button" (click)="logout()">Se déconnecter</button>
+      </mat-menu>
+    }
   </header>
 
   @if (loadingSession()) {
