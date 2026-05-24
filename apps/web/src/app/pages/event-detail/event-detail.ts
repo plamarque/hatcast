@@ -33,6 +33,7 @@ import {
   type EventFormDialogData,
 } from '../season-home/event-form-dialog'
 import { EventDisposTab } from '../../shared/availability/event-dispos-tab'
+import { EventContextStrip } from './event-context-strip'
 import { EventDetailHeader } from './event-detail-header'
 import { EventEquipeTab } from './event-equipe-tab'
 import { EventInfosTab } from './event-infos-tab'
@@ -45,6 +46,7 @@ import { EventInfosTab } from './event-infos-tab'
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTabsModule,
+    EventContextStrip,
     EventDetailHeader,
     EventDisposTab,
     EventEquipeTab,
@@ -84,6 +86,20 @@ export class EventDetail implements OnDestroy, OnInit {
   protected readonly canSwitchSubject = signal(false)
   protected readonly activeTab = signal<EventDetailTab>('infos')
   protected readonly showConfirmPending = signal(false)
+  protected readonly contextTroupeName = signal('')
+  protected readonly contextTroupeSlug = signal('')
+  protected readonly contextLeagueTitle = signal('')
+  protected readonly contextSeasonSlug = signal('')
+  protected readonly showTroupeAdminLink = signal(false)
+
+  protected readonly showContextStrip = computed(
+    () =>
+      !this.loading() &&
+      this.event() !== null &&
+      this.contextSeasonSlug() !== '' &&
+      this.contextTroupeName() !== '' &&
+      this.contextLeagueTitle() !== '',
+  )
 
   protected readonly canManageEvents = computed(
     () => this.seasonPermissions()?.canManageEvents === true,
@@ -265,6 +281,7 @@ export class EventDetail implements OnDestroy, OnInit {
     if (!options.silent) {
       this.loading.set(true)
       this.event.set(null)
+      this.resetResolvedContext()
     }
     if (!slug || !eventId) {
       this.loading.set(false)
@@ -276,11 +293,13 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     if (resolved.kind === 'no-membership' || resolved.kind === 'error') {
+      this.resetResolvedContext()
       this.loading.set(false)
       this.snack.open('Impossible de charger la saison.', 'OK', { duration: 6000 })
       return
     }
     if (resolved.kind === 'ambiguous') {
+      this.resetResolvedContext()
       this.loading.set(false)
       this.snack.open(
         'Cette saison existe dans plusieurs troupes. Choisissez d’abord la troupe depuis la liste des saisons.',
@@ -290,6 +309,7 @@ export class EventDetail implements OnDestroy, OnInit {
       return
     }
     if (resolved.kind === 'not-found') {
+      this.resetResolvedContext()
       this.loading.set(false)
       this.snack.open('Saison introuvable.', 'OK', { duration: 6000 })
       return
@@ -297,6 +317,11 @@ export class EventDetail implements OnDestroy, OnInit {
 
     this.seasonId.set(resolved.season.id)
     this.troupeId.set(resolved.troupe.id)
+    this.contextTroupeName.set(resolved.troupe.name)
+    this.contextTroupeSlug.set(resolved.troupe.slug)
+    this.contextLeagueTitle.set(resolved.season.title)
+    this.contextSeasonSlug.set(resolved.season.slug)
+    this.showTroupeAdminLink.set(resolved.troupe.membership.baselineRole === 'TROUPE_ADMIN')
 
     const [eventResult, permissionsResult] = await Promise.all([
       this.eventsApi.getEvent(resolved.season.id, eventId),
@@ -308,6 +333,7 @@ export class EventDetail implements OnDestroy, OnInit {
     }
     this.loading.set(false)
     if (!eventResult.ok || !eventResult.data) {
+      this.resetResolvedContext()
       this.snack.open('Spectacle introuvable.', 'OK', { duration: 6000 })
       return
     }
@@ -320,6 +346,14 @@ export class EventDetail implements OnDestroy, OnInit {
         ? canManageCompositionForEvent(permissionsResult.data, found.id)
         : false,
     )
+  }
+
+  private resetResolvedContext(): void {
+    this.contextTroupeName.set('')
+    this.contextTroupeSlug.set('')
+    this.contextLeagueTitle.set('')
+    this.contextSeasonSlug.set('')
+    this.showTroupeAdminLink.set(false)
   }
 
   private canManageEventParticipantsFor(eventId: string): boolean {

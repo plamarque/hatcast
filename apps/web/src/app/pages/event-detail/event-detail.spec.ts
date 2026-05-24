@@ -48,6 +48,8 @@ describe('EventDetail', () => {
   let getEvent: ReturnType<typeof vi.fn>
   let archiveEvent: ReturnType<typeof vi.fn>
   let mySeasonPermissions: ReturnType<typeof vi.fn>
+  let listMyTroupes: ReturnType<typeof vi.fn>
+  let getSeasonBySlug: ReturnType<typeof vi.fn>
   let router: Router
 
   beforeEach(async () => {
@@ -69,6 +71,42 @@ describe('EventDetail', () => {
         canManageEventParticipants: false,
         canManageSeasons: false,
         eventParticipantAdminFor: [],
+      },
+    })
+    listMyTroupes = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [{
+        id: 'troupe-1',
+        name: 'Troupe',
+        slug: 'troupe',
+        membership: {
+          id: 'm-1',
+          displayName: 'Test',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
+    getSeasonBySlug = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        id: 'season-1',
+        troupeId: 'troupe-1',
+        slug: 'season-a',
+        title: 'Saison',
+        description: null,
+        startDate: null,
+        endDate: null,
+        archived: false,
+        active: true,
+        eventCount: 2,
+        participantCount: 0,
+        createdAt: '',
+        updatedAt: '',
       },
     })
 
@@ -95,49 +133,11 @@ describe('EventDetail', () => {
         },
         {
           provide: TroupeApiService,
-          useValue: {
-            listMyTroupes: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: [{
-                id: 'troupe-1',
-                name: 'Troupe',
-                slug: 'troupe',
-                membership: {
-                  id: 'm-1',
-                  displayName: 'Test',
-                  status: 'ACTIVE',
-                  baselineRole: 'MEMBER',
-                  createdAt: '',
-                  updatedAt: '',
-                },
-              }],
-            }),
-          },
+          useValue: { listMyTroupes },
         },
         {
           provide: SeasonApiService,
-          useValue: {
-            getSeasonBySlug: vi.fn().mockResolvedValue({
-              ok: true,
-              status: 200,
-              data: {
-                id: 'season-1',
-                troupeId: 'troupe-1',
-                slug: 'season-a',
-                title: 'Saison',
-                description: null,
-                startDate: null,
-                endDate: null,
-                archived: false,
-                active: true,
-                eventCount: 2,
-                participantCount: 0,
-                createdAt: '',
-                updatedAt: '',
-              },
-            }),
-          },
+          useValue: { getSeasonBySlug },
         },
         { provide: EventApiService, useValue: { getEvent, archiveEvent } },
         { provide: OrganizerApiService, useValue: { mySeasonPermissions } },
@@ -402,5 +402,144 @@ describe('EventDetail', () => {
         }),
       )
     })
+  })
+
+  it('shows context strip with troupe and league labels after successful load', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-context-strip')).not.toBeNull()
+    })
+    const label = fixture.nativeElement.querySelector('.event-context-strip__label')
+    expect(label?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Troupe · Saison')
+  })
+
+  it('links Voir la ligue to the current season workspace', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const leagueLink = fixture.nativeElement.querySelector(
+        '.event-context-strip__action[aria-label="Voir la ligue"]',
+      )
+      expect(leagueLink?.getAttribute('href')).toBe('/saison/season-a')
+    })
+  })
+
+  it('hides Voir la troupe for ordinary members', async () => {
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(fixture.nativeElement.querySelector('.event-context-strip')).not.toBeNull()
+    })
+    expect(
+      fixture.nativeElement.querySelector('.event-context-strip__action[aria-label="Voir la troupe"]'),
+    ).toBeNull()
+    expect(fixture.nativeElement.querySelector('.event-context-strip__troupe')?.textContent?.trim()).toBe(
+      'Troupe',
+    )
+  })
+
+  it('links Voir la troupe to admin membres for troupe admins', async () => {
+    listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [{
+        id: 'troupe-1',
+        name: 'Troupe',
+        slug: 'troupe',
+        membership: {
+          id: 'm-1',
+          displayName: 'Admin',
+          status: 'ACTIVE',
+          baselineRole: 'TROUPE_ADMIN',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const troupeLink = fixture.nativeElement.querySelector(
+        '.event-context-strip__action[aria-label="Voir la troupe"]',
+      )
+      expect(troupeLink?.getAttribute('href')).toBe('/troupe/troupe/admin/membres')
+    })
+  })
+
+  it('reflects the resolved event troupe and league in cross-troupe fixtures', async () => {
+    listMyTroupes.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: [{
+        id: 'troupe-beta',
+        name: 'Les Beta',
+        slug: 'beta-troupe',
+        membership: {
+          id: 'm-beta',
+          displayName: 'Beta',
+          status: 'ACTIVE',
+          baselineRole: 'MEMBER',
+          createdAt: '',
+          updatedAt: '',
+        },
+      }],
+    })
+    getSeasonBySlug.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        id: 'season-beta',
+        troupeId: 'troupe-beta',
+        slug: 'season-a',
+        title: 'Ligue Beta',
+        description: null,
+        startDate: null,
+        endDate: null,
+        archived: false,
+        active: true,
+        eventCount: 1,
+        participantCount: 0,
+        createdAt: '',
+        updatedAt: '',
+      },
+    })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      const label = fixture.nativeElement.querySelector('.event-context-strip__label')
+      expect(label?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Les Beta · Ligue Beta')
+    })
+    expect(fixture.nativeElement.querySelector('.event-context-strip__troupe')?.textContent?.trim()).toBe(
+      'Les Beta',
+    )
+    expect(fixture.nativeElement.querySelector('.event-context-strip__league')?.textContent?.trim()).toBe(
+      'Ligue Beta',
+    )
+  })
+
+  it('does not render context strip while loading', () => {
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
+  })
+
+  it('does not render context strip after season resolver failure', async () => {
+    getSeasonBySlug.mockResolvedValue({ ok: false, status: 404 })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(getSeasonBySlug).toHaveBeenCalled()
+    })
+    expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
+  })
+
+  it('does not render context strip when event is not found', async () => {
+    getEvent.mockResolvedValue({ ok: false, status: 404 })
+    fixture.detectChanges()
+
+    await vi.waitFor(() => {
+      expect(getEvent).toHaveBeenCalled()
+    })
+    expect(fixture.nativeElement.querySelector('.event-context-strip')).toBeNull()
   })
 })

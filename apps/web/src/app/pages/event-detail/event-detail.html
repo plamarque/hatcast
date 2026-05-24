@@ -15,6 +15,16 @@
       <mat-spinner diameter="40" />
     </div>
   } @else if (event(); as ev) {
+    @if (showContextStrip()) {
+      <app-event-context-strip
+        [troupeName]="contextTroupeName()"
+        [troupeSlug]="contextTroupeSlug()"
+        [leagueTitle]="contextLeagueTitle()"
+        [seasonSlug]="contextSeasonSlug()"
+        [showTroupeLink]="showTroupeAdminLink()"
+      />
+    }
+
     <mat-tab-group
       class="event-detail__tabs"
       [selectedIndex]="tabIndex()"
