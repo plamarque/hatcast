@@ -6,10 +6,13 @@ import type { AvailabilityStatus } from './availability-status'
 export interface MyAvailabilityResponse {
   status: AvailabilityStatus
   updatedAt?: string | null
+  roleKeys: string[]
 }
 
 export interface SetMyAvailabilityBody {
   status: AvailabilityStatus
+  roleKeys?: string[]
+  applyVolunteerRule?: boolean
 }
 
 @Injectable({ providedIn: 'root' })

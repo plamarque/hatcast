@@ -43,7 +43,11 @@ paths:
       summary: Enregistrer ma disponibilité pour un spectacle
       description: >
         `unknown` supprime toute ligne existante (Non renseigné).
-        PUT idempotent pour available/unavailable.
+        PUT idempotent pour available/unavailable. Quand `status = available`,
+        `roleKeys` contient les rôles requis sur lesquels le membre se propose.
+        Si la couverture bénévole obligatoire s'applique et que `player` est
+        envoyé, `volunteer` est ajouté sauf si `applyVolunteerRule` vaut `false`
+        pour refléter une décochage explicite côté client.
       security:
         - cookieAuth: []
       parameters:
@@ -63,7 +67,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MyAvailabilityResponse'
         '400':
-          description: status invalide
+          description: status invalide ou roleKeys hors des rôles requis
         '401':
           description: Non authentifié
         '403':
@@ -101,7 +105,7 @@ components:
 
     MyAvailabilityResponse:
       type: object
-      required: [status]
+      required: [status, roleKeys]
       properties:
         status:
           $ref: '#/components/schemas/AvailabilityStatus'
@@ -109,6 +113,13 @@ components:
           type: string
           format: date-time
           nullable: true
+        roleKeys:
+          type: array
+          description: >
+            Rôles requis sur lesquels le membre est disponible. Toujours présent ;
+            vide pour unavailable/unknown ou pour une disponibilité générale.
+          items:
+            type: string
 
     SetMyAvailabilityRequest:
       type: object
@@ -116,3 +127,18 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/AvailabilityStatus'
+        roleKeys:
+          type: array
+          description: >
+            Rôles à persister quand `status = available`. Les clés doivent faire
+            partie des rôles requis de l'événement avec un nombre de slots > 0.
+            Ignoré et vidé pour unavailable/unknown.
+          items:
+            type: string
+        applyVolunteerRule:
+          type: boolean
+          default: true
+          description: >
+            Applique l'auto-ajout de `volunteer` quand un rôle de jeu est coché
+            et que l'événement requiert des bénévoles. Passer `false` uniquement
+            quand l'utilisateur a explicitement décoché `volunteer`.

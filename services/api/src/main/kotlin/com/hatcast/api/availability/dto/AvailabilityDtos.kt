@@ -8,9 +8,12 @@ import java.time.Instant
 data class SetMyAvailabilityRequest(
     @field:NotBlank
     val status: String,
+    val roleKeys: List<String>? = null,
+    val applyVolunteerRule: Boolean? = null,
 )
 
 data class MyAvailabilityResponse(
     val status: String,
     val updatedAt: Instant? = null,
+    val roleKeys: List<String> = emptyList(),
 )

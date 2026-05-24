@@ -93,7 +93,16 @@ class AvailabilityControllerIntegrationTest {
         return result.response.getCookie("HATCAST_SESSION")!!
     }
 
-    private fun createSeasonAndEvent(cookie: jakarta.servlet.http.Cookie): Pair<UUID, UUID> {
+    private fun createSeasonAndEvent(
+        cookie: jakarta.servlet.http.Cookie,
+        eventBody: String =
+            """
+            {
+              "title": "Spectacle dispo",
+              "startsAt": "2031-03-20T19:00:00Z"
+            }
+            """.trimIndent(),
+    ): Pair<UUID, UUID> {
         val createSeason =
             mockMvc
                 .perform(
@@ -107,7 +116,6 @@ class AvailabilityControllerIntegrationTest {
                 .andReturn()
         val seasonId = UUID.fromString(mapper.readTree(createSeason.response.contentAsString).get("id").asText())
 
-        val future = Instant.parse("2031-03-20T19:00:00Z")
         val createEvent =
             mockMvc
                 .perform(
@@ -115,14 +123,8 @@ class AvailabilityControllerIntegrationTest {
                         .post("/v1/seasons/$seasonId/events")
                         .cookie(cookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                            """
-                            {
-                              "title": "Spectacle dispo",
-                              "startsAt": "$future"
-                            }
-                            """.trimIndent(),
-                        ).with(csrf()),
+                        .content(eventBody)
+                        .with(csrf()),
                 ).andExpect(status().isOk)
                 .andReturn()
         val eventId = UUID.fromString(mapper.readTree(createEvent.response.contentAsString).get("id").asText())
@@ -139,6 +141,7 @@ class AvailabilityControllerIntegrationTest {
             .perform(get(base).cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("unknown"))
+            .andExpect(jsonPath("$.roleKeys").isArray)
 
         mockMvc
             .perform(
@@ -149,12 +152,14 @@ class AvailabilityControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("available"))
+            .andExpect(jsonPath("$.roleKeys").isArray)
             .andExpect(jsonPath("$.updatedAt").exists())
 
         mockMvc
             .perform(get(base).cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("available"))
+            .andExpect(jsonPath("$.roleKeys").isArray)
 
         mockMvc
             .perform(
@@ -172,6 +177,7 @@ class AvailabilityControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("unavailable"))
+            .andExpect(jsonPath("$.roleKeys").isArray)
 
         mockMvc
             .perform(
@@ -182,11 +188,13 @@ class AvailabilityControllerIntegrationTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("unknown"))
+            .andExpect(jsonPath("$.roleKeys").isArray)
 
         mockMvc
             .perform(get(base).cookie(cookie))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.status").value("unknown"))
+            .andExpect(jsonPath("$.roleKeys").isArray)
 
         mockMvc
             .perform(
@@ -215,5 +223,117 @@ class AvailabilityControllerIntegrationTest {
                     .content("""{"status":"available"}""")
                     .with(csrf()),
             ).andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `available role keys are persisted and invalid keys are rejected`() {
+        val cookie = memberCookie("sub-avail-roles")
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        val base = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player","mc"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("available"))
+            .andExpect(jsonPath("$.roleKeys[0]").value("player"))
+            .andExpect(jsonPath("$.roleKeys[1]").value("mc"))
+
+        mockMvc
+            .perform(get(base).cookie(cookie))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("available"))
+            .andExpect(jsonPath("$.roleKeys[0]").value("player"))
+            .andExpect(jsonPath("$.roleKeys[1]").value("mc"))
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["referee"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `unavailable clears roles and unknown deletes row`() {
+        val cookie = memberCookie("sub-avail-clear-roles")
+        val (seasonId, eventId) = createSeasonAndEvent(cookie)
+        val base = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player","mc"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"unavailable","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("unavailable"))
+            .andExpect(jsonPath("$.roleKeys").isEmpty)
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"unknown","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("unknown"))
+            .andExpect(jsonPath("$.roleKeys").isEmpty)
+    }
+
+    @Test
+    fun `volunteer role is auto-added for match player unless explicitly omitted`() {
+        val cookie = memberCookie("sub-avail-volunteer")
+        val (seasonId, eventId) =
+            createSeasonAndEvent(
+                cookie,
+                """
+                {
+                  "title": "Match bénévole",
+                  "startsAt": "2031-03-20T19:00:00Z",
+                  "templateType": "match"
+                }
+                """.trimIndent(),
+            )
+        val base = "/v1/seasons/$seasonId/events/$eventId/availability/me"
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player"]}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roleKeys[0]").value("player"))
+            .andExpect(jsonPath("$.roleKeys[1]").value("volunteer"))
+
+        mockMvc
+            .perform(
+                put(base)
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"status":"available","roleKeys":["player"],"applyVolunteerRule":false}""")
+                    .with(csrf()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.roleKeys.length()").value(1))
+            .andExpect(jsonPath("$.roleKeys[0]").value("player"))
     }
 }

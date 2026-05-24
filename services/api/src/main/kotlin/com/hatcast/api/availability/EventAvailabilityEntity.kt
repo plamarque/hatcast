@@ -3,6 +3,7 @@ package com.hatcast.api.availability
 import com.hatcast.api.event.EventEntity
 import com.hatcast.api.user.UserEntity
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.Embeddable
 import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
@@ -50,11 +51,15 @@ class EventAvailabilityEntity(
     val createdAt: Instant = Instant.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now(),
+    @Convert(converter = RoleKeysJsonConverter::class)
+    @Column(name = "role_keys", nullable = false, length = 4096)
+    var roleKeys: List<String> = emptyList(),
 ) {
     constructor(
         event: EventEntity,
         user: UserEntity,
         status: StoredAvailabilityStatus,
+        roleKeys: List<String> = emptyList(),
         now: Instant = Instant.now(),
     ) : this(
         id = EventAvailabilityId(event.id, user.id),
@@ -63,5 +68,6 @@ class EventAvailabilityEntity(
         status = status,
         createdAt = now,
         updatedAt = now,
+        roleKeys = roleKeys,
     )
 }

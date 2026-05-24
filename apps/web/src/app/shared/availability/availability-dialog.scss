@@ -83,3 +83,47 @@
   font-size: 0.78rem;
   opacity: 0.75;
 }
+
+.availability-dialog__roles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.availability-dialog__roles-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.availability-dialog__roles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.availability-dialog__role-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.availability-dialog__role {
+  min-width: 0;
+}
+
+.availability-dialog__role-hint {
+  padding-left: 2.5rem;
+  font-size: 0.72rem;
+  opacity: 0.65;
+}
+
+.availability-dialog__role-emoji {
+  display: inline-block;
+  width: 1.4rem;
+}

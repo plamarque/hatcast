@@ -15,7 +15,7 @@ Shared domain language and rules extracted from the codebase. Use consistent ter
 - **Season:** A container for one "run" of shows (e.g. a year or a tour). Has a slug (URL-safe id), events, and players. Firestore: top-level `seasons/{seasonId}` (see `firestore.rules`, `legacy/src/services/storage.js`, `seasons.js`). Belongs to a **troupe** in the product sense when multi-season-per-troupe is modelled (V2 admin).
 - **Event:** A single date/ show within a season. Belongs to a season. Has a date, title, and optionally role slots. Subcollection or document under the season (e.g. `seasons/{id}/events`). For UI, “past” vs still on the programme follows the **calendar day in `Europe/Paris`** (see `legacy/src/utils/eventPastParis.js`), not raw UTC instant of a date-only field.
 - **Player:** A participant in a season. Has identity (name, optional email link). Stored under the season (e.g. `seasons/{id}/players`). Can be "claimed" by an authenticated user (e.g. `playerAssociations`, `playerProtection`).
-- **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`).
+- **Availability:** A player's status for an event (e.g. available / unavailable). Stored per player per event in V1 (e.g. `availability` subcollection or nested; see `playerAvailabilityService.js`, `storage.js`). **V2 (PostgreSQL):** table `event_availability`, keyed by `(event_id, user_id)`; API status `available` | `unavailable` | `unknown` (no row). When `available`, column `role_keys` holds a JSON array of event-required role keys the member offers; an **empty array** means general availability (eligible for any required role on the event, V1 parity).
 - **Cast:** The set of players selected to perform at an event after the draw. One cast per event. Includes roles and per-player status (pending, confirmed, declined). Stored e.g. in `seasons/{id}/casts`; structure observed in `castService.js`, `selectionService.js`.
 - **Draw / selection:** The process that picks players for an event (weighted random, considering past participation). Implemented in `selectionService.js`, `chancesService.js`.
 - **Chances / weight:** Influence of past participations on draw fairness. See `chancesService.js`.
@@ -104,14 +104,14 @@ La zone spectacles affiche les participations par mois. Chaque mois est une colo
 
 - **Auth state:** Anonymous / unauthenticated → signed in (email, magic link, Google). Password reset: request → email with link → reset (views: `PasswordReset.vue`, `MagicLink.vue`). No explicit state diagram in code; flows in auth components and `authState.js`.
 - **Cast status (per player in a cast):** pending → confirmed or declined (user action). No "cancelled" or revert in code observed.
-- **Availability:** Set per event; no formal state machine; values reflect available/unavailable (and possibly other states in UI; see `AvailabilityCell.vue`, `playerAvailabilityService.js`).
+- **Availability:** Set per event; no formal state machine; values reflect available/unavailable (and possibly other states in UI; see `AvailabilityCell.vue`, `playerAvailabilityService.js`). **V2:** three API states plus optional per-role candidacy via `role_keys` when status is `available`.
 - **Draw workflow:** Admin triggers draw → selection algorithm runs → casts written/updated → optional announce. No intermediate "draft" cast state clearly modelled; cast is the result of the last draw for that event.
 
 ---
 
 ## OPEN QUESTIONS + ambiguities
 
-- **Ambiguity:** Exact schema of `availability` (subcollection path and field names) is spread across `storage.js` and `playerAvailabilityService.js`; a single canonical definition (e.g. in this DOMAIN or a schema doc) would help.
+- **Ambiguity (V1):** Exact schema of legacy `availability` (subcollection path and field names) is spread across `storage.js` and `playerAvailabilityService.js`. **V2 canonical shape:** `event_availability.role_keys` (see glossary — Availability).
 - **OPEN QUESTION:** Whether a player can be in multiple seasons with the same identity and how claiming works across seasons is not fully documented in code comments.
 - **Ambiguity:** "Role" in a cast (e.g. for multi-role shows) vs simple "selected": both appear in code (`castService.getPlayerCastRole`, selection-multi-roles docs); exact role set and who defines it (per event vs per season) not fully unified here.
 - **OPEN QUESTION:** Lifecycle of invitations (expiry, single-use) is implied by usage but not defined in one place.

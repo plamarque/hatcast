@@ -8,6 +8,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { AuthApiService, type UserSummary } from '../../core/auth/auth-api.service'
+import { AvailabilityApiService } from '../../core/availability/availability-api.service'
 import type { AvailabilityStatus } from '../../core/availability/availability-status'
 import {
   type EventResponse,
@@ -47,6 +48,7 @@ import {
   type AvailabilityDialogData,
   type AvailabilityDialogResult,
 } from '../../shared/availability/availability-dialog'
+import { normalizeRoleSlots } from '../../core/events/event-types'
 
 const FETCH_PAGE_SIZE = 50
 
@@ -66,6 +68,7 @@ const FETCH_PAGE_SIZE = 50
 })
 export class SeasonHome implements OnDestroy, OnInit {
   private readonly auth = inject(AuthApiService)
+  private readonly availabilityApi = inject(AvailabilityApiService)
   private readonly seasonsApi = inject(SeasonApiService)
   private readonly troupeContext = inject(TroupeContextService)
   private readonly troupeSeasonResolver = inject(TroupeSeasonResolverService)
@@ -354,12 +357,15 @@ export class SeasonHome implements OnDestroy, OnInit {
     void this.router.navigate(['/saison', this.slug(), 'event', eventId])
   }
 
-  protected openAvailability(payload: { eventId: string; status: AvailabilityStatus }): void {
+  protected async openAvailability(payload: { eventId: string; status: AvailabilityStatus }): Promise<void> {
     const s = this.season()
     const ev = this.events().find((e) => e.id === payload.eventId)
     if (!s || !ev || !this.canEditAvailability()) {
       return
     }
+    const availability = await this.availabilityApi.getMyAvailability(s.id, ev.id)
+    const initialStatus = availability.ok && availability.data ? availability.data.status : payload.status
+    const initialRoleKeys = availability.ok && availability.data ? availability.data.roleKeys : []
     const ref = this.dialog.open<AvailabilityDialog, AvailabilityDialogData, AvailabilityDialogResult>(
       AvailabilityDialog,
       {
@@ -369,7 +375,10 @@ export class SeasonHome implements OnDestroy, OnInit {
           eventTitle: ev.title,
           eventStartsAt: ev.startsAt,
           subjectDisplayName: this.myDisplayName(),
-          initialStatus: payload.status,
+          initialStatus,
+          troupeId: s.troupeId,
+          roleSlots: normalizeRoleSlots(ev.roleSlots),
+          initialRoleKeys,
         },
         width: 'min(100vw - 2rem, 26rem)',
         autoFocus: 'first-tabbable',

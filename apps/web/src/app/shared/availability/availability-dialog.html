@@ -53,8 +53,32 @@
   @if (feedbackText(); as feedback) {
     <p class="availability-dialog__feedback">{{ feedback }}</p>
   }
+
+  @if (shouldShowRoleBlock()) {
+    <section class="availability-dialog__roles" aria-label="Rôles disponibles">
+      <p class="availability-dialog__roles-title">Choisis les rôles pour lesquels tu es disponible</p>
+      <div class="availability-dialog__roles-grid">
+        @for (role of roleChoices; track role.key) {
+          <div class="availability-dialog__role-wrap">
+            <mat-checkbox
+              class="availability-dialog__role"
+              [checked]="isRoleSelected(role.key)"
+              [disabled]="saving()"
+              (change)="toggleRole(role.key, $event.checked)"
+            >
+              <span class="availability-dialog__role-emoji" aria-hidden="true">{{ role.emoji }}</span>
+              <span>{{ role.label }}</span>
+            </mat-checkbox>
+            @if (role.key === 'volunteer' && shouldShowVolunteerMandatoryHint()) {
+              <span class="availability-dialog__role-hint">(obligatoire)</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button type="button" mat-dialog-close [disabled]="saving()">Fermer</button>
+  <button mat-button type="button" [disabled]="saving()" (click)="close()">Fermer</button>
 </mat-dialog-actions>

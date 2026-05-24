@@ -53,12 +53,23 @@ class AvailabilityService(
             if (existing != null) {
                 availabilityRepository.delete(existing)
             }
-            return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN)
+            return MyAvailabilityResponse(status = AvailabilityStatusMapper.UNKNOWN, roleKeys = emptyList())
         }
+        val roleKeys =
+            if (stored == StoredAvailabilityStatus.AVAILABLE) {
+                AvailabilityRoleRules.normalizeRoleKeys(
+                    event.roleSlots,
+                    body.roleKeys,
+                    applyVolunteerRule = body.applyVolunteerRule ?: true,
+                )
+            } else {
+                emptyList()
+            }
         val now = Instant.now()
         val saved =
             if (existing != null) {
                 existing.status = stored
+                existing.roleKeys = roleKeys
                 existing.updatedAt = now
                 availabilityRepository.save(existing)
             } else {
@@ -71,6 +82,7 @@ class AvailabilityService(
                         event = event,
                         user = user,
                         status = stored,
+                        roleKeys = roleKeys,
                         now = now,
                     ),
                 )
@@ -123,6 +135,7 @@ class AvailabilityService(
             MyAvailabilityResponse(
                 status = AvailabilityStatusMapper.toApi(row.status),
                 updatedAt = row.updatedAt,
+                roleKeys = if (row.status == StoredAvailabilityStatus.AVAILABLE) row.roleKeys else emptyList(),
             )
         }
 }

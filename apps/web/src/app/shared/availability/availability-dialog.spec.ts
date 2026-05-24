@@ -1,10 +1,12 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { TestBed } from '@angular/core/testing'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AvailabilityApiService } from '../../core/availability/availability-api.service'
+import { MemberProfileApiService } from '../../core/member-profile/member-profile-api.service'
+import { ROLE_TEMPLATES } from '../../core/events/event-types'
 import { AvailabilityDialog, type AvailabilityDialogData } from './availability-dialog'
 
 const dialogData: AvailabilityDialogData = {
@@ -14,13 +16,21 @@ const dialogData: AvailabilityDialogData = {
   eventStartsAt: '2030-06-15T18:00:00Z',
   subjectDisplayName: 'Patrice',
   initialStatus: 'unknown',
+  troupeId: 'troupe-1',
+  roleSlots: ROLE_TEMPLATES.cabaret,
+  initialRoleKeys: [],
 }
 
-async function setup(initialStatus: AvailabilityDialogData['initialStatus'] = 'unknown') {
+async function setup(data: Partial<AvailabilityDialogData> = {}) {
   const setMyAvailability = vi.fn().mockResolvedValue({
     ok: true,
     status: 200,
-    data: { status: 'available' },
+    data: { status: 'available', roleKeys: ['player'] },
+  })
+  const getPreferredRoles = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: { preferredRoleKeys: ['player', 'mc'] },
   })
   const close = vi.fn()
 
@@ -30,11 +40,15 @@ async function setup(initialStatus: AvailabilityDialogData['initialStatus'] = 'u
       { provide: MatDialogRef, useValue: { close } },
       {
         provide: MAT_DIALOG_DATA,
-        useValue: { ...dialogData, initialStatus },
+        useValue: { ...dialogData, ...data },
       },
       {
         provide: AvailabilityApiService,
         useValue: { setMyAvailability },
+      },
+      {
+        provide: MemberProfileApiService,
+        useValue: { getPreferredRoles },
       },
       {
         provide: MatSnackBar,
@@ -46,7 +60,8 @@ async function setup(initialStatus: AvailabilityDialogData['initialStatus'] = 'u
   const fixture = TestBed.createComponent(AvailabilityDialog)
   fixture.detectChanges()
   await fixture.whenStable()
-  return { fixture, setMyAvailability, close }
+  fixture.detectChanges()
+  return { fixture, setMyAvailability, getPreferredRoles, close }
 }
 
 describe('AvailabilityDialog', () => {
@@ -66,7 +81,7 @@ describe('AvailabilityDialog', () => {
     expect(fixture.nativeElement.textContent).toContain('Non renseigné')
   })
 
-  it('calls API and closes on choice', async () => {
+  it('calls API on available choice without auto-closing', async () => {
     const { fixture, setMyAvailability, close } = await setup()
     const availableBtn = fixture.nativeElement.querySelector(
       '.availability-dialog__choice--available',
@@ -74,14 +89,123 @@ describe('AvailabilityDialog', () => {
     availableBtn.click()
     await fixture.whenStable()
 
-    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', { status: 'available' })
-    expect(close).toHaveBeenCalledWith({ status: 'available' })
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
+      status: 'available',
+      roleKeys: ['player', 'mc'],
+      applyVolunteerRule: true,
+    })
+    expect(close).not.toHaveBeenCalled()
   })
 
   it('shows feedback for unavailable selection', async () => {
-    const { fixture } = await setup('unavailable')
+    const { fixture } = await setup({ initialStatus: 'unavailable' })
     expect(fixture.nativeElement.textContent).toContain(
       'Tu n\'es pas disponible pour cet événement.',
     )
+  })
+
+  it('shows role checklist only when available and roles exist', async () => {
+    const { fixture } = await setup({ initialStatus: 'available', initialRoleKeys: ['player'] })
+    const el = fixture.nativeElement as HTMLElement
+
+    expect(el.textContent).toContain('Choisis les rôles pour lesquels tu es disponible')
+    expect(el.textContent).toContain('Comédien·nes')
+    expect(el.textContent).toContain('MC')
+  })
+
+  it('pre-checks preferred roles when switching to available', async () => {
+    const { fixture, getPreferredRoles, setMyAvailability } = await setup()
+    const availableBtn = fixture.nativeElement.querySelector(
+      '.availability-dialog__choice--available',
+    ) as HTMLButtonElement
+
+    availableBtn.click()
+    await fixture.whenStable()
+
+    expect(getPreferredRoles).toHaveBeenCalledWith('troupe-1')
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
+      status: 'available',
+      roleKeys: ['player', 'mc'],
+      applyVolunteerRule: true,
+    })
+  })
+
+  it('saves role toggles while status is available', async () => {
+    const { fixture, setMyAvailability } = await setup({
+      initialStatus: 'available',
+      initialRoleKeys: ['player'],
+    })
+
+    await (fixture.componentInstance as unknown as {
+      toggleRole: (roleKey: string, checked: boolean) => Promise<void>
+    }).toggleRole('mc', true)
+    await fixture.whenStable()
+
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
+      status: 'available',
+      roleKeys: ['player', 'mc'],
+      applyVolunteerRule: true,
+    })
+  })
+
+  it('hides role block and clears roles when selecting Pas dispo', async () => {
+    const { fixture, setMyAvailability } = await setup({
+      initialStatus: 'available',
+      initialRoleKeys: ['player', 'mc'],
+    })
+    setMyAvailability.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { status: 'unavailable', roleKeys: [] },
+    })
+
+    const unavailableBtn = fixture.nativeElement.querySelector(
+      '.availability-dialog__choice--unavailable',
+    ) as HTMLButtonElement
+    unavailableBtn.click()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    const el = fixture.nativeElement as HTMLElement
+    expect(el.textContent).not.toContain('Choisis les rôles pour lesquels tu es disponible')
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
+      status: 'unavailable',
+      roleKeys: [],
+      applyVolunteerRule: true,
+    })
+  })
+
+  it('does not show role block when the event has no required roles', async () => {
+    const { fixture } = await setup({
+      initialStatus: 'available',
+      roleSlots: ROLE_TEMPLATES.survey,
+      initialRoleKeys: [],
+    })
+    const el = fixture.nativeElement as HTMLElement
+
+    expect(el.textContent).not.toContain('Choisis les rôles pour lesquels tu es disponible')
+  })
+
+  it('persists role toggle via keyboard on checkboxes', async () => {
+    const { fixture, setMyAvailability } = await setup({
+      initialStatus: 'available',
+      initialRoleKeys: ['player'],
+    })
+
+    const mcCheckbox = [...fixture.nativeElement.querySelectorAll('.availability-dialog__role')].find(
+      (el: Element) => el.textContent?.includes('MC'),
+    ) as HTMLElement
+    const mcInput = mcCheckbox.querySelector('input[type="checkbox"]') as HTMLInputElement
+
+    mcInput.focus()
+    mcInput.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    mcInput.click()
+    await fixture.whenStable()
+
+    expect(setMyAvailability).toHaveBeenCalledWith('season-1', 'event-1', {
+      status: 'available',
+      roleKeys: ['player', 'mc'],
+      applyVolunteerRule: true,
+    })
   })
 })
