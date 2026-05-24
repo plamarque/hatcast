@@ -9,10 +9,8 @@ describe('compositionStatusHint', () => {
     ).toBe('Composition en cours — non visible des autres membres.')
   })
 
-  it('shows published hint for members', () => {
-    expect(compositionStatusHint('draftComposition', { canManageComposition: false })).toBe(
-      'Proposition d\'équipe publiée.',
-    )
+  it('returns null for member with no compositionPublishedAt', () => {
+    expect(compositionStatusHint('draftComposition', { canManageComposition: false })).toBeNull()
   })
 
   it('shows published hint for organizer after publish', () => {

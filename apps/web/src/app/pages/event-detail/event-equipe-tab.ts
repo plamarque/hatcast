@@ -9,10 +9,7 @@ import {
   type CompositionResponse,
   type CompositionSlot,
 } from '../../core/composition/composition-api.service'
-import {
-  compositionHasVisibleSlots,
-  showPublishButton,
-} from '../../core/composition/composition-visibility'
+import { showPublishButton } from '../../core/composition/composition-visibility'
 import type { EventResponse } from '../../core/events/event-api.service'
 import {
   normalizeRoleSlots,
@@ -60,7 +57,7 @@ export class EventEquipeTab {
   protected readonly composition = signal<CompositionResponse | null>(null)
 
   protected readonly showEmptyState = computed(
-    () => !this.loading() && !this.loadError() && !compositionHasVisibleSlots(this.composition()),
+    () => !this.loading() && !this.loadError() && this.slotRows().length === 0,
   )
 
   protected readonly showDraftBanner = computed(() => {
@@ -125,6 +122,9 @@ export class EventEquipeTab {
     const eventId = this.event().id
     const result = await this.compositionApi.publishComposition(seasonId, eventId)
     this.publishing.set(false)
+    if (this.event().id !== eventId) {
+      return
+    }
     if (!result.ok || !result.data) {
       const message =
         result.status === 403

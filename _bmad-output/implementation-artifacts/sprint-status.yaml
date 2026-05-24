@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: "2026-04-18T12:00:00Z"
-last_updated: "2026-05-24T14:00:00+02:00"
+last_updated: "2026-05-24T03:10:00+02:00"
 project: hatcast
 project_key: NOKEY
 tracking_system: file-system
@@ -90,7 +90,7 @@ development_status:
   epic-6: in-progress
   6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui: done
   6-2-detail-evenement-plein-ecran-onglets-infos-dispos-equipe: done
-  6-3-composition-brouillon-non-visible-aux-membres-ordinaires: review
+  6-3-composition-brouillon-non-visible-aux-membres-ordinaires: done
   6-4-tirage-aleatoire-pondere-et-affichage-des-cotes-explainability: backlog
   6-5-assignation-manuelle-et-reassignation-des-roles: backlog
   6-6-validation-verrouillage-de-la-composition: backlog

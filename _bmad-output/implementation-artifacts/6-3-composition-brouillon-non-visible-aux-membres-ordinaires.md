@@ -1,6 +1,6 @@
 # Story 6.3: Draft composition, publish, and visibility
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created -->
 
@@ -86,6 +86,21 @@ so that **I can iterate privately before making the proposed lineup visible** (*
   - **Integration:** member GET → empty slots unpublished; organizer GET → slots; POST publish → member GET → slots + `draftComposition`; idempotent publish; 403 non-member; 409 publish with no assignees
   - **Component (Angular):** organizer sees **Publier** + banner; member sees empty state when unpublished; member sees slots after publish (mock HTTP)
   - Regression: existing **6.1** / **6.2** tests stay green
+
+### Review Findings
+
+- [x] [Review][Patch] Hint fallback "publiée" affiché pour un membre sans `compositionPublishedAt` — pour `draftComposition`, si `canManageComposition=false` et `compositionPublishedAt` est null/absent, la branche `else` retourne quand même "Proposition d'équipe publiée." alors que la composition n'est pas publiée; corriger en retournant `null` [`composition-status-hint.ts`]
+- [x] [Review][Patch] Race condition — double notification si deux POST `/publish` simultanés : pas de verrou pessimiste ni de `@Version` sur `EventCompositionEntity`; les deux requêtes peuvent voir `publishedAt == null`, sauver, et appeler `notificationPort` deux fois [`CompositionService.kt` L65-71]
+- [x] [Review][Patch] Grille Équipe vide alors que `comp.slots.length > 0` : `showEmptyState` consulte `compositionHasVisibleSlots(comp)` (`slots.length`) au lieu de `slotRows().length`; si des slots ont un `roleKey`/`slotIndex` hors de `event.roleSlots`, la `<ul>` est rendue vide sans état vide "Aucun tirage" [`composition-visibility.ts` + `event-equipe-tab.ts`]
+- [x] [Review][Patch] `publish()` Angular : résultat de `publishComposition` appliqué au mauvais événement si `event` change pendant l'`await`; capturer `eventId` au début et vérifier après l'await (pattern identique au garde `loadRequestId` de `load()`) [`event-equipe-tab.ts` publish()]
+- [x] [Review][Patch] Double appel `canManageComposition` dans `buildResponse()` après vérification déjà effectuée dans `publishComposition()`; passer le booléen en paramètre pour éviter la requête DB redondante [`CompositionService.kt` buildResponse()]
+- [x] [Review][Defer] Notification `publishDraftCompositionShared` appelée dans `@Transactional` avant commit — safe actuellement (no-op log), à corriger en `@TransactionalEventListener` pour Epic 8 [`CompositionService.kt` L71] — deferred, pre-existing architecture concern for Epic 8
+- [x] [Review][Defer] Idempotence `publish` cassée si tous les slots sont retirés après publication (`assignedCount == 0` check avant `alreadyPublished` check) — hors scope 6.3, mutations de slots dans 6.5 [`CompositionService.kt` L59-72] — deferred, pre-existing concern for story 6.5
+- [x] [Review][Defer] `compositionPublished` perdu si l'onglet Équipe est détruit pendant le publish (tab `@if` unmount) — dégradation UX mineure, pattern Angular général [`event-detail.html`] — deferred, pre-existing Angular pattern
+- [x] [Review][Defer] Slots API renvoyés non filtrés sur `event.roleSlots` courant — silencieusement ignorés par le front, conséquence réelle en 6.4/6.5 [`CompositionService.kt` buildResponse()] — deferred, pre-existing concern for story 6.4
+- [x] [Review][Defer] `resolveDraftVisibility` ignore `hasAssignedSlots` (écart sémantique avec `buildResponse`) — aucune conséquence fonctionnelle aujourd'hui [`CompositionLifecycleEnrichmentService.kt`] — deferred, pre-existing
+- [x] [Review][Defer] Toutes les erreurs 409 mappées au même message UX "Rien à publier" côté Angular — amélioration UX, non bloquant [`event-equipe-tab.ts` L132-133] — deferred, pre-existing
+- [x] [Review][Defer] Publish autorisé avec slots tous en `DECLINED` — logique de participation 6.7+ [`CompositionService.kt` L60] — deferred, pre-existing concern for story 6.7
 
 ## Dev Notes
 

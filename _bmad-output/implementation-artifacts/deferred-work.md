@@ -70,3 +70,13 @@
 ## Deferred from: code review of 6-1-etats-de-cycle-de-vie-de-composition-et-coherence-ui.md (2026-05-24)
 
 - Réponses POST/PATCH event sans enrichment lifecycle — les endpoints mutation renvoient `compositionLifecycle`/`teamStatusBadge` null ; acceptable pour 6.1 (rechargement via list/detail).
+
+## Deferred from: code review of 6-3-composition-brouillon-non-visible-aux-membres-ordinaires.md (2026-05-24)
+
+- **D1** — Notification `publishDraftCompositionShared` appelée dans `@Transactional` avant commit (`CompositionService.kt` L71) : safe maintenant (no-op log), à corriger en `@TransactionalEventListener` pour Epic 8 avant toute implémentation réelle de livraison.
+- **D2** — Idempotence `publish` cassée si tous les slots sont retirés après publication (`assignedCount == 0` check avant `alreadyPublished` check dans `CompositionService.kt` L59-72) : ne peut pas se produire en 6.3 (aucune mutation de slots), à corriger lors de l'implémentation de la story 6.5.
+- **D3** — `compositionPublished` perdu si l'onglet Équipe est détruit pendant le publish (`event-detail.html` `@if (activeTab() === 'equipe')`) : dégradation UX mineure, badge Infos non rafraîchi en cas de navigation rapide pendant la publication.
+- **D4** — Slots API renvoyés non filtrés sur `event.roleSlots` courant (`CompositionService.kt` buildResponse) : silencieusement ignorés côté Angular aujourd'hui, conséquence réelle à prévoir pour 6.4/6.5 (slots ajoutés via draw/assign).
+- **D5** — `resolveDraftVisibility` ignore `hasAssignedSlots` (écart sémantique avec `buildResponse`) : aucune conséquence fonctionnelle actuelle dans `CompositionLifecycleEnrichmentService.kt`.
+- **D6** — Toutes les erreurs 409 mappées au même message UX "Rien à publier" côté Angular (`event-equipe-tab.ts` L132-133) : les trois cas backend distincts (pas de composition, déjà validée, aucun slot assigné) ne sont pas différenciés pour l'organisateur.
+- **D7** — Publish autorisé avec slots tous en statut `DECLINED` (`CompositionService.kt` L60 : `assignedCount` compte tous les `participantId != null`) : logique de participation 6.7+, sans conséquence fonctionnelle en 6.3.

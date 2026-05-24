@@ -22,7 +22,7 @@ export function compositionStatusHint(
       if (options.canManageComposition) {
         return 'Composition en cours — non visible des autres membres.'
       }
-      return 'Proposition d\'équipe publiée.'
+      return null
     case 'complete':
       return 'Tous les rôles requis sont confirmés.'
     default:

@@ -44,12 +44,13 @@ class CompositionService(
         principal: SessionUserPrincipal,
     ): CompositionResponseDto {
         val event = loadAuthorizedEvent(seasonId, eventId, principal)
-        if (!organizerAccess.canManageComposition(eventId, seasonId, principal)) {
+        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        if (!canManage) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "Accès refusé")
         }
 
         val composition =
-            compositionRepository.findById(eventId).orElseThrow {
+            compositionRepository.findByEventIdForUpdate(eventId).orElseThrow {
                 ResponseStatusException(HttpStatus.CONFLICT, "Aucune composition à publier")
             }
         if (composition.validatedAt != null) {
@@ -71,23 +72,24 @@ class CompositionService(
             notificationPort.publishDraftCompositionShared(eventId, seasonId, principal.userId)
         }
 
-        return buildResponse(event, principal)
+        return buildResponse(event, principal, canManage = true)
     }
 
     private fun buildResponse(
         event: EventEntity,
         principal: SessionUserPrincipal,
+        canManage: Boolean? = null,
     ): CompositionResponseDto {
         val seasonId = event.season.id
         val eventId = event.id
-        val canManage = organizerAccess.canManageComposition(eventId, seasonId, principal)
+        val resolvedCanManage = canManage ?: organizerAccess.canManageComposition(eventId, seasonId, principal)
         val composition = compositionRepository.findById(eventId).orElse(null)
         val slots = slotRepository.findByEventId(eventId)
         val hasAssignedSlots = slots.any { it.participantId != null }
         val visibility =
-            CompositionVisibilityRules.resolveVisibility(composition, canManage, hasAssignedSlots)
+            CompositionVisibilityRules.resolveVisibility(composition, resolvedCanManage, hasAssignedSlots)
         val canViewSlots =
-            CompositionVisibilityRules.canViewSlotAssignments(composition, canManage) &&
+            CompositionVisibilityRules.canViewSlotAssignments(composition, resolvedCanManage) &&
                 hasAssignedSlots
 
         val slotDtos =
